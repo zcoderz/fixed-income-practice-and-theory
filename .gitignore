@@ -1,2 +1,5 @@
 # Source books (reference materials)
 books/
+
+# Agent instructions (local only)
+CLAUDE.md
