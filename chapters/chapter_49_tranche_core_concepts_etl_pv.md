@@ -1,1207 +1,806 @@
-# Chapter 49: Tranche Core Concepts — Loss Distribution, Expected Tranche Loss (ETL), and PV
+# Chapter 49: Tranche Core Concepts — Expected Tranche Loss and Present Value
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-| Convention | Description |
-|------------|-------------|
-| **Time** | Valuation at $t=0$; maturity $T$; coupon dates $0=t_0 < t_1 < \cdots < t_N = T$ |
-| **Measure** | Expectations $E[\cdot]$ are risk-neutral unless stated otherwise |
-| **Discounting** | $Z(t) = D(0,t)$ is the discount factor to $t$ (the sources describe tranche pricing using discount factors and "Libor discount factors") |
-| **Portfolio loss state variable** | $L(t) \in [0, L_{\max}]$ is fraction of portfolio notional lost by $t$ |
-| **Tranche strikes** | Attachment $A$ and detachment $D$ (also written $K_1, K_2$ in sources); width $W = D - A$ |
-| **Units** | "Fractions" are in portfolio-notional units unless explicitly normalized; $ values use a portfolio notional $N_{\text{port}}$ |
+How much of the 3–7% tranche do we expect to lose over five years? This deceptively simple question lies at the heart of tranche pricing. The answer—the Expected Tranche Loss (ETL)—is the central object that drives both the protection leg and the premium leg of any CDO tranche. Get the ETL wrong, and tranche pricing collapses entirely: you misjudge the fair spread, misprice the protection value, and create arbitrage opportunities across the capital structure.
+
+Chapter 48 introduced the tranche product structure: attachment points, detachment points, and the nonlinear mapping from portfolio losses to tranche losses. This chapter takes the next step by showing how to compute the expected value of that tranche loss—the ETL—and use it to price the two legs of a tranche trade. The key insight, as O'Kane emphasizes in his treatment of synthetic CDOs, is that "there is an exact mapping between pricing a CDS and pricing an STCDO tranche. We replace the issuer survival curve with the tranche survival curve $Q(t, K_1, K_2)$ and assume a zero recovery rate in the CDS." This elegant reduction means that once we have the tranche survival curve (which derives directly from the ETL), we can leverage all our single-name CDS pricing machinery.
+
+The chapter proceeds as follows. Section 49.1 establishes the core definitions: portfolio loss as the state variable, the tranche loss function, and the critical ETL quantity. Section 49.2 derives the ETL from both discrete and continuous loss distributions, showing the computational mechanics. Section 49.3 develops the protection leg PV as discounted expected loss increments. Section 49.4 derives the premium leg PV using the average-notional approximation, and explains why this approximation is necessary. Section 49.5 combines these to define the tranche RPV01 and par spread. Throughout, we provide worked examples that demonstrate each calculation step-by-step.
 
 ---
 
-## 0. Setup
+## 49.1 Core Definitions: From Portfolio Loss to Expected Tranche Loss
 
-### Conventions Used in This Chapter
+### 49.1.1 Portfolio Loss as the State Variable
 
-- $L(t)$ is the single state variable: portfolio cumulative loss fraction by time $t$, bounded by a (possibly) sub-100% maximum $L_{\max}$ if recoveries cap losses.
-- Tranche is characterized by $[A, D]$ with width $W = D - A$.
-- We treat the loss distribution (or equivalently the ETL curve) as an input; pricing uses discounting and risk-neutral expectations.
+The foundation of tranche pricing is a single state variable: the portfolio cumulative loss fraction $L(t)$. O'Kane defines this precisely in Chapter 12:
 
-### Notation Glossary
+$$L(t) = \frac{1}{N_c} \sum_{i=1}^{N_c} (1-R_i) \mathbf{1}_{\tau_i \leq t}$$
 
-| Symbol | Definition |
-|--------|------------|
-| $N_{\text{port}}$ | Portfolio notional (e.g., \$100mm in examples) |
-| $L(t)$ | Portfolio cumulative loss fraction of $N_{\text{port}}$ by time $t$ |
-| $A, D$ | Tranche attachment/detachment (fractions of $N_{\text{port}}$) |
-| $W = D - A$ | Tranche width (fraction of $N_{\text{port}}$) |
-| $\text{TL}(L)$ | Tranche loss amount (fraction of $N_{\text{port}}$) induced by portfolio loss level $L$ |
-| $\text{ON}(L)$ | Tranche outstanding notional (fraction of $N_{\text{port}}$) remaining at portfolio loss $L$ |
-| $L_{\text{tr}}(t)$ | Fractional loss on tranche notional (normalized to $[0,1]$) |
-| $\text{ETL}(t) = E[\text{TL}(L(t))]$ | Expected tranche loss amount (fraction of $N_{\text{port}}$) |
-| $\text{EON}(t) = E[\text{ON}(L(t))] = W - \text{ETL}(t)$ | Expected outstanding (fraction of $N_{\text{port}}$) |
-| $Q(t; A, D)$ | Tranche "survival" (expected surviving fraction of tranche notional), $Q(t) = E[1 - L_{\text{tr}}(t)]$ |
-| $Z(t) = D(0,t)$ | Discount factor to $t$ |
-| $s$ | Tranche running spread/coupon (per year, e.g., 500 bp = 0.05) |
-| $\alpha_i = \Delta(t_{i-1}, t_i)$ | Accrual year-fraction for $(t_{i-1}, t_i)$ (sources: often quarterly, Act/360; we keep $\alpha_i$ generic) |
+where $N_c$ is the number of credits in the portfolio, $R_i$ is the recovery rate for credit $i$, and $\mathbf{1}_{\tau_i \leq t}$ is the default indicator. The portfolio loss is bounded: $0 \leq L(t) \leq L_{\max}$, where $L_{\max} = 1 - \bar{R}$ if all credits have the same recovery rate $\bar{R}$.
 
----
+**Why this matters for tranche pricing:** The tranche loss function $\text{TL}(L)$ is a deterministic function of $L(t)$. Any model that produces the distribution of $L(t)$—whether a simple binomial, a Gaussian copula, or a sophisticated dynamic model—immediately implies the distribution of tranche losses. The modeling challenge reduces to characterizing one state variable rather than tracking defaults credit-by-credit.
 
-## 1. Core Concepts (Definitions First)
+### 49.1.2 Tranche Loss Function: The Nonlinear Mapping
 
-### 1.1 Portfolio Loss $L(t)$ as the State Variable
+A tranche with attachment point $A$ (also written $K_1$) and detachment point $D$ (also written $K_2$) absorbs portfolio losses only within its layer. O'Kane defines the fractional tranche loss at horizon $T$ as:
 
-**Formal Definition:**
+$$L(T, K_1, K_2) = \frac{\max(L(T) - K_1, 0) - \max(L(T) - K_2, 0)}{K_2 - K_1}$$
 
-$L(t)$ is the fraction of the portfolio notional that has been lost to defaults by time $t$, with $0 \le L(t) \le L_{\max}$.
-
-**Intuition:**
-
-Think of $L(t)$ as "how far through the capital structure the portfolio has burned."
-
-**Trading/Risk Practice:**
-
-Tranche payoffs are functions of $L(t)$; models aim to produce the distribution of $L(t)$ under pricing (risk-neutral) assumptions.
-
----
-
-### 1.2 Attachment $A$, Detachment $D$, Width $W = D - A$
-
-**Formal Definition:**
-
-A tranche absorbs portfolio losses from $A$ up to $D$; its width is $W = D - A$.
-
-**Intuition:**
-
-$A$ is subordination (how much portfolio loss must occur before this tranche is hit); $D$ is where it is fully exhausted.
-
-**Trading/Risk Practice:**
-
-Market tranches are quoted by $[A, D]$ strikes; premium is paid on outstanding tranche notional and falls as losses accrue.
-
----
-
-### 1.3 Tranche Loss Function $\text{TL}(L) = \min(\max(L - A, 0), W)$
-
-**Formal Definition (portfolio-notional units):**
-
-$$\text{TL}(L) = \min(\max(L - A, 0), W)$$
-
-**Equivalent Forms (useful identities):**
-
-$$\text{TL}(L) = \max(L - A, 0) - \max(L - D, 0) = \min(L, D) - \min(L, A)$$
-
-The sources define the normalized tranche loss as a piecewise-linear function of $L(T)$ using a "max–max" form.
-
-**Intuition:**
-
-Below $A$, no loss; between $A$ and $D$, you take dollar-for-dollar loss; above $D$, you're fully wiped (loss $W$).
-
-**Trading/Risk Practice:**
-
-This nonlinearity is why tranche risk differs across the capital structure—same portfolio loss can mean 0% loss for senior but 100% for equity.
-
----
-
-### 1.4 Tranche Outstanding Notional $\text{ON}(L) = W - \text{TL}(L)$
-
-**Formal Definition (portfolio-notional units):**
-
-$$\text{ON}(L) = W - \text{TL}(L) \in [0, W]$$
-
-**Intuition:**
-
-It's the remaining "principal" of the tranche (as a fraction of the portfolio notional).
-
-**Trading/Risk Practice:**
-
-Premium is paid on outstanding notional; as losses happen, premium payments decline.
-
----
-
-### 1.5 Normalized Tranche Loss $L_{\text{tr}}(t)$ and Tranche "Survival" $Q(t)$
-
-**Formal Definition (fraction of tranche notional):**
-
-$$L_{\text{tr}}(t) = \frac{\text{TL}(L(t))}{W} \in [0, 1]$$
-
-In the sources, the fractional tranche loss is defined (at horizon $T$) as
-
-$$L(T, K_1, K_2) = \frac{\max(L(T) - K_1, 0) - \max(L(T) - K_2, 0)}{K_2 - K_1}, \quad (K_1 = A,\ K_2 = D)$$
-
-i.e., exactly $\text{TL}(L(T))/W$.
-
-**Tranche Survival / Expected Surviving Notional:**
-
-$$Q(t; A, D) = E[1 - L_{\text{tr}}(t)]$$
-
-and the sources explicitly define $Q(t, K_1, K_2) = E[1 - L(t, K_1, K_2)]$.
-
-Equivalently,
-
-$$Q(t; A, D) = \frac{E[\text{ON}(L(t))]}{W} = \frac{\text{EON}(t)}{W}$$
-
----
-
-### 1.6 Loss Distribution of $L(t)$
-
-**Formal Definition:**
-
-The (risk-neutral) distribution is described by a CDF $F_{L(t)}(\ell) = P(L(t) \le \ell)$ (and density $f$ when it exists). In risk measurement language, determining a distribution function $F_X(x) = P(X \le x)$ (or its functionals) is the core object.
-
-**Intuition:**
-
-This is "where the portfolio might end up" by time $t$.
-
-**Trading/Risk Practice:**
-
-A tranche pricing model is largely a machine that outputs (or implies) the loss distribution of $L(t)$ or, more directly, the tranche survival curve $Q(t; A, D)$.
-
----
-
-### 1.7 Expected Tranche Loss $\text{ETL}(t) = E[\text{TL}(L(t))]$
-
-**Formal Definition (portfolio-notional units):**
-
-$$\text{ETL}(t) = E[\text{TL}(L(t))] = E[\min(L(t), D) - \min(L(t), A)]$$
-
-For an equity/base tranche $[0, K]$, the sources define the ETL curve
-
-$$\psi(T, K) = E[\min(L(T), K)]$$
-
-where $L(T)$ is fractional portfolio loss.
-
-**Intuition:**
-
-Average amount of the tranche that is expected to be used up by time $t$.
-
-**Trading/Risk Practice:**
-
-Traders track the ETL curve over time because it drives both legs of tranche PV and the "expected outstanding" used for premium payments.
-
----
-
-### 1.8 Expected Outstanding $\text{EON}(t) = W - \text{ETL}(t)$
-
-**Formal Definition:**
-
-$$\text{EON}(t) = E[\text{ON}(L(t))] = W - \text{ETL}(t)$$
-
-**Intuition:**
-
-Expected remaining principal of the tranche (in portfolio-notional units).
-
-**Trading/Risk Practice:**
-
-Premium leg PV is essentially "spread $\times$ discounted expected outstanding $\times$ accrual."
-
----
-
-### 1.9 How ETL Drives PV of Premium and Protection Legs
-
-**Conceptual Link:**
-
-- **Protection leg** pays realized tranche losses → PV is an expected discounted loss, i.e. discounted increments of expected tranche loss.
-- **Premium leg** pays spread on surviving tranche notional → PV is spread times expected outstanding (with accrual and discounting).
-
----
-
-## 2. Loss Distribution → Tranche Loss Distribution
-
-A distribution for portfolio loss $L(t)$ induces a distribution for tranche loss $\text{TL}(L(t))$ because the tranche loss is a deterministic nonlinear mapping of the state variable:
-
-$$L(t) \mapsto \text{TL}(L(t)) = \min(\max(L(t) - A, 0), W)$$
-
-**Key Idea:** Portfolio loss is the state variable; tranche loss is a nonlinear function of it.
-
-### Shape Differences Across Capital Structure
-
-- **Equity ($A \approx 0$):** Losses start immediately; often little/no probability mass at "0 tranche loss" once the portfolio has any chance of loss.
-
-- **Mezzanine ($A > 0$):** There is typically positive probability of 0 tranche loss (portfolio loss never reaches $A$). The sources describe tranche loss distributions having a probability mass at 0 equal to $\Pr(L(T) \le K_1)$, and at 100% tranche loss equal to $\Pr(L(T) \ge K_2)$.
-
-- **Senior ($A$ high):** Most scenarios do not reach attachment; but tail scenarios can wipe it out.
-
-### Why Equity/Mezz/Senior Behave Differently
-
-The mapping $\text{TL}(L)$ has a "kink" at $A$ and caps at $W$; as you move $A$ upward, the tranche becomes more "tail dependent" (depends on rare high-loss scenarios).
-
----
-
-## 3. Expected Tranche Loss (ETL): Definitions and Interpretation
-
-### 3.1 ETL at a Horizon vs ETL Curve Over Time
-
-**Horizon ETL:**
-
-$$\text{ETL}(T) = E[\text{TL}(L(T))]$$
-
-**ETL Curve:** $t \mapsto \text{ETL}(t)$ for $t \in [0, T]$.
-
-In practice, pricing requires ETL (or equivalently $Q(t)$) at the coupon grid dates.
-
----
-
-### 3.2 Incremental Expected Tranche Loss
-
-For a time grid $0 = t_0 < \cdots < t_N = T$,
-
-$$\Delta\text{ETL}_i := \text{ETL}(t_i) - \text{ETL}(t_{i-1}) = E\!\left[\text{TL}(L(t_i)) - \text{TL}(L(t_{i-1}))\right]$$
-
-**Interpretation:** Expected loss "arriving" in interval $(t_{i-1}, t_i]$.
-
----
-
-### 3.3 Expected Outstanding vs Expected Loss
-
-- $\text{ETL}(t)$ tells you expected tranche principal used up (portfolio-notional units).
-- $\text{EON}(t) = W - \text{ETL}(t)$ tells you expected tranche principal still alive (portfolio-notional units).
-
-The sources encode this through tranche "survival" $Q(t; A, D) = E[1 - L_{\text{tr}}(t)]$, i.e., expected surviving fraction of tranche notional.
-
----
-
-## 4. PV of Tranche Legs: Premium Leg and Protection Leg (Core Deliverable)
-
-We write everything first in portfolio-notional units (fractions), then convert to \$ by multiplying by $N_{\text{port}}$. This makes unit checks easy.
-
-Let tranche $[A, D]$ have width $W = D - A$. Define:
-
-- **Realized tranche loss fraction (portfolio units):** $\text{TL}(t) := \text{TL}(L(t)) \in [0, W]$
-- **Expected tranche loss:** $\text{ETL}(t) = E[\text{TL}(t)]$
-- **Expected outstanding:** $\text{EON}(t) = W - \text{ETL}(t)$
-- **Normalized loss on tranche notional:** $L_{\text{tr}}(t) = \text{TL}(t)/W \in [0, 1]$
-- **Tranche survival:** $Q(t) = E[1 - L_{\text{tr}}(t)] = \text{EON}(t)/W$
-
----
-
-### A) Premium Leg PV (Fee Leg)
-
-**Concept:** Pay running spread $s$ on outstanding tranche notional.
-
-The sources state that premium coupons are paid on surviving tranche notional (typically quarterly; Actual/360), and per \$1 face value at $t_i$ the coupon is $\alpha_i \, s \, (1 - L_{\text{tr}}(t_i))$.
-
-**Per \$1 of tranche face value** (i.e., per \$1 of $N_{\text{tr}} = N_{\text{port}} W$):
-
-If we (crudely) pay on end-of-period notional, PV would resemble
-
-$$PV_{\text{prem}}(\$1\ \text{face}) \approx s \sum_{i=1}^{N} \alpha_i \, Z(t_i) \, E[1 - L_{\text{tr}}(t_i)]$$
-
-The sources describe a more accurate approximation: pay on average tranche notional over the accrual period, giving
-
-$$\boxed{PV_{\text{prem}}(\$1\ \text{face}) = s \sum_{i=1}^{N} \alpha_i \, Z(t_i) \, E\!\left[1 - \frac{L_{\text{tr}}(t_{i-1}) + L_{\text{tr}}(t_i)}{2}\right]}$$
-
-Equivalently (using $Q(t) = E[1 - L_{\text{tr}}(t)]$),
-
-$$PV_{\text{prem}}(\$1\ \text{face}) = \frac{s}{2} \sum_{i=1}^{N} \alpha_i \, Z(t_i) \, \left(Q(t_{i-1}) + Q(t_i)\right)$$
-
-**In portfolio-notional-\$ units:**
-
-Tranche face value is $N_{\text{tr}} = N_{\text{port}} W$. Multiply the "per \$1 face" PV by $N_{\text{tr}}$, or write directly:
-
-$$\boxed{PV_{\text{prem}}(\$) = s \sum_{i=1}^{N} \alpha_i \, Z(t_i) \, \underbrace{E\!\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right]}_{\text{expected average outstanding (portfolio fraction)}} \, N_{\text{port}}}$$
-
-since $\text{ON}(t) = W(1 - L_{\text{tr}}(t))$.
-
-**Premium Accrual on Default / Intra-Period Losses:**
-
-The sources emphasize that losses inside an accrual period affect the next coupon via pro-rated notional exposure, and suggest a practical approximation: assume losses occur mid-period so the tranche notional is the average of start/end notional; and they note a direct analogy to premium accrued at default in a CDS.
-
-If you need the exact accrual/settlement convention (e.g., specific index tranche docs, day count stub rules, front-end protection, pay-as-you-go conventions), I'm not sure—we would need the trade's documentation and desk conventions.
-
-**Unit Check:**
-
-| Quantity | Units |
-|----------|-------|
-| $s$ | 1/year (e.g., 500 bp/year = 0.05/year) |
-| $\alpha_i$ | years |
-| $Z(t_i)$ | unitless |
-| $E[\text{ON}]$ | fraction of portfolio notional |
-| Multiply by $N_{\text{port}}$ | \$ |
-
-So PV is in \$.
-
----
-
-### B) Protection Leg PV (Default/Loss Leg)
-
-**Concept:** Protection leg pays realized tranche losses when they occur.
-
-The sources write (in normalized tranche-loss terms) that the protection leg PV is
-
-$$PV_{\text{prot}} = \int_0^T Z(s) \, E[\,dL_{\text{tr}}(s)\,]$$
-
-and equivalently in terms of tranche survival $Q$: $PV_{\text{prot}} = \int_0^T Z(s)(-dQ(s))$.
-
-**Discrete-Time Approximation (portfolio-notional units):**
-
-Using tranche loss amount $\text{TL}(t)$ (portfolio fraction),
-
-$$\boxed{PV_{\text{prot}}(\$) \approx N_{\text{port}} \sum_{i=1}^{N} Z(t_i) \, E[\text{TL}(t_i) - \text{TL}(t_{i-1})] = N_{\text{port}} \sum_{i=1}^{N} Z(t_i) \left(\text{ETL}(t_i) - \text{ETL}(t_{i-1})\right)}$$
-
-**Why This Works:** Protection pays increments of realized tranche loss; expectation and discounting yield "expected discounted loss."
-
-**Unit Check:**
-
-| Quantity | Units |
-|----------|-------|
-| $\text{ETL}$ | fraction of portfolio notional (unitless) |
-| $Z$ | unitless |
-| Multiply by $N_{\text{port}}$ | \$ |
-
-So PV is in \$.
-
----
-
-### C) Fair Tranche Spread / Par Premium
-
-Define the premium PV01 ("risky PV01") as PV of paying 1 unit of spread on the premium leg.
-
-The sources define a tranche risky PV01 in terms of $Q(t)$.
-
-With the average-notional approximation,
-
-$$PV01_{\text{prem}}(\$) = N_{\text{port}} \sum_{i=1}^{N} \alpha_i \, Z(t_i) \, E\!\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right]$$
-
-The **par spread** $s^*$ (ignoring any upfront $U$) solves $PV_{\text{prot}}(\$) = s^* \, PV01_{\text{prem}}(\$)$, so
-
-$$\boxed{s^* = \frac{PV_{\text{prot}}(\$)}{PV01_{\text{prem}}(\$)} = \frac{\sum_i Z(t_i)\left(\text{ETL}(t_i) - \text{ETL}(t_{i-1})\right)}{\sum_i \alpha_i \, Z(t_i) \, E\!\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right]}}$$
-
-**Units:**
-
-- Numerator: unitless (fraction) because $Z$ is unitless, ETL increment unitless
-- Denominator: years $\times$ unitless $\times$ unitless = years
-
-$\Rightarrow$ $s^*$ is 1/year. Convert to bp/year by multiplying by $10^4$.
-
-**Upfronts:**
-
-Some tranches (notably equity) can involve an upfront plus running spread; the sources' index tranche quote example includes upfront for equity and running spread paid quarterly.
-
-This chapter focuses on ETL-driven PV of the two legs; incorporating upfront is straightforward algebra once leg PVs are defined.
-
----
-
-### D) What Is Not in This Chapter
-
-- We do not calibrate dependence/correlation models (e.g., Gaussian copula, compound/base correlation, etc.).
-- We treat the loss distribution (or ETL curve) as given and show how it drives pricing.
-- We do not specify product-specific documentation choices beyond what is explicitly stated in the sources (e.g., exact settlement mechanics for all tranche types). If needed, I'm not sure without the term sheet and desk conventions.
-
----
-
-## 5. Where the Loss Distribution Comes From (High-Level Only)
-
-A tranche pricing model needs the distribution of $L(t)$ (or equivalently expectations of $\min(L(t), K)$ for various strikes).
-
-**Common Modeling Routes (preview only):**
-
-1. **Independent defaults:** Simplest baseline; tends to understate tail risk.
-
-2. **Correlated defaults via factor/latent-variable models:** Condition on a common factor so names are conditionally independent, compute conditional loss distribution, then integrate over factor density. The sources describe computing unconditional loss density $f(L(T))$ by integrating conditional density $f(L(T)|Z)$ over a market factor $Z$.
-
-3. **Copula / dependence models:** Map single-name default probabilities and a dependence structure into a portfolio loss distribution.
-
-Full modeling, calibration, and "correlation skew" are deferred to the next chapters.
-
----
-
-## 6. Measurement & Risk (Only What Belongs in Chapter 49)
-
-### Risk Drivers in ETL Language
-
-- **Equity tranches:** Sensitive to "body/mean" of loss distribution; a modest increase in expected loss can wipe out large fraction of a thin equity width.
-
-- **Senior/super-senior:** Sensitive to the tail; probability of reaching attachment dominates.
-
-### Tail Risk Preview via Tranche Loss Distribution
-
-The sources emphasize that tranche loss distributions often have mass at 0 loss ($\Pr(L(T) \le A)$) and at full loss ($\Pr(L(T) \ge D)$), highlighting the importance of tail probabilities for senior tranches.
-
-### "Correlation Risk" (Preview Only)
-
-Dependence primarily reshapes the tail of $L(t)$, and therefore can strongly affect senior tranche ETL even if marginal default probabilities are unchanged (full treatment later).
-
-### Risk Report Preview (ETL-Based)
-
-- **ETL curve:** $t \mapsto \text{ETL}(t)$
-- **Expected outstanding curve:** $t \mapsto \text{EON}(t)$
-- **PV decomposition:** $PV_{\text{prot}}$ vs $PV_{\text{prem}}$ (and any upfront if applicable)
-
----
-
-## 7. Math and Derivations (Step-by-Step)
-
-### 7.1 Derive $\text{TL}(L)$ and $\text{ON}(L)$
-
-Start from the tranche's piecewise-linear normalized loss (sources' definition at horizon $T$):
-
-$$L_{\text{tr}}(L) = \frac{\max(L - A, 0) - \max(L - D, 0)}{W}$$
-
-Multiply both sides by $W$ to express the loss in portfolio-notional units:
-
-$$\text{TL}(L) = W \, L_{\text{tr}}(L) = \max(L - A, 0) - \max(L - D, 0)$$
-
-Now show equivalence to the "clipped linear" form:
-
-- If $L \le A$: both max terms are 0 $\Rightarrow$ $\text{TL}(L) = 0 = \min(\max(L - A, 0), W)$.
-- If $A < L < D$: $\max(L - A, 0) = L - A$, $\max(L - D, 0) = 0$ $\Rightarrow$ $\text{TL}(L) = L - A$.
-- If $L \ge D$: $\max(L - A, 0) = L - A$, $\max(L - D, 0) = L - D$ $\Rightarrow$ $\text{TL}(L) = D - A = W$.
-
-Thus
+This normalized loss lies in $[0,1]$: zero when portfolio losses stay below attachment, unity when losses exceed detachment. In portfolio-notional units (unnormalized), the tranche loss amount is:
 
 $$\boxed{\text{TL}(L) = \min(\max(L - A, 0), W)}$$
 
-Outstanding notional (portfolio fraction) is then
+where $W = D - A$ is the tranche width. An equivalent and often useful form is:
+
+$$\text{TL}(L) = \min(L, D) - \min(L, A)$$
+
+This identity reveals that the tranche loss equals the difference between two "equity" payoffs—a structure we exploit when discussing base correlation in Chapter 50.
+
+> **Analogy: The Bull Call Spread**
+>
+> In option terms, the Tranche Loss is a **Bull Call Spread** on the Portfolio Loss.
+> *   **Long Call @ A**: You start losing when losses exceed A.
+> *   **Short Call @ D**: You stop losing (reach max loss) when losses exceed D.
+>
+> Note the perspective flips for the **Protection Seller**:
+> *   **Short Call @ A**: Seller pays losses above A.
+> *   **Long Call @ D**: Seller stops paying above D.
+> *   This is a **Short Call Spread** (or a **Credit Put Spread** in option lingo). You collect premium and hope the underlying (Losses) stays low.
+
+**The tranche outstanding notional**, which determines premium payments, is simply:
 
 $$\boxed{\text{ON}(L) = W - \text{TL}(L)}$$
 
-**Sanity Checks:**
+As portfolio losses accumulate, the tranche outstanding shrinks, reducing subsequent premium payments.
 
-- **Bounds:** $0 \le \text{TL}(L) \le W$, $0 \le \text{ON}(L) \le W$.
-- **Monotonicity:** $\text{TL}(L)$ nondecreasing in $L$; $\text{ON}(L)$ nonincreasing in $L$.
+### 49.1.3 Expected Tranche Loss: The Central Object
 
----
+The Expected Tranche Loss (ETL) is the expectation of the tranche loss function under the risk-neutral measure:
 
-### 7.2 Derive $\text{ETL}(t) = E[\text{TL}(L(t))]$
+$$\boxed{\text{ETL}(t) = E[\text{TL}(L(t))] = E[\min(L(t), D) - \min(L(t), A)]}$$
 
-By definition,
+For equity (base) tranches with $A = 0$, O'Kane introduces the notation $\psi(T, K)$ for the ETL curve:
 
-$$\boxed{\text{ETL}(t) = E[\text{TL}(L(t))]}$$
+$$\psi(T, K) = E[\min(L(T), K)]$$
 
-Write it as an integral under the loss distribution $F_{L(t)}$:
+This is "the expected loss at time $T$ of an equity tranche with width $K$ seen from time 0." Any mezzanine or senior tranche's ETL can be written as the difference of two equity ETLs:
 
-If $L(t)$ has density $f_{L(t)}$,
+$$\text{ETL}(T; A, D) = \psi(T, D) - \psi(T, A)$$
 
-$$\text{ETL}(t) = \int_0^{L_{\max}} \text{TL}(\ell) \, f_{L(t)}(\ell) \, d\ell$$
+This decomposition is the foundation of the base correlation framework discussed in Chapter 50.
 
-If $L(t)$ is discrete (scenario distribution), $\text{ETL}(t) = \sum_j p_j \, \text{TL}(\ell_j)$.
+**The expected outstanding notional** is the complement:
 
-For equity/base tranche $[0, K]$, the sources define $\psi(T, K) = E[\min(L(T), K)]$, consistent with $\text{ETL}(T)$ when $A = 0, D = K$.
+$$\boxed{\text{EON}(t) = W - \text{ETL}(t)}$$
 
----
+### 49.1.4 Tranche Survival and the CDS Analogy
 
-### 7.3 Derive $PV_{\text{prot}}$ in Terms of ETL Increments
+The **tranche survival probability** $Q(t; A, D)$ measures the expected surviving fraction of tranche notional:
 
-Protection PV in discrete time:
+$$Q(t; A, D) = E[1 - L_{\text{tr}}(t)] = \frac{\text{EON}(t)}{W}$$
 
-$$PV_{\text{prot}}(\$) \approx N_{\text{port}} \sum_{i=1}^{N} Z(t_i) \, E[\text{TL}(t_i) - \text{TL}(t_{i-1})] = N_{\text{port}} \sum_{i=1}^{N} Z(t_i) \, \left(\text{ETL}(t_i) - \text{ETL}(t_{i-1})\right)$$
+where $L_{\text{tr}}(t) = \text{TL}(L(t))/W$ is the normalized tranche loss. O'Kane emphasizes the importance of this quantity: "There is a clear analogy between these pricing equations and those of a CDS. If we write the tranche survival probability as $Q(t, K_1, K_2) = E[1 - L(t, K_1, K_2)]$, then the premium leg value can be rewritten" using standard CDS formulas.
 
-This matches the sources' "protection leg PV is the discounted expected loss increments," expressed either via $E[dL_{\text{tr}}]$ or via $-dQ$.
-
-**Unit Check:**
-
-Each term: $Z$ unitless $\times$ ETL increment unitless $\times$ $N_{\text{port}}$ dollars $\Rightarrow$ dollars.
+This analogy means that **once we have the tranche survival curve**, we can apply CDS pricing machinery directly (with zero recovery). The tranche survival curve encapsulates all information needed for pricing—making ETL computation the critical modeling task.
 
 ---
 
-### 7.4 Derive $PV_{\text{prem}}$ in Terms of Expected Outstanding
+## 49.2 Computing ETL from Loss Distributions
 
-The sources' premium leg (per \$1 face) is paid on surviving tranche notional.
+### 49.2.1 ETL from a Discrete Loss Distribution
 
-Using the mid-period loss approximation (average notional over the period), they obtain:
+In practice, portfolio loss distributions are often discrete—either because the portfolio has a finite number of credits, or because we discretize a continuous distribution for computation. Given scenarios $\{L_j\}$ with probabilities $\{p_j\}$:
 
-$$PV_{\text{prem}}(\$1\ \text{face}) = s \sum_{i=1}^{N} \alpha_i Z(t_i) \, E\!\left[1 - \frac{L_{\text{tr}}(t_{i-1}) + L_{\text{tr}}(t_i)}{2}\right]$$
+$$\text{ETL}(T) = \sum_j p_j \cdot \text{TL}(L_j) = \sum_j p_j \cdot [\min(L_j, D) - \min(L_j, A)]$$
 
-Convert to portfolio-notional dollars by multiplying by tranche face $N_{\text{tr}} = N_{\text{port}} W$, or equivalently:
+**Worked Example 49.1 (Discrete ETL Computation):**
 
-$$PV_{\text{prem}}(\$) = s \sum_{i=1}^{N} \alpha_i Z(t_i) \, E\!\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right] \, N_{\text{port}}$$
+Consider a tranche $[3\%, 7\%]$ with width $W = 4\%$ and the following horizon loss distribution:
 
-**Unit Check:**
+| Portfolio Loss $L$ | Probability | $\text{TL}(L)$ | $p \times \text{TL}$ |
+|:------------------:|:-----------:|:--------------:|:--------------------:|
+| 0% | 0.50 | 0 | 0 |
+| 2% | 0.20 | 0 | 0 |
+| 6% | 0.20 | 3% | 0.6% |
+| 15% | 0.10 | 4% (capped) | 0.4% |
 
-$\alpha$: years; $s$: 1/year; outstanding fraction: unitless; $Z$: unitless $\Rightarrow$ dollars after multiplying by $N_{\text{port}}$.
+$$\text{ETL}(T) = 0 + 0 + 0.6\% + 0.4\% = 1.0\%$$
+
+The expected outstanding is $\text{EON}(T) = 4\% - 1\% = 3\%$, and the tranche survival is $Q(T) = 3\%/4\% = 75\%$.
+
+### 49.2.2 ETL from a Continuous Loss Distribution
+
+When the portfolio loss has a continuous density $f(L)$, the ETL becomes an integral:
+
+$$\text{ETL}(T) = \int_0^{L_{\max}} \text{TL}(\ell) \cdot f(\ell) \, d\ell$$
+
+Using the piecewise structure of $\text{TL}(L)$:
+
+$$\text{ETL}(T) = \int_A^D (\ell - A) f(\ell) \, d\ell + \int_D^{L_{\max}} W \cdot f(\ell) \, d\ell$$
+
+The first integral captures partial losses within the tranche layer; the second captures the full wipeout probability times $W$.
+
+**Worked Example 49.2 (ETL from Continuous Density):**
+
+Suppose portfolio losses follow a beta distribution on $[0, 60\%]$ with parameters such that the density is $f(L) = 20L(0.6-L)/0.6^3$ for $L \in [0, 0.6]$ (a symmetric "hill" shape with mean 30%).
+
+For tranche $[3\%, 7\%]$:
+
+$$\text{ETL} = \int_{0.03}^{0.07} (\ell - 0.03) f(\ell) \, d\ell + \int_{0.07}^{0.60} 0.04 \cdot f(\ell) \, d\ell$$
+
+The first integral captures partial losses; the second captures full wipeout probability times $W$. While this specific integral requires numerical evaluation, the structure is general: **ETL combines the "interior" expected loss with the probability mass above the detachment point.**
+
+### 49.2.3 Conditional Independence and Numerical Methods
+
+O'Kane devotes Chapter 18 to computing the loss distribution efficiently. The key insight is **conditional independence**: in a one-factor Gaussian copula model, credits are independent conditional on the common factor $Z$. The conditional loss distribution $f(L|Z)$ is binomial (for homogeneous portfolios) or multinomial (for heterogeneous ones), and the unconditional distribution is obtained by integration:
+
+$$f(L) = \int_{-\infty}^{\infty} f(L|Z) \phi(Z) \, dZ$$
+
+where $\phi(Z)$ is the standard normal density. O'Kane describes several computational approaches:
+
+1. **Full recursion**: Build the exact conditional loss distribution credit-by-credit. Scales as $O(N_c^2)$ per factor value.
+
+2. **Gaussian approximation** (Shelton 2004): Fit the conditional loss distribution with a Gaussian matching the first two moments:
+   $$\mu(Z) = \frac{1}{N} \sum_{i=1}^N p_i(T|Z)(1-R_i), \quad \sigma^2(Z) = \frac{1}{N^2} \sum_{i=1}^N p_i(T|Z)(1-p_i(T|Z))(1-R_i)^2$$
+   This yields a closed-form conditional ETL that can be integrated analytically.
+
+3. **FFT methods**: Use the characteristic function and fast Fourier transform to build the loss distribution. Scales as $O(N_U \ln N_U)$ where $N_U$ is the number of loss units.
+
+4. **Large Homogeneous Pool (LHP) approximation**: In the limit of many identical credits, the conditional loss distribution becomes a point mass at the conditional expected loss, yielding closed-form expressions for the unconditional loss distribution.
+
+**Practical note:** For standard index tranches (125 names), O'Kane reports that the Gaussian approximation has pricing errors of ~56 bp on equity spreads, while the adjusted binomial approximation matches exact pricing to within 1 bp. The LHP model, though fast, has larger errors but captures the correct qualitative behavior.
+
+### 49.2.4 The Recursion Algorithm in Detail
+
+O'Kane presents the recursion algorithm in Chapter 18.3.1 as the foundation for exact loss distribution computation. The algorithm builds the conditional loss distribution iteratively by adding one credit at a time.
+
+**Setup:** Define the loss distribution after processing $k$ credits as $P_k(j)$, the probability that cumulative loss equals $j$ loss units, where a "loss unit" is typically the smallest loss amount in the portfolio (e.g., if all credits have equal notional and recovery, one loss unit = $(1-R)/N$).
+
+**Recursion formula:** When adding credit $k+1$ with conditional default probability $p_{k+1}(T|Z)$ and loss amount $\ell_{k+1}$ loss units:
+
+$$\boxed{P_{k+1}(j) = (1 - p_{k+1}) P_k(j) + p_{k+1} P_k(j - \ell_{k+1})}$$
+
+**Algorithm:**
+```
+Initialize: P_0(0) = 1, P_0(j) = 0 for j > 0
+For k = 1 to N_c:
+    For j = max_loss down to ℓ_k:
+        P_k(j) = (1 - p_k) P_{k-1}(j) + p_k P_{k-1}(j - ℓ_k)
+    For j = 0 to ℓ_k - 1:
+        P_k(j) = (1 - p_k) P_{k-1}(j)
+```
+
+**Complexity:** For a portfolio of $N_c$ credits where the maximum number of loss units is $N_U$, the algorithm requires $O(N_c \times N_U)$ operations per factor value. For homogeneous portfolios with unit losses, $N_U = N_c$, giving $O(N_c^2)$ complexity.
+
+**Why process credits in reverse order for $j$?** O'Kane notes that processing from high to low loss values allows the algorithm to update the distribution in-place, using only one array of size $N_U$ rather than storing both $P_{k-1}$ and $P_k$.
+
+### 49.2.5 LHP Model: Closed-Form ETL Formulas
+
+The Large Homogeneous Pool (LHP) model, developed by Vasicek and applied to CDOs by O'Kane and others, provides closed-form expressions for the loss distribution and ETL when the portfolio is large and homogeneous.
+
+**Key assumption:** In the limit $N \to \infty$ with identical credits, the conditional loss distribution collapses to a point mass at the conditional expected loss:
+
+$$L(T|Z) = (1-R) \cdot \Phi\left(\frac{C(T) - \beta Z}{\sqrt{1-\beta^2}}\right)$$
+
+where $C(T) = \Phi^{-1}(q(T))$, $q(T)$ is the unconditional default probability, and $\beta$ is the asset correlation parameter (often written $\rho$ in some texts; $\beta = \sqrt{\rho}$).
+
+**Unconditional loss distribution:** O'Kane derives in Chapter 16 that the cumulative distribution function of portfolio loss is:
+
+$$\boxed{F(K) = \Pr(L(T) \leq K) = 1 - \Phi(A(K))}$$
+
+where:
+$$\boxed{A(K) = \frac{1}{\beta}\left(C(T) - \sqrt{1-\beta^2} \cdot \Phi^{-1}\left(\frac{K}{1-R}\right)\right)}$$
+
+**ETL for equity tranche:** The expected loss on an equity tranche with detachment $K$ is:
+
+$$\boxed{\psi(T, K) = E[\min(L(T), K)] = (1-R)\Phi_2\left(C(T), -A(K), -\beta\right) + K \cdot \Phi(A(K))}$$
+
+where $\Phi_2(a, b, \rho)$ is the bivariate standard normal CDF with correlation $\rho$.
+
+**Intuition:** The first term captures the expected loss when $L < K$ (partial losses), weighted by the bivariate probability. The second term captures full loss $K$ when the portfolio loss exceeds $K$, weighted by $\Phi(A(K)) = 1 - F(K)$.
+
+**Practical usage:** The LHP formulas are extremely fast—requiring only evaluation of univariate and bivariate normal CDFs—making them ideal for:
+- Quick pricing checks and sanity testing
+- Sensitivity analysis requiring many recalculations
+- Calibration inner loops where speed matters
+- Building intuition for correlation effects
+
+**Worked Example 49.2a (LHP ETL Calculation):**
+
+Parameters: $q(T) = 5\%$ (5Y default probability), $R = 40\%$, $\beta = 0.3$ (correlation $\rho = 9\%$).
+
+Tranche: $[3\%, 7\%]$ equity.
+
+Step 1: $C(T) = \Phi^{-1}(0.05) = -1.645$
+
+Step 2: For $K = 3\% = 0.03$:
+$$A(0.03) = \frac{1}{0.3}\left(-1.645 - \sqrt{1-0.09} \cdot \Phi^{-1}(0.05)\right) = \frac{1}{0.3}(-1.645 - 0.954 \times (-1.645)) = \frac{-0.077}{0.3} = -0.257$$
+
+Step 3: $\Phi(A(0.03)) = \Phi(-0.257) = 0.399$
+
+Step 4: $\psi(T, 0.03) = 0.6 \times \Phi_2(-1.645, 0.257, -0.3) + 0.03 \times 0.399$
+
+Using bivariate normal: $\Phi_2(-1.645, 0.257, -0.3) \approx 0.029$
+
+$$\psi(T, 0.03) = 0.6 \times 0.029 + 0.03 \times 0.399 = 0.0174 + 0.0120 = 2.94\%$$
+
+For $K = 7\%$: similar calculation yields $\psi(T, 0.07) \approx 3.0\%$ (nearly all portfolio loss falls below 7%).
+
+ETL for $[3\%, 7\%]$: $\psi(0.07) - \psi(0.03) \approx 0.06\%$
+
+This low ETL reflects that the 3-7% tranche is largely protected by the equity in this low-correlation environment.
+
+### 49.2.4 The Conservation of Expected Loss
+
+A fundamental arbitrage constraint relates tranche ETLs to the portfolio expected loss. O'Kane proves in Section 12.7.1 that if we buy protection on contiguous tranches covering the entire capital structure $[0, K_1], [K_1, K_2], \ldots, [K_{M-1}, 1]$:
+
+$$\text{Total expected loss} = \sum_{m=1}^M (K_m - K_{m-1}) \cdot E[L(T, K_{m-1}, K_m)] = E[L(T)]$$
+
+The sum of the tranche expected losses (weighted by width) equals the portfolio expected loss. This conservation property must hold for any valid pricing model—it's a no-arbitrage constraint. As O'Kane notes, "the present value of the protection legs of the STCDOs, summed across the capital structure, is identical to owning the protection legs of all of the CDS in the reference portfolio."
 
 ---
 
-### 7.5 Par Spread and Limiting Cases
+## 49.3 Protection Leg PV: Discounted Expected Loss Increments
 
-**Par Spread:**
+### 49.3.1 Continuous-Time Formulation
 
-$$\boxed{s^* = \frac{PV_{\text{prot}}(\$)}{PV01_{\text{prem}}(\$)}}$$
+The protection leg pays realized tranche losses when they occur. O'Kane writes the protection leg PV (for $\$1$ face value) as:
 
-**Limiting Case 1: $\text{ETL}(t) \equiv 0$**
+$$PV_{\text{prot}} = \int_0^T Z(s) \, E[dL_{\text{tr}}(s)]$$
 
-Then $PV_{\text{prot}} = 0$, $\text{EON}(t) = W$ (full outstanding), so
+where $dL_{\text{tr}}(s)$ is the increment of normalized tranche loss at time $s$. Equivalently, in terms of the tranche survival curve:
 
-$$s^* = 0$$
+$$PV_{\text{prot}} = \int_0^T Z(s) (-dQ(s))$$
 
-*Sanity check:* If tranche never expected to lose, fair premium is zero (ignoring any risk premium beyond model).
+This is exactly analogous to the CDS protection leg with zero recovery—the "zero recovery" comes from the fact that tranche losses, once realized, are not recovered within the tranche structure.
 
-**Limiting Case 2: Tranche Wiped Immediately**
+### 49.3.2 Discrete-Time Approximation
 
-Suppose $\text{ETL}(t)$ jumps from $0$ to $W$ "at $t = 0$" (all loss realized instantly).
+For practical computation on a grid $0 = t_0 < t_1 < \cdots < t_N = T$:
 
-- Protection PV is approximately $N_{\text{port}} W$ (discount factor near 1).
-- Premium leg collapses because outstanding becomes ~0 almost immediately (premium PV01 near 0).
+$$\boxed{PV_{\text{prot}}(\$) = N_{\text{port}} \sum_{i=1}^N Z(t_i) \left(\text{ETL}(t_i) - \text{ETL}(t_{i-1})\right)}$$
 
-In this limit, a running-spread-only par $s^*$ becomes ill-defined (ratio "finite/near-zero"); economically, the value is captured by an upfront loss payment (and documentation dictates whether any accrued premium is owed). I'm not sure about the exact settlement/coupon accrual for this edge case without the tranche documentation.
+Each term $\Delta\text{ETL}_i = \text{ETL}(t_i) - \text{ETL}(t_{i-1})$ represents the expected loss "arriving" in interval $(t_{i-1}, t_i]$, discounted to today.
 
----
+O'Kane improves accuracy using the average of bounds:
 
-## 8. Worked Examples (At Least 12 Numeric Examples, Fully Numeric)
+$$PV_{\text{prot}} \approx \frac{1}{2} \sum_{i=1}^N (Z(t_{i-1}) + Z(t_i)) \cdot \Delta\text{ETL}_i \cdot N_{\text{port}}$$
 
-### Global Example Settings (Unless Stated Otherwise)
+This averages the discount factors at the interval endpoints, reducing discretization error.
 
-- **Portfolio notional:** $N_{\text{port}} = \$100{,}000{,}000$ (\$100mm).
-- **Tranche strikes** are fractions of portfolio notional; convert to \$ by multiplying by $N_{\text{port}}$.
-- When we compute a par spread in a one-period toy, we use:
-  - Maturity $T = 5$ years, discount factor $Z(T) = 0.82$ (toy),
-  - Premium paid once at $T$ with accrual $\alpha = 5$,
-  - Premium outstanding approximated by average $\frac{W + \text{EON}(T)}{2}$ (mid-period approximation analog).
+**Worked Example 49.3 (Protection Leg PV):**
 
----
+Tranche $[3\%, 7\%]$, $N_{\text{port}} = \$100$mm. ETL curve and discount factors:
 
-### Example 1: TL(L) Mapping Table (Single Tranche)
+| Time | ETL | $\Delta$ETL | $Z(t)$ | $Z \times \Delta$ETL |
+|:----:|:---:|:-----------:|:------:|:--------------------:|
+| 0 | 0.0% | — | 1.000 | — |
+| 1 | 0.2% | 0.2% | 0.970 | 0.00194 |
+| 3 | 0.8% | 0.6% | 0.900 | 0.00540 |
+| 5 | 1.2% | 0.4% | 0.820 | 0.00328 |
 
-Choose tranche $[A, D] = [3\%, 7\%]$.
-
-So $A = 0.03$, $D = 0.07$, $W = 0.04$ (4% of portfolio, i.e. \$4mm).
-
-Compute $\text{TL}(L) = \min(\max(L - A, 0), W)$ and $\text{ON}(L) = W - \text{TL}(L)$:
-
-| Portfolio Loss $L$ | $\max(L - A, 0)$ | $\text{TL}(L)$ | $\text{ON}(L)$ | TL \$ | ON \$ |
-|:------------------:|:----------------:|:--------------:|:--------------:|:-----:|:-----:|
-| 0% (0.00) | 0 | 0.00 | 0.04 | \$0.0mm | \$4.0mm |
-| 1% (0.01) | 0 | 0.00 | 0.04 | \$0.0mm | \$4.0mm |
-| 3% (0.03) | 0 | 0.00 | 0.04 | \$0.0mm | \$4.0mm |
-| 5% (0.05) | 0.02 | 0.02 | 0.02 | \$2.0mm | \$2.0mm |
-| 10% (0.10) | 0.07 | 0.04 (cap) | 0.00 | \$4.0mm | \$0.0mm |
-| 20% (0.20) | 0.17 | 0.04 (cap) | 0.00 | \$4.0mm | \$0.0mm |
-
-**Intermediate Check (5% row):** $L - A = 0.05 - 0.03 = 0.02 < W = 0.04$, so TL = 0.02.
+$$PV_{\text{prot}} = (0.00194 + 0.00540 + 0.00328) \times \$100\text{mm} = \$1.062\text{mm}$$
 
 ---
 
-### Example 2: Compare Equity vs Mezz vs Senior at the Same $L$
+## 49.4 Premium Leg PV: The Average-Notional Approximation
 
-Use tranches (consistent with common index strikes):
+### 49.4.1 Why an Approximation is Needed
 
-- **Equity:** $[0\%, 3\%]$, $W = 0.03$
-- **Mezz:** $[3\%, 7\%]$, $W = 0.04$
-- **Senior:** $[7\%, 10\%]$, $W = 0.03$
+The premium leg pays spread $s$ on the outstanding tranche notional. The challenge is that losses can occur at any time within a coupon period, not just at the endpoints. If a credit defaults mid-quarter, the tranche notional shrinks immediately, but the premium payment at quarter-end should reflect this reduced notional.
 
-These strike levels appear as standard index tranche strikes in the sources (e.g., CDX 0–3, 3–7, 7–10, etc.).
+O'Kane addresses this: "A more accurate pricing formula for the premium leg would take into account the fact that the spread is paid on the pro-rated tranche notional since the previous coupon date. A useful and accurate approximation is to assume that the spread is paid on the average tranche notional since the previous coupon payment date."
 
-**Case A: Portfolio Loss $L = 5\%$**
+### 49.4.2 The Average-Notional Formula
 
-| Tranche | TL | ON | Status |
-|---------|----|----|--------|
-| Equity $[0, 3]$ | $\min(0.05, 0.03) = 0.03$ | 0 | Wiped |
-| Mezz $[3, 7]$ | 0.02 | 0.02 | Partial loss |
-| Senior $[7, 10]$ | 0 (since $L < A$) | 0.03 | Untouched |
+The premium leg PV (per $\$1$ of tranche face value) using the average-notional approximation is:
 
-**Case B: Portfolio Loss $L = 12\%$**
+$$PV_{\text{prem}}(\$1\text{ face}) = s \sum_{i=1}^N \alpha_i Z(t_i) \, E\left[1 - \frac{L_{\text{tr}}(t_{i-1}) + L_{\text{tr}}(t_i)}{2}\right]$$
 
-| Tranche | TL | ON | Status |
-|---------|----|----|--------|
-| Equity $[0, 3]$ | 0.03 | 0 | Wiped |
-| Mezz $[3, 7]$ | 0.04 | 0 | Wiped |
-| Senior $[7, 10]$ | $\min(0.12 - 0.07, 0.03) = 0.03$ | 0 | Wiped |
+Equivalently, using the tranche survival $Q(t)$:
 
----
+$$\boxed{PV_{\text{prem}}(\$1\text{ face}) = \frac{s}{2} \sum_{i=1}^N \alpha_i Z(t_i) \left(Q(t_{i-1}) + Q(t_i)\right)}$$
 
-### Example 3: Discrete Loss Distribution → Compute $\text{ETL}(T)$ for a Tranche
+In portfolio-notional dollars:
 
-Let $T$ be a horizon date with portfolio loss outcomes:
+$$\boxed{PV_{\text{prem}}(\$) = s \, N_{\text{port}} \sum_{i=1}^N \alpha_i Z(t_i) \, E\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right]}$$
 
-$$L(T) \in \{0\%, 2\%, 6\%, 15\%\}, \quad \Pr = \{0.5,\, 0.2,\, 0.2,\, 0.1\}$$
+### 49.4.3 Accuracy of the Approximation
 
-Tranche: $[3\%, 7\%]$, $W = 4\%$.
+This mid-period approximation assumes losses occur uniformly throughout each accrual period. For CDS, O'Kane notes the error is $O(10^{-5})$ in the RPV01, translating to $O(10^{-7})$ in PV for typical spread levels. For tranches, the approximation is similarly accurate when coupon periods are short (quarterly) and losses don't arrive in concentrated bursts.
 
-Compute $\text{TL}(L)$ scenario-by-scenario:
+**When the approximation may be less accurate:**
+- Very distressed portfolios where multiple defaults cluster in time
+- Long coupon periods (e.g., annual)
+- Equity tranches with high probability of rapid loss accumulation
 
-| $L$ | $\text{TL}(L)$ | Probability |
-|:---:|:--------------:|:-----------:|
-| 0% | 0 | 0.5 |
-| 2% (< A) | 0 | 0.2 |
-| 6% | $L - A = 3\% = 0.03$ | 0.2 |
-| 15% ($\ge D$) | $W = 4\% = 0.04$ | 0.1 |
+For these cases, more sophisticated approaches (Monte Carlo with exact timing) may be warranted.
 
-Now expectation:
+### 49.4.4 Premium Accrued at Default
 
-$$\text{ETL}(T) = 0.5 \cdot 0 + 0.2 \cdot 0 + 0.2 \cdot 0.03 + 0.1 \cdot 0.04 = 0.006 + 0.004 = 0.010$$
+As with CDS, if the tranche experiences losses within a coupon period, the protection seller may owe accrued premium on the lost notional. O'Kane's formula implicitly handles this through the survival curve machinery—the same approach used in Section 6.5 for CDS premium legs.
 
-So $\text{ETL}(T) = 1.0\%$ of portfolio notional = **\$1.0mm**.
+**Worked Example 49.4 (Premium Leg PV):**
 
-*Bound check:* $0 \le 0.010 \le W = 0.04$ ✔
+Same tranche and curve as Example 49.3. Spread $s = 500$ bp/year = 0.05. Accruals: $\alpha_1 = 1$y, $\alpha_2 = 2$y, $\alpha_3 = 2$y. EON from ETL: $\text{EON}(t) = 4\% - \text{ETL}(t)$.
+
+| Interval | Avg EON | $\alpha$ | $Z$ | $Z \times \alpha \times \text{Avg EON}$ |
+|:--------:|:-------:|:--------:|:---:|:---------------------------------------:|
+| [0,1] | (4.0%+3.8%)/2 = 3.9% | 1 | 0.97 | 0.03783 |
+| [1,3] | (3.8%+3.2%)/2 = 3.5% | 2 | 0.90 | 0.06300 |
+| [3,5] | (3.2%+2.8%)/2 = 3.0% | 2 | 0.82 | 0.04920 |
+
+$$PV01_{\text{prem}} = (0.03783 + 0.06300 + 0.04920) \times \$100\text{mm} = \$15.003\text{mm}$$
+
+$$PV_{\text{prem}} = 0.05 \times \$15.003\text{mm} = \$0.750\text{mm}$$
 
 ---
 
-### Example 4: From $\text{ETL}(T)$ to Expected Outstanding $\text{EON}(T)$
+## 49.5 Tranche RPV01 and Par Spread
 
-Same tranche $[3, 7]$, $W = 0.04$, and $\text{ETL}(T) = 0.010$.
+### 49.5.1 Tranche Risky PV01
 
-$$\text{EON}(T) = W - \text{ETL}(T) = 0.04 - 0.010 = 0.030$$
+The tranche RPV01 is the present value of paying $\$1$ per year on the premium leg. O'Kane defines it as:
 
-So expected outstanding is 3.0% of portfolio = **\$3.0mm**.
+$$\boxed{\text{RPV01}(0) = \frac{1}{2} \sum_{n=1}^{N_T} \Delta(t_{n-1}, t_n) Z(t_n) \left(Q(t_{n-1}, K_1, K_2) + Q(t_n, K_1, K_2)\right)}$$
 
-*Interpretation:* On average, 1% has been eaten; 3% of the original 4% tranche remains.
+where $Z(t_n)$ is the discount factor and $Q(t, K_1, K_2)$ is the tranche survival probability.
 
----
+O'Kane emphasizes the interpretation: "Since the notional of the tranche falls if the tranche takes losses, the RPV01 reflects the credit risk of the tranche in the same way as the RPV01 of a CDS reflects the credit risk of the reference entity. For senior tranches which are usually low risk, the RPV01 is close to the risk-free Libor PV01. However, for riskier tranches, the RPV01 will be much lower."
 
-### Example 5: Time Curve of ETL — Compute Incremental ETL Over Intervals (Toy)
+**Comparison to single-name CDS RPV01:** The tranche RPV01 has the same mathematical structure as the CDS RPV01 in Chapter 41, but with the issuer survival curve replaced by the tranche survival curve. This reinforces the CDS-tranche analogy: once you have the survival curve, pricing follows the same formulas.
 
-Tranche $[3, 7]$, $W = 0.04$. Suppose an ETL curve (portfolio units):
+### 49.5.2 Par Spread Derivation
 
-| Time $t$ | $\text{ETL}(t)$ |
-|:--------:|:---------------:|
-| 0 | 0.000 |
-| 1 | 0.002 (0.2%) |
-| 3 | 0.008 (0.8%) |
-| 5 | 0.012 (1.2%) |
+The par spread $s^*$ equates the protection leg PV to the premium leg PV at initiation:
 
-**Incremental ETL:**
+$$PV_{\text{prot}} = s^* \times PV01_{\text{prem}}$$
 
-| Interval | $\Delta\text{ETL}$ |
-|:--------:|:------------------:|
-| $(0, 1]$ | $0.002 - 0.000 = 0.002$ |
-| $(1, 3]$ | $0.008 - 0.002 = 0.006$ |
-| $(3, 5]$ | $0.012 - 0.008 = 0.004$ |
+Solving:
 
-**Expected Outstanding:**
+$$\boxed{s^* = \frac{PV_{\text{prot}}}{PV01_{\text{prem}}} = \frac{\sum_i Z(t_i) \Delta\text{ETL}_i}{\sum_i \alpha_i Z(t_i) \frac{Q(t_{i-1}) + Q(t_i)}{2}}}$$
 
-| Time $t$ | $\text{EON}(t)$ |
-|:--------:|:---------------:|
-| 0 | 0.040 |
-| 1 | 0.038 |
-| 3 | 0.032 |
-| 5 | 0.028 |
+**Units check:**
+- Numerator: unitless (discount factor × ETL increment as fraction)
+- Denominator: years × unitless × unitless = years
+- Result: per year (multiply by 10,000 for bp/year)
 
----
+**Worked Example 49.5 (Par Spread Calculation):**
 
-### Example 6: Protection Leg PV from ETL Increments (Explicit Sum)
-
-Use Example 5 ETL curve and toy discount factors:
-
-- $Z(1) = 0.97$, $Z(3) = 0.90$, $Z(5) = 0.82$
-
-Compute protection PV (portfolio fraction first):
-
-$$PV_{\text{prot}}(\text{fraction}) = 0.97 \cdot 0.002 + 0.90 \cdot 0.006 + 0.82 \cdot 0.004$$
-$$= 0.00194 + 0.00540 + 0.00328 = 0.01062$$
-
-Convert to \$:
-
-$$PV_{\text{prot}}(\$) = 0.01062 \cdot \$100\text{mm} = \boxed{\$1.062\text{mm}}$$
-
----
-
-### Example 7: Premium Leg PV from Expected Outstanding (Explicit Sum; Average-Notional Approximation)
-
-Use:
-- Spread $s = 500$ bp/year $= 0.05$
-- ETL/EON from Example 5
-- Same discount factors
-- Accruals: $\alpha_1 = 1$ (0–1y), $\alpha_2 = 2$ (1–3y), $\alpha_3 = 2$ (3–5y)
-- Premium paid on average outstanding over each interval (mid-period approximation)
-
-**Average Expected Outstanding Per Interval:**
-
-| Interval | Average EON |
-|:--------:|:-----------:|
-| $[0, 1]$ | $(0.040 + 0.038)/2 = 0.039$ |
-| $[1, 3]$ | $(0.038 + 0.032)/2 = 0.035$ |
-| $[3, 5]$ | $(0.032 + 0.028)/2 = 0.030$ |
-
-**Compute PV01** (premium PV per unit spread) in portfolio fraction-years:
-
-$$PV01_{\text{prem}}(\text{fraction-years}) = 0.97 \cdot 1 \cdot 0.039 + 0.90 \cdot 2 \cdot 0.035 + 0.82 \cdot 2 \cdot 0.030$$
-$$= 0.03783 + 0.06300 + 0.04920 = 0.15003$$
-
-Convert PV01 to \$ per 100% spread:
-
-$$PV01_{\text{prem}}(\$,\, s=1) = 0.15003 \cdot \$100\text{mm} = \$15.003\text{mm}$$
-
-Now premium PV at $s = 0.05$:
-
-$$PV_{\text{prem}}(\$) = s \cdot PV01(\$,\, s=1) = 0.05 \cdot 15.003 = \boxed{\$0.75015\text{mm}}$$
-
----
-
-### Example 8: Solve Par Tranche Spread $s^*$ (bp/year)
-
-From Examples 6–7:
-
+From Examples 49.3–49.4:
 - $PV_{\text{prot}} = \$1.062\text{mm}$
-- $PV01_{\text{prem}}(s=1) = \$15.003\text{mm}$
+- $PV01_{\text{prem}} = \$15.003\text{mm}$
 
-$$s^* = \frac{1.062}{15.003} = 0.07078 \text{ per year}$$
+$$s^* = \frac{\$1.062\text{mm}}{\$15.003\text{mm}} = 0.0708 = 708 \text{ bp/year}$$
 
-In bp/year:
+$$s^* = \frac{\$1.062\text{mm}}{\$15.003\text{mm}} = 0.0708 = 708 \text{ bp/year}$$
 
-$$s^* = 0.07078 \times 10^4 = \boxed{707.8 \text{ bp/year}}$$
+> **Deep Dive: The Upfront Payment (Equity Tranches)**
+>
+> Equity tranches are so risky that trading them on a "spread only" basis is impractical (the spread would be 2000+ bp, creating massive counterparty credit risk).
+>
+> Instead, they trade with a **fixed coupon** (e.g., 500 bp) plus an **Upfront Payment**.
+>
+> **The Convention**:
+> *   **Quoted Price**: Often quoted as a percent of notional (e.g., 60 points).
+> *   **Upfront**: $100 - \text{Price}$.
+> *   **If Quote = 60**: The protection *buyer* pays $40\%$ upfront to the seller.
+> *   **Why?**: The buyer is purchasing an asset worth less than par. The accumulated risk is so high that the "fair" entry fee is massive.
 
-*Check:* $s^*$ is higher than 500 bp because in this toy ETL curve the protection PV is relatively large versus the premium PV01.
+The par spread is approximately the ratio of total expected loss to total expected outstanding duration. When ETL increases:
+- Numerator increases (more expected protection payments)
+- Denominator typically decreases (lower expected outstanding)
 
----
+Both effects push the par spread higher, creating **convexity** in the spread-ETL relationship.
 
-### Example 9: Sensitivity to Attachment — Compare $[0, 3]$ vs $[3, 7]$ (One-Period Toy)
+**Worked Example 49.6 (Spread Sensitivity to ETL):**
 
-Use the discrete horizon distribution from Example 3 at $T = 5$ years, discount $Z(T) = 0.82$, accrual $\alpha = 5$, premium on average outstanding $\frac{W + \text{EON}(T)}{2}$.
+Using our base case, suppose ETL at 5Y increases from 1.2% to 1.5% (a 0.3% increase). The incremental protection PV is approximately $0.82 \times 0.3\% \times \$100\text{mm} = \$0.246\text{mm}$.
 
-**Tranche A: $[0, 3]$, $W = 0.03$**
+The EON decreases by 0.3%, reducing PV01 by approximately $0.82 \times 2 \times 0.15\% \times \$100\text{mm} = \$0.246\text{mm}$ (rough estimate).
 
-Scenario TLs:
+New par spread: $\frac{\$1.062 + \$0.246}{\$15.003 - \$0.246} \approx \frac{\$1.308}{\$14.757} = 886$ bp/year.
 
-| $L$ | TL |
-|:---:|:--:|
-| 0% | 0 |
-| 2% | 0.02 |
-| 6% | 0.03 (cap) |
-| 15% | 0.03 (cap) |
-
-$$\text{ETL} = 0.5 \cdot 0 + 0.2 \cdot 0.02 + 0.2 \cdot 0.03 + 0.1 \cdot 0.03 = 0.004 + 0.006 + 0.003 = 0.013$$
-
-$$\text{EON} = 0.03 - 0.013 = 0.017$$
-
-$$PV_{\text{prot}} = 0.82 \cdot 0.013 \cdot 100 = \$1.066\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot \frac{0.03 + 0.017}{2} \cdot 100 = 0.82 \cdot 5 \cdot 0.0235 \cdot 100 = 0.82 \cdot 11.75 = \$9.635\text{mm}$$
-
-$$s^* = \frac{1.066}{9.635} = 0.1106 \Rightarrow \boxed{1106 \text{ bp/year}}$$
-
-**Tranche B: $[3, 7]$, $W = 0.04$** (from Example 3)
-
-- $\text{ETL} = 0.010$, $\text{EON} = 0.030$
-
-$$PV_{\text{prot}} = 0.82 \cdot 0.010 \cdot 100 = \$0.820\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot \frac{0.04 + 0.03}{2} \cdot 100 = 0.82 \cdot 5 \cdot 0.035 \cdot 100 = 0.82 \cdot 17.5 = \$14.35\text{mm}$$
-
-$$s^* = \frac{0.820}{14.35} = 0.0571 \Rightarrow \boxed{571 \text{ bp/year}}$$
-
-**Interpretation:** Lower attachment $[0, 3]$ is riskier (higher ETL relative to width), so higher par spread.
+A 0.3% increase in terminal ETL raises the spread by ~180 bp—demonstrating the leverage inherent in tranche pricing.
 
 ---
 
-### Example 10: Tail Shift Scenario — Senior Tranche Reacts More to Tail-Heavy Losses (One-Period Toy)
+## 49.6 Term Structure of ETL
 
-**Baseline Distribution (Example 3):**
+### 49.6.1 ETL Across Maturities
 
-$L = \{0, 2, 6, 15\}\%$, $p = \{0.5, 0.2, 0.2, 0.1\}$
+The ETL is a function of both strike and time. O'Kane's notation $\psi(T, K)$ emphasizes this two-dimensional surface. Key properties:
 
-**Tail-Heavy Distribution:**
+1. **Monotonicity in time:** $\psi(T_1, K) \leq \psi(T_2, K)$ for $T_1 < T_2$. Losses cannot reverse, so ETL is non-decreasing in maturity.
 
-Same losses, $p = \{0.4, 0.2, 0.1, 0.3\}$
+2. **Time-derivative constraint:** The probability of loss exceeding $K$ must also be non-decreasing, implying:
+   $$\frac{\partial^2 \psi(T, K)}{\partial T \partial K} \geq 0$$
 
-Use $T = 5$, $Z = 0.82$, $\alpha = 5$, average-outstanding approximation.
+3. **Concavity in strike:** $\frac{\partial^2 \psi(T, K)}{\partial K^2} \leq 0$. This follows from the requirement that the implied loss density be non-negative.
 
-**Senior Tranche $[10, 15]$, $W = 0.05$**
+### 49.6.2 Evolution from 1Y to 5Y
 
-Scenario TL:
-- $0, 2, 6\%$ are below 10% $\Rightarrow$ TL = 0
-- $15\%$ $\Rightarrow$ TL = 0.05 (fully wiped)
+**Worked Example 49.7 (Term Structure of ETL):**
 
-**Baseline ETL:**
+Consider how ETL evolves for different tranches as we move from 1Y to 5Y horizon:
 
-$$0.1 \cdot 0.05 = 0.005$$
+| Horizon | 0–3% ETL | 3–7% ETL | 7–10% ETL | Portfolio EL |
+|:-------:|:--------:|:--------:|:---------:|:------------:|
+| 1Y | 0.5% | 0.1% | 0.01% | 0.61% |
+| 2Y | 1.2% | 0.3% | 0.05% | 1.55% |
+| 3Y | 1.8% | 0.6% | 0.12% | 2.52% |
+| 5Y | 2.8% | 1.2% | 0.35% | 4.35% |
 
-Baseline EON $= 0.045$; avg outstanding $= (0.05 + 0.045)/2 = 0.0475$.
+Observations:
+- **Equity ETL** grows quickly, approaching tranche width (3%) by 5Y
+- **Mezzanine ETL** starts near zero, accelerates as portfolio losses reach attachment
+- **Senior ETL** remains small but grows exponentially in relative terms
+- **Conservation check:** Sum of notional-weighted ETLs should equal portfolio EL
 
-$$PV_{\text{prot}} = 0.82 \cdot 0.005 \cdot 100 = \$0.410\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot 0.0475 \cdot 100 = 0.82 \cdot 23.75 = \$19.475\text{mm}$$
-
-$$s^* = 0.410 / 19.475 = 0.02105 \Rightarrow \boxed{210.5 \text{ bp}}$$
-
-**Tail-Heavy ETL:**
-
-$$0.3 \cdot 0.05 = 0.015$$
-
-EON $= 0.035$; avg $= (0.05 + 0.035)/2 = 0.0425$.
-
-$$PV_{\text{prot}} = 0.82 \cdot 0.015 \cdot 100 = \$1.230\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot 0.0425 \cdot 100 = 0.82 \cdot 21.25 = \$17.425\text{mm}$$
-
-$$s^* = 1.230 / 17.425 = 0.0706 \Rightarrow \boxed{706 \text{ bp}}$$
-
-**Equity Tranche $[0, 3]$, $W = 0.03$**
-
-Baseline $s^* \approx 1106$ bp (Example 9).
-
-**Tail-Heavy ETL:**
-
-TLs: $0 \to 0$, $2\% \to 0.02$, $6\% \to 0.03$, $15\% \to 0.03$
-
-$$\text{ETL} = 0.4 \cdot 0 + 0.2 \cdot 0.02 + 0.1 \cdot 0.03 + 0.3 \cdot 0.03 = 0.004 + 0.003 + 0.009 = 0.016$$
-
-EON $= 0.014$; avg $= (0.03 + 0.014)/2 = 0.022$.
-
-$$PV_{\text{prot}} = 0.82 \cdot 0.016 \cdot 100 = \$1.312\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot 0.022 \cdot 100 = 0.82 \cdot 11 = \$9.02\text{mm}$$
-
-$$s^* = 1.312 / 9.02 = 0.1455 \Rightarrow \boxed{1455 \text{ bp}}$$
-
-**Takeaway:** Tail-heavy probability mass increases senior spread dramatically (210 → 706 bp) because senior ETL depends almost entirely on extreme-loss scenarios.
+This term structure drives the shape of the tranche survival curve and hence all pricing.
 
 ---
 
-### Example 11: Recovery Sensitivity Toy — Higher Recovery → Lower Portfolio Loss → Lower ETL and Par Spread
+## 49.7 No-Arbitrage Constraints on the ETL Surface
 
-Baseline (Example 3) implicitly corresponds to some LGD. Now suppose recoveries rise so that loss severities scale down by factor $50/60 = 0.8333$ (toy scaling).
+O'Kane's Chapter 19 develops rigorous no-arbitrage conditions for the ETL surface. These constraints are essential for model validation and interpolation.
 
-- Baseline loss grid: $\{0, 2, 6, 15\}\%$
-- Scaled loss grid: $\{0, 1.667, 5, 12.5\}\%$
-- Keep probabilities $\{0.5, 0.2, 0.2, 0.1\}$
+### 49.7.1 Boundary Conditions
 
-**Tranche $[3, 7]$, $W = 4\%$.**
+1. **Zero width implies zero loss:** $\psi(T, 0) = 0$
+2. **Zero maturity implies zero loss:** $\psi(0, K) = 0$
+3. **ETL cannot exceed width:** $\psi(T, K) \leq K$
+4. **Full portfolio coverage:** $\psi(T, K) = E[L(T)]$ for $K \geq L_{\max}$
 
-Compute TL under scaled losses:
+### 49.7.2 Shape Constraints
 
-| Scaled $L$ | TL |
-|:----------:|:--:|
-| 0% | 0 |
-| 1.667% (< 3%) | 0 |
-| 5% | $5 - 3 = 2\% \Rightarrow 0.02$ |
-| 12.5% | capped at $W = 0.04$ |
+**Concavity:** The ETL curve must be concave in $K$:
+$$\frac{\partial^2 \psi(T, K)}{\partial K^2} = -f(K) \leq 0$$
 
-$$\text{ETL} = 0.2 \cdot 0.02 + 0.1 \cdot 0.04 = 0.004 + 0.004 = 0.008$$
+where $f(K)$ is the implied loss density. Positive density requires non-positive second derivative.
 
-EON $= 0.04 - 0.008 = 0.032$; avg $= (0.04 + 0.032)/2 = 0.036$.
+**Monotonicity:** ETL increases in both $T$ and $K$:
+$$\frac{\partial \psi}{\partial T} \geq 0, \quad \frac{\partial \psi}{\partial K} \geq 0$$
 
-One-period PVs ($T = 5$, $Z = 0.82$, $\alpha = 5$):
+**Cross-derivative:** The slope in $K$ must be non-decreasing in $T$:
+$$\frac{\partial^2 \psi(T, K)}{\partial T \partial K} \geq 0$$
 
-$$PV_{\text{prot}} = 0.82 \cdot 0.008 \cdot 100 = \$0.656\text{mm}$$
-
-$$PV01 = 0.82 \cdot 5 \cdot 0.036 \cdot 100 = 0.82 \cdot 18 = \$14.76\text{mm}$$
-
-$$s^* = \frac{0.656}{14.76} = 0.04444 \Rightarrow \boxed{444 \text{ bp}}$$
-
-Compare to baseline $[3, 7]$ spread from Example 9 ($\approx 571$ bp): higher recovery lowers ETL and spread.
+These constraints define the envelope of valid ETL surfaces and can be used to assess model arbitrage.
 
 ---
 
-### Example 12: Consistency Checks — Bounds and PV Signs Under a Clear Convention
+## 49.8 Implementation Notes
 
-Adopt **protection-buyer convention:**
+### 49.8.1 Efficient ETL Computation
 
-- Protection leg PV is a benefit (positive)
-- Premium leg PV is a cost (negative)
-- Net PV (ignoring upfront) is:
+**For discrete loss distributions:**
+1. Build the loss distribution at each coupon date (using recursion, FFT, or simulation)
+2. Compute $\text{TL}(L_j)$ for each loss scenario $L_j$
+3. Weight by probabilities: $\text{ETL} = \sum_j p_j \cdot \text{TL}(L_j)$
 
-$$PV_{\text{net}} = PV_{\text{prot}} - PV_{\text{prem}}$$
+**For LHP/Gaussian approximations:**
+1. Compute conditional ETL analytically for each factor value $Z$
+2. Integrate over $Z$ using Gaussian quadrature or trapezium rule
+3. O'Kane recommends $N_Z = 50$ factor grid points for typical accuracy
 
-Use Example 6–8 with par spread $s^* = 707.8$ bp:
+**For Monte Carlo:**
+1. Simulate portfolio loss paths
+2. Compute tranche loss for each path
+3. Average across paths (with variance reduction as needed)
 
-- By construction, $PV_{\text{prot}} = s^* \cdot PV01$, so $PV_{\text{net}} \approx 0$ at initiation.
+### 49.8.2 ETL Interpolation Between Coupon Dates
 
-**Bound Checks (from Example 5):**
+For protection leg PV computation, we need ETL at each payment date. Common approaches:
+- **Linear interpolation:** Fast but may violate monotonicity constraints near high-loss scenarios
+- **Piecewise constant forward rate:** Assume constant hazard rate between calibration points
+- **Spline interpolation:** Smoother but must enforce concavity constraints
 
-- $W = 0.04$, $\text{ETL}(5) = 0.012$ satisfies $0 \le \text{ETL} \le W$.
-- $\text{EON}(5) = 0.028$ satisfies $0 \le \text{EON} \le W$.
-- In any scenario, $\text{TL}(L) \in [0, W]$ and $\text{ON}(L) \in [0, W]$ (Example 1 table demonstrates this numerically).
+### 49.8.3 Common Calculation Errors
 
-**Sign Sanity:**
+1. **Unit confusion:** Mixing portfolio fractions with tranche fractions or dollar amounts. Always track units explicitly.
 
-If $\text{ETL}$ increases (more expected loss), $PV_{\text{prot}}$ increases (more expected payouts), while premium PV01 typically decreases (less outstanding to pay on), both pushing fair $s^*$ upward—consistent with the sources' intuition that premium payments decline as tranche losses rise.
+2. **Ignoring the cap:** Forgetting that tranche loss is capped at $W$, leading to impossible ETL values.
 
----
+3. **Double-counting:** Adding equity and mezzanine ETL without accounting for overlap (the correct decomposition uses $\psi(D) - \psi(A)$).
 
-## 9. Practical Notes
+4. **Conservation violation:** If sum of ETLs across tranches doesn't equal portfolio EL, there's a modeling or calculation error.
 
-### Production Checklist
-
-1. Define the portfolio (names, notionals, recovery/LGD assumptions, maturity).
-2. Define tranche $[A, D]$ and width $W = D - A$.
-3. Specify payment dates $\{t_i\}$ and accruals $\{\alpha_i\}$ (sources: often quarterly, Act/360).
-4. Choose discount curve $Z(t)$.
-5. Provide loss distribution input:
-   - Full distribution of $L(t_i)$, or
-   - ETL curve $\text{ETL}(t_i)$, or
-   - Tranche survival curve $Q(t_i)$ (expected surviving tranche notional fraction).
-6. Compute:
-   - $PV_{\text{prot}} = \sum Z(t_i)(\text{ETL}_i - \text{ETL}_{i-1}) N_{\text{port}}$
-   - $PV01_{\text{prem}} = \sum \alpha_i Z(t_i) E[\text{avg ON}] N_{\text{port}}$
-   - $s^* = PV_{\text{prot}} / PV01_{\text{prem}}$
-
-### Common Pitfalls
-
-- Mixing portfolio % units and \$ units (always track whether you're in fractions or dollars).
-- Confusing tranche width $W$ (a fraction of the portfolio) with the portfolio notional $N_{\text{port}}$.
-- Forgetting premium is on outstanding tranche notional (not initial notional).
-- Using inconsistent discounting or accrual conventions.
-- Treating ETL as linear in correlation/dependence—typically it is not (preview only; full treatment later).
-
-### Verification Tests
-
-- $\text{TL}(L)$ is monotone nondecreasing and bounded in $[0, W]$.
-- $\text{ETL}(t)$ is nondecreasing in $t$ and bounded by $W$.
-- Repricing check: using $s^*$ gives $PV_{\text{prot}} \approx PV_{\text{prem}}$ (net PV near 0) at initiation.
+5. **Negative tranche survival:** If $Q(t) < 0$, the ETL exceeds the tranche width—impossible.
 
 ---
 
-## 10. Summary & Recall
+## 49.9 Worked Examples: Complete Calculations
 
-### 10-Bullet Executive Summary
+### Example 49.8: Comparing Attachment Levels
 
-1. **Portfolio cumulative loss** $L(t)$ (fraction of portfolio notional) is the state variable for tranche payoffs.
+Discrete horizon distribution: $L = \{0\%, 2\%, 6\%, 15\%\}$ with $p = \{0.5, 0.2, 0.2, 0.1\}$.
 
-2. **Tranche** $[A, D]$ has width $W = D - A$; it absorbs losses only between attachment and detachment.
+$T = 5$, $Z(T) = 0.82$, $\alpha = 5$, average-outstanding approximation.
 
-3. **Tranche loss amount** (portfolio fraction) is $\text{TL}(L) = \min(\max(L - A, 0), W)$.
+**Equity tranche $[0\%, 3\%]$, $W = 3\%$:**
 
-4. **Outstanding tranche notional** (portfolio fraction) is $\text{ON}(L) = W - \text{TL}(L)$.
+| $L$ | TL | $p$ | $p \times$ TL |
+|:---:|:--:|:---:|:-------------:|
+| 0% | 0 | 0.5 | 0 |
+| 2% | 2% | 0.2 | 0.4% |
+| 6% | 3% | 0.2 | 0.6% |
+| 15% | 3% | 0.1 | 0.3% |
 
-5. **Normalized tranche loss fraction** is $L_{\text{tr}}(t) = \text{TL}(L(t))/W$, matching the sources' definition.
+$\text{ETL} = 1.3\%$, $\text{EON} = 1.7\%$
 
-6. A **model delivers the distribution** of $L(t)$ (or equivalently ETL/Q curves) required for pricing.
+$PV_{\text{prot}} = 0.82 \times 1.3\% \times \$100\text{mm} = \$1.066\text{mm}$
 
-7. **Expected tranche loss** is $\text{ETL}(t) = E[\text{TL}(L(t))]$; **expected outstanding** is $\text{EON}(t) = W - \text{ETL}(t)$.
+$PV01 = 0.82 \times 5 \times \frac{3\% + 1.7\%}{2} \times \$100\text{mm} = \$9.64\text{mm}$
 
-8. **Protection leg PV** is an expected discounted loss: $\sum Z(t_i) \Delta\text{ETL}_i$.
+$s^* = \$1.066/\$9.64 = 11.06\% = 1106$ bp/year
 
-9. **Premium leg PV** is spread times discounted expected outstanding, with mid-period average notional approximation in the sources.
+**Mezzanine tranche $[3\%, 7\%]$, $W = 4\%$:**
 
-10. **Par spread** is $s^* = PV_{\text{prot}} / PV01_{\text{prem}}$; senior tranches are tail-driven while equity is body/mean-driven.
+| $L$ | TL | $p$ | $p \times$ TL |
+|:---:|:--:|:---:|:-------------:|
+| 0% | 0 | 0.5 | 0 |
+| 2% | 0 | 0.2 | 0 |
+| 6% | 3% | 0.2 | 0.6% |
+| 15% | 4% | 0.1 | 0.4% |
 
----
+$\text{ETL} = 1.0\%$, $\text{EON} = 3.0\%$
 
-### Cheat Sheet: Key Formulas (with Units)
+$PV_{\text{prot}} = 0.82 \times 1.0\% \times \$100\text{mm} = \$0.820\text{mm}$
 
-**Portfolio loss:**
-$$L(t) \in [0, L_{\max}] \quad \text{(unitless fraction)}$$
+$PV01 = 0.82 \times 5 \times \frac{4\% + 3\%}{2} \times \$100\text{mm} = \$14.35\text{mm}$
 
-**Width:**
-$$W = D - A \quad \text{(unitless fraction)}$$
+$s^* = \$0.820/\$14.35 = 5.71\% = 571$ bp/year
 
-**Tranche loss amount:**
-$$\boxed{\text{TL}(L) = \min(\max(L - A, 0), W)} \quad \text{(fraction of portfolio)}$$
+**Interpretation:** Equity trades wider (1106 bp vs 571 bp) because it absorbs losses first. The mezz has higher EON (3% vs 1.7%) providing more premium cushion.
 
-**Outstanding:**
-$$\boxed{\text{ON}(L) = W - \text{TL}(L)} \quad \text{(fraction of portfolio)}$$
+### Example 49.9: Tail Sensitivity
 
-**Normalized tranche loss:**
-$$L_{\text{tr}}(t) = \frac{\text{TL}(L(t))}{W} \in [0, 1]$$
+Same distribution but shift probability mass to the tail:
 
-(Matches sources' $L(T, K_1, K_2)$.)
+**Baseline:** $p = \{0.5, 0.2, 0.2, 0.1\}$
 
-**ETL:**
-$$\boxed{\text{ETL}(t) = E[\text{TL}(L(t))]} \quad \text{(fraction of portfolio)}$$
+**Tail-heavy:** $p = \{0.4, 0.2, 0.1, 0.3\}$
 
-**Expected outstanding:**
-$$\boxed{\text{EON}(t) = W - \text{ETL}(t)} \quad \text{(fraction of portfolio)}$$
+**Senior tranche $[10\%, 15\%]$, $W = 5\%$:**
 
-**Protection PV (discrete):**
-$$\boxed{PV_{\text{prot}}(\$) = N_{\text{port}} \sum_i Z(t_i)\left(\text{ETL}(t_i) - \text{ETL}(t_{i-1})\right)}$$
+Only the 15% scenario hits this tranche (TL = 5% = full wipeout).
 
-**Premium PV (average-notional approximation):**
-$$\boxed{PV_{\text{prem}}(\$) = s \, N_{\text{port}} \sum_i \alpha_i Z(t_i) E\!\left[\frac{\text{ON}(t_{i-1}) + \text{ON}(t_i)}{2}\right]}$$
+| Distribution | ETL | EON | $PV_{\text{prot}}$ | $PV01$ | $s^*$ |
+|:------------:|:---:|:---:|:------------------:|:------:|:-----:|
+| Baseline | 0.5% | 4.5% | \$0.41mm | \$19.5mm | 211 bp |
+| Tail-heavy | 1.5% | 3.5% | \$1.23mm | \$17.4mm | 707 bp |
 
-**Par spread:**
-$$\boxed{s^* = \frac{PV_{\text{prot}}(\$)}{PV01_{\text{prem}}(\$)}} \quad \text{(1/year; convert to bp/year)}$$
+The senior spread triples (211 → 707 bp) because its ETL depends entirely on the extreme tail probability, which tripled from 10% to 30%.
 
----
+### Example 49.10: Recovery Sensitivity
 
-### 30 Flashcards (Q/A)
+Higher recoveries reduce loss severity. If losses scale by 5/6 (recoveries up 10%):
 
-1. **Q:** What is the tranche pricing state variable in this chapter?
-   **A:** Portfolio loss $L(t)$ as a fraction of portfolio notional.
+**Original losses:** $\{0\%, 2\%, 6\%, 15\%\}$
+**Scaled losses:** $\{0\%, 1.67\%, 5\%, 12.5\%\}$
 
-2. **Q:** Define tranche width.
-   **A:** $W = D - A$.
+**Tranche $[3\%, 7\%]$:**
 
-3. **Q:** Define tranche loss amount $\text{TL}(L)$.
-   **A:** $\min(\max(L - A, 0), W)$.
+| Scaled $L$ | TL | $p$ | $p \times$ TL |
+|:----------:|:--:|:---:|:-------------:|
+| 0% | 0 | 0.5 | 0 |
+| 1.67% | 0 | 0.2 | 0 |
+| 5% | 2% | 0.2 | 0.4% |
+| 12.5% | 4% | 0.1 | 0.4% |
 
-4. **Q:** What are the units of $\text{TL}(L)$?
-   **A:** Fraction of portfolio notional.
+$\text{ETL} = 0.8\%$, $\text{EON} = 3.2\%$
 
-5. **Q:** Define tranche outstanding $\text{ON}(L)$.
-   **A:** $W - \text{TL}(L)$.
+$s^* = \frac{0.82 \times 0.8\%}{0.82 \times 5 \times 3.6\%} = 444$ bp/year
 
-6. **Q:** What is normalized tranche loss $L_{\text{tr}}(t)$?
-   **A:** $\text{TL}(L(t))/W \in [0, 1]$.
+vs 571 bp baseline—higher recovery reduces the spread.
 
-7. **Q:** How do the sources define fractional tranche loss at $T$?
-   **A:** As a max–max linear payoff over $[K_1, K_2]$.
+### Example 49.11: Multi-Period ETL Curve
 
-8. **Q:** Define ETL.
-   **A:** $\text{ETL}(t) = E[\text{TL}(L(t))]$.
+Building on Example 49.3, here's the full protection leg computation with quarterly detail:
 
-9. **Q:** Define expected outstanding.
-   **A:** $\text{EON}(t) = W - \text{ETL}(t)$.
+| Quarter | $t$ | ETL | $\Delta$ETL | $Z(t)$ | $Z \times \Delta$ETL |
+|:-------:|:---:|:---:|:-----------:|:------:|:--------------------:|
+| 1 | 0.25 | 0.05% | 0.05% | 0.988 | 0.000494 |
+| 2 | 0.50 | 0.10% | 0.05% | 0.976 | 0.000488 |
+| 3 | 0.75 | 0.15% | 0.05% | 0.964 | 0.000482 |
+| 4 | 1.00 | 0.20% | 0.05% | 0.952 | 0.000476 |
+| ... | ... | ... | ... | ... | ... |
+| 20 | 5.00 | 1.20% | 0.05% | 0.820 | 0.000410 |
 
-10. **Q:** What is tranche survival $Q(t)$?
-    **A:** $Q(t) = E[1 - L_{\text{tr}}(t)]$.
+Total protection PV fraction ≈ 0.0096, times \$100mm = \$0.96mm.
 
-11. **Q:** Relationship between $Q(t)$ and $\text{EON}(t)$?
-    **A:** $Q(t) = \text{EON}(t)/W$.
+### Example 49.12: Conservation Check
 
-12. **Q:** What does the premium leg pay on?
-    **A:** Surviving/outstanding tranche notional.
+Verify that tranche ETLs sum to portfolio expected loss:
 
-13. **Q:** Why do premium payments decline after losses?
-    **A:** Outstanding notional shrinks.
+| Tranche | Width | ETL | Width × ETL/Width = Contribution |
+|:-------:|:-----:|:---:|:--------------------------------:|
+| 0–3% | 3% | 1.3% | 1.3% |
+| 3–7% | 4% | 1.0% | 1.0% |
+| 7–10% | 3% | 0.4% | 0.4% |
+| 10–15% | 5% | 0.5% | 0.5% |
+| 15–60% | 45% | 0.3% | 0.3% |
 
-14. **Q:** What does the protection leg pay?
-    **A:** Realized tranche losses (increments of tranche loss).
-
-15. **Q:** Discrete protection PV in ETL terms?
-    **A:** $\sum Z(t_i)(\text{ETL}_i - \text{ETL}_{i-1}) N_{\text{port}}$.
-
-16. **Q:** Premium PV01 meaning?
-    **A:** PV of paying 1 unit of spread on expected outstanding.
-
-17. **Q:** Par spread formula?
-    **A:** $s^* = PV_{\text{prot}} / PV01_{\text{prem}}$.
-
-18. **Q:** If ETL is identically zero, what is $s^*$?
-    **A:** $0$.
-
-19. **Q:** Why are senior tranches tail-sensitive?
-    **A:** They pay only when losses exceed high attachment.
-
-20. **Q:** Why is mezzanine often "kinked" risk?
-    **A:** It depends strongly on whether loss distribution reaches its attachment.
-
-21. **Q:** What mass points can appear in tranche loss distribution?
-    **A:** Mass at 0 loss and at 100% loss.
-
-22. **Q:** How is unconditional loss density built in a one-factor model?
-    **A:** Integrate conditional loss density over factor density.
-
-23. **Q:** Why keep ETL in portfolio units?
-    **A:** It makes aggregation and \$ conversion simple (multiply by $N_{\text{port}}$).
-
-24. **Q:** Convert ETL to \$ loss.
-    **A:** $N_{\text{port}} \cdot \text{ETL}$.
-
-25. **Q:** Convert normalized tranche loss to \$ loss.
-    **A:** $N_{\text{tr}} \cdot L_{\text{tr}}$ where $N_{\text{tr}} = N_{\text{port}} W$.
-
-26. **Q:** What input objects are sufficient to price a tranche (in this chapter)?
-    **A:** Discount curve + ETL/Q curve on coupon dates.
-
-27. **Q:** What is not done here?
-    **A:** Correlation/base correlation calibration.
-
-28. **Q:** Why is premium-on-average-notional used?
-    **A:** To approximate intra-period loss timing.
-
-29. **Q:** What additional info is needed for exact accrual/settlement?
-    **A:** Trade documentation (index vs bespoke, settlement, day count, accrual conventions).
-
-30. **Q:** What is the main conceptual summary?
-    **A:** Tranche is a nonlinear transform of portfolio loss; ETL drives both legs' PV.
+Total = 3.5% = Portfolio expected loss ✓
 
 ---
 
-## 11. Mini Problem Set (18 Questions)
+## 49.10 Cross-References
 
-*(Brief solution sketches for questions 1–9 only.)*
-
----
-
-**1. Compute TL/ON:**
-
-For tranche $[A, D] = [2\%, 5\%]$, compute $\text{TL}(L)$ and $\text{ON}(L)$ at $L = \{0\%, 2\%, 4\%, 5\%, 8\%\}$.
-
-*Sketch:* Use $\text{TL} = \min(\max(L - A, 0), W)$ with $W = 3\%$; then $\text{ON} = W - \text{TL}$.
+- **Chapter 48:** Tranche product structure, attachment/detachment mechanics
+- **Chapter 50:** Correlation effects on loss distribution and ETL; base correlation
+- **Chapter 41:** CDS pricing and RPV01—the tranche formulas are direct analogues
+- **Chapter 51:** Tranche risk sensitivities (delta, gamma, correlation)
 
 ---
 
-**2. Normalized vs unnormalized loss:**
+## Summary
 
-Show that the sources' $L(T, K_1, K_2)$ equals $\text{TL}(L(T))/W$.
+1. **Portfolio loss $L(t)$** is the single state variable; tranche loss is a deterministic nonlinear function of it.
 
-*Sketch:* Multiply the sources' definition by $W = K_2 - K_1$ to get the unnormalized $\max - \max$ form.
+2. **ETL** = $E[\text{TL}(L(t))]$ = $E[\min(L,D) - \min(L,A)]$ is the central pricing object.
 
----
+3. **For equity tranches**, ETL equals the base tranche loss $\psi(T,K) = E[\min(L(T),K)]$.
 
-**3. ETL from scenarios:**
+4. **Any tranche's ETL** equals the difference of two equity ETLs: $\psi(D) - \psi(A)$.
 
-Given $L(T) \in \{1\%, 4\%, 9\%\}$ with probs $\{0.3, 0.5, 0.2\}$, compute $\text{ETL}(T)$ for tranche $[3\%, 7\%]$.
+5. **Protection leg PV** = discounted expected loss increments = $\sum Z_i \Delta\text{ETL}_i$.
 
-*Sketch:* Compute TL per scenario: $1\% \to 0$, $4\% \to 1\%$, $9\% \to 4\%$; weight by probabilities.
+6. **Premium leg PV** uses the average-notional approximation: spread × discounted expected outstanding.
 
----
+7. **Tranche RPV01** parallels CDS RPV01 with the tranche survival curve replacing issuer survival.
 
-**4. EON and Q:**
+8. **Par spread** = $PV_{\text{prot}} / PV01_{\text{prem}}$—higher ETL and lower outstanding both widen spreads.
 
-For a tranche with width $W$, show $Q(T) = \text{EON}(T)/W$.
+9. **Conservation of expected loss** across the capital structure is a no-arbitrage constraint.
 
-*Sketch:* $Q = E[1 - L_{\text{tr}}] = E[1 - \text{TL}/W] = E[\text{ON}/W] = \text{EON}/W$.
-
----
-
-**5. Protection PV from ETL increments:**
-
-Given ETL(1) = 0.2%, ETL(2) = 0.5%, ETL(3) = 0.7% and discount factors 0.98, 0.95, 0.92, compute protection PV for $N_{\text{port}} = \$200$mm.
-
-*Sketch:* Compute increments $(0.2, 0.3, 0.2)\%$; PV fraction $= \sum Z \cdot \Delta\text{ETL}$; multiply by \$200mm.
+10. **ETL surface** must be monotonic, concave in strike, with non-negative implied density.
 
 ---
 
-**6. Premium PV01:**
+## Key Concepts Summary
 
-With accruals $\alpha_i = 1$ yearly, discount factors as in (5), and expected outstanding $\text{EON}(0) = 4\%$, $\text{EON}(1) = 3.8\%$, $\text{EON}(2) = 3.6\%$, $\text{EON}(3) = 3.5\%$, compute PV01 using average outstanding.
-
-*Sketch:* For each year use avg outstanding $(\text{EON}_{i-1} + \text{EON}_i)/2$, sum $Z \cdot \alpha \cdot \text{avg}$, multiply by $N_{\text{port}}$.
-
----
-
-**7. Par spread:**
-
-Using your answers to (5) and (6), compute $s^*$ in bp/year.
-
-*Sketch:* $s^* = PV_{\text{prot}} / PV01$; multiply by $10^4$.
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Portfolio Loss $L(t)$ | Fraction of portfolio lost to defaults by time $t$ | The single state variable for tranche pricing |
+| Tranche Loss $\text{TL}(L)$ | $\min(\max(L-A,0), W)$ | Nonlinear payoff creating leverage across capital structure |
+| ETL | $E[\text{TL}(L(t))]$ | Drives both legs of tranche PV |
+| Tranche Survival $Q(t)$ | $E[1 - L_{\text{tr}}(t)] = \text{EON}/W$ | Enables CDS pricing analogy |
+| RPV01 | PV of paying 1/year on premium leg | Measures tranche duration |
+| Conservation | $\sum$ tranche ETL = portfolio EL | No-arbitrage constraint |
+| ETL Concavity | $\partial^2\psi/\partial K^2 \leq 0$ | Ensures positive implied loss density |
 
 ---
 
-**8. Tail sensitivity:**
+## Notation for This Chapter
 
-For a senior tranche with $A = 10\%$, explain why increasing $\Pr(L(T) \ge D)$ can dominate spread even if $E[L(T)]$ changes little.
-
-*Sketch:* Senior TL is nearly 0 unless $L$ reaches attachment; tail probability controls expected loss.
+| Symbol | Definition |
+|--------|------------|
+| $L(t)$ | Portfolio cumulative loss fraction at time $t$ |
+| $A, D$ | Attachment, detachment points (fractions) |
+| $W = D - A$ | Tranche width (fraction) |
+| $\text{TL}(L)$ | Tranche loss amount (portfolio fraction units) |
+| $\text{ON}(L)$ | Tranche outstanding notional (portfolio fraction units) |
+| $\text{ETL}(t)$ | Expected tranche loss at time $t$ |
+| $\text{EON}(t)$ | Expected outstanding notional at time $t$ |
+| $\psi(T,K)$ | ETL for equity tranche $[0,K]$ at horizon $T$ |
+| $Q(t;A,D)$ | Tranche survival probability |
+| $\text{RPV01}$ | Tranche risky PV01 |
+| $Z(t)$ | Discount factor to time $t$ |
+| $\alpha_i$ | Accrual fraction for period $i$ |
+| $s$ | Running spread (per year) |
 
 ---
 
-**9. Bounds check:**
+## Flashcards
 
-Prove $0 \le \text{ETL}(t) \le W$.
-
-*Sketch:* Since $0 \le \text{TL}(L(t)) \le W$ almost surely, expectation preserves bounds.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is the state variable for tranche pricing? | Portfolio loss $L(t)$ as a fraction of notional |
+| 2 | Define the tranche loss function $\text{TL}(L)$. | $\min(\max(L-A,0), W)$ |
+| 3 | What is $\text{ON}(L)$? | $W - \text{TL}(L)$, the outstanding notional |
+| 4 | Define ETL. | $E[\text{TL}(L(t))]$, expected tranche loss |
+| 5 | What is $\psi(T,K)$? | ETL for equity tranche $[0,K]$: $E[\min(L(T),K)]$ |
+| 6 | How is any tranche's ETL related to equity ETLs? | $\text{ETL}(A,D) = \psi(D) - \psi(A)$ |
+| 7 | Define tranche survival $Q(t)$. | $E[1 - L_{\text{tr}}(t)] = \text{EON}(t)/W$ |
+| 8 | What is the discrete protection leg PV formula? | $\sum Z(t_i) \Delta\text{ETL}_i \times N_{\text{port}}$ |
+| 9 | Why use average-notional for premium leg? | To approximate intra-period loss timing |
+| 10 | What is tranche RPV01? | PV of paying $\$1$/year on the premium leg |
+| 11 | Formula for par spread? | $s^* = PV_{\text{prot}} / PV01_{\text{prem}}$ |
+| 12 | What is conservation of expected loss? | Sum of tranche ETLs = portfolio expected loss |
+| 13 | Why are senior tranches tail-sensitive? | ETL depends on $\Pr(L \geq A)$, a tail probability |
+| 14 | What does concavity of ETL in strike ensure? | Non-negative implied loss density |
+| 15 | How does conditional independence help compute loss distributions? | Credits independent given factor $Z$; integrate over $Z$ |
+| 16 | What's the Gaussian approximation (Shelton 2004)? | Fit conditional loss with Gaussian matching first two moments |
+| 17 | Relationship between tranche and CDS pricing? | Replace issuer survival with tranche survival, use zero recovery |
+| 18 | If ETL = 0 everywhere, what is par spread? | Zero |
+| 19 | If ETL = $W$ at $t=0$, what happens to par spread? | Undefined (denominator → 0); upfront captures value |
+| 20 | How do higher recoveries affect ETL? | Lower loss severity → lower ETL → tighter spread |
+| 21 | What is the recursion formula for loss distribution? | $P_{k+1}(j) = (1-p_{k+1})P_k(j) + p_{k+1}P_k(j-\ell_{k+1})$ |
+| 22 | What is the complexity of the recursion algorithm? | $O(N_c \times N_U)$ per factor value; $O(N_c^2)$ for homogeneous pools |
+| 23 | In LHP model, what is the loss distribution CDF $F(K)$? | $F(K) = 1 - \Phi(A(K))$ where $A(K) = \frac{1}{\beta}(C(T) - \sqrt{1-\beta^2}\Phi^{-1}(K/(1-R)))$ |
+| 24 | What is the LHP formula for equity ETL $\psi(T,K)$? | $(1-R)\Phi_2(C(T), -A(K), -\beta) + K\Phi(A(K))$ |
+| 25 | Why process loss units high-to-low in the recursion? | Allows in-place array updates without storing both $P_{k-1}$ and $P_k$ |
 
 ---
 
-**10.** Show how the tranche loss distribution can have an atom at 0 and at 100% loss, and express these masses via $F_{L(T)}$.
+## Mini Problem Set
 
-**11.** Derive the identity $\text{TL}(L) = \min(L, D) - \min(L, A)$.
+**1.** For tranche $[2\%, 5\%]$, compute $\text{TL}(L)$ and $\text{ON}(L)$ at $L = \{0\%, 2\%, 4\%, 5\%, 8\%\}$.
 
-**12.** Suppose a tranche has $D > L_{\max}$. Explain what breaks in the "mapping to a CDS with zero recovery" and what extra modeling is needed.
+*Solution:* $W = 3\%$. TL = $\{0, 0, 2\%, 3\%, 3\%\}$. ON = $\{3\%, 3\%, 1\%, 0, 0\}$.
 
-**13.** If $\text{ETL}(t)$ is nondecreasing, what does this imply about expected outstanding and premium PV01?
+**2.** Show that $\text{TL}(L) = \min(L,D) - \min(L,A)$.
 
-**14.** Describe how conditional independence in a one-factor model simplifies building $f(L(T)|Z)$.
+*Solution:* Case analysis: if $L \leq A$, both terms equal $L$ and $A$ respectively, so TL = 0. If $A < L < D$, min$(L,D) = L$, min$(L,A) = A$, so TL = $L - A$. If $L \geq D$, min$(L,D) = D$, min$(L,A) = A$, so TL = $D - A = W$.
 
-**15.** Consider two tranches with same width but different attachments. Under what condition must the more subordinated tranche have lower ETL?
+**3.** Given $L(T) \in \{1\%, 4\%, 9\%\}$ with probs $\{0.3, 0.5, 0.2\}$, compute ETL for $[3\%, 7\%]$.
 
-**16.** Construct a two-period example where $\text{ETL}(T)$ is the same but PV differs due to timing of losses.
+*Solution:* TL = $\{0, 1\%, 4\%\}$. ETL = $0.3(0) + 0.5(0.01) + 0.2(0.04) = 0.5\% + 0.8\% = 1.3\%$.
 
-**17.** Explain how different recovery assumptions change $L_{\max}$ and why this matters for super-senior tranches.
+**4.** Prove $Q(T) = \text{EON}(T)/W$.
 
-**18.** Explain why premium leg and protection leg of tranches across the whole capital structure do not perfectly hedge CDS premium legs even if protection legs aggregate.
+*Solution:* $Q = E[1 - L_{\text{tr}}] = E[1 - \text{TL}/W] = (W - E[\text{TL}])/W = \text{EON}/W$.
+
+**5.** ETL(1) = 0.2%, ETL(2) = 0.5%, ETL(3) = 0.7%. $Z = \{0.98, 0.95, 0.92\}$. Compute protection PV for $N_{\text{port}} = \$200$mm.
+
+*Solution:* $\Delta$ETL = $\{0.2\%, 0.3\%, 0.2\%\}$. PV fraction = $0.98(0.002) + 0.95(0.003) + 0.92(0.002) = 0.00196 + 0.00285 + 0.00184 = 0.00665$. PV = $0.00665 \times \$200$mm = $\$1.33$mm.
+
+**6.** Explain why senior tranche spread can triple when tail probability triples.
+
+*Solution:* Senior ETL ≈ $(1-R) \times \Pr(L \geq A) \times$ (conditional wipeout factor). When attachment is high, almost all ETL comes from the tail probability. Tripling tail probability roughly triples ETL and hence spread.
+
+**7.** If the sum of tranche ETLs doesn't equal portfolio expected loss, what's wrong?
+
+*Solution:* Either a modeling error (distribution doesn't integrate properly) or a calculation error (double-counting overlapping tranches, forgetting the cap, or using wrong widths).
+
+**8.** Derive the approximate error in premium leg PV from using end-of-period notional instead of average notional.
+
+*Solution:* End-of-period uses $\text{EON}(t_i)$; average uses $[\text{EON}(t_{i-1}) + \text{EON}(t_i)]/2$. The difference is $[\text{EON}(t_{i-1}) - \text{EON}(t_i)]/2 = \Delta\text{ETL}_i/2$. Summed over periods, the error is approximately half the total ETL times average accrual factor—significant for equity tranches with large ETL.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Verified Facts (Source-Backed)
 
-- Tranche loss function definition (max–max form): O'Kane Ch 11–12
-- Tranche survival $Q(t)$ definition: O'Kane Ch 12–13
-- ETL curve $\psi(T, K) = E[\min(L(T), K)]$: O'Kane Ch 12
-- Premium leg on surviving notional, protection leg as discounted expected loss: O'Kane Ch 12
-- Mid-period average notional approximation for premium accrual: O'Kane Ch 12
-- Tranche loss distribution mass at 0 and 100%: O'Kane Ch 12–13
-- Factor model for building $f(L(T)|Z)$: O'Kane Ch 13–14
+| Fact | Source |
+|------|--------|
+| Portfolio loss definition $L(t) = \frac{1}{N_c}\sum (1-R_i)\mathbf{1}_{\tau_i \leq t}$ | O'Kane Ch 12 Eq 12.2 |
+| Tranche loss function max-max definition | O'Kane Ch 12 |
+| ETL definition $\psi(T,K) = E[\min(L(T),K)]$ | O'Kane Ch 12, 19 |
+| Tranche survival $Q(t,K_1,K_2)$ definition | O'Kane Ch 12 |
+| CDS-tranche mapping with zero recovery | O'Kane Ch 12 |
+| Tranche RPV01 formula | O'Kane Ch 17 |
+| Average-notional approximation for premium leg | O'Kane Ch 12 |
+| Approximation error $O(10^{-5})$ | O'Kane Ch 6.5 |
+| Conservation of expected loss across capital structure | O'Kane Ch 12.7.1 |
+| ETL no-arbitrage conditions (concavity, monotonicity) | O'Kane Ch 19.5 |
+| Gaussian approximation (Shelton 2004) | O'Kane Ch 18.5.1 |
+| FFT methods for loss distribution | O'Kane Ch 18.4 |
+| Conditional loss distribution binomial form | O'Kane Ch 13.5 |
+| Adjusted binomial approximation accuracy (~1 bp) | O'Kane Ch 18.6 |
+| Recursion algorithm $P_{k+1}(j) = (1-p_{k+1})P_k(j) + p_{k+1}P_k(j-\ell_{k+1})$ | O'Kane Ch 18.3.1 |
+| LHP loss distribution $F(K) = 1 - \Phi(A(K))$ | O'Kane Ch 16 |
+| LHP conditional loss formula $L(T|Z) = (1-R)\Phi(\cdot)$ | O'Kane Ch 16 |
+| LHP ETL formula with bivariate normal | O'Kane Ch 16 |
+| In-place recursion processing order (high to low) | O'Kane Ch 18.3.1 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Reasoned Inference (Derived from A)
 
-- Unit conversions between portfolio-fraction and dollar amounts: algebraic consistency with source definitions
-- Limiting cases (ETL = 0, tranche wiped immediately): derived from PV formulas
-- Tail sensitivity of senior vs body sensitivity of equity: inferred from tranche loss function shape and ETL definition
+| Inference | Logic |
+|-----------|-------|
+| Unit conversions between portfolio fraction and dollars | Algebraic consistency with O'Kane notation |
+| Tail sensitivity of senior vs body sensitivity of equity | Follows from tranche loss function shape |
+| Spread-ETL convexity | Both numerator increase and denominator decrease widen spread |
+| ETL term structure patterns | Derived from loss distribution evolution |
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
-- Exact accrual/settlement conventions for specific index tranches or bespoke tranches: I'm not sure without trade documentation
-- Pay-as-you-go vs standard settlement nuances: I'm not sure beyond what sources state
-- Edge case behavior when tranche wiped at $t = 0$: settlement mechanics unclear without documentation
+- Exact accrual/settlement conventions for specific index tranches: I'm not sure without trade documentation
+- Pay-as-you-go vs standard settlement nuances beyond what sources state
+- Accuracy of approximations in distressed scenarios with clustered defaults

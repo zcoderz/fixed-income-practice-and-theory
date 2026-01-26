@@ -2,745 +2,614 @@
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-### Time and Discount Factors
+You have a discount factor curve from your risk engine. A colleague has a zero rate curve in Excel. The swap desk quotes par swap rates. The bond trading system reports yields. Are these four different things—or four different ways of describing the same thing?
 
-| Symbol | Definition |
-|--------|------------|
-| $T$ | Time measured in **years** from today ($t=0$) |
-| $P(0,T)$ | **Discount factor**: present value at $t=0$ of \$1 paid at $T$ (also written $d(T)$) |
+The answer is both. Discount factors, zero rates, forward rates, and par rates are **equivalent representations** of the term structure of interest rates. They are the four corners of a square (or triangle, if you group yields and par rates), and once you know any one of them (with appropriate conventions), you can derive all the others through pure algebra.
 
-### Zero (Spot) Rates
+Why does this matter? Because different markets speak different languages:
+*   **Quants** and pricing engines think in **discount factors** (the primitive).
+*   **Risk managers** often view **zero rates** (spot rates) to understand term structure shape.
+*   **Traders** price floating-rate notes and swaps using **forward rates**.
+*   **The Market** quotes prices in **par rates** (swap rates) or **yields** (bond yields).
 
-| Convention | Formula |
-|------------|---------|
-| **Continuously compounded** | $z_c(T)$ satisfies $P(0,T) = e^{-z_c(T) \cdot T}$ |
-| **Simple-interest** over $[0,T]$ | $z_s(T)$ satisfies $P(0,T) = \dfrac{1}{1 + z_s(T) \cdot T}$ |
-| **$m$-times-per-year compounding** | $z_m(T)$ satisfies $P(0,T) = \left(1 + \dfrac{z_m(T)}{m}\right)^{-mT}$ |
+If you cannot fluently convert between these representations, you cannot reconcile positions across systems, you cannot price a swap against a bond curve, and you cannot understand why your model disagrees with a trader's quote.
 
-### Forward Rates for Period $[T_1, T_2]$ where $T_2 > T_1$
-
-| Convention | Formula |
-|------------|---------|
-| **Simple** (money-market style) | $F_s(0;T_1,T_2)$ satisfies $1 + F_s(0;T_1,T_2) \cdot \tau = \dfrac{P(0,T_1)}{P(0,T_2)}$, where $\tau = T_2 - T_1$ |
-| **Continuously compounded** | $f_c(0;T_1,T_2) = \dfrac{1}{\tau} \ln\left(\dfrac{P(0,T_1)}{P(0,T_2)}\right)$ |
-| **Instantaneous forward** | $f(0,T) = -\dfrac{\partial}{\partial T} \ln P(0,T)$ |
-
-### Par Rates
-
-- **Par coupon** for a bond (or **par swap fixed rate**) is the fixed rate that makes PV of fixed-leg cashflows equal par
-- Expressed using the **annuity**: $A(0) = \sum_i \tau_i P(0,T_i)$
+This chapter develops the "Rate Triangle"—the mathematical machinery for converting between these representations. We will strip away the complexity of curve construction (bootstrapping, which is covered in **Chapter 17**) to focus purely on the algebra of these definitions.
 
 ---
 
-## Setup
+## 3.1 The Discount Factor: The Primitive Object
 
-This chapter formalizes the tight mapping among four objects:
+### Definition and Economic Meaning
 
-1. Discount factors $P(0,T)$
-2. Zero rates $z(T)$ (must specify compounding basis)
-3. Forward rates $f(0;T_1,T_2)$
-4. Par rates (bond par coupons and/or par swap rates)
+Every rate concept derives from one fundamental building block: the discount factor.
 
-**The key idea:** Once you pick conventions (day count, compounding basis, payment dates), **any one of these curves determines the others**.
+Tuckman defines the discount factor $d(t)$ (or $P(0,t)$) as "the present value of $1 to be received at time $t$" (Tuckman Ch 1). Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
 
----
+$$\boxed{P(0,T) = \text{Price today of \$1 paid at time } T}$$
 
-## Conventions Used in This Chapter
+The notation $P(t,T)$ represents the price at time $t$ of a payment at $T$. When $t=0$ (today), we often shorten this to $P(T)$ or $d(T)$.
 
-1. **Primary object:** the discount curve $\{P(0,T)\}_{T \geq 0}$, with $P(0,0) = 1$
+### Why Discount Factors Are Fundamental
 
-2. **Positivity:** $P(0,T) > 0$ for all $T$ (a basic no-arbitrage requirement; otherwise you can create infinite-money trades by discounting "through zero")
+Discount factors are the "atomic units" of valuation. They tell you directly **how much a future dollar is worth today**, stripping away all conventions about compounding frequencies, day counts, or accrual periods.
 
-3. **Compounding bases used here:**
-   - **Continuous compounding** for clean calculus identities and "instantaneous forwards." Discounting at rate $R$ for $n$ years multiplies by $e^{-Rn}$
-   - **Simple interest** for money-market-style rates over an accrual period; a discount factor for a $d$-day period is $1/(1 + r \cdot d/360)$
+The pricing equation for **any** deterministic cashflow stream is simply:
 
-4. **Accrual fractions:** for a set of payment dates $0 < T_1 < \dots < T_n$, let $\tau_i$ be the year fraction for $[T_{i-1}, T_i]$. For swaps/money markets, the floating payment is typically $L \times R \times n/360$ under actual/360
+$$PV = \sum_{i} CF_i \times P(0,T_i)$$
 
----
+Everything else—yields, spreads, durations—is just a layer of interpretation on top of this equation.
 
-## Notation Glossary
+### The No-Arbitrage Requirements
 
-| Symbol | Definition |
-|--------|------------|
-| $t$ | Valuation time (here mostly $t=0$) |
-| $T$ | Maturity (years from $t=0$) |
-| $P(0,T)$ | Discount factor to $T$ |
-| $d(T)$ | Same as $P(0,T)$ (Tuckman's notation) |
-| $z_c(T)$ | Continuously compounded zero rate to $T$ |
-| $z_s(T)$ | Simple-interest zero rate over $[0,T]$ |
-| $z_m(T)$ | Zero rate compounded $m$ times per year |
-| $F_s(0;T_1,T_2)$ | Simple forward rate for $[T_1,T_2]$ |
-| $f_c(0;T_1,T_2)$ | Continuously compounded forward rate for $[T_1,T_2]$ |
-| $f(0,T)$ | Instantaneous forward rate at maturity $T$ (continuous curve) |
-| $c_{\text{par}}$ | Par coupon rate (bond) per year |
-| $S_{\alpha,\beta}(t)$ | Par (forward) swap rate for swap from $T_\alpha$ to $T_\beta$ |
-| $A(0)$ | Fixed-leg annuity PV: $A(0) = \sum_{i=1}^n \tau_i P(0,T_i)$ |
+Tuckman (Ch 1) establishes the fundamental requirements that discount factors must satisfy:
+
+1.  **Positivity:** $P(0,T) > 0$ for all $T$. If $P(0,T)$ were 0 or negative, you could buy money at $T$ for free (or get paid to take it), leading to infinite arbitrage.
+2.  **Normalization:** $P(0,0) = 1$. A dollar today is worth a dollar today.
+3.  **Monotonicity (Usually):** In normal markets, $P(0,T)$ decreases as $T$ increases. However, in **negative interest rate environments** (like EUR and JPY post-2014), discount factors can exceed 1 and increase with maturity over short intervals. The algebra in this chapter holds regardless of rate signs, provided $P(0,T) > 0$.
+
+> **Expert Note: The OIS Discounting Standard**
+>
+> In modern (post-2008) practice, the "risk-free" discount factor $P(0,T)$ is almost universally derived from the **Overnight Indexed Swap (OIS)** curve (e.g., Fed Funds or SOFR in USD, ESTR in EUR).
+>
+> Prior to 2008, practitioners often used the LIBOR curve for risk-free discounting. Today, we strictly separate the **discounting curve** (OIS) from the **projection curves** (used to estimate future floating cashflows like LIBOR). Unless stated otherwise, $P(0,T)$ in this book refers to the OIS discount factor. See Andersen & Piterbarg Vol 1, Ch 6 for a detailed treatment of multi-curve discounting.
 
 ---
 
-## Core Concepts
+## 3.2 Zero (Spot) Rates: One Rate for the Whole Horizon
 
-### 1) Discount Factors $P(0,T)$
+### The Concept
 
-**Formal Definition:**
+A zero rate (or spot rate) answers the question: *What single annual interest rate, applied over the entire horizon from 0 to $T$, produces the discount factor $P(0,T)$?*
 
-$P(0,T)$ is the time-0 price of a default-free zero-coupon bond paying 1 unit of currency at time $T$. Equivalently, $P(0,T)$ is the discount applied to a deterministic cashflow at $T$.
+Tuckman defines the spot rate as "the rate on a spot loan... in which the lender gives money to the borrower at the time of the agreement" (Tuckman Ch 2). Hull similarly defines the $n$-year zero rate as "the rate of interest earned on an investment that starts today and lasts for $n$ years," with **no intermediate payments** (Hull Ch 4).
 
-**Intuition:**
+Crucially, **you cannot quote a zero rate without specifying a compounding convention.** The same discount factor implies different numerical rates depending on how you compound.
 
-Discount factors are the "primitive" of the term structure: they tell you *how much a future dollar is worth today*. Everything else—zero rates, forwards, par coupons—are just different coordinate systems for the same information.
+### Continuous Compounding
 
-**Trading / Risk / Portfolio Practice:**
-
-- **Pricing:** PV of any fixed cashflow stream is $\sum \text{CF}_i \cdot P(0,T_i)$
-- **Curve quoting:** desks may quote a curve as par swap rates, but internally convert to discount factors for valuation
-
----
-
-### 2) Zero (Spot) Rates $z(T)$
-
-**Formal Definition (Must Specify Compounding):**
-
-**Continuous:**
-
-Define $z_c(T)$ by:
+This is the standard for derivatives pricing code (e.g., Black-Scholes, QuantLib internals). Hull (eq. 4.3) gives the fundamental relationship:
 
 $$P(0,T) = e^{-z_c(T) \cdot T}$$
 
-The spot rate is defined via the exponential discounting relationship.
+Solving for the rate (Hull eq. 4.5):
 
-**Semiannual:**
+$$\boxed{z_c(T) = -\frac{\ln P(0,T)}{T}}$$
 
-If $\hat{s}(t)$ is the semiannually compounded spot rate, then:
+**Why it's preferred by quants:** The math of calculus works best with geometric (continuous) growth. It is the limit of compounding as frequency $m \to \infty$. Tuckman (eq. 2.9) provides the equivalent formulation.
 
-$$d(t) = \frac{1}{(1 + \hat{s}(t)/2)^{2t}}$$
+### Semiannual Compounding (Treasury Convention)
 
-**Simple interest (money-market-style over $d$ days):**
+This is the standard for U.S. bond markets. Tuckman (eq. 2.10) derives this relationship: "What coupon rate would a bond pay if it sold at par and had only one payment at maturity $T$?"
 
-A discount factor over $d$ days can be written $1/(1 + r \cdot d/360)$.
+$$P(0,T) = \frac{1}{\left(1 + \frac{z_{sa}(T)}{2}\right)^{2T}}$$
 
-**Intuition:**
+Solving for the rate:
 
-A zero rate is "the one rate for the whole horizon" that would produce the same discount factor under a chosen compounding convention.
+$$\boxed{z_{sa}(T) = 2 \left[ \left( \frac{1}{P(0,T)} \right)^{\frac{1}{2T}} - 1 \right]}$$
 
-**Trading / Risk / Portfolio Practice:**
+### Simple Interest (Money Market Convention)
 
-- Zero rates are often plotted as the "zero curve." Forward rates are extracted from it and are central to pricing FRAs, floaters, and many derivatives
-- **Convention risk:** quoting a "5y zero rate" is meaningless unless you know compounding and day count; compounding frequency changes the *units* of the rate, like miles vs kilometers
+Used for short-term rates (typically $T < 1$ year), like LIBOR/SOFR fixings and T-Bills. There is no "compounding" of interest on interest.
 
----
+$$P(0,T) = \frac{1}{1 + z_{simple}(T) \cdot T}$$
 
-### 3) Forward Rates $f(0;T_1,T_2)$
+Solving for the rate:
 
-**Formal Definition:**
+$$\boxed{z_{simple}(T) = \frac{1}{T} \left( \frac{1}{P(0,T)} - 1 \right)}$$
 
-A forward rate is the rate for a *future* accrual period implied by today's term structure.
+### Convention Risk: The Map is Not the Territory
 
-**Discrete/Simple Forward for Period $[T_1,T_2]$:**
+A common rookie mistake is to assume "5% is 5%."
 
-Define $F_s(0;T_1,T_2)$ by the no-arbitrage identity:
+**Example (adapted from Hull Ch 4):**
+Suppose $P(0, 1) = 0.9512$ (roughly 5%).
+*   **Simple Rate:** $(1/0.9512 - 1) / 1 = 5.130\%$
+*   **Semiannual Rate:** $2 \times ((1/0.9512)^{0.5} - 1) = 5.063\%$
+*   **Continuous Rate:** $-\ln(0.9512) = 5.003\%$
 
-$$1 + F_s(0;T_1,T_2) \cdot \tau = \frac{P(0,T_1)}{P(0,T_2)}$$
+All three represent the **exact same economic value**. If you plug a 5.13% simple rate into a formula expecting a continuous rate, you will misprice the instrument.
 
-where $\tau = T_2 - T_1$.
+### Conversion Between Compounding Conventions
 
-**Continuously Compounded Forward:**
+Hull (eq. 4.3, 4.4) provides the general conversion formula. If $R_c$ is a continuously compounded rate and $R_m$ is a rate with compounding $m$ times per year:
 
-$$f_c(0;T_1,T_2) = \frac{1}{\tau} \ln\left(\frac{P(0,T_1)}{P(0,T_2)}\right)$$
+$$R_c = m \ln\left(1 + \frac{R_m}{m}\right)$$
 
-**Instantaneous Forward (Continuous-Time Limit):**
+$$R_m = m\left(e^{R_c/m} - 1\right)$$
 
-$$f(0,T) = -\frac{d'(T)}{d(T)} = -\frac{\partial}{\partial T} \ln d(T)$$
-
-The forward rate is minus the derivative of log discount factor.
-
-**Intuition:**
-
-A forward rate answers: *"What rate for future borrowing/lending over $[T_1,T_2]$ makes you indifferent today between investing to $T_2$ directly vs investing to $T_1$ and rolling forward?"*
-
-**Trading / Risk / Portfolio Practice:**
-
-- Floating coupons (and FRAs/caps) are fundamentally about *forwards over accrual periods*
-- Forward curves are often more "wiggly" than discount curves because forwards depend on **differences/derivatives** of discount factors
+**Example:** Converting 6% continuous to semiannual:
+$$R_2 = 2(e^{0.06/2} - 1) = 2(e^{0.03} - 1) = 2(1.03045 - 1) = 6.09\%$$
 
 ---
 
-### 4) Par Rates (Par Coupon on a Bond; Par Swap Rate)
+## 3.3 Forward Rates: Rates for Future Periods
 
-**Formal Definition:**
+### The Concept
 
-**Par yield / par coupon:**
+A forward rate answers the question: *What rate for a future period $[T_1, T_2]$ is consistent with today's discount factors?*
 
-The par yield on a bond of a given maturity is the coupon rate that makes the bond sell at its par value.
+It is **not** a forecast of where rates will be in the future. It is a "breakeven" rate that prevents arbitrage between investing long-term vs. rolling over short-term investments.
 
-**Par (forward) swap rate:**
+Hull defines forward rates as "the rates of interest implied by current zero rates for periods of time in the future" (Hull Ch 4).
 
-The fixed rate that makes the swap have zero value at time $t$. A standard identity is:
+### The No-Arbitrage Derivation: Locking in the Forward Rate
 
-$$S_{\alpha,\beta}(t) = \frac{P(t,T_\alpha) - P(t,T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i \, P(t,T_i)}$$
+Hull provides an illuminating example of how forward rates can be locked in (Hull Ch 4, "Forward Rates" section). Consider an investor who wants to guarantee a rate for a future period.
 
-**Intuition:**
+**Hull's Example (adapted):**
+Suppose the 1-year zero rate is 3% and the 2-year zero rate is 4% (both continuously compounded). The forward rate for year 2 can be locked in as follows:
 
-Par rates are *annuity-weighted* summaries of the discount curve. The denominator $\sum \tau_i P(\cdot)$ is the PV of "\$1 per year paid on schedule" (an annuity). This annuity is the natural scale for fixed-leg PV01.
+**Strategy:**
+1. Borrow $e^{-0.04 \times 2} = \$0.9231$ for 2 years at 4%. Repayment at year 2: $\$1.00$
+2. Invest the $\$0.9231$ for 1 year at 3%. Receive at year 1: $0.9231 \times e^{0.03} = \$0.9512$
 
-**Trading / Risk / Portfolio Practice:**
+**Net Result:**
+- Today: Net zero (borrow and immediately invest)
+- Year 1: Receive $\$0.9512$
+- Year 2: Pay $\$1.00$
 
-- Par swap rates are quoted markets; translating them to discount factors is required for pricing most swaps consistently
-- Par coupons are used to build "par curves" and for relative value (par bonds, swap par rates, etc.)
+This is equivalent to borrowing $\$0.9512$ at year 1 and repaying $\$1.00$ at year 2—a 1-year loan starting in 1 year. The implied rate is:
+$$\ln(1.00/0.9512) = 5.13\%$$
 
----
+This matches the no-arbitrage forward rate formula:
+$$f = \frac{0.04 \times 2 - 0.03 \times 1}{2 - 1} = 5\%$$ (using continuous compounding, the exact calculation gives 5.00%)
 
-## Math and Derivations
+### The General No-Arbitrage Derivation
 
-### 1) Discount Factors ↔ Zero Rates (Multiple Compounding Bases)
+Imagine you want to guarantee a borrowing rate for a period starting at $T_1$ and ending at $T_2$ (where $\tau = T_2 - T_1$).
 
-#### (a) Continuous Compounding
+**Strategy A (The Forward Loan):**
+Borrow \$1 at $T_1$ and repay $1 + F \cdot \tau$ at $T_2$. Value at $T_1$ is 1.
 
-Start from the definition $P(0,T) = e^{-z_c(T)T}$.
+**Strategy B (Synthetic Construction):**
+1.  **Borrow Long:** Borrow $1/P(0, T_1)$ dollars today for term $T_2$ at rate $z(T_2)$. You owe $1/P(0, T_1) \div P(0, T_2)$ at time $T_2$.
+2.  **Lend Short:** Lend the $1/P(0, T_1)$ dollars today for term $T_1$. You receive exactly \$1 at time $T_1$.
 
-Solve for $z_c(T)$:
+**Net Cashflows:**
+*   **Today:** $+ \frac{1}{P(0,T_1)}$ (from borrowing) $- \frac{1}{P(0,T_1)}$ (from lending) = **0**.
+*   **Time $T_1$:** Receive **\$1** from the lending leg.
+*   **Time $T_2$:** Owe $\frac{P(0,T_1)}{P(0,T_2)}$ from the borrowing leg.
 
-$$\boxed{z_c(T) = -\frac{1}{T} \ln P(0,T)}$$
+This synthetic structure creates a loan of \$1 at $T_1$ with a repayment obligation at $T_2$. To avoid arbitrage, the forward contract rate $F$ must match this repayment obligation.
 
-**Unit Check:** $\ln P$ is dimensionless; dividing by $T$ (years) gives "per year."
+$$1 + F_{\text{simple}} \cdot \tau = \frac{P(0,T_1)}{P(0,T_2)}$$
 
-**Sanity Checks:**
+### Forward Rate Formulas
 
-- If $P(0,T) = 1$, then $z_c(T) = 0$
-- If $P(0,T) < 1$, then $\ln P(0,T) < 0 \Rightarrow z_c(T) > 0$
-- If $z_c(T) < 0$, then $P(0,T) = e^{-z_c(T)T} > 1$: negative rates imply discount factors above 1
+**Simple Forward Rate (Money Market / LIBOR style):**
+Used for FRAs and floating rate legs. Tuckman (eq. 2.14) provides:
 
-#### (b) $m$-Times Per Year Compounding (Including Semiannual)
+$$\boxed{F_{\text{simple}}(0; T_1, T_2) = \frac{1}{\tau} \left( \frac{P(0,T_1)}{P(0, T_2)} - 1 \right)}$$
 
-The semiannual case:
+**Continuously Compounded Forward Rate:**
+Used in theoretical modeling. Hull (eq. 4.5) and Tuckman (eq. 2.16) give:
 
-$$P(0,T) = d(T) = \frac{1}{(1 + \hat{s}(T)/2)^{2T}}$$
+$$\boxed{f_c(0; T_1, T_2) = \frac{z_c(T_2) \cdot T_2 - z_c(T_1) \cdot T_1}{T_2 - T_1} = \frac{\ln P(0, T_1) - \ln P(0, T_2)}{T_2 - T_1}}$$
 
-Generalize to compounding $m$ times per year:
+**Semiannual Forward Rate:**
+Tuckman (eq. 2.17) derives:
 
-$$P(0,T) = \left(1 + \frac{z_m(T)}{m}\right)^{-mT}$$
+$$\boxed{f_{sa}(0; T_1, T_2) = 2 \left[ \left(\frac{P(0,T_1)}{P(0,T_2)}\right)^{\frac{1}{2(T_2-T_1)}} - 1 \right]}$$
 
-Solving:
+### Instantaneous Forward Rate
 
-$$\boxed{z_m(T) = m\left(P(0,T)^{-1/(mT)} - 1\right)}$$
+The limit as $T_2 \to T_1$. This describes the forward rate "at" a single point in time $t$. Brigo & Mercurio (Definition 1.4.2) define:
 
-**Unit Check:** $z_m(T)$ is "per year" since $m$ is "per year" and the bracket is dimensionless.
+$$\boxed{f(0,T) = -\frac{\partial}{\partial T} \ln P(0,T)}$$
 
-**Limiting Check:** As $m \to \infty$, $z_m(T) \to z_c(T)$ (continuous compounding is the limit of more frequent compounding).
+This derivative form is central to the **HJM framework** (Appendix A3) and modern curve construction.
 
-#### (c) Simple Interest (Money-Market Style)
+**The Integral Relationship:**
+Brigo & Mercurio also establish the inverse relationship—the discount factor can be recovered from instantaneous forwards:
 
-A discount factor for $d$ days: $1/(1 + r \cdot d/360)$.
+$$\boxed{P(0,T) = \exp\left(-\int_0^T f(0,u) \, du\right)}$$
 
-Let $\tau = d/360$ (a year fraction). Then:
-
-$$P(0,\tau) = \frac{1}{1 + r \cdot \tau}$$
-
-For a maturity $T$ measured in years (simple interest over the whole horizon):
-
-$$P(0,T) = \frac{1}{1 + z_s(T) \cdot T}$$
-
-Solving:
-
-$$\boxed{z_s(T) = \frac{1}{T}\left(\frac{1}{P(0,T)} - 1\right)}$$
-
-**Sanity Check:** For small $T$, the linear-in-$T$ structure matches money-market accrual conventions.
-
----
-
-### 2) Discount Factors ↔ Forward Rates
-
-#### (a) Discrete Forward Over $[T_1,T_2]$ Under Simple Interest
-
-Consider investing \$1 today to $T_2$. Its future value at $T_2$ is $1/P(0,T_2)$.
-
-Alternatively, invest to $T_1$ and then reinvest from $T_1$ to $T_2$ at a forward rate $F_s$ for $\tau = T_2 - T_1$:
-
-$$\frac{1}{P(0,T_1)} \times \left(1 + F_s(0;T_1,T_2) \cdot \tau\right) = \frac{1}{P(0,T_2)}$$
-
-Rearrange:
-
-$$1 + F_s(0;T_1,T_2) \cdot \tau = \frac{P(0,T_1)}{P(0,T_2)}$$
-
-So:
-
-$$\boxed{F_s(0;T_1,T_2) = \frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)} - 1\right)}$$
-
-**Unit Check:** RHS is dimensionless divided by years → per year.
-
-**Limiting Case:** As $\tau \to 0$, discrete forwards approximate instantaneous forward rates.
-
-#### (b) Continuous Forward and Instantaneous Forward
-
-The instantaneous forward:
-
-$$f(0,T) = -\frac{d'(T)}{d(T)} = -\frac{\partial}{\partial T} \ln d(T)$$
-
-Integrate from $0$ to $T$:
-
-$$\ln d(T) - \ln d(0) = -\int_0^T f(0,u) \, du$$
-
-Since $d(0) = P(0,0) = 1 \Rightarrow \ln d(0) = 0$:
-
-$$\boxed{P(0,T) = d(T) = \exp\left(-\int_0^T f(0,u) \, du\right)}$$
-
-For an average continuously compounded forward over $[T_1,T_2]$:
-
-$$\int_{T_1}^{T_2} f(0,u) \, du = \ln\frac{P(0,T_1)}{P(0,T_2)}$$
-
-Therefore:
-
-$$\boxed{f_c(0;T_1,T_2) = \frac{1}{\tau} \ln\left(\frac{P(0,T_1)}{P(0,T_2)}\right)}$$
-
-**Sanity Checks:**
-
-- **Flat curve:** if $P(0,T) = e^{-rT}$, then $f(0,T) = r$ constant, and $f_c(0;T_1,T_2) = r$
-- **Sign:** if $P(0,T_2) > P(0,T_1)$, then $\ln(P(0,T_1)/P(0,T_2)) < 0$ → forward is negative
+This integral form shows that the discount factor is determined by the entire path of instantaneous forward rates from 0 to $T$. Hull (eq. 4.6) provides the equivalent formulation.
 
 ---
 
-### 3) Spot–Forward Relationship and Curve Slope
+## 3.4 The Spot–Forward Relationship
 
-Under continuous compounding:
+### The Key Identity
 
-$$\boxed{f(0,T) = z_c(T) + T \cdot \frac{d}{dT} z_c(T)}$$
+Under continuous compounding, there is a beautiful relationship between the spot rate curve $z(T)$ and the instantaneous forward rate $f(T)$. Tuckman derives this in Appendix 2A:
 
-**Interpretation:**
+$$\boxed{f(T) = z(T) + T \cdot \frac{\partial z(T)}{\partial T}}$$
 
-- If the zero curve is **upward sloping** ($z_c'(T) \geq 0$), then forwards tend to lie **above** zeros at that maturity
-- If the zero curve is **downward sloping** ($z_c'(T) \leq 0$), forwards tend to lie **below** zeros
+**Derivation:**
+Starting from $P(0,T) = e^{-z(T) \cdot T}$, we have $\ln P(0,T) = -z(T) \cdot T$.
 
-**Limiting Case Check:**
+Taking the derivative with respect to $T$:
+$$f(T) = -\frac{\partial}{\partial T} \ln P(0,T) = -\frac{\partial}{\partial T}[-z(T) \cdot T] = z(T) + T \cdot z'(T)$$
 
-- If $z_c(T)$ is constant (flat), then $z_c'(T) = 0$ and $f(0,T) = z_c$
+### Interpreting Curve Shape: The Marginal vs. Average Intuition
 
----
+> **Analogy: The Grade Point Average (GPA)**
+>
+> Think of the **Spot Rate** ($z$) as your cumulative **GPA**.
+> Think of the **Forward Rate** ($f$) as your **Semester Grade**.
+>
+> *   If your Semester Grade (Forward) is **higher** than your GPA, your GPA **rises** ($f > z \implies z' > 0$).
+> *   If your Semester Grade is **lower** than your GPA, your GPA **falls** ($f < z \implies z' < 0$).
+> *   If your Semester Grade equals your GPA, your GPA stays **flat** ($f = z \implies z' = 0$).
+>
+> The forward rate is the "marginal" rate pulling the "average" (spot) rate up or down.
 
-### 4) Discount Factors ↔ Par Rates
+This equation gives us the **"Marginal vs. Average"** intuition, similar to costs in economics. Tuckman emphasizes this interpretation:
 
-#### (a) Par Swap Rate in Terms of Discount Factors
 
-A standard identity for the forward swap rate:
+1.  **Upward Sloping Curve ($z' > 0$):** If spot rates are rising, the forward rate must be **higher** than the spot rate ($f > z$). (To raise the average, the new marginal rate must be higher).
+2.  **Downward Sloping Curve ($z' < 0$):** If spot rates are falling (inverted), the forward rate must be **lower** than the spot rate ($f < z$).
+3.  **Flat Curve ($z' = 0$):** Spot and forward rates are equal.
 
-$$\boxed{S_{\alpha,\beta}(t) = \frac{P(t,T_\alpha) - P(t,T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i \, P(t,T_i)}}$$
+**Numerical Example (from Tuckman):**
+If the 5-year spot rate is 4% and rising at 0.20% per year (i.e., $z'(5) = 0.002$), then:
+$$f(5) = 0.04 + 5 \times 0.002 = 0.04 + 0.01 = 5\%$$
 
-At $t=0$, for a spot-starting swap with $T_\alpha = 0$ and $P(0,0) = 1$:
+The forward rate at 5 years is 100bp higher than the spot rate because the curve is upward sloping.
 
-$$S_{0,n}(0) = \frac{1 - P(0,T_n)}{\sum_{i=1}^{n} \tau_i \, P(0,T_i)}$$
+### Practical Implication: Forwards are "Wigglier"
 
-**Annuity Interpretation:**
+> **Analogy: The Speedometer**
+>
+> *   **Spot Rate**: Your Average Speed over a trip ($D/T$).
+> *   **Forward Rate**: Your Instantaneous Speed *right now* (reading on the speedometer).
+>
+> You can maintain a smooth Average Speed of 60mph (Spot) even if you slam on the brakes or gas (Forwards) periodically. But if you want to change your Average Speed quickly (a kink in the Spot curve), you have to drive *extremely* fast or slow for a short time.
+>
+> *Result:* Small bumps in the "smooth" spot curve require huge spikes in the forward curve.
 
-Denominator $A(0) = \sum \tau_i P(0,T_i)$ is PV of receiving 1 unit of fixed-rate "coupon" per year on the schedule; it is the natural scale for fixed-leg PV01.
+Because forward rates depend on the *slope* (derivative) of the spot curve, small bumps in the spot curve become large spikes in the forward curve.
 
-#### (b) Bond Par Coupon as a Special Case
-
-Consider a par bond with face 1 that pays coupon rate $c_{\text{par}}$ per year on dates $T_1, \ldots, T_n$, with accruals $\tau_i$.
-
-Cashflows:
-- Coupon at $T_i$: $c_{\text{par}} \cdot \tau_i$
-- Principal at $T_n$: $1$
-
-**Par condition (Price = 1):**
-
-$$1 = \sum_{i=1}^n c_{\text{par}} \cdot \tau_i \cdot P(0,T_i) + 1 \cdot P(0,T_n)$$
-
-Solve:
-
-$$\boxed{c_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i \, P(0,T_i)}}$$
-
-This matches the spot-start swap par rate formula (bond par coupon is "swap fixed rate" when the floating leg is par by construction).
-
-**Unit Check:** Numerator is dimensionless; denominator is in years; result is per year.
-
----
-
-### 5) The "Triangle" Mapping (Conceptual Identity Map)
-
-Once conventions are fixed:
-
-**From discount factors $P(0,T)$ you get:**
-
-- **Zeros $z(\cdot)$** by inverting the chosen compounding formula (e.g., $z_c(T) = -(1/T)\ln P(0,T)$)
-- **Forwards $f(\cdot)$** by ratios/differences (discrete) or derivatives (instantaneous)
-- **Par rates** by annuity formulas
-
-**Conversely:**
-
-- From a continuous forward curve $f(0,T)$, recover discount factors by integration:
-  $$P(0,T) = \exp\left(-\int_0^T f(0,u) \, du\right)$$
-
-- From a zero curve $z_c(T)$, recover discount factors directly:
-  $$P(0,T) = e^{-z_c(T)T}$$
-
-- From par swap rates across maturities, recover discount factors by **bootstrapping** (method deferred to later chapters)
+*   A localized "kink" in spot rates $\rightarrow$ A massive jump in forward rates.
+*   This is why **smoothness** is a key constraint in curve fitting (Chapter 17). If you bootstrap a curve naively, your forward rates will look like a saw blade, which implies arbitrage opportunities (e.g., implausible calendar spread valuations).
 
 ---
 
-### Unit Checks and Sanity Checks (Summary)
+## 3.5 Par Rates: Annuity-Weighted Summaries
 
-| Check | Description |
-|-------|-------------|
-| **Boundary** | $P(0,0) = 1$, so $z_c(0)$ is well-behaved as a limit |
-| **Positivity** | $P(0,T) > 0$ ⇒ $z_c(T)$ finite, and $\ln P$ defined |
-| **Monotonicity (conditional)** | If $P(0,T)$ is decreasing in $T$, then average discounting is positive. If $P(0,T)$ increases over some range, the implied forward is negative |
-| **Forward "wiggles" warning** | Forwards depend on *differences/derivatives* of discount factors; avoid jumps in the slope of the spot curve |
+### The Concept
 
----
+A par rate answers: *What coupon rate $C$ makes a bond (or swap) worth exactly 100% of par?*
 
-## Measurement & Risk
+While zero rates apply to single cashflows, par rates apply to **series** of cashflows. Hull defines the par yield as "the coupon rate that causes the bond price to equal its par value" (Hull Ch 4). They are weighted averages of the discount curve.
 
-### How Curve "Shape" Affects Forwards and Par Rates
+### The Par Equation
 
-- **Upward sloping zero curve → forwards above zeros**
+For a bond paying coupon $C$ semiannually on dates $T_1, \dots, T_n$:
 
-  Under continuous compounding, the identity $f(0,T) = z_c(T) + T z_c'(T)$ implies $f(0,T) \geq z_c(T)$ iff $z_c'(T) \geq 0$
+$$\text{Price} = C \sum_{i=1}^n \tau_i P(0,T_i) + 1 \cdot P(0,T_n) = 1$$
 
-- **Downward sloping zero curve → forwards below zeros** by the same logic
+Solving for $C$:
 
-- **Par rates are annuity-weighted averages** of the discounting over the coupon schedule; they are "smoother" summaries than forwards because they aggregate over many maturities
+$$\boxed{C_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}}$$
 
-### Small-Change Intuition (Conceptual; Not Full Duration)
+Hull (eq. 4.7, adapted) provides an equivalent form using continuous compounding, but the structure is identical.
 
-Changing the curve at some maturity $T^*$ changes:
+### The Annuity
 
-- The PV of cashflows at/after $T^*$ (directly through $P(0,T^*)$ and indirectly through curve consistency)
-- Forward rates around $T^*$ (because forwards use ratios/differences)
-- Par rates (because they depend on a sum of discounted accruals)
+The denominator is called the **PV01** or the **Annuity** of the bond/swap:
 
-**Heuristic:** Forwards are **local**, par rates are **global** (over the annuity window).
+$$A(0) = \sum_{i=1}^n \tau_i P(0,T_i)$$
 
----
+This represents the present value of receiving 1 basis point (or 1 unit) of coupon payments.
 
-## Worked Examples
+### Par Swap Rates
 
-### Example A: Convert Discount Factors into Zero Rates
+This is exactly how swap rates are quoted. A "5-year Swap Rate" is simply the fixed rate that makes the PV of the fixed leg equal the PV of the floating leg. Since the floating leg is typically valued at par (initially), the swap rate is just the par coupon calculation above.
 
-**Given discount factors:**
+### Why Par Rates Matter
 
-| $T$ (years) | $P(0,T)$ |
-|---:|---:|
-| 1 | 0.9700 |
-| 2 | 0.9400 |
-| 3 | 0.9000 |
-
-#### (i) Simple-Interest Zero Rate $z_s(T)$
-
-Use $z_s(T) = \dfrac{1}{T}\left(\dfrac{1}{P(0,T)} - 1\right)$
-
-**$T = 1$:**
-$$z_s(1) = \left(\frac{1}{0.9700} - 1\right) = 1.0309278 - 1 = 0.0309278 = 3.0928\%$$
-
-**$T = 2$:**
-$$z_s(2) = \frac{1}{2}\left(\frac{1}{0.9400} - 1\right) = \frac{1}{2}(1.0638298 - 1) = \frac{0.0638298}{2} = 3.1915\%$$
-
-**$T = 3$:**
-$$z_s(3) = \frac{1}{3}\left(\frac{1}{0.9000} - 1\right) = \frac{1}{3}(1.1111111 - 1) = 3.7037\%$$
-
-#### (ii) Continuously Compounded Zero Rate $z_c(T)$
-
-Use $z_c(T) = -\dfrac{1}{T}\ln P(0,T)$
-
-**$T = 1$:**
-$$z_c(1) = -\ln(0.9700) = 0.0304592 = 3.0459\%$$
-
-**$T = 2$:**
-$$z_c(2) = -\frac{1}{2}\ln(0.9400) = -\frac{1}{2}(-0.0618754) = 3.0938\%$$
-
-**$T = 3$:**
-$$z_c(3) = -\frac{1}{3}\ln(0.9000) = -\frac{1}{3}(-0.1053605) = 3.5120\%$$
-
-**Observation:** Simple vs continuous differs because the "unit" of the rate differs; compounding frequency is a unit choice and conversion formulas apply.
+Par rates are the **observable market quotes**. You don't typically observe zero rates or discount factors directly—you observe Treasury yields (which are par-like) and swap rates (which are par rates). The bootstrap process (Chapter 17) inverts these par quotes to recover the underlying discount factors.
 
 ---
 
-### Example B: Compute a Forward Rate from Discount Factors (Negative-Rate Case)
+## 3.6 The Complete Triangle: Converting Between Representations
 
-Take a 6-month period $[T_1,T_2] = [0.5, 1.0]$, $\tau = 0.5$. Suppose:
+> **Visualizing the Triangle of Rates**
+>
+> Luenberger introduces the "Triangular Array" to visualize how today's curve implies the entire future.
+>
+> | | $T=1$ | $T=2$ | $T=3$ | $T=4$ |
+> | :--- | :--- | :--- | :--- | :--- |
+> | **Today ($t=0$)** | $z_1$ (Spot) | $z_2$ (Spot) | $z_3$ (Spot) | $z_4$ (Spot) |
+> | **Future ($t=1$)** | | $f_{1,2}$ (Fwd) | $f_{1,3}$ | $f_{1,4}$ |
+> | **Future ($t=2$)** | | | $f_{2,3}$ (Fwd)| $f_{2,4}$ |
+> | **Future ($t=3$)** | | | | $f_{3,4}$ (Fwd)|
+>
+> *   **Row 1**: The Spot Curve observed today.
+> *   **Diagonals**: The path of short-term rates implied by the Expectations Hypothesis.
+> *   **Insight**: One spot curve implies an entire matrix of future forward rates.
 
-$$P(0,0.5) = 1.0005, \qquad P(0,1.0) = 1.0020$$
+We can now navigate the full map.
 
-These discount factors are **above 1**, consistent with **negative** average rates.
+| From $\downarrow$ To $\rightarrow$ | **Discount Factors $P(0,T)$** | **Zero Rates $z_c(T)$** (Continuous) | **Par Rates $C_{par}$** |
+| :--- | :--- | :--- | :--- |
+| **Discount Factors** | — | $z_c = -\frac{\ln P}{T}$ | $C = \frac{1 - P(T_n)}{A(0)}$ |
+| **Zero Rates** | $P = e^{-z_c T}$ | — | Sample $P(T_i)$ from curve, then use Par formula |
+| **Par Rates** | **Bootstrapping** (See Ch 17) | Convert Par $\to$ DF $\to$ Zero | — |
 
-#### (i) Simple Forward Rate $F_s(0;0.5,1.0)$
+*   **Discount Factors $\longleftrightarrow$ Zero Rates**: Simple algebraic inversion (Tuckman eq. 2.9, 2.10).
+*   **Discount Factors $\longrightarrow$ Par Rates**: Weighted average calculation (Tuckman eq. 4.40).
+*   **Par Rates $\longrightarrow$ Discount Factors**: Requires **Bootstrapping**.
 
-Use $1 + F_s \tau = \dfrac{P(0,0.5)}{P(0,1.0)}$:
+> **Analogy: The Bootstrapping Ladder**
+>
+> You cannot reach the 5-year rung (5y Zero) without climbing past the 1, 2, 3, and 4-year rungs.
+> *   To value a 5-year Par Bond, you first need to value its coupons at years 1, 2, 3, and 4.
+> *   You must use the *already known* discount factors for years 1-4 to "strip out" those coupons.
+> *   Only then is the 5-year principal exposed, allowing you to solve for the 5-year discount factor.
+>
+> This is why we call it *bootstrapping* (pulling yourself up step-by-step).
 
-$$1 + F_s \cdot 0.5 = \frac{1.0005}{1.0020} = 0.9985030$$
+You cannot convert a single par rate to a single discount factor in isolation; you need the entire path of prior discount factors to strip out the coupons.
 
-So:
-$$F_s = \frac{0.9985030 - 1}{0.5} = \frac{-0.0014970}{0.5} = -0.2994\% \text{ per year}$$
+### Forward Rates in the Triangle
 
-#### (ii) Continuously Compounded Forward Rate $f_c(0;0.5,1.0)$
-
-$$f_c = \frac{1}{0.5}\ln\left(\frac{1.0005}{1.0020}\right) = 2\ln(0.9985030) = 2(-0.0014981) = -0.2996\% \text{ per year}$$
-
-#### Economic Interpretation
-
-- A **negative forward rate** over $[0.5, 1.0]$ means that *locking in funding/investing for that future period implies paying (or receiving less than principal)* over the period
-- Mechanically: $P(0,1.0) > P(0,0.5)$ implies the discount curve rises with maturity over that interval; by the log/ratio formulas, this forces a negative forward
-
----
-
-### Example C: Compute a Par Coupon Rate from Discount Factors
-
-Consider a 3-year bond with annual coupons, face value 100, coupon rate $c$ per year, paying at $T_1 = 1, T_2 = 2, T_3 = 3$.
-
-**Discount factors:**
-$$P(0,1) = 0.9600, \quad P(0,2) = 0.9150, \quad P(0,3) = 0.8700$$
-
-**Par condition (price = 100):**
-
-$$100 = 100c \cdot P(0,1) + 100c \cdot P(0,2) + 100c \cdot P(0,3) + 100 \cdot P(0,3)$$
-
-Divide by 100:
-
-$$1 = c\left[P(0,1) + P(0,2) + P(0,3)\right] + P(0,3)$$
-
-Solve:
-
-$$c = \frac{1 - P(0,3)}{P(0,1) + P(0,2) + P(0,3)} = \frac{1 - 0.8700}{0.9600 + 0.9150 + 0.8700}$$
-
-Compute:
-- Numerator: $1 - 0.8700 = 0.1300$
-- Denominator: $0.9600 + 0.9150 + 0.8700 = 2.7450$
-
-$$\boxed{c = \frac{0.1300}{2.7450} = 0.04736 = 4.736\% \text{ per year}}$$
-
-**Annuity View:**
-
-The denominator is the annuity PV $A(0) = \sum_{i=1}^3 1 \cdot P(0,i)$. This matches the par swap-rate structure $S = \dfrac{P(0,0) - P(0,T_3)}{\sum \tau_i P(0,T_i)}$ with $P(0,0) = 1$.
+Forward rates can be derived from either discount factors or zero rates:
+*   From discount factors: $F = \frac{1}{\tau}(\frac{P_1}{P_2} - 1)$ (Tuckman eq. 2.14)
+*   From zero rates: $f_c = \frac{z_2 T_2 - z_1 T_1}{T_2 - T_1}$ (Tuckman eq. 2.16)
 
 ---
 
-### Example D: Two Interpolation Choices Create Different Forward Curves
+## 3.7 Worked Examples
 
-Assume we only know discount factors at 1y and 2y:
+### Example A: Discount Factor to Zero Rates (Multiple Conventions)
 
-$$P(0,1) = 0.9800, \qquad P(0,2) = 0.9400$$
+**Given:** $P(0, 1y) = 0.9700$.
 
-We want an intermediate discount factor at $T = 1.5$ to compute forwards over $[1, 1.5]$ and $[1.5, 2]$.
+1.  **Simple Zero:**
+    $$z_s = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\%$$
+2.  **Continuous Zero:**
+    $$z_c = -\frac{\ln(0.9700)}{1} = 3.046\%$$
+3.  **Semiannual Zero:**
+    $$z_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01532 - 1) = 3.065\%$$
 
-#### Method 1: Linear Interpolation of Discount Factors (DF-Linear)
+**Sanity Check:** Continuous < Semiannual < Simple. This ordering always holds for positive rates.
 
-$$P_{\text{DF-lin}}(0,1.5) = 0.5 \cdot 0.9800 + 0.5 \cdot 0.9400 = 0.9600$$
+### Example B: Forward Rate Calculation
 
-Compute continuously compounded forwards:
+**Given:** $P(0, 1y) = 0.9615$ and $P(0, 2y) = 0.9157$.
 
-$$f_c(0;1,1.5) = \frac{1}{0.5}\ln\left(\frac{0.9800}{0.9600}\right) = 2\ln(1.0208333) = 2(0.0206193) = 4.1239\%$$
+**Objective:** Find the 1-year forward rate starting in 1 year ($1y \times 1y$). $\tau = 1$.
 
-$$f_c(0;1.5,2) = \frac{1}{0.5}\ln\left(\frac{0.9600}{0.9400}\right) = 2\ln(1.0212766) = 2(0.0210526) = 4.2105\%$$
+**Simple forward rate:**
+$$F = \frac{1}{1} \left( \frac{0.9615}{0.9157} - 1 \right) = 1.0500 - 1 = 5.00\%$$
 
-**DF-linear produces:** relatively smooth forwards: **4.124%** then **4.211%**
+**Continuous forward rate:**
+$$f_c = \frac{\ln(0.9615) - \ln(0.9157)}{1} = \frac{-0.0393 - (-0.0881)}{1} = 4.88\%$$
 
-#### Method 2: Linear Interpolation of Continuously Compounded Zero Rates (Zero-Linear)
+**Verification:** Check that rolling over gives the same result as investing for 2 years:
+- Invest for 2 years: $1 \times 0.9157 = 0.9157$
+- Invest for 1 year, then forward: $1 \times 0.9615 \times \frac{1}{1.05} = 0.9157$ ✓
 
-First compute endpoint continuous zeros:
+### Example C: Calculating a Forward Rate (Negative Rate Case)
 
-$$z_c(1) = -\ln(0.9800) = 0.0202027 = 2.0203\%$$
+**Given:** $P(0, 1y) = 1.0020$ and $P(0, 1.5y) = 1.0030$.
+*Note: $P > 1$ implies negative interest rates.*
 
-$$z_c(2) = -\frac{1}{2}\ln(0.9400) = 0.0309377 = 3.0938\%$$
+**Objective:** Find the 6-month forward rate $6 \times 12$ (starting in 1y, ending 1.5y). $\tau = 0.5$.
 
-Interpolate $z_c(1.5)$ linearly:
+$$1 + F \cdot \tau = \frac{P(0, 1y)}{P(0, 1.5y)} = \frac{1.0020}{1.0030} \approx 0.999003$$
 
-$$z_c(1.5) = z_c(1) + \frac{1.5 - 1}{2 - 1}\left[z_c(2) - z_c(1)\right] = 0.0202027 + 0.5(0.0107350) = 0.0255702$$
+$$F = \frac{0.999003 - 1}{0.5} \approx -0.199\%$$
 
-Convert back to a discount factor:
+**Interpretation:** The forward rate is negative. You would *pay* interest to lend money for this period. The math holds seamlessly.
 
-$$P_{\text{Z-lin}}(0,1.5) = \exp(-z_c(1.5) \cdot 1.5) = \exp(-0.0383553) = 0.96236$$
+### Example D: Par Rate Calculation
 
-Now compute forwards:
+**Given:** Discount Factors: 0.5y = 0.99, 1.0y = 0.97.
+**Objective:** Calculate the 1-year semiannual par rate $C$.
 
-$$f_c(0;1,1.5) = \frac{1}{0.5}\ln\left(\frac{0.9800}{0.96236}\right) = 2\ln(1.01833) = 3.633\%$$
+1.  **Calculate Annuity ($A$):**
+    $$A = 0.5 \times 0.99 + 0.5 \times 0.97 = 0.495 + 0.485 = 0.980$$
+2.  **Calculate Par Numerator:**
+    $$1 - P(0, 1y) = 1 - 0.97 = 0.03$$
+3.  **Solve:**
+    $$C = \frac{0.03}{0.980} \approx 0.03061 \implies 3.061\%$$
 
-$$f_c(0;1.5,2) = \frac{1}{0.5}\ln\left(\frac{0.96236}{0.9400}\right) = 2\ln(1.02379) = 4.702\%$$
+**Sanity Check:** The par rate should be between the 6-month and 1-year zero rates. Check: 6-month zero ≈ 2.02%, 1-year zero ≈ 3.09%. Par rate 3.061% is in range. ✓
 
-**Zero-linear produces:** forwards **3.633%** then **4.702%**, a much bigger "wiggle"
+### Example E: Spot-Forward Relationship
 
-#### Why This Matters
+**Given:** Zero rate curve $z(T) = 0.03 + 0.005T$ (continuous compounding, linear in $T$).
 
-- Forward rates enter directly into pricing/hedging of floating legs and forward-starting products
-- If your interpolation creates artificial "local" kinks in the spot curve, the forward curve can swing sharply because forwards depend on derivatives
-- It is desirable to avoid jumps in slope when fitting spot curves; splines are designed to ensure continuity of slope and curvature
+**Objective:** Find the instantaneous forward rate curve $f(T)$.
 
----
+Using $f(T) = z(T) + T \cdot z'(T)$:
+- $z'(T) = 0.005$
+- $f(T) = (0.03 + 0.005T) + T \cdot 0.005 = 0.03 + 0.01T$
 
-## Practical Notes
-
-### Quoting Conventions That Commonly Cause Mistakes
-
-| Issue | Description |
-|-------|-------------|
-| **Compounding frequency** | Part of the quote. Continuous uses $Ae^{Rn}$ and discounting uses $e^{-Rn}$ |
-| **Money-market simple accrual** | Many short-rate instruments use simple interest with a day count (often actual/360). Floating payments are $L \times R \times n/360$ |
-| **Annualization traps** | A "3-month rate" quoted with actual/360 is not directly comparable to an annual bond yield with actual/actual or 30/360 |
-
-### Implementation Pitfalls
-
-| Pitfall | Description |
-|---------|-------------|
-| **Rounding** | Forwards are ratios/differences of discount factors; small rounding in $P(0,T)$ can materially move short forwards |
-| **Negative rates** | Allow $P(0,T) > 1$ and/or increasing segments in $P(0,T)$; formulas still work as long as $P(0,T) > 0$ |
-| **Stub periods** | If accrual fraction $\tau_i$ differs from "regular" (e.g., 0.27y instead of 0.25y), it must be used consistently in forward-rate definitions, annuity, and par rate formulas |
-
-### Verification Tests and Sanity Checks
-
-1. **Boundary:** ensure $P(0,0) = 1$
-2. **Positivity:** check $P(0,T) > 0$ for all nodes; otherwise logs and continuous rates break
-3. **Monotonicity (conditional):**
-   - If your market regime assumes nonnegative rates, expect $P(0,T)$ nonincreasing in $T$
-   - If negative rates are possible, monotonicity can fail; still require positivity
-4. **Forward consistency:** for a tenor grid $T_0 < T_1 < \dots < T_n$, verify the multiplicative chain:
-   $$\frac{1}{P(0,T_n)} = \frac{1}{P(0,T_0)} \prod_{i=1}^n \left(1 + F_s(0;T_{i-1},T_i) \cdot \tau_i\right)$$
-5. **No "free lunch" kinks:** if a fitted curve creates extreme oscillations in forwards, investigate interpolation/fitting choices
+**Interpretation:** The forward curve has twice the slope of the zero curve. At $T=5$: $z(5) = 5.5\%$ but $f(5) = 8\%$.
 
 ---
 
-## Summary & Recall
+## 3.8 Practical Notes
 
-### 10-Bullet Executive Summary
+### 1. The "Wiggle" Problem
 
-1. The discount curve $P(0,T)$ is the most primitive object; it prices any deterministic cashflow stream by PV summation
-2. A zero rate $z(T)$ is an alternative representation of $P(0,T)$, but it is meaningless without compounding/day-count conventions
-3. Under continuous compounding, $P(0,T) = e^{-z_c(T)T}$ and $z_c(T) = -(1/T)\ln P(0,T)$
-4. Under semiannual compounding, $d(T) = 1/(1 + \hat{s}(T)/2)^{2T}$
-5. Discrete (simple) forward rates satisfy $1 + F\tau = P(0,T_1)/P(0,T_2)$
-6. Instantaneous forward rates are the negative derivative of log discount factors: $f(0,T) = -\partial_T \ln P(0,T)$
-7. The slope of the zero curve controls forwards: $f(0,T) = z_c(T) + Tz_c'(T)$ and "forward above spot iff spot increasing"
-8. Par rates are annuity-weighted: $c_{\text{par}} = (1 - P(0,T_n))/\sum \tau_i P(0,T_i)$; swap par rates share the same structure
-9. Negative rates correspond to $P(0,T) > 1$ and can produce negative forwards; formulas remain valid if $P(0,T) > 0$
-10. Interpolation/fitting choices can create forward-curve "wiggles" even if discount factors look smooth; slope continuity matters
+If you linearly interpolate zero rates, your forward curve will be piecewise constant (steps). If you linearly interpolate discount factors, your forward curve will have massive saw-tooth jumps.
 
----
+**Lesson:** Curve construction method choice (splines vs linear) determines the usability of your forward rates. See Chapter 17 for detailed treatment.
 
-### Cheat Sheet of Core Identities
+### 2. Negative Rates
 
-#### Discount Factors and Zeros
+As shown in Example C, negative rates are handled naturally by the $P(T)$ framework. Do not use code that assumes $z > 0$ or uses log-normal rate models (like Black-76) without shifts.
 
-| Convention | Discount Factor | Zero Rate |
-|------------|-----------------|-----------|
-| Continuous | $P(0,T) = e^{-z_c(T)T}$ | $z_c(T) = -(1/T)\ln P(0,T)$ |
-| $m$-comp | $P(0,T) = \left(1 + \dfrac{z_m(T)}{m}\right)^{-mT}$ | $z_m(T) = m\left(P(0,T)^{-1/(mT)} - 1\right)$ |
-| Simple | $P(0,T) = \dfrac{1}{1 + z_s(T)T}$ | $z_s(T) = \dfrac{1}{T}\left(\dfrac{1}{P(0,T)} - 1\right)$ |
+### 3. Bid-Ask Spreads
 
-#### Forwards
+In practice, you have a **Bid** curve and an **Ask** curve.
+*   **Asset Valuation (Long)**: If you are valuing a long position you want to sell, market makers pay the **Bid** price. You discount cash flows at the (higher) Bid yield.
+*   **Liability Valuation (Short)**: If you need to cover a short, you pay the **Ask** price. You discount at the (lower) Ask yield.
 
-| Type | Formula |
-|------|---------|
-| Simple forward | $1 + F_s(0;T_1,T_2)\tau = \dfrac{P(0,T_1)}{P(0,T_2)}$, so $F_s = \dfrac{1}{\tau}\left(\dfrac{P(0,T_1)}{P(0,T_2)} - 1\right)$ |
-| Continuous forward (average) | $f_c(0;T_1,T_2) = \dfrac{1}{\tau}\ln\left(\dfrac{P(0,T_1)}{P(0,T_2)}\right)$ |
-| Instantaneous | $f(0,T) = -\partial_T \ln P(0,T)$ |
+> **Rule of Thumb**: Books are often marked to **Mid** for daily P&L, but reliable exit value is Bid (for assets) or Ask (for liabilities).
 
-#### Spot–Forward Slope Link (Continuous)
+Always ensure your curve logic accounts for the side of the trade!
 
-$$f(0,T) = z_c(T) + T z_c'(T)$$
+### 4. Day Count Conventions in Forward Rates
 
-#### Par Rates (Annuity Form)
+The year fraction $\tau$ in forward rate calculations must use the appropriate day count convention:
+- Money market rates: ACT/360 (USD, EUR) or ACT/365 (GBP)
+- Bond rates: ACT/ACT or 30/360
 
-| Type | Formula |
-|------|---------|
-| Swap | $S_{\alpha,\beta}(t) = \dfrac{P(t,T_\alpha) - P(t,T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i P(t,T_i)}$ |
-| Bond par coupon (spot start) | $c_{\text{par}} = \dfrac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}$ |
+Mismatched day counts are a common source of small pricing discrepancies.
 
 ---
 
-## Flashcards (Q/A)
+## Summary
+
+1.  **Discount Factors ($P(0,T)$)** are the primitive, risk-free price of future money. In modern markets, these come from the OIS curve.
+2.  **Zero Rates** are just discount factors expressed in per-annum terms. They require a **compounding convention** to be meaningful. Same DF → different rate numbers.
+3.  **Forward Rates** are the rates for future periods implied by the term structure to prevent arbitrage. They reflect the slope of the zero curve and can be locked in via synthetic borrowing/lending.
+4.  **Par Rates** are the coupons that value a bond/swap at par. They are annuity-weighted averages of the forward curve.
+5.  **The Triangle:** You can translate freely between these forms. Quants use DFs; Traders use Forwards/Pars; Risk uses Zeros. The key equations are:
+    - $P = e^{-zT}$ (DF from zero)
+    - $z = -\ln(P)/T$ (zero from DF)
+    - $F = (P_1/P_2 - 1)/\tau$ (forward from DFs)
+    - $f(T) = z(T) + Tz'(T)$ (instantaneous forward from zero curve)
+    - $C_{par} = (1 - P_n) / A$ (par from DFs)
+
+---
+
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+| :--- | :--- | :--- |
+| **Discount Factor** | $P(0,T) = \text{PV of } \$1$ | The universal valuation primitive. OIS-based. |
+| **Zero Rate (Spot)** | Rate solving $P = e^{-zT}$ or $(1+z/m)^{-mT}$ | Useful for visualizing term structure levels. Convention-dependent. |
+| **Forward Rate** | $F = \frac{1}{\tau}(\frac{P_1}{P_2}-1)$ | Used to project floating cashflows; implies "No Arbitrage". Can be locked in. |
+| **Instantaneous Forward** | $f(T) = -\frac{\partial}{\partial T}\ln P(0,T)$ | Foundation of HJM framework; drives curve smoothness requirements. |
+| **Par Rate** | $C = \frac{1-P_n}{\text{Annuity}}$ | The language of the market (Swap/Bond quotes). |
+| **Annuity (PV01)** | $\sum \tau_i P(T_i)$ | Sensitivity to parallel rate shifts; denominator for par rates. |
+| **Spot-Forward Relation** | $f = z + Tz'$ | Links curve shape to forward rates; marginal vs average intuition. |
+
+---
+
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $P(0,T)$ or $d(T)$ | Discount factor for maturity $T$ |
+| $z_c(T)$ | Continuously compounded zero rate |
+| $z_{sa}(T)$ | Semiannually compounded zero rate |
+| $z_s(T)$ | Simple (money market) zero rate |
+| $f(0;T_1,T_2)$ | Forward rate from $T_1$ to $T_2$ |
+| $f(0,T)$ | Instantaneous forward rate at $T$ |
+| $C_{par}$ | Par coupon rate |
+| $A(0)$ | Annuity (PV01) |
+| $\tau$ | Year fraction ($T_2 - T_1$) |
+
+---
+
+## Flashcards
 
 | # | Question | Answer |
-|---|----------|--------|
-| 1 | What is $P(0,T)$? | The discount factor: PV today of 1 paid at $T$ |
-| 2 | Under continuous compounding, how do you get $z_c(T)$ from $P(0,T)$? | $z_c(T) = -(1/T)\ln P(0,T)$ |
-| 3 | What does $P(0,T) > 1$ imply about rates (continuous convention)? | Negative average continuously compounded rate to $T$ |
-| 4 | Define a simple forward rate $F_s(0;T_1,T_2)$ from discount factors | $1 + F_s\tau = P(0,T_1)/P(0,T_2)$ |
-| 5 | Define a continuously compounded forward $f_c(0;T_1,T_2)$ | $f_c = (1/\tau)\ln(P(0,T_1)/P(0,T_2))$ |
-| 6 | What is the instantaneous forward rate $f(0,T)$? | $-\partial_T \ln P(0,T)$ |
-| 7 | Why can forwards be "wigglier" than discount factors? | Forwards use ratios/differences/derivatives of $P$, amplifying local fitting noise |
-| 8 | What is Hull's interpretation of compounding frequency? | It defines the *units* of the rate; different frequencies are like different measurement units |
-| 9 | In Tuckman's semiannual convention, how is $d(T)$ linked to the spot rate? | $d(T) = 1/(1 + \hat{s}(T)/2)^{2T}$ |
-| 10 | State the continuous spot–forward relationship linking curve slope | $f(0,T) = z_c(T) + Tz_c'(T)$ |
-| 11 | If $z_c'(T) > 0$, how do forwards compare to zeros at $T$? | Forwards exceed zeros at $T$ (continuous case) |
-| 12 | What is a par yield (bond)? | The coupon rate making the bond sell at par |
-| 13 | What is the "annuity" $A(0)$ used in par rate formulas? | $A(0) = \sum \tau_i P(0,T_i)$ |
-| 14 | Write the par swap rate in terms of discount factors | $S = (P(0,T_\alpha) - P(0,T_\beta))/\sum \tau_i P(0,T_i)$ |
-| 15 | Why is a par rate a weighted average object? | It divides a PV difference by an annuity PV (sum of discounted accruals) |
-| 16 | What happens to forward rates if the fitted zero curve has slope discontinuities (kinks)? | Forwards can jump/spike because they depend on slope/derivatives |
-| 17 | What is a basic boundary condition for discount factors? | $P(0,0) = 1$ |
-| 18 | Can discount factors be negative? | No—positivity is required for log-based rates and to avoid arbitrage |
-| 19 | How do you convert a continuously compounded rate $R_c$ to an $m$-compounded rate $R_m$? | $R_m = m(e^{R_c/m} - 1)$ |
-| 20 | How do you discount a cashflow under continuous compounding? | Multiply by $e^{-Rn}$ |
+|---|---|---|
+| 1 | What is the fundamental difference between a Zero Rate and a Par Rate? | Zero rate applies to a single cashflow (terminal); Par rate applies to a series of cashflows (coupon/annuity). |
+| 2 | What is the formula for a continuous zero rate given $P(0,T)$? | $z_c = -\frac{\ln P(0,T)}{T}$ |
+| 3 | If the Zero Curve is upward sloping, is the Forward Rate higher or lower than the Zero Rate? | Higher. Marginal > Average to pull the average up. |
+| 4 | How do you calculate a simple forward rate from $T_1$ to $T_2$? | $F = \frac{1}{\tau} (\frac{P(T_1)}{P(T_2)} - 1)$ |
+| 5 | What is the standard discount curve in post-2008 markets? | The OIS (Overnight Indexed Swap) curve. |
+| 6 | Why are forward rates "wigglier" than zero rates? | Forward rates depend on the derivative (slope) of the zero curve; differentiation amplifies noise. |
+| 7 | What is the "Annuity" in the context of par rates? | The PV of receiving 1 unit of currency per period: $\sum \tau_i P(T_i)$. |
+| 8 | Can Discount Factors be greater than 1? | Yes, if interest rates are negative. |
+| 9 | What arbitrage strategy enforces the forward rate? | Borrowing long and lending short (or vice versa) to lock in a future rate. |
+| 10 | Why is Linear Interpolation of Discount Factors dangerous? | It creates discontinuous forward rates, leading to pricing anomalies in forward-starting products. |
+| 11 | What is the instantaneous forward rate $f(T)$ mathematically? | $f(T) = -\frac{\partial}{\partial T} \ln P(0,T)$ |
+| 12 | How do you recover $P(0,T)$ from instantaneous forwards? | $P(0,T) = \exp(-\int_0^T f(0,u)\,du)$ |
+| 13 | State the spot-forward relationship for continuous compounding. | $f(T) = z(T) + T \cdot z'(T)$ |
+| 14 | Convert 5% continuous to semiannual compounding. | $R_{sa} = 2(e^{0.05/2} - 1) \approx 5.06\%$ |
+| 15 | If the zero curve is flat at 4%, what is the forward rate? | 4% — flat curve means forward equals spot. |
+| 16 | Given $P(1) = 0.95$ and $P(2) = 0.89$, what is the 1y×1y simple forward? | $F = (0.95/0.89 - 1)/1 = 6.74\%$ |
+| 17 | What does a negative forward rate mean economically? | You pay interest to lend money (lender pays borrower). |
+| 18 | Why can't you convert a single par rate to a single discount factor? | Par rates depend on multiple DFs (the annuity). You need the full path via bootstrapping. |
 
 ---
 
 ## Mini Problem Set
 
-### Questions
+1.  **Conversion:** $P(0, 2y) = 0.92$. Calculate the continuous zero rate and the semiannual zero rate.
 
-1. Given $P(0,1) = 0.975$, compute $z_c(1)$ and $z_s(1)$.
+2.  **Forward:** $P(0, 1y) = 0.98, P(0, 2y) = 0.95$. Calculate the simple forward rate for the 2nd year ($1y \times 1y$).
 
-2. Given $P(0,1) = 0.99$ and $P(0,1.5) = 0.975$, compute $f_c(0;1,1.5)$.
+3.  **Par Rate:** A 2-year annual-pay bond has DFs: $P(1)=0.98, P(2)=0.95$. Calculate the Par Coupon.
 
-3. Given $P(0,0.5) = 0.995$ and $P(0,1) = 0.985$, compute the simple forward rate over $[0.5, 1]$.
+4.  **Arbitrage:** You see a quoted forward rate of 4% for year 2. Your calculated forward rate from the curve is 3%. Describe the arbitrage trade.
 
-4. Given $P(0,1) = 0.97$, $P(0,2) = 0.94$, $P(0,3) = 0.90$, compute the 3y par coupon on an annual-pay bond with face 100.
+5.  **Slope:** The zero curve is flat at 5%. What is the instantaneous forward rate?
 
-5. Suppose $P(0,0.5) = 1.001$ and $P(0,1) = 1.000$. Compute the simple and continuous forward rates over $[0.5, 1]$ and interpret the sign.
+6.  **Negative Rates:** $P(0, 1) = 1.01$. What is the simple zero rate? What is the continuous zero rate?
 
-6. Show algebraically that if you know all period simple forwards $F_s(0;T_{i-1},T_i)$, you can reconstruct $P(0,T_n)$ recursively.
+7.  **Annuity**: Calculate the PV01 of a 2-year annual bond if $P(1)=0.95, P(2)=0.90$.
 
-7. Prove (continuous case) that if $P(0,T) = e^{-rT}$, then the instantaneous forward rate is constant and equals $r$.
+8.  **Spot-Forward:** If $z(T) = 0.05 + 0.01T$ (continuous), find $f(T)$.
 
-8. Using $f(0,T) = z_c(T) + Tz_c'(T)$, explain what happens to forwards at maturities where the zero curve has a kink (a jump in slope).
+9.  **Convention:** Convert 5% continuous to semiannual.
 
-9. Consider two interpolation methods for $z_c(T)$ between 2y and 3y. Describe qualitatively why they might produce different short forwards even if they match endpoint discount factors.
+10. **Bootstrapping Logic:** If you know the 1y par rate and 2y par rate, can you find $P(0,2)$? Explain the steps.
 
-10. If $P(0,T)$ is decreasing and smooth, can forwards still be negative? Under what condition?
+11. **Instantaneous Forward:** Given $P(0,T) = e^{-0.04T - 0.002T^2}$, find $f(0,T)$.
 
-11. For a swap with payment dates $T_1, \ldots, T_n$, explain why the denominator $\sum \tau_i P(0,T_i)$ behaves like a "PV01 scale factor."
+12. **Integral Form:** If $f(0,T) = 0.03 + 0.01T$, find $P(0,3)$ using the integral formula.
 
-12. Explain why converting par swap rates to discount factors requires a bootstrapping-style procedure (outline conceptually; no full algorithm).
+### Solutions
 
-### Brief Solution Sketches (1–5 Only)
+1. **Conversion**: $z_c = -\ln(0.92)/2 = 0.0834/2 = 4.17\%$. $z_{sa} = 2((1/0.92)^{1/4} - 1) = 2(1.0210 - 1) = 4.21\%$.
 
-1. $z_c(1) = -\ln(0.975) = 0.02532 = 2.532\%$. $z_s(1) = 1/0.975 - 1 = 0.02564 = 2.564\%$.
+2. **Forward**: $F = (0.98/0.95 - 1)/1 = 0.0316 = 3.16\%$.
 
-2. $f_c = (1/0.5)\ln(0.99/0.975) = 2\ln(1.0153846) = 2(0.015266) = 0.03053 = 3.053\%$.
+3. **Par Rate**: $A = 1 \times 0.98 + 1 \times 0.95 = 1.93$. $C = (1 - 0.95)/1.93 = 0.05/1.93 = 2.59\%$.
 
-3. $1 + F_s \cdot 0.5 = 0.995/0.985 = 1.010152 \Rightarrow F_s = (1.010152 - 1)/0.5 = 0.020304 = 2.030\%$.
+4. **Arb**: Market forward (4%) is too high relative to curve (3%). Strategy: "Lend" at the market forward (buy FRA/receive fixed), "Borrow" at the theoretical forward (via synthetic using curve). You receive 4%, pay ~3%, profit ~1%.
 
-4. $c = (1 - P(0,3))/[P(0,1) + P(0,2) + P(0,3)] = (0.10)/(0.97 + 0.94 + 0.90) = 0.10/2.81 = 0.03559 = 3.559\%$. Coupon = 3.559% of face.
+5. **Slope**: 5%. Flat curve means $z'=0$, so $f = z + T \cdot 0 = z = 5\%$.
 
-5. Simple: $1 + F_s \cdot 0.5 = 1.001/1.000 = 1.001 \Rightarrow F_s = 0.001/0.5 = 0.002 = 0.20\%$. Continuous: $f_c = (1/0.5)\ln(1.001) = 2(0.0009995) = 0.001999 \approx 0.20\%$. Sign positive because $P(0,0.5) > P(0,1)$.
+6. **Negative**: Simple: $z_s = (1/1.01 - 1)/1 = -0.99\%$. Continuous: $z_c = -\ln(1.01)/1 = -0.995\%$.
+
+7. **Annuity**: $A = 1 \times 0.95 + 1 \times 0.90 = 1.85$.
+
+8. **Spot-Forward**: $f(T) = (0.05+0.01T) + T(0.01) = 0.05 + 0.02T$.
+
+9. **Convention**: $R_{sa} = 2(e^{0.05/2} - 1) = 2(1.0253 - 1) = 5.06\%$.
+
+10. **Bootstrapping**: Yes. Step 1: Use 1y par rate $C_1 = (1-P_1)/(P_1)$ to solve for $P(1)$ (assuming annual, $P_1 = 1/(1+C_1)$). Step 2: Use 2y par equation: $1 = C_2 \cdot P_1 + C_2 \cdot P_2 + P_2 = C_2(P_1 + P_2) + P_2$. Rearrange: $P_2 = (1 - C_2 \cdot P_1)/(1 + C_2)$.
+
+11. **Instantaneous Forward**: $f(0,T) = -\frac{d}{dT}(-0.04T - 0.002T^2) = 0.04 + 0.004T$.
+
+12. **Integral Form**: $\int_0^3 f(0,u)\,du = \int_0^3 (0.03 + 0.01u)\,du = [0.03u + 0.005u^2]_0^3 = 0.09 + 0.045 = 0.135$. So $P(0,3) = e^{-0.135} = 0.8737$.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts
+### (A) Verified Facts (Source-Backed)
 
-- Continuous discounting relationship defining spot rate via $d(t) = e^{-\hat{r}(t)t}$
-- Tuckman semiannual spot-rate / discount-factor identity $d(t) = 1/(1 + \hat{s}(t)/2)^{2t}$
-- Tuckman forward-rate/discount-function relationship in discrete and continuous limits, including $r(t) = -d'(t)/d(t)$
-- Tuckman continuous spot–forward slope identity $r(t) = \hat{r}(t) + t\hat{r}'(t)$ and the "forward vs spot" monotonicity statement
-- Hull's continuous compounding growth/discounting form $Ae^{Rn}$ and $e^{-Rn}$, plus conversion equations between compounding bases
-- Hull's definition of par yield as the coupon rate making a bond sell at par
-- Swap par (forward) rate formula in terms of discount factors and annuity
-- Money-market/simple-interest discount factor form $1/(1 + r \cdot d/360)$ and floating payment proportional to $n/360$
-- Tuckman's emphasis on avoiding slope jumps in fitted spot curves (motivation for spline smoothness)
+| Fact | Source |
+|------|--------|
+| Discount Factor Definition | Tuckman Ch 1: "the present value of $1 to be received at time t" |
+| Zero Rate (Continuous) Formula | Hull Ch 4, eq. 4.3, 4.5; Tuckman Ch 2, eq. 2.9 |
+| Zero Rate (Semiannual) Formula | Tuckman Ch 2, eq. 2.10 |
+| Compounding Conversion | Hull Ch 4, eq. 4.3, 4.4 |
+| Forward Rate (Simple) | Tuckman Ch 2, eq. 2.14 |
+| Forward Rate (Continuous) | Hull Ch 4, eq. 4.5; Tuckman Ch 2, eq. 2.16 |
+| Forward Rate (Semiannual) | Tuckman Ch 2, eq. 2.17 |
+| Instantaneous Forward Definition | Brigo & Mercurio Ch 1, Definition 1.4.2; Hull Ch 4, eq. 4.6 |
+| Integral Form for Discount Factor | Brigo & Mercurio Ch 1, following Definition 1.4.2 |
+| Forward Rate Locking Strategy | Hull Ch 4, "Forward Rates" section |
+| Spot-Forward Relationship $f=z+Tz'$ | Tuckman Appendix 2A |
+| Par Rate Formula | Tuckman eq. 4.40; Hull Ch 4 (par yield definition) |
+| No-Arbitrage Requirements | Tuckman Ch 1 (positivity, monotonicity) |
 
 ### (B) Reasoned Inference (Derived from A)
 
-- Conversions $z_c(T) = -(1/T)\ln P(0,T)$, $z_s(T) = (1/T)(1/P - 1)$, $z_m(T) = m(P^{-1/(mT)} - 1)$
-- Period forward formulas from discount-factor ratios (simple and continuous) and the integral representation $P(0,T) = \exp(-\int_0^T f(0,u) \, du)$
-- Par bond coupon formula $c_{\text{par}} = (1 - P(0,T_n))/\sum \tau_i P(0,T_i)$ by pricing cashflows at par
-- Interpretation of annuity $A(0) = \sum \tau_i P(0,T_i)$ as PV scale factor for par rates / PV01 per unit rate
-- Example D's demonstration that different interpolation choices yield materially different forwards due to derivative sensitivity
+*   **OIS as Universal Standard**: Derived from modern practice (post-CSA discounting) as documented in Andersen & Piterbarg Vol 1 Ch 6. Standard texts now mention OIS; the "universal" nature is a practitioner synthesis of industry evolution.
+*   **Wigglier Forwards**: Mathematical consequence of differentiation—if $f = z + Tz'$, then noise in $z$ is amplified in $f$.
+*   **Ordering of Rates by Convention**: For positive rates, continuous < discrete compounding follows from convexity of exponential function.
 
-### (C) Speculation (Clearly Labeled)
+### (C) Flagged Uncertainties
 
-- Specific desk conventions for which curve is "primary" (OIS discounting vs single-curve), and which day count/compounding is default for quoted zeros and par rates. This depends on market, currency, collateralization, and product set.
-
----
-
-*Generated from the provided reference books; verify market conventions for your specific desk.*
+*   **Simple Interest Day Counts**: Specific ACT/360 vs ACT/365 conventions depend on the currency (USD vs GBP), not specified here as universal. Consult market-specific documentation.
+*   **Par Yield vs Par Coupon**: Hull uses "par yield" while Tuckman uses "par coupon"—these are equivalent concepts but terminology varies across texts.

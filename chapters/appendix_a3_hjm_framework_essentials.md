@@ -1,4 +1,26 @@
-# Appendix A3: HJM Framework Essentials (Study Notes)
+# Appendix A3: HJM Framework Essentials
+
+---
+
+## Introduction
+
+What if you could model the entire yield curve—every forward rate for every maturity—in a single, internally consistent framework? And what if the only choice you needed to make was the volatility structure, with no-arbitrage automatically determining everything else?
+
+This is precisely what the Heath-Jarrow-Morton (HJM) framework delivers. Introduced in their seminal 1992 paper, HJM revolutionized term structure modeling by shifting focus from the short rate to the entire forward curve. As Brigo and Mercurio emphasize, "the importance of the HJM theory lies in the fact that virtually any (exogenous term-structure) interest-rate model can be derived within such a framework." The Hull-White model, the Ho-Lee model, and even the LIBOR Market Model can all be understood as special cases or extensions of HJM.
+
+The central insight—and the practical payoff—is the **drift restriction**: once you specify how volatile each point on the forward curve is, no-arbitrage pins down the drift. You cannot freely choose both. This seemingly constraining result is actually liberating: it means you can focus entirely on getting the volatility structure right, and the model takes care of the rest.
+
+This appendix develops the HJM framework from first principles:
+
+1. **Section 1** establishes notation and defines the core objects (bonds, forwards, numeraires)
+2. **Section 2** sets up the HJM dynamics: why model forward rates directly?
+3. **Section 3** derives the drift restriction—the centerpiece of the theory—with intuition for why volatility creates drift
+4. **Section 4** covers measure changes: risk-neutral, forward, and swap measures
+5. **Section 5** explores volatility structures that make HJM tractable (separable, RS class)
+6. **Section 6** bridges HJM to familiar short-rate models (Hull-White, Ho-Lee)
+7. **Section 7** provides an implementation roadmap for simulation and calibration
+
+This appendix assumes familiarity with no-arbitrage pricing (Appendix A1) and short-rate models (Appendix A2). It provides the theoretical foundation for market models (Appendix A4).
 
 ---
 
@@ -240,7 +262,25 @@ which is exactly the dot product form above.
 
 ---
 
-### 3.4 "Drift determined by volatility" made explicit
+### 3.4 The Convexity Correction Interpretation
+
+The drift restriction has a deep intuition rooted in **convexity effects**. To understand why volatility creates drift, consider what happens when you hold a zero-coupon bond.
+
+**The core mechanism:** A bond's price $P(t,T) = \exp(-\int_t^T f(t,u)\,du)$ is a *convex* function of the integrated forward rate. When forward rates fluctuate randomly around their expected value, Jensen's inequality tells us that the expected bond price exceeds the bond price evaluated at the expected forward rate:
+
+$$\mathbb{E}[P(t,T)] > \exp\left(-\int_t^T \mathbb{E}[f(t,u)]\,du\right)$$
+
+This "convexity advantage" is larger when volatility is higher. But under the risk-neutral measure, discounted bond prices must be martingales—they cannot systematically drift upward. Something must compensate for the convexity advantage.
+
+**The compensation:** The HJM drift restriction provides exactly this compensation. The positive drift $\alpha(t,T) = \sigma(t,T) \cdot \int_t^T \sigma(t,u)\,du$ pushes forward rates *upward* on average, which pushes bond prices *downward*, exactly offsetting the convexity advantage. Brigo and Mercurio state: "contrary to the short-rate modeling case, where one is free to specify the drift of the considered diffusion, here the function $\alpha$ is completely determined by the choice of the (vector) diffusion coefficient $\sigma$."
+
+**Graphical intuition:** Imagine the forward curve as a string. Volatility causes the string to vibrate. Because bond prices are convex in rates, this vibration creates a systematic tendency for bond prices to rise. The drift restriction adds just enough upward trend to forward rates to neutralize this tendency and maintain no-arbitrage.
+
+**Why longer maturities get more drift:** The integral $\int_t^T \sigma(t,u)\,du$ accumulates volatility from $t$ to $T$. Longer-maturity forwards have more "volatility accumulated behind them," so they require larger drift corrections. This explains why the drift term grows with time-to-maturity for typical volatility structures.
+
+---
+
+### 3.5 "Drift determined by volatility" made explicit
 
 Plugging the drift restriction back into the forward-rate SDE yields the integrated HJM representation:
 
@@ -256,7 +296,7 @@ under the risk-neutral measure (here $W$ is one-dimensional).
 
 ---
 
-### 3.5 Checks (units and limiting cases)
+### 3.6 Checks (units and limiting cases)
 
 **Limiting case $\sigma \equiv 0$:** then $\alpha(t,T) = 0$ from $\alpha = \sigma \cdot \int\sigma$, so forward rates have deterministic evolution (no diffusion-driven convexity correction). This matches the idea that without randomness, no-arbitrage places no extra drift constraints beyond deterministic consistency.
 
@@ -291,6 +331,12 @@ and the Brownian motions are related by
 $$dW^U(t) = dW^S(t) - \rho\left(\frac{\sigma_U(t)}{U(t)}\right)^\top dt.$$
 
 **Important caution:** applying this to $f(t,T)$ directly requires interpreting $f(t,T)$ as (or as a function of) traded assets in a way consistent with the model setup. The sources explicitly state martingale properties for traded ratios (e.g., forward bond prices, forward LIBOR rates) under forward measures.
+
+**HJM drift under the $T$-forward measure:** When switching from the money-market numeraire $B(t)$ to the $T$-forward numeraire $P(t,T)$, the drift of $f(t,S)$ for $S > T$ becomes:
+
+$$\alpha^{(T)}(t,S) = \sigma(t,S) \cdot \int_T^S \sigma(t,u)\,du$$
+
+Note the lower limit changes from $t$ to $T$. For the forward rate at maturity $T$ itself, $\alpha^{(T)}(t,T) = 0$—the forward rate with matching maturity is driftless under its own forward measure, a key simplification for option pricing.
 
 ---
 
@@ -350,86 +396,286 @@ which leads to a Hull–White-equivalent dynamics in the one-factor setting disc
 
 **(iii) Ritchken–Sankarasubramanian (RS) / finite-dimensional Markov extension**
 
-A volatility class of the form
+The general HJM framework is infinite-dimensional—you need the entire forward curve as state. However, Ritchken and Sankarasubramanian (1995) identified conditions under which the short rate's path-dependence can be captured by a single additional state variable, making the model computationally tractable.
 
-$$\sigma(t,T) = \sigma(t,t)\exp\!\left(-\int_t^T a(t,u)\,du\right)$$
+**The RS Volatility Condition:** As stated by Brigo and Mercurio, a necessary and sufficient condition for a one-factor HJM model to have a two-dimensional Markov representation is:
 
-leads to a Markov representation with an additional state variable (helpful for trees / efficient simulation).
+$$\boxed{\sigma(t,T) = \eta(t) \exp\!\left(-\int_t^T \kappa(x)\,dx\right)}$$
+
+where $\eta(t)$ is an adapted process (possibly stochastic) and $\kappa(x)$ is a deterministic function.
+
+**The auxiliary state variable:** Under the RS condition, prices depend on $(r(t), \phi(t))$ where:
+
+$$\phi(t) = \int_0^t \sigma_{RS}^2(s,t)\,ds$$
+
+This $\phi(t)$ captures the "accumulated variance effect" that would otherwise require knowing the entire path history.
+
+**Joint dynamics:** The two-state Markov process evolves as:
+
+$$d\binom{r(t)}{\phi(t)} = \binom{\mu(r,t)\,dt + \eta(t)\,dW(t)}{[\eta^2(t) - 2\kappa(t)\phi(t)]\,dt}$$
+
+with drift $\mu(r,t) = \kappa(t)[f(0,t) - r(t)] + \phi(t) + \frac{\partial}{\partial t}f(0,t)$.
+
+**Explicit bond price formula:** Brigo and Mercurio (Proposition 5.3.1) show that under RS volatilities, zero-coupon bond prices have the closed form:
+
+$$P(t,T) = \frac{P(0,T)}{P(0,t)} \exp\!\left\{-\frac{1}{2}\Lambda^2(t,T)\phi(t) + \Lambda(t,T)[f(0,t) - r(t)]\right\}$$
+
+where $\Lambda(t,T) = \int_t^T e^{-\int_t^u \kappa(x)\,dx}\,du$. This formula is powerful: bond prices depend only on $(r(t), \phi(t))$ and the initial curve, confirming the two-state Markov property.
+
+**Practical significance:** The RS class enables:
+- Recombining lattice implementations (Li-Ritchken-Sankarasubramanian trees)
+- Efficient PDE methods in two dimensions
+- Stochastic short-rate volatility ($\eta(t)$ can depend on state) while maintaining tractability
+
+**Special case:** When $\kappa$ is constant ($\kappa(x) = a$), the RS volatility reduces to:
+
+$$\sigma(t,T) = \eta(t) e^{-a(T-t)}$$
+
+which is precisely the Hull-White volatility structure, confirming that Hull-White is a special case of the RS class.
 
 ---
 
 ### 5.3 Practical implications (qualitative, source-aligned)
 
-- The general HJM class is infinite-dimensional and "too unwieldy" in practice; hence the need for structured volatility families that reduce to finitely many Markov state variables.
+- The general HJM class is infinite-dimensional and "too unwieldy" in practice (Brigo and Mercurio); hence the need for structured volatility families that reduce to finitely many Markov state variables.
 
 - Volatility structure matters because it drives both:
   - option prices (directly via $\sigma$),
   - and forward drifts (indirectly via the HJM restriction), affecting curve evolution and convexity corrections.
 
+- **Humped volatility:** Market-implied forward rate volatilities often exhibit a "hump"—volatility peaks at some intermediate maturity rather than being monotone. The Mercurio-Moraleda model addresses this by specifying:
+
+$$\sigma(t,T) = [\sigma_0 + \sigma_1(T-t)]e^{-\lambda(T-t)}$$
+
+This can produce realistic hump shapes while remaining Gaussian (no smile) and computationally tractable.
+
 ---
 
 ## 6. Relationship to Familiar Models (Bridge Section)
+
+The HJM framework is not a competitor to short-rate models—it is a unifying theory that *contains* them. Understanding the bridge between frameworks clarifies when each perspective is most useful.
 
 ### 6.1 Short-rate models induce an HJM volatility (conceptual equivalence)
 
 If you model $r(t)$ (and hence $B(t)$), you can compute $P(t,T)$ and therefore $f(t,T)$. The induced forward-rate dynamics must be arbitrage-free and therefore satisfy an HJM drift restriction under the appropriate pricing measure.
 
-This bridge is explicit in the sources via:
-- separable HJM vol $\Rightarrow$ Hull–White-type short-rate dynamics (one-factor Carverhill condition).
+Brigo and Mercurio state: "modeling the interest-rate evolution through the instantaneous short rate has some advantages, mostly the large liberty one has in choosing the related dynamics... However, short-rate models have also some clear drawbacks."
+
+The key insight is that every short-rate model *implies* an HJM volatility structure. Going the other direction, the Carverhill condition tells us when an HJM model implies a Markovian short rate:
+
+$$\sigma_i(t,T) = \xi_i(t)\psi_i(T)$$
+
+This separability is necessary and sufficient for the short rate to be Markov in the one-factor Gaussian case.
 
 ---
 
-### 6.2 Concrete bridge example: a simple short-rate diffusion produces HJM-consistent forward drift
+### 6.2 The Merton Model: Simplest Bridge Example
 
-A toy short-rate model (Merton-style) with
+Consider the "Merton toy model" (constant drift, constant volatility):
 
-$$dr(t) = \theta(t)\,dt + \sigma\,dW_t$$
+$$dr(t) = \theta\,dt + \sigma\,dW_t$$
 
-induces a forward-rate dynamic
+**Step 1: Compute bond prices.** For this affine model:
 
-$$df(t,T) = \sigma^2(T-t)\,dt + \sigma\,dW_t,$$
+$$P(t,T) = \exp\left[\frac{\sigma^2}{6}(T-t)^3 - \frac{\theta}{2}(T-t)^2 - (T-t)r_t\right]$$
 
-so the forward drift equals $\sigma^2(T-t)$, which is exactly the HJM drift restriction for constant $\sigma(t,T) = \sigma$.
+**Step 2: Derive forward rates.** Using $f(t,T) = -\partial_T \ln P(t,T)$:
 
-This is the cleanest "bridge" statement: a short-rate model implies a forward volatility, which then implies a forward drift via HJM.
+$$f(t,T) = -\frac{\sigma^2}{2}(T-t)^2 + \theta(T-t) + r_t$$
+
+**Step 3: Compute forward dynamics.** Differentiate and substitute $dr$:
+
+$$df(t,T) = \sigma^2(T-t)\,dt + \sigma\,dW_t$$
+
+**Verification:** Check the HJM drift restriction. With constant $\sigma(t,T) = \sigma$:
+
+$$\alpha(t,T) = \sigma \int_t^T \sigma\,du = \sigma^2(T-t) \quad \checkmark$$
+
+The forward drift $\sigma^2(T-t)$ is exactly what HJM predicts.
+
+---
+
+### 6.3 Hull-White to HJM: Complete Mapping
+
+The one-factor Hull-White model is:
+
+$$dr(t) = [\theta(t) - a\,r(t)]\,dt + \sigma\,dW_t$$
+
+where $a > 0$ is the mean-reversion speed and $\sigma > 0$ is the short-rate volatility.
+
+**The HJM volatility induced by Hull-White:** Following Brigo and Mercurio, set:
+
+$$\boxed{\sigma(t,T) = \sigma e^{-a(T-t)}}$$
+
+This has the separable form $\xi(t) = \sigma e^{at}$ and $\psi(T) = e^{-aT}$, confirming Markovianity.
+
+**Verify the HJM drift:** Compute:
+
+$$\int_t^T \sigma(t,u)\,du = \int_t^T \sigma e^{-a(u-t)}\,du = \frac{\sigma}{a}(1 - e^{-a(T-t)})$$
+
+Then:
+
+$$\alpha(t,T) = \sigma e^{-a(T-t)} \cdot \frac{\sigma}{a}(1 - e^{-a(T-t)}) = \frac{\sigma^2}{a}e^{-a(T-t)}(1 - e^{-a(T-t)})$$
+
+**Worked example:** With $a = 0.10$ (10% mean reversion) and $\sigma = 0.01$ (1% short-rate vol):
+
+At $t = 0$, $T = 5$ years:
+- Forward volatility: $\sigma(0,5) = 0.01 \cdot e^{-0.5} = 0.00607$
+- Integrated vol: $\int_0^5 \sigma(0,u)\,du = \frac{0.01}{0.1}(1 - e^{-0.5}) = 0.0393$
+- Drift: $\alpha(0,5) = 0.00607 \times 0.0393 = 0.000239$ (about 2.4 bp/year)
+
+At $t = 0$, $T = 1$ year:
+- Forward volatility: $\sigma(0,1) = 0.01 \cdot e^{-0.1} = 0.00905$
+- Integrated vol: $\int_0^1 \sigma(0,u)\,du = \frac{0.01}{0.1}(1 - e^{-0.1}) = 0.00952$
+- Drift: $\alpha(0,1) = 0.00905 \times 0.00952 = 0.0000861$ (about 0.9 bp/year)
+
+**Key insight:** Longer-maturity forwards have *lower* volatility (due to mean reversion) but *more accumulated volatility behind them*, leading to a non-monotonic drift profile.
+
+---
+
+### 6.4 Bridge to LIBOR Market Models (Forward to Appendix A4)
+
+The LIBOR Market Model (LMM/BGM) can also be derived from the HJM framework, as noted by Brigo and Mercurio: "Even the celebrated LIBOR market model was developed starting from instantaneous-forward-rate dynamics in Brace, Gatarek and Musiela (1997)."
+
+The key steps are:
+1. Work with discrete forward LIBOR rates $L(t, T_i, T_{i+1})$ rather than instantaneous forwards
+2. Choose volatility structures that make these discrete forwards log-normal
+3. Apply change-of-numeraire to work under convenient measures
+
+The full development is in Appendix A4, but the conceptual point is that LMM is not a departure from HJM—it is a particular choice of how to discretize and parameterize the HJM framework for practical calibration to caps and swaptions.
 
 ---
 
 ## 7. Practical Implementation Map (Discretization of an Infinite-Dimensional Model)
 
+The general HJM framework is infinite-dimensional, which poses obvious computational challenges. This section provides a practical roadmap for implementation.
+
+> **Important caveat (Glasserman):** "In the generality of the HJM setting, some discretization error is usually inevitable." Unlike short-rate models such as Vasicek or CIR that can be simulated exactly at discrete dates, HJM requires approximating both the time evolution *and* the maturity dimension. This means that even with small time steps, there is inherent approximation error that must be monitored.
+
 ### 7.1 Discretize the forward curve on a tenor grid
 
-- Choose maturities $T_1 < T_2 < \cdots < T_M$.
+**Setup:**
+- Choose maturities $T_1 < T_2 < \cdots < T_M$ (e.g., quarterly out to 30 years).
 - Represent the state as the vector $\mathbf{f}_t = (f(t,T_1), \ldots, f(t,T_M))$.
-- Approximate integrals like $\int_t^{T_j} \sigma(t,u)\,du$ with quadrature on the grid (piecewise-constant/trapezoid).
+- Initialize from the market curve: $f(0, T_j) = f^{\text{market}}(0, T_j)$ for all $j$.
+
+**Integral approximations:** Use quadrature on the grid:
+- Piecewise constant: $\int_t^{T_j} \sigma(t,u)\,du \approx \sum_{k: T_k \in [t, T_j]} \sigma(t,T_k)(T_{k+1} - T_k)$
+- Trapezoidal for better accuracy on coarse grids
 
 ---
 
-### 7.2 Simulate discretized HJM (Euler idea)
+### 7.2 Simulate discretized HJM (Euler scheme)
 
-On each step $t \to t + \Delta t$, update each $f(t,T_j)$ via
+**Algorithm (one path):**
 
-$$f(t+\Delta t, T_j) \approx f(t,T_j) + \alpha(t,T_j)\Delta t + \sigma(t,T_j) \cdot \Delta W_t,$$
+```
+Input: Initial curve f(0,T_j), volatility function σ(t,T),
+       time step Δt, number of steps N, d-factor Brownian motion
+Output: Simulated forward curve at each time step
 
-where $\Delta W_t \sim N(0, \Delta t\,I_d)$.
+For n = 0 to N-1:
+    t_n = n * Δt
 
-**No-arbitrage numerically:** recompute $\alpha(t,T_j)$ from the current $\sigma$ using the drift restriction at each step:
+    # Generate d-dimensional Brownian increment
+    ΔW = sqrt(Δt) * randn(d)
 
-$$\alpha(t,T_j) = \sigma(t,T_j) \cdot \int_t^{T_j} \sigma(t,u)\,du.$$
+    For j = 1 to M (each tenor point):
+        If T_j > t_n:  # Only update future maturities
+
+            # Compute integrated volatility (drift coefficient)
+            integral_sigma = 0
+            For k = j to M:
+                If T_k > t_n:
+                    integral_sigma += σ(t_n, T_k) * (T_{k+1} - T_k)
+
+            # Compute drift from HJM restriction
+            α = σ(t_n, T_j) · integral_sigma
+
+            # Euler update
+            f(t_{n+1}, T_j) = f(t_n, T_j) + α * Δt + σ(t_n, T_j) · ΔW
+```
+
+**Critical implementation note:** All tenor points share the *same* Brownian increment $\Delta W$ at each time step. This ensures the correlation structure is preserved.
 
 ---
 
 ### 7.3 Reconstruct bond prices from the simulated forward curve
 
-Use $P(t,T) = \exp(-\int_t^T f(t,u)\,du)$, approximating the integral on the tenor grid.
+At any simulation time $t$, compute:
+
+$$P(t,T) = \exp\left(-\sum_{k: t \leq T_k \leq T} f(t,T_k)(T_{k+1} - T_k)\right)$$
+
+**Numerical pitfalls to avoid:**
+1. **Negative forward rates:** Gaussian HJM can produce negative forwards. Either accept this (reasonable for short maturities) or use shifted/displaced diffusion.
+2. **Curve explosion:** Large volatility + long simulation can produce unrealistic curves. Monitor $\max_j |f(t, T_j)|$ for sanity.
+3. **Non-monotonic bond prices:** If $P(t, T_1) < P(t, T_2)$ for $T_1 < T_2$, something is wrong.
 
 ---
 
-### 7.4 Calibration workflow (high level)
+### 7.4 Variance reduction techniques
 
-1. Choose a parametric $\sigma(t,T;\vartheta)$ (separable/exponential decay/multi-factor).
-2. Fit $\vartheta$ to option-implied data (caps/swaptions) and ensure the model is consistent with the initial curve. The need for structured subclasses is emphasized because unconstrained HJM is not practical to calibrate and run.
-3. Validate: reprice calibration instruments; check stability of simulated curves.
+For Monte Carlo pricing, several techniques improve efficiency:
+
+**Antithetic variates:** For each path using $\Delta W$, also simulate with $-\Delta W$. Average the two payoffs. This is particularly effective for HJM because the forward dynamics are linear in the Brownian increments.
+
+**Control variates:** Use the analytical price of a simple instrument (e.g., a vanilla caplet under the same model) as a control. The residual variance after control-variate adjustment is often much smaller.
+
+**Brownian bridge construction:** For path-dependent payoffs, generate terminal values first, then fill in intermediate points. This can be combined with low-discrepancy sequences (quasi-Monte Carlo).
+
+**Principal component reduction:** For multi-factor HJM, the first few principal components often explain most variance. Simulate only the leading components and use importance sampling for the rest.
+
+---
+
+### 7.5 Calibration workflow
+
+**Step 1: Choose a volatility parameterization**
+
+Select a functional form $\sigma(t,T;\theta)$ with parameter vector $\theta$. Common choices:
+
+| Parameterization | Parameters | Best For |
+|------------------|------------|----------|
+| Constant | $\sigma$ | Simple testing |
+| Exponential decay | $\sigma, a$ | Hull-White-like behavior |
+| Humped (Mercurio-Moraleda) | $\sigma_0, \sigma_1, \lambda$ | Realistic vol term structure |
+| Multi-factor separable | $\xi_i(t), \psi_i(T)$ | Rich correlation structure |
+
+**Step 2: Fit to market instruments**
+
+The choice of instruments determines which aspects of the model are pinned down:
+
+| Instrument | What It Calibrates |
+|------------|-------------------|
+| Caplets/Floorlets | Forward rate volatility $\sigma(t,T)$ at specific tenors |
+| Swaptions | Integrated volatility over swap tenor; correlation structure |
+| CMS rates | Convexity adjustments; measure-change effects |
+
+**Calibration objective:** Minimize pricing error:
+
+$$\min_\theta \sum_i w_i \left[V_i^{\text{model}}(\theta) - V_i^{\text{market}}\right]^2$$
+
+where $w_i$ are weights (often inverse bid-offer or inverse vega).
+
+**Step 3: Validate**
+
+- Reprice calibration instruments (should match closely)
+- Price out-of-sample instruments (check reasonableness)
+- Simulate paths and verify:
+  - Bond prices positive and decreasing in maturity
+  - Forward rates in reasonable range
+  - Martingale tests pass (discounted bond prices should have zero mean drift)
+
+---
+
+### 7.6 Common numerical pitfalls
+
+| Pitfall | Symptom | Fix |
+|---------|---------|-----|
+| Inconsistent drift | $P(t,T)/B(t)$ drifts in simulation | Recompute $\alpha$ from $\sigma$ at each step |
+| Grid too coarse | Bond prices oscillate | Finer tenor grid or higher-order integration |
+| Time step too large | Simulation unstable | Reduce $\Delta t$; use implicit schemes |
+| Ignoring maturity roll | Error grows over long horizons | Remove expired maturities from grid |
+| Wrong correlation across factors | Mispriced spread options | Use proper Cholesky decomposition for $\Delta W$ |
 
 ---
 
@@ -823,6 +1069,13 @@ $$\pi_t = P(t,T)\,\mathbb{E}^T[H_T \mid \mathcal{F}_t].$$
 | 23 | What is the "terminal forward measure" idea? | Use the longest maturity bond as numeraire to price multiple cashflows under one forward measure. |
 | 24 | What is the HJM drift restriction enforcing? | No-arbitrage (martingale property of discounted bond prices). |
 | 25 | What must be specified carefully in any drift formula? | The measure, numeraire, and the definition of $\sigma$ (forward vol vs bond vol). |
+| 26 | Why does volatility create positive drift in forward rates? | To offset the "convexity advantage" in bond prices (Jensen's inequality). |
+| 27 | What is the Ritchken-Sankarasubramanian (RS) condition? | $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$ for two-state Markov representation. |
+| 28 | What is the auxiliary state variable $\phi(t)$ in RS models? | $\phi(t) = \int_0^t \sigma_{RS}^2(s,t)ds$, capturing accumulated variance. |
+| 29 | What HJM volatility corresponds to Hull-White? | $\sigma(t,T) = \sigma e^{-a(T-t)}$ where $a$ is mean reversion, $\sigma$ is short-rate vol. |
+| 30 | Why do longer-maturity forwards have more HJM drift? | They have more "accumulated volatility behind them" via $\int_t^T \sigma du$. |
+| 31 | What is the RS explicit bond price formula? | $P(t,T) = \frac{P(0,T)}{P(0,t)}\exp\{-\frac{1}{2}\Lambda^2\phi + \Lambda[f(0,t)-r]\}$ where $\Lambda = \int_t^T e^{-\int_t^u \kappa dx}du$. |
+| 32 | HJM drift under $T$-forward measure for $f(t,S)$ with $S > T$? | $\alpha^{(T)}(t,S) = \sigma(t,S) \cdot \int_T^S \sigma(t,u)du$ (lower limit is $T$, not $t$). |
 
 ---
 
@@ -876,21 +1129,56 @@ $$\pi_t = P(t,T)\,\mathbb{E}^T[H_T \mid \mathcal{F}_t].$$
 
 16. Describe how you would calibrate a parametric $\sigma(t,T;\vartheta)$ to both caps and swaptions in principle (high level).
 
+17. **Hull-White mapping:** Given Hull-White parameters $a = 0.05$ and $\sigma = 0.008$, compute the HJM forward rate volatility $\sigma(t,T)$ for $T - t = 10$ years. Then compute the corresponding drift $\alpha(t,T)$.
+
+   > *Sketch:* $\sigma(t,T) = 0.008 \cdot e^{-0.5} \approx 0.00485$. Integrated vol: $\frac{0.008}{0.05}(1-e^{-0.5}) \approx 0.0629$. Drift: $0.00485 \times 0.0629 \approx 3.05$ bp/year.
+
+18. **RS framework:** Explain why the RS condition $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$ allows for a Markovian representation even when $\eta(t)$ depends on the short rate.
+
+   > *Sketch:* The path-dependence is captured entirely by the auxiliary state $\phi(t)$; together with $r(t)$, this forms a sufficient statistic.
+
+19. **Convexity intuition:** A bond with 10-year maturity has higher convexity than a 2-year bond. Explain qualitatively why the HJM drift for the 10-year forward should be larger.
+
+   > *Sketch:* Higher convexity means larger "Jensen's advantage"; more upward drift in forward rates needed to offset.
+
+20. **Variance reduction:** You are pricing a 5-year Bermudan swaption via Monte Carlo under a 2-factor HJM model. Propose two variance reduction techniques and explain why they might help.
+
+   > *Sketch:* (1) Antithetic variates work well because forward dynamics are linear in $\Delta W$. (2) Control variate using European swaption (same model, analytical price) removes systematic bias.
+
 ---
 
 ## Source Map
 
 ### (A) Verified Facts — cite specific sources
 
-- HJM framework fundamentals, drift restriction derivation, and measure change formulas: Andersen & Piterbarg, *Interest Rate Modeling*, Vols. 1-2
-- Bond-forward relationships, short-rate bridge examples: Brigo & Mercurio, *Interest Rate Models: Theory and Practice*
-- Volatility structure classifications (separable, exponential decay, RS): Andersen & Piterbarg, Vol. 2
+| Fact | Source |
+|------|--------|
+| HJM framework fundamentals, drift restriction derivation | Andersen & Piterbarg, *Interest Rate Modeling*, Vol. 1 Ch. 4 |
+| Forward rate dynamics under HJM: $df(t,T) = \alpha(t,T)dt + \sigma(t,T) \cdot dW(t)$ | Brigo & Mercurio Ch. 5.1, equation (5.1) |
+| Drift restriction $\alpha(t,T) = \sigma(t,T) \cdot \int_t^T \sigma(t,u)du$ | Brigo & Mercurio Ch. 5.1, equation (5.2); Andersen & Piterbarg Vol. 1 |
+| "Drift determined by volatility": "contrary to the short-rate modeling case, where one is free to specify the drift... here the function α is completely determined by the choice of the (vector) diffusion coefficient σ" | Brigo & Mercurio Ch. 5, p. 185 |
+| Carverhill separability condition for Markovian short rate: $\sigma_i(t,T) = \xi_i(t)\psi_i(T)$ | Brigo & Mercurio Ch. 5.2, referencing Carverhill (1994) |
+| Ritchken-Sankarasubramanian condition: $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$ | Brigo & Mercurio Ch. 5.3, Proposition 5.3.1 |
+| RS two-state Markov process dynamics | Brigo & Mercurio Ch. 5.3, equations (5.5)-(5.6) |
+| Hull-White to HJM volatility mapping: $\sigma(t,T) = \sigma e^{-a(T-t)}$ | Brigo & Mercurio Ch. 5.2, explicit derivation pp. 186-187 |
+| LMM developed from HJM: "Even the celebrated LIBOR market model was developed starting from instantaneous-forward-rate dynamics" | Brigo & Mercurio Ch. 5 footnote, referencing Brace, Gatarek and Musiela (1997) |
+| Measure change formulas and numeraire toolkit | Andersen & Piterbarg Vol. 1 Ch. 4.4 |
+| Monte Carlo variance reduction techniques | Glasserman, *Monte Carlo Methods in Financial Engineering*, Chs. 4-5 |
+| HJM simulation and discretization: "some discretization error is usually inevitable" | Glasserman, Section 3.6.1 |
+| RS explicit bond price formula (Proposition 5.3.1) | Brigo & Mercurio Ch. 5.3, pp. 187-188 |
+| Mercurio-Moraleda humped volatility model | Brigo & Mercurio Ch. 5.4 |
 
 ### (B) Reasoned Inference — note derivation logic
 
-- Worked examples (1–10) derive from applying the HJM drift restriction formula to various constant/decaying volatility specifications
-- Euler discretization scheme follows standard SDE simulation methodology applied to the HJM forward-rate dynamics
+- **Convexity correction interpretation:** Derived from combining the drift restriction with Jensen's inequality applied to bond prices as convex functions of forward rates. The interpretation follows naturally from the HJM structure.
+- **Worked examples (1–10):** Apply the HJM drift restriction formula to various constant/decaying volatility specifications; arithmetic follows directly from the boxed formulas.
+- **Hull-White parameter mapping example:** Numerical values computed by substituting $a = 0.10$, $\sigma = 0.01$ into the explicit formulas derived in Section 6.3.
+- **Euler discretization scheme:** Standard SDE simulation methodology applied to the HJM forward-rate dynamics.
+- **Pseudo-code algorithm:** Structured implementation of the Euler scheme with explicit drift recomputation.
+- **T-forward measure drift:** Derived by applying the standard change-of-numeraire argument: the integrated volatility lower limit shifts from $t$ to $T$ because the numeraire $P(t,T)$ has volatility $-\int_t^T \sigma(t,u)du$.
 
-### (C) Speculation — flag uncertainties
+### (C) Flagged Uncertainties
 
-- Specific calibration workflows may vary by desk/system; the high-level description in Section 7.4 reflects general practice but implementation details differ
+- **Calibration workflows:** The high-level description in Section 7.5 reflects general practice, but specific implementation details vary by desk/system. The choice of objective function, weighting scheme, and optimization algorithm are practitioner-dependent.
+- **Multi-factor correlation structures:** The mapping from market correlation to model correlation is not unique; different parameterizations can fit the same correlation matrix.
+- **Variance reduction effectiveness:** The relative benefit of different variance reduction techniques depends on the specific payoff structure and model parameters; the rankings given are qualitative.

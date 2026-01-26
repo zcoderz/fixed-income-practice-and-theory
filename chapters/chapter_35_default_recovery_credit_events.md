@@ -2,25 +2,26 @@
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-| Convention | Detail |
-|------------|--------|
-| **Currency & units** | Notional amounts are in dollars; bond prices are quoted per 100 par unless stated otherwise |
-| **Recovery rate** | $R \in [0,1]$ denotes recovery as a fraction of par (e.g., 40% recovery $\Rightarrow R = 0.40$). When using a price per 100 $P$, we map $R := P/100$ |
-| **Loss-given-default** | $\text{LGD} := 1 - R$ |
-| **CDS premium accrual** | Premium accrues on an Actual/360 day-count when we do explicit day-count calculations (consistent with the cited mechanics) |
-| **Sign convention** | Payoffs are written from the perspective of the protection buyer unless stated otherwise |
+When a credit analyst says "XYZ Corp has defaulted," what exactly does that mean? The answer is less obvious than it first appears—and getting it wrong can be extraordinarily expensive.
+
+Consider this scenario: a trader holds $50 million notional of CDS protection on a distressed issuer. The reference entity's bonds have collapsed from 95 to 35, equity has cratered, and the financial press is full of restructuring speculation. The trader expects a windfall from the CDS protection. But weeks pass, and no payment arrives. The contract hasn't triggered because no **credit event**—the precise contractual definition that activates CDS protection—has yet occurred. Economic distress is not the same as a contractual trigger.
+
+This distinction between economic default (what the market perceives) and contractual credit event (what triggers payments) lies at the heart of credit derivatives. O'Kane emphasizes that "the credit event is the legal term for the event which triggers the payment of the protection leg. It is an event which is similar to default but, as we will see, it is not exactly the same as the event of default as defined by the rating agencies."
+
+This chapter establishes the foundational concepts for credit derivatives pricing:
+
+1. **Economic Default vs Contractual Credit Event** — Why spreads can blow out while CDS contracts sit dormant
+2. **Recovery Rates and Loss Given Default** — How much you get back, and why it's not a fixed number
+3. **Credit Event Taxonomy** — The ISDA definitions that determine when protection pays
+4. **Structural Model Intuition** — The Merton model preview connecting equity and credit
+
+Understanding these concepts is essential before tackling CDS mechanics (Chapter 38), CDS pricing (Chapter 41), survival curve construction (Chapter 36), or credit relative value (Chapter 44). Every formula in those chapters builds on the definitions established here.
 
 ---
 
-## Setup
-
-### Conventions used in this chapter
-
-See notation table above.
-
-### Notation Glossary
+## Conventions and Notation
 
 | Symbol | Definition |
 |--------|------------|
@@ -29,745 +30,640 @@ See notation table above.
 | $\text{LGD}$ | Loss given default $= 1 - R$ (dimensionless) |
 | $P$ | Observed distressed/defaulted bond price per 100 par (price points) |
 | $S$ | CDS spread as annual rate in decimal (e.g., 200 bp = 0.02) |
-| $\alpha$ | Day-count fraction from last premium date to default date (Actual/360 when used explicitly) |
-| "Credit event" | Contractual trigger for CDS protection leg |
+| $\alpha$ | Day-count fraction from last premium date to default date (Actual/360) |
+
+**Sign convention:** Payoffs are written from the perspective of the protection buyer unless stated otherwise.
 
 ---
 
-## Fact Classification
+## 35.1 Economic Default vs Contractual Credit Event
 
-### (A) Verified Facts (Source-Backed)
+### The Distinction That Costs Money
 
-- A CDS is a bilateral OTC contract that protects the protection buyer from loss from par on a specified face value of bonds/loans (the deliverable obligations) if a credit event occurs before maturity.
-- CDS cashflows are organized into two legs: (i) premium leg (periodic premium, typically quarterly) and (ii) protection leg (contingent loss payment upon credit event).
-- The standard mechanics include paying premium accrued at default: after a credit event, the protection buyer pays the fraction of premium accrued since the previous premium date.
-- The protection leg can be settled via physical settlement (deliver obligations for par) or cash settlement (pay par minus a recovery/settlement price determined by a dealer poll or auction).
+Traders often use "default" loosely, but O'Kane warns that "in the credit derivatives market and in this book, the term 'default' is often used when the precise term 'credit event' is meant." This conflation obscures a crucial distinction:
 
-### (B) Reasoned Inference (Derived from A)
+**Economic default** is a continuous deterioration visible in market prices. Spreads widen, equity falls, bond prices collapse, funding dries up. This is what traders watch on their screens.
 
-- The core message of this chapter: what you see economically (distress, inability/willingness to pay, market price collapse) can diverge from what you get contractually (a CDS payout only when a contractual credit event is triggered and processed). This creates timing risk, definition risk, and settlement-mechanics risk.
+**Contractual credit event** is a discrete boundary crossing defined by legal documentation. Your CDS protection pays only when a defined credit event occurs, the notice/evidence conditions are satisfied, and the settlement steps complete.
 
-### (C) Speculation (Clearly Labeled)
+The mismatch creates **timing risk** for hedgers. A bond-plus-CDS hedge can show substantial P&L volatility during the "gray zone" where economic distress is obvious but no contractual trigger has occurred.
 
-- None needed in Setup.
+> **Analogy: The Fire Alarm**
+>
+> *   **Economic Default (Smoke)**: The room is filled with smoke. Everyone *knows* there is a fire. The price of the house (bonds) has collapsed.
+> *   **Credit Event (Sprinklers)**: The sprinklers (CDS Payout) only turn on if someone pulls the specific red handle on the wall.
+> *   **The Risk**: You might die of smoke inhalation (lose money on the bond) while standing right next to the sprinkler system, just because the handle hasn't been pulled yet (no legal "Failure to Pay").
 
----
+### 35.1.1 Par vs. Distressed Trading
+> **Definitions**:
+> *   **Par Trading**: Focus is on **Yield**. "Will I get my coupon?" Prices are 90-100+.
+> *   **Distressed Trading**: Focus is on **Recovery**. "What is the liquidation value of the factory?" Prices are 20-40. The bond stops trading on yield and starts trading on "cents on the dollar."
 
-## Core Concepts
+### What Constitutes a Default?
 
-### 1) Economic Default vs Contractual Credit Event
+Moody's Investor Services provides the most commonly used definition. O'Kane summarizes: "Moody's Investor Services defines default as 'any missed or delayed payment of interest or principal, bankruptcy, receivership or distressed exchange where (i) the issuer offered bondholders a new security or package of securities that amount to a diminished financial obligation (such as preferred or common stock or debt with a lower coupon or par amount) or (ii) the exchange had the apparent purpose of helping the borrower avoid default.'"
 
-**Formal Definition (contractual):**
+A **technical default**—a failure to pay that is quickly rectified—is typically not included in rating agency default statistics. But it may still trigger a CDS contract, creating basis between cash and derivatives. O'Kane notes that "if a failure to pay principal or coupon occurs as a result of some omission which is quickly rectified, then the event is known as technical default. Such an occurrence is not usually included in rating agency default statistics."
 
-A credit event is the legal term for the event that triggers payment of the CDS protection leg. It is similar to default but not exactly the same as "event of default" as defined by rating agencies; practitioners often say "default" when they mean "credit event."
+### Historical Default Rates
 
-**Credit event taxonomy (as described in the sources):**
+Before modeling credit derivatives, practitioners need empirical grounding in how often defaults occur. O'Kane presents cumulative default rates from Moody's covering 1983–2005:
 
-The book lists commonly used credit events and classifies them as hard vs soft:
+| Rating | 1-Year (%) | 5-Year (%) | 10-Year (%) |
+|--------|------------|------------|-------------|
+| Aaa | 0.0 | 0.1 | 0.2 |
+| Aa | 0.0 | 0.2 | 0.4 |
+| A | 0.0 | 0.6 | 1.2 |
+| Baa | 0.2 | 2.2 | 4.5 |
+| Ba | 1.3 | 11.1 | 17.8 |
+| B | 5.7 | 25.1 | 32.1 |
+| Caa-C | 21.0 | 41.2 | 43.3 |
 
-| Hard Credit Events | Soft Credit Event |
-|--------------------|-------------------|
-| Bankruptcy | Restructuring |
-| Failure to pay | |
-| Obligation acceleration | |
-| Obligation default | |
-| Repudiation/moratorium | |
+These historical default rates are used to calibrate risk models, but they are **not** used directly for pricing. Pricing requires the risk-neutral framework, where implied default probabilities are extracted from market spreads (covered in Chapter 36).
 
-**Soft vs hard:** Restructuring is described as the only soft credit event; after restructuring, debt can continue trading with a term structure of prices (shorter maturities typically higher prices than longer maturities).
+> **Why historical ≠ risk-neutral:** Hull presents extensive evidence that hazard rates implied from bond spreads are typically much higher than historical default rates. For example, seven-year hazard rates for Baa-rated bonds are approximately 5× higher when implied from spreads versus calculated from historical data. This "default risk premium" compensates investors for: (1) uncertainty in the historical statistics, (2) the systematic risk that defaults concentrate in bad economic times, and (3) the difficulty of diversifying the highly skewed payoffs of credit instruments.
 
-**Triggering mechanics (physical-settlement timeline preview):**
+Hull explains the core reason: "By far the most important reason for the results... is that bonds do not default independently of each other. There are periods of time when default rates are very low and periods of time when they are very high." This clustering creates systematic risk that cannot be diversified away, requiring a risk premium.
 
-To trigger protection, the protection buyer delivers a Credit Event Notice supported by at least two sources of publicly available information (examples given include Reuters, Wall Street Journal, Financial Times, or similar); the delivery date is the Event Determination Date.
-
-**Intuition:**
-
-Economic distress is continuous (spreads widen, equity falls, funding dries up). The CDS contract pays only when the world crosses a discrete contractual boundary ("credit event") and the operational steps are completed.
-
-Contractual definitions can be broader than bond default: the CDS basis discussion explicitly notes "technical default," i.e., standard credit events may be broader than what constitutes default on a bond.
-
-**Trading / Risk / Portfolio Practice:**
-
-Risk managers distinguish:
-- **Mark-to-market credit deterioration** (spread widening, price drop) vs
-- **Jump-to-default / credit-event payoff** (discrete payout if contract triggers)
-
-Hedging a bond with CDS can fail if the bond tanks but the CDS does not trigger yet (or triggers under terms different from your intuition).
-
----
-
-### 2) Recovery and LGD
-
-**Formal Definition:**
-
-$R$ is the recovery rate (fraction of par); $\text{LGD} = 1 - R$. The CDS protection payment is commonly expressed as a fraction $(1 - R)$ of the face value.
-
-**Market measurement of recovery (bond-market notion):**
-
-Recovery rate in credit markets is measured as the defaulted bond price divided by face value. Hull similarly describes the bond recovery rate as the value of the bond shortly after default as a percentage of face value.
-
-**Recovery in credit derivatives vs workout recovery:**
-
-The "recovery price" used in credit derivatives is set within a short window (the source notes "within 72 days") and can differ from the amount ultimately received after a full workout/liquidation process; differences can arise from information arrival and supply/demand in distressed markets.
-
-**Intuition:**
-
-Recovery is not a single "true" number; it depends on what claim you hold, when you measure, and what the settlement mechanism uses as the reference price.
-
-**Trading / Risk / Portfolio Practice:**
-
-Traders talk about "recovery" as a market-implied object: the defaulted bond price (or the CDS cash-settlement "final price") is an operational proxy for what the CDS will reference.
+> **Concept: The Hazard Rate ($\lambda$)**
+>
+> In credit modeling, we don't just ask "Will it default?" we ask "How intense is the danger right now?"
+> *   **$\lambda$ (Hazard Rate)**: The instantaneous probability of default.
+> *   **Analogy**: A Geiger counter clicking. High $\lambda$ = lots of clicks (high danger).
+> *   **Triangle Rule of Thumb**:
+>     $$ \text{Credit Spread} \approx (1 - \text{Recovery}) \times \lambda $$
+>     If Recovery is 40% and Spread is 600bps (6%), then $\lambda \approx 10\%$. The market expects a 10% chance of default this year.
 
 ---
 
-### 3) Settlement Mechanics (Preview): Physical vs Cash
+## 35.2 Recovery Rates: What You Get Back
 
-**Formal Definition (physical settlement):**
+### Defining Recovery
 
-The protection buyer delivers face value of deliverable obligations to the protection seller and receives face value in cash (par).
+Hull provides the canonical definition: "The recovery rate for a bond is normally defined as the bond's market value shortly after default, as a percent of its face value."
 
-**Formal Definition (cash settlement):**
+More precisely, recovery rate $R$ is:
 
-The protection seller pays "face value minus recovery price" in cash, where the recovery price is determined by a dealer poll or auction process (and in Hull, via a calculation agent or auction determining cheapest-to-deliver value after default).
+$$\boxed{R = \frac{\text{Bond price shortly after default}}{\text{Face value}} = \frac{P}{100}}$$
 
-**Deliverables and the delivery option:**
+If a defaulted bond trades at $35 per $100 face, then $R = 0.35$.
 
-Because multiple bonds/loans may qualify as deliverable obligations, the protection buyer can choose what to deliver—effectively being "long a delivery option."
+**Loss given default (LGD)** is the complement:
 
-**Operational/market impact (short squeeze):**
+$$\boxed{\text{LGD} = 1 - R}$$
 
-If CDS notional specifying physical settlement is large relative to deliverable obligations outstanding, protection buyers may scramble to source deliverables, potentially raising defaulted-asset prices ("short squeeze") and reducing the loss payment; a fallback to cash settlement may exist if physical settlement is impossible/illegal.
+The LGD is what the protection seller pays (or equivalently, what the protection buyer receives) as a fraction of notional.
 
-**Intuition:**
+### Recovery Rate Statistics by Seniority
 
-Physical settlement pays par for delivered paper; cash settlement pays par minus an agreed price proxy.
+O'Kane presents empirical recovery data from Altman et al. (2003b), based on bond prices just after default and loan prices 30 days after default:
 
-Delivery option matters most in restructuring (soft credit event) because different deliverables can trade at different prices post-event.
+| Debt Seniority | Type | Number of Issues | Median Recovery (%) | Mean Recovery (%) | Std Dev (%) |
+|----------------|------|------------------|---------------------|-------------------|-------------|
+| Senior secured | Loans | 155 | 73.00 | 68.50 | 24.4 |
+| Senior unsecured | Loans | 28 | 50.50 | 55.00 | 28.4 |
+| Senior secured | Bonds | 220 | 54.49 | 52.84 | 23.1 |
+| Senior unsecured | Bonds | 910 | 42.27 | 34.89 | 26.6 |
+| Senior subordinated | Bonds | 395 | 32.35 | 30.17 | 25.0 |
+| Subordinated | Bonds | 248 | 31.96 | 29.03 | 22.5 |
 
-**Trading / Risk / Portfolio Practice:**
+O'Kane highlights several key observations from this data:
 
-Basis traders care about settlement details because they change payoffs relative to bonds (e.g., cheapest-to-deliver option, accrued differences, technical default, restructuring).
+1. **Seniority is the dominant driver.** "The most important driver of the recovery rate is the position of the debt in the capital structure of the firm, i.e. senior debt recovers more on average than subordinated debt."
+2. **Loans recover more than bonds.** "The recovery rate of loans exceeds that of bonds. This is because the loans typically contain additional covenants."
+3. **Recovery is highly variable.** Standard deviations of 22–28% mean individual outcomes can diverge sharply from means. O'Kane notes that "the absolute priority rule (APR) is not always obeyed in the US, meaning that in certain circumstances, holders of subordinated debt may recover more than holders of more senior debt."
+4. **The CDS-relevant benchmark is senior unsecured bonds** at approximately 35% mean recovery (34.89% precisely). Hull notes that "an average recovery rate that is often assumed is 40%."
 
----
+### Recovery vs Default Rate Correlation
 
-### 4) Premium Accrual at Default
+One of the most important empirical findings is that recovery rates are **negatively correlated** with default rates. O'Kane explains: "When macroeconomic default rates increase, the average recovery rate falls, and vice versa."
 
-**Formal Definition:**
+The mechanism is supply and demand in distressed debt markets. O'Kane elaborates: "The dynamic is that when there is a high default rate, there is an oversupply of defaulted assets in the distressed debt market. As a result, the price of distressed debt falls. The opposite occurs when we are in a period of below average default rates."
 
-Premium leg payments terminate following a credit event, but the protection buyer pays premium accrued since the previous premium date (a contingent cashflow).
+Altman et al. (2003a) found an $R^2$ of 0.51 for the relationship, with a best-fit line of:
 
-**Premium schedule convention (mechanics):**
+$$\text{Recovery Rate} \approx 0.51 - 2.6 \times \text{Default Rate}$$
 
-Premium payments are typically quarterly, and payment amounts use an Actual/360 day count in the worked mechanics shown in the source.
+Hull confirms this pattern: "In a year when the number of bonds defaulting is low, economic conditions are usually good and the average recovery rate on those bonds that do default might be as high as 60%; in a year when the default rate on corporate bonds is high, economic conditions are usually poor and the average recovery rate on the defaulting bonds might be as low as 30%."
 
-**Intuition:**
+This correlation is **systematic risk** that affects portfolio credit products like CDOs. It means a bad default year is "doubly bad" for credit portfolios—more defaults occur, and each default recovers less.
 
-Premium is paid "in arrears," so default mid-period still leaves a "stub" premium owed.
+### Credit Derivatives Recovery vs Workout Recovery
 
-**Trading / Risk / Portfolio Practice:**
+O'Kane cautions practitioners to distinguish between two recovery concepts:
 
-Accrued-on-default matters for hedging and basis: the sources note CDS pays accrued premium on default, whereas bondholders' accrued coupon can be lost in default (a basis driver).
+**Credit derivatives recovery price:** The price of the reference obligation determined within approximately 72 days of the credit event (via auction or dealer poll). This is what determines CDS payoffs.
 
----
+**Workout recovery:** The ultimate amount received by bondholders after the full bankruptcy/liquidation process, which can take years.
 
-## Math and Derivations
+These can differ significantly. O'Kane notes: "Significant differences might occur if new information arrives between the setting of the recovery price and the completion of the workout process. The recovery price is also vulnerable to supply and demand effects in the distressed debt market."
 
-### (A) Verified Facts (Source-Backed)
-
-- CDS protection leg aims to "make up to par" the value of a deliverable obligation after a credit event.
-- A commonly stated payoff form is $L(1 - R)$ where $L$ is notional and $R$ is recovery rate.
-
-### (B) Reasoned Inference (Derived, with Explicit Assumptions)
-
-#### 1) Core Payoff Identity (Cash Settlement)
-
-**Assume:**
-- Notional $N$ is measured in dollars
-- Settlement price is interpreted as recovery fraction $R$ of par
-
-**Then** the cash settlement payoff to the protection buyer is:
-
-$$\boxed{\Pi_{\text{prot}} = N(1 - R) = N \cdot \text{LGD}}$$
-
-**Unit check:**
-- $N$ is dollars, $R$ is dimensionless, so $\Pi_{\text{prot}}$ is dollars ✓
-
-**Bounds:**
-- If $R = 1$ then $\Pi_{\text{prot}} = 0$
-- If $R = 0$ then $\Pi_{\text{prot}} = N$ ✓
+For CDS pricing, the credit derivatives recovery price is the relevant concept.
 
 ---
 
-#### 2) Premium Accrual at Default (Simple Accrual Arithmetic)
+## 35.3 Credit Event Taxonomy: The ISDA Definitions
 
-**Assume:**
-- Contract spread $S$ is an annual rate in decimal (e.g., 200 bp = 0.02)
-- Accrual fraction $\alpha$ is Actual/360 for the period from last premium date to default date, consistent with the mechanics section
-- Accrued premium is owed by the protection buyer at default (standard contract feature described)
+### Hard vs Soft Credit Events
 
-**Then:**
+CDS contracts define specific events that trigger protection payments. O'Kane explains that "the market generally divides these into hard and soft credit events."
 
-$$\boxed{\Pi_{\text{accrued prem}} = N \cdot S \cdot \alpha}$$
-
-**Unit check:**
-- $S$ is "per year," $\alpha$ is "years," product is dimensionless; times $N$ gives dollars ✓
-
----
-
-#### 3) Physical vs Cash Settlement Equivalence (Economic Alignment)
-
-**From the contract mechanics:**
-- Physical settlement: buyer delivers face value of deliverables; receives par
-- Cash settlement: buyer receives par minus recovery price in cash
-
-Let the market price of a deliverable immediately after the event be $P$ per 100 par, and set $R := P/100$.
-
-If a protection buyer can acquire $N$ face amount of deliverables at price $P$, the economic gain from delivering into the CDS is:
-
-$$\text{Gain} = N - N \cdot \frac{P}{100} = N(1 - R)$$
-
-matching the cash-settlement identity.
-
-**Assumptions (must be stated):**
-- We ignore bid/ask, financing, and the delivery option's impact on which bond is cheapest-to-deliver
-- We assume the "recovery price" used for cash settlement equals the market price of the deliverable used in the physical example
-
-### (C) Speculation (Clearly Labeled)
-
-None needed for the algebra; the only uncertainty is operational detail (e.g., exact auction steps) beyond what the sources specify.
-
----
-
-## Measurement & Risk (Only What Belongs in Chapter 35)
-
-### 1) Economic Default vs Contractual Credit Event (Must-Distinguish)
-
-#### (A) Verified Facts
-
-- Credit event is a contractual/legal trigger, similar to but not the same as rating-agency "event of default"; market participants often conflate terminology.
-- The contract specifies a taxonomy of credit events (hard/soft) including restructuring as the only soft credit event.
-- Protection is triggered via a Credit Event Notice supported by publicly available information; the notice date is the Event Determination Date.
-
-#### (B) Reasoned Inference
-
-- Economic default (in a trading sense) often manifests as spread blowout and price collapse.
-- Contractual reality: your CDS may not pay until (i) a defined credit event occurs, (ii) notice/evidence conditions are satisfied, and (iii) settlement steps complete—creating timing mismatch risk for hedges.
-
-#### (C) Speculation
-
-None.
-
----
-
-### 2) Recovery Concepts: $R$, LGD, and "Recovery" Ambiguity
-
-#### (A) Verified Facts
-
-- Market recovery rate is measured as defaulted bond price divided by face value; recovery in credit derivatives is tied to a recovery price determined within a short window and can differ from ultimate workout recovery.
-- CDS loss payment is commonly expressed as $(1 - R)$ of face value.
-
-#### (B) Reasoned Inference
-
-**Recovery as market-implied:**
-
-- If a bond trades at $P = 35$ shortly after default, a market-implied recovery proxy is $R \approx 0.35$. This is consistent with the "defaulted bond price / face" measure.
-- If a CDS auction/cash-settlement process produces a final price $P_{\text{settle}}$, you can interpret $R := P_{\text{settle}}/100$ as the recovery used for settlement (subject to contract specifics).
-
-**"Recovery" can mean different things:**
-
-Sources explicitly contrast credit-derivatives recovery price vs workout recovery.
-
-If you need exact distinctions such as "recovery of par" vs "recovery of market value" conventions beyond these statements: **I'm not sure.** You'd need the specific contract's definitions and the modeling convention you want to adopt.
-
-#### (C) Speculation
-
-None.
-
----
-
-### 3) CDS Settlement Mechanics (Preview; No Full Pricing)
-
-#### (A) Verified Facts
-
-- Physical settlement: deliver obligations for par.
-- Cash settlement: pay par minus a recovery/settlement price, determined by dealer poll or auction; Hull describes a calculation agent or auction determining cheapest-to-deliver value after default.
-- There can be practical frictions in physical settlement (short squeeze) and a mechanism may allow fallback to cash settlement if physical settlement is impossible/illegal.
-- Premium accrued at default is paid by the protection buyer.
-
-#### (B) Reasoned Inference
-
-Settlement mechanics determine the exact cashflows, so they directly affect:
-- Hedge effectiveness vs cash bonds
-- Basis between CDS and bonds (delivery option, technical default, accrued differences)
-
-#### (C) Speculation
-
-**Auction process operational steps:** the sources here only say "dealer poll or auction process" and do not fully specify all operational steps.
-
-If you need the exact mechanics: **I'm not sure.** We would need the specific ISDA Definitions vintage and the auction settlement protocol referenced by the contract.
-
----
-
-### 4) Credit Event Taxonomy (Preview) + Contract Dependence
-
-#### (A) Verified Facts
-
-Credit event categories and definitions (as provided) include:
+**Hard credit events** cause all debt to become immediately due and payable, typically trading at a single distressed price. O'Kane describes these as events that "would cause all the debt of the reference entity to become immediately due and payable and hence trade at the same price. It is what the rating agencies would traditionally call default."
 
 | Credit Event | Description |
 |--------------|-------------|
-| **Bankruptcy** | Hard event |
-| **Failure to Pay** | Hard event |
-| **Obligation Acceleration** | Hard event |
-| **Obligation Default** | Hard event |
-| **Repudiation/Moratorium** | Hard event |
-| **Restructuring** | Soft event — can leave a term structure of post-event prices |
+| **Bankruptcy** | Corporate becomes insolvent or is unable to pay its debts. Not relevant for sovereign issuers. |
+| **Failure to Pay** | Failure to make due payments, taking into account a grace period. |
+| **Obligation Acceleration** | Obligations become due earlier than scheduled due to default. Used mostly in emerging market contracts. |
+| **Obligation Default** | Obligations become due and payable prior to maturity. Rarely used. |
+| **Repudiation/Moratorium** | Reference entity or government authority rejects or challenges the validity of obligations. Used for emerging market sovereigns. |
 
-**Restructuring clause choices** differ across regions and change deliverable constraints; common labels include:
+**Soft credit events** allow debt to continue trading with a term structure of prices:
 
-| Clause | Description |
-|--------|-------------|
-| Old-Re (OR) | Original restructuring |
-| Mod-Re (MR) | Modified restructuring (US standard) |
-| Mod-Mod-Re (MMR) | Modified-modified restructuring |
-| No-Re (NR) | No restructuring — removes restructuring as credit event |
+| Credit Event | Description |
+|--------------|-------------|
+| **Restructuring** | Changes in debt obligations associated with credit deterioration. Post-event, short-dated bonds typically trade higher than long-dated bonds. |
 
-#### (B) Reasoned Inference
+O'Kane emphasizes that "restructuring is the only soft credit event. Following a restructuring event, debt can continue trading with a term structure of prices. Short dated assets will tend to trade at higher prices than long dated assets, and assets with higher coupons will trade with a higher price than those with lower coupons."
 
-Credit events and settlement depend on the contract's specified definitions and restructuring clause. Even when two traders say "default," they might not mean the same contractual trigger—hence event-definition risk.
+### Triggering Protection: The Process
 
-The sources explicitly caution that ISDA definitions evolve; the discussion is intended to sensitize modelers to "precise rules" and to seek up-to-date legal advice.
+To receive a CDS payout, the protection buyer must follow a defined process. O'Kane describes the physical settlement timeline:
 
-#### (C) Speculation
+1. **Credit Event Notice:** The protection buyer informs the protection seller that a credit event has occurred. The event must be evidenced by "at least two sources of Publicly Available Information, e.g. a news article on Reuters, the Wall Street Journal, the Financial Times or some other recognised publication." The notice delivery date is the **Event Determination Date**.
 
-Who determines credit events in practice (e.g., committees): not specified in the cited excerpts. **I'm not sure.** We would need the relevant ISDA Definitions and trade confirmation language.
+2. **Notice of Physical Settlement:** Within 30 calendar days of the Event Determination Date, the protection buyer specifies what deliverable obligations will be delivered.
 
----
+3. **Physical Settlement:** Within 30 business days, the protection buyer delivers the obligations and receives par.
 
-### 5) Practical Risk Implications (Preview-Level)
+The entire process can take up to 72 calendar days—a significant lag between economic distress and cash settlement.
 
-#### (A) Verified Facts
+### Restructuring Clauses: Regional Variations
 
-- CDS payoff form $N(1 - R)$ creates a discrete jump exposure at credit event.
-- Physical settlement can involve delays and market frictions (timeline and potential short squeeze).
+The treatment of restructuring as a credit event has created persistent regional differences in CDS contracts. O'Kane provides the taxonomy:
 
-#### (B) Reasoned Inference
+| Clause | Abbreviation | Description |
+|--------|--------------|-------------|
+| **Old-Restructuring** | Old-Re (OR) | Original standard with 30-year maximum maturity on deliverables |
+| **Modified-Restructuring** | Mod-Re (MR) | US standard. Limits deliverable maturities following restructuring |
+| **Modified-Modified-Restructuring** | Mod-Mod-Re (MMR) | European standard. Slightly broader deliverable range than Mod-Re |
+| **No-Restructuring** | No-Re (NR) | Removes restructuring as a credit event entirely |
 
-- **Jump-to-default exposure:** for a protection seller, the instantaneous cash outflow upon credit event is approximately $N(1 - R)$ (ignoring accrued premium and close-out nuances).
-- **Recovery risk:** uncertainty in $R$ directly scales payout: $\partial\Pi/\partial R = -N$.
-- **Event risk:** ambiguity/timing around whether/when a credit event is triggered, plus settlement timing and deliverables.
+The choice of restructuring clause affects CDS spreads because it affects the value of the **delivery option**—the protection buyer's right to choose which deliverable to surrender. O'Kane shows the spread ordering:
 
-#### (C) Speculation
+$$S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}$$
 
-None.
+The CDX (North American) indices use No-Re, while iTraxx (European) indices include restructuring. This creates basis between regional index products.
 
 ---
 
-## Worked Examples
+## 35.4 The CDS Payoff Structure
 
-*All examples are toy, focus on cashflow plumbing, and use price-per-100 and $ notionals consistently.*
+### Protection Leg: What Gets Paid at Credit Event
+
+The protection leg is the contingent payment made by the protection seller to compensate the protection buyer for losses. Under cash settlement:
+
+$$\boxed{\Pi_{\text{prot}} = N(1 - R) = N \times \text{LGD}}$$
+
+where $N$ is the notional and $R$ is the recovery rate (settlement price divided by par).
+
+**Unit check:** $N$ is dollars, $(1-R)$ is dimensionless, so $\Pi_{\text{prot}}$ is dollars. ✓
+
+**Boundary check:** If $R = 1$ (full recovery), payout is zero. If $R = 0$ (total loss), payout is full notional. ✓
+
+### Physical vs Cash Settlement Economics
+
+Under **physical settlement**, the protection buyer delivers face value of deliverable obligations and receives par in cash.
+
+Under **cash settlement**, the protection seller pays par minus the recovery/settlement price, determined by auction. Hull describes this process: "an ISDA-organized auction process is used to determine the mid-market value of the cheapest deliverable bond several days after the credit event."
+
+These are economically equivalent when the settlement price equals the market price of deliverables. Let the post-event bond price be $P$ per 100 par, so $R = P/100$:
+
+**Cash settlement gain:**
+$$\Pi = N(1 - R) = N \times \frac{100 - P}{100}$$
+
+**Physical settlement gain:**
+$$\text{Buy deliverable at } P, \text{ deliver for } 100 \Rightarrow \text{Gain} = N \times \frac{100 - P}{100}$$
+
+The equivalence holds under idealized conditions. In practice, physical settlement creates a **delivery option**: the protection buyer chooses which deliverable to surrender, selecting the cheapest-to-deliver.
+
+### The Delivery Option
+
+O'Kane illustrates with an example: "Consider a protection buyer holding $100 face value of an asset which trades at a price of $43 and $100 of protection. Suppose that a restructuring credit event occurs and that another deliverable asset is trading at a price of $37. To maximise his profit, the protection buyer can sell the original asset for $43, buy the cheaper asset for $37, and deliver that for par, making an additional profit of $6 from the delivery option."
+
+The delivery option is most valuable after soft credit events (restructuring) where different bonds trade at different prices.
+
+### Premium Accrual at Default
+
+CDS contracts specify that the protection buyer pays accrued premium from the last payment date to the default date:
+
+$$\boxed{\Pi_{\text{accrued prem}} = N \times S \times \alpha}$$
+
+where $S$ is the annual spread (decimal) and $\alpha$ is the day-count fraction (typically Actual/360).
+
+**Worked Example:**
+- Notional $N = \$10,000,000$
+- CDS spread $S = 300$ bp $= 0.03$
+- Days since last premium: 50 days
+- Accrual fraction: $\alpha = 50/360 = 0.1389$
+
+$$\Pi_{\text{accrued}} = 10{,}000{,}000 \times 0.03 \times 0.1389 = \$41{,}667$$
+
+This accrued premium is paid by the protection buyer at default, in addition to any scheduled payments already made.
+
+> **Basis note:** CDS contracts pay accrued premium on default, but bondholders' accrued coupon can be lost in default. O'Kane notes this asymmetry: "Following a credit event, a CDS pays the protection seller the premium which has accrued since the previous payment date. However, when a bond defaults, the owner's claim is on the face value, and so any accrued coupons are lost. The effect on the inclusion of coupon accrued on default is to lower the CDS spread and so reduce the basis."
 
 ---
 
-### Example A: LGD Arithmetic
+## 35.5 Structural Models: The Merton Framework (Preview)
 
-**Given:** $R \in \{20\%, 40\%, 60\%\}$ and notional $N = \$10{,}000{,}000$. Compute LGD and loss.
+### Equity as a Call Option on Firm Value
 
-| Recovery $R$ | LGD $= 1 - R$ | Loss $= N \cdot \text{LGD}$ |
-|--------------|---------------|----------------------------|
+Before the reduced-form models used for CDS pricing, structural models provided the first rigorous framework for credit risk. O'Kane explains: "The history of credit modelling began with the work of Merton (1974), in which he proposed an option-based model for corporate default. Merton's idea was to model default as the event which occurs when the value of the assets of a firm fall below the value of the firm's debt."
+
+The Merton model assumes a simplified capital structure:
+- Face value $F$ of zero-coupon debt maturing at time $T$
+- Equity $E$ that pays no dividends
+- Total firm value $A(t) = D(t) + E(t)$
+
+At maturity, two states are possible:
+
+**Solvency** ($A(T) \geq F$): Bondholders receive $F$; equity holders receive $A(T) - F$
+
+**Insolvency** ($A(T) < F$): Bondholders receive $A(T)$; equity holders receive nothing
+
+The equity payoff is therefore:
+
+$$E(T) = \max[A(T) - F, 0]$$
+
+This is the payoff of a **call option** on firm value struck at the debt face value.
+
+The debt payoff can be written as:
+
+$$D(T) = F - \max[F - A(T), 0] = \min[F, A(T)]$$
+
+Bondholders are effectively long cash and short a put option on firm value.
+
+### Distance to Default
+
+Under the assumption that firm value follows geometric Brownian motion with volatility $\sigma_A$, Merton derived closed-form expressions for equity and debt values using Black-Scholes:
+
+$$E(t) = A(t)\Phi(d_1) - Fe^{-r(T-t)}\Phi(d_2)$$
+
+where
+
+$$d_1 = \frac{\ln(A(t)/F) + (r + \frac{1}{2}\sigma_A^2)(T-t)}{\sigma_A\sqrt{T-t}}, \quad d_2 = d_1 - \sigma_A\sqrt{T-t}$$
+
+The survival probability (probability firm value exceeds debt at maturity) is:
+
+$$Q(t,T) = \Pr(A(T) \geq F) = \Phi(d_2)$$
+
+The term $d_2$ can be interpreted as the "distance to default" in standardized units—how many standard deviations the firm's assets lie above the default threshold.
+
+### Endogenous Recovery in the Merton Model
+
+One elegant feature of the Merton model is that it determines recovery endogenously. O'Kane notes: "the Merton model not only allows us to price equity and bonds, it also allows us to determine the recovery rate endogenously."
+
+The recovery rate depends on how far asset value has fallen below the debt threshold at default—it is not a fixed input but emerges from the model.
+
+### Limitations of Structural Models for Pricing
+
+O'Kane lists key limitations:
+
+1. **Simplified capital structure.** Real firms have multiple debt tranches with different seniorities and maturities. "Merton's model assumes that the bonds are zero coupon. It is possible to extend Merton's model to handle coupon paying bonds as in Geske (1977). However, the computational complexity of the pricing formulae increases significantly—a coupon paying bond is a compound option, an option on an option in this framework."
+
+2. **Default only at maturity.** The basic model doesn't allow default before $T$.
+
+3. **Asset value transparency.** Firm asset values are not directly observable.
+
+4. **Short-term spreads vanish.** "The credit spread for firms for which $A(t) > F$ always tends to zero as $T-t \rightarrow 0$. This is not consistent with the credit markets in which even corporates with very high credit ratings have a finite spread at very short maturities."
+
+Despite these limitations, O'Kane concludes that "structural models perform best as a tool for augmenting the traditional balance sheet analysis methods of credit analysts." The Moody's KMV model is a prominent commercial application.
+
+For derivatives pricing, the market uses **reduced-form models** (Chapter 36) that directly model hazard rates and calibrate to market spreads.
+
+---
+
+## 35.6 Worked Examples
+
+### Example A: Recovery Rate from Post-Default Bond Price
+
+A bond trades at $P = 28$ per 100 par shortly after default.
+
+**Recovery rate:**
+$$R = \frac{P}{100} = \frac{28}{100} = 0.28$$
+
+**Loss given default:**
+$$\text{LGD} = 1 - R = 1 - 0.28 = 0.72$$
+
+**Interpretation:** For every $100 of notional, the protection seller pays $72.
+
+---
+
+### Example B: CDS Protection Leg Payoff
+
+CDS notional $N = \$10{,}000{,}000$. Recovery rates of 20%, 40%, and 60%.
+
+| Recovery $R$ | LGD $= 1-R$ | Protection Payment $N \times \text{LGD}$ |
+|--------------|-------------|------------------------------------------|
 | 0.20 | 0.80 | $\$8{,}000{,}000$ |
 | 0.40 | 0.60 | $\$6{,}000{,}000$ |
 | 0.60 | 0.40 | $\$4{,}000{,}000$ |
 
-**Unit check:** $N$ dollars × LGD (dimensionless) = dollars ✓
+**Unit check:** Dollars × dimensionless = dollars. ✓
+
+**Intuition:** Recovery rate directly scales the payout. Every 10 percentage points of recovery reduces the payout by $1,000,000.
 
 ---
 
-### Example B: Bond Price → Implied Recovery Intuition
+### Example C: Lehman Brothers Recovery
 
-A bond is observed at $P = 35$ (per 100 par) shortly after default/credit event. Market-implied recovery proxy:
+Hull reports that the Lehman Brothers CDS auction in 2008 produced a cash payout of 91.375% of principal, implying a recovery of approximately 8.625 cents on the dollar.
 
-$$R \approx \frac{P}{100} = \frac{35}{100} = 0.35$$
-
-So implied LGD $\approx 0.65$.
-
-**Limitations (source-backed framing):**
-- The credit-derivatives "recovery price" can differ from ultimate workout recovery and is vulnerable to new information and supply/demand in distressed markets.
-- Bond-price-as-recovery is a timing-dependent proxy (the sources define it as a "shortly after default" price / face).
-
----
-
-### Example C: CDS Protection Leg Payoff with Recovery
-
-CDS notional $N = \$10{,}000{,}000$. Payoff to protection buyer:
-
-$$\Pi_{\text{prot}} = N(1 - R)$$
-
-| Recovery $R$ | Payoff $\Pi$ |
-|--------------|--------------|
-| 0.20 | $10{,}000{,}000 \times 0.80 = \$8{,}000{,}000$ |
-| 0.40 | $\$6{,}000{,}000$ |
-| 0.60 | $\$4{,}000{,}000$ |
-
-This matches the payoff form $L(1 - R)$.
-
----
-
-### Example D: Accrued Premium on Default
-
-**Assume:**
-- Notional $N = \$10{,}000{,}000$
-- CDS spread $S = 300$ bp $= 0.03$ per year
-- Premium dates quarterly; last premium date to default is 50 days
-- Use Actual/360: $\alpha = 50/360 = 0.1388889$
-
-**Accrued premium** owed by protection buyer at default:
-
-$$\Pi_{\text{accrued prem}} = N \cdot S \cdot \alpha = 10{,}000{,}000 \times 0.03 \times 0.1388889 = \$41{,}666.67$$
-
-So $41,666.67 is paid as accrued premium (in addition to any scheduled payments already made).
-
-**Source support:** premium payments are typically quarterly, use Actual/360 in the mechanics, and accrued premium at default is a standard feature.
-
----
-
-### Example E: Physical vs Cash Settlement Economics
-
-**Assume:**
-- Notional $N = \$10{,}000{,}000$
-- Deliverable bond price post-event $P = 35$ per 100 par, so $R = 0.35$
-
-**Cash settlement:**
-
-$$\Pi = N(1 - R) = 10{,}000{,}000 \times 0.65 = \$6{,}500{,}000$$
-
-**Physical settlement (economic replication):**
-
-1. Buy $10mm face of deliverables at 35% of par → cost $= 0.35 \times 10{,}000{,}000 = \$3{,}500{,}000$
-2. Deliver deliverables into CDS; receive par $10,000,000 (deliver for par)
-3. Net gain $= 10{,}000{,}000 - 3{,}500{,}000 = \$6{,}500{,}000$, matching cash settlement
-
-**Assumptions / "I'm not sure" flags:**
-
-We ignore bid/ask, funding, and any constraints on what counts as deliverable. The exact deliverable set depends on contract terms (and for restructuring, on the restructuring clause).
-
----
-
-### Example F: Auction "Final Price" → Recovery
-
-Hull's Lehman example reports recovery "about eight cents on the dollar," determined by an auction process, implying about a 92% payout.
-
-**Let:**
-- $P_{\text{final}} = 8$ per 100 → $R = 0.08$
+**Parameters:**
+- Cash payout to protection buyers: 91.375% of principal
+- Implied recovery: $R = 1 - 0.91375 = 0.08625 \approx 8.6\%$
 - Notional $N = \$10{,}000{,}000$
 
-**Then CDS payoff:**
+**CDS payoff:**
+$$\Pi = N(1 - R) = 10{,}000{,}000 \times 0.91375 = \$9{,}137{,}500$$
 
-$$\Pi = N(1 - R) = 10{,}000{,}000 \times 0.92 = \$9{,}200{,}000$$
-
-**Unit check:** dollars × dimensionless = dollars ✓
-
----
-
-### Example G: Recovery Uncertainty as Risk
-
-**Assume** recovery $R$ is random:
-- Scenario 1: $R = 0.20$ with probability 60%
-- Scenario 2: $R = 0.50$ with probability 40%
-- Notional $N = \$10{,}000{,}000$
-
-Loss to protection seller (or payoff to buyer) is $N(1 - R)$.
-
-| Scenario | $R$ | Payoff |
-|----------|-----|--------|
-| 1 | 0.20 | $10{,}000{,}000 \times 0.80 = \$8{,}000{,}000$ |
-| 2 | 0.50 | $10{,}000{,}000 \times 0.50 = \$5{,}000{,}000$ |
-
-**Expected payoff:**
-
-$$E[\Pi] = 0.6 \times 8{,}000{,}000 + 0.4 \times 5{,}000{,}000 = 4{,}800{,}000 + 2{,}000{,}000 = \$6{,}800{,}000$$
-
-**Distribution matters:** same mean could hide very different tail outcomes (risk management concern).
+**Context:** Hull notes that "when Lehman defaulted in September 2008, there was about $400 billion of CDS contracts and $155 billion of Lehman debt outstanding." The extremely low recovery—among the lowest in major corporate defaults—meant CDS protection buyers received nearly the full notional.
 
 ---
 
-### Example H: Event vs Economic Default Mismatch
+### Example D: Delivery Option Value After Restructuring
 
-**Goal:** illustrate timing mismatch between market distress and contractual credit event.
+Following a restructuring credit event, two deliverable bonds trade at different prices:
+- Bond A: $43 per 100
+- Bond B: $37 per 100
 
-**Source-backed anchor:** the protection buyer may sometimes delay triggering, e.g., if they expect a restructuring to turn into a full default and produce a larger payoff.
+CDS notional $N = \$10{,}000{,}000$.
 
-**Toy timeline** (numbers are illustrative):
+**Without delivery option** (deliver Bond A):
+$$\Pi = N \times \frac{100 - 43}{100} = 10{,}000{,}000 \times 0.57 = \$5{,}700{,}000$$
 
-| Day | Event |
-|-----|-------|
-| 0 | Firm distress; bond drops from 95 to 60. (Economic deterioration; no contract trigger yet.) |
-| 10 | A restructuring credit event occurs (soft event) but buyer delays notice hoping for harder default. |
-| 40 | Buyer serves Credit Event Notice (Event Determination Date at Day 40), settlement proceeds. |
+**With delivery option** (deliver cheapest, Bond B):
+$$\Pi = N \times \frac{100 - 37}{100} = 10{,}000{,}000 \times 0.63 = \$6{,}300{,}000$$
 
-**Suppose:**
-- Notional $N = \$10{,}000{,}000$
-- If restructure is triggered now, settlement price $P = 40 \Rightarrow R = 0.40 \Rightarrow \Pi = \$6{,}000{,}000$
-- If the situation worsens to a hard default, settlement price $P = 25 \Rightarrow R = 0.25 \Rightarrow \Pi = \$7{,}500{,}000$
+**Delivery option value:**
+$$\$6{,}300{,}000 - \$5{,}700{,}000 = \$600{,}000$$
 
-**Hedge effectiveness intuition:**
-
-A bond+CDS hedge can show P&L volatility during the "gray zone" because bond prices react continuously while CDS payout is discrete and timing-dependent.
-
-**I'm not sure (scope/limits):**
-
-Exact rules governing when delay is permissible and how it interacts with determinations/notice requirements depend on contract definitions and legal process beyond what is fully specified here.
+This is 6 points per 100 notional, matching O'Kane's example.
 
 ---
 
-### Example I: Restructuring Clause Difference — Conceptual with Numbers
+### Example E: Portfolio Jump-to-Default Exposure
 
-**Source-backed facts to use:**
-- Restructuring clauses: Old-Re (OR), Mod-Re (MR), Mod-Mod-Re (MMR), No-Re (NR), each imposing different deliverable constraints; No-Re removes restructuring as a credit event.
-- The contract choice affects spreads; the source suggests an ordering reflecting delivery option value:
+A portfolio has four CDS positions where you are short protection (you pay on credit event):
 
-$$S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}$$
-
-**Toy numeric illustration:**
-
-Two deliverables after a restructuring: Bond A at 43, Bond B at 37 (per 100).
-
-Notional $N = \$10{,}000{,}000$ (face)
-
-- If physical settlement is allowed with a broad deliverable set (delivery option present), buyer chooses cheapest-to-deliver (37) and effectively realizes $1 - 0.37 = 0.63$ payout-equivalent → $\$6.3$mm.
-- If clause restricts deliverables such that only Bond A (43) is effectively deliverable, payout-equivalent is $1 - 0.43 = 0.57$ → $\$5.7$mm.
-
-This mirrors the delivery option example logic (buyer can sell held asset at 43, buy cheaper at 37, deliver for par, capturing extra value).
-
-**I'm not sure (important):**
-
-The exact eligibility rules for deliverables, maturity limits, and when clauses apply must be read from the trade's ISDA Definitions and confirmation; the source itself says "for a full description, refer to ISDA 2003 definitions."
-
----
-
-### Example J: Portfolio Jump-to-Default Exposure
-
-**Assume** a portfolio where you are short protection (you pay on credit event). Three single-name CDS positions:
-
-| Name | Notional $N_i$ |
-|------|----------------|
-| 1 | $\$5$mm |
-| 2 | $\$8$mm |
-| 3 | $\$12$mm |
-
-For each name, jump-to-default cash outflow is approximately $N_i(1 - R_i)$. (This is the core payoff form.)
-
-**Case 1:** $R = 40\%$ for all → LGD = 60%
-
-| Name | Exposure |
+| Name | Notional |
 |------|----------|
-| 1 | $5 \times 0.60 = \$3.0$mm |
-| 2 | $8 \times 0.60 = \$4.8$mm |
-| 3 | $12 \times 0.60 = \$7.2$mm |
-| **Total** | $3.0 + 4.8 + 7.2 = \$15.0$mm |
+| 1 | $5mm |
+| 2 | $5mm |
+| 3 | $10mm |
+| 4 | $20mm |
+| **Total** | $40mm |
 
-**Case 2:** Mixed recoveries $R_1 = 20\%, R_2 = 40\%, R_3 = 60\%$
+**Case 1:** Uniform recovery $R = 40\%$ → LGD = 60%
 
-| Name | $R$ | Exposure |
-|------|-----|----------|
-| 1 | 0.20 | $5 \times 0.80 = \$4.0$mm |
-| 2 | 0.40 | $8 \times 0.60 = \$4.8$mm |
-| 3 | 0.60 | $12 \times 0.40 = \$4.8$mm |
-| **Total** | | $\$13.6$mm |
+| Name | Exposure $= N \times \text{LGD}$ |
+|------|----------------------------------|
+| 1 | $5 \times 0.60 = \$3.0mm$ |
+| 2 | $5 \times 0.60 = \$3.0mm$ |
+| 3 | $10 \times 0.60 = \$6.0mm$ |
+| 4 | $20 \times 0.60 = \$12.0mm$ |
+| **Total** | $\$24.0mm$ |
 
-**Unit/bounds check:** exposures are between 0 and total notional (25mm) ✓
+**Case 2:** Mixed recoveries $R_1 = 20\%, R_2 = 40\%, R_3 = 50\%, R_4 = 60\%$
 
----
+| Name | $R$ | LGD | Exposure |
+|------|-----|-----|----------|
+| 1 | 0.20 | 0.80 | $\$4.0mm$ |
+| 2 | 0.40 | 0.60 | $\$3.0mm$ |
+| 3 | 0.50 | 0.50 | $\$5.0mm$ |
+| 4 | 0.60 | 0.40 | $\$8.0mm$ |
+| **Total** | | | $\$20.0mm$ |
 
-## Practical Notes
-
-### 1) "Economic vs Contractual" Checklist
-
-#### (A) Verified Facts
-
-- Traders often say "default" when the contract trigger is "credit event."
-- Credit event notice requires publicly available information (at least two sources) and the notice date is the Event Determination Date.
-- Physical vs cash settlement distinction and auction/calc-agent determination of settlement price is described.
-
-#### (B) Reasoned Inference
-
-- **What traders mean by "default":** often "the credit has blown out / is distressed," or "a credit event is expected."
-- **What the CDS contract requires:** a defined credit event, notice/evidence, then settlement mechanics.
-- **Who determines the credit event:** I'm not sure based on the provided excerpts; you need the contract language / ISDA Definitions vintage and confirmation terms.
+**Risk management insight:** Exposure is bounded by total notional but depends critically on recovery assumptions.
 
 ---
 
-### 2) Common Pitfalls
+## 35.7 Practical Notes
 
-- Treating recovery $R$ as fixed/known (recovery distributions are broad; sources note significant dispersion by seniority and type).
-- Confusing bond price with "ultimate recovery": credit-derivatives recovery price can differ from workout recovery and can reflect supply/demand.
-- Mixing up physical vs cash settlement payoffs; forgetting cheapest-to-deliver/delivery option effects.
-- Ignoring accrued premium on default (it is part of the standard CDS cashflows).
-- Assuming credit event definitions are universal across contracts: restructuring clauses differ (Old-Re, Mod-Re, Mod-Mod-Re, No-Re).
+### Common Pitfalls
 
----
+1. **Treating recovery as fixed.** Recovery distributions are broad (σ ≈ 25%). A single assumed value masks significant uncertainty.
 
-### 3) Implementation Pitfalls
+2. **Confusing bond price with ultimate recovery.** The credit derivatives settlement price can differ from workout recovery—sometimes significantly.
 
-- **Date handling:** payment schedule generation and accrual fractions (Actual/360; stub periods).
-- **Notional and sign conventions:** buyer receives protection payment; seller pays it.
-- **Settlement timing and operational frictions:** physical settlement can involve long timelines; short squeeze risk.
+3. **Ignoring the delivery option.** For restructuring events, cheapest-to-deliver dynamics can significantly affect CDS payoffs.
 
----
+4. **Forgetting accrued premium on default.** It's part of the standard CDS cashflows and affects hedge accounting.
 
-### 4) Verification Tests
+5. **Assuming universal credit event definitions.** Restructuring clauses differ by region and contract vintage.
 
-| Test | Condition |
-|------|-----------|
+6. **Using historical default rates for pricing.** Hull shows that risk-neutral hazard rates implied from spreads are typically 2–10× historical rates. The difference is a risk premium, not a market inefficiency.
+
+### Sanity Checks
+
+| Check | Condition |
+|-------|-----------|
 | Payout bounds | $0 \leq \Pi_{\text{prot}} \leq N$ |
 | Recovery bounds | $0 \leq R \leq 1$ |
-| Consistency | If settlement price equals recovery ($R = P/100$), physical and cash settlement align economically (Example E) |
-| Accrued premium non-negativity | $N \cdot S \cdot \alpha \geq 0$ for $S, \alpha \geq 0$ |
+| Settlement consistency | If $R = P/100$, physical and cash settlement align economically |
+| LGD positivity | $\text{LGD} = 1 - R \geq 0$ |
+| Accrued premium | $N \times S \times \alpha \geq 0$ for $S, \alpha \geq 0$ |
+
+### Implementation Notes
+
+- **Date handling:** Payment schedule generation and accrual fractions require careful calendar logic
+- **Notional and sign conventions:** Buyer receives protection payment; seller pays it
+- **Settlement timing:** Physical settlement can take up to 72 calendar days; model accordingly
+- **Short squeeze risk:** When CDS notional exceeds deliverable supply, prices can be distorted
 
 ---
 
-## Summary & Recall
+## Summary
 
-### 10-Bullet Executive Summary
+1. **Economic default** (distress visible in prices) is not the same as a **contractual credit event** (the legal trigger for CDS protection).
 
-1. Economic default (distress) is not the same as a contractual credit event (legal trigger).
-2. CDS pays on credit event, not on "spread widening."
-3. Credit events include hard events (e.g., bankruptcy, failure to pay) and restructuring as the only soft event in the cited taxonomy.
-4. Recovery $R$ and LGD $1 - R$ scale the protection payment.
-5. "Recovery" can differ between credit-derivatives recovery price and workout recovery.
-6. Bond price shortly after default is a common recovery proxy $R \approx P/100$.
-7. Settlement: physical (deliver for par) vs cash (par minus settlement price from dealer poll/auction).
-8. Multiple deliverables imply a delivery option (cheapest-to-deliver risk).
-9. CDS premium includes accrued premium on default (a real cashflow).
-10. Practical risks around default: jump-to-default, recovery uncertainty, and event/settlement risk (definition + timing + mechanics).
+2. **Recovery rate** $R$ is the bond price shortly after default as a fraction of face value. The **loss given default** is $\text{LGD} = 1 - R$.
 
----
+3. Historical recovery averages approximately 35% for senior unsecured bonds (mean 34.89% per O'Kane), but with high variability (σ ≈ 25–27%). A common assumption is 40% (Hull).
 
-### Cheat Sheet (Definitions + Key Payoff Identities)
+4. Recovery rates are **negatively correlated** with default rates—a bad default year is doubly bad. The relationship has $R^2 \approx 0.51$ historically.
 
-| Concept | Formula / Definition |
-|---------|---------------------|
-| Recovery rate | $R \in [0,1]$, fraction of par |
-| LGD | $\text{LGD} = 1 - R$ |
-| Market-implied recovery proxy | $R \approx P/100$ (from price per 100) |
-| CDS protection payoff (to buyer) | $\Pi_{\text{prot}} = N(1 - R)$ |
-| Accrued premium at default | $\Pi_{\text{accrued prem}} = N \cdot S \cdot \alpha$ |
-| Physical settlement | Deliver obligations for par |
-| Cash settlement | Par minus recovery/settlement price (dealer poll/auction; calculation agent/auction for cheapest-to-deliver) |
+5. **Credit events** include hard events (bankruptcy, failure to pay) and the soft event (restructuring).
+
+6. **Restructuring clauses** (Old-Re, Mod-Re, Mod-Mod-Re, No-Re) create regional differences in CDS contracts and affect spread levels.
+
+7. The CDS **protection leg payoff** is $N(1-R)$ in cash settlement.
+
+8. The **delivery option** gives protection buyers the right to choose the cheapest deliverable—valuable after soft events.
+
+9. **Accrued premium** is paid by the protection buyer at default.
+
+10. The **Merton model** provides structural intuition (equity as call option on firm value) but is not used directly for CDS pricing due to limitations with short-term spreads and complex capital structures.
 
 ---
 
-### Flashcards (30 Q/A)
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Credit event | Contractual trigger for CDS protection payment | Determines when protection pays—not the same as economic distress |
+| Recovery rate $R$ | Bond price shortly after default ÷ face value | Scales the protection payment; varies significantly (σ ≈ 25%) |
+| Loss given default | $1 - R$ | The fraction of notional paid on protection leg |
+| Hard credit event | Causes all debt to become immediately due | Single distressed price for all obligations |
+| Soft credit event | Restructuring only | Debt trades with term structure of prices |
+| Delivery option | Right to choose which deliverable to surrender | Creates value, especially after restructuring |
+| Physical settlement | Deliver obligations for par | Protection buyer can exploit cheapest-to-deliver |
+| Cash settlement | Receive par minus auction price | Standard for indices; avoids delivery logistics |
+| Merton model | Equity = call option on firm value | Structural intuition for credit risk |
+| Distance to default | How far firm value is above debt threshold | Credit risk metric from structural models |
+| Risk-neutral vs real-world | Implied from spreads vs historical statistics | Use risk-neutral for pricing, real-world for scenario analysis |
+
+---
+
+## Notation Summary
+
+| Symbol | Definition |
+|--------|------------|
+| $N$ | CDS notional |
+| $R$ | Recovery rate (fraction of par) |
+| $\text{LGD}$ | Loss given default $= 1 - R$ |
+| $P$ | Bond price per 100 par |
+| $S$ | CDS spread (annual rate, decimal) |
+| $\alpha$ | Day-count fraction (typically ACT/360) |
+| $\Pi_{\text{prot}}$ | Protection leg payment |
+| $A(t)$ | Firm asset value (Merton model) |
+| $F$ | Debt face value (Merton model) |
+| $E(t)$ | Equity value (Merton model) |
+| $\sigma_A$ | Asset volatility (Merton model) |
+| $d_1, d_2$ | Black-Scholes parameters (Merton model) |
+
+---
+
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is a "credit event"? | The legal/contractual trigger for CDS protection payment; similar to default but not identical. |
-| 2 | Hard vs soft credit event—what's the key difference? | Hard events make debt immediately due/at one price; soft (restructuring) can leave a term structure of prices. |
-| 3 | Name the soft credit event listed. | Restructuring. |
-| 4 | Define recovery rate $R$. | Fraction of par recovered/settlement price as a fraction of par. |
-| 5 | Define LGD. | $1 - R$. |
-| 6 | CDS payoff to buyer in simplest form? | $N(1 - R)$. |
-| 7 | Physical settlement meaning? | Buyer delivers deliverables; receives par cash. |
-| 8 | Cash settlement meaning? | Seller pays par minus recovery price determined by dealer poll/auction. |
-| 9 | What are "deliverable obligations"? | Specified bonds/loans protected and eligible to settle physically. |
-| 10 | Why is there a "delivery option"? | Buyer chooses which deliverable(s) to deliver; valuable if post-event prices differ. |
-| 11 | When is delivery option most valuable? | In soft events like restructuring with heterogeneous prices. |
-| 12 | What happens to premium leg after credit event? | Stops, but accrued premium since last date is paid. |
-| 13 | How is accrual fraction commonly computed in the mechanics section? | Actual/360 day count. |
-| 14 | What is the Event Determination Date? | The date the Credit Event Notice is delivered. |
-| 15 | What evidence supports a Credit Event Notice (per source)? | At least two sources of publicly available information. |
-| 16 | Market measure of recovery rate? | Defaulted bond price divided by face value. |
-| 17 | Why can derivatives recovery differ from workout recovery? | Timing, new information, and distressed-market supply/demand effects. |
-| 18 | What is "technical default" in basis context? | Credit events may be broader than bond-default triggers. |
-| 19 | Name a hard credit event: | Bankruptcy. |
-| 20 | Name another hard credit event: | Failure to pay. |
-| 21 | What is obligation acceleration? | Obligations become due earlier due to default/other and are accelerated. |
-| 22 | Repudiation/moratorium applies most to? | Emerging market sovereign CDS (per description). |
-| 23 | What does No-Re mean? | No-Restructuring; removes restructuring as a credit event. |
-| 24 | What is Mod-Re? | Modified restructuring clause; limits deliverable maturities (US standard per table). |
-| 25 | Why might physical settlement be problematic in aggregate? | Notional of CDS can exceed deliverable obligations causing sourcing pressure/short squeeze. |
-| 26 | What mechanism may mitigate impossible physical settlement? | Fallback to cash settlement (source notes such mechanisms exist). |
-| 27 | What happens to bond accrued coupons vs CDS accrued premium on default (basis implication)? | CDS pays accrued premium; bondholders can lose accrued coupon (basis driver). |
-| 28 | How can restructuring clause affect spreads? | Broader deliverable sets increase delivery option value, tending to widen spreads (ordering given). |
-| 29 | Example of auction-implied recovery? | Lehman recovery about 8 cents → payout about 92% (per source example). |
-| 30 | What must you verify before relying on these rules for a trade? | The specific ISDA Definitions vintage and confirmation language (sources caution definitions evolve). |
+| 1 | What is a "credit event"? | The legal/contractual trigger for CDS protection payment—similar to but not identical to default |
+| 2 | Hard vs soft credit event—key difference? | Hard: all debt trades at single price. Soft (restructuring): term structure of prices persists |
+| 3 | Name the only soft credit event | Restructuring |
+| 4 | Define recovery rate $R$ | Bond price shortly after default divided by face value |
+| 5 | Define LGD | Loss given default $= 1 - R$ |
+| 6 | CDS protection leg payoff formula | $\Pi = N(1 - R)$ |
+| 7 | What is physical settlement? | Buyer delivers obligations; receives par in cash |
+| 8 | What is cash settlement? | Seller pays par minus recovery price (determined by auction) |
+| 9 | What is the delivery option? | Protection buyer's right to choose which deliverable to surrender |
+| 10 | When is the delivery option most valuable? | After soft credit events (restructuring) with heterogeneous bond prices |
+| 11 | What happens to premium leg after credit event? | Stops, but accrued premium since last payment date is paid |
+| 12 | Day count for CDS accrual? | Typically Actual/360 |
+| 13 | Mean recovery for senior unsecured bonds? | Approximately 35% (34.89% per O'Kane); 40% commonly assumed |
+| 14 | Relationship between recovery and default rates? | Negative correlation—high default years have low recoveries ($R^2 \approx 0.51$) |
+| 15 | What does Mod-Re mean? | Modified-Restructuring clause—limits deliverable maturities (US standard) |
+| 16 | What does No-Re mean? | No-Restructuring—removes restructuring as credit event |
+| 17 | Merton model: equity is equivalent to? | Call option on firm value struck at debt face value |
+| 18 | Merton model: bondholders are equivalent to? | Long cash, short put on firm value |
+| 19 | What is "distance to default"? | How many standard deviations firm value exceeds debt threshold |
+| 20 | Why aren't structural models used for CDS pricing? | Limitations: simplified capital structure, default only at maturity, short-term spreads vanish |
 
 ---
 
-## Mini Problem Set (16 Questions)
+## Mini Problem Set
 
-1. A CDS has notional $25mm and recovery $R = 0.35$. Compute protection payment.
+**1.** A CDS has notional $\$25mm$ and recovery $R = 0.35$. Compute the protection payment.
 
-2. Same as (1) but $R$ is quoted as price 42 per 100. Compute $R$ and payment.
+**2.** Same as (1) but recovery is quoted as price 42 per 100. Compute $R$ and the protection payment.
 
-3. A bond trades at 28 per 100 shortly after default. Compute market-implied recovery proxy and LGD.
+**3.** A bond trades at 28 per 100 shortly after default. Compute market-implied recovery and LGD.
 
-4. Premium accrual: Notional $50mm, spread 150 bp, 40 days since last premium date on Act/360. Compute accrued premium.
+**4.** Premium accrual: Notional $\$50mm$, spread 150 bp, 40 days since last premium date on ACT/360. Compute accrued premium.
 
-5. Show algebraically that if the cash settlement price equals the market price of the deliverable, physical and cash settlement are economically aligned.
+**5.** Show algebraically that physical and cash settlement produce the same economic result when the settlement price equals the deliverable market price.
 
-6. Delivery option: two deliverables at 45 and 38 after restructuring. What is the delivery-option value per 100 and for $10mm notional?
+**6.** Delivery option: Two deliverables at 45 and 38 after restructuring, notional $\$10mm$. Compute the delivery option value.
 
-7. Explain why restructuring is classified as "soft" and how that impacts post-event pricing across maturities.
+**7.** Explain why restructuring is classified as "soft" and how that impacts post-event pricing.
 
-8. Identify three basis drivers related to contractual differences between CDS and bonds (use at least one from each source excerpt).
+**8.** A trader hedges a $\$20mm$ bond position with CDS. The bond price collapses from 80 to 40 but no credit event is triggered for 30 days. Describe the hedge P&L risks qualitatively.
 
-9. Consider a portfolio of 4 CDS shorts with notionals (5, 5, 10, 20) mm. Compute total jump-to-default exposure under $R = 20\%$ and $R = 60\%$.
+**9.** Given recovery uncertainty with three scenarios ($R = 0.20$, prob 50%; $R = 0.40$, prob 30%; $R = 0.60$, prob 20%) and notional $\$10mm$, compute expected protection payment.
 
-10. A trader hedges a bond with CDS. The bond price collapses from 80 to 40 but no credit event is triggered for 30 days. Describe the hedge P&L risks qualitatively and list what contractual facts you would check.
+**10.** In the Merton model, if firm value $A = \$120mm$, debt face value $F = \$100mm$, and $d_2 = 1.0$, compute the survival probability.
 
-11. For an index-like position, explain why "default definition" might differ from single-name CDS and how that could affect hedging.
+**11.** Why are risk-neutral hazard rates higher than historical default rates? Give two reasons.
 
-12. Using the idea that credit-derivatives recovery price may differ from workout recovery, propose two reasons (from the sources) why they might diverge.
-
-13. Given $R$ uncertainty with three scenarios, compute expected protection payment and standard deviation.
-
-14. Consider a restructuring clause switch from Mod-Re to No-Re. What risks change for protection buyer/seller? Use only what is supported by the clause descriptions.
-
-15. Explain how a "short squeeze" in deliverables could affect CDS payouts under physical settlement.
-
-16. Provide a checklist for validating that a model's default cashflows are implemented consistently with premium accrual and settlement type.
+**12.** A portfolio has $100mm total notional across 20 names. If the average LGD is 60%, what is the maximum single-name jump-to-default loss?
 
 ---
 
-## Solution Sketches (Questions 1–8)
+## Solution Sketches (Questions 1–6)
 
-**1.** $\Pi = N(1 - R) = 25 \times (1 - 0.35) = \$16.25$mm.
+**1.** $\Pi = N(1 - R) = 25 \times (1 - 0.35) = \$16.25mm$
 
-**2.** $R = 0.42$. $\Pi = 25 \times 0.58 = \$14.5$mm.
+**2.** $R = 0.42$. $\Pi = 25 \times (1 - 0.42) = 25 \times 0.58 = \$14.5mm$
 
-**3.** $R \approx 0.28$, LGD $\approx 0.72$.
+**3.** $R = 0.28$, LGD $= 0.72$
 
-**4.** $\alpha = 40/360 = 0.111111$. Accrued $= 50{,}000{,}000 \times 0.015 \times 0.111111 = \$83{,}333.33$.
+**4.** $\alpha = 40/360 = 0.1111$. Accrued $= 50{,}000{,}000 \times 0.015 \times 0.1111 = \$83{,}333$
 
-**5.** Show $N - N(P/100) = N(1 - P/100)$ and set $R = P/100$.
+**5.** Cash: $N(1 - P/100)$. Physical: Buy at $P$, deliver for 100 → gain $= N(100 - P)/100 = N(1 - P/100)$. QED.
 
-**6.** Per 100: $45 - 38 = 7$. For $10mm: $0.07 \times 10{,}000{,}000 = \$700{,}000$.
-
-**7.** Restructuring leaves a term structure; different maturities/coupons trade at different prices, unlike hard events tending to unify prices.
-
-**8.** Examples: delivery option/cheapest-to-deliver; technical default broader triggers; accrued premium on default vs lost accrued coupon; restructuring clause payoff when no default.
+**6.** Per 100: $45 - 38 = 7$ points. For $\$10mm$: $0.07 \times 10{,}000{,}000 = \$700{,}000$
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts
+### (A) Verified Facts (Source-Backed)
 
-- CDS structure, legs, settlement mechanics: O'Kane Ch 5, Hull Ch 25
-- Credit event taxonomy (hard/soft): O'Kane Ch 5
-- Recovery rate definition and measurement: O'Kane Ch 3, Hull Ch 24
-- Premium accrual at default mechanics: O'Kane Ch 5
-- Restructuring clause variants: O'Kane Ch 5
-- Lehman auction recovery example: Hull Ch 25
+| Fact | Source |
+|------|--------|
+| Credit event is legal trigger for CDS protection, similar to but not identical to default | O'Kane Ch 5 |
+| Credit event taxonomy (bankruptcy, failure to pay, restructuring, etc.) | O'Kane Ch 5, Table 5.1 |
+| Restructuring is the only soft credit event | O'Kane Ch 5 |
+| Hard credit events cause debt to trade at single price | O'Kane Ch 5 |
+| Recovery rate definition: bond price shortly after default as % of face | Hull Ch 24, O'Kane Ch 3 |
+| Recovery rate statistics by seniority (Table 3.2) | O'Kane Ch 3 (Altman et al. 2003b) |
+| Mean recovery for senior unsecured bonds = 34.89% | O'Kane Ch 3 |
+| Average assumed recovery rate of 40% | Hull Ch 24 |
+| Negative correlation between recovery and default rates | O'Kane Ch 3, Hull Ch 24 |
+| Regression: $y = 0.51 - 2.6x$, $R^2 = 0.51$ | O'Kane Ch 3, Figure 3.2 (Altman et al. 2003a) |
+| Credit derivatives recovery price determined within ~72 days | O'Kane Ch 3 |
+| Physical vs cash settlement mechanics | O'Kane Ch 5, Hull Ch 25 |
+| Delivery option example ($43 vs $37 bonds) | O'Kane Ch 5 |
+| Restructuring clause variations (Old-Re, Mod-Re, Mod-Mod-Re, No-Re) | O'Kane Ch 5, Table 5.2 |
+| Spread ordering by restructuring clause | O'Kane Ch 5 |
+| Merton model: equity as call on firm value | O'Kane Ch 3, Hull Ch 24 |
+| Merton model limitations | O'Kane Ch 3 |
+| Merton model determines recovery endogenously | O'Kane Ch 3 |
+| Moody's definition of default | O'Kane Ch 3 |
+| Technical default not included in rating agency statistics | O'Kane Ch 3 |
+| Historical cumulative default rates by rating (Table 3.1) | O'Kane Ch 3 (Hamilton et al. 2005) |
+| Lehman payout 91.375% of principal (recovery ~8.6%) | Hull Ch 25 |
+| Risk-neutral hazard rates higher than historical (Baa: ~5× ratio) | Hull Ch 24, Table 24.2 |
+| Default clustering creates systematic risk | Hull Ch 24 |
+| Accrued premium paid at default; accrued coupon lost | O'Kane Ch 5 |
 
-### (B) Reasoned Inference
+### (B) Reasoned Inference (Derived from A)
 
-- Economic vs contractual default distinction: derived from credit event definitions
-- Physical/cash settlement equivalence: derived from contract mechanics descriptions
-- Delivery option value logic: derived from cheapest-to-deliver principle
+| Inference | Derivation |
+|-----------|------------|
+| Physical/cash settlement equivalence when settlement price = market price | Direct from mechanics: both yield $N(1 - P/100)$ |
+| Delivery option value = spread between deliverables | Follows from cheapest-to-deliver principle |
+| LGD = 1 - R | Definition |
+| Accrued premium formula $N \cdot S \cdot \alpha$ | Follows from day-count mechanics described |
+| Bad default year is "doubly bad" | Combines high default rate with negative recovery correlation |
 
-### (C) Speculation
+### (C) Flagged Uncertainties
 
-- Exact auction operational steps: sources describe "dealer poll or auction" but do not fully specify mechanics
-- Committee determination process: not specified in cited excerpts
-- Specific ISDA Definitions vintage details: flagged as requiring contract-specific verification
+- **Exact auction operational steps:** Sources describe "dealer poll or auction process" but do not fully specify all operational mechanics. For precise details, consult specific ISDA Definitions vintage and auction settlement protocols.
+
+- **ISDA Definitions evolution:** O'Kane explicitly notes that definitions evolve; practitioners should verify current contract language.
+
+- **ISDA Determinations Committees:** The mechanism for adjudicating credit events (established post-2009) is not detailed in the primary source texts used. This committee system now governs credit event determinations for standard CDS contracts.
+
+- **Current market conventions:** Recovery assumptions, standard coupons, and index compositions evolve with market practice. The statistics cited reflect historical data through approximately 2005-2008.

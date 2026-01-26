@@ -1,907 +1,625 @@
-# Chapter 39: CDS Credit Events and Settlement Choices — Physical vs Cash Settlement, Auctions, and Why Cheapest-to-Deliver Matters
+# Chapter 39: CDS Credit Events and Settlement
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-| Symbol | Definition |
-|--------|------------|
-| **Perspective / sign convention** | Payoffs are written from the protection buyer's perspective (positive = cash received / benefit to protection buyer) |
-| $N$ | CDS notional (USD) |
-| **Price quotation** | Bond/loan "prices" are quoted per 100 of face unless stated otherwise. A quoted price of 38 means $38/100 = 0.38$ of par |
-| $P_{\text{final}}$ | Final price / recovery price (per 100) used to compute the protection payment in cash settlement (as determined by a dealer poll or auction process, per sources) |
-| $R_{\text{settle}}$ | Settlement-implied recovery fraction: $R_{\text{settle}} := P_{\text{final}}/100$. (This is a settlement-implied recovery; do not confuse with a long-run model recovery parameter) |
-| $\mathcal{D}$ | Set of eligible deliverable obligations (bonds/loans) for physical settlement, as defined by documentation / confirmation |
-| $P_i$ | Market price (per 100) of deliverable $i \in \mathcal{D}$ after the credit event |
-| $P_{\text{CTD}}$ | Cheapest-to-deliver price: $P_{\text{CTD}} := \min_{i \in \mathcal{D}} P_i$ |
+When a company defaults, a CDS contract must answer two questions: *Did the contract trigger?* and *How much does the protection seller owe?* The first question is about **credit events**—the legal triggers that activate protection. The second is about **settlement**—the mechanics that convert a triggering event into actual cash flows.
 
----
+These questions seem straightforward until you consider the details. A "default" on a bond is not the same as a "credit event" in a CDS contract. A restructuring that changes loan terms might trigger some CDS contracts but not others, depending on their documentation. And even after a credit event, the protection payment depends critically on which bonds the buyer can deliver and at what price.
 
-## Setup
+This chapter examines the mechanics that determine what you actually receive when protection is triggered. We cover:
 
-### Conventions used in this chapter
+1. **Credit events** — The contractual triggers that activate the protection leg, and why they differ from bond default definitions
+2. **Hard vs soft credit events** — Why restructuring is different from bankruptcy, and why that difference matters for settlement
+3. **Physical vs cash settlement** — Two ways to effect the protection payment, with different risk profiles
+4. **The delivery option and cheapest-to-deliver** — Why the buyer's choice of what to deliver creates embedded optionality
+5. **Restructuring clauses** — How the market evolved to limit delivery option value
 
-- We focus on contract mechanics and settlement economics (credit events, physical vs cash settlement, CTD/delivery option, auction concept).
-- We treat the settlement payment as occurring "near" the credit event for intuition; discounting/curve building is intentionally omitted (pricing/bootstrapping is later).
-- Where the books refer to specific ISDA definition vintages or conventions, we repeat them as book-reported and flag that documentation can evolve. The sources themselves warn that definitions may change and that legal advice should be sought.
-
-### Notation glossary (symbols + definitions)
-
-| Symbol | Definition |
-|--------|------------|
-| $N$ | CDS notional (USD) |
-| $P_{\text{final}}$ | Final price (per 100) used for cash settlement; determined via dealer poll or auction process (per sources) |
-| $R_{\text{settle}} = P_{\text{final}}/100$ | Settlement-implied recovery fraction |
-| $\mathcal{D}$ | Set of eligible deliverable obligations for physical settlement (bonds/loans satisfying contract criteria). The books emphasize the existence of a deliverable basket but do not fully enumerate all eligibility clauses in the retrieved excerpts |
-| $P_i$ | Market price (per 100) of deliverable $i$ |
-| $P_{\text{CTD}} = \min_{i \in \mathcal{D}} P_i$ | Cheapest-to-deliver price (per 100) |
-| $\alpha$ | Accrual fraction between last premium payment date and credit event date (year fraction; day count depends on contract) |
-| $s$ | CDS contractual spread (annualized, in decimal; e.g., 200 bp = 0.02) |
+Understanding these mechanics is essential because they determine the actual P&L when protection is triggered. A protection buyer who doesn't understand the delivery option may leave money on the table. A protection seller who ignores deliverable scarcity may face larger losses than expected.
 
 ---
 
-## Core Concepts
+## 39.1 Credit Events: The Contractual Trigger
 
-### 1.1 Credit default swap (CDS): premium leg vs protection leg (mechanics context only)
+### 39.1.1 Credit Event vs Default
 
-**Formal Definition:**
-A CDS is a bilateral OTC contract in which the protection buyer pays a periodic premium (spread) and, if a credit event occurs, the protection seller makes a contingent protection leg payment designed to "make up to par" the value of a deliverable obligation.
+O'Kane provides the key distinction: "The credit event is the legal term for the event which triggers the payment of the protection leg. It is an event which is similar to default but, as we will see, it is not exactly the same as the event of default as defined by the rating agencies."
 
-**Intuition:**
-Think "default insurance-like payoff," but contractual: it pays upon a contract-defined credit event rather than a purely economic notion.
+This distinction matters because CDS contracts use a **contractual** definition of default, specified in ISDA documentation, rather than an **economic** notion of distress. A company can be in severe financial trouble without triggering a credit event, and conversely, certain technical triggers may activate CDS protection even when the company continues operating.
 
-**Trading/Risk Practice:**
-Settlement mechanics become crucial at default/restructuring: which event triggers, how settlement is done, and what price is used determine the realized payout.
+**Practical implication:** When analyzing CDS exposure, you must reference the specific contract documentation—not general notions of "default." The term "default" is used loosely in market language when the precise term should be "credit event."
 
----
+### 39.1.2 The Six Standard Credit Events
 
-### 1.2 Credit event: contractual trigger vs "economic default"
-
-**Formal Definition:**
-In the cited CDS text, "credit event" is the legal term for the event that triggers payment of the protection leg; it is similar to default but not exactly the same as rating-agency "event of default."
-
-**Intuition:**
-"Economic default" is a real-world deterioration/failure; a credit event is what the contract recognizes as a trigger.
-
-**Trading/Risk Practice:**
-The difference matters for event risk: a CDS may trigger in situations not identical to a bond's default definition (the sources discuss "technical default" as a contractual-breadth issue).
-
----
-
-### 1.3 Common credit event types: hard vs soft (as supported)
-
-**Formal Definition (as supported by source table):**
-
-The book lists commonly used credit events and labels them hard/soft:
+O'Kane's Table 5.1 classifies the standard credit events used in CDS contracts. The market divides these into **hard** and **soft** events based on their economic implications.
 
 | Credit Event | Type | Description |
 |--------------|------|-------------|
-| **Bankruptcy** | Hard | Insolvency / inability to pay debts (not relevant for sovereigns per table) |
-| **Failure to pay** | Hard | Failure to make due payments (with grace period) |
-| **Obligation acceleration** | Hard | Obligations become due earlier due to default/other; used mostly in some emerging market contracts |
-| **Obligation default** | Hard | Obligations become due and payable prior to maturity; "hardly ever used" in the source table |
-| **Repudiation/moratorium** | Hard | Authority rejects/challenges validity; used in emerging market sovereign CDS |
-| **Restructuring** | Soft | Changes in debt obligations excluding changes not associated with credit deterioration |
+| **Bankruptcy** | Hard | Corporate becomes insolvent or is unable to pay its debts. Not relevant for sovereign issuers. |
+| **Failure to pay** | Hard | Failure to make due payments, taking into account a grace period. |
+| **Obligation acceleration** | Hard | Obligations become due and payable early due to default or similar trigger. Used mostly in emerging market contracts. |
+| **Obligation default** | Hard | Obligations have become due prior to maturity. Rarely used. |
+| **Repudiation/moratorium** | Hard | Reference entity or government rejects or challenges validity of obligations. Used in emerging market sovereign CDS. |
+| **Restructuring** | Soft | Changes in debt obligations associated with credit deterioration, excluding favorable renegotiations. |
 
-The same source states restructuring is the only soft credit event in that taxonomy.
+O'Kane emphasizes that "restructuring is the only soft credit event." This classification has profound implications for settlement, which we explore in Section 39.4.
 
-**Intuition:**
-Hard events tend to collapse the capital structure toward a common distressed price; soft events can leave multiple obligations trading with a term structure of prices.
+### 39.1.3 Why Hard Events Make Debt Trade at One Price
 
-**Trading/Risk Practice:**
-Soft events (restructuring) are where delivery option/CTD effects can be most pronounced because different deliverables can trade at meaningfully different prices.
+O'Kane explains the economic logic behind the hard/soft distinction: hard credit events "would cause all the debt of the reference entity to become immediately due and payable and hence trade at the same price. It is what the rating agencies would traditionally call default."
 
----
+When bankruptcy occurs, the capital structure flattens—all senior unsecured debt has the same claim on assets, regardless of original maturity or coupon. A 2-year bond and a 30-year bond both trade at approximately the same recovery price because both represent equivalent claims in bankruptcy.
 
-### 1.4 Protection leg settlement: physical vs cash
+### 39.1.4 Why Restructuring Is Different
 
-**Formal Definition:**
+O'Kane continues: "Following a restructuring event, debt can continue trading with a term structure of prices. Short dated assets will tend to trade at higher prices than long dated assets, and assets with higher coupons will trade with a higher price than those with lower coupons."
 
-The protection leg can be settled in two ways:
+After a restructuring, the company survives with modified debt terms. The term structure of bond prices remains intact—shorter maturities carry less risk than longer ones. This price dispersion across deliverable obligations is what makes restructuring special for CDS settlement, because the protection buyer can choose which obligation to deliver.
 
-- **Physical settlement:** buyer delivers face value of deliverable obligations; seller pays face value (par) in cash simultaneously.
-- **Cash settlement:** seller pays face value minus the recovery price of a specified reference obligation; recovery price is determined via dealer poll or auction process.
-
-**Intuition:**
-- Physical: "deliver a defaulted bond/loan and get par."
-- Cash: "keep the bond/loan; get paid cash based on a market-derived price."
-
-**Trading/Risk Practice:**
-
-The choice affects:
-- operational requirements (sourcing deliverables),
-- exposure to CTD/delivery option,
-- dependence on final price formation (auction/poll).
+> **Decision Tree: Is it a Credit Event?**
+>
+> 1.  **Did they fail to pay?** (>$1M, after Grace Period) $\to$ **YES**.
+> 2.  **Did they file for Bankruptcy?** $\to$ **YES**.
+> 3.  **Did they Restructure?**
+>     *   Did they change the coupon/maturity? $\to$ YES.
+>     *   Was it forced (distressed)? $\to$ YES.
+>     *   Is the agreement binding on all holders? $\to$ YES.
+>     *   (If all YES) $\to$ **Review Restructuring Clause (Mod-Re / No-Re)**.
 
 ---
 
-### 1.5 Deliverable obligations basket and the delivery option
+## 39.2 Physical Settlement
 
-**Formal Definition:**
+### 39.2.1 Mechanics
 
-Many bonds and loans may qualify as deliverable obligations; defining a basket lets one standard contract hedge multiple eligible obligations and improves liquidity.
+O'Kane describes physical settlement precisely: "The protection buyer delivers face value of deliverable obligations to the protection seller. In return, the protection seller makes a simultaneous payment of the face value in cash to the protection buyer."
 
-A side-effect: the protection buyer can choose which deliverable to deliver in physical settlement—this is the **delivery option**.
+The economics are straightforward. If the buyer delivers $N$ face value of obligations and receives $N$ in cash, the buyer's economic gain equals $N$ minus the market value of what was delivered. For an obligation trading at price $P_i$ (per 100 of face):
 
-**Intuition:**
-"You (buyer) hold an option to pick the bond/loan that makes the protection payment most valuable to you."
+$$\boxed{\Pi_{\text{phys}}(i) = N\left(1 - \frac{P_i}{100}\right)}$$
 
-**Trading/Risk Practice:**
-The delivery option is a contractual embedded option that can widen CDS vs cash relationships (the source lists it as a driver of CDS-cash basis).
+If the obligation trades at 35 cents on the dollar, the buyer delivers something worth $0.35N$ and receives $N$—a net gain of $0.65N$.
 
----
+### 39.2.2 The Settlement Timeline
 
-### 1.6 Cheapest-to-deliver (CTD) in CDS settlement
+O'Kane describes the physical settlement process following a credit event:
 
-**Formal Definition:**
+**Step 1 — Credit Event Notice:** The protection buyer must notify the protection seller that a credit event has occurred. O'Kane specifies: "The event must be evidenced by at least two sources of Publicly Available Information, e.g. a news article on Reuters, the Wall Street Journal, the Financial Times or some other recognised publication." The delivery date is called the **Event Determination Date**.
 
-In physical settlement, the protection buyer will (economically) prefer to deliver the cheapest eligible deliverable (lowest market price per 100) because it maximizes the gap between par received and market value delivered.
+**Step 2 — Notice of Physical Settlement:** "Within 30 calendar days of the Event Determination Date, the protection buyer must give Notice of Physical Settlement." This is called the **Conditions of Payment date**. The notice specifies what deliverable obligations will be delivered. Importantly, "this notice may be updated at any time between the Conditions of Payment date and the Physical Settlement date, with the last one being binding" (ISDA 2003).
 
-The source text explicitly defines the buyer's advantage as the difference between the hedged security value and the cheapest deliverable in a post-event scenario.
+**Step 3 — Physical Delivery:** "Within 30 business days of the Conditions of Payment date, the protection buyer must effect the physical delivery in return for par."
 
-**Intuition:**
-CTD is the "worst" thing for the seller: the buyer delivers the asset that costs the least in the market but receives par.
+O'Kane notes that the entire process can extend significantly: "It is worth noting that there are up to 72 calendar days after initial notification until a payment on the protection leg must be made."
 
-**Trading/Risk Practice:**
-Sellers monitor deliverable sets, potential CTD candidates, and contractual constraints (e.g., restructuring clauses that restrict deliverables).
+### 39.2.3 The Sourcing Problem and Short Squeezes
 
----
+Physical settlement creates a practical problem when CDS notional exceeds deliverable bond supply. O'Kane describes the risk: "In some circumstances, the amount of outstanding protection that has been written which specifies physical settlement can be as large or even larger than the face value of deliverable obligations. This can also lead to a 'short squeeze' as protection buyers who do not hold a deliverable cash bond attempt to buy deliverable obligations to deliver into the contract."
 
-### 1.7 Auction / dealer poll for cash settlement (only what sources state)
+The consequence is economically significant: "this demand can increase the price of the defaulted assets, thereby reducing the value of the loss payment." Protection buyers who need to source bonds in a squeezed market may pay inflated prices, reducing their effective protection.
 
-**Formal Definition (as supported):**
-
-Cash settlement uses a recovery/final price determined by a dealer poll or auction process.
-
-A separate risk-management text describes that (when cash settlement is used) a two-stage auction process is used to determine the mid-market value of the cheapest deliverable bond several days after the credit event.
-
-**Intuition:**
-The auction/poll is a way to arrive at a single settlement price for cash settlement when there are multiple deliverables and/or market dislocations.
-
-**Trading/Risk Practice:**
-
-Traders care about:
-- which deliverables are "in play,"
-- how the final price relates to deliverable bond prices,
-- uncertainty around the final price until it is fixed.
-
-> **I'm not sure** about the operational steps, roles, bidding rules, or Determinations Committee procedures for auctions from the excerpts retrieved here. To be certain, we would need the exact ISDA Definitions vintage and the specific auction settlement protocol referenced by the trade.
+Hull provides a concrete example: "When Lehman defaulted in September 2008, there was about $400 billion of CDS contracts and $155 billion of Lehman debt outstanding." Physical settlement for all contracts was clearly impossible.
 
 ---
 
-### 1.8 Triggering timeline and deliverable scarcity (physical settlement stress)
+## 39.3 Cash Settlement
 
-**Formal Definition (book-reported timeline):**
+### 39.3.1 Mechanics
 
-The CDS text describes a physical-settlement timeline with: Credit Event Notice, then Notice of Physical Settlement within 30 calendar days, then physical delivery within 30 business days; and notes up to ~72 calendar days after initial notification until payment on the protection leg is made.
+O'Kane describes cash settlement: "The protection seller pays the protection buyer the face value of the protection minus the recovery price of the reference obligation in cash."
 
-**Intuition:**
-Physical settlement is not "instant cash"; it has a process and timing.
-
-**Trading/Risk Practice:**
-
-If outstanding physically settled protection is large relative to deliverables, a short squeeze can occur: buyers without bonds rush to buy deliverables, pushing up prices and reducing the loss payment.
-
-The source also notes there can be a mechanism to allow fallback to cash settlement if physical settlement is not possible/legal (without detailing the mechanism).
-
----
-
-## Math and Derivations
-
-### 2.1 Protection leg payoff under cash settlement
-
-**Assumption:** Cash settlement uses a final price $P_{\text{final}}$ per 100 of face, representing the recovery price/value of the reference obligation (determined by dealer poll or auction).
-
-**Payoff to protection buyer (cash settlement):**
+The payoff formula is:
 
 $$\boxed{\Pi_{\text{cash}} = N\left(1 - \frac{P_{\text{final}}}{100}\right) = N(1 - R_{\text{settle}})}$$
 
-**Unit check:**
-- $N$ is dollars.
-- $P_{\text{final}}/100$ is dimensionless.
-- $\Pi_{\text{cash}}$ is dollars. ✓
+where $P_{\text{final}}$ is the "final price" or "recovery price" (per 100 face) and $R_{\text{settle}} = P_{\text{final}}/100$ is the implied recovery fraction.
 
 **Sanity checks:**
-- If $P_{\text{final}} = 100$: $\Pi_{\text{cash}} = 0$ (no loss). ✓
-- If $P_{\text{final}} = 0$: $\Pi_{\text{cash}} = N$ (total loss on par). ✓
+- If $P_{\text{final}} = 100$ (no loss): $\Pi_{\text{cash}} = 0$ ✓
+- If $P_{\text{final}} = 0$ (total loss): $\Pi_{\text{cash}} = N$ ✓
+
+> **Analogy: The Mechanic's Choice (Physical vs Cash)**
+>
+> You crashed your car (Bond). You have insurance (CDS).
+>
+> *   **Physical Settlement ("Here's the keys")**: You hand the wrecked car to the insurer. The insurer hands you a check for the *original full value* ($100).
+> *   **Cash Settlement ("Keep the wreck")**: You keep the wrecked car (worth $30). The insurer sends you a check for the difference ($70).
+>
+> *Result*: In both cases, you end up with $100 value ($100 cash OR $30 wreck + $70 cash). But Physical requires you to actually *own* the car to hand it over.
+
+### 39.3.2 How the Final Price Is Determined
+
+The critical question for cash settlement is: who decides $P_{\text{final}}$, and how?
+
+O'Kane states: "The recovery price is determined by a dealer poll or auction process."
+
+Hull elaborates: "If, as is now usual, there is cash settlement, an ISDA-organized auction process is used to determine the mid-market value of the cheapest deliverable bond several days after the credit event."
+
+The auction mechanism is covered in detail in Chapter 40. For this chapter, the key point is that cash settlement requires an external price determination process, and that price is designed to reflect the market value of deliverable obligations.
+
+### 39.3.3 When Physical and Cash Settlement Align
+
+If the cash settlement final price equals the market value of the obligation that would optimally be delivered under physical settlement, then both methods produce the same payout:
+
+$$P_{\text{final}} = P_{\text{CTD}} \implies \Pi_{\text{cash}} = \Pi_{\text{phys}}$$
+
+This alignment is the economic rationale for using "the mid-market value of the cheapest deliverable bond" in auctions—it attempts to replicate what physical settlement would achieve without requiring actual delivery.
+
+### 39.3.4 Why Cash Settlement Became Standard
+
+O'Kane explains the market evolution: "The current market standard for default swaps is to prefer physical settlement over cash settlement. However... there is a trend towards cash settlement for CDS, especially in the CDS index and STCDO markets."
+
+The reason is practical: "The allowance for cash settlement is intended to overcome the problem of sourcing physical assets to deliver, especially when the amount of credit default protection sold is similar to or greater than the outstanding notional of deliverable obligations."
+
+Following the Lehman example, cash settlement via auction has become the dominant mechanism for most CDS contracts.
+
+> **Deep Dive: The Auction Two-Step**
+>
+> How do we find the "Final Price" ($P$) for billions of dollars of CDS? We can't just call one dealer.
+>
+> 1.  **Stage 1 (Initial Market Midpoint)**: Dealers quote two-way prices to buy/sell the bonds. This sets the initial "Inside Market" price.
+> 2.  **Stage 2 (Limit Orders)**: Banks and Investors submit "Limit Orders" to buy or sell the bonds at the auction clearing price.
+> 3.  **Clearing**: The price ($P$) is set where the net buy/sell interest clears. If everyone wants to sell bonds, the price drops until buyers step in.
 
 ---
 
-### 2.2 Protection leg payoff under physical settlement (economic value)
+## 39.4 The Delivery Option and Cheapest-to-Deliver
 
-**Assumption (economic):** The buyer can deliver any eligible obligation $i \in \mathcal{D}$ at face value, receiving par in cash.
+### 39.4.1 The Basket of Deliverables
 
-If the buyer delivers obligation $i$ with market price $P_i$ per 100, the delivered bond has market value $N \cdot P_i/100$.
+A single CDS contract does not reference a single bond. O'Kane explains: "Typically, there can be many bonds and loans which qualify as deliverable obligations and so can be delivered into the default swap. The advantage of defining a basket of deliverables is that we can use one standard contract to hedge any of the bonds or loans which satisfy the criteria for a deliverable obligation. This removes the need to have different contracts for individual securities and so enhances liquidity."
 
-The buyer receives par $N$ and delivers value $N \cdot P_i/100$.
+O'Kane specifies the key constraint: "All deliverable obligations must be pari passu or senior to the reference obligation."
 
-**Economic payoff to protection buyer if delivering $i$:**
+### 39.4.2 The Delivery Option
 
-$$\Pi_{\text{phys}}(i) = N - N\frac{P_i}{100} = N\left(1 - \frac{P_i}{100}\right)$$
+The basket creates embedded optionality. O'Kane states: "A side-effect of this is the protection buyer's right to choose the deliverable asset which means that the protection buyer is effectively long a delivery option."
 
----
+Because the buyer chooses what to deliver, they will rationally deliver the obligation with the lowest market price—the **cheapest-to-deliver** (CTD):
 
-### 2.3 Delivery option and CTD: payoff is a maximum over deliverables
+$$P_{\text{CTD}} = \min_{i \in \mathcal{D}} P_i$$
 
-Because the buyer chooses which deliverable to deliver:
+where $\mathcal{D}$ is the set of eligible deliverables and $P_i$ is the market price of deliverable $i$.
 
-$$\boxed{\Pi_{\text{phys}} = \max_{i \in \mathcal{D}} \Pi_{\text{phys}}(i) = N\left(1 - \frac{\min_{i \in \mathcal{D}} P_i}{100}\right) = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
+The physical settlement payoff with optimal delivery is:
 
-This is the **delivery option**: the buyer is long an option on the set of deliverables.
+$$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
 
----
+### 39.4.3 Delivery Option Value: A Worked Example
 
-### 2.4 Economic alignment: when should physical and cash settlement match?
+O'Kane provides a concrete illustration:
 
-If the cash settlement final price equals the market value of the deliverable that would be optimally delivered (i.e., $P_{\text{final}} = P_{\text{CTD}}$), then:
+> "Consider a protection buyer holding $100 face value of an asset which trades at a price of $43 and $100 of protection. Suppose that a restructuring credit event occurs and that another deliverable asset is trading at a price of $37. To maximise his profit, the protection buyer can sell the original asset for $43, buy the cheaper asset for $37, and deliver that for par, making an additional profit of **$6 from the delivery option**."
 
-$$\Pi_{\text{cash}} = N\left(1 - \frac{P_{\text{final}}}{100}\right) = N\left(1 - \frac{P_{\text{CTD}}}{100}\right) = \Pi_{\text{phys}}$$
+This $6 (per 100 face) is pure profit from the ability to switch deliverables. The delivery option value is exactly the difference between the hedged asset's price and the CTD price:
 
-**Interpretation (reasoned):** Cash settlement is economically aligned with physical settlement when it uses a final price that reflects the relevant deliverable value (often discussed as "cheapest deliverable" in the sources' cash-settlement descriptions).
+$$\text{Delivery Option Value} = P_{\text{hedged}} - P_{\text{CTD}} = 43 - 37 = 6$$
 
-> **I'm not sure** whether a given market auction's "final price" is designed to match the CTD exactly or some broader deliverables measure in all cases; to be certain we need the specific auction protocol and definition set.
+### 39.4.4 When the Delivery Option Has Value
 
----
+O'Kane explains when the option matters: "This option only has value if different deliverables trade at different prices following a credit event. We would therefore expect price differences to occur only for a soft credit event like restructuring since after a soft credit event, the assets of the reference entity can continue to trade with a term structure."
 
-### 2.5 Accrued premium at default (mechanics-only reminder)
+After a **hard** credit event (bankruptcy), all obligations trade at approximately the same recovery price, so the delivery option has minimal value.
 
-The sources note that following a credit event the protection buyer typically pays premium accrued since the previous premium payment date (a contingent cashflow) and that this is handled as part of the premium leg.
+After a **soft** credit event (restructuring), short-dated bonds trade higher than long-dated bonds, and high-coupon bonds trade higher than low-coupon bonds. The delivery option can be substantial.
 
-**Illustrative accrual formula (mechanics):**
+### 39.4.5 Why CTD Matters for Protection Sellers
 
-$$\text{Accrued Premium} \approx N \cdot s \cdot \alpha$$
+The delivery option is a zero-sum transfer from seller to buyer. The seller receives par for whatever the buyer chooses to deliver—and the buyer will choose the cheapest. From the seller's perspective, they are **short the delivery option**.
 
-where:
-- $s$ is the annual CDS spread (decimal),
-- $\alpha$ is the year-fraction from last payment date to event date.
-
-> **I'm not sure** of the exact day-count convention to apply for your specific contract without the documentation terms; the source text here highlights the existence of accrued premium at default but does not fully specify conventions in the excerpt.
+This asymmetry is captured in the spread ordering across contracts with different deliverability rules (Section 39.5).
 
 ---
 
-## Measurement & Risk (only what belongs in Chapter 39)
+## 39.5 Restructuring Clauses and the Market's Response
 
-### A) Credit events: "economic vs contractual trigger"
+### 39.5.1 The Conseco Case
 
-**Contractual trigger (source-backed):**
-A credit event is the legal/contract term that triggers the protection leg payment, and it is similar to but not exactly the same as rating-agency default definitions.
+O'Kane documents how the delivery option's value became apparent:
 
-**Economic deterioration (interpretation):**
-A firm can be "in trouble" economically without a contract credit event occurring yet; conversely, a contract credit event may capture "technical" triggers broader than a bond's default definition (the sources explicitly discuss "technical default" as a CDS-vs-bond contractual breadth issue).
+> "The concerns of protection sellers were shown to be real following the restructuring of loans of the US insurer Conseco, Inc. in September 2000. Holders of default swap protection on Conseco triggered the protection and using the ISDA 1999 definitions on deliverable obligations, they were allowed to deliver long maturity and hence deep discount bonds trading in the 65-80 range in return for par. At the same time, shorter dated loans which were held by banks were trading at higher prices. It was claimed that banks were able to exploit the delivery option by selling their short dated loan assets, and buying the longer dated assets to deliver into the protection. In doing so they were able to receive more than the loss on the loans they were using the CDS to hedge."
 
-**Credit event categories:**
-Supported list (hard/soft) is in the source table (Bankruptcy, Failure to Pay, Obligation Acceleration, Obligation Default, Repudiation/Moratorium, Restructuring).
+This case demonstrated that the delivery option had real economic value—protection buyers received more than their actual hedged loss by exploiting the deliverable basket.
 
-**Documentation dependence warning:** The same CDS text warns that definitions evolve and market participants should seek up-to-date legal advice.
+### 39.5.2 The Four Restructuring Clauses
 
----
+O'Kane describes how the market responded by developing different restructuring treatments to limit the delivery option. Table 5.2 outlines the four main choices:
 
-### B) Settlement choices: physical vs cash
+| Clause | Short Name | Description |
+|--------|------------|-------------|
+| **Old-Restructuring** | Old-Re (OR) | The original standard; maximum maturity deliverable is 30 years. |
+| **Modified Restructuring** | Mod-Re (MR) | US standard since May 2001. Limits deliverable maturity to the maximum of remaining CDS maturity and minimum of 30 months/longest restructured obligation maturity. Only applies when triggered by protection buyer. |
+| **Modified-Modified Restructuring** | Mod-Mod-Re (MMR) | European standard since 2003. Limits maturity to maximum of remaining CDS maturity and 60 months for restructured obligations / 30 months for non-restructured. Allows conditionally transferable obligations. Only applies when triggered by buyer. |
+| **No-Restructuring** | No-Re (NR) | Removes restructuring as a credit event entirely. |
 
-**Physical settlement (source-backed):**
-- Buyer delivers face value of a deliverable obligation; seller pays par cash.
-- The CDS text describes a physical-settlement timeline: Credit Event Notice → Notice of Physical Settlement → Physical Settlement date (book-reported, referencing ISDA 2003).
-- **Deliverable obligations definition:** The book emphasizes a basket of deliverable obligations but does not fully define all eligibility criteria in the excerpt. *I'm not sure of the complete deliverability rules without the precise ISDA Definitions and confirmation.*
+### 39.5.3 The Spread Ordering
 
-**Cash settlement (source-backed):**
-- Seller pays $\text{face} - \text{recovery price}$ in cash; recovery price is determined by dealer poll or auction.
-- A risk-management text states that (when cash settled, "as is now usual" in that text) a two-stage auction determines the mid-market value of the cheapest deliverable bond.
+O'Kane derives the logical spread relationship across these clauses:
 
-**Why physical and cash should align (reasoned):**
-If the cash final price equals the market value of the deliverable that would be delivered under physical settlement (notably CTD), then both settlement methods give the same economic protection payment (Section 2.4 derivation).
+$$\boxed{S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}}$$
 
----
+The reasoning is elegant: "The protection buyer who is long the delivery option should expect to have to pay for this optionality by paying a slightly higher spread than if the contract had no delivery option. The value of the delivery option is linked to the breadth of the range of deliverables."
 
-### C) Cheapest-to-deliver (CTD) in CDS settlement (this chapter's centerpiece)
+- **Old-Re** has the widest deliverable basket (30-year maturity limit) → highest spread
+- **Mod-Mod-Re** is broader than Mod-Re (60 months vs 30 months for restructured obligations)
+- **Mod-Re** restricts maturities significantly
+- **No-Re** eliminates restructuring entirely → lowest spread (no restructuring protection, no delivery option on restructuring)
 
-**Why CTD matters for the protection seller (reasoned inference):**
+### 39.5.4 Regional Differences: CDX vs iTraxx
 
-Under physical settlement, the buyer can choose from $\mathcal{D}$. Because payoff increases as the delivered obligation's price decreases, the buyer chooses the lowest-priced eligible deliverable, maximizing payout.
+O'Kane highlights an important index-level distinction: "While the European iTraxx indices include a restructuring credit event, the North American CDX index protection leg is only triggered by a bankruptcy or failure to pay on a reference credit. Restructuring is not included as a credit event. The CDX is therefore consistent with the No-Re category of CDS."
 
-Therefore, the seller's realized cost depends on the delivered obligation choice: **the seller is short the buyer's delivery option.**
+This creates a systematic difference between US and European credit index contracts:
+- **CDX (North America):** No-Re — bankruptcy and failure to pay only
+- **iTraxx (Europe):** Includes restructuring
 
-**CTD definition in CDS terms:**
-
-$$\text{CTD} := \arg\min_{i \in \mathcal{D}} P_i, \qquad P_{\text{CTD}} := \min_{i \in \mathcal{D}} P_i$$
-
-**Economic payout under physical:** $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$.
-
-**What moves CTD economics:**
-
-1. **Deliverable price dispersion:** The delivery option only has value when deliverables trade at different prices after the credit event; the CDS text expects this mainly for a soft credit event like restructuring, since the debt can continue trading with a term structure of prices.
-
-2. **Deliverability constraints:** The CDS text discusses restructuring clause variations that restrict deliverable obligations (e.g., Mod-Re, Mod-Mod-Re) and notes regional differences; these constraints affect the range of deliverables and thus CTD.
-
-3. **Liquidity / scarcity:** If physical settlement demand overwhelms deliverable supply, a short squeeze can raise deliverable prices and reduce payout.
-
-**Link CTD to auction (only as supported + careful reasoning):**
-
-The sources connect cash settlement to auction/poll and explicitly mention "cheapest deliverable" as a key object in cash settlement price determination.
-
-**Conceptual link (reasoned):** An auction that targets the mid-market value of the cheapest deliverable tends to internalize CTD economics into a single cash settlement price, reducing disputes/operational frictions relative to sourcing physical bonds.
-
-> **I'm not sure** about the precise mapping from deliverable set to final price in all auction protocols (operational steps are not detailed in the retrieved excerpts).
-
-**Optional analogy (very light):** In bond futures, "cheapest-to-deliver" arises because the short can choose among deliverable bonds; this is structurally analogous to the CDS buyer's delivery option, except the party holding the delivery option differs by product.
+When comparing index spreads across regions, this documentation difference must be considered.
 
 ---
 
-### D) Risks specific to credit events + settlement
+## 39.6 Accrued Premium at Default
 
-**Event risk:**
+When a credit event occurs between premium payment dates, the protection buyer owes premium for the portion of the current period during which they had protection.
 
-*Source-backed aspects:*
-- Credit event is a legal trigger and not exactly rating-agency default.
-- The protection buyer generally triggers upon awareness, but may delay in some cases (e.g., expecting restructuring to turn into full default with larger payoff).
+O'Kane confirms: "In both cases there will also be a payment of the coupon accrued at default from the protection buyer to the protection seller. This is, however, handled separately as it is part of the premium leg."
 
-> **I'm not sure** about modern determination procedures (e.g., Determinations Committee rules) from these excerpts; need the relevant ISDA Definitions vintage and governance documents.
+Hull provides an example: "In our example, where there is a default on May 20, 2023, the buyer would be required to pay to the seller the amount of the annual payment accrued between March 20, 2023, and May 20, 2023 (approximately $150,000), but no further payments would be required."
 
-**Settlement risk:**
-- **Final price uncertainty:** under cash settlement, payout depends on $P_{\text{final}}$ until it is fixed (auction/poll).
-- **Deliverable scarcity / short squeeze risk:** physical settlement can create scarcity-driven price moves that change the economic payout.
+For a contract with annual spread $s$, notional $N$, and accrual fraction $\alpha$ since the last payment date:
 
-**Recovery risk:**
+$$\boxed{\text{Accrued Premium} = N \cdot s \cdot \alpha}$$
 
-Mechanically, payout sensitivity is:
+This is separate from the protection payout and represents the buyer's obligation for protection coverage during the partial period.
+
+> **I'm not sure** about the exact day-count convention for accrued premium at default without the specific contract documentation. The sources confirm the existence and direction of this payment but do not fully specify conventions in the excerpts retrieved.
+
+---
+
+## 39.7 Settlement Risks
+
+### 39.7.1 Final Price Uncertainty (Cash Settlement)
+
+Under cash settlement, the protection payout is uncertain until the auction or dealer poll determines $P_{\text{final}}$. The payout sensitivity to the final price is:
 
 $$\frac{\partial \Pi_{\text{cash}}}{\partial P_{\text{final}}} = -\frac{N}{100}$$
 
-A risk-management text defines recovery rate (for a bond) as its value shortly after default as a percentage of face value.
+Each point change in the final price changes the payout by 1% of notional. For a $10 million position, a 10-point uncertainty in final price represents $1 million of payout uncertainty.
 
-**Basis risk preview (only):**
+### 39.7.2 Deliverable Scarcity (Physical Settlement)
 
-The CDS text defines the CDS-cash basis and lists contractual differences such as the delivery option and technical default as drivers.
+As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, protection buyers face sourcing risk. The short squeeze dynamic can push up deliverable prices, reducing effective protection.
 
-**Preview takeaway:** even if CDS and bonds are "about the same credit," settlement mechanics and contract triggers can cause divergences.
+### 39.7.3 Technical Default and Basis Risk
 
----
+O'Kane lists "technical default" as a driver of the CDS-cash basis: "The standard credit events may be viewed as being broader than those which constitute default on a bond. As a result, protection sellers in a CDS may demand a higher spread as compensation for the increased risk of the protection being triggered."
 
-### E) Keep it focused
-
-- We do not build survival curves or par-spread pricing here.
-- We only include accrued premium as a settlement-adjacent reminder (pricing details belong elsewhere).
+This means a CDS may trigger when a bond does not technically default, or vice versa—creating basis risk between CDS and bond positions even when hedging the same credit.
 
 ---
 
-## Worked Examples
+## 39.8 Worked Examples
 
-### Common conventions for all examples unless stated
+### Example A: Cash Settlement Payout
 
-- Notional $N = \$10{,}000{,}000$
-- Prices are quoted per 100 of face
-- Protection payment (cash) uses: $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$
+**Given:** $N = \$10\text{ million}$, $P_{\text{final}} = 38$.
 
----
-
-### Example A: Protection payout from final price
-
-**Given:** $N = \$10\text{mm}$, $P_{\text{final}} = 38$.
-
-**Step 1:** Convert price to fraction of par:
+**Step 1:** Convert price to recovery fraction:
 $$R_{\text{settle}} = \frac{38}{100} = 0.38$$
 
 **Step 2:** Compute payout:
-$$\Pi_{\text{cash}} = 10{,}000{,}000(1 - 0.38) = 10{,}000{,}000 \times 0.62 = 6{,}200{,}000$$
+$$\Pi_{\text{cash}} = 10{,}000{,}000 \times (1 - 0.38) = 10{,}000{,}000 \times 0.62 = \$6{,}200{,}000$$
 
-**Answer:** Protection buyer receives **\$6.2mm**.
-
-**Unit check:** price is dimensionless after /100; payoff in USD. ✓
+**Answer:** The protection buyer receives **$6.2 million**.
 
 ---
 
-### Example B: Physical settlement economics and equivalence to Example A
+### Example B: Physical Settlement Economics
 
-**Assume:** A deliverable bond is trading at 38 per 100, and buyer can source it.
+**Given:** Deliverable bond trades at 38 per 100, $N = \$10\text{ million}$.
 
-**Step 1:** Market value of $N$ face deliverable at 38:
-$$\text{Cost to buy deliverable} = 10{,}000{,}000 \times \frac{38}{100} = 3{,}800{,}000$$
+**Step 1:** Cost to source deliverable:
+$$\text{Cost} = 10{,}000{,}000 \times \frac{38}{100} = \$3{,}800{,}000$$
 
-**Step 2:** Under physical settlement, buyer delivers $N$ face and receives par $N$ in cash:
-$$\text{Cash received from seller} = 10{,}000{,}000$$
+**Step 2:** Cash received from seller:
+$$\text{Cash} = \$10{,}000{,}000 \text{ (par)}$$
 
 **Step 3:** Economic gain:
-$$\Pi_{\text{phys}} = 10{,}000{,}000 - 3{,}800{,}000 = 6{,}200{,}000$$
+$$\Pi_{\text{phys}} = 10{,}000{,}000 - 3{,}800{,}000 = \$6{,}200{,}000$$
 
-**Answer:** **\$6.2mm**, same as Example A when $P_{\text{final}} = P_{\text{deliverable}} = 38$.
+**Answer:** Same as Example A when $P_{\text{final}} = P_{\text{deliverable}} = 38$. This illustrates the alignment between physical and cash settlement.
 
 ---
 
-### Example C: Multiple deliverables → CTD option
+### Example C: CTD with Multiple Deliverables
 
-**Deliverable set:** two eligible deliverables with prices:
-- Deliverable 1: $P_1 = 35$
-- Deliverable 2: $P_2 = 45$
+**Given:** Two eligible deliverables with prices $P_1 = 35$, $P_2 = 45$. Notional $N = \$10\text{ million}$.
 
-#### Physical settlement (buyer chooses CTD)
-
-**Step 1:** CTD price:
+**Step 1:** Identify CTD:
 $$P_{\text{CTD}} = \min(35, 45) = 35$$
 
-**Step 2:** Buyer's economic payoff:
-$$\Pi_{\text{phys}} = 10{,}000{,}000\left(1 - \frac{35}{100}\right) = 10{,}000{,}000 \times 0.65 = 6{,}500{,}000$$
+**Step 2:** Physical settlement payoff (optimal delivery):
+$$\Pi_{\text{phys}} = 10{,}000{,}000 \times \left(1 - \frac{35}{100}\right) = 10{,}000{,}000 \times 0.65 = \$6{,}500{,}000$$
 
-#### Cash settlement comparisons
+**Comparison with cash settlement at different prices:**
+- Cash at 35: $\Pi = \$6.5\text{ million}$ (matches physical CTD)
+- Cash at 45: $\Pi = 10{,}000{,}000 \times 0.55 = \$5.5\text{ million}$
+- Cash at 40 (average): $\Pi = 10{,}000{,}000 \times 0.60 = \$6.0\text{ million}$
 
-- If cash settlement used 35: payout $= 6.5\text{mm}$ (matches CTD physical)
-- If cash settlement used 45: payout $= 10{,}000{,}000(1 - 0.45) = 5{,}500{,}000$
-
-**Takeaway:** Under physical settlement, buyer delivers the cheapest eligible obligation, increasing seller's cost.
-
----
-
-### Example D: CTD value to buyer: scenario-based "option value"
-
-Using Example C, define a toy "average deliverable price":
-$$\bar{P} = \frac{35 + 45}{2} = 40$$
-
-**Payoff if forced to settle at average price (toy cash benchmark):**
-$$\Pi(\bar{P}) = 10{,}000{,}000\left(1 - \frac{40}{100}\right) = 10{,}000{,}000 \times 0.60 = 6{,}000{,}000$$
-
-**Payoff with CTD delivery:**
-$$\Pi(P_{\text{CTD}}) = 6{,}500{,}000$$
-
-**"Option value" in this scenario:**
-$$6{,}500{,}000 - 6{,}000{,}000 = 500{,}000$$
-
-**Answer:** Scenario CTD uplift = **\$0.5mm**.
-
-**Note:** This is not a universal pricing formula; it's a scenario comparison illustrating why the delivery option is valuable.
+**Takeaway:** The protection buyer's choice to deliver the CTD increases their payout by $1 million compared to the higher-priced deliverable.
 
 ---
 
-### Example E: Auction final price mapping: implied recovery and payout
+### Example D: Delivery Option Value (O'Kane Example)
 
-**Given:** auction final price $P_{\text{final}} = 42$.
+**Given:** Buyer holds asset trading at 43, alternative deliverable trades at 37. Face value $100.
 
-**Step 1:** Implied settlement recovery fraction:
-$$R_{\text{settle}} = 0.42$$
+**Strategy:**
+1. Sell held asset: receive $43
+2. Buy CTD: pay $37
+3. Deliver CTD for par: receive $100
 
-**Step 2:** Payout:
-$$\Pi_{\text{cash}} = 10{,}000{,}000(1 - 0.42) = 10{,}000{,}000 \times 0.58 = 5{,}800{,}000$$
+**P&L decomposition:**
+- Protection payout: $100 - 37 = 63$ (par minus CTD value)
+- Net position from switch: $43 - 37 = 6$ (sold high, bought low)
+- Delivery option value: **$6**
 
-**Compare to bond "recovery proxies" if bonds trade 40–44:**
-- If 40: payout $= 10{,}000{,}000(1 - 0.40) = 6{,}000{,}000$
-- If 44: payout $= 10{,}000{,}000(1 - 0.44) = 5{,}600{,}000$
-
-**Takeaway:** A final price of 42 sits within that bond price band and gives payout **\$5.8mm**.
-
----
-
-### Example F: Accrued premium reminder — simplified illustrative accrual
-
-Sources state accrued premium is typically owed from buyer to seller after credit event (premium leg).
-
-**Assume (illustrative):**
-- Annual CDS spread $s = 200$ bp $= 0.02$
-- Premium period is quarterly (0.25 years)
-- Default occurs halfway through the quarter $\Rightarrow \alpha = 0.125$ years
-
-**Accrued premium:**
-$$\text{Accrued} \approx N \cdot s \cdot \alpha = 10{,}000{,}000 \times 0.02 \times 0.125$$
-
-**Step-by-step:**
-1. $10{,}000{,}000 \times 0.02 = 200{,}000$ (annual premium dollars)
-2. $200{,}000 \times 0.125 = 25{,}000$
-
-**Answer:** accrued premium $\approx$ **\$25,000** paid by buyer to seller.
-
-> **I'm not sure** of the exact accrual day-count and stub handling for your trade without the contract terms.
+If buyer had simply delivered their held asset, they would have received $100 - 43 = 57$. By switching, they capture an additional $6.
 
 ---
 
-### Example G: Cash vs physical under deliverable scarcity: toy bid/ask range
+### Example E: Accrued Premium at Default
 
-**Motivation:** deliverable scarcity/short squeeze can affect deliverable prices.
+**Given:** Annual spread $s = 200$ bp $= 0.02$, quarterly payment frequency, default occurs 45 days into a 90-day period. Notional $N = \$10\text{ million}$.
 
-**Assume:** CTD deliverable is illiquid with post-event quotes:
-- Bid 30, Ask 40 (per 100). Mid = 35.
+**Step 1:** Accrual fraction:
+$$\alpha = \frac{45}{360} = 0.125 \text{ (using ACT/360-like logic)}$$
 
-**Compute payout range if settlement price could plausibly land anywhere in 30–40 (toy uncertainty):**
+**Step 2:** Accrued premium:
+$$\text{Accrued} = 10{,}000{,}000 \times 0.02 \times 0.125 = \$25{,}000$$
 
-- If $P_{\text{final}} = 30$: payout $= 10{,}000{,}000(1 - 0.30) = 7{,}000{,}000$
-- If $P_{\text{final}} = 40$: payout $= 10{,}000{,}000(1 - 0.40) = 6{,}000{,}000$
-
-**Answer:** payout range **\$6.0mm to \$7.0mm** (range width \$1.0mm).
-
-**Interpretation:** settlement/liquidity risk can be material at default, even if the contract notional is fixed.
+**Answer:** The protection buyer owes **$25,000** in accrued premium to the seller.
 
 ---
 
-### Example H: Deliverable set restriction sensitivity
+### Example F: Deliverable Set Restriction Sensitivity
 
-Using Example C deliverables, now remove the cheapest deliverable from eligibility:
-- Original eligible prices: 35 and 45 → CTD 35
-- New eligible set: only 45 → CTD 45
+**Given:** Original deliverables at prices 35 and 45. After reviewing documentation, the 35-priced bond is ruled ineligible. $N = \$10\text{ million}$.
 
-**Physical settlement payout changes from:**
+**Original CTD payoff:** $10{,}000{,}000 \times 0.65 = \$6.5\text{ million}$
 
-*Old:*
-$$10{,}000{,}000(1 - 0.35) = 6{,}500{,}000$$
+**New CTD payoff (only 45 eligible):** $10{,}000{,}000 \times 0.55 = \$5.5\text{ million}$
 
-*New:*
-$$10{,}000{,}000(1 - 0.45) = 5{,}500{,}000$$
+**Impact:** Payout decreases by **$1.0 million**.
 
-**Answer:** payout decreases by:
-$$6{,}500{,}000 - 5{,}500{,}000 = 1{,}000{,}000$$
-
-i.e., **\$1.0mm**.
-
-**Interpretation:** deliverability rules materially change CTD and economics.
+**Interpretation:** Deliverability rules have material P&L impact. Understanding exactly what qualifies as a deliverable obligation is essential.
 
 ---
 
-### Example I: Seller vs buyer cashflows sign table at settlement
+### Example G: Lehman Default (Hull)
 
-**Given:** $N = \$10\text{mm}$, final price 38.
+**Facts:** Lehman bankruptcy September 2008. $400 billion CDS outstanding, $155 billion debt. Auction final price: 8.625%.
 
-We show contract settlement cashflows (ignoring premium accrual here).
+**Implied payout per $100 notional:**
+$$\Pi = 100 \times (1 - 0.08625) = \$91.375$$
 
-| Settlement type | Protection buyer (long protection) | Protection seller (short protection) |
-|-----------------|-----------------------------------|-------------------------------------|
-| **Physical settlement** | Receives +\$10.0mm cash; delivers \$10.0mm face of eligible obligations | Pays -\$10.0mm cash; receives \$10.0mm face obligations |
-| **Cash settlement** | Receives +\$6.2mm cash (since $1 - 0.38 = 0.62$) | Pays -\$6.2mm cash |
+**For a $10 million position:**
+$$\Pi = 10{,}000{,}000 \times 0.91375 = \$9{,}137{,}500$$
 
-**Economic equivalence view (optional):** Under physical, if delivered obligations are worth \$3.8mm in the market, seller's economic cost is \$10.0mm − \$3.8mm = \$6.2mm, aligning with cash settlement when $P_{\text{final}} = 38$.
-
----
-
-### Example J: Timing uncertainty toy
-
-**Assume:** default could occur:
-- Early with $P_{\text{final}} = 30$ (more distressed outcome)
-- Late with $P_{\text{final}} = 45$ (less distressed outcome)
-
-**Compute payouts:**
-
-*Early payout:*
-$$10{,}000{,}000(1 - 0.30) = 7{,}000{,}000$$
-
-*Late payout:*
-$$10{,}000{,}000(1 - 0.45) = 5{,}500{,}000$$
-
-Now assume probabilities (toy): 50% early, 50% late.
-
-**Expected payout:**
-$$E[\Pi] = 0.5(7.0\text{mm}) + 0.5(5.5\text{mm}) = 3.5\text{mm} + 2.75\text{mm} = 6.25\text{mm}$$
-
-**Answer:** Expected payout = **\$6.25mm** under these toy assumptions.
-
-**Interpretation:** event timing uncertainty matters because the settlement price/recovery can differ across scenarios.
-
----
-
-### Example K: Portfolio settlement exposure additivity
-
-**Portfolio:** 3 CDS positions on three names:
-- Name 1: $N_1 = \$5\text{mm}$
-- Name 2: $N_2 = \$10\text{mm}$
-- Name 3: $N_3 = \$15\text{mm}$
-
-#### Case 1: common final price $P_{\text{final}} = 38$ for all
-
-Payout per \$1 notional is $0.62$.
-
-- Name 1: $5\text{mm} \times 0.62 = 3.10\text{mm}$
-- Name 2: $10\text{mm} \times 0.62 = 6.20\text{mm}$
-- Name 3: $15\text{mm} \times 0.62 = 9.30\text{mm}$
-
-**Total:**
-$$3.10 + 6.20 + 9.30 = 18.60 \text{ mm}$$
-
-**Answer:** Total payout = **\$18.6mm**.
-
-#### Case 2: name-specific final prices
-
-Assume:
-- Name 1: $P_{\text{final}} = 20$ → payout fraction $0.80$ → $5\text{mm} \times 0.80 = 4.00\text{mm}$
-- Name 2: $P_{\text{final}} = 38$ → $0.62$ → $10\text{mm} \times 0.62 = 6.20\text{mm}$
-- Name 3: $P_{\text{final}} = 60$ → $0.40$ → $15\text{mm} \times 0.40 = 6.00\text{mm}$
-
-**Total:**
-$$4.00 + 6.20 + 6.00 = 16.20 \text{ mm}$$
-
-**Answer:** Total payout = **\$16.2mm**.
-
-**Interpretation:** payouts add linearly in notional, but concentration arises in names with low final prices.
-
----
-
-### Example L: Cheapest-to-deliver vs "single final price" contrast
-
-Use Example C deliverables: 35 and 45.
-
-**Physical settlement payout uses CTD = 35:**
-$$\Pi_{\text{phys}} = 10{,}000{,}000(1 - 0.35) = 6{,}500{,}000$$
-
-**Now compare with hypothetical cash settlement using different candidate prices:**
-
-| Final Price Used | Payout |
-|------------------|--------|
-| 35 | $\Pi = 6.5\text{mm}$ (matches physical) |
-| 45 | $\Pi = 5.5\text{mm}$ |
-| Average 40 | $\Pi = 6.0\text{mm}$ |
-
-**Interpretation (conceptual + sourced anchor):**
-
-The risk-management source states cash settlement auction aims to determine the mid-market value of the cheapest deliverable bond.
-
-Conceptually, that choice aligns cash settlement with CTD economics and reduces the "which deliverable?" variability inherent in physical settlement.
-
-> **I'm not sure** about the detailed auction mechanics that ensure this alignment in every protocol; we would need the precise auction documentation.
+**Observation:** The extremely low recovery (8.625 cents on the dollar) produced near-maximal protection payouts.
 
 ---
 
 ## Practical Notes
 
-### Mechanics checklist: what must be known/checked on a real trade
+### Mechanics Checklist for a Real Trade
 
-1. Reference entity and (if applicable) reference obligation(s).
-2. Documentation set / definitions vintage (ISDA Definitions; the CDS text warns definitions evolve).
-3. Credit event definitions included in the contract (which events trigger; whether restructuring included, etc.).
-   - *Example of variability:* sources note restructuring may be excluded in some contexts/contracts.
-4. Settlement method: physical vs cash (and any fallback language).
-5. **If physical:**
-   - Deliverable obligations criteria / deliverable set $\mathcal{D}$ and any constraints (e.g., restructuring clause restrictions).
-   - Operational readiness to source and deliver.
-6. **If cash:**
-   - How $P_{\text{final}}$ is determined (dealer poll or auction; two-stage auction mentioned in one source).
-7. Notional $N$, currency, and confirmation details.
-8. Timeline / notices (book-reported process exists; check your contract for actual deadlines).
-9. Accrued premium at default handling.
+Before modeling settlement outcomes, verify:
 
----
+1. **Reference entity** and reference obligation(s)
+2. **Documentation set** — ISDA Definitions vintage (2003? 2014?)
+3. **Credit events included** — which events trigger; is restructuring included?
+4. **Restructuring clause** — Old-Re / Mod-Re / Mod-Mod-Re / No-Re
+5. **Settlement method** — physical, cash, or fallback language
+6. **If physical:** deliverable obligation criteria and any maturity restrictions
+7. **If cash:** how $P_{\text{final}}$ is determined (auction protocol)
+8. **Notional, currency, settlement conventions**
+9. **Accrued premium handling**
 
-### Common pitfalls
+### Common Pitfalls
 
-1. **Confusing "recovery" as a structural constant** with the settlement final price (a market-determined number around the event).
+1. **Confusing "recovery" concepts:** The settlement final price is a market-determined number around the event, not a long-run modeling parameter.
 
-2. **Assuming CTD is irrelevant under cash settlement:**
-   - Sources explicitly connect cash settlement (auction) to the value of the cheapest deliverable.
+2. **Assuming CTD is irrelevant under cash settlement:** Hull explicitly states auctions target "the mid-market value of the cheapest deliverable bond"—CTD economics are embedded in cash settlement.
 
-3. **Forgetting accrued premium at default** (premium paid in arrears implies an accrual is typically owed).
+3. **Forgetting accrued premium at default:** Premium is paid in arrears; a partial period accrual is owed even if the buyer never receives a full premium payment in that period.
 
-4. **Mixing up price-per-100 with fraction form:**
-   - 38 (per 100) vs 0.38 (fraction) → huge payout errors.
+4. **Mixing price conventions:** 38 (per 100) vs 0.38 (fraction) → factor of 100 payout error.
 
-5. **Assuming auction operational details without sourcing:**
-   - *I'm not sure beyond "dealer poll or auction" / "two-stage auction" from these excerpts.*
+5. **Ignoring regional documentation differences:** CDX (No-Re) vs iTraxx (includes restructuring) is a meaningful distinction.
 
----
+### Verification Tests for Risk Systems
 
-### Implementation pitfalls (risk systems / P&L explain)
-
-1. **Date handling:**
-   - event date vs settlement date vs accrual start; avoid off-by-one and stub issues.
-
-2. **Converting final price to payout:**
-   - Ensure consistent use of $P_{\text{final}}/100$.
-
-3. **Sign conventions:**
-   - Buyer receives $+\Pi$; seller pays $-\Pi$.
-
-4. **Physical settlement economics:**
-   - Model the buyer's right to choose CTD: use $\min P_i$ over eligible deliverables.
+1. **Payout bounds:** $0 \leq \Pi_{\text{cash}} \leq N$ when $0 \leq P_{\text{final}} \leq 100$
+2. **Physical/cash alignment:** If $P_{\text{final}} = P_{\text{CTD}}$, then $\Pi_{\text{cash}} = \Pi_{\text{phys}}$
+3. **CTD logic:** Under physical, buyer delivers lowest-priced eligible deliverable
 
 ---
 
-### Verification tests
+## Summary
 
-1. **Payout bounds** (assuming $0 \le P_{\text{final}} \le 100$):
-   $$0 \le \Pi_{\text{cash}} \le N$$
+1. A CDS protection payment is triggered by a **credit event**—a contract-defined legal trigger that may differ from bond default definitions.
 
-2. **Physical/cash alignment sanity:**
-   - If $P_{\text{final}} = P_{\text{CTD}}$, then $\Pi_{\text{cash}} = \Pi_{\text{phys}}$.
+2. Credit events are classified as **hard** (bankruptcy, failure to pay) or **soft** (restructuring). Hard events cause all debt to trade at one price; soft events preserve a term structure.
 
-3. **CTD logic test:**
-   - Under physical settlement, buyer chooses lowest-priced eligible deliverable (max payout).
+3. **Physical settlement** involves delivering bonds for par; **cash settlement** pays $N(1 - P_{\text{final}}/100)$ using a dealer-determined price.
 
----
+4. The **delivery option** arises because the buyer can choose which eligible obligation to deliver—they will choose the **cheapest-to-deliver** (lowest price).
 
-## Summary & Recall
+5. The delivery option is most valuable after **restructuring** when different bonds trade at different prices.
 
-### 10-Bullet Executive Summary
+6. **Restructuring clauses** (Old-Re, Mod-Re, Mod-Mod-Re, No-Re) evolved to limit delivery option value, with spread ordering reflecting optionality value.
 
-1. A CDS protection payment is triggered by a contract-defined credit event, not merely "economic distress."
-2. The sources list common credit events and classify them as hard vs soft; restructuring is the only "soft" one in that table.
-3. The protection leg can settle via physical or cash settlement.
-4. Physical settlement exchanges deliverable obligations (face) for par cash.
-5. Cash settlement pays $N(1 - P_{\text{final}}/100)$ using a final price determined via dealer poll or auction.
-6. Cash settlement is described as using an auction to determine the mid-market value of the cheapest deliverable bond (in one source), linking auctions to CTD economics.
-7. A basket of deliverables improves hedging flexibility and liquidity but gives the buyer a delivery option.
-8. The delivery option means the buyer will deliver the CTD (lowest price), which is adverse for the seller.
-9. Deliverable scarcity can cause short squeezes that move distressed prices and change payouts.
-10. Always verify the exact contract's credit event definitions, deliverability rules, and settlement protocol; the sources warn definitions evolve.
+7. **CDX excludes restructuring** (No-Re), while **iTraxx includes it**—a key regional difference.
+
+8. **Deliverable scarcity** can cause short squeezes under physical settlement; auctions address this by providing cash settlement at a market-determined price.
+
+9. **Accrued premium at default** is owed by the buyer for the partial period—handled as part of the premium leg.
+
+10. Always verify the specific contract documentation; conventions evolve and "I'm not sure" is appropriate when sources don't specify.
 
 ---
 
-### Cheat Sheet: Settlement Payoffs, CTD Concept, Sign Table, Key Sanity Checks
+## Key Concepts Summary
 
-**Cash settlement payoff (buyer):**
-$$\boxed{\Pi_{\text{cash}} = N\left(1 - \frac{P_{\text{final}}}{100}\right)}$$
-
-**Physical settlement payoff (buyer, delivering $i$):**
-$$\Pi_{\text{phys}}(i) = N\left(1 - \frac{P_i}{100}\right)$$
-
-**Physical settlement payoff with delivery option:**
-$$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right), \qquad P_{\text{CTD}} = \min_{i \in \mathcal{D}} P_i}$$
-
-**Buyer vs seller sign (cash settlement):**
-| Party | Cashflow |
-|-------|----------|
-| Buyer | $+\Pi_{\text{cash}}$ |
-| Seller | $-\Pi_{\text{cash}}$ |
-
-**Sanity checks:**
-- $0 \le \Pi \le N$ when $0 \le P \le 100$
-- If $P_{\text{final}} = P_{\text{CTD}}$, cash and physical align
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Credit event | Contractual trigger for protection leg (may differ from bond default) | Determines whether you receive protection |
+| Hard vs soft event | Hard: all debt trades at one price; Soft: term structure persists | Affects delivery option value |
+| Physical settlement | Deliver bonds, receive par | Requires sourcing deliverables |
+| Cash settlement | Receive $N(1 - P_{\text{final}}/100)$ | Requires price determination mechanism |
+| Delivery option | Buyer's right to choose deliverable | Creates embedded optionality for buyer |
+| CTD | Lowest-priced eligible deliverable | Maximizes buyer's payout |
+| Restructuring clause | Limits on deliverables after restructuring | Controls delivery option value |
+| Accrued premium | Partial premium for coverage until credit event | Owed by buyer at default |
 
 ---
 
-### 35 Flashcards (Q/A)
+## Notation for This Chapter
 
-1. **Q:** What is a "credit event" in CDS terms?
-   **A:** A contract-defined legal trigger for protection leg payment; similar to default but not identical to rating-agency default.
-
-2. **Q:** Name two settlement methods for the protection leg.
-   **A:** Physical settlement and cash settlement.
-
-3. **Q:** Physical settlement: who delivers what?
-   **A:** Buyer delivers face amount of deliverable obligations; seller pays par cash.
-
-4. **Q:** Cash settlement payoff form?
-   **A:** $N(1 - P_{\text{final}}/100)$.
-
-5. **Q:** What determines $P_{\text{final}}$ in cash settlement (as supported)?
-   **A:** Dealer poll or auction process.
-
-6. **Q:** What does one source say the auction targets?
-   **A:** Mid-market value of the cheapest deliverable bond.
-
-7. **Q:** What is CTD in CDS physical settlement?
-   **A:** The lowest-priced eligible deliverable obligation.
-
-8. **Q:** Why is CTD bad for the protection seller?
-   **A:** Buyer chooses the deliverable that maximizes payout (lowest price), increasing seller's economic cost.
-
-9. **Q:** What is the "delivery option"?
-   **A:** Buyer's right to choose among deliverable obligations; embedded optionality.
-
-10. **Q:** When does the delivery option have value (source intuition)?
-    **A:** When deliverables trade at different prices after a credit event.
-
-11. **Q:** Which event is "soft" in the source table?
-    **A:** Restructuring.
-
-12. **Q:** What happens to debt pricing after restructuring (source)?
-    **A:** Debt can keep trading with a term structure; short-dated higher than long-dated.
-
-13. **Q:** Give one hard credit event from the source table.
-    **A:** Bankruptcy / failure to pay / obligation acceleration / obligation default / repudiation-moratorium.
-
-14. **Q:** Why do deliverable baskets exist?
-    **A:** To hedge multiple eligible bonds/loans with one standard contract and enhance liquidity.
-
-15. **Q:** What is a key operational risk of physical settlement?
-    **A:** Sourcing deliverable obligations; scarcity can occur.
-
-16. **Q:** What is a "short squeeze" in this context (source)?
-    **A:** Buyers rush to buy deliverables to settle, pushing prices up and reducing loss payment.
-
-17. **Q:** Does premium accrue at default?
-    **A:** Yes; the standard contract includes premium accrued since last payment date (source mentions this feature).
-
-18. **Q:** Is accrued premium part of the protection leg?
-    **A:** No; it is handled as part of the premium leg in the cited CDS text.
-
-19. **Q:** If $P_{\text{final}} = 100$, what is payout?
-    **A:** 0.
-
-20. **Q:** If $P_{\text{final}} = 0$, what is payout?
-    **A:** $N$.
-
-21. **Q:** Convert price 38 per 100 to fraction.
-    **A:** 0.38.
-
-22. **Q:** For $N = \$10\text{mm}$ and price 38, payout?
-    **A:** \$6.2mm.
-
-23. **Q:** Under physical settlement, what does the buyer optimally deliver?
-    **A:** The cheapest eligible deliverable (CTD).
-
-24. **Q:** What makes CTD economics "move"?
-    **A:** Deliverable price dispersion, deliverability constraints, liquidity/scarcity.
-
-25. **Q:** What documentation element can restrict deliverables after restructuring (source mentions)?
-    **A:** Restructuring clause choices (e.g., Mod-Re / Mod-Mod-Re).
-
-26. **Q:** Why might a protection buyer delay triggering (source)?
-    **A:** Expect restructuring to turn into full default producing larger payoff.
-
-27. **Q:** What is "technical default" in basis discussion (source)?
-    **A:** Contractual credit events may be broader than bond default.
-
-28. **Q:** How does delivery option affect CDS vs bond (basis intuition, source)?
-    **A:** Makes long protection CDS more valuable; can widen CDS spread vs bond spread.
-
-29. **Q:** What is the cash settlement reference price intended to represent?
-    **A:** Market value (recovery price) of the reference/cheapest deliverable bond via poll/auction (as stated in sources).
-
-30. **Q:** Key sanity check linking cash and physical?
-    **A:** If cash final price equals CTD price, payoffs match.
-
-31. **Q:** What is "deliverable obligation" precisely?
-    **A:** I'm not sure from excerpts; it is contract-defined by ISDA definitions/confirmation.
-
-32. **Q:** Do auction details vary by protocol?
-    **A:** Yes; I'm not sure of details without the specific protocol text.
-
-33. **Q:** Why do auctions help markets at default?
-    **A:** Provide a single price for cash settlement; reduce need to source bonds (conceptually; sources anchor to auction-determined cheapest deliverable value).
-
-34. **Q:** What must be verified on a real trade?
-    **A:** Definitions vintage, credit events included, settlement method, deliverables, notional, accrual conventions.
-
-35. **Q:** What final warning does the CDS text provide?
-    **A:** Definitions evolve; seek up-to-date professional legal advice.
+| Symbol | Definition |
+|--------|------------|
+| $N$ | CDS notional (USD) |
+| $P_{\text{final}}$ | Final price (per 100) for cash settlement |
+| $R_{\text{settle}} = P_{\text{final}}/100$ | Settlement-implied recovery fraction |
+| $\mathcal{D}$ | Set of eligible deliverable obligations |
+| $P_i$ | Market price (per 100) of deliverable $i$ |
+| $P_{\text{CTD}} = \min_{i \in \mathcal{D}} P_i$ | Cheapest-to-deliver price |
+| $\Pi_{\text{cash}}, \Pi_{\text{phys}}$ | Protection payout under cash/physical settlement |
+| $\alpha$ | Accrual fraction (year fraction) |
+| $s$ | CDS contractual spread (annualized decimal) |
 
 ---
 
-## Mini Problem Set (18 questions)
+## Flashcards
 
-1. A CDS has $N = \$25\text{mm}$ and auction final price $P_{\text{final}} = 12$. Compute cash settlement payout.
-
-2. For $N = \$10\text{mm}$, compare payout if final price is 38 vs 42. What is the payout difference?
-
-3. Two deliverables are eligible with prices 55 and 60. Under physical settlement, what is CTD and payout?
-
-4. Three deliverables priced 20, 35, 50. Compute physical settlement payout and compare to cash payout if $P_{\text{final}} = 35$.
-
-5. A contract's deliverable set changes so the 20-priced bond is no longer eligible. Recompute payout from Q4 and compute the change.
-
-6. If a bond trades at 40–44 around the event and the auction final price is 42, compute payout range implied by the bond band and locate the auction payout within it.
-
-7. Explain (in words) why a soft credit event can create larger delivery option value than a hard credit event (use the source's "term structure of prices" idea).
-
-8. Suppose $N = \$10\text{mm}$, spread $s = 500$ bp, and default occurs 30 days into a 90-day accrual period. Using simple ACT/360-like reasoning, approximate accrued premium. (If you need day count details, state assumptions.)
-
-9. Build a sign table of settlement cashflows between buyer and seller under physical vs cash settlement (no numbers).
-
-10. Consider an illiquid CTD that can trade from 25 to 45. For $N = \$50\text{mm}$, compute the payout range.
-
-11. Show that physical settlement payoff equals cash settlement payoff if $P_{\text{final}} = P_{\text{CTD}}$.
-
-12. Describe two settlement risks unique to physical settlement and two unique to cash settlement.
-
-13. Using the source's "technical default" idea, discuss how contractual triggers can create basis risk between bonds and CDS.
-
-14. You hedge a specific bond priced 48 with CDS where CTD is 40 after a restructuring credit event. Compute the incremental gain from the delivery option (per 100 face) and then for $N = \$10\text{mm}$.
-
-15. Give a toy scenario where delaying the trigger could increase payoff, and compute the payoff difference (two final prices).
-
-16. For a portfolio of notionals $N_1, N_2, \ldots, N_k$, show the total cash settlement payout formula under a common final price.
-
-17. Discuss why an auction aimed at "mid-market value of the cheapest deliverable bond" conceptually aligns with CTD economics.
-
-18. List the minimum contract fields you would demand before modeling settlement outcomes in a risk system.
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is a "credit event" in CDS terms? | A contract-defined legal trigger for protection leg payment; similar to default but not identical to rating-agency definitions. |
+| 2 | What are the two settlement methods for CDS? | Physical settlement (deliver bonds, receive par) and cash settlement (receive $N(1-P_{\text{final}}/100)$). |
+| 3 | What distinguishes hard from soft credit events? | Hard events (bankruptcy) cause all debt to trade at one price; soft events (restructuring) preserve term structure. |
+| 4 | Which is the only soft credit event? | Restructuring. |
+| 5 | What is the delivery option? | The buyer's right to choose which deliverable to deliver—creates embedded optionality. |
+| 6 | What is CTD in CDS settlement? | Cheapest-to-deliver: the lowest-priced eligible deliverable obligation. |
+| 7 | Why does the delivery option favor the buyer? | Buyer delivers the cheapest obligation and receives par, maximizing payout. |
+| 8 | Cash settlement payoff formula? | $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$ |
+| 9 | Physical settlement payoff with CTD? | $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$ |
+| 10 | When is the delivery option most valuable? | After restructuring (soft event) when deliverables trade at different prices. |
+| 11 | What is a short squeeze in this context? | When CDS notional exceeds deliverable supply, buying pressure raises deliverable prices, reducing protection value. |
+| 12 | What was the Lehman auction recovery price? | 8.625% of face value (91.375% payout). |
+| 13 | Name the four restructuring clauses. | Old-Re, Mod-Re, Mod-Mod-Re, No-Re. |
+| 14 | What is the spread ordering across restructuring clauses? | $S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}$ |
+| 15 | What clause does CDX use? | No-Re (excludes restructuring as credit event). |
+| 16 | What clause does iTraxx use? | Includes restructuring (Mod-Mod-Re style). |
+| 17 | What triggered the Mod-Re introduction? | The Conseco restructuring (September 2000) where delivery option was exploited. |
+| 18 | What is accrued premium at default? | Partial premium owed for coverage from last payment date to credit event. |
+| 19 | Who owes accrued premium at default? | Protection buyer owes it to seller. |
+| 20 | If $P_{\text{final}} = 100$, what is the payout? | Zero (no loss). |
+| 21 | If $P_{\text{final}} = 0$, what is the payout? | $N$ (total loss). |
+| 22 | How much profit did O'Kane's delivery option example show? | $6 per $100 face (sell $43 asset, buy $37 CTD, deliver for par). |
+| 23 | What determines $P_{\text{final}}$ in cash settlement? | Dealer poll or ISDA auction process. |
+| 24 | What does the auction target according to Hull? | "The mid-market value of the cheapest deliverable bond." |
+| 25 | Key criterion for deliverable obligations? | Must be pari passu or senior to the reference obligation. |
+| 26 | Maximum physical settlement timeline? | Up to 72 calendar days after initial notification. |
+| 27 | What is "technical default" in CDS-bond basis? | CDS credit events may be broader than bond default, creating basis risk. |
+| 28 | When do physical and cash settlement give the same payout? | When $P_{\text{final}} = P_{\text{CTD}}$. |
+| 29 | How much CDS was outstanding on Lehman vs actual debt? | $400B CDS vs $155B debt. |
+| 30 | Why did cash settlement become standard? | To avoid sourcing problems when CDS notional exceeds deliverable supply. |
 
 ---
 
-### Brief Solution Sketches (1–9 only)
+## Mini Problem Set
 
-1. $\Pi = 25\text{mm}(1 - 0.12) = 25\text{mm} \times 0.88 = 22\text{mm}$.
+1. A CDS has $N = \$25\text{mm}$ and auction final price 12. Compute the cash settlement payout.
 
-2. $10\text{mm}[(1 - 0.38) - (1 - 0.42)] = 10\text{mm}(0.62 - 0.58) = 0.4\text{mm}$.
+2. For $N = \$10\text{mm}$, compare payouts if final price is 38 vs 42. What is the difference?
 
-3. CTD = 55. Payout $= 10\text{mm}(1 - 0.55) = 4.5\text{mm}$.
+3. Two deliverables are priced at 55 and 60. Under physical settlement with $N = \$10\text{mm}$, what is the CTD and payout?
 
-4. Physical uses CTD=20 → $10\text{mm}(0.80) = 8\text{mm}$. Cash at 35 → $10\text{mm}(0.65) = 6.5\text{mm}$.
+4. Three deliverables priced 20, 35, 50 with $N = \$10\text{mm}$. Compute physical settlement payout. Compare to cash at $P_{\text{final}} = 35$.
 
-5. Remove 20 → CTD=35 → physical payout becomes 6.5mm; change = $-1.5\text{mm}$ vs 8mm.
+5. In Q4, the 20-priced bond is ruled ineligible. Recompute the payout and the change.
 
-6. Bond 40 → payout 6.0mm; bond 44 → 5.6mm; auction 42 → 5.8mm (in the middle).
+6. Explain why a soft credit event creates larger delivery option value than a hard event.
 
-7. Soft event → different obligations can keep trading at different prices/term structure; buyer can choose cheapest, increasing option value.
+7. A buyer holds a bond at 48 with CDS, and CTD after restructuring is 40. Per $100 face, what is the delivery option value? For $N = \$10\text{mm}$?
 
-8. Annual premium $= Ns$. Accrual fraction $= 30/360 = 1/12$ if ACT/360-like. Accrued $\approx Ns/12$. State assumptions.
+8. Spread $s = 400$ bp, default 60 days into a 90-day period, $N = \$20\text{mm}$. Estimate accrued premium (state assumptions).
 
-9. Physical: buyer delivers obligations, receives par; seller opposite. Cash: seller pays cash amount $N(1 - P_{\text{final}}/100)$ to buyer; buyer opposite.
+9. Derive: if $P_{\text{final}} = P_{\text{CTD}}$, then $\Pi_{\text{cash}} = \Pi_{\text{phys}}$.
+
+10. CTD bond has bid/ask of 25/35 in distressed market. For $N = \$50\text{mm}$, compute the payout range.
+
+---
+
+### Solution Sketches (Selected)
+
+**Q1:** $\Pi = 25\text{mm} \times (1 - 0.12) = 25\text{mm} \times 0.88 = \$22\text{mm}$
+
+**Q2:** At 38: $\Pi = 10\text{mm} \times 0.62 = \$6.2\text{mm}$. At 42: $\Pi = 10\text{mm} \times 0.58 = \$5.8\text{mm}$. Difference: $\$0.4\text{mm}$.
+
+**Q3:** CTD = 55. $\Pi = 10\text{mm} \times (1 - 0.55) = 10\text{mm} \times 0.45 = \$4.5\text{mm}$
+
+**Q4:** Physical uses CTD = 20: $\Pi = 10\text{mm} \times 0.80 = \$8.0\text{mm}$. Cash at 35: $\Pi = 10\text{mm} \times 0.65 = \$6.5\text{mm}$. Physical payout is $\$1.5\text{mm}$ higher due to CTD.
+
+**Q5:** New CTD = 35: $\Pi = 10\text{mm} \times 0.65 = \$6.5\text{mm}$. Change: $-\$1.5\text{mm}$ from Q4.
+
+**Q6:** Soft events preserve term structure → different obligations trade at different prices → buyer can choose cheapest. Hard events collapse all debt to one price → no choice benefit.
+
+**Q7:** Delivery option value = $48 - 40 = \$8$ per $100. For $\$10\text{mm}$: $10{,}000{,}000 \times 0.08 = \$800{,}000$.
+
+**Q9:** $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$. $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$. If $P_{\text{final}} = P_{\text{CTD}}$, both equal $N(1 - P_{\text{CTD}}/100)$. QED.
+
+---
+
+## Source Map
+
+### (A) Verified Facts (Source-Backed)
+
+| Fact | Source |
+|------|--------|
+| Credit event is the legal trigger for protection leg; differs from rating-agency default | O'Kane 5.4.1 |
+| Credit event types table (six events with hard/soft classification) | O'Kane Table 5.1 |
+| Restructuring is the only soft credit event | O'Kane 5.4.1 |
+| After restructuring, debt trades with term structure of prices | O'Kane 5.4.1 |
+| Physical settlement: deliver face value, receive par in cash | O'Kane 5.4 |
+| Cash settlement: seller pays $(\text{face} - \text{recovery price})$; recovery determined by poll/auction | O'Kane 5.4 |
+| Deliverable obligations must be pari passu or senior to reference obligation | O'Kane 5.4 |
+| Delivery option: buyer can choose which deliverable to deliver | O'Kane 5.4.3 |
+| O'Kane delivery option example: $43 asset, $37 CTD → $6 profit | O'Kane 5.4.3 |
+| Conseco restructuring (Sept 2000): banks delivered deep-discount bonds (65-80) for par | O'Kane 5.4.3 |
+| Restructuring clauses: Old-Re, Mod-Re, Mod-Mod-Re, No-Re with descriptions | O'Kane Table 5.2 |
+| Spread ordering: $S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}$ | O'Kane 5.4.4 |
+| CDX uses No-Re; iTraxx includes restructuring | O'Kane Ch 10 |
+| Physical settlement timeline: up to 72 calendar days | O'Kane 5.4.2 |
+| Credit Event Notice requires two sources of Publicly Available Information | O'Kane 5.4.2 |
+| Notice of Physical Settlement: within 30 calendar days, can be updated until delivery | O'Kane 5.4.2 (ISDA 2003) |
+| Short squeeze when CDS notional exceeds deliverable supply | O'Kane 5.4.2 |
+| Cash settlement auction targets "mid-market value of cheapest deliverable bond" | Hull Ch 25 |
+| Lehman: $400B CDS, $155B debt; auction payout 91.375% (8.625% recovery) | Hull Ch 25 |
+| Accrued premium at default paid by buyer to seller | O'Kane 5.4, Hull Ch 25 |
+| Technical default as CDS-bond basis driver | O'Kane 5.6 |
+
+### (B) Reasoned Inference (Derived from A)
+
+- **CTD payoff formula:** $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$ — derived from physical settlement mechanics (buyer delivers cheapest, receives par)
+- **Cash/physical alignment condition:** When $P_{\text{final}} = P_{\text{CTD}}$, both methods yield same payout — follows from payoff formulas
+- **Delivery option value:** $P_{\text{hedged}} - P_{\text{CTD}}$ — explicitly stated by O'Kane
+- **Payout bounds:** $0 \leq \Pi \leq N$ for $0 \leq P \leq 100$ — arithmetic from payoff formula
+
+### (C) Flagged Uncertainties
+
+- **Auction operational details:** I'm not sure about the precise two-stage auction mechanics, bidding rules, timing, and Determinations Committee procedures from the excerpts retrieved. Chapter 40 covers auctions in more detail; for complete protocol, the specific ISDA documentation is required.
+- **Complete deliverability criteria:** I'm not sure of all eligibility criteria beyond "pari passu or senior" without the precise ISDA Definitions and confirmation terms.
+- **Accrual day-count conventions:** I'm not sure of the exact day-count convention for accrued premium at default without specific contract documentation.
+- **Current Determinations Committee rules:** The sources reference ISDA 2003 definitions; current procedures may have evolved.

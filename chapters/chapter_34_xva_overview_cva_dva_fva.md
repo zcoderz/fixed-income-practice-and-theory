@@ -91,6 +91,18 @@ No-default models assume perfect performance. Real OTC markets have default risk
 
 Banks quote/track XVA at the counterparty level (netting set), manage XVA P&L, and hedge components (especially CVA spread risk).
 
+> **Analogy: The Price Tag Layers**
+>
+> XVA is like peeling an onion or adding layers to a price tag.
+>
+> 1.  **Risk-Free Meaning**: The "theoretical" price if everyone was honest and immortal. (e.g., \$100).
+> 2.  **CVA Layer (Insurance)**: "But you might not pay me." (Subtract \$2 for insurance cost $\to$ \$98).
+> 3.  **FVA Layer (Funding)**: "But I have to borrow cash to hedge this." (Subtract \$1 for interest cost $\to$ \$97).
+> 4.  **DVA Layer (My Risk)**: "But *I* might not pay *you*." (Add \$0.50 benefit $\to$ \$97.50).
+>
+> **The XVA Waterfall**:
+> $$ \text{Fair Value} = \text{RiskFree Price} - \text{CVA} - \text{FVA} + \text{DVA} - \text{KVA} - \text{MVA} $$
+
 ---
 
 ### 1.2 Netting Set and Early Termination (Why Portfolio Matters)
@@ -196,6 +208,20 @@ If a derivative is uncollateralized and has positive value to the bank, the bank
 - The text flags that economists accept CVA/DVA but have reservations about FVA and similar adjustments (and sometimes DVA).
 
 - FVA depends strongly on internal funding policy (what rate you assume, whether funding benefit is recognized, netting across desks, etc.). The same source notes that FVA can arise whenever a bank enters into an uncollateralized derivative; positive MTM → cost, negative MTM → benefit.
+
+> **Deep Dive: The FVA Debate**
+>
+> *   **The Theorists (Hull & White)**: "FVA is not real. You shouldn't charge for funding costs any more than you charge for the electricity to run your computers. It's double counting if you already discount at OIS."
+> *   **The Practitioners (The Market)**: "I have to borrow cash to hedge this trade. If I don't charge for it, I lose money. I don't care about theory; I care about P&L."
+> *   **The Verdict**: The Market won. FVA is standard practice.
+
+### 1.7 KVA (Capital Valuation Adjustment)
+
+**Formal Definition:**
+KVA reflects the cost of holding regulatory capital (Basel III / FRTB) against the trade throughout its life.
+
+**Intuition:**
+"Rent on Capital." The bank's shareholders demand a return (e.g., 10% ROE) on the capital tied up by the trade. KVA is the PV of this required return. It is often the *largest* adjustment for long-dated trades.
 
 ---
 

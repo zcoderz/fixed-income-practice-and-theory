@@ -2,1138 +2,760 @@
 
 ---
 
+## Introduction
+
+The index trades at 85 bp, but the constituents imply 82 bp. Where's the 3 bp?
+
+This question captures the essence of one of credit trading's most persistent puzzles: the **index basis**. When you price a CDS index by aggregating its single-name constituents, you get one number—the *intrinsic* spread. When you look at where the index actually trades in the market, you often get a different number—the *quoted* spread. The difference is the basis, and understanding it is essential for anyone managing credit portfolios or executing relative value trades.
+
+The stakes are practical and immediate. Suppose you hedge a portfolio of single-name CDS positions with an index trade, believing you've neutralized your spread risk. If the index basis moves against you—if the index tightens while your single-names stay put—you've just taken an unexpected loss despite having "hedged." O'Kane addresses this directly: "when we look at the index spread quoted in the market, we often find that it is not the same as the intrinsic index spread." This basis arises from multiple sources, including documentation differences, liquidity premia, and technical supply-demand dynamics.
+
+This chapter develops the framework for understanding and measuring the index basis:
+
+1. **Intrinsic spread calculation** — How to compute what the index "should" trade at from its constituents
+2. **The RPV01-weighted average approximation** — Why simple averaging is wrong and what the correct weighting is
+3. **Index basis definition and measurement** — The wedge between quoted and intrinsic levels
+4. **Basis drivers** — Documentation (restructuring clauses), liquidity, composition, and roll effects
+5. **Portfolio swap adjustment** — How practitioners force intrinsic to equal quoted for model consistency
+6. **Risk and hedging implications** — Why the basis matters for P&L attribution and hedge design
+
+Understanding the index basis connects directly to the mechanics covered in **Chapter 41** (CDS Index Mechanics), prepares you for the hedging strategies in **Chapter 47**, and is essential for the tranche pricing framework in **Chapters 48-50**, where model calibration requires that intrinsic equals quoted.
+
+---
+
 ## Conventions & Notation
 
 | Convention | Description |
 |------------|-------------|
-| **Instrument focus** | CDS portfolio indices (e.g., CDX / iTraxx) treated as an equal-notional portfolio of single-name CDS unless explicitly stated otherwise |
-| **Premium accrual & day count** | Premiums are typically paid quarterly and (in the reference) use Actual/360 for accrual |
-| **Timing** | Trades are entered on trade date $t$ and are described as cash-settled shortly after trade date (e.g., "three days later" in the reference) |
-| **Discounting** | $Z(t,u)$ is the (default-free) discount factor from $t$ to $u$. (The reference models the index PV using discounted expectations $Z(t,\cdot)$.) |
+| **Instrument focus** | CDS portfolio indices (CDX / iTraxx) treated as equal-notional portfolios of single-name CDS unless explicitly stated |
+| **Premium accrual** | Quarterly payments, Actual/360 |
+| **Discounting** | $Z(t,u)$ is the risk-free discount factor from $t$ to $u$ |
 | **Credit modeling** | Each name $m$ has default time $\tau_m$, recovery $R_m$, and survival probability $Q_m(t,u) = P(\tau_m > u \mid \mathcal{F}_t)$ |
-| **RPV01 definition (this chapter)** | $\text{RPV01}_m(t,T)$ is the risky PV01 / risky annuity for name $m$ from $t$ to $T$: the PV (per unit notional) of paying 1 unit of annual spread continuously (or its discretized equivalent) until default/maturity. In the reference, RPV01 is represented by $\int_t^T Z(t,u) Q_m(t,u) \, du$ under simplifying assumptions |
-| **Protection buyer vs seller sign** | "Long protection" = protection buyer; benefits from spread widening. "Short protection" = protection seller; benefits from spread tightening |
-| **Index basis sign convention (explicit)** | $b(t,T) \equiv S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)$ (in bp). So positive basis means the index is quoted wider than its bottom-up intrinsic level |
-
----
-
-## 0. Setup
-
-### Conventions Used in This Chapter
-
-- The index has $M$ constituents, each with equal notional weight $1/M$ (this is the standard setup used in the primary reference's mechanics and valuation formulas)
-- Index constituents remain fixed over the life of an issued index, except that defaulted names are removed without replacement. New index issues (new "rolls") can have different constituents
-- Coupon $C(T)$ is the contractual index coupon set near inception and tends to be chosen as a multiple of 5 bp (per the reference)
-
-### Notation Glossary
+| **Index basis sign** | $b(t,T) \equiv S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)$, so positive basis means index quoted wider than intrinsic |
 
 | Symbol | Definition |
 |--------|------------|
-| $t$ | Valuation time (trade date / pricing time) |
-| $T$ | Index maturity (or "term") |
+| $t$ | Valuation time |
+| $T$ | Index maturity |
 | $M$ | Number of index constituents |
-| $m \in \{1, \ldots, M\}$ | Constituent index |
-| $\tau_m$ | Default (credit event) time of name $m$ |
-| $R_m$ | Recovery rate of name $m$ (fraction of par) |
-| $Z(t,u)$ | Discount factor from $t$ to $u$ |
-| $Q_m(t,u)$ | Survival probability to $u$ |
-| $C(T)$ | Contractual index coupon (bp/yr) |
-| $S_m(t,T)$ | Par CDS spread for name $m$ to maturity $T$ (bp/yr) |
-| $\text{RPV01}_m(t,T)$ | Risky PV01 (risky annuity) for name $m$ to $T$ |
-| $S_{\text{intrinsic}}(t,T)$ | Bottom-up intrinsic (implied) index spread level |
-| $S_{\text{quoted}}(t,T)$ | Market quoted index spread level (index "level") |
-| $b(t,T)$ | Index basis $= S_{\text{quoted}} - S_{\text{intrinsic}}$ (bp) |
-| $U(t,T)$ | Upfront PV amount (per unit notional unless scaled) |
+| $C(T)$ | Contractual index coupon (bp/yr), fixed at series inception |
+| $S_m(t,T)$ | Par CDS spread for name $m$ to maturity $T$ |
+| $\text{RPV01}_m(t,T)$ | Risky PV01 (risky annuity) for name $m$ |
+| $S_{\text{intrinsic}}(t,T)$ | Bottom-up intrinsic index spread |
+| $S_{\text{quoted}}(t,T)$ | Market quoted index spread |
+| $b(t,T)$ | Index basis = quoted − intrinsic |
+| $U(t,T)$ | Upfront PV (per unit notional) |
 
 ---
 
-## 1. Core Concepts (Definitions First)
+## 46.1 The Intrinsic Spread: What the Index "Should" Trade At
 
-### 1.1 CDS Portfolio Index
+### 46.1.1 The Economic Intuition
 
-**Formal Definition:**
+A CDS index is fundamentally a portfolio of single-name CDS contracts. If markets were frictionless—no documentation differences, no liquidity premia, no trading costs—the index spread should exactly equal some appropriately weighted average of its constituent spreads. This "fair value" is what we call the **intrinsic spread**.
 
-A CDS portfolio index is a standardized CDS referencing a fixed portfolio of $M$ entities where premium and default-contingent payments are defined at the portfolio level, commonly with equal per-name notional $1/M$. The index can be traded in an "unfunded" CDS-like format, and (conceptually) can also be viewed as packaged with a floating-rate note to create a "bond format" quote.
+O'Kane provides the foundational insight: "arbitrage pricing arguments allow us to value a CDS index in terms of the survival curves of the reference entities. We call this the intrinsic value since we have calculated the value of the index swap as the sum of the values of its constituent parts."
 
-**Intuition:**
+The intrinsic spread answers a specific question: if I wanted to replicate the index by trading each constituent CDS individually, what spread would I implicitly be paying (or receiving) on an aggregate basis?
 
-It's a liquid way to take (or hedge) broad credit risk. You get diversification across names, standardized documentation, and centralized quoting/clearing practices (varies by market and time—verify for a specific trade).
+### 46.1.2 From Constituent PVs to Intrinsic Value
 
-**Trading/Risk Practice:**
+To derive the intrinsic spread, we start from the present values of the protection and premium legs for each constituent. Under standard simplifying assumptions (equal notional weights $1/M$, fixed recovery rates, independence of default and interest rates), O'Kane derives the intrinsic valuation by pricing each leg separately.
 
-Market participants frequently use indices to express macro credit views and to hedge portfolios of credit exposures because the index market can be deep and liquid relative to some single names.
+For the **protection leg**, a credit event on reference entity $m$ results in an immediate loss of $(1-R_m)/M$ to the index buyer. O'Kane shows that the expected present value can be written in terms of the individual CDS spreads and risky PV01s:
 
----
+$$\text{Index protection leg PV}(t) = \frac{1}{M} \sum_{m=1}^{M} S_m(t,T) \cdot \text{RPV01}_m(t,T)$$
 
-### 1.2 Quoted Index Spread (Index "Level")
+For the **premium leg**, contractually, a credit event reduces the spread payments by factor $1/M$. The premium leg value is:
 
-**Formal Definition:**
+$$\text{Index premium leg PV}(t) = \frac{C(T)}{M} \sum_{m=1}^{M} \text{RPV01}_m(t,T)$$
 
-The quoted index spread is the market-quoted flat spread at which the index would be priced "as if it were a simple CDS contract" (investment-grade convention in the reference), paired with the index coupon $C$ and an upfront amount that makes PV consistent.
+The **intrinsic value** of a short protection position (premium leg minus protection leg) is therefore:
 
-**Intuition:**
+$$\boxed{V_{\text{intrinsic}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( C(T) - S_m(t,T) \right) \text{RPV01}_m(t,T)}$$
 
-A single number summarizing "where the index trades" on a spread basis.
+Equivalently, for a long protection position (O'Kane's Equation 10.6):
 
-**Trading/Risk Practice:**
+$$V_{I}(t) = \frac{1}{M} \sum_{m=1}^{M} \left( S_m(t,T) - C(T) \right) \cdot \text{RPV01}_m(t,T)$$
 
-Traders often speak in terms of "index at 60 bp" even though the contract has a fixed coupon and potentially an upfront amount; the quoted spread is a convenient level for risk reporting and comparisons.
+This formula has an elegant interpretation:
+- $(S_m - C)$ is the "off-market" amount for name $m$—how much its par spread differs from the index coupon
+- $\text{RPV01}_m$ is the present value of receiving 1 bp per year until default or maturity
+- The product $(S_m - C) \times \text{RPV01}_m$ is the upfront PV of that name's contribution
 
----
+**Sanity checks:**
+- If $S_m = C$ for all names, intrinsic value is zero (the index is "at par")
+- If spreads widen (holding coupon fixed), long protection value increases: $V_{\text{intrinsic}} \uparrow$
 
-### 1.3 Intrinsic (Bottom-Up) Index Spread
+### 46.1.3 The Risky PV01 (RPV01)
 
-**Formal Definition:**
-
-The intrinsic index spread is the spread level implied by valuing the index from its constituents' CDS curves, i.e., by equating (i) the index PV implied by summing constituent PVs to (ii) the PV of the index treated as a single flat-spread instrument. The reference derives an equation linking these quantities and gives a close approximation as a risky-PV01-weighted average of constituent spreads.
-
-**Intuition:**
-
-"What the index spread should be if it were exactly the portfolio of its names, priced bottom-up."
-
-**Trading/Risk Practice:**
-
-Used for:
-- Fairness checks (is the index rich/cheap to constituents?)
-- Basis trades (index vs single-name portfolio)
-- Building consistent pricing inputs for index options / tranche models (often requiring some adjustment so intrinsic aligns to market)
-
----
-
-### 1.4 Index Basis
-
-**Formal Definition:**
-
-The index basis is the difference between the market quoted index spread and the intrinsic index spread:
-
-$$b(t,T) = S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)$$
-
-The reference documents that quoted and intrinsic spreads often differ and provides examples of positive and negative basis across indices/maturities.
-
-**Intuition:**
-
-A "wedge" capturing effects not explained by a frictionless replication of index = portfolio of CDS.
-
-**Trading/Risk Practice:**
-
-Basis affects hedging (index hedge for a single-name book is imperfect), valuation (how you calibrate), and risk attribution (spread vs basis P&L).
-
----
-
-## 2. Intrinsic Index Spread: Definition and Computation
-
-### 2.1 Quoted Index Spread vs Intrinsic Spread
-
-**Quoted index spread $S_{\text{quoted}}(t,T)$:**
-
-A market quote (often described as a flat spread level) used to price the index "as if it were a simple CDS," with an upfront adjustment when the contractual coupon differs from the market level.
-
-**Intrinsic index spread $S_{\text{intrinsic}}(t,T)$:**
-
-A model-implied spread computed bottom-up from constituent CDS curves/spreads via the intrinsic PV equality (exact) or an RPV01-weighted approximation (close).
-
----
-
-### 2.2 Economic Meaning
-
-**Intrinsic = bottom-up fair level:**
-
-Intrinsic is the index level you would infer if you:
-1. Value each constituent CDS using its own curve to produce PV and RPV01, then
-2. Aggregate the PV across names, and
-3. Solve for the single "flat" index spread that matches that PV
-
-**Index basis = quoted − intrinsic:**
-
-With sign convention $b = S_{\text{quoted}} - S_{\text{intrinsic}}$:
-- $b > 0$: index quoted wider than bottom-up intrinsic
-- $b < 0$: index quoted tighter than bottom-up intrinsic
-
----
-
-### 2.3 Be Explicit About the Quoting Regime
-
-The primary reference describes multiple quoting conventions for indices:
-
-**Investment grade indices: spread quote ("flat spread as if simple CDS"):**
-
-The market quotes an index spread level; when that spread differs from the contractual coupon, an upfront payment is implied.
-
-**Other lower credit quality indices: "bond price" quote:**
-
-Some indices are quoted using a bond price convention where the upfront value is computed by subtracting 100; the reference notes this avoids disagreement about the index PV01 needed to convert a spread quote into an upfront.
-
-**Standard-coupon + upfront framework (supported in the sources):**
-
-- At inception, the index coupon is set close to fair value (often a multiple of 5 bp), and the buyer makes an upfront payment equal to contract value (close to zero at issuance)
-- For later trading, PV consistency uses an upfront amount plus the contractual coupon stream
-
-If you want a pure "running-spread-only" regime (no fixed coupon, no upfront), I'm not sure how your target market's conventions should be implemented for indices based only on the provided sources; you'd need the relevant index rulebook / dealer convention note / ISDA definitions update to specify the trading convention. (The primary reference's intrinsic-vs-quoted discussion is explicitly framed around a contractual coupon and upfront equivalence.)
-
----
-
-## 3. Math and Derivations (Step-by-Step)
-
-### 3.1 Index PV from Constituents (Protection Leg and Premium Leg)
-
-**Assumptions (as in the reference derivation):**
-
-- Equal per-name notional $1/M$
-- Recovery $R_m$ is treated as constant for valuation
-- To reach an integral form, default and interest rates are treated as independent in the simplification step
-
-#### 3.1.1 Protection Leg PV
-
-For a long-protection position on the index, the discounted payoff from default of name $m$ before maturity $T$ is $(1 - R_m)/M$ at time $\tau_m$. The reference writes the protection leg PV as:
-
-$$\text{PV}_{\text{prot}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \mathbb{E}_t \left[ Z(t,\tau_m) (1 - R_m) \mathbf{1}_{\{\tau_m < T\}} \right] \tag{PL}$$
-
-Using the simplifying independence step in the reference, this becomes:
-
-$$\text{PV}_{\text{prot}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} (1 - R_m) \int_t^T Z(t,u) \, dQ_m(t,u) \tag{PL-int}$$
-
-**Unit check:**
-
-| Component | Unit |
-|-----------|------|
-| $Z(t,u)$ | Unitless discount factor |
-| $dQ$ | Unitless probability increment |
-| $(1 - R)$ | Unitless loss fraction |
-| $\text{PV}_{\text{prot}}$ | Unitless PV fraction of notional (multiply by notional $N$ to get currency PV) |
-
-#### 3.1.2 Premium Leg PV and Risky PV01 (RPV01)
-
-Under the continuous approximation shown in the reference, the premium leg PV for contractual coupon $C$ (in decimal per year) is:
-
-$$\text{PV}_{\text{prem}}(t,T) = \frac{C}{M} \sum_{m=1}^{M} \int_t^T Z(t,u) \, Q_m(t,u) \, du \tag{PR}$$
-
-Define the constituent risky PV01 (risky annuity) as:
+The RPV01 is the key building block for CDS valuation. O'Kane defines it as "the time $t$ present value of a credit risky \$1 annuity which matures at time $T$." Under continuous premium payment approximation:
 
 $$\boxed{\text{RPV01}_m(t,T) \equiv \int_t^T Z(t,u) \, Q_m(t,u) \, du}$$
 
-This is exactly the object appearing in the premium leg integral.
+This represents the present value of receiving $1 per year, continuously, until default or maturity—whichever comes first. The survival probability $Q_m(t,u)$ ensures we only count premium periods where the name survives.
 
-**Unit check:**
+**Unit analysis:**
+- $Z(t,u)$ is unitless (discount factor)
+- $Q_m(t,u)$ is unitless (probability)
+- $du$ has units of years
+- Therefore RPV01 has units of years—a "risky duration" of premium payments
 
-- $du$ has units of years; hence RPV01 has units of years (PV-weighted expected life)
-- If $C$ is in decimal per year, then $C \cdot \text{RPV01}$ is unitless PV fraction of notional
+For a name with higher default risk (lower survival probability), the RPV01 is lower because the expected premium-paying period is shorter. This has important implications for how we weight constituent spreads when computing intrinsic.
 
-#### 3.1.3 Par Spread for Constituent CDS
+### 46.1.4 The Exact Intrinsic Spread Definition
 
-The reference defines the constituent par spread $S_m(t,T)$ as:
+The intrinsic spread $S_{\text{intrinsic}}$ is defined as the flat spread that, when applied to the index using its market-convention flat curve, produces the same PV as the bottom-up constituent calculation. O'Kane explains that "market convention is that the index curve $S_I(t,T)$ is flat. It is found by solving for the value of $S_I(t,T)$ at which a CDS contract with a coupon $C(T)$ has the same upfront value as the index."
 
-$$S_m(t,T) = \frac{\text{PV}_{\text{prot},m}(t,T)}{\text{RPV01}_m(t,T)} \tag{par}$$
+Mathematically, we calculate the upfront value of the index using a flat index curve as:
 
-This implies $\text{PV}_{\text{prot},m}(t,T) = S_m(t,T) \cdot \text{RPV01}_m(t,T)$.
+$$U_I(t) = (S_I(t,T) - C(T)) \cdot \text{RPV01}_I(t,T)$$
+
+Equating the intrinsic upfront and the index curve upfront (O'Kane's Equation 10.8):
+
+$$\boxed{\frac{1}{M} \sum_{m=1}^{M}\left(S_{m}(t, T)-C(T)\right) \cdot \mathrm{RPV01}_{m}(t, T)=\left(S_{\mathrm{intrinsic}}(t, T)-C(T)\right) \cdot \mathrm{RPV01}_{I}(t, T)}$$
+
+Here $\text{RPV01}_I$ is calculated using a flat index curve—a market convention for index pricing. Because $\text{RPV01}_I$ itself depends on the spread level, this equation is mildly nonlinear and requires solving iteratively (e.g., via Newton-Raphson or bisection).
+
+### 46.1.5 The Operational Approximation: RPV01-Weighted Average
+
+For practical purposes, O'Kane derives a close approximation that avoids iteration. If the individual spread curves are reasonably homogeneous, we can approximate:
+
+$$\text{RPV01}_I(t,T) \simeq \frac{1}{M} \sum_{m=1}^{M} \text{RPV01}_m(t,T)$$
+
+This allows cancellation of the coupon term, yielding O'Kane's Equation 10.9:
+
+$$\boxed{S_{\text{intrinsic}}(t,T) \approx \frac{\sum_{m=1}^{M} S_m(t,T) \cdot \text{RPV01}_m(t,T)}{\sum_{m=1}^{M} \text{RPV01}_m(t,T)}}$$
+
+**Derivation sketch:**
+1. Start from the exact equation above
+2. Approximate $\text{RPV01}_I \approx \frac{1}{M} \sum_m \text{RPV01}_m$
+3. The coupon term cancels on both sides
+4. Solve for $S_{\text{intrinsic}}$
+
+**Why RPV01 weighting, not equal weighting?**
+
+A simple average of constituent spreads would be wrong because it ignores the different "durations" of premium exposure across names. A name trading at 1000 bp has high default probability and short expected premium-paying life (low RPV01). Weighting by RPV01 reflects that we expect to pay spread to that name for less time.
+
+O'Kane provides a mathematical intuition: "the RPVOI-weighted average spread... is a concave function and so its average is less than the simple average." This explains why intrinsic is typically below the simple average when spread dispersion exists.
+
+> **Deep Dive: The High-Yield Trap (Why Simple Average Lies)**
+>
+> Imagine a 2-name index:
+> *   **Name A**: 50 bp (Safe). RPV01 ≈ 4.5 years.
+> *   **Name B**: 5,000 bp (Distressed, near default). RPV01 ≈ 0.5 years.
+>
+> *   **Simple Average**: $(50 + 5000)/2 = 2,525$ bp.
+> *   **Reality**: You will collect 50bp from Name A for 5 years, but 5000bp from Name B for only 6 months (then it dies).
+> *   **Intrinsic**: The index is dominated by the *survivor* (Name A). The intrinsic spread will be much closer to Name A than the simple average suggests.
+> *   **Lesson**: Never use simple average for high-dispersion portfolios.
+
+O'Kane tested this approximation against the exact solution and found excellent accuracy for investment-grade portfolios. Table 46.1 summarizes his findings.
+
+**Table 46.1: Approximation Accuracy (O'Kane Table 10.4)**
+
+| Index | Coupon (bp) | Approx. $S_I$ (bp) | Exact $S_I$ (bp) | Difference (bp) |
+|-------|-------------|-------------------|------------------|-----------------|
+| iTraxx Europe Series 6 3Y | 20 | 13.928 | 13.928 | 0.000 |
+| iTraxx Europe Series 6 5Y | 30 | 23.856 | 23.842 | 0.014 |
+| iTraxx Europe Series 6 10Y | 50 | 41.920 | 41.855 | 0.065 |
+| CDX NA IG Series 7 5Y | 40 | 35.556 | 35.540 | 0.016 |
+| CDX NA IG Series 7 10Y | 65 | 61.403 | 61.363 | 0.040 |
+| CDX NA HY Series 7 5Y | 325 | 226.166 | 224.666 | 1.500 |
+
+*Source: O'Kane Ch 10, Table 10.4*
+
+The high-yield case shows larger error (1.5 bp) due to higher spreads, higher spread dispersion, and large upfront value.
+
+### 46.1.6 Intrinsic vs Simple Average: The Dispersion Effect
+
+O'Kane demonstrates that spread dispersion systematically causes intrinsic to fall below the simple average. Table 46.2 shows this effect using real market data.
+
+**Table 46.2: Intrinsic Spread vs Average Spread (O'Kane Table 10.5)**
+
+| Index | Term | Intrinsic Spread (bp) | Average Spread (bp) | Std Dev (bp) |
+|-------|------|----------------------|---------------------|--------------|
+| CDX NA IG Series 7 | 3Y | 18.2 | 18.3 | 18 |
+| CDX NA IG Series 7 | 5Y | 33.1 | 33.5 | 36 |
+| CDX NA IG Series 7 | 7Y | 44.8 | 45.6 | 46 |
+| CDX NA IG Series 7 | 10Y | 55.3 | 56.9 | 53 |
+| iTraxx Europe Series 6 | 3Y | 16.2 | 16.2 | 12 |
+| iTraxx Europe Series 6 | 5Y | 26.9 | 27.1 | 20 |
+| iTraxx Europe Series 6 | 7Y | 36.2 | 36.5 | 25 |
+| iTraxx Europe Series 6 | 10Y | 45.8 | 46.4 | 30 |
+| CDX NA HY Series 7 | 3Y | 197 | 213 | 233 |
+| CDX NA HY Series 7 | 5Y | 275 | 305 | 340 |
+| CDX NA HY Series 7 | 7Y | 307 | 345 | 383 |
+| CDX NA HY Series 7 | 10Y | 324 | 371 | 412 |
+
+*Source: O'Kane Ch 10, Table 10.5*
+
+O'Kane notes that "for the investment grade portfolios we see that the difference between the intrinsic spread and the average spread is small, of the order of 1-2 bp for the DJ CDX NA, rising to about 3 bp for the iTraxx Europe index." The difference is dramatically larger for high-yield: at 5Y, intrinsic is 275 bp versus average of 305 bp—a 30 bp gap. O'Kane explains this by noting "the very high standard deviation of the high-yield index spreads can be explained by a number of distressed credits with spreads greater than 1000 bp which were in this index."
 
 ---
 
-### 3.2 Intrinsic Index PV at Contractual Coupon
+## 46.2 The Index Basis: Definition and Measurement
 
-Using the par-spread relation, the reference shows the intrinsic value (upfront-equivalent PV) of the index at coupon $C(T)$ as:
+### 46.2.1 Defining the Basis
 
-$$\boxed{V_{\text{intrinsic}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( S_m(t,T) - C(T) \right) \text{RPV01}_m(t,T)} \tag{V}$$
+The **index basis** is the difference between where the index actually trades and where it "should" trade based on constituents:
 
-**Sanity check:**
+$$\boxed{b(t,T) = S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)}$$
 
-- If $S_m = C$ for all names, the intrinsic PV is 0
-- If spreads widen ($S_m$ increases) holding coupon fixed, long protection value increases: $V_{\text{intrinsic}} \uparrow$
+With this sign convention:
+- $b > 0$: Index quoted **wider** than intrinsic (index "cheap" vs constituents)
+- $b < 0$: Index quoted **tighter** than intrinsic (index "rich" vs constituents)
 
----
+O'Kane explicitly documents that "quoted index spreads often differ from intrinsic index spreads" and provides real market examples in Table 46.3.
 
-### 3.3 From Intrinsic PV to an Intrinsic Index "Spread Level"
+> **Analogy: The ETF Mechanism**
+>
+> Think of the Index as an **ETF** and the Constituents as the **Stock Basket**.
+>
+> *   **Intrinsic Spread = NAV**: The Net Asset Value of the basket. This is the math.
+> *   **Quoted Spread = ETF Price**: Where buyers/sellers actually trade the ticker. This is the market.
+> *   **Basis = Premium/Discount**: Just like an ETF can trade at a premium to NAV during a buying frenzy, the CDS Index can trade wider than intrinsic during a credit panic.
+> *   **Arbitrage**: If the gap gets too big, traders buy the Index and sell the Single Names (or vice versa) to close it, just like ETF Authorized Participants.
 
-#### 3.3.1 Index Quoted Spread and Upfront Mapping (Standard Coupon + Upfront)
+**Table 46.3: Index Basis Examples (O'Kane Table 10.6)**
 
-The reference states that market convention can be represented by a flat index curve $S_I(t,T)$ and the "upfront value" is computed as:
+| Index | Term | Quoted (bp) | Intrinsic (bp) | Basis (bp) |
+|-------|------|-------------|----------------|------------|
+| CDX NA IG Series 7 | 5Y | 34 | 33.1 | +0.9 |
+| CDX NA IG Series 7 | 10Y | 55 | 55.3 | −0.3 |
+| CDX NA HY Series 7 | 5Y | 276 | 275 | +1.0 |
+| CDX NA HY Series 7 | 10Y | 315 | 324 | −9.0 |
+| iTraxx Europe Series 6 | 5Y | 24 | 26.9 | −2.9 |
+| iTraxx Europe Series 6 | 10Y | 42 | 45.8 | −3.8 |
 
-$$U_{\text{index}}(t,T) = \left( S_I(t,T) - C(T) \right) \text{RPV01}_I(t,T) \tag{U}$$
+*Source: O'Kane Ch 10, Table 10.6*
 
-where $\text{RPV01}_I$ is the risky PV01 computed from the index-implied curve.
+Notice that the basis can be positive or negative, varies across indices, and can differ by maturity within the same index.
 
-#### 3.3.2 Exact Intrinsic Spread Definition (PV-Consistent)
+### 46.2.2 Quoting Conventions Matter
 
-The intrinsic index spread is the $S_I(t,T)$ that equates the constituent-implied intrinsic PV to the index-implied upfront:
+The basis calculation requires consistency in how quoted and intrinsic spreads are measured. Investment-grade indices typically use a **spread quote** (market convention that prices the index "as if" a single-name CDS with flat curve). Some high-yield or crossover indices use a **bond price** convention where the upfront is computed as "price minus 100."
 
-$$\boxed{\frac{1}{M} \sum_{m=1}^{M} \left( S_m(t,T) - C(T) \right) \text{RPV01}_m(t,T) = \left( S_{\text{intrinsic}}(t,T) - C(T) \right) \text{RPV01}_I(t,T; S_{\text{intrinsic}})} \tag{Exact}$$
-
-This is the reference's Equation 10.8 relationship (expressed in our notation).
-
-**Practical implication:**
-
-Because $\text{RPV01}_I$ depends on the index spread curve, the "exact" intrinsic spread generally requires solving a (mildly) nonlinear equation.
-
-#### 3.3.3 Operational Approximation: RPV01-Weighted Average Spread
-
-The reference provides a close approximation:
-
-$$\boxed{S_{\text{intrinsic}}(t,T) \approx \frac{\sum_{m=1}^{M} S_m(t,T) \cdot \text{RPV01}_m(t,T)}{\sum_{m=1}^{M} \text{RPV01}_m(t,T)}} \tag{Approx}$$
-
-**Derivation (step-by-step):**
-
-1. Start from (Exact)
-
-2. If $\text{RPV01}_I(t,T) \approx \frac{1}{M} \sum_m \text{RPV01}_m(t,T)$ and is weakly dependent on $S$, then (Exact) implies approximately:
-
-$$\frac{1}{M} \sum_m (S_m - C) \text{RPV01}_m \approx (S_{\text{intr}} - C) \cdot \frac{1}{M} \sum_m \text{RPV01}_m$$
-
-3. Multiply both sides by $M$ and expand:
-
-$$\sum_m S_m \cdot \text{RPV01}_m - C \sum_m \text{RPV01}_m \approx S_{\text{intr}} \sum_m \text{RPV01}_m - C \sum_m \text{RPV01}_m$$
-
-4. The coupon term cancels, giving:
-
-$$S_{\text{intr}} \approx \frac{\sum_m S_m \cdot \text{RPV01}_m}{\sum_m \text{RPV01}_m}$$
-
-**Sanity checks:**
-
-- If all $\text{RPV01}_m$ equal, $S_{\text{intr}}$ is the simple average spread
-- If one name has a shorter risky duration (smaller RPV01), its spread gets less weight—consistent with the intuition that very wide names are expected to pay spread for less time
+O'Kane notes that the bond price convention "avoids disagreement about the index PV01 needed to convert a spread quote into an upfront." When comparing basis across indices, ensure you're applying the same pricing convention to both sides.
 
 ---
 
-## 4. Index Basis: What It Is and Why It Exists
+## 46.3 Drivers of the Index Basis
 
-### 4.1 Definition and Measurement
+The basis is not random noise—it reflects real economic frictions and structural differences between the index contract and its constituents. O'Kane identifies several systematic drivers.
 
-**Definition (restate):**
+### 46.3.1 Documentation Differences: Restructuring Clauses
 
-$$b(t,T) = S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)$$
+This is perhaps the most quantifiable driver for North American indices.
 
-**Source-backed fact:** The reference explicitly notes that quoted index spreads often differ from intrinsic index spreads, and provides numerical examples across indices and maturities (including positive and negative basis).
+O'Kane states directly: "In the case of the North American CDX index, the payment of protection on the index protection leg is only triggered when the credit event is a bankruptcy or failure to pay. Restructuring is not included as a credit event. These are called No-Re CDS. However, the market standard for CDS in the US is based on the use of the Mod-Re restructuring clause. Since No-Re spreads are typically about 5% lower than Mod-Re spreads, we have an immediate basis."
 
----
+The logic is straightforward: restructuring is a "soft" credit event—following restructuring, debt can continue trading with a term structure of prices, unlike "hard" events (bankruptcy, failure to pay) where all debt typically trades at the same recovery. A contract that doesn't cover restructuring provides less protection, so it commands a lower spread.
 
-### 4.2 Taxonomy of Basis Drivers (Source-Backed)
+O'Kane provides the spread ordering by clause in Chapter 5:
 
-#### (i) Documentation / Restructuring Clause Differences
+$$\boxed{S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}}$$
 
-The reference states that for the North American CDX index, protection is triggered by bankruptcy or failure to pay and restructuring is not included ("No-Re"), while the market standard for US single-name CDS uses Mod-Re, and No-Re spreads are typically about 5% lower, creating an immediate basis.
+**Numerical impact:** If constituent spreads average 100 bp under Mod-Re, the No-Re equivalent is roughly 95 bp. This alone can create a 5 bp intrinsic-vs-quoted discrepancy if one doesn't adjust.
 
-**Important conflict / uncertainty note:**
+> **Important caveat:** O'Kane notes a complexity: "While the European iTraxx indices include a restructuring credit event, the North American CDX index protection leg is only triggered by a bankruptcy or failure to pay." When computing intrinsic for CDX using standard Mod-Re single-name quotes, you must adjust for the documentation mismatch. The exact adjustment depends on the specific contract terms—always verify against current index documentation.
 
-A secondary reference notes an "other complication" that for CDX NA IG "the definition of default applicable to the index includes restructuring whereas the definition for CDS contracts on the underlying companies may not."
+### 46.3.2 Liquidity and Supply-Demand Technicals
 
-These statements conflict. I'm not sure which documentation convention applies to your target market/series/date based solely on the provided books. To be certain, you would need the current index rulebook and the relevant ISDA Definitions / confirmation terms for:
-- The index contract, and
-- The single-name CDS used for constituents,
+O'Kane identifies two liquidity-related basis drivers:
 
-including the precise credit events and restructuring terms.
+1. **Liquidity premium differential:** "The considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium than the less liquid CDS spreads."
 
-#### (ii) Liquidity / Supply–Demand / Technicals
+2. **Index leads in stress:** "As the CDS index is more liquid, it tends to be the preferred instrument used by market participants to express a changing view about the credit market as a whole, or even one specific name in the index. As a result, the CDS index may be considered to lead the CDS market. This is especially true in a widening market where investors use long protection positions in the index to hedge illiquid long credit positions."
 
-The reference lists liquidity-related reasons for basis:
+In stressed markets, investors seeking protection pile into the liquid index, pushing its spread wider than constituents (positive basis). In benign markets, the opposite may occur—the index can trade tight to intrinsic as liquidity seekers prefer its tight bid-ask spread.
 
-- The size and liquidity of the index market can embed a lower liquidity risk premium than less liquid single-name CDS
-- The index is often the preferred instrument to express a broad credit view; it may "lead" the CDS market, especially in widening markets when investors use long protection index positions to hedge illiquid long-credit exposures
+**Bid-ask dispersion effect:** Even in calm markets, intrinsic computed from mid-market quotes may not be executable. If constituent bid-ask spreads are wide, the "executable intrinsic" (using bids or asks consistently) can differ from mid-intrinsic by several basis points.
 
-**Reasoned inference (built on these facts):**
+### 46.3.3 Composition and Roll Effects
 
-If constituents are illiquid and have wide bid/ask spreads, an intrinsic computed from mid quotes can differ materially from an executable intrinsic (using bids/asks), mechanically producing an apparent basis. (The reference emphasizes liquidity premia and hedging flows; bid/ask dispersion is a direct microstructural channel.)
+Indices roll semi-annually, refreshing the constituent list. O'Kane explains that rolling involves:
+- Changes in composition (names dropped for downgrades, liquidity, or defaults; new names added)
+- Maturity extension of approximately six months (if credit curves slope upward, this widens the new series relative to the old)
 
-#### (iii) Composition and Roll Effects
+These effects can create apparent basis changes across series and between on-the-run and off-the-run indices:
+- A new on-the-run series with fresh (higher-quality) names may trade tighter than an old series with deteriorated credits
+- Comparing intrinsic across series requires using the appropriate constituent list for each
 
-Indices "roll every six months" and rolling involves selling the old and buying the new, creating P&L effects from:
-- Changes in composition (replacement of names due to downgrade, liquidity decline, etc.), and
-- Maturity extension by roughly six months, which can widen spreads if credit curves slope upward
+### 46.3.4 Default and Constituent Removal
 
-These effects can change intrinsic vs quoted comparisons across "series" or between on-the-run and off-the-run indices (even if each is internally priced correctly).
+When a name defaults:
+- It is removed from the index without replacement
+- The index notional reduces by $1/M$
+- Future coupon payments shrink accordingly
+- Accrued coupon at default is settled as part of premium leg mechanics
 
-#### (iv) Defaults and Removal of Constituents
-
-- Defaulted names are removed without replacement
-- After each default, the notional of the contract is reduced by $1/M$ and subsequent coupon payments shrink accordingly; accrued coupon at default is handled as part of premium leg mechanics
-
-**Reasoned inference:**
-
-As defaults occur, both the effective portfolio and the remaining premium base change, which can affect intrinsic computations vs quoted levels (especially when comparing indices with different default histories).
-
-#### (v) Settlement Mechanics / Deliverable Effects (Limited Support)
-
-The reference notes that cash settlement (auction) protocols were introduced to handle situations where derivative notional exceeds deliverable obligations, with a fallback to cash settlement determined by auction.
-
-A secondary reference describes that in cash settlement an auction determines the post-credit-event value (e.g., "$35 per $100"), producing a payoff of face minus that value (e.g., $65 per $100).
-
-I'm not sure how each index contract maps auction outcomes into index settlement cashflows for your exact trade without the specific index documentation (rulebook/confirmations).
+O'Kane notes that "a default on the CDS index should be offset by another index swap position of the same face value" for risk management purposes. These mechanics mean that indices with different default histories have different effective portfolios. Computing intrinsic requires knowing exactly which names remain and what the current effective notional is.
 
 ---
 
-## 5. Measurement & Risk (Only What Belongs in Chapter 46)
+## 46.4 The Portfolio Swap Adjustment (PSA)
 
-### 5.1 Define Index Basis Exposure
+### 46.4.1 Why the Adjustment Is Needed
 
-Let $b = S_{\text{quoted}} - S_{\text{intrinsic}}$. A first-order PV sensitivity (per unit notional) can be expressed via the index risky PV01:
+For many applications—particularly index option pricing and tranche valuation—practitioners need a model where intrinsic exactly equals quoted. O'Kane explains: "One way to ensure that the index swap spread equals the intrinsic swap spread is to see if there is an adjustment that can be made to the individual issuer curves which can enforce" the intrinsic-equals-quoted condition.
 
-$$\frac{\partial \text{PV}}{\partial b} \approx \text{RPV01}_I(t,T) \times 10^{-4} \quad \text{(PV fraction per 1 bp of basis)}$$
+He further notes: "The exact nature of the adjustment is somewhat arbitrary. We choose to adjust the individual issuer curves rather than the index swap since the index swap is substantially more liquid and so their prices are more certain than the CDS quotes."
 
-Multiply by notional $N$ for currency DV01.
+The adjustment modifies constituent curves (spreads or survival probabilities) so that when you compute intrinsic from these adjusted curves, you get exactly the market quoted spread. This ensures consistency between index and constituent pricing for products that depend on both (like tranches).
 
-**Sign depends on position:**
+### 46.4.2 Principles of the Adjustment
 
-- Long protection index: PV increases when $S_{\text{quoted}}$ widens (basis widens if intrinsic held fixed)
-- Short protection index: opposite
+O'Kane emphasizes several desirable properties:
 
-This is consistent with the reference's use of $(S - C) \cdot \text{RPV01}$ as the upfront-equivalent value mapping.
+1. **Proportional, not absolute:** "We prefer a proportional adjustment of the spread rather than an absolute spread adjustment, i.e. we would rather increase all spreads by 1% than add say 5 bp to all spreads which would have a large effect on the credit risk of a name trading at 10 bp and a much smaller effect on another trading at 200 bp."
+
+2. **Arbitrage-free:** The adjustment should not induce negative survival probabilities or other violations
+
+3. **Preserve relative ranking:** The adjustment should not change which names are riskier than others
+
+4. **Fast:** "Since it will become a preprocessing layer to much of the correlation product analytics which we will encounter later, it is important that the implementation is as fast as possible."
+
+### 46.4.3 The Spread Multiplier Approach
+
+One approach multiplies all constituent spreads by a common factor $\alpha(T)$:
+
+$$S_{m}^{*}(t, T)=\alpha(T) \cdot S_{m}(t, T)$$
+
+The algorithm solves for $\alpha(T)$ at each index maturity point using iteration:
+
+1. Build all $M$ survival curves from original spreads
+2. Calculate interpolated CDS spreads to index maturity dates
+3. Initialize $\alpha = 1$
+4. Apply $\alpha$ to spreads, rebuild curves, compute intrinsic
+5. Update $\alpha$ based on how far intrinsic is from quoted
+6. Iterate until convergence
+
+O'Kane reports: "Most of the work of this iteration scheme is done in the first iteration since the dependence of the issuer PV01s on the spread is second order. In most cases we find that the algorithm converges with a tolerance in present value terms of the order of $O(10^{-8})$ within five iteration steps."
+
+### 46.4.4 The Survival Probability Multiplier (Faster)
+
+A more efficient approach adjusts survival probabilities directly, avoiding curve rebuilding at each iteration:
+
+$$Q_{m}^{*}\left(t, T_{n}\right)=Q_{m}^{*}\left(t, T_{n-1}\right) \cdot Q\left(T_{n-1}, T_{n}\right)^{\alpha(n)}$$
+
+This raises the forward survival probability to a power $\alpha(n)$. O'Kane explains the interpretation: "we can write this as $Q_m^*(t,T_n) = Q_m(t,T_{n-1}) \exp(-\alpha(n) \int_{T_{n-1}}^{T_n} h_m(s) ds)$. We see that $\alpha(n)$ is a simple multiplier on the forward default rate."
+
+O'Kane reports this method is "about 50 times faster than the first method and typically takes less than a second for a 125-name portfolio using four maturity points."
+
+### 46.4.5 Worked Example: PSA in Practice
+
+O'Kane provides data from iTraxx Europe Series 6 (Table 10.7):
+
+**Table 46.4: Portfolio Swap Adjustment Example**
+
+| | 3Y Maturity | 5Y Maturity |
+|-|-------------|-------------|
+| **Index spread (bp)** | 12 | 24 |
+| **Unadjusted intrinsic (bp)** | 16.2 | 26.9 |
+| **Adjustment ratio** | 0.741 | 0.892 |
+
+The adjustment ratios are less than 1 because the intrinsic exceeds the quoted—spreads must be scaled *down* to match. O'Kane notes: "We therefore need to scale down the hazard rate by some factor until the portfolio intrinsic equals that of the index."
+
+Selected constituent adjustments from O'Kane Table 10.7:
+
+| Credit | 3Y Unadj (bp) | 3Y Adj (bp) | Ratio | 5Y Unadj (bp) | 5Y Adj (bp) | Ratio |
+|--------|---------------|-------------|-------|---------------|-------------|-------|
+| Adecco S A | 23.2 | 17.1 | 0.737 | 38.8 | 34.4 | 0.89 |
+| DaimlerChrysler AG | 34.4 | 25.4 | 0.737 | 52.9 | 44.6 | 0.84 |
+| ITV PLC | 103.1 | 76.0 | 0.737 | 166.4 | 145.5 | 0.87 |
+
+*Source: O'Kane Ch 10, Table 10.7*
+
+Notice that the 3Y adjustment is uniform (0.737) while 5Y adjustments vary slightly by name due to different curve shapes. O'Kane explains: "It is not the same for all credits since the adjustment to the 3Y spreads has already been done and these proportional changes do not affect all issuer survival probabilities by the same amount."
 
 ---
 
-### 5.2 Risk Decomposition (Conceptual but Disciplined)
+## 46.5 Risk Measurement and Hedging Implications
 
-Consider a book combining an index position and constituent CDS hedges.
+### 46.5.1 Basis Exposure
 
-- **Broad/systematic spread move:** common movement across the credit market affecting many names together
-- **Idiosyncratic constituent moves:** single-name deviations around the common move (earnings, downgrade risk, sector events)
-- **Basis move:** movement of the index relative to the intrinsic aggregation of constituents (liquidity, doc differences, technical flow)
+A position in the index has exposure to basis moves independent of parallel spread moves. The first-order sensitivity is:
 
-Mathematically, in a first-order (small-move) approximation:
+$$\frac{\partial \text{PV}}{\partial b} \approx \text{RPV01}_I(t,T) \times 10^{-4}$$
 
-$$\Delta \text{PV} \approx \underbrace{N_I \cdot \text{CS01}_I \cdot \Delta S_{\text{quoted}}}_{\text{index spread risk}} - \underbrace{\sum_m N_m \cdot \text{CS01}_m \cdot \Delta S_m}_{\text{constituent hedge risk}}$$
+For a $100mm position with index RPV01 of 4.0 years, a 1 bp basis move produces approximately:
+$$\Delta \text{PV} = 100{,}000{,}000 \times 4.0 \times 10^{-4} = \$40{,}000$$
 
-Basis risk emerges when $\Delta S_{\text{quoted}} \neq$ the constituent-implied move (e.g., the weighted average).
+### 46.5.2 P&L Decomposition: Index vs Constituents
 
----
+Consider a book with both index and constituent positions. Total P&L decomposes as:
 
-### 5.3 Hedging Mindset (Framework, Not Tips)
+$$\Delta \text{PV} \approx \underbrace{N_I \cdot \text{CS01}_I \cdot \Delta S_{\text{quoted}}}_{\text{Index spread P&L}} - \underbrace{\sum_m N_m \cdot \text{CS01}_m \cdot \Delta S_m}_{\text{Constituent P&L}}$$
 
-#### 5.3.1 Hedging an Index with Constituents (Bottom-Up Hedge)
+If you've hedged to be CS01-neutral ($N_I \cdot \text{CS01}_I = \sum_m N_m \cdot \text{CS01}_m$), parallel moves cancel. But residual P&L emerges from:
+- **Basis moves:** $\Delta S_{\text{quoted}} \neq \sum_m w_m \Delta S_m$
+- **Idiosyncratic moves:** Individual names move differently than the weighted average
+- **Convexity:** Large moves where first-order hedging breaks down
 
-**Goal:** Neutralize first-order spread exposure by offsetting index CS01 with constituent CS01s.
+### 46.5.3 Hedging an Index with Constituents
 
-Start from the intrinsic approximation:
+To hedge a long-protection index position with short-protection constituent trades, match CS01:
 
-$$S_{\text{intrinsic}} \approx \frac{\sum_m S_m \cdot \text{RPV01}_m}{\sum_m \text{RPV01}_m}$$
+$$\text{Index CS01} = N_I \times 10^{-4} \times \text{RPV01}_I$$
 
-implying that the effective spread exposure of the intrinsic index is naturally RPV01-weighted.
+$$\text{Constituent CS01} = \sum_m N_m \times 10^{-4} \times \text{RPV01}_m$$
 
-Construct hedges so that the portfolio of constituents matches the index's spread PV01/CS01.
+For equal constituent notionals, set:
+$$N_m = \frac{N_I \cdot \text{RPV01}_I}{\sum_m \text{RPV01}_m}$$
 
 **Residual risks (failure modes):**
-
 - Basis changes (quoted index moves without corresponding constituent move)
-- Documentation mismatch (e.g., restructuring clause)
-- Liquidity mismatch (index is liquid; some names are not)
-- Default mechanics: after a default, contract notional and premium base change by $1/M$
+- Documentation mismatch (restructuring clause differences)
+- Liquidity mismatch (constituents harder to trade at scale)
+- Default mechanics (after default, notional and premium base change)
 
-#### 5.3.2 Hedging Constituents with an Index (Proxy Hedge)
+O'Kane addresses this directly: "if we wish to risk manage a CDS index with respect to its individual constituents, the index basis will present problems as we will need to account for it somewhere in our model."
 
-**Goal:** Use the liquid index to hedge a less liquid credit book.
+### 46.5.4 Hedging Constituents with an Index (Proxy Hedge)
 
-- Works best when the book is "index-like" and basis is stable
-- Residual risks include name-specific moves and mismatch between off-the-run/on-the-run constituents
+When single-name positions are illiquid, the index provides a liquid proxy hedge. This works best when:
+- The book is "index-like" (similar composition)
+- Basis is stable
+- Idiosyncratic risk is accepted
 
-#### 5.3.3 Validation Tests for Hedge Design
-
-- Recompute CS01 under small bumps to spreads (index and constituents)
-- Check default scenario impacts ("VOD risk"): the reference emphasizes careful management of VOD when managing books of index swaps
-
----
-
-### 5.4 Portfolio Swap Adjustment (Model-Consistency Tool)
-
-When you need a model where "intrinsic = quoted" (e.g., for index option or tranche pricing), the reference describes adjusting constituent curves so that adjusted intrinsic equals market quoted spread, noting the adjustment is somewhat arbitrary but should be stable/fast/reasonable.
+In stressed markets, this hedge can break down exactly when you need it most—O'Kane notes the index may "lead" single-names, widening faster if hedging demand concentrates in the liquid instrument.
 
 ---
 
-## 6. Worked Examples (At Least 12 Numeric Examples)
+## 46.6 Worked Examples
 
-### Global Numeric Conventions (Used in All Examples)
-
-- Spreads in bp unless stated
-- Convert bp to decimal per year by $s = \text{bp} \times 10^{-4}$
-- Notional in \$mm unless stated
-- Currency PV approximation for a small spread move:
-
-$$\Delta \text{PV} \approx (\pm) \, \Delta S(\text{bp}) \times 10^{-4} \times \text{RPV01} \times N$$
-
-(Sign $+$ for long protection, $-$ for short protection.)
-
----
-
-### Example 1: Intrinsic Spread from Constituents (Simple Weighted Case)
-
-**Goal:** 5 names, equal weights, given spreads and RPV01s → compute intrinsic.
-
-**Inputs (to maturity $T$):**
-
-- $M = 5$
-- Constituent spreads $S_m$ (bp): $[50, 60, 70, 80, 90]$
-- Constituent $\text{RPV01}_m$: $[4.4, 4.2, 4.0, 3.8, 3.6]$
-
-**Step 1:** Compute weighted numerator $\sum S_m \cdot \text{RPV01}_m$:
-
-| Name | $S_m$ | $\text{RPV01}_m$ | $S_m \times \text{RPV01}_m$ |
-|------|-------|------------------|----------------------------|
-| 1 | 50 | 4.4 | 220 |
-| 2 | 60 | 4.2 | 252 |
-| 3 | 70 | 4.0 | 280 |
-| 4 | 80 | 3.8 | 304 |
-| 5 | 90 | 3.6 | 324 |
-
-Sum: $220 + 252 + 280 + 304 + 324 = 1380$
-
-**Step 2:** Compute denominator $\sum \text{RPV01}_m = 4.4 + 4.2 + 4.0 + 3.8 + 3.6 = 20.0$
-
-**Step 3:** Intrinsic spread (RPV01-weighted average):
-
-$$S_{\text{intrinsic}} \approx 1380 / 20.0 = 69.0 \text{ bp}$$
-
-**Output:** $S_{\text{intrinsic}} = 69.0$ bp.
-
----
-
-### Example 2: Intrinsic Using RPV01 Weighting (Non-Equal)
-
-**Goal:** Show how different risky durations change intrinsic.
+### Example 1: Intrinsic Spread Calculation (5-Name Toy Index)
 
 **Inputs:**
+| Name | Spread $S_m$ (bp) | RPV01 (years) |
+|------|-------------------|---------------|
+| 1 | 50 | 4.4 |
+| 2 | 60 | 4.2 |
+| 3 | 70 | 4.0 |
+| 4 | 80 | 3.8 |
+| 5 | 90 | 3.6 |
 
-- $S_m$ (bp): $[50, 60, 70, 80, 90]$
-- $\text{RPV01}_m$: $[5.0, 4.8, 4.0, 3.0, 2.0]$
-
-**Compute numerator:**
-
+**Step 1: Compute weighted numerator**
 | Name | $S_m \times \text{RPV01}_m$ |
-|------|----------------------------|
-| 1 | $50 \cdot 5.0 = 250.0$ |
-| 2 | $60 \cdot 4.8 = 288.0$ |
-| 3 | $70 \cdot 4.0 = 280.0$ |
-| 4 | $80 \cdot 3.0 = 240.0$ |
-| 5 | $90 \cdot 2.0 = 180.0$ |
+|------|---------------------------|
+| 1 | $50 \times 4.4 = 220$ |
+| 2 | $60 \times 4.2 = 252$ |
+| 3 | $70 \times 4.0 = 280$ |
+| 4 | $80 \times 3.8 = 304$ |
+| 5 | $90 \times 3.6 = 324$ |
+| **Sum** | **1380** |
 
-Sum numerator $= 1238.0$
+**Step 2: Compute denominator**
+$$\sum_m \text{RPV01}_m = 4.4 + 4.2 + 4.0 + 3.8 + 3.6 = 20.0$$
 
-Denominator $= 5.0 + 4.8 + 4.0 + 3.0 + 2.0 = 18.8$
+**Step 3: Intrinsic spread**
+$$S_{\text{intrinsic}} = \frac{1380}{20.0} = 69.0 \text{ bp}$$
 
-**Intrinsic:**
+**Comparison with simple average:**
+$$\bar{S} = \frac{50 + 60 + 70 + 80 + 90}{5} = 70.0 \text{ bp}$$
 
-$$S_{\text{intrinsic}} \approx 1238 / 18.8 = 65.8511 \text{ bp} \approx 65.85 \text{ bp}$$
-
-**Interpretation:** High RPV01 names (longer expected premium stream) receive more weight; here they are the tighter-spread names, so intrinsic is pulled below the simple average (70 bp).
+The intrinsic is 1 bp lower because higher-spread names have lower RPV01 (shorter expected premium life) and thus receive less weight.
 
 ---
 
-### Example 3: Index Basis Calculation
+### Example 2: Basis Calculation and Sign Interpretation
 
-**Goal:** Given quoted index spread and computed intrinsic → compute basis and interpret sign.
-
-**Assume:**
-
-- $S_{\text{quoted}} = 72.0$ bp
+**Given:**
 - From Example 1: $S_{\text{intrinsic}} = 69.0$ bp
+- Market quoted index spread: $S_{\text{quoted}} = 72.0$ bp
 
 **Basis:**
+$$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 
-$$b = 72.0 - 69.0 = 3.0 \text{ bp}$$
-
-**Interpretation (with our sign):**
-
-$b > 0$ means the index is quoted wider than bottom-up intrinsic.
+**Interpretation:** The positive basis means the index is trading **wider** than its constituent-implied level. Possible explanations:
+- Heavy protection buying in the index (hedging demand)
+- Constituent quotes stale or not reflecting latest information
+- Documentation or liquidity premium embedded in index
 
 ---
 
-### Example 4: Upfront vs Spread (Mechanics-Only, Standard Coupon + Upfront)
+### Example 3: Attributing Basis to Drivers
 
-**Supported by sources:** Upfront mapping uses $(S - C) \cdot \text{RPV01}$.
+**Scenario:** CDX NA IG index trades at 70 bp. Using Mod-Re single-name spreads, intrinsic is 75 bp (basis = −5 bp). Investigate.
+
+**Analysis:**
+
+1. **Documentation adjustment:** CDX is No-Re; constituent quotes are Mod-Re. O'Kane estimates No-Re ≈ 0.95 × Mod-Re.
+   - Adjusted intrinsic: $75 \times 0.95 = 71.25$ bp
+   - Documentation-adjusted basis: $70 - 71.25 = -1.25$ bp
+
+2. **Liquidity premium:** Index more liquid → lower spread. Estimate 0.5 bp liquidity advantage.
+   - Residual: $-1.25 + 0.5 = -0.75$ bp
+
+3. **Measurement error / bid-ask:** Within typical 1 bp uncertainty
+
+**Conclusion:** Most of the apparent −5 bp basis is explained by the documentation mismatch (−3.75 bp from restructuring). After adjustment, the index trades only slightly tight to intrinsic.
+
+---
+
+### Example 4: Upfront Calculation (Index vs Coupon)
 
 **Inputs:**
+- Notional: $100mm
+- Index coupon: $C = 60$ bp
+- Quoted spread: $S_{\text{quoted}} = 72$ bp
+- Index RPV01: 4.5 years
 
-- Notional $N = \$100$mm
-- Contractual coupon $C = 60$ bp
-- Quoted index spread $S_{\text{quoted}} = 72$ bp
-- Index risky PV01 $\text{RPV01}_I = 4.5$
-
-**Step 1:** Spread difference in bp:
-
+**Step 1: Spread difference**
 $$S_{\text{quoted}} - C = 72 - 60 = 12 \text{ bp}$$
 
-**Step 2:** Upfront as PV fraction of notional:
+**Step 2: Upfront as percent of notional**
+$$U = (12 \times 10^{-4}) \times 4.5 = 0.0054 = 0.54\%$$
 
-$$U = (12 \text{ bp}) \times 10^{-4} \times 4.5 = 12 \times 4.5 / 10{,}000 = 54 / 10{,}000 = 0.0054$$
+**Step 3: Dollar upfront**
+$$U_{\$} = 0.54\% \times \$100{,}000{,}000 = \$540{,}000$$
 
-So $U = 0.54\%$ of notional.
-
-**Step 3:** Convert to dollars:
-
-$$U_{\$} = 0.0054 \times 100{,}000{,}000 = \$540{,}000$$
-
-**Output:** Upfront $= 0.54\%$ or $\$540$k on \$100mm.
-
-**Consistency note:** Intrinsic must be computed under the same coupon $C$ and the same upfront convention; mixing regimes creates spurious basis.
+The protection buyer pays $540,000 upfront (because spreads are above coupon) plus running premium of 60 bp.
 
 ---
 
-### Example 5: Bid/Ask Dispersion Effect (Liquidity Driver)
+### Example 5: Bid-Ask Effect on Intrinsic
 
-**Goal:** Show how using mid vs bid/ask constituent quotes changes intrinsic.
+**Inputs:** Same 5-name index, but with bid/ask spreads:
 
-**Inputs:**
+| Name | Bid (bp) | Ask (bp) | RPV01 |
+|------|----------|----------|-------|
+| 1 | 49 | 51 | 4.4 |
+| 2 | 58 | 62 | 4.2 |
+| 3 | 68 | 72 | 4.0 |
+| 4 | 78 | 82 | 3.8 |
+| 5 | 88 | 92 | 3.6 |
 
-- $\text{RPV01}_m = [4.4, 4.2, 4.0, 3.8, 3.6]$, sum $= 20$
-- Bid/ask spreads (bp):
+**Intrinsic at bid:**
+- Numerator: $49(4.4) + 58(4.2) + 68(4.0) + 78(3.8) + 88(3.6) = 1344.4$
+- Intrinsic: $1344.4 / 20.0 = 67.22$ bp
 
-| Name | Bid | Ask |
-|------|-----|-----|
-| 1 | 49 | 51 |
-| 2 | 58 | 62 |
-| 3 | 68 | 72 |
-| 4 | 78 | 82 |
-| 5 | 88 | 92 |
+**Intrinsic at ask:**
+- Numerator: $51(4.4) + 62(4.2) + 72(4.0) + 82(3.8) + 92(3.6) = 1415.6$
+- Intrinsic: $1415.6 / 20.0 = 70.78$ bp
 
-**Compute intrinsic using bids:**
-
-Numerator $= 49 \cdot 4.4 + 58 \cdot 4.2 + 68 \cdot 4.0 + 78 \cdot 3.8 + 88 \cdot 3.6$
-
-$= 215.6 + 243.6 + 272.0 + 296.4 + 316.8 = 1344.4$
-
-Intrinsic(bid) $= 1344.4 / 20 = 67.22$ bp
-
-**Compute intrinsic using asks:**
-
-Numerator $= 51 \cdot 4.4 + 62 \cdot 4.2 + 72 \cdot 4.0 + 82 \cdot 3.8 + 92 \cdot 3.6$
-
-$= 224.4 + 260.4 + 288.0 + 311.6 + 331.2 = 1415.6$
-
-Intrinsic(ask) $= 1415.6 / 20 = 70.78$ bp
-
-**Output:** Bid/ask intrinsic range $[67.22, 70.78]$ bp, width $= 3.56$ bp.
-
-**Interpretation:** Even before "true" basis, microstructure can move the computed intrinsic by several bp.
+**Result:** The executable intrinsic band is [67.22, 70.78] bp, a width of 3.56 bp. Even before "true" basis, microstructure creates significant uncertainty in fair value.
 
 ---
 
-### Example 6: Doc Clause Driver (Restructuring) — Toy Numeric
+### Example 6: PSA Calibration (Toy)
 
-**Source-backed driver:** No-Re vs Mod-Re can create an immediate basis; No-Re spreads are typically ~5% lower than Mod-Re in the reference.
+**Setup:**
+- 3-name index, quoted at 50 bp
+- Constituent spreads: [40, 50, 70] bp
+- All RPV01 = 4.0 years (equal for simplicity)
 
-**Assume:**
+**Step 1: Unadjusted intrinsic**
+$$S_{\text{intrinsic}} = \frac{40(4) + 50(4) + 70(4)}{12} = \frac{640}{12} = 53.33 \text{ bp}$$
 
-- Intrinsic computed from Mod-Re single-name spreads (Example 1): $S_{\text{intrinsic,ModRe}} = 69.0$ bp
-- If the index contract effectively corresponds to No-Re, and No-Re is ~5% lower:
+**Step 2: Required adjustment**
+Need intrinsic = 50 bp. Using spread multiplier $\alpha$:
+$$\frac{\alpha(40 + 50 + 70) \times 4}{12} = 50$$
+$$\alpha \times 53.33 = 50$$
+$$\alpha = 0.9375$$
 
-$$S_{\text{NoRe}} \approx 0.95 \times 69.0 = 65.55 \text{ bp}$$
+**Step 3: Adjusted spreads**
+| Name | Original (bp) | Adjusted (bp) |
+|------|---------------|---------------|
+| 1 | 40 | 37.5 |
+| 2 | 50 | 46.9 |
+| 3 | 70 | 65.6 |
 
-- Assume market quoted index spread (No-Re) $S_{\text{quoted}} = 65.55$ bp
+**Verification:** $(37.5 + 46.9 + 65.6)/3 = 50.0$ bp ✓
 
-**Basis (quoted − intrinsic(Mod-Re)):**
-
-$$b = 65.55 - 69.0 = -3.45 \text{ bp}$$
-
-**Output:** $b = -3.45$ bp (index quoted tighter than the Mod-Re-implied intrinsic).
-
-**Important:** Because sources conflict on whether restructuring is included for some indices (see Section 4), you must verify the exact credit event terms for your trade.
-
----
-
-### Example 7: Defaulted Constituent Handling (Toy with Auction Final Price)
-
-**Index mechanics source:** After default, contract notional reduces by $1/M$, premium amount reduces; accrued coupon is paid at default.
-
-**Auction price mapping source (single-name CDS):** Auction determines bond value; payoff equals face minus that value (e.g., 35 → payoff 65).
-
-**Inputs:**
-
-- Index notional $N = \$100$mm
-- $M = 5$ names (equal weights)
-- One name defaults; auction final price $FP = 35$ per \$100 face (so recovery $R = 0.35$)
-- Contractual coupon $C = 60$ bp (0.0060)
-- Default occurs 2 months after last coupon date (accrual fraction $\Delta = 2/12$)
-
-**Step 1:** Protection payment on the defaulted name (to protection buyer):
-
-$$\text{Payoff} = N \times \frac{1}{M} \times (1 - R) = 100{,}000{,}000 \times \frac{1}{5} \times 0.65 = \$13{,}000{,}000$$
-
-**Step 2:** Reduction in outstanding notional for future premiums:
-
-$$N_{\text{after}} = N \times \frac{M-1}{M} = 100{,}000{,}000 \times \frac{4}{5} = 80{,}000{,}000$$
-
-**Step 3:** Accrued premium due at default (paid by protection buyer to seller, per CDS convention):
-
-$$\text{Accrued} \approx C_{\text{decimal}} \times N \times \frac{1}{M} \times \Delta = 0.0060 \times 100{,}000{,}000 \times \frac{1}{5} \times \frac{2}{12}$$
-
-Compute:
-
-- $0.0060 \times 100{,}000{,}000 = 600{,}000$ per year
-- Per name $= 600{,}000 / 5 = 120{,}000$ per year
-- Accrued over $2/12$: $120{,}000 \times 2/12 = 20{,}000$
-
-**Output:**
-
-- Default payoff: \$13.0mm (to protection buyer, from seller)
-- Premium base after default: \$80.0mm
-- Accrued premium on the defaulted slice (toy): \$20k
-
-I'm not sure whether your specific index uses exactly this cashflow mapping without checking the index documentation and settlement protocol (especially the exact treatment of auction outcomes and whether settlement is physical or cash in your contract).
+The proportional adjustment preserves relative ranking while forcing intrinsic to match quoted.
 
 ---
 
-### Example 8: Composition/Roll Effect (Toy)
+### Example 7: CS01-Neutral Hedge Design
 
-**Source-backed concept:** Indices roll every six months; P&L impact from composition change and maturity extension; constituents can change due to liquidity, downgrade, etc.
+**Position:** Long protection on $100mm index with RPV01 = 4.1 years
 
-**Old series (same as Example 1):**
+**Index CS01:**
+$$\text{CS01}_I = \$100mm \times 10^{-4} \times 4.1 = \$41{,}000/\text{bp}$$
 
-- Spreads $[50, 60, 70, 80, 90]$, RPV01 sum $= 20$
-- Intrinsic $= 69.0$ bp
+**Hedge:** Short protection on 5 constituents with RPV01 = [4.4, 4.2, 4.0, 3.8, 3.6] years
 
-**New series (toy):** Replace one name, overall a bit wider:
+For equal notional per name $N_m$:
+$$5 \cdot N_m \times 10^{-4} \times \frac{20}{5} = 41{,}000$$
+$$N_m \times 10^{-4} \times 4.0 = 8{,}200$$
+$$N_m = \$20.5mm$$
 
-- Spreads $[55, 65, 75, 85, 110]$
-- Same RPV01 for simplicity
-
-**Compute numerator:**
-
-| Name | $S_m \times \text{RPV01}_m$ |
-|------|----------------------------|
-| 1 | $55 \cdot 4.4 = 242.0$ |
-| 2 | $65 \cdot 4.2 = 273.0$ |
-| 3 | $75 \cdot 4.0 = 300.0$ |
-| 4 | $85 \cdot 3.8 = 323.0$ |
-| 5 | $110 \cdot 3.6 = 396.0$ |
-
-Sum $= 1534.0$
-
-Intrinsic(new) $= 1534 / 20 = 76.7$ bp
-
-**Difference:**
-
-$$76.7 - 69.0 = 7.7 \text{ bp}$$
-
-**Output:** New series intrinsic is 7.7 bp wider (toy), illustrating how roll/composition can alter intrinsic and therefore measured basis across series.
+**Hedge:** $20.5mm short protection per name (5 names, total $102.5mm notional) vs $100mm long protection index.
 
 ---
 
-### Example 9: Hedging Index with Constituents (Beta Hedge via CS01/RPV01)
+### Example 8: Basis Trade P&L Scenarios
 
-**Goal:** Choose hedge notionals so first-order spread risk is neutral.
+**Position:** CS01-neutral (Example 7)
+- Long protection index: CS01 = +$41k/bp
+- Short protection constituents: CS01 = −$41k/bp
 
-**Assume:**
+**Scenario (i): Parallel widening, no basis change**
+- Index widens 20 bp, each name widens 20 bp
+- Index P&L: $+20 \times 41k = +\$820k$
+- Hedge P&L: $-20 \times 41k = -\$820k$
+- **Net: $0** (systematic risk hedged)
 
-- Index notional $N_I = \$100$mm
-- Index $\text{RPV01}_I = 4.1$ (toy)
-- Constituents $M = 5$ with $\text{RPV01}_m = [4.4, 4.2, 4.0, 3.8, 3.6]$
+**Scenario (ii): Pure basis move**
+- Constituents unchanged, index tightens 10 bp
+- Index P&L: $-10 \times 41k = -\$410k$
+- Hedge P&L: $0$
+- **Net: −$410k** (basis P&L)
 
-**Step 1:** Index CS01 (PV change per 1 bp) for long protection:
-
-$$\text{CS01}_I = N_I \times 10^{-4} \times \text{RPV01}_I = 100{,}000{,}000 \times 10^{-4} \times 4.1 = \$41{,}000/\text{bp}$$
-
-**Step 2:** If we short protection on each name with equal notional $N_m$, the total CS01 magnitude is:
-
-$$\sum_m (N_m \times 10^{-4} \times \text{RPV01}_m) = N_m \times 10^{-4} \times \sum_m \text{RPV01}_m = N_m \times 10^{-4} \times 20$$
-
-Set equal to 41,000:
-
-$$N_m \times 10^{-4} \times 20 = 41{,}000 \Rightarrow N_m = \frac{41{,}000}{20 \times 10^{-4}} = 20{,}500{,}000$$
-
-So $N_m = \$20.5$mm per name.
-
-**Output:** Hedge a \$100mm long-protection index position with \$20.5mm short protection per name (5 names) to match CS01 to first order.
+**Scenario (iii): Idiosyncratic constituent widening**
+- Index unchanged, Name 5 widens 100 bp (others flat)
+- Index P&L: $0$
+- Hedge P&L on Name 5: $-100 \times (20.5mm \times 10^{-4} \times 3.6) = -\$738k$
+- **Net: −$738k** (idiosyncratic risk)
 
 ---
 
-### Example 10: Residual Basis Risk Under an Idiosyncratic Move
+## 46.7 Practical Notes
 
-**Goal:** Scenario: one constituent widens a lot, index moves less → compute hedge P&L and residual.
+### 46.7.1 Production Checklist
 
-**Positions:**
+Before computing intrinsic and basis:
 
-- Long protection index: $N_I = \$100$mm, $\text{RPV01}_I = 4.1$
-- Short protection each constituent: $N_m = \$20.5$mm (from Example 9)
+- **Index identity:** Series number, maturity, on-the-run vs off-the-run status
+- **Constituent list:** Confirm which names are included (post any defaults)
+- **Constituent spreads:** Consistent tenor, same valuation date, appropriate restructuring clause
+- **Recovery assumptions:** Typically 40% for senior unsecured, 20% for subordinated
+- **Discount curve:** Consistent across index and constituent pricing
+- **Quoting convention:** Spread vs bond price; understand upfront conversion
 
-**Scenario:**
+### 46.7.2 Common Pitfalls
 
-- Only Name 5 widens by $+100$ bp; others unchanged
-- Index quoted spread widens by $+30$ bp (toy; reflects partial transmission + basis effects)
+1. **Documentation mismatch:** Using Mod-Re constituent spreads without adjusting for No-Re index (CDX)
+2. **Stale quotes:** Computing intrinsic from end-of-day constituent spreads vs intraday index moves
+3. **Bid-ask conflation:** Using mid-market intrinsic for execution analysis
+4. **Recovery inconsistency:** Different recovery assumptions across names or vs index
+5. **Series confusion:** Comparing on-the-run index to off-the-run constituents with different composition
+6. **Ignoring defaults:** Not adjusting for names that have already defaulted and been removed
 
-**Step 1:** Index P&L (long protection):
+### 46.7.3 Verification Tests
 
-$$\Delta \text{PV}_I \approx +30 \times 41{,}000 = +\$1{,}230{,}000$$
-
-**Step 2:** Hedge P&L on Name 5 (short protection; widening hurts):
-
-First compute Name 5 CS01 magnitude:
-
-$$\text{CS01}_5 = N_5 \times 10^{-4} \times \text{RPV01}_5 = 20.5\text{mm} \times 10^{-4} \times 3.6 = \$7{,}380/\text{bp}$$
-
-Then:
-
-$$\Delta \text{PV}_5 \approx -100 \times 7{,}380 = -\$738{,}000$$
-
-Other names: 0.
-
-**Net P&L:**
-
-$$\Delta \text{PV}_{\text{net}} \approx 1{,}230{,}000 - 738{,}000 = +\$492{,}000$$
-
-**Optional diagnostic: basis change (toy)**
-
-- Start: $S_{\text{quoted}} = 72$, $S_{\text{intrinsic}} = 69$ ⇒ $b = 3$
-- Intrinsic after Name 5 widens by 100 bp (using Example 1 weights):
-  - Intrinsic increases by weight $3.6/20 = 0.18$ times 100 bp = 18 bp
-  - $S_{\text{intrinsic,new}} = 87$ bp
-- Quoted new: $72 + 30 = 102$ bp ⇒ new basis $= 102 - 87 = 15$ bp
-
-**Interpretation:** Even if initial CS01 is hedged, idiosyncratic moves can create basis drift and residual P&L.
+- **Weight check:** Equal weights sum to 1, or stated weights verified
+- **Intrinsic stability:** Small spread bumps should produce small intrinsic changes
+- **Sign convention:** Verify $b = S_{\text{quoted}} - S_{\text{intrinsic}}$ used consistently
+- **Repricing test:** Plugging $S_{\text{intrinsic}}$ back into index PV formula should recover constituent-implied PV (within approximation error)
 
 ---
 
-### Example 11: Basis Trade P&L Decomposition (Risk-First)
+## 46.8 Summary
 
-**Trade (toy):** "Long index protection vs short constituent protection" in a CS01-neutral way (Example 9).
+1. A CDS index can be priced **bottom-up** by valuing constituent CDS and aggregating their PVs—this produces the **intrinsic value** and **intrinsic spread**
 
-- Long index: CS01 $= +41$k/bp
-- Short constituents: total CS01 $= -41$k/bp
+2. The intrinsic spread is approximated as an **RPV01-weighted average** of constituent spreads—not a simple average, because high-spread names have shorter expected premium-paying lives and lower RPV01s
 
-**Scenario suite:**
+3. The market **quoted spread** often differs from intrinsic—this difference is the **index basis**
 
-**(i) Parallel widening everywhere, no basis change**
+4. **Basis drivers** include:
+   - Documentation differences (restructuring clauses—No-Re vs Mod-Re can explain ~5% spread difference)
+   - Liquidity premia (index typically more liquid, may trade tighter)
+   - Technical flows (hedging demand can push index wider in stressed markets)
+   - Composition and roll effects
 
-- $\Delta S_{\text{quoted}} = +20$ bp
-- Each name $\Delta S_m = +20$ bp
+5. The **portfolio swap adjustment** modifies constituent curves so that intrinsic exactly equals quoted—essential for index option and tranche pricing where model consistency is required
 
-Index P&L: $+20 \times 41\text{k} = +\$820$k
+6. **Basis risk** is a real exposure: hedging an index with constituents (or vice versa) leaves residual P&L from basis moves, even when CS01 is matched
 
-Hedge P&L: $-20 \times 41\text{k} = -\$820$k
-
-Net: \$0
-
-→ This is the systematic component hedged away.
-
-**(ii) Pure basis move: index tightens vs constituents**
-
-- Constituents unchanged: $\Delta S_m = 0$
-- Index quoted tightens by 10 bp: $\Delta S_{\text{quoted}} = -10$
-
-Index P&L: $-10 \times 41\text{k} = -\$410$k
-
-Hedge P&L: $0$
-
-Net: $-\$410$k
-
-→ This is basis P&L.
-
-**(iii) Liquidity widening in single names only**
-
-- Constituents widen by 15 bp: $\Delta S_m = +15$
-- Index quoted unchanged: $\Delta S_{\text{quoted}} = 0$
-
-Index P&L: $0$
-
-Hedge P&L: $-15 \times 41\text{k} = -\$615$k
-
-Net: $-\$615$k
-
-→ This is a basis/technical effect (constituents move, index does not).
-
-**Takeaway:** With a CS01-neutral construction, parallel moves disappear; remaining P&L comes from basis and relative moves.
+7. For model calibration in **tranche pricing** (Chapters 48-50), practitioners must first apply a PSA to ensure the constituent curves are consistent with quoted index levels
 
 ---
 
-### Example 12: Sanity Checks and Failure Example (Inconsistent Inputs)
+## Key Concepts Summary
 
-**Goal:** Create a quote set implying an implausible intrinsic due to inconsistent units; show detection.
-
-Start with Example 1 "correct" inputs, intrinsic $= 69$ bp.
-
-**Failure:** Suppose Name 3 spread is mistakenly entered as 0.07 (bp) when the intended value was 70 bp (unit/decimal error).
-
-**Inputs:**
-
-- Spreads $[50, 60, 0.07, 80, 90]$ bp
-- $\text{RPV01} = [4.4, 4.2, 4.0, 3.8, 3.6]$, sum $= 20$
-
-**Compute numerator:**
-
-| Name | $S_m \times \text{RPV01}_m$ |
-|------|----------------------------|
-| 1 | $50 \cdot 4.4 = 220$ |
-| 2 | $60 \cdot 4.2 = 252$ |
-| 3 | $0.07 \cdot 4.0 = 0.28$ |
-| 4 | $80 \cdot 3.8 = 304$ |
-| 5 | $90 \cdot 3.6 = 324$ |
-
-Sum $= 220 + 252 + 0.28 + 304 + 324 = 1100.28$
-
-**Intrinsic:**
-
-$$S_{\text{intrinsic}} = 1100.28 / 20 = 55.014 \text{ bp} \approx 55.01 \text{ bp}$$
-
-**Detection logic (robust checks):**
-
-- Check each spread input is in a plausible range and consistent units (bp vs decimal)
-- Check that the intrinsic is stable under small bumps; a single name's tiny spread should not dominate unless its RPV01 weight is enormous
-
-I'm not sure what standardized "quote cleaning" rules your desk uses without a dealer convention note, but the minimum defensible checks are: unit sanity, missing data, stale quotes, and consistent day count/discounting inputs.
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **Intrinsic spread** | RPV01-weighted average of constituent spreads | The "fair value" of the index from bottom-up pricing |
+| **Quoted spread** | Market-traded index level | What you actually pay/receive |
+| **Index basis** | Quoted − Intrinsic | Measures deviation from replication value |
+| **RPV01** | Risky PV01; PV of 1 bp premium until default/maturity | The correct weight for averaging spreads |
+| **Portfolio swap adjustment** | Scaling constituent curves to force intrinsic = quoted | Required for tranche/option model calibration |
+| **Restructuring clause** | Credit event definition (No-Re, Mod-Re, etc.) | Can create ~5% systematic spread difference |
 
 ---
 
-## 7. Practical Notes
+## Flashcards
 
-### 7.1 Production Checklist (What You Need in Practice)
-
-- **Index identity:** series, maturity, whether on-the-run vs off-the-run
-- **Constituent list** and whether any names have defaulted (and hence are removed)
-- **Constituent CDS curves/spreads** $S_m(t,T)$ and consistent recovery assumptions $R_m$
-- **Discount curve** $Z(t,u)$ and premium accrual convention (e.g., quarterly, Act/360)
-- **Contractual index coupon** $C(T)$ (multiple of 5 bp in the reference)
-- **Quoting convention:**
-  - Spread quote vs bond-price quote (and the spread-to-upfront conversion)
-  - Documentation terms (credit events, restructuring clause, settlement type). I'm not sure without index rulebook + ISDA definitions for your trade; both are required.
-
----
-
-### 7.2 Common Pitfalls
-
-- Mixing quoting regimes (spread vs upfront vs bond price) inconsistently
-- Using mismatched discounting across constituents vs index
-- Using inconsistent recoveries across names (or mixing fixed vs stochastic recovery assumptions)
-- Ignoring doc clause differences (e.g., restructuring inclusion/exclusion) that directly shift spreads
-- Ignoring liquidity/bid–ask when interpreting basis; intrinsic computed from mid may not be executable
-- Comparing off-the-run hedges to on-the-run indices with different constituents (mismatch risk)
-
----
-
-### 7.3 Verification Tests
-
-- **Weights sum correctly:** equal weights $1/M$, or (if using stated weights) verify they sum to 1
-- **Scaling with notional:** PV and CS01 scale linearly with notional
-- **Intrinsic recomputation** stable under small bumps to single-name spreads
-- **Basis sign convention** consistent everywhere: $b = S_{\text{quoted}} - S_{\text{intrinsic}}$
-- **Repricing consistency** if using PV equations: Confirm that plugging $S_{\text{intrinsic}}$ into the index PV mapping reproduces the constituent-implied upfront (within approximation error)
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is the intrinsic index spread? | The spread implied by pricing the index bottom-up from constituent CDS curves |
+| 2 | What is the formula for the intrinsic spread approximation? | $S_{\text{intrinsic}} \approx \sum_m S_m \cdot \text{RPV01}_m / \sum_m \text{RPV01}_m$ |
+| 3 | Why isn't intrinsic the simple average of constituent spreads? | High-spread names have lower RPV01 (shorter expected life) and should get less weight |
+| 4 | Define index basis with sign convention | $b = S_{\text{quoted}} - S_{\text{intrinsic}}$; positive means index wider than intrinsic |
+| 5 | What does positive basis indicate? | Index trades wider than constituent-implied value (index "cheap" vs constituents) |
+| 6 | Name three drivers of index basis | (1) Documentation differences (restructuring), (2) Liquidity premium, (3) Technical flows |
+| 7 | How much spread difference does restructuring clause typically create? | No-Re spreads ≈ 5% lower than Mod-Re spreads |
+| 8 | What is RPV01 conceptually? | Risky annuity—PV of paying 1 bp/year until default or maturity |
+| 9 | Why does the index sometimes "lead" single-names? | In stress, investors use liquid index to hedge, pushing it wider faster |
+| 10 | What is the portfolio swap adjustment? | Scaling constituent curves so intrinsic exactly equals quoted index spread |
+| 11 | Why is PSA needed for tranche pricing? | Model calibration requires no built-in basis between index and constituent values |
+| 12 | What happens to index notional after a default? | Reduces by 1/M; future premiums shrink accordingly |
+| 13 | What's the formula for index upfront? | $U = (S - C) \times \text{RPV01}_I$ |
+| 14 | If all constituent spreads equal, what is intrinsic? | The common spread (weighted average reduces to simple average) |
+| 15 | Why does off-the-run vs on-the-run hedging create risk? | Different constituent sets across series |
+| 16 | What is the typical basis range for IG indices? | ±1-5 bp in normal markets (based on O'Kane's examples) |
+| 17 | What is the exact condition for intrinsic spread? | Intrinsic PV from constituents equals index PV under flat-curve convention |
+| 18 | How does bid-ask dispersion affect intrinsic? | Creates a band of executable intrinsic values; mid may not be tradeable |
+| 19 | What adjustment ratio is typical for PSA? | Often 0.7-1.0, depending on intrinsic vs quoted discrepancy |
+| 20 | Why is survival probability adjustment faster than spread adjustment? | Avoids rebuilding all M survival curves in each iteration |
 
 ---
 
-## 8. Summary & Recall
+## Mini Problem Set
 
-### 8.1 10-Bullet Executive Summary
+**Problems 1-9 include solution sketches; 10-15 are for practice.**
 
-1. A CDS index can be priced bottom-up by valuing constituent CDS and aggregating their PVs
-2. The intrinsic index PV at coupon $C$ equals the average across names of $(S_m - C) \cdot \text{RPV01}_m$
-3. The market quoted index "level" is represented as a flat spread $S_{\text{quoted}}$ for pricing as if it were a simple CDS
-4. Under standard coupon + upfront, upfront value is mapped by $(S - C) \cdot \text{RPV01}$
-5. The intrinsic index spread is found by matching intrinsic PV to the index PV mapping (solve Equation 10.8)
-6. A close approximation is the RPV01-weighted average of constituent spreads
-7. Index basis is $S_{\text{quoted}} - S_{\text{intrinsic}}$ and can be positive or negative in practice
-8. Basis drivers include documentation differences (e.g., restructuring clauses), liquidity premia, and index technical/hedging flows
-9. Index roll (every six months) changes composition and maturity, affecting intrinsic and comparisons across series
-10. For model calibration (options/tranches), practitioners may adjust constituent curves to force intrinsic = quoted ("portfolio swap adjustment")
+**1.** Compute intrinsic spread for 4 names: spreads [40, 60, 80, 100] bp, RPV01 [4.5, 4.0, 3.5, 3.0] years.
 
----
+*Sketch:* Numerator = 40(4.5) + 60(4.0) + 80(3.5) + 100(3.0) = 180 + 240 + 280 + 300 = 1000. Denominator = 15. Intrinsic = 66.67 bp.
 
-### 8.2 Cheat Sheet
+**2.** Given quoted = 90 bp, intrinsic = 86 bp, compute basis and interpret.
 
-**Intrinsic PV at coupon $C$:**
+*Sketch:* $b = 90 - 86 = +4$ bp. Index wider than intrinsic (positive basis).
 
-$$V_{\text{intrinsic}} = \frac{1}{M} \sum_m (S_m - C) \cdot \text{RPV01}_m$$
+**3.** Compute upfront for: C = 50 bp, S = 80 bp, RPV01 = 4.2, N = $200mm.
 
-**Index upfront mapping (flat curve):**
+*Sketch:* $U = (80-50) \times 10^{-4} \times 4.2 \times 200mm = 30 \times 0.0001 \times 4.2 \times 200mm = \$2.52mm$.
 
-$$U_{\text{index}} = (S - C) \cdot \text{RPV01}_I$$
+**4.** Why does a 1000 bp name get less weight in intrinsic than a 10 bp name?
 
-**Exact intrinsic spread:** solve $V_{\text{intrinsic}} = U_{\text{index}}$
+*Sketch:* 1000 bp implies high default probability → short expected premium life → low RPV01 → less weight.
 
-**Approx intrinsic spread:**
+**5.** Compute bid/ask intrinsic band: 2 names, Name A bid/ask 90/110, Name B 10/12, both RPV01=4.0.
 
-$$S_{\text{intrinsic}} \approx \frac{\sum_m S_m \cdot \text{RPV01}_m}{\sum_m \text{RPV01}_m}$$
+*Sketch:* Intrinsic(bid) = (90+10)/2 = 50 bp. Intrinsic(ask) = (110+12)/2 = 61 bp. Band = [50, 61] bp.
 
-**Basis:**
+**6.** Explain why CDX basis typically differs from iTraxx basis by several bp.
 
-$$b = S_{\text{quoted}} - S_{\text{intrinsic}}$$
+*Sketch:* CDX uses No-Re, iTraxx includes restructuring. No-Re ≈ 5% lower spread, creating systematic difference.
 
-**First-order PV impact of 1 bp spread move (per notional $N$):**
+**7.** Design a PSA for 3-name index quoted at 60 bp, constituents at [50, 60, 80] bp with equal RPV01.
 
-$$\Delta \text{PV} \approx \pm (1 \text{ bp}) \times 10^{-4} \times \text{RPV01} \times N$$
+*Sketch:* Unadjusted intrinsic = (50+60+80)/3 = 63.33 bp. Need α = 60/63.33 = 0.947. Adjusted: [47.4, 56.8, 75.8] bp.
 
-**Driver taxonomy (source-backed):** doc/restructuring; liquidity premia; technical/flow; roll/composition; defaults
+**8.** What is the CS01 of a $50mm index position with RPV01 = 4.2?
 
----
+*Sketch:* $50mm × 10^{-4} × 4.2 = \$21,000/bp$.
 
-### 8.3 Flashcards (30)
+**9.** Explain why PSA is "somewhat arbitrary" per O'Kane.
 
-**Q:** What is the intrinsic index spread?
-**A:** The spread level implied by pricing the index bottom-up from constituent CDS curves and matching PV to a flat-spread index representation.
+*Sketch:* Multiple adjustment methods (spread multiplier, survival multiplier) give similar but not identical results. The choice affects which names are adjusted more. O'Kane states: "The exact nature of the adjustment is somewhat arbitrary."
 
-**Q:** What is the quoted index spread?
-**A:** The market-quoted flat spread level used to price the index as if it were a simple CDS (in the reference's IG quoting description).
+**10.** Show that if all RPV01s are equal, intrinsic equals simple average spread.
 
-**Q:** Define index basis with a sign convention.
-**A:** $b = S_{\text{quoted}} - S_{\text{intrinsic}}$ (bp).
+**11.** A basis trade is long index protection, short constituent protection, CS01-neutral. If basis tightens 2 bp, what is P&L on $100mm notional with RPV01=4.0?
 
-**Q:** Why isn't intrinsic simply the average of constituent spreads?
-**A:** Because high-spread names are expected to pay premiums for less time; RPV01 weighting lowers their effective weight.
+**12.** How should intrinsic calculation change if the index has non-equal weights $w_m$?
 
-**Q:** What is RPV01 conceptually?
-**A:** The risky PV of paying 1 unit of annual spread until default/maturity; a risky annuity.
+**13.** Explain how roll from old to new series can affect basis even if "credit unchanged."
 
-**Q:** State the approximation for intrinsic spread.
-**A:** $S_{\text{intrinsic}} \approx \frac{\sum S_m \cdot \text{RPV01}_m}{\sum \text{RPV01}_m}$
+**14.** Describe a scenario where the index leads constituents by 20 bp in a crisis.
 
-**Q:** What creates an "immediate basis" per the primary reference?
-**A:** Restructuring clause differences (No-Re vs Mod-Re) with No-Re spreads ~5% lower.
-
-**Q:** How can liquidity create basis?
-**A:** Index can embed lower liquidity risk premium and can lead market due to hedging flows.
-
-**Q:** What happens to index notional after a default?
-**A:** It is reduced by $1/M$, reducing future premium payments.
-
-**Q:** What is "portfolio swap adjustment"?
-**A:** Adjusting constituent spreads/curves so intrinsic equals quoted index spread; used for stable model calibration.
-
-**Q:** Why does the index roll matter for basis comparisons?
-**A:** Composition can change and maturity extends by ~6 months, altering spreads.
-
-**Q:** In the reference, how is the index coupon chosen at inception?
-**A:** Close to fair value and often a multiple of 5 bp.
-
-**Q:** What is meant by "bond price" quote for an index?
-**A:** A quoting convention where upfront is bond price minus 100; avoids PV01 disputes.
-
-**Q:** How do you compute a first-order CS01 from RPV01?
-**A:** $\text{CS01} \approx N \times 10^{-4} \times \text{RPV01}$ dollars per bp.
-
-**Q:** What is VOD risk in index context (high level)?
-**A:** Default-related jump risk; reference stresses special care managing VOD in index books.
-
-**Q:** What's the PV-consistent equation for intrinsic spread?
-**A:** Match intrinsic PV from constituents to index upfront PV under flat index curve.
-
-**Q:** If all constituent spreads are equal, what is intrinsic spread?
-**A:** It equals that common spread (by the weighted-average formula).
-
-**Q:** If a name has a low RPV01, does it get more or less weight in intrinsic?
-**A:** Less weight.
-
-**Q:** If $b > 0$, is the index quoted wider or tighter than intrinsic?
-**A:** Wider.
-
-**Q:** Give one flow-based reason for basis per the reference.
-**A:** In widening markets, investors use long protection index positions to hedge illiquid long-credit positions.
-
-**Q:** What must be consistent when computing intrinsic and quoted levels?
-**A:** Coupon $C$, discounting, recoveries, and the upfront/spread quoting regime.
-
-**Q:** What happens to premium accrual at default?
-**A:** Accrued premium is paid at default (premium-leg convention).
-
-**Q:** What is the "intrinsic PV" of the index used for?
-**A:** To infer intrinsic spread and measure basis vs market quote.
-
-**Q:** Why can off-the-run vs on-the-run hedging be imperfect?
-**A:** Different constituent sets across series.
-
-**Q:** What is the payoff in a cash-settled single-name CDS after auction price $FP$?
-**A:** $(1 - FP/100) \times$ notional (e.g., 35 → 65%).
-
-**Q:** Does the primary reference mention auction protocols for cash settlement?
-**A:** Yes, as a fallback when deliverables are scarce.
-
-**Q:** What's the key numerical object that links spreads to PV?
-**A:** RPV01.
-
-**Q:** What's a quick "intrinsic" calculation if you only have $S_m$ and $\text{RPV01}_m$?
-**A:** Compute the RPV01-weighted average of spreads.
-
-**Q:** When might a "bond price" convention be used for indices?
-**A:** For lower credit quality indices in the reference (e.g., EM/HY), to avoid PV01 disputes.
-
-**Q:** What document do you need to be certain about restructuring clauses for your trade?
-**A:** The index rulebook and applicable ISDA definitions/confirmations (not fully specified in the provided books).
-
----
-
-## 9. Mini Problem Set (18 Questions)
-
-*Questions 1–9 include brief solution sketches. Questions 10–18: no solutions provided.*
-
----
-
-**1.** Compute intrinsic (RPV01-weighted) spread for 4 names with spreads $[40, 60, 80, 100]$ and RPV01 $[4.5, 4.0, 3.5, 3.0]$.
-
-*Sketch:* Compute numerator $\sum S \cdot \text{RPV01}$ and divide by $\sum \text{RPV01}$.
-
----
-
-**2.** Compute basis given $S_{\text{quoted}} = 90$ bp and $S_{\text{intrinsic}} = 86$ bp. Interpret sign.
-
-*Sketch:* $b = 90 - 86 = +4$ bp; index quoted wider than intrinsic.
-
----
-
-**3.** Upfront calculation: $C = 50$ bp, $S_{\text{quoted}} = 80$ bp, $\text{RPV01} = 4.2$, $N = \$200$mm. Compute upfront in \$.
-
-*Sketch:* $U = (30 \times 10^{-4} \times 4.2) \times 200$mm $= (0.0126) \times 200$mm $= \$2.52$mm.
-
----
-
-**4.** Bid/ask intrinsic band: two-name index; Name A bid/ask 90/110, Name B bid/ask 10/12, both RPV01=4.0. Compute intrinsic at bid-bid and ask-ask.
-
-*Sketch:* Average spreads since equal RPV01; compute $(90 + 10)/2 = 50$ and $(110 + 12)/2 = 61$.
-
----
-
-**5.** Weight intuition: explain qualitatively why a 1000 bp name should carry less weight in an index level than a 10 bp name.
-
-*Sketch:* High spread implies higher default intensity; expected premium-paying life shorter, so lower RPV01 weight.
-
----
-
-**6.** Hedge notionals: given index CS01 = \$60k/bp and three constituents have CS01 magnitudes $[20\text{k}, 15\text{k}, 10\text{k}]$ per bp per \$1mm notional, find constituent notionals that match the index CS01 using proportional scaling to those CS01s.
-
-*Sketch:* Allocate notionals so sum equals 60k; e.g., scale vector $[20, 15, 10]$ to sum 60.
-
----
-
-**7.** Default impact: index has $M = 125$, notional \$100mm, recovery 40%. Compute loss fraction of notional from one default (index-level loss on that slice).
-
-*Sketch:* $(1 - R)/M = 0.6/125 = 0.0048 = 0.48\%$ of notional (matches reference-style arithmetic).
-
----
-
-**8.** Roll effect: describe two reasons rolling from old to new index can cause P&L even if "credit market unchanged."
-
-*Sketch:* Composition changes; maturity extends ~6 months (curve slope).
-
----
-
-**9.** Basis driver: give one documentation-driven and one liquidity-driven basis reason from the primary reference.
-
-*Sketch:* Doc: restructuring clause differences; liquidity: index embeds lower liquidity risk premium / leads market.
-
----
-
-**10.** Show how (Exact) reduces to (Approx) under the approximation $\text{RPV01}_I \approx \frac{1}{M} \sum_m \text{RPV01}_m$.
-
----
-
-**11.** If basis is persistently negative for an index, list three potential explanations consistent with the taxonomy in Section 4.
-
----
-
-**12.** Explain why hedging an off-the-run index with the on-the-run index can leave residual risk.
-
----
-
-**13.** Propose a stress test to detect sensitivity to a single name becoming distressed (spread jumps to 1500 bp).
-
----
-
-**14.** How would you adjust intrinsic calculations if you had non-equal index weights $w_m$? (State a formula.)
-
----
-
-**15.** In a cash settlement, how does auction final price affect payoff? Provide a numerical example.
-
----
-
-**16.** Define "basis CS01" for a basis trade long index/short constituents.
-
----
-
-**17.** Discuss how defaulted-name removal affects future premium payments and why that matters for PV.
-
----
-
-**18.** Describe why model calibration for index options/tranches may require enforcing intrinsic = quoted.
+**15.** Why must tranche models apply PSA before calibrating correlation?
 
 ---
 
@@ -1143,30 +765,45 @@ $$\Delta \text{PV} \approx \pm (1 \text{ bp}) \times 10^{-4} \times \text{RPV01}
 
 | Fact | Source |
 |------|--------|
-| Index PV as sum of constituent protection/premium legs | O'Kane Ch 10 (Equation derivations) |
-| RPV01 definition and integral form | O'Kane Ch 6-7, 10 |
-| Intrinsic spread approximation as RPV01-weighted average | O'Kane Ch 10 (Eq 10.8 and discussion) |
-| Basis = quoted − intrinsic with sign | O'Kane Ch 10 |
-| Restructuring clause differences (No-Re vs Mod-Re) as basis driver | O'Kane Ch 10 |
-| Liquidity/hedging flow as basis driver | O'Kane Ch 10 |
-| Index roll every six months; composition changes | O'Kane Ch 9-10 |
-| Defaulted names removed without replacement; notional reduces by $1/M$ | O'Kane Ch 9-10 |
-| Coupon chosen as multiple of 5 bp | O'Kane Ch 9-10 |
-| Portfolio swap adjustment for calibration | O'Kane Ch 10 |
-| Auction cash settlement | O'Kane Ch 5; Hull Ch 25 |
+| Intrinsic value formula: $V_I(t) = \frac{1}{M}\sum_m (S_m - C) \cdot \text{RPV01}_m$ | O'Kane Ch 10, Eq 10.6 |
+| Intrinsic spread approximation: $S_I \approx \sum_m S_m \cdot \text{RPV01}_m / \sum_m \text{RPV01}_m$ | O'Kane Ch 10, Eq 10.9 |
+| Exact intrinsic definition via PV matching | O'Kane Ch 10, Eq 10.8 |
+| Index basis = quoted − intrinsic; can be positive or negative | O'Kane Ch 10, Section 10.5.2, Table 10.6 |
+| Restructuring clause differences (No-Re vs Mod-Re); No-Re ~5% lower | O'Kane Ch 5, Section 5.4.4; Ch 10, Section 10.5.2 |
+| CDX excludes restructuring (No-Re), iTraxx includes restructuring | O'Kane Ch 10, Section 10.5.2 |
+| "Index spread embeds a lower liquidity risk premium than the less liquid CDS spreads" | O'Kane Ch 10, Section 10.5.2 |
+| "CDS index may be considered to lead the CDS market" in widening markets | O'Kane Ch 10, Section 10.5.2 |
+| Portfolio swap adjustment: proportional spread/survival multiplier | O'Kane Ch 10, Sections 10.6.1-10.6.3 |
+| Survival probability adjustment ~50x faster than spread multiplier | O'Kane Ch 10, Section 10.6.3 |
+| Default removes name from index; notional reduces by 1/M | O'Kane Ch 10 |
+| Approximation error: <0.1 bp for IG, ~1.5 bp for HY | O'Kane Ch 10, Table 10.4 |
+| Intrinsic vs average spread data for CDX/iTraxx | O'Kane Ch 10, Table 10.5 |
+| RPV01 definition as "time $t$ present value of a credit risky \$1 annuity" | O'Kane Ch 10 notation table |
+| "The exact nature of the adjustment is somewhat arbitrary" | O'Kane Ch 10, Section 10.6 |
 
 ### (B) Reasoned Inference — Derived from (A)
 
 | Inference | Logic |
 |-----------|-------|
 | Bid/ask dispersion creates mechanical apparent basis | If intrinsic uses mid but execution uses bid/ask, difference emerges |
-| CS01 formula from RPV01 and notional | Direct multiplication per definition |
-| Basis P&L decomposition in hedge scenarios | First-order Taylor expansion of PV functions |
+| CS01 formula from RPV01 and notional | Direct multiplication per definition: CS01 = N × 10⁻⁴ × RPV01 |
+| Basis P&L decomposition | First-order Taylor expansion of PV functions |
+| Documentation adjustment of ~5% explains most CDX vs Mod-Re intrinsic gap | Direct application of O'Kane's "~5% lower" estimate |
+| Higher spread dispersion → larger intrinsic vs average gap | O'Kane's explanation that RPV01-weighted average is concave |
 
-### (C) Speculation — Flagged Uncertainties
+### (C) Flagged Uncertainties
 
 | Topic | Note |
 |-------|------|
-| Exact restructuring clause for specific index series | Sources conflict; I'm not sure without current index rulebook |
-| Settlement cashflow mapping for specific index trades | Requires index documentation not fully specified in provided books |
-| Desk-specific quote cleaning rules | Convention note required |
+| Exact restructuring clause for specific index series | O'Kane notes differences; verify against current index documentation |
+| Time-series behavior of basis in specific crisis periods | O'Kane discusses directional effects but does not provide specific crisis data |
+| Typical basis range in normal vs stressed markets | Inferred from examples (~±1-5 bp for IG) but not explicitly stated as a range |
+| Current standard coupons for specific index series | Operational details evolve with market practice; verify against current documentation |
+
+---
+
+## Cross-References
+
+- **Chapter 41** (CDS Index Mechanics): Index cashflow structure, roll mechanics, on/off-the-run liquidity
+- **Chapter 47** (Index Hedging and RV): Applying basis understanding to hedge design and relative value trades
+- **Chapter 48-50** (Tranches): Why PSA is required before tranche pricing—intrinsic must equal quoted for model consistency

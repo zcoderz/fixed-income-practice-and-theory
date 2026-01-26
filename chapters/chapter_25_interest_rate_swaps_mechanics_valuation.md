@@ -1,268 +1,190 @@
-# Chapter 25: Interest Rate Swaps — Mechanics, Valuation, and Curve Dependencies
+# Chapter 25: Interest Rate Swaps — Mechanics and Valuation
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
+A swap is not a bet on rates—it is an exchange of cashflow streams with zero initial value.
 
-- A swap rate is the fixed rate that makes a new interest rate swap have value zero at initiation (par).
-- An interest rate swap can be viewed as the difference between a fixed-rate bond and a floating-rate bond (a convenient valuation decomposition); notional is typically not exchanged in the swap itself.
-- In standard swap cashflow conventions, the floating rate is observed at the beginning of a period and the coupon is paid at the end.
-- In practice, fixed and floating legs often differ in payment frequency and day count; e.g., sources note typical IRS structures and that (in the U.S.) a common convention is fixed 30/360 and floating ACT/360.
-- In a single-curve setup, the standard par swap rate admits the discount-factor formula (for aligned schedules) $S = \frac{P(0,T_\alpha) - P(0,T_\beta)}{A}$ with annuity $A = \sum \tau_i P(0,T_i)$.
-- In a multi-curve setup, the swap is valued by discounting cashflows with a (universal) discount curve $P(\cdot)$, while forward rates for index $k$ are implied from an index-specific curve $P_k(\cdot)$; the provided text gives explicit formulas for swap value and forward rates.
-- For collateralized deals, markets consider an overnight-index curve (e.g., Fed funds/OIS) as an appropriate discount curve, while a LIBOR curve is used as a forward (projection) curve.
-- Swap spreads are commonly described as the difference between a par swap rate and a government yield of the same maturity; swap rates should (conceptually) exceed government yields due to bank credit embedded in swap floating rates, though multiple forces can affect the spread.
+This seemingly simple statement contains the essence of what makes interest rate swaps the most important derivative in fixed income markets. When a corporation issues fixed-rate bonds but prefers floating-rate funding, it enters a swap. When a mortgage servicer needs to hedge the duration of its portfolio, it uses swaps. When a central bank wants to assess market expectations for future interest rates, it looks at the swap curve. The notional outstanding in interest rate swaps exceeds $400 trillion globally—dwarfing the underlying bond markets by an order of magnitude.
 
-### (B) Reasoned Inference (Derived from A)
+Yet for all their ubiquity, swaps create confusion because their value depends on *two distinct curves* that serve fundamentally different purposes: one curve tells us what floating payments to expect, while another tells us how to discount those payments to today. Getting this separation wrong—or not even knowing it exists—is a recipe for systematic mispricing.
 
-- Given leg PV formulas, the par fixed rate is "PV of expected floating coupons per unit notional divided by fixed-leg annuity," with the curve dependence made explicit (discount vs projection).
-- In single-curve valuation (same curve for discounting and projecting), the floating leg PV can be shown to telescope to $1 - P(0,T)$ for a spot-start swap under standard assumptions (reset at $t=0$, no spread, no stubs), yielding the classic par swap rate formula.
-- Curve-specific PV01 concepts follow by perturbing either $P_d$ (discount curve) or $P_k$ / implied forwards (projection curve) while holding the other fixed.
+This chapter builds your understanding of interest rate swaps from the ground up:
 
-### (C) Speculation (Clearly Labeled; Minimal)
+1. **Mechanics**: What exactly is exchanged, when, and how are payments calculated?
+2. **Valuation fundamentals**: How to price a swap as a portfolio of cashflows
+3. **The par swap rate**: Why swaps trade at par and how to derive the fixed rate
+4. **Multi-curve pricing**: Why projection and discounting curves differ, and what happens when you ignore this
 
-I'm not sure which desk-specific conventions you want for business-day adjustment, payment lags, stub treatment, and exact floating index fixing conventions (e.g., lookback, lockout, compounding-in-arrears for RFR swaps). The notes therefore treat these as configurable and focus on mechanics/valuation identities that remain valid once the schedule and accrual factors are specified.
+We do *not* cover swap risk measures (DV01, PV01) here—Chapter 26 owns that territory. Nor do we discuss swap spreads in depth—Chapter 27 handles relative value. This chapter focuses on getting the mechanics and valuation exactly right, because everything else builds on this foundation.
 
 ---
 
-## Conventions & Notation
+## 25.1 What Is an Interest Rate Swap?
 
-### Setup
+### 25.1.1 The Basic Contract
 
-**Swap type:** Plain-vanilla fixed-for-floating interest rate swap.
+Hull provides a clean definition: "An interest rate swap is a swap where interest at a predetermined fixed rate, applied to a certain principal, is exchanged for interest at a floating reference rate, applied to the same principal, with regular exchanges being made for an agreed period of time."
 
-**Payment timing:** Floating rate is set at the beginning of each accrual period and the coupon is paid at the end (standard "set in advance, pay in arrears" structure).
+The key elements are:
 
-**Day count / frequency:** Market-dependent. For interest rate swaps, sources highlight that fixed and floating legs often use different day-count conventions (e.g., floating often ACT/360; fixed often 30/360 or ACT/365 depending on instrument/currency).
+- **Notional principal** ($N$): The amount on which interest is calculated. Unlike a loan, this principal is never exchanged—it is "notional" in the sense that it exists only for calculation purposes.
+- **Fixed leg**: One party pays a fixed rate $c$ applied to the notional.
+- **Floating leg**: The other party pays a floating reference rate (historically LIBOR, now increasingly SOFR or other overnight rates) applied to the same notional.
+- **Payment frequency**: Often different for the two legs—quarterly floating and semiannual fixed is common in USD markets.
+- **Maturity**: The swap's lifetime, typically ranging from 1 to 30 years.
 
-**Default toy convention for most numeric examples (for tractability):**
-- Fixed leg: semiannual payments with $\tau^{\text{fix}} = 0.5$ each period (30/360-style simplification).
-- Floating leg: quarterly payments with $\tau^{\text{flt}} = 0.25$ each period (ACT/360-style simplification).
-- No stubs, no payment lags, no business-day adjustments (purely pedagogical).
+### 25.1.2 Payer vs. Receiver
 
-**Curve inputs:** Treated as given. This chapter does not bootstrap curves (outside scope).
+The terminology reflects which leg you *pay*:
 
-**Valuation time:** $t = 0$ unless stated otherwise. Time measured in years.
+$$\boxed{\text{Payer swap: Pay fixed, receive floating}}$$
+$$\boxed{\text{Receiver swap: Receive fixed, pay floating}}$$
 
-### Notation Glossary
+A payer swap profits when rates rise (you receive higher floating payments while your fixed payments remain constant). A receiver swap profits when rates fall. This directional exposure makes swaps the primary tool for expressing interest rate views and hedging rate risk.
 
-| Symbol | Definition |
-|--------|------------|
-| $N$ | Notional principal (currency units, e.g., USD) |
-| $c$ | Fixed swap rate (annualized decimal, e.g., 0.03 = 3%) |
-| $\{T_j^{\text{fix}}\}_{j=1}^{n_f}$ | Fixed-leg payment dates |
-| $\{T_i^{\text{flt}}\}_{i=0}^{n_p}$ | Floating-leg reset/payment dates (payments at $T_{i+1}^{\text{flt}}$) |
-| $\tau_j^{\text{fix}}$ | Year fraction for fixed period: $\text{YearFrac}(T_{j-1}^{\text{fix}}, T_j^{\text{fix}})$ |
-| $\tau_i^{\text{flt}}$ | Year fraction for floating period: $\text{YearFrac}(T_i^{\text{flt}}, T_{i+1}^{\text{flt}})$ |
-| $P_d(0,T)$ | Discount factor from discount curve (dimensionless) |
-| $P_k(0,T)$ | Discount-factor-like object for index/tenor $k$ used to infer forwards |
-| $L_k(0; T_i, T_{i+1})$ | Forward money-market rate for tenor $k$ over $[T_i, T_{i+1}]$ |
-| $\text{PV}_{\text{fixed}}$, $\text{PV}_{\text{float}}$ | PV of each leg (excluding notional exchange) |
-| $V_{\text{payer}}$, $V_{\text{recv}}$ | Swap PV from payer / receiver viewpoint |
-| $A^{\text{fix}}(0)$ | Fixed-leg annuity (a.k.a. PVBP per unit rate) |
+### 25.1.3 Why Notional Is Not Exchanged
 
-### Key Formulas (Preview)
+Tuckman explains the intuition elegantly: "The valuation of swaps without default risk is made much simpler by the following fiction. Treat the swap as if the fixed-rate payer pays the notional amount to the floating-rate payer on the termination date and as if the floating-rate payer pays the notional amount to the fixed-rate payer on the termination date. This fiction does not alter the cash flows because the payments of the notional amounts cancel."
 
-**Forward money-market rate (projection):**
-$$L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)$$
-
-**Fixed-leg annuity:**
-$$A^{\text{fix}}(0) = \sum_{j=1}^{n_f} \tau_j^{\text{fix}} \, P_d(0, T_j^{\text{fix}})$$
-
-**Payer vs receiver swap:**
-- Payer (pay fixed / receive float): $V_{\text{payer}} = \text{PV}_{\text{float}} - \text{PV}_{\text{fixed}}$
-- Receiver (receive fixed / pay float): $V_{\text{recv}} = -V_{\text{payer}} = \text{PV}_{\text{fixed}} - \text{PV}_{\text{float}}$
-
-**PV01 preview metrics (curve-specific):**
-- $\text{PV01}_{\text{disc}}$: PV change under a 1bp bump to discount curve (projection held fixed).
-- $\text{PV01}_{\text{proj}}$: PV change under a 1bp bump to projection curve (discount held fixed).
+This "bond replication" view is powerful: by imagining that notional is exchanged at maturity, the fixed leg becomes economically equivalent to a fixed-rate bond, and the floating leg becomes equivalent to a floating-rate note. We will exploit this decomposition throughout the chapter.
 
 ---
 
-## Core Concepts
+## 25.2 Cashflow Structure
 
-### 1) Interest Rate Swap (Plain-Vanilla Fixed-for-Floating)
+### 25.2.1 Fixed Leg Cashflows
 
-**Formal Definition:** A contract where two parties exchange interest payments on a notional $N$: one leg pays a fixed rate $c$, the other pays a floating reference rate (e.g., LIBOR tenor or another index) observed/reset periodically.
+The fixed leg pays predetermined amounts at each payment date. For payment dates $\{T_1^{\text{fix}}, T_2^{\text{fix}}, \ldots, T_{n_f}^{\text{fix}}\}$, the cashflow at $T_j^{\text{fix}}$ is:
 
-**Intuition:** You are swapping interest-rate exposure:
-- Pay fixed / receive float: you benefit if rates rise (floating receipts increase) and lose if rates fall.
-- Receive fixed / pay float: you benefit if rates fall and lose if rates rise.
+$$\boxed{CF_j^{\text{fix}} = N \cdot c \cdot \tau_j^{\text{fix}}}$$
 
-**Trading / Risk / Portfolio Practice:**
-- "Par swap" means the fixed rate is set so that PV is ~0 at inception.
-- Swaps are building blocks for curve trades, liability management, and hedging interest-rate risk (e.g., swap a fixed-rate bond issuance into synthetic floating funding).
+where $\tau_j^{\text{fix}}$ is the accrual factor (year fraction) for that period, computed according to the applicable day count convention.
 
----
+**Day count conventions matter.** Hull notes that "the fixed rate in a swap is also quoted with a day count convention. Popular fixed-rate day counts are actual/365 and 30/360." In USD swaps, the fixed leg typically uses 30/360, meaning each month is treated as having 30 days regardless of the actual calendar.
 
-### 2) Fixed Leg
+### 25.2.2 Floating Leg Cashflows
 
-**Formal Definition:** Cashflows at fixed-leg payment dates $\{T_j^{\text{fix}}\}$:
-$$\text{CF}_j^{\text{fix}} = N \, c \, \tau_j^{\text{fix}}$$
-where $\tau_j^{\text{fix}}$ is the year fraction for the accrual period.
+The floating leg pays amounts that depend on the reference rate observed during each period. For a standard "set in advance, pay in arrears" structure, the rate for period $[T_i^{\text{flt}}, T_{i+1}^{\text{flt}}]$ is observed (fixed) at $T_i^{\text{flt}}$ and paid at $T_{i+1}^{\text{flt}}$:
 
-**Intuition:** A deterministic coupon stream (once $c$ and schedule are fixed).
+$$\boxed{CF_{i+1}^{\text{flt}} = N \cdot L_k(T_i; T_i, T_{i+1}) \cdot \tau_i^{\text{flt}}}$$
 
-**Trading / Risk / Portfolio Practice:**
-- Fixed leg conventions vary by market (frequency/day count). For example, sources highlight common conventions like fixed 30/360 in U.S. markets (while other markets differ).
+where $L_k(T_i; T_i, T_{i+1})$ is the floating reference rate for tenor $k$ observed at time $T_i$.
 
----
+**The floating day count often differs from the fixed.** Tuckman explains that "floating rate cash flows are determined using the actual/360 convention" in typical USD markets. This means that even if both legs have the same notional and similar rates, they may produce different cashflows due to day count differences.
 
-### 3) Floating Leg
+### 25.2.3 Example: A 2-Year USD Swap Schedule
 
-**Formal Definition:** At each period $[T_i^{\text{flt}}, T_{i+1}^{\text{flt}}]$, the floating rate is set at the beginning and paid at the end:
-$$\text{CF}_{i+1}^{\text{flt}} = N \, L_k(T_i^{\text{flt}}; T_i^{\text{flt}}, T_{i+1}^{\text{flt}}) \, \tau_i^{\text{flt}}$$
-(Often this is a money-market/simple-compounded rate over the accrual period.)
+Consider a \$100 million 2-year swap initiated on March 8, 2022, with:
+- Fixed leg: 3% semiannual, 30/360 day count
+- Floating leg: 3-month SOFR, quarterly, ACT/360 day count
 
-**Intuition:** A floating-rate note-like stream: coupons reset so that (on reset dates) the instrument is near par in single-curve logic.
+The fixed leg pays \$100,000,000 × 3% × 0.5 = \$1,500,000 every six months.
 
-**Trading / Risk / Portfolio Practice:**
-- Day count often differs from fixed leg (e.g., floating ACT/360 is common in LIBOR markets).
+The floating leg pays based on realized SOFR rates. Hull provides a worked example showing that if the 3-month SOFR reference rate for the first period is 2.2%, the floating payment would be \$100,000,000 × 2.2% × (91/360) = \$556,111, where 91 is the actual number of days in the quarter.
+
+The payments are typically *netted*: only the difference between fixed and floating amounts changes hands on each payment date. If the fixed payment is \$750,000 (for a quarter using 30/360) and the floating payment is \$556,111, the fixed payer sends \$193,889 to the floating payer.
 
 ---
 
-### 4) Payer vs Receiver and Sign Conventions
+## 25.3 Valuation Fundamentals
 
-**Formal Definition:**
-- **Payer swap** (pay fixed, receive float): $V_{\text{payer}} = \text{PV}_{\text{float}} - \text{PV}_{\text{fixed}}$
-- **Receiver swap** (receive fixed, pay float): $V_{\text{recv}} = \text{PV}_{\text{fixed}} - \text{PV}_{\text{float}}$
+### 25.3.1 The Basic Principle: Discount Cashflows
 
-This aligns with the fixed-vs-floating leg decomposition used in the provided sources.
+To value any derivative, we discount expected cashflows to the present:
 
-**Intuition:** Your PV is positive if the leg you receive is "worth more" than what you pay.
+$$V = \sum_i E[\text{CF}_i] \cdot P_d(0, T_i)$$
 
-**Trading / Risk / Portfolio Practice:** Sign mistakes are among the most common implementation errors (especially when swaps are netted and collateralized).
+where $P_d(0, T)$ is the discount factor from the *discounting curve* for maturity $T$.
 
----
+For the fixed leg, cashflows are deterministic once the swap is initiated:
 
-### 5) Discount Curve vs Projection Curve
+$$\boxed{PV_{\text{fixed}}(0) = N \sum_{j=1}^{n_f} c \cdot \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}})}$$
 
-**Formal Definition:**
-- A **discount curve** produces discount factors $P_d(0,T)$ used to PV cashflows.
-- A **projection curve** (or index curve) produces forward rates for an index $k$, commonly via an index-curve object $P_k(0,T)$ and the forward-rate formula:
+For the floating leg, future rates are unknown. Under risk-neutral pricing, we replace future rates with *forward rates* implied by the market curve:
 
-$$\boxed{L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)}$$
+$$\boxed{PV_{\text{float}}(0) = N \sum_{i=0}^{n_p-1} L_k(0; T_i, T_{i+1}) \cdot \tau_i^{\text{flt}} \cdot P_d(0, T_{i+1}^{\text{flt}})}$$
 
-**Intuition:**
-- Discounting answers: "What is a dollar at $T$ worth today?"
-- Projection answers: "What floating coupon is expected to be paid at $T$?"
+where $L_k(0; T_i, T_{i+1})$ is the forward rate for the floating index.
 
-**Trading / Risk / Portfolio Practice:**
-- The provided sources explicitly discuss that, in collateralized markets, an overnight curve (e.g., Fed funds/OIS) is used for discounting, while a LIBOR curve is used for forward projection for LIBOR-linked cashflows.
+### 25.3.2 Swap Value from the Two Perspectives
 
----
+The swap has zero value at inception by construction—that is what defines the "par" swap rate. After inception, market rates move, and the swap acquires value to one party or the other:
 
-### 6) Single-Curve vs Multi-Curve Worlds
+$$\boxed{V_{\text{payer}} = PV_{\text{float}} - PV_{\text{fixed}}}$$
+$$\boxed{V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = -V_{\text{payer}}}$$
 
-#### Single-Curve (Legacy)
+**Sign interpretation:** If rates have risen since inception, forward rates exceed the fixed rate, making $PV_{\text{float}} > PV_{\text{fixed}}$. The payer swap has positive value—the payer locked in a below-market fixed rate and receives above-market floating payments.
 
-**Formal Definition:** One curve $P(0,T)$ is used for both discounting and for projecting forwards $L$ (i.e., forwards are implied from the same discount factors).
+### 25.3.3 Hull's Valuation Example
 
-**Trading / Risk / Portfolio Practice:** The par swap rate admits a compact discount-factor formula $S = \frac{P(0,T_\alpha) - P(0,T_\beta)}{A}$.
+Hull provides a detailed worked example worth studying. Consider a swap with 1.2 years remaining, where the fixed rate is 3% paid semiannually and the floating rate is based on SOFR. With risk-free zero rates of 2.8%, 3.2%, and 3.4% for maturities of 0.2, 0.7, and 1.2 years respectively, Hull shows the valuation:
 
-#### Multi-Curve (Modern)
+| Time (years) | Fixed CF | Floating CF | Net CF | Discount Factor | PV of Net CF |
+|--------------|----------|-------------|--------|-----------------|--------------|
+| 0.2 | -1.500 | +1.258 | -0.242 | 0.9944 | -0.241 |
+| 0.7 | -1.500 | +1.694 | +0.194 | 0.9778 | +0.190 |
+| 1.2 | -1.500 | +1.857 | +0.357 | 0.9600 | +0.343 |
+| **Total** | | | | | **+0.292** |
 
-**Formal Definition:** Use a universal discount curve $P(0,T)$ plus multiple index-specific curves $P_k(0,T)$ for generating forward rates for each index $k$.
+The swap value of +\$0.292 million (per \$100 million notional) reflects that floating rates have risen above the fixed rate, benefiting the floating receiver.
 
-**Trading / Risk / Portfolio Practice:** The text motivates multiple curves because a single yield curve is not always consistent with market observations, especially under stress; separating discount and forward curves helps price linear instruments more consistently.
-
----
-
-### 7) Par Swap Rate ("Swap Rate") and Fixed-Leg Annuity
-
-**Formal Definition:** The par swap rate is the fixed rate that makes the swap PV equal to zero at inception.
-
-**Intuition:** The fixed rate is the "fair" coupon so that PV(receive float) = PV(pay fixed).
-
-**Trading / Risk / Portfolio Practice:** Traders quote swap rates by maturity (swap curve) and use annuities to convert between PV and rate risk (PVBP).
-
----
-
-### 8) Swap Spread (Preview)
-
-**Formal Definition:** Swap spread is often defined as a par swap rate minus a government (Treasury) yield of the same maturity.
-
-**Intuition:** Swaps reference (historically) bank credit (e.g., LIBOR), so swap rates can exceed government yields; spreads also reflect market supply/demand and other forces.
-
-**Trading / Risk / Portfolio Practice:** Swap spreads are used (carefully) as relative-value measures; they can move for reasons not purely "credit".
+> **Technique: Napkin Valuation**
+>
+> You don't always need a computer to know if you're winning or losing.
+> *   **Formula**: $\text{PV} \approx \text{Notional} \times (\text{New Swap Rate} - \text{Your Fixed Rate}) \times \text{Duration}$
+> *   **Example**:
+>     *   You receive fixed 3.00% on \$100M for 5 years.
+>     *   Market rates rise to 3.50%.
+>     *   Duration $\approx$ 4.5 years.
+>     *   $\text{PV} \approx \$100M \times (0.0350 - 0.0300) \times 4.5$
+>     *   $\text{PV} \approx \$100M \times 0.0050 \times 4.5 = \$2.25M$
+>     *   **Sign Check**: You receive 3.00%, market pays 3.50%. You are LOSING money. So Value $\approx -\$2.25M$.
 
 ---
 
-## Math and Derivations
+## 25.4 The Par Swap Rate
 
-### 2.1 Leg Cashflows (Deterministic Fixed, Stochastic Float)
+### 25.4.1 Definition and Intuition
 
-**Fixed leg** (no principal exchange in plain-vanilla IRS):
-$$\text{CF}_j^{\text{fix}} = N \, c \, \tau_j^{\text{fix}} \quad \text{paid at } T_j^{\text{fix}}$$
+The par swap rate is the fixed rate that makes a new swap have zero value at inception:
 
-**Floating leg** (index $k$):
-$$\text{CF}_{i+1}^{\text{flt}} = N \, \tau_i^{\text{flt}} \, L_k(T_i^{\text{flt}}; T_i^{\text{flt}}, T_{i+1}^{\text{flt}}) \quad \text{paid at } T_{i+1}^{\text{flt}}$$
+$$V_{\text{payer}} = PV_{\text{float}} - PV_{\text{fixed}} = 0$$
 
-**Unit check:**
-- $c$ and $L_k$ are rates per year (dimensionless).
-- $\tau$ is years (dimensionless year fraction).
-- $c\tau$ and $L_k\tau$ are dimensionless.
-- Multiply by $N$ ⇒ cashflow in currency units. ✓
+Solving for the fixed rate:
 
----
+$$\boxed{c_{\text{par}} = \frac{PV_{\text{float}}/N}{\sum_{j=1}^{n_f} \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}})}}$$
 
-### 2.2 Present Value with a Discount Curve
+The denominator is the *fixed-leg annuity*, denoted $A^{\text{fix}}(0)$:
 
-Discount each cashflow with discount factors $P_d(0,T)$:
+$$\boxed{A^{\text{fix}}(0) = \sum_{j=1}^{n_f} \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}})}$$
 
-**Fixed leg PV:**
-$$\boxed{\text{PV}_{\text{fixed}}(0) = N \sum_{j=1}^{n_f} c \, \tau_j^{\text{fix}} \, P_d(0, T_j^{\text{fix}})}$$
+The annuity represents the present value of receiving 1 unit of coupon (as a rate) on the fixed schedule. It is sometimes called the PVBP (present value of a basis point) when scaled appropriately.
 
-This structure is explicit in the provided multi-curve swap valuation formula where fixed payments $c\tau$ are discounted with $P(t,\cdot)$.
+### 25.4.2 Why Swaps Trade at Par
 
-**Floating leg PV (general, multi-curve):**
-$$\boxed{\text{PV}_{\text{float}}(0) = N \sum_{i=0}^{n_p-1} \tau_i^{\text{flt}} \, \mathbb{E}[L_k(\cdot; T_i^{\text{flt}}, T_{i+1}^{\text{flt}})] \, P_d(0, T_{i+1}^{\text{flt}})}$$
+Tuckman explains the economic logic: "Since no payment is exchanged at the initiation of the swap, the swap is only fair if its net value to each party equals zero, that is, $V_{\text{Fixed}} - V_{\text{Float}}$ equals zero."
 
-In the provided reference, the swap value is written as a discounted expectation of floating payment minus fixed payment (with potentially different year fractions).
+This is not arbitrary—it reflects that both parties freely enter the agreement. If the swap had positive value to one party at inception, the other party would demand compensation (an upfront payment) to enter. Par swaps avoid this complexity.
 
-For vanilla swaps priced off a projection curve, we typically replace the expectation of the floating rate with the forward rate implied by the projection curve (see §2.6), under standard no-arbitrage assumptions.
+### 25.4.3 The Single-Curve Par Rate Formula
 
----
+In the traditional single-curve framework (where the same curve provides both forward rates and discount factors), the par swap rate takes an elegant closed form. Andersen and Piterbarg derive:
 
-### 2.3 Swap PV and Bond Replication Intuition
+$$\boxed{S_{k,m}(t) = \frac{P(t, T_k) - P(t, T_{k+m})}{A_{k,m}(t)}}$$
 
-A common valuation decomposition is:
+where $A_{k,m}(t) = \sum_{n=k}^{k+m-1} \tau_n P(t, T_{n+1})$ is the annuity factor.
 
-$$\text{Swap value} = (\text{value of receiving fixed leg}) - (\text{value of paying floating leg})$$
+**Interpretation:** The numerator $P(t, T_k) - P(t, T_{k+m})$ is the present value of a unit notional exchanged at the start and returned at the end. The denominator is the annuity. The ratio gives the coupon rate that equates these values.
 
-(receiver) or vice versa (payer).
+### 25.4.4 The Telescoping Identity for Floating Legs
 
-Viewing a swap as "long fixed-rate bond, short floating-rate bond" is a convenient mental model; the notional is not exchanged in the swap, but the bond decomposition helps derive formulas.
+In single-curve pricing, the floating leg PV simplifies dramatically. Consider a spot-starting swap with floating payments at $T_1, T_2, \ldots, T_n$. The forward rate for period $i$ is:
 
----
-
-### 2.4 Par Swap Rate (Single-Curve) and the Annuity Formula
-
-In a single-curve world with aligned payment dates $\{T_i\}$ and year fractions $\tau_i$, the par swap rate (swap rate) over $[T_\alpha, T_\beta]$ is given by:
-
-$$\boxed{S_{\alpha,\beta}(0) = \frac{P(0, T_\alpha) - P(0, T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i \, P(0, T_i)}}$$
-
-This is the discount-factor/annuity formula stated in the reference text for swap rates and annuity factors.
-
-**Interpretation:**
-- **Numerator** $P(0,T_\alpha) - P(0,T_\beta)$: PV of a unit notional exchanged at $T_\alpha$ and returned at $T_\beta$ (in discount-factor terms).
-- **Denominator** $A = \sum \tau_i P(0,T_i)$: fixed-leg annuity.
-
-**Unit check:** Numerator and denominator are dimensionless, so $S$ is a rate (dimensionless per year). ✓
-
----
-
-### 2.5 Floating-Leg PV Identity in Single-Curve (Telescoping Argument)
-
-**Assumptions:**
-- Spot-start swap with $T_0 = 0$
-- Floating cashflow at $T_i$: $N \tau_i L_i$
-- Forward rate implied from the same discount factors:
 $$L_i = \frac{1}{\tau_i}\left(\frac{P(0, T_{i-1})}{P(0, T_i)} - 1\right)$$
 
-**Derivation:**
+Each floating coupon's contribution to PV is:
 
 $$\tau_i L_i P(0, T_i) = \left(\frac{P(0, T_{i-1})}{P(0, T_i)} - 1\right) P(0, T_i) = P(0, T_{i-1}) - P(0, T_i)$$
 
@@ -270,325 +192,137 @@ Summing from $i=1$ to $n$:
 
 $$\sum_{i=1}^{n} \tau_i L_i P(0, T_i) = P(0, T_0) - P(0, T_n) = 1 - P(0, T_n)$$
 
-**Result:**
-$$\boxed{\frac{\text{PV}_{\text{float}}}{N} = 1 - P(0, T_n) \quad \text{(single-curve, spot-start)}}$$
+This is the *telescoping identity*:
 
-This identity is consistent with the par-rate formula above and with the "floating-rate note is worth par on reset dates" intuition used in the swap valuation discussion.
+$$\boxed{\frac{PV_{\text{float}}}{N} = 1 - P(0, T_n) \quad \text{(single-curve, spot-start)}}$$
 
----
-
-### 2.6 Multi-Curve Valuation: Discounting vs Projection Separation
-
-The provided multi-curve framework uses:
-- A **universal discount curve** $P(0,T)$ for discounting, and
-- An **index curve** $P_k(0,T)$ for generating forward rates for index $k$.
-
-The reference gives the swap value (for a fixed-for-$k$-LIBOR swap, with same period grid for the shown formula) as:
-
-$$V_{\text{swap}}^k(0) = \sum_{i=0}^{n-1} c \, \tau_i^k \, P(0, T_{i+1}) - \sum_{i=0}^{n-1} L_k(0; T_i, T_{i+1}) \, \tau_i^k \, P(0, T_{i+1})$$
-
-with forward rates computed via:
-
-$$L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)$$
-
-**Practical generalization:** If fixed and float have different schedules/day-counts, you replace $\tau_i^k$ and dates accordingly (the reference notes such distinctions and writes a more general expectation form with separate year fractions).
-
-**Par rate in multi-curve (general idea).** Set $V_{\text{swap}} = 0$ and solve for $c$:
-
-$$\boxed{c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} \, L_k(0; T_i^{\text{flt}}, T_{i+1}^{\text{flt}}) \, P_d(0, T_{i+1}^{\text{flt}})}{\sum_j \tau_j^{\text{fix}} \, P_d(0, T_j^{\text{fix}})}}$$
-
-**Key point:** $P_d$ (discount curve) enters both numerator and denominator through PV; $P_k$ (projection) enters through $L_k$.
+**Intuition:** A floating-rate note that resets at market rates is always worth par on reset dates. The PV of the coupons alone equals the discount from par to today's value of receiving par at maturity.
 
 ---
 
-### 2.7 Off-Market Swap PV as "(Coupon − Par) × Annuity"
+## 25.5 Multi-Curve Valuation: Projection vs. Discounting
 
-Let $c_{\text{par}}$ be the par fixed rate under the same curves used for valuation. Then:
+### 25.5.1 Why One Curve Is Not Enough
 
-**Receiver PV:**
-$$\boxed{V_{\text{recv}} = \text{PV}_{\text{fixed}} - \text{PV}_{\text{float}} = N(c - c_{\text{par}}) \, A^{\text{fix}}(0)}$$
+The 2008 financial crisis revealed that the single-curve framework was fundamentally flawed. Andersen and Piterbarg explain: "While the spread between the Fed funds rate and 3 month Libor rate used to be very small—in the order of a few basis points—after September 2007 it went up to as much as 275 basis points."
 
-where $A^{\text{fix}}(0) = \sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})$.
+This spread explosion had profound implications: LIBOR was no longer a risk-free rate suitable for discounting. The rate at which you expect to receive floating payments (projection) differs from the rate at which you should discount those payments (discounting).
 
-**Payer PV** is the negative of this.
+### 25.5.2 The Multi-Curve Framework
 
-This is a direct algebraic consequence of the par condition and the linearity of PV.
+Modern swap valuation uses:
 
----
+1. **Projection curve** ($P_k$): Generates forward rates for the floating index
+2. **Discount curve** ($P_d$): Discounts all cashflows to present value
 
-### 2.8 Swap as a Strip of FRAs (Conceptual)
+> **Analogy: The Projector and The Auditor**
+>
+> In the old days (Single Curve), one person guessed the future rates and valued the money. Now, these jobs are split.
+>
+> *   **The Projector (Blue Curve):** "I am looking at the risky bank market (LIBOR/Euribor/BSBY). I predict the floating rate in 5 years will be 4.00%."
+> *   **The Auditor (Green Curve):** "I don't care about risky banks. I care about the *value of money* today. Since this trade is collateralized with cash, correct value is determined by the safe rate (OIS/SOFR). I will discount that 4.00% payment using the 3.00% risk-free rate."
+>
+> If you use the Projector's rate to discount (like we did pre-2008), you are over-discounting and mispricing the trade.
 
-Sources note that swaps can be regarded as portfolios of forward contracts and (in a single-curve setting) are economically equivalent to a multi-period FRA structure, up to discounting details.
+For a swap referencing index $k$, the floating forward rate is:
 
-If fixed and floating payments occur on the same grid $\{T_i\}$, the payer swap's PV can be written as:
+$$\boxed{L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)}$$
 
-$$V_{\text{payer}} = N \sum_{i=1}^{n} \tau_i (F_i - c) \, P_d(0, T_i)$$
+The swap value becomes:
 
-where $F_i$ are the forward rates used for the floating coupons (single-curve: implied by $P$; multi-curve: implied by $P_k$). Each term resembles the PV of a period-specific forward-rate agreement on $[T_{i-1}, T_i]$.
+$$V^k_{\text{swap}}(0) = \sum_j c \cdot \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}}) - \sum_i L_k(0; T_i, T_{i+1}) \cdot \tau_i^k \cdot P_d(0, T_{i+1})$$
 
----
+Note carefully: forwards come from $P_k$, but discounting uses $P_d$.
 
-## Measurement & Risk (Preview for Chapter 25)
+### 25.5.3 OIS Discounting for Collateralized Swaps
 
-### 3.1 What Cashflows Depend On
+What curve should we use for discounting? Andersen and Piterbarg argue that "most inter-dealer transactions are collateralized under the International Swaps and Derivatives Association (ISDA) Master Agreement, with the rate paid on collateral being the Fed funds rate (for USD; Eonia and Sonia for Euro and GBP)."
 
-**Fixed leg cashflows depend on:**
-- Notional $N$
-- Fixed rate $c$
-- Accrual factors $\tau_j^{\text{fix}}$ (day count + schedule)
+Since collateral earns the overnight rate, the appropriate discount rate for collateralized swaps is the OIS (Overnight Indexed Swap) curve. This leads to the modern convention:
 
-**Floating leg cashflows depend on:**
-- Notional $N$
-- Accrual factors $\tau_i^{\text{flt}}$
-- Floating forward rates $L_k(\cdot)$ (projection curve/index curve)
+- **USD collateralized swaps**: Discount with SOFR OIS curve, project with SOFR term curve
+- **Legacy LIBOR swaps**: Discount with OIS, project with LIBOR curve (while LIBOR existed)
 
-### 3.2 What PV Depends On
+> **Visual: The Dual Curve Diagram**
+>
+> *   **X-Axis:** Time.
+> *   **Y-Axis:** Rate %.
+> *   **Blue Line (Projection)**: High and volatile. Represents the 3-month Bank Rate. This determines *how much cash flows*.
+> *   **Green Line (Discount)**: Lower and stable. Represents the Overnight Risk-Free Rate. This determines *how much that cash is worth*.
+> *   **The Spread**: The gap between them is the "Basis." It fluctuates with credit stress.
+>
+> **The Key**: Even if the Basis blows out (Blue line spikes), the Green line might stay flat. Your *cash flows* increase, but your *discount rate* doesn't. This is why multi-curve valuation is critical during crises.
 
-Once cashflows are specified, PV depends on discount factors:
-$$\text{PV} = \sum \text{CF}(T) \, P_d(0,T)$$
+### 25.5.4 The Par Rate Under Multi-Curve
 
-In multi-curve, forward rates come from $P_k$ but discounting uses $P_d$. This separation is explicit in the multi-curve swap valuation expression (discount factors $P(\cdot)$ and forward rates from $P_k(\cdot)$).
+In the multi-curve framework, setting $V_{\text{swap}} = 0$ and solving for the fixed rate:
 
-### 3.3 Which Curve Does What
+$$\boxed{c_{\text{par}}^{\text{multi}} = \frac{\sum_i \tau_i^{\text{flt}} \cdot L_k(0; T_i, T_{i+1}) \cdot P_d(0, T_{i+1}^{\text{flt}})}{\sum_j \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}})}}$$
 
-| World | Projection | Discounting |
-|-------|------------|-------------|
-| **Single-curve (legacy)** | $P(0,T)$ implies $L$ | $P(0,T)$ discounts |
-| **Multi-curve (modern)** | $P_k(0,T)$ implies $L_k$ | $P_d(0,T)$ discounts |
-
-**Single-curve:** Par swap rate can be written purely in terms of $P(0,T)$ and an annuity.
-
-**Multi-curve:** The text motivates multiple curves because a single yield curve is not always consistent with market observations, especially under stress; separating discount and forward curves helps price linear instruments more consistently.
-
-**Collateralized market practice:** OIS/Fed funds curve as discount curve; LIBOR curve as forward curve.
-
-### 3.4 Why Discounting vs Projection Separation Matters
-
-If forward rates implied by the discount curve differ from the forward rates implied by the index/tenor curve, then:
-- The floating leg PV cannot simplify to $1 - P_d(0,T)$
-- The par fixed rate shifts (basis effect)
-- Curve risk splits naturally into discount and projection components
-
-The reference explicitly distinguishes a universal discount curve from index-specific curves and provides swap valuation in this framework.
-
-### 3.5 Preview-Level Risk Decomposition: $\text{PV01}_{\text{disc}}$ vs $\text{PV01}_{\text{proj}}$
-
-Define (for a given swap and a chosen bump methodology):
-
-**Discount-curve PV01 (holding projection fixed):**
-$$\text{PV01}_{\text{disc}} \equiv V(P_d + 1\text{bp}, P_k) - V(P_d, P_k)$$
-
-*Interpretation:* Sensitivity to discounting (time value of money / collateral curve).
-
-**Projection-curve PV01 (holding discount fixed):**
-$$\text{PV01}_{\text{proj}} \equiv V(P_d, (P_k)_{+1\text{bp}}) - V(P_d, P_k)$$
-
-*Interpretation:* Sensitivity to expected floating coupons (forward rates for the index).
-
-These are natural "partial" risks in a multi-curve setup where discounting and forwarding curves are distinct.
-
-**Note:** How you define "+1bp bump" (parallel bump to zero rates vs bump to discount factors vs bump to forwards) is a desk convention. I'm not sure which bump methodology you want; the worked example in §4 uses an explicit simple convention and labels it.
+**Critical observation:** The telescoping identity fails in multi-curve. Since forwards come from $P_k$ but discounting uses $P_d$, the convenient $1 - P(0,T)$ result no longer applies. You must compute each floating coupon's PV explicitly.
 
 ---
 
-## Worked Examples
+## 25.6 Worked Examples
 
-> **Note:** All examples are toy calculations for learning. They assume deterministic discount factors and forward rates implied as stated. Real swaps require calendar rules, stubs, business-day adjustments, payment lags, and index-specific fixing conventions. The sources explicitly warn that such complications exist.
+### Example A: Par Swap Rate from Discount Factors (Single-Curve)
 
----
+**Problem:** Given discount factors, compute the par rate for a 1-year spot-start swap with semiannual fixed payments.
 
-### Example A: Swap Cashflow Schedule
-
-**Goal:** Construct a simple fixed-for-floating schedule and compute accrual factors explicitly.
-
-**Assumptions/conventions (illustrative):**
-- Start date: 2026-01-01, maturity: 2027-01-01
-- Floating leg: quarterly, day count ACT/360 (common for floating legs in LIBOR-style markets)
-- Fixed leg: semiannual, day count 30/360 (common U.S. convention per source)
-- Ignore business-day adjustments and payment lags (pedagogical)
-
-**Floating schedule (quarterly):**
-
-| Period | Dates | Days | $\tau$ (ACT/360) |
-|--------|-------|------|------------------|
-| 1 | 2026-01-01 → 2026-04-01 | 90 | $90/360 = 0.25$ |
-| 2 | 2026-04-01 → 2026-07-01 | 91 | $91/360 \approx 0.25278$ |
-| 3 | 2026-07-01 → 2026-10-01 | 92 | $92/360 \approx 0.25556$ |
-| 4 | 2026-10-01 → 2027-01-01 | 92 | $92/360 \approx 0.25556$ |
-
-**Fixed schedule (semiannual):**
-
-| Period | Dates | $\tau$ (30/360) |
-|--------|-------|-----------------|
-| 1 | 2026-01-01 → 2026-07-01 | $180/360 = 0.5$ |
-| 2 | 2026-07-01 → 2027-01-01 | $180/360 = 0.5$ |
-
-**Sanity check:** Under ACT/360, a full calendar year is $365/360 \approx 1.0139$, matching the sum of quarterly $\tau$'s: $(90+91+92+92)/360 = 365/360$. ✓
-
----
-
-### Example B: Par Swap Rate from Discount Factors (Single-Curve)
-
-**Goal:** Given discount factors $P(0,T)$, compute the fixed-leg annuity and the par fixed rate $c_{\text{par}}$ for a spot-start 1Y swap.
-
-**Assumptions:**
-- Simplified year fractions: Fixed semiannual $\tau^{\text{fix}} = \{0.5, 0.5\}$; Floating quarterly $\tau^{\text{flt}} = \{0.25, 0.25, 0.25, 0.25\}$
-- Single-curve: same curve for discounting and projecting forwards
-
-**Given discount factors:**
+**Given:**
 - $P(0, 0.5) = 0.9850$
 - $P(0, 1.0) = 0.9700$
+- Fixed leg: semiannual, $\tau^{\text{fix}} = 0.5$ each period
 
-**Step 1: Fixed-leg annuity**
-$$A^{\text{fix}}(0) = 0.5 \times P(0, 0.5) + 0.5 \times P(0, 1.0) = 0.5(0.9850) + 0.5(0.9700) = 0.9775$$
+**Step 1: Compute the fixed-leg annuity**
 
-**Step 2: Floating-leg PV (single-curve identity for spot-start)**
+$$A^{\text{fix}}(0) = 0.5 \times 0.9850 + 0.5 \times 0.9700 = 0.4925 + 0.4850 = 0.9775$$
 
-From the telescoping identity (§2.5):
-$$\frac{\text{PV}_{\text{float}}}{N} = 1 - P(0, 1.0) = 1 - 0.9700 = 0.0300$$
+**Step 2: Compute floating leg PV using the telescoping identity**
 
-**Step 3: Par fixed rate**
+For a spot-start swap in single-curve:
 
-Set PV fixed = PV float:
-$$c_{\text{par}} = \frac{1 - P(0, 1.0)}{A^{\text{fix}}(0)} = \frac{0.0300}{0.9775} = 0.030690537 \approx 3.0691\%$$
+$$\frac{PV_{\text{float}}}{N} = 1 - P(0, 1.0) = 1 - 0.9700 = 0.0300$$
 
-**Unit check:** $0.0300$ and $0.9775$ are dimensionless ⇒ $c_{\text{par}}$ is a rate. ✓
+**Step 3: Compute the par fixed rate**
 
----
+$$c_{\text{par}} = \frac{0.0300}{0.9775} = 0.03069 \approx 3.069\%$$
 
-### Example C: Floating Leg PV Identity (Single-Curve)
+**Sanity check:** With discount factors near 0.97-0.98, the 1-year zero rate is roughly 3%, so a par swap rate around 3.07% is reasonable (slightly higher due to the annuity effect).
 
-**Goal:** Compute floating PV directly from forwards implied by discount factors and verify it equals $1 - P(0,1)$.
+### Example B: Off-Market Swap Valuation
 
-**Assumptions:** Same as Example B (single curve, quarterly float).
+**Problem:** Value a swap where the fixed rate differs from the par rate.
 
-**Given discount factors (quarterly grid):**
-- $P(0, 0.25) = 0.9925$
-- $P(0, 0.50) = 0.9850$
-- $P(0, 0.75) = 0.9775$
-- $P(0, 1.00) = 0.9700$
-
-**Step 1: Compute quarterly forwards implied by discount factors**
-
-$$L_i = \frac{1}{0.25}\left(\frac{P(0, T_{i-1})}{P(0, T_i)} - 1\right)$$
-
-| Period | Forward Rate |
-|--------|--------------|
-| $L_{0\to0.25}$ | $\frac{1}{0.25}\left(\frac{1}{0.9925} - 1\right) = 0.0302267$ |
-| $L_{0.25\to0.50}$ | $\frac{1}{0.25}\left(\frac{0.9925}{0.9850} - 1\right) = 0.0304569$ |
-| $L_{0.50\to0.75}$ | $\frac{1}{0.25}\left(\frac{0.9850}{0.9775} - 1\right) = 0.0306905$ |
-| $L_{0.75\to1.00}$ | $\frac{1}{0.25}\left(\frac{0.9775}{0.9700} - 1\right) = 0.0309278$ |
-
-**Step 2: PV the floating coupons**
-
-Each coupon PV contribution: $\text{PV}_i/N = 0.25 \times L_i \times P(0, T_i)$
-
-| $T$ | Calculation | Result |
-|-----|-------------|--------|
-| 0.25 | $0.25 \times 0.0302267 \times 0.9925$ | $0.0075$ |
-| 0.50 | $0.25 \times 0.0304569 \times 0.9850$ | $0.0075$ |
-| 0.75 | $0.25 \times 0.0306905 \times 0.9775$ | $0.0075$ |
-| 1.00 | $0.25 \times 0.0309278 \times 0.9700$ | $0.0075$ |
-
-Sum: $\text{PV}_{\text{float}}/N = 4 \times 0.0075 = 0.0300$
-
-**Step 3: Compare to identity**
-$$1 - P(0, 1.0) = 1 - 0.9700 = 0.0300$$
-
-**Conclusion:** PV matches exactly (up to rounding), illustrating the single-curve telescoping result. ✓
-
----
-
-### Example D: Value an Off-Market Swap
-
-**Goal:** Value a swap where the fixed rate is not par.
-
-**Assumptions:** Same curve and schedule as Examples B–C; notional $N = 100{,}000{,}000$.
-
-- Par fixed rate from Example B: $c_{\text{par}} \approx 3.0691\%$
-- Off-market fixed rate: $c = 3.20\% = 0.032$
+**Setup:** Same curves as Example A, notional $N = \$100,000,000$, but the swap has a fixed rate of $c = 3.20\%$ (above par).
 
 **Step 1: PV of floating leg**
 
-Using identity (single curve, spot-start):
-$$\text{PV}_{\text{float}} = N(1 - P(0,1)) = 100{,}000{,}000 \times 0.0300 = 3{,}000{,}000$$
+Using the single-curve identity:
+$$PV_{\text{float}} = N(1 - P(0,1)) = \$100,000,000 \times 0.0300 = \$3,000,000$$
 
 **Step 2: PV of fixed leg**
 
-Fixed-leg annuity: $A^{\text{fix}}(0) = 0.9775$
-$$\text{PV}_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = 100{,}000{,}000 \times 0.032 \times 0.9775 = 3{,}128{,}000$$
-
-*Intermediate coupon-PV view:*
-- Coupon at 0.5: $N c \tau = 100\text{m} \times 0.032 \times 0.5 = 1.6\text{m}$; PV $= 1.6\text{m} \times 0.9850 = 1.576\text{m}$
-- Coupon at 1.0: PV $= 1.6\text{m} \times 0.9700 = 1.552\text{m}$
-- Sum $= 3.128\text{m}$ ✓
+$$PV_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = \$100,000,000 \times 0.032 \times 0.9775 = \$3,128,000$$
 
 **Step 3: Swap NPV**
 
-- **Receiver** (receive fixed, pay float): $V_{\text{recv}} = 3.128\text{m} - 3.000\text{m} = +128{,}000$
-- **Payer** (pay fixed, receive float): $V_{\text{payer}} = -128{,}000$
+For the receiver (receive fixed, pay float):
+$$V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = \$3,128,000 - \$3,000,000 = +\$128,000$$
 
-**Sign interpretation:** Fixed is "rich" vs par, so receiving fixed is valuable.
+For the payer (pay fixed, receive float):
+$$V_{\text{payer}} = -\$128,000$$
 
----
+**Alternative formula:** Using the off-market relationship:
+$$V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}(0) = \$100,000,000 \times (0.032 - 0.03069) \times 0.9775 = \$128,000 \checkmark$$
 
-### Example E: Swap as a Strip of FRAs
+### Example C: Multi-Curve vs. Single-Curve Pricing
 
-**Goal:** Show that a swap can be decomposed into period-by-period forward-rate exposures (FRA-like).
+**Problem:** Show how using a projection curve different from the discount curve changes the par swap rate.
 
-**Assumptions (for exact grid alignment):**
-- Quarterly payments for both legs at $T = \{0.25, 0.50, 0.75\}$ (toy)
-- Same single curve as Example C
-- Notional $N = 1$
-- Fixed rate $c = 3.10\% = 0.031$
+**Setup:** 1-year swap, quarterly floating, semiannual fixed.
 
-**Given:**
-- Discount factors: $P(0, 0.25) = 0.9925$, $P(0, 0.50) = 0.9850$, $P(0, 0.75) = 0.9775$
-- Forwards (from Example C): $L_1 = 0.0302267$, $L_2 = 0.0304569$, $L_3 = 0.0306905$
-
-**Step 1: PV of floating and fixed legs**
-
-*Floating PV (single curve):*
-$$\text{PV}_{\text{float}}/N = 1 - P(0, 0.75) = 1 - 0.9775 = 0.0225$$
-
-*Fixed PV:*
-$$\text{PV}_{\text{fixed}}/N = c \sum_{i=1}^{3} (0.25 \times P(0, T_i)) = 0.031 \times 0.25(0.9925 + 0.9850 + 0.9775)$$
-
-Annuity-like sum: $0.25(0.9925 + 0.9850 + 0.9775) = 0.73875$
-
-Hence: $\text{PV}_{\text{fixed}}/N = 0.031 \times 0.73875 = 0.02290125$
-
-*Payer PV:*
-$$V_{\text{payer}} = 0.0225 - 0.02290125 = -0.00040125$$
-
-**Step 2: FRA-like strip (net cashflow per period)**
-
-For each period $i$, net cashflow at $T_i$:
-$$\text{NetCF}_i/N = 0.25(L_i - c)$$
-
-PV contribution: $\text{PV}_i/N = 0.25(L_i - c) \times P(0, T_i)$
-
-| $i$ | Calculation | Result |
-|-----|-------------|--------|
-| 1 | $0.25(0.0302267 - 0.031) \times 0.9925$ | $-0.000191875$ |
-| 2 | $0.25(0.0304569 - 0.031) \times 0.9850$ | $-0.000133750$ |
-| 3 | $0.25(0.0306905 - 0.031) \times 0.9775$ | $-0.000075625$ |
-
-Sum: $\sum \text{PV}_i/N = -0.00040125$
-
-This matches the payer PV above. ✓
-
-**Conceptual link to sources:** Swaps can be viewed as portfolios of forward contracts / FRA-like exposures.
-
----
-
-### Example F: Single-Curve vs Multi-Curve Pricing Difference
-
-**Goal:** Show how using a projection curve different from the discount curve changes the par fixed rate.
-
-**Setup:** 1Y swap, quarterly float, semiannual fixed ($\tau^{\text{flt}} = 0.25$, $\tau^{\text{fix}} = 0.5$).
-
-**Given curves (toy):**
+**Given curves:**
 
 | $T$ | OIS Discount $P_d$ | 3M Projection $P_{3M}$ |
 |-----|-------------------|------------------------|
@@ -597,496 +331,407 @@ This matches the payer PV above. ✓
 | 0.75 | 0.9820 | 0.9790 |
 | 1.00 | 0.9760 | 0.9720 |
 
-This matches the multi-curve framework in which forwards for index $k$ come from $P_k$ while discounting uses $P_d$.
+**Single-curve par rate (using OIS for both):**
 
-#### (i) Single-curve par rate (use OIS curve for both)
+Annuity: $A_d^{\text{fix}} = 0.5 \times 0.9880 + 0.5 \times 0.9760 = 0.9820$
 
-*Fixed-leg annuity:*
-$$A_d^{\text{fix}} = 0.5 \times P_d(0, 0.5) + 0.5 \times P_d(0, 1.0) = 0.5(0.9880) + 0.5(0.9760) = 0.9820$$
+Floating PV (telescoping): $1 - 0.9760 = 0.0240$
 
-*Single-curve float PV identity:*
-$$\text{PV}_{\text{float}}/N = 1 - P_d(0, 1.0) = 1 - 0.9760 = 0.0240$$
+Par rate: $c_{\text{par}}^{\text{single}} = 0.0240 / 0.9820 = 2.444\%$
 
-*Par fixed rate:*
-$$c_{\text{par}}^{\text{single}} = \frac{0.0240}{0.9820} = 0.024440 \approx 2.4440\%$$
+**Multi-curve par rate (project with 3M, discount with OIS):**
 
-#### (ii) Multi-curve par rate (discount with OIS, project with 3M)
-
-**Step 1: Compute 3M forwards from projection curve**
+*Step 1: Compute 3M forwards from projection curve*
 
 $$L_i^{3M} = \frac{1}{0.25}\left(\frac{P_{3M}(0, T_{i-1})}{P_{3M}(0, T_i)} - 1\right)$$
 
-| Period | $L^{3M}$ |
-|--------|----------|
-| $0 \to 0.25$ | $0.0281974$ |
-| $0.25 \to 0.50$ | $0.0283976$ |
-| $0.50 \to 0.75$ | $0.0286006$ |
-| $0.75 \to 1.00$ | $0.0288066$ |
+| Period | Forward Rate |
+|--------|--------------|
+| $0 \to 0.25$ | $\frac{1}{0.25}(1/0.9930 - 1) = 2.820\%$ |
+| $0.25 \to 0.50$ | $\frac{1}{0.25}(0.9930/0.9860 - 1) = 2.840\%$ |
+| $0.50 \to 0.75$ | $\frac{1}{0.25}(0.9860/0.9790 - 1) = 2.860\%$ |
+| $0.75 \to 1.00$ | $\frac{1}{0.25}(0.9790/0.9720 - 1) = 2.881\%$ |
 
-**Step 2: PV floating coupons using OIS discount factors**
+*Step 2: PV floating coupons using OIS discount factors*
 
-$$\text{PV}_{\text{float}}^{\text{multi}}/N = \sum_{i=1}^{4} 0.25 \times L_i^{3M} \times P_d(0, T_i)$$
+$$\frac{PV_{\text{float}}^{\text{multi}}}{N} = \sum_{i=1}^{4} 0.25 \times L_i^{3M} \times P_d(0, T_i) = 0.02807$$
 
-| $T$ | Calculation | Result |
-|-----|-------------|--------|
-| 0.25 | $0.25 \times 0.0281974 \times 0.9940$ | $0.00700705$ |
-| 0.50 | $0.25 \times 0.0283976 \times 0.9880$ | $0.00701420$ |
-| 0.75 | $0.25 \times 0.0286006 \times 0.9820$ | $0.00702145$ |
-| 1.00 | $0.25 \times 0.0288066 \times 0.9760$ | $0.00702881$ |
+*Step 3: Par fixed rate*
 
-Sum: $\text{PV}_{\text{float}}^{\text{multi}}/N = 0.02807151$
+$$c_{\text{par}}^{\text{multi}} = \frac{0.02807}{0.9820} = 2.859\%$$
 
-**Step 3: Par fixed rate**
-$$c_{\text{par}}^{\text{multi}} = \frac{0.02807151}{0.9820} = 0.028586 \approx 2.8586\%$$
-
-#### Comparison (Basis Effect)
+**Basis effect:**
 
 | Method | Par Rate |
 |--------|----------|
-| Single-curve | 2.4440% |
-| Multi-curve | 2.8586% |
-| **Difference** | **41.46 bp** |
+| Single-curve | 2.444% |
+| Multi-curve | 2.859% |
+| **Difference** | **41.5 bp** |
 
-**Interpretation:** The projection curve implies higher forwards than those implied by the OIS discount curve; in a multi-curve world you must pay a higher fixed rate to match the (higher) projected floating coupons when discounting on OIS.
-
----
-
-### Example G: Discount vs Projection Bump Impact
-
-**Goal:** For an off-market swap, compute PV change under:
-1. +1bp parallel bump to discount curve (projection fixed)
-2. +1bp parallel bump to projection curve (discount fixed)
-
-**Swap setup (same as Example F):**
-- Notional $N = 100{,}000{,}000$
-- Fixed rate $c = 3.10\% = 0.031$ (off-market vs par 2.8586%)
-- Discount curve: OIS $P_d$ from Example F
-- Projection curve: 3M $P_{3M}$ from Example F
-
-#### Base PV
-
-*Fixed PV:*
-$$\text{PV}_{\text{fixed}}/N = c \times A_d^{\text{fix}} = 0.031 \times 0.9820 = 0.030442$$
-
-*Floating PV (from Example F):*
-$$\text{PV}_{\text{float}}^{\text{multi}}/N = 0.02807151$$
-
-*Payer PV:*
-$$V_{\text{payer}}/N = 0.02807151 - 0.030442 = -0.00237049$$
-$$V_{\text{payer}} \approx -237{,}049$$
-
-#### (1) +1bp bump to discount curve (projection forwards held fixed)
-
-**Bump convention (explicit):** Approximate a +1bp parallel bump to continuously-compounded zero rates by scaling discount factors as:
-$$P_d^+(0,T) \approx P_d(0,T)(1 - 0.0001 \times T)$$
-(first-order approximation, good for small bumps)
-
-*Bumped discount factors:*
-
-| $T$ | $P_d^+$ |
-|-----|---------|
-| 0.25 | 0.993975 |
-| 0.50 | 0.987951 |
-| 0.75 | 0.981926 |
-| 1.00 | 0.975902 |
-
-*Recompute PVs (forwards unchanged):*
-- $\text{PV}_{\text{float}}^+/N = 0.02806975$
-- $\text{PV}_{\text{fixed}}^+/N = 0.031 \times 0.5(0.987951 + 0.975902) = 0.03043972$
-
-*New payer PV:*
-$$V_{\text{payer}}^+/N = 0.02806975 - 0.03043972 = -0.00236997$$
-
-**Discount bump PV change:**
-$$\Delta V_{\text{disc}}/N = (-0.00236997) - (-0.00237049) = +5.23 \times 10^{-7}$$
-$$\Delta V_{\text{disc}} \approx +52$$
-
-#### (2) +1bp bump to projection curve (discount held fixed)
-
-**Bump convention (explicit):** Add $+0.0001$ to each quarterly forward rate used to project coupons, leaving discount factors unchanged.
-
-*PV change in floating leg per unit notional:*
-$$\Delta(\text{PV}_{\text{float}})/N = \sum_{i=1}^{4} 0.25 \times 0.0001 \times P_d(0, T_i)$$
-$$= 0.25 \times 0.0001 \times (0.9940 + 0.9880 + 0.9820 + 0.9760) = 0.0000985$$
-
-Fixed leg unchanged ⇒ payer PV change:
-$$\Delta V_{\text{proj}}/N = +0.0000985$$
-$$\Delta V_{\text{proj}} \approx +9{,}850$$
-
-#### Compare Magnitudes/Signs (Preview Interpretation)
-
-| Bump | $\Delta V$ |
-|------|------------|
-| Discount +1bp | $\approx +52$ |
-| Projection +1bp | $\approx +9{,}850$ |
-
-- Bumping projection forwards raises floating receipts ⇒ payer PV increases (positive $\Delta V$).
-- Discount bump affects both legs' PVs and may partially cancel, yielding a smaller net impact for short maturities and near-par structures.
-
-This illustrates why multi-curve risk naturally splits into discount vs projection components.
+The projection curve implies higher forward rates than those from the OIS curve, so the par fixed rate is higher in the multi-curve framework.
 
 ---
 
-### Example H: Day Count / Frequency Sensitivity
+## 25.7 The Floating-Rate Note Perspective
 
-**Goal:** Show that quoting conventions (frequency/day count) affect annuity and thus the par swap rate.
+### 25.7.1 Why Floaters Trade at Par
 
-**Use single-curve data from Example B:**
-- $P(0, 0.5) = 0.9850$, $P(0, 1.0) = 0.9700$
-- $\text{PV}_{\text{float}}/N = 1 - P(0,1) = 0.0300$
+Tuckman provides crucial intuition: "The key to valuing floaters is to start at the maturity date and work backward... on August 28, 2011, the ex-coupon value of the floating rate note must equal par. This valuation does not depend on the value of LIBOR on that date. Intuitively, as of the set date the floater earns the fair interest rate on three-month money for three months. And the value of a note earning the fair rate of interest over the single period of its life is simply par."
 
-#### Case 1: Semiannual fixed (two coupons), $\tau^{\text{fix}} = \{0.5, 0.5\}$
+By backward induction, a floating-rate note is worth par on every reset date. Between reset dates, its value is:
 
-$$A^{\text{fix}} = 0.5(0.9850) + 0.5(0.9700) = 0.9775$$
-$$c_{\text{par}} = \frac{0.0300}{0.9775} = 0.030691 \approx 3.0691\%$$
+$$P_{\text{floater}} = \frac{N + N \cdot L_{\text{current}} \cdot \tau}{1 + L_{\text{today}} \cdot \tau'}$$
 
-#### Case 2: Annual fixed (one coupon), $\tau^{\text{fix}} = \{1.0\}$
+where $L_{\text{current}}$ is the rate already set for the current period and $\tau'$ is the time remaining to payment.
 
-$$A^{\text{fix}} = 1.0 \times 0.9700 = 0.9700$$
-$$c_{\text{par}} = \frac{0.0300}{0.9700} = 0.030928 \approx 3.0928\%$$
+### 25.7.2 Duration of a Floating-Rate Note
 
-**Difference:** $3.0928\% - 3.0691\% \approx 2.37$ bp
+Tuckman observes: "Despite the fact that the maturity of the floater is 10 years, the price of the floating rate note depends only on the short-term rate and its effect on the present value of the next payment date... Hence, by the arguments of Chapter 6, its duration is approximately equal to the time to the next payment date, that is, 0.25 years."
 
-**Interpretation:** Changing the fixed-leg payment frequency changes the annuity (PVBP) and therefore changes the par coupon that equates PVs.
-
-**Day-count note:** The sources emphasize that day-count conventions differ across legs and markets (e.g., fixed may be 30/360 or ACT/365; float often ACT/360).
+This near-zero duration is precisely why floating-rate exposure is preferred by those wanting to avoid interest rate risk—and why the floating leg of a swap has minimal duration while the fixed leg has substantial duration.
 
 ---
 
-### Example I: Swap Spread Intuition (Light Preview)
+## 25.8 The Swap as a Portfolio of FRAs
 
-**Goal:** Compute a toy swap spread and interpret at a high level.
+### 25.8.1 Decomposition into Period-by-Period Exposures
 
-Take the multi-curve par swap rate from Example F for 1Y:
-$$c_{\text{par}}^{\text{multi}} \approx 2.8586\%$$
+Hull emphasizes: "Each exchange of payment in a swap can be regarded as a forward rate agreement (FRA). Because it is nothing more than a portfolio of FRAs, an interest rate swap can also be valued by assuming that forward rates are realized."
 
-Assume a toy 1Y Treasury/par government yield of:
-$$y_{\text{gov}} = 2.65\%$$
+For a payer swap with aligned fixed and floating schedules, the value can be written:
 
-**Swap spread (toy):**
-$$\text{SwapSpread} = c_{\text{par}} - y_{\text{gov}} = 2.8586\% - 2.65\% = 0.2086\% \approx 20.86 \text{ bp}$$
+$$V_{\text{payer}} = N \sum_{i=1}^{n} \tau_i (L_i - c) \cdot P_d(0, T_i)$$
 
-**Interpretation (kept short):**
-- The source notes that swap rates (historically tied to bank credit via floating indices) should exceed government yields, motivating positive swap spreads; spreads also reflect supply/demand and other market-specific influences.
-- This example is purely illustrative; real swap spreads depend on the exact government benchmark, on/off-the-run effects, and the swap discounting/collateral framework.
+Each term $(L_i - c) \cdot \tau_i \cdot P_d(0, T_i)$ resembles the PV of an FRA that locks in receiving $L_i$ and paying $c$ over period $i$.
 
----
+### 25.8.2 Example: FRA Strip Decomposition
 
-### Example J: Collateral Discounting Intuition (Light)
+**Setup:** 3-period swap with quarterly payments at $T = \{0.25, 0.50, 0.75\}$, single-curve, $N = 1$, fixed rate $c = 3.10\%$.
 
-**Goal:** Hold projected floating cashflows fixed but change the discount curve; show PV changes.
+**Given:**
+- Discount factors: $P(0, 0.25) = 0.9925$, $P(0, 0.50) = 0.9850$, $P(0, 0.75) = 0.9775$
+- Forwards: $L_1 = 3.023\%$, $L_2 = 3.046\%$, $L_3 = 3.069\%$
 
-The sources state that markets consider OIS/Fed funds curves appropriate for discounting collateralized deals, with LIBOR used for forward projection.
+**FRA-like decomposition:**
 
-**Use the off-market swap from Example G:**
-- Same projected forwards from 3M curve
-- Fixed $c = 3.10\%$
-- $N = 100\text{m}$
+| Period | $(L_i - c)$ | $\tau_i(L_i - c) \cdot P(0,T_i)$ |
+|--------|-------------|----------------------------------|
+| 1 | -0.077% | $-0.000192$ |
+| 2 | -0.054% | $-0.000133$ |
+| 3 | -0.031% | $-0.000076$ |
+| **Total** | | $-0.000401$ |
 
-**Projection forwards:** $L^{3M}$ (unchanged)
-
-#### Case 1 (OIS discounting): Discount with $P_d$ from Example F
-
-We already computed:
-$$V_{\text{payer}}^{\text{OIS}}/N = -0.00237049 \Rightarrow V_{\text{payer}}^{\text{OIS}} \approx -237{,}049$$
-
-#### Case 2 (non-OIS discounting): Discount with a "LIBOR-like" curve $P_L$
-
-Here set equal to the projection curve discount factors:
-- $P_L(0, 0.25) = 0.9930$, $P_L(0, 0.50) = 0.9860$
-- $P_L(0, 0.75) = 0.9790$, $P_L(0, 1.00) = 0.9720$
-
-**Step 1: PV float (discount with $P_L$, forwards unchanged)**
-$$\text{PV}_{\text{float}}^{(L)}/N = 1 - P_L(0, 1.0) = 1 - 0.9720 = 0.0280$$
-
-(Indeed equals the telescoping identity since forwards were implied from the same curve.)
-
-**Step 2: PV fixed (discount with $P_L$)**
-$$\text{PV}_{\text{fixed}}^{(L)}/N = 0.031 \times 0.5(0.9860 + 0.9720) = 0.030349$$
-
-**Step 3: Payer PV**
-$$V_{\text{payer}}^{(L)}/N = 0.0280 - 0.030349 = -0.002349$$
-$$V_{\text{payer}}^{(L)} \approx -234{,}900$$
-
-#### Comparison
-
-$$V_{\text{payer}}^{(L)} - V_{\text{payer}}^{\text{OIS}} \approx (-234{,}900) - (-237{,}049) = +2{,}149$$
-
-**Interpretation:** Changing only the discount curve (OIS vs non-OIS) changes PV even when projected floating cashflows are held fixed—this is the basic intuition behind collateral discounting effects.
+The payer swap has negative value because the fixed rate (3.10%) exceeds each forward rate—the payer locked in an above-market rate.
 
 ---
 
-## Practical Notes
+## 25.9 Practical Conventions
 
-### 5.1 Market Convention Checklist
+### 25.9.1 Standard USD Swap Conventions
 
-| Convention | Status |
-|------------|--------|
-| **Fixed-leg frequency and day count** | Sources indicate typical differences by market/currency and highlight common conventions like fixed 30/360 (U.S.) vs other possibilities like ACT/365. |
-| **Floating-leg accrual and index definition** | Floating often ACT/360 in LIBOR-style markets; rate set in advance, paid in arrears. |
-| **Payment lags, stubs, business-day adjustments** | I'm not sure: the provided excerpts acknowledge complications (date adjustments, differences between year-fraction periods and forward-rate definitions) but do not give a full operational convention set for a particular currency/index. To be certain, we need: currency, index (e.g., USD 3M), documentation standard (ISDA, local conventions), and your desk's schedule generation rules. |
+| Element | Fixed Leg | Floating Leg |
+|---------|-----------|--------------|
+| Day count | 30/360 | ACT/360 |
+| Payment frequency | Semiannual | Quarterly (3M SOFR) |
+| Rate setting | At inception | Set in advance, pay in arrears |
+| Business day | Modified following | Modified following |
 
-### 5.2 Common Pitfalls
+**Important:** These conventions vary by currency and evolve over time. The LIBOR-to-SOFR transition, for example, has changed floating leg conventions significantly.
 
-1. **Confusing payer vs receiver PV sign:**
-   - Use a consistent convention: payer = PV(float) − PV(fixed); receiver = opposite.
+### 25.9.2 Day Count Impact
 
-2. **Using a par swap rate formula with inconsistent curves:**
-   - Single-curve formulas (telescoping, $1-P$) rely on using the same curve for projecting forwards and discounting.
+The different day counts on fixed and floating legs create subtle effects. Consider a 1-year period:
 
-3. **Mixing projection forwards with discounting-implied forwards in multi-curve:**
-   - In multi-curve, forward rates come from $P_k$, discounting from $P$.
+- Under 30/360: accrual factor = 360/360 = 1.000
+- Under ACT/360: accrual factor = 365/360 = 1.0139
 
-4. **Day count mismatch:**
-   - Fixed and float legs can use different day counts; miscomputing $\tau$ directly changes PV and par rate.
+Even if both legs have the same quoted rate, the ACT/360 leg generates ~1.4% more cashflow per year than the 30/360 leg.
 
-### 5.3 Implementation Pitfalls
+### 25.9.3 Payment Netting
 
-1. **Schedule generation and stub handling:**
-   - I'm not sure: not fully specified in sources; must follow desk conventions and legal confirmation.
-
-2. **Consistent accrual factors across legs:**
-   - Ensure each cashflow uses the correct $\tau$ for its leg and convention.
-
-3. **Consistent curve inputs:**
-   - Ensure you discount every cashflow with the correct discount curve; project floating rates with the correct tenor/index curve.
-
-### 5.4 Verification Tests
-
-1. **Par swap PV test:**
-   - If you compute $c_{\text{par}}$ from your chosen curves, then valuing the swap with $c = c_{\text{par}}$ should give PV $\approx 0$ (numerical tolerances aside).
-
-2. **Floating-leg PV identity check (single-curve only):**
-   - Verify $\sum \tau_i L_i P(0, T_i) \approx 1 - P(0, T_n)$ when forwards and discounting come from the same curve.
-
-3. **Small-bump stability:**
-   - PV changes should be approximately linear for small bumps; large nonlinearities suggest implementation errors.
+In practice, when fixed and floating payments fall on the same date, only the net amount is exchanged. This reduces operational risk and settlement flows. Tuckman notes: "The fixed and floating payments are netted with the result that Apple pays Citigroup \$200,000 on June 8, 2022" rather than separate payments of \$750,000 and \$550,000.
 
 ---
 
-## Summary & Recall
+## 25.10 How Swap Value Changes Over Time
 
-### 10-Bullet Executive Summary
+### 25.10.1 Initial Value Structure
 
-1. A vanilla interest rate swap exchanges fixed coupons for floating coupons on a notional $N$, typically without exchanging principal.
+A par swap has zero net present value at inception, but this does not mean that each cash flow exchange is worth zero. Hull explains: "The fixed rate in an interest rate swap is chosen so that the swap is worth zero initially. This does not mean that each cash flow exchange in the swap is worth zero initially. Instead, it means that the sum of the values of the cash flow exchanges is zero."
 
-2. The swap rate (par fixed rate) is the fixed rate that makes the swap PV zero at initiation.
+Consider a swap where the term structure is upward sloping and the fixed rate is being received while floating is paid. Forward rates increase with maturity, so early floating payments are expected to be lower than later ones. Since the fixed rate is constant, early exchanges favor the fixed receiver (fixed exceeds expected floating) while later exchanges favor the floating receiver (expected floating exceeds fixed).
 
-3. Fixed-leg cashflows are deterministic given $c$ and $\tau^{\text{fix}}$; floating-leg cashflows depend on forward rates and $\tau^{\text{flt}}$.
+### 25.10.2 Expected Value Path
 
-4. PV depends on discount factors: $\text{PV} = \sum \text{CF}(T) P_d(0,T)$.
+This structure implies a predictable pattern for how the swap's value will evolve:
 
-5. In single-curve valuation, par swap rates admit the discount-factor annuity formula $S = \frac{P(0,T_\alpha) - P(0,T_\beta)}{A}$.
+- **Fixed receiver, upward-sloping curve**: Early exchanges have positive value, later exchanges have negative value. As time passes and the positive-value exchanges are settled, the remaining swap is expected to have negative value.
 
-6. In single-curve valuation for a spot-start swap, floating coupon PV telescopes to $1 - P(0,T)$ under standard assumptions.
+- **Fixed payer, upward-sloping curve**: The opposite pattern. Early exchanges have negative value to the payer, later exchanges have positive value. The swap value is expected to become positive over time.
 
-7. In multi-curve valuation, discounting uses a universal curve $P$, while floating forwards come from index-specific curves $P_k$.
+Hull notes: "These results can be used to determine whether the swap is expected to have a positive or negative value in the future."
 
-8. Separation of discounting and projection matters: it changes par rates and PV and produces basis effects.
+**Important caveat:** These are expected values in a risk-neutral sense. Actual swap values depend on realized rate movements. If rates decline unexpectedly, a fixed-receiver swap could have positive value throughout its life despite the initial structure suggesting otherwise.
 
-9. A swap can be interpreted as a portfolio of forward-rate exposures (FRA-like), aiding intuition and risk decomposition.
+### 25.10.3 Implications for Credit Exposure
 
-10. Swap spreads (swap rate minus government yield) reflect multiple forces, including credit and market supply/demand, and should be interpreted with care.
+The expected value path has direct implications for counterparty risk:
 
----
+- If your swap position is expected to become more valuable over time, your counterparty exposure increases—the potential loss from counterparty default grows.
+- If your swap position is expected to become less valuable, your exposure decreases over time.
 
-### Cheat Sheet of Formulas
-
-| Formula | Expression |
-|---------|------------|
-| **Fixed leg PV** | $\text{PV}_{\text{fixed}}(0) = N \sum_j c \, \tau_j^{\text{fix}} \, P_d(0, T_j^{\text{fix}})$ |
-| **Floating leg PV (multi-curve)** | $\text{PV}_{\text{float}}(0) = N \sum_i \tau_i^{\text{flt}} \, L_k(0; T_i, T_{i+1}) \, P_d(0, T_{i+1})$ |
-| **Forward rate from projection curve** | $L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)$ |
-| **Swap PV** | Payer: $V_{\text{payer}} = \text{PV}_{\text{float}} - \text{PV}_{\text{fixed}}$; Receiver: $V_{\text{recv}} = -V_{\text{payer}}$ |
-| **Par fixed rate (general)** | $c_{\text{par}} = \frac{\text{PV}_{\text{float}}/N}{A^{\text{fix}}(0)}$ |
-| **Par swap rate (single-curve)** | $S_{\alpha,\beta}(0) = \frac{P(0, T_\alpha) - P(0, T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i P(0, T_i)}$ |
-| **Single vs multi-curve** | Single: one curve projects and discounts. Multi: $P_d$ discounts; $P_k$ projects. |
+This asymmetry is one reason why credit risk management for swap portfolios requires careful modeling of potential future exposure (PFE) profiles, not just current mark-to-market values.
 
 ---
 
-### Flashcards (30 Q/A Pairs)
+## 25.11 Credit Risk of Swap Agreements
 
-1. **Q:** What is the "swap rate"?
-   **A:** The fixed rate that makes a new swap's PV equal to zero (par).
+### 25.11.1 Swap Credit Risk Is Much Lower Than Bond Credit Risk
 
-2. **Q:** In a payer swap, which leg do you pay?
-   **A:** Pay fixed, receive floating.
+A common misconception is to view swap credit risk as equivalent to bond credit risk. Tuckman clarifies: "It is not correct to view a swap as a position in a fixed rate note and an opposite position in a floating rate note when considering the implications of default."
 
-3. **Q:** Write payer swap PV in terms of leg PVs.
-   **A:** $V_{\text{payer}} = \text{PV}_{\text{float}} - \text{PV}_{\text{fixed}}$
+The key differences:
 
-4. **Q:** What is the fixed-leg "annuity"?
-   **A:** $A^{\text{fix}}(0) = \sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})$
+1. **No principal at risk**: In a swap, notional principal is never exchanged. Default on a bond can result in loss of the entire principal; default on a swap can only cause loss of the swap's *value* at the time of default.
 
-5. **Q:** Units of $c$?
-   **A:** Annualized rate (decimal per year).
+2. **Cross-default provisions**: Swap agreements typically allow one party to stop payments if the other party defaults. This limits the loss to the current value of the swap, not future cashflows.
 
-6. **Q:** Units of $\tau$?
-   **A:** Year fraction (dimensionless).
+3. **Value at risk much smaller than notional**: Tuckman provides an order-of-magnitude calculation: For a $100 million 5-year swap with net DV01 of 0.039, a 50 basis point rate move puts at most $1.95 million at risk—roughly 2% of notional. "Thus the default risk of a swap is in no way comparable to the default risk of a note."
 
-7. **Q:** Units of discount factor $P(0,T)$?
-   **A:** Dimensionless.
+### 25.11.2 Collateral Further Reduces Credit Risk
 
-8. **Q:** Formula for a forward money-market rate from curve discount factors?
-   **A:** $L = \frac{1}{\tau}\left(\frac{P(0, T_i)}{P(0, T_{i+1})} - 1\right)$
+The CSA Framework governs collateral posting for most inter-dealer swaps:
 
-9. **Q:** What does the discount curve do?
-   **A:** Converts future cashflows to present value.
+- **Collateral currency**: Determines which overnight rate applies
+- **Collateral rate**: Typically the overnight rate (SOFR for USD, SONIA for GBP)
+- **Threshold and minimum transfer amounts**: Operational parameters
 
-10. **Q:** What does the projection curve do?
-    **A:** Generates forward rates for floating coupons.
+Tuckman explains the mechanism: "Swap agreements usually require cash margin, which earns interest at a short-term rate, to cover negative swap values. If the value of a swap is -$X to party A and +$X to party B, party A will have posted $X to party B as margin. If party A defaults, party B may keep the margin and terminate the swap."
 
-11. **Q:** In single-curve, how is par swap rate expressed?
-    **A:** $S = \frac{P(0, T_\alpha) - P(0, T_\beta)}{A}$
+This collateral mechanism means that the true credit exposure on collateralized swaps approaches zero in the limit of continuous margining.
 
-12. **Q:** In spot-start single-curve, PV(float coupons)/$N$ equals what?
-    **A:** $1 - P(0,T)$ under standard assumptions.
+### 25.11.3 Why Collateral Changes Discounting
 
-13. **Q:** Why might the floating PV identity fail in multi-curve?
-    **A:** Forwards come from $P_k$ while discounting uses $P_d$, so telescoping breaks.
+When a swap is fully collateralized with daily margin calls, the credit risk is largely eliminated. The party posting collateral earns the overnight rate on that collateral. This cost/benefit must be reflected in pricing, which leads to discounting at the overnight rate rather than a credit-risky rate.
 
-14. **Q:** What is "OIS discounting"?
-    **A:** Using an overnight-index curve (e.g., OIS/Fed funds) as the discount curve, common for collateralized deals.
+Andersen and Piterbarg note: "It is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
 
-15. **Q:** What is "index-discounting basis"?
-    **A:** Differences between discounting curve and an index's forwarding curve (conceptual).
+### 25.11.4 The Internal Inconsistency in Traditional Pricing
 
-16. **Q:** What is the typical timing of floating coupons?
-    **A:** Rate fixed at period start, paid at period end.
+Tuckman identifies a subtle inconsistency in traditional swap pricing: "On the one hand it is assumed that there is no risk of counterparty default: The cash flows are assumed to be as specified in the swap agreement... On the other hand, all cash flows are discounted at LIBOR or swap rates (i.e., at rates containing the rolling credit risk of strong banks)."
 
-17. **Q:** Give one common floating day count in LIBOR markets.
-    **A:** ACT/360.
+The resolution: "The market convention must be viewed as a compromise. The default risk of a swap agreement is perceived small enough to assume that promised cash flows are received and to discount these cash flows at a rate appropriate for a very strong credit, namely the rolling credit of financially sound banks."
 
-18. **Q:** Give one common fixed day count mentioned for U.S. IRS.
-    **A:** 30/360.
+Modern OIS discounting resolves much of this inconsistency—collateralized swaps are discounted at rates reflecting minimal credit risk.
 
-19. **Q:** How do day count conventions affect swaps?
-    **A:** They change $\tau$, thus changing cashflows and PV.
+### 25.11.5 Impact on Swap Valuation
 
-20. **Q:** How does frequency affect par rates?
-    **A:** Frequency changes the annuity, shifting $c_{\text{par}}$.
+Changing the discount curve while holding projected cashflows fixed changes the swap's present value. In Example C above, we saw a 41.5 bp difference in par rates between single-curve and multi-curve pricing. For an existing swap portfolio, the choice of discount curve can move valuations by millions of dollars.
 
-21. **Q:** What is the "bond replication" view of a swap?
-    **A:** Long fixed-rate bond, short floating-rate bond (valuation convenience).
+---
 
-22. **Q:** What is $\text{PV01}_{\text{disc}}$?
-    **A:** PV change under 1bp bump to discount curve, projection held fixed.
+## 25.12 Major Uses of Interest Rate Swaps
 
-23. **Q:** What is $\text{PV01}_{\text{proj}}$?
-    **A:** PV change under 1bp bump to projection curve, discount held fixed.
+Interest rate swaps are used for three primary purposes, as Tuckman describes:
 
-24. **Q:** When would $\text{PV01}_{\text{proj}}$ be large?
-    **A:** When PV is sensitive to forwards (large floating-cashflow exposure).
+### 25.12.1 Creating Synthetic Floating-Rate Funding
 
-25. **Q:** What does "par swap" mean operationally?
-    **A:** Fixed rate set so PV ≈ 0 at inception (using the same curves for par computation and valuation).
+"While many corporations prefer floating rate debt, the market for long-term floating rate notes in the U.S. is very small." Corporations wanting floating-rate exposure have two options:
 
-26. **Q:** Off-market receiver PV formula?
-    **A:** $V_{\text{recv}} = N(c - c_{\text{par}})A^{\text{fix}}(0)$ (derived).
+1. **Roll short-term debt**: Issue and roll over commercial paper or other short-term obligations. This works for highly-rated issuers but creates *liquidity risk*—the risk that credit deterioration prevents refinancing.
 
-27. **Q:** What is a swap spread (preview)?
-    **A:** Swap rate minus government yield of same maturity (toy definition).
+2. **Issue fixed + enter swap**: Issue fixed-rate bonds and receive fixed / pay floating in a swap. The fixed leg payments offset, leaving synthetic floating-rate funding. This avoids liquidity risk while achieving the desired rate profile.
 
-28. **Q:** Why can swap spreads move besides "credit"?
-    **A:** Supply/demand and benchmark effects, among others.
+### 25.12.2 Mortgage Market Hedging
 
-29. **Q:** Why separate discount and projection curves?
-    **A:** Single curve may not fit market quotes; separation supports consistent pricing and basis effects.
+"Perhaps the largest use of swaps is related to the mortgage market." Government-sponsored enterprises (GSEs) like Fannie Mae and Freddie Mac sell fixed-rate debt and buy mortgages. As the interest rate risk of their portfolios changes with rates and curve shape, they use swaps to manage duration.
 
-30. **Q:** What additional info is needed to lock conventions for a real swap?
-    **A:** Currency, index/tenor, collateral/CSA, schedule rules (holidays, stubs, lags), and quoting conventions.
+Mortgage servicers, who collect fees for processing mortgage payments, also face interest rate exposure and hedge with swaps. Chapter 27 discusses the interaction between mortgage hedging and swap spreads.
+
+### 25.12.3 Hedging Future Debt Issuance
+
+A corporation planning to issue bonds can hedge against rising rates: "To hedge the future issuance of 10-year debt, for example, it can pay fixed on a 10-year swap at the time of its decision and unwind the swap at the time of its bond sale."
+
+**Advantage over Treasury hedging**: Swaps hedge not only the general level of rates but also, to some extent, changes in credit spreads. Tuckman notes: "The magnitude of the correlation between swap rates and credit spreads is a matter of empirical debate." However, substantial basis risk remains because swap rates reflect banking credit specifically rather than the particular corporate's credit.
+
+---
+
+## Summary
+
+Interest rate swaps exchange fixed for floating payments on a notional principal that is never exchanged. The fixed leg generates deterministic cashflows; the floating leg generates cashflows based on a reference rate that resets periodically.
+
+**Key valuation principles:**
+
+1. The par swap rate is the fixed rate that makes a new swap worth zero
+2. In single-curve pricing, the floating leg PV telescopes to $1 - P(0,T)$
+3. In multi-curve pricing, projection and discounting curves differ
+4. For collateralized swaps, the OIS curve provides the appropriate discount rate
+5. A swap can be viewed as a portfolio of FRAs or as "long fixed bond, short floating bond"
+
+**Swap dynamics and credit:**
+
+6. While a par swap has zero net value at inception, individual cash flow exchanges may have positive or negative value—only the sum is zero
+7. The expected path of swap value over time depends on the term structure shape and which leg you receive
+8. Swap credit risk is much lower than bond credit risk—loss is limited to the swap's current value, not principal
+9. Collateralization through CSA agreements further reduces credit exposure to near zero
+
+**Major uses:** Corporations use swaps to create synthetic floating-rate funding, hedge future debt issuance, and manage duration. The mortgage market is the largest source of swap hedging demand.
+
+The separation of projection and discounting curves is not academic pedantry—it reflects real economic differences between the rate you expect to receive and the rate at which you should discount. Getting this right is essential for accurate pricing and risk management.
+
+---
+
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Par swap rate | Fixed rate making $V = 0$ at inception | Defines fair value for new swaps |
+| Annuity | $A = \sum \tau_j P_d(0, T_j)$ | Converts between rate and PV |
+| Projection curve | Curve generating forward rates | Determines expected floating cashflows |
+| Discount curve | Curve discounting all cashflows | Determines present value |
+| Telescoping identity | $PV_{\text{float}}/N = 1 - P(0,T)$ | Only valid in single-curve |
+| OIS discounting | Using overnight rate curve for $P_d$ | Standard for collateralized swaps |
+| Expected value path | Swap value expected to evolve based on term structure | Affects counterparty exposure profiles |
+| Swap credit risk | Loss limited to swap value, not notional | Much lower than bond default risk |
+| CSA | Credit Support Annex governing collateral | Reduces swap credit risk to near zero |
+
+---
+
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $N$ | Notional principal |
+| $c$ | Fixed swap rate (annualized) |
+| $c_{\text{par}}$ | Par swap rate |
+| $\tau_j^{\text{fix}}$ | Fixed leg accrual factor for period $j$ |
+| $\tau_i^{\text{flt}}$ | Floating leg accrual factor for period $i$ |
+| $P_d(0, T)$ | Discount factor from discount curve |
+| $P_k(0, T)$ | Discount factor from projection curve for index $k$ |
+| $L_k(0; T_i, T_{i+1})$ | Forward rate for index $k$ over $[T_i, T_{i+1}]$ |
+| $A^{\text{fix}}(0)$ | Fixed-leg annuity |
+
+---
+
+## Flashcards
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is the par swap rate? | The fixed rate that makes a new swap worth zero at inception |
+| 2 | In a payer swap, which leg do you pay? | Pay fixed, receive floating |
+| 3 | Write payer swap PV in terms of leg PVs | $V_{\text{payer}} = PV_{\text{float}} - PV_{\text{fixed}}$ |
+| 4 | What is the fixed-leg annuity? | $A^{\text{fix}} = \sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})$ |
+| 5 | Formula for forward rate from discount factors? | $L = \frac{1}{\tau}\left(\frac{P(0, T_i)}{P(0, T_{i+1})} - 1\right)$ |
+| 6 | What does the discount curve do? | Converts future cashflows to present value |
+| 7 | What does the projection curve do? | Generates forward rates for floating coupons |
+| 8 | Single-curve par swap rate formula? | $S = \frac{P(0, T_\alpha) - P(0, T_\beta)}{A}$ |
+| 9 | Floating leg PV in single-curve spot-start? | $PV_{\text{float}}/N = 1 - P(0, T)$ |
+| 10 | Why does telescoping fail in multi-curve? | Forwards from $P_k$, discounting from $P_d$—different curves |
+| 11 | What is OIS discounting? | Using overnight index curve as discount curve |
+| 12 | Why use OIS for discounting? | Collateral earns overnight rate, not LIBOR |
+| 13 | Typical USD fixed leg day count? | 30/360 |
+| 14 | Typical USD floating leg day count? | ACT/360 |
+| 15 | Duration of a floating-rate note? | Approximately time to next reset (~0.25 years) |
+| 16 | Off-market receiver PV formula? | $V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}$ |
+| 17 | What is a CSA? | Credit Support Annex—governs collateral posting |
+| 18 | How can a swap be viewed as bonds? | Long fixed-rate bond, short floating-rate note |
+| 19 | How can a swap be viewed as FRAs? | Portfolio of period-by-period forward contracts |
+| 20 | What happens to payer swap if rates rise? | Gains value (receive higher float, pay same fixed) |
+| 21 | For a par swap, is each cash flow exchange worth zero? | No—sum of exchange values is zero, but individual exchanges have positive/negative values |
+| 22 | If term structure is upward sloping and you receive fixed, how does swap value evolve? | Expected to become negative over time as positive-value early exchanges settle |
+| 23 | Why is swap credit risk much lower than bond credit risk? | Notional is never exchanged; loss limited to swap value at default, not principal |
+| 24 | How does collateral posting reduce swap credit risk? | Party with negative value posts margin; default loss covered by margin |
+| 25 | What creates synthetic floating-rate funding? | Issue fixed-rate debt + receive fixed / pay float in a swap |
 
 ---
 
 ## Mini Problem Set
 
-### Questions (Increasing Difficulty)
+**Q1.** A 1-year spot-start single-curve swap has $P(0,1) = 0.965$. What is $PV_{\text{float}}/N$?
 
-**Q1.** A 1Y spot-start single-curve swap has $P(0,1) = 0.965$. What is $\text{PV}_{\text{float}}/N$ (floating coupons only) under the standard single-curve assumptions?
+**Q2.** Using Q1, suppose the fixed leg is annual with $\tau = 1$. What is the par fixed rate?
 
-**Q2.** Using Q1, suppose fixed leg is annual with $\tau = 1$ and discount factor $P(0,1) = 0.965$. What is the par fixed rate?
-
-**Q3.** Same as Q2 but fixed leg is semiannual with $P(0, 0.5) = 0.982$, $P(0, 1) = 0.965$, $\tau = \{0.5, 0.5\}$. Compute $A$ and $c_{\text{par}}$.
+**Q3.** Same as Q2 but fixed leg is semiannual with $P(0, 0.5) = 0.982$. Compute the annuity and $c_{\text{par}}$.
 
 **Q4.** For Q3, if the swap fixed rate is 20bp above par, compute the receiver PV per unit notional.
 
-**Q5.** A payer swap has $N = 50\text{m}$, $A^{\text{fix}} = 4.2$ (for a longer maturity), and $c$ is 10bp above par. Approximate PV.
+**Q5.** A payer swap has $N = \$50M$, $A^{\text{fix}} = 4.2$, and $c$ is 10bp above par. Approximate PV.
 
-**Q6.** Given discount factors $P_d(0, T_i)$ and projection forwards $F_i$ for each floating period, write the general multi-curve par rate formula.
+**Q6.** Write the general multi-curve par rate formula.
 
-**Q7.** Explain why the floating PV identity $1 - P_d(0,T)$ generally fails in a multi-curve world.
+**Q7.** Explain why $PV_{\text{float}} = N(1 - P_d(0,T))$ fails in multi-curve.
 
-**Q8.** Define $\text{PV01}_{\text{disc}}$ and $\text{PV01}_{\text{proj}}$ for a multi-curve swap.
+**Q8.** For a payer swap, which direction does PV move if forward rates increase (holding discounting fixed)?
 
-**Q9.** For a payer swap, which direction does PV move if the projection curve shifts up (higher forwards), holding discounting fixed? (Qualitative.)
+**Q9.** The term structure is upward-sloping and you enter a 5-year receiver swap at par. Should you expect your counterparty credit exposure to increase or decrease over the first few years? Explain.
 
-**Q10.** For a receiver swap, which direction does PV move if discount rates rise (discount factors fall), holding projected cashflows fixed? (Qualitative.)
-
-**Q11.** Show algebraically that, holding $\text{PV}_{\text{float}}$ fixed, the receiver PV is linear in $c$ with slope $N A^{\text{fix}}$.
-
-**Q12.** A swap has quarterly float and semiannual fixed. Describe how you would compute $c_{\text{par}}$ in a multi-curve setting (inputs and steps; no bootstrapping).
-
-**Q13.** Suppose you mistakenly discount floating cashflows using the projection curve discount factors instead of the discount curve. Explain the conceptual error.
-
-**Q14.** Construct a 2-period swap on dates $T_1, T_2$ with matching fixed/float dates and show its payer PV equals the sum of two FRA-like PVs.
-
-**Q15.** Describe (qualitatively) how collateralization and CSA terms can affect swap discounting choices.
-
-**Q16.** You observe a swap spread turning negative. List three possible non-credit explanations (qualitative, desk-style).
+**Q10.** A $100 million swap has net DV01 of 0.045. If rates move 75bp since inception, approximately what is the maximum credit exposure?
 
 ---
 
-### Solution Sketches (Q1–Q8)
+### Solution Sketches
 
-**Q1.** Use $1 - P(0,1) \Rightarrow 1 - 0.965 = 0.035$.
+**A1.** $1 - P(0,1) = 1 - 0.965 = 0.035$
 
-**Q2.** $A = P(0,1) = 0.965$. $c_{\text{par}} = (1-P)/A = 0.035/0.965 \approx 3.627\%$.
+**A2.** $A = P(0,1) = 0.965$; $c_{\text{par}} = 0.035/0.965 = 3.627\%$
 
-**Q3.** $A = 0.5(0.982) + 0.5(0.965) = 0.9735$. Then $c_{\text{par}} = (1 - 0.965)/0.9735 = 0.035/0.9735 \approx 3.595\%$.
+**A3.** $A = 0.5(0.982) + 0.5(0.965) = 0.9735$; $c_{\text{par}} = 0.035/0.9735 = 3.595\%$
 
-**Q4.** $V_{\text{recv}}/N = (c - c_{\text{par}})A$ with $c - c_{\text{par}} = 0.002$. So $V_{\text{recv}}/N = 0.002 \times 0.9735 = 0.001947$.
+**A4.** $V_{\text{recv}}/N = (c - c_{\text{par}}) \cdot A = 0.002 \times 0.9735 = 0.00195$
 
-**Q5.** $V_{\text{payer}} = -N(c - c_{\text{par}})A = -50\text{m} \times 0.001 \times 4.2 = -210{,}000$.
+**A5.** $V_{\text{payer}} = -N(c - c_{\text{par}}) \cdot A = -\$50M \times 0.001 \times 4.2 = -\$210,000$
 
-**Q6.** $c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} F_i P_d(0, T_{i+1})}{\sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})}$
+**A6.** $c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} L_k(0; T_i, T_{i+1}) P_d(0, T_{i+1})}{\sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})}$
 
-**Q7.** Identity relies on forward rates implied from the same discount factors used for discounting; in multi-curve, forwards come from $P_k$ while discounting uses $P_d$, so the telescoping cancellation does not hold.
+**A7.** The identity relies on forwards and discounting using the same curve. In multi-curve, forwards come from $P_k$ while discounting uses $P_d$—the telescoping cancellation doesn't hold.
 
-**Q8.** $\text{PV01}_{\text{disc}} = V(P_d + 1\text{bp}, P_k) - V(P_d, P_k)$; $\text{PV01}_{\text{proj}} = V(P_d, (P_k)_{+1\text{bp}}) - V(P_d, P_k)$.
+**A8.** Payer PV increases—higher forwards mean higher expected floating receipts.
+
+**A9.** Decrease. With upward-sloping curve, early exchanges favor you (receive fixed > expected floating). As these positive-value exchanges settle, remaining swap expected to have negative value to you—counterparty exposure declines.
+
+**A10.** $\$100M \times (0.045/100) \times 75 = \$3.375$ million. This is the approximate mark-to-market value at risk—much smaller than the $100M notional.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Verified Facts (Source-Backed)
 
 | Fact | Source |
 |------|--------|
-| Swap rate makes PV = 0 at initiation | Hull Ch 7, Andersen Vol 1 Ch 6 |
-| Swap = long fixed bond, short floating bond (valuation decomposition) | Hull Ch 7 |
-| Floating rate set in advance, paid in arrears | Hull Ch 7, Andersen Vol 1 |
-| Fixed and floating legs often differ in frequency/day count | Hull Ch 7, Andersen Vol 1 Ch 6 |
-| Single-curve par swap rate formula $S = (P_\alpha - P_\beta)/A$ | Andersen Vol 1, Tuckman Ch 18 |
-| Multi-curve framework: universal discount curve + index curves for forwards | Andersen Vol 1 Ch 6 |
-| OIS curve for discounting collateralized deals; LIBOR for projection | Andersen Vol 1 Ch 6, Hull Ch 9 |
-| Swap spread = swap rate − government yield | Tuckman Ch 18 |
+| Swap definition and mechanics | Hull Ch 7 |
+| Swap = long fixed bond, short floating bond | Hull Ch 7, Tuckman Ch 18 |
+| Set in advance, pay in arrears structure | Hull Ch 7, Andersen Vol 1 |
+| Fixed 30/360, floating ACT/360 conventions | Hull Ch 7, Tuckman Ch 18 |
+| Single-curve par swap rate formula | Andersen Vol 1 (4.10), Tuckman Ch 18 |
+| Multi-curve framework with universal discount + index curves | Andersen Vol 1 Ch 6 (6.47)-(6.48) |
+| OIS discounting for collateralized swaps | Andersen Vol 1 Ch 6, Hull Ch 9 |
+| Floating-rate note worth par on reset dates | Tuckman Ch 18 |
+| Swap as portfolio of FRAs | Hull Ch 7 |
+| Par swap value = 0 but individual exchanges ≠ 0 | Hull Ch 7.7 |
+| Expected swap value path based on term structure | Hull Ch 7.7 |
+| Swap credit risk much lower than bond credit risk | Tuckman Ch 18 |
+| Loss limited to swap value, not principal | Tuckman Ch 18 |
+| Collateral/margin mechanism for swaps | Tuckman Ch 18 |
+| Internal inconsistency in LIBOR discounting | Tuckman Ch 18 |
+| Major uses: synthetic floating funding, mortgage hedging | Tuckman Ch 18 |
+| Swaps vs Treasuries for hedging debt issuance | Tuckman Ch 18 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Reasoned Inference
 
 | Inference | Derivation |
 |-----------|------------|
-| Par rate = PV(float)/Annuity | Algebraic consequence of setting $V = 0$ and solving for $c$ |
-| Single-curve floating PV telescopes to $1 - P(0,T)$ | Term-by-term cancellation when forwards and discounting use same curve |
-| Curve-specific PV01 decomposition | Follows from multi-curve valuation separating $P_d$ and $P_k$ |
-| Off-market PV = $(c - c_{\text{par}}) \times N \times A$ | Linear algebra from leg PV formulas |
+| Par rate = $PV_{\text{float}}$/Annuity | Set $V = 0$, solve for $c$ |
+| Single-curve telescoping to $1 - P(0,T)$ | Term-by-term cancellation |
+| Off-market PV = $(c - c_{\text{par}}) \cdot N \cdot A$ | Linear algebra from leg PV formulas |
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
 | Topic | Uncertainty |
 |-------|-------------|
-| Desk-specific conventions (business-day adjustments, payment lags, stub treatment, RFR compounding) | I'm not sure — sources acknowledge complications but do not provide complete operational specifications for specific currencies/indices |
-| Bump methodology for PV01 (parallel bump to zero rates vs DFs vs forwards) | I'm not sure which convention is desired; example uses explicit first-order approximation |
-| Schedule generation details | I'm not sure — must follow desk conventions and legal confirmation |
+| Desk-specific conventions (payment lags, stubs, business days) | I'm not sure—varies by currency and documentation |
+| SOFR compounding conventions (daily, lookback, lockout) | I'm not sure—evolving market practice |
+| Exact bump methodology for curve sensitivities | I'm not sure—desk convention; examples use explicit approximations |
 
 ---
 

@@ -1,469 +1,368 @@
-# Chapter 31: Multi-Currency Risk — FX Delta + Rates Delta (by currency) + Basis Risk
+# Chapter 31: Multi-Currency Risk — FX Delta, Rates Delta, Cross-Gamma, and Risk Aggregation
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
+When a portfolio contains positions denominated in multiple currencies, the simple question "what is my interest rate risk?" becomes surprisingly complex. A trader holding EUR-denominated bonds hedged with USD interest rate swaps must track not only the PV01 to each yield curve, but also the FX exposure created by the currency mismatch, the cross-currency basis risk embedded in the hedging instruments, and—crucially—the *interaction* between these risk factors when markets move together.
 
-- FX forward under deterministic rates: $F_0 = S_0 e^{(r_d - r_f)T}$ under the $S_0 = d/f$ convention (Hull)
-- FX forward in discount-factor form: $F_0 = S_0 \frac{P_f(0,T)}{P_d(0,T)}$ (derived from Hull's parity)
-- Delta as partial derivative of value: $\Delta = \partial V / \partial X$ (Hull)
-- Multi-curve framing: discounting and forecasting curves can be separated (Andersen & Piterbarg)
-- Sensitivity measurement through perturbations to market instruments: funding instruments → discount sensitivity; index instruments → forecasting sensitivity; basis instruments → basis sensitivity (Andersen & Piterbarg)
-- Cross-currency basis swap PV form and par basis definition (Andersen & Piterbarg)
-- Cross-currency yield spread definition: $P^{(L)}(t) = P(t) e^{-s(t)t}$ (Andersen & Piterbarg)
-- DV01 finite-difference definition: $\text{DV01} = P(y - 1\text{bp}) - P(y)$ (Tuckman)
-- Discount-factor curve as $P(t,T)$ "zero-bond curve" (Tuckman)
-- OIS discounting usage and post-crisis OIS shift (Hull)
-- Hull explicitly warns about FX quote direction differences across pairs
+Hull's *Risk Management and Financial Institutions* emphasizes that "interest rate risk is more difficult to manage than the risk arising from market variables such as equity prices, exchange rates, and commodity prices," in part because there are multiple correlated curves in any given currency, and the term structure itself is a function rather than a single number. In a multi-currency setting, this complexity multiplies: we now have term structures in each currency, FX spot and forward rates linking them, and basis spreads reconciling the cross-currency arbitrage relationships.
 
-### (B) Reasoned Inference (Derived from A)
+This chapter develops a systematic framework for decomposing and managing multi-currency risk. We cover:
 
-- Generic domestic-currency PV decomposition: $PV_d = \sum_k C_{d,k} P_d(0,T_k) + S_0 \sum_j C_{f,j} P_f(0,T_j)$ (natural generalization of discount-factor valuation + FX conversion logic)
-- FX01 conversion: $FX01 = 0.01 \cdot S_0 \cdot \Delta_{FX}$
-- Basis DV01 formula as the derivative of the basis-swap PV expression with respect to $e$
-- Hedge mapping "what to hedge with what" as practitioner interpretation of risk buckets
+1. **PV in a reporting currency** — converting foreign cashflows to a common base
+2. **First-order risk decomposition** — separating FX delta, rates PV01 (by currency and curve), and basis DV01
+3. **Second-order effects: cross-gamma and quantos** — why large moves and currency mismatches expose nonlinear interactions
+4. **Risk aggregation** — how correlations affect portfolio VaR, PCA for rates risk, and when diversification helps
+5. **Practical hedge instrument mapping** — what to hedge with what, and why hedges create secondary exposures
 
-### (C) Speculation (Clearly Labeled; Minimal)
-
-- I'm not sure about cross-currency basis quoting/sign conventions across different markets and systems (which leg carries "+$e$" and sign in risk reports) without the currency pair, trade direction, and desk conventions
-- I'm not sure about collateral currency/CSA-driven discounting choice and how it is operationalized without CSA and clearing details
-- I'm not sure about exact FX swap settlement/calendar conventions for specific pairs without pair/market specification
+The chapter connects to Part IV (curve construction) for multi-curve mechanics, to Chapter 21 for cross-currency basis fundamentals, and previews Part VII's treatment of collateral discounting. Throughout, we maintain the discipline of specifying what is source-verified, what is derived, and what remains uncertain.
 
 ---
 
-## Conventions & Notation
+## 31.1 Notation and Conventions
 
-### Notation Glossary
+Before diving into mechanics, we establish notation that will be used consistently throughout the chapter.
 
-| Symbol | Meaning | First Defined |
-|--------|---------|---------------|
-| $d$, $f$ | Domestic and foreign currency labels | This chapter |
-| $S_0$ or $S_t$ | Spot FX at time $t$, quoted $d$ per 1 $f$ (e.g., USD per 1 EUR) | This chapter |
-| $F_{0,T}$ or $F_{t,T}$ | FX forward for settlement at $T$, quoted $d$ per 1 $f$ | This chapter |
-| $P_d(0,T)$, $P_f(0,T)$ | Discount factors in currencies $d$, $f$ | Ch 2, extended |
-| $P_d^{(L)}(0,T)$, $P_f^{(L)}(0,T)$ | Index/projection "pseudo-discount" curves for $L$-indexed legs | This chapter |
-| $L_d(0, t_i, t_{i+1})$, $L_f(0, t_i, t_{i+1})$ | Forward floating rates for accrual period $[t_i, t_{i+1}]$ | This chapter |
-| $e$ | Cross-currency basis spread (quoted; convention-dependent) | This chapter |
-| $\Delta_{FX}$ | FX delta: $\partial PV_d / \partial S_0$ (units: $f$) | This chapter |
-| $PV01_{d,\text{disc}}$, $PV01_{f,\text{disc}}$ | PV01s to domestic/foreign discount curves | This chapter |
-| $PV01_{\text{basis}}$ | Basis DV01 to the quoted cross-currency basis spread | This chapter |
-| $DV01$ | Bond DV01 as in Tuckman | Ch 11 |
-| $\tau$ or $\alpha$ | Year fraction / accrual factor | Ch 1, 4 |
+### 31.1.1 Currency Labels and FX Convention
 
-### Defaults Used in Examples
+We designate a **domestic** currency $d$ and a **foreign** currency $f$. The spot FX rate $S_0$ is quoted as:
 
-- **Reporting currency:** Domestic $d$ = USD
-- **FX quote direction:** $S = d/f$ = "domestic per 1 foreign" (e.g., USD per EUR)
-- **Curves:** Treated as inputs (no bootstrapping in this chapter)
-- **Risk decomposition:** First-order buckets — FX delta, rate PV01 (by curve/currency), and basis DV01
-- **Bump definition:** $P'(0,T) = P(0,T) \exp(-0.0001 \cdot T)$ (equivalent to +1 bp parallel shift of continuously-compounded zero rates)
+$$S_0 = \frac{d}{f} \quad \text{(domestic units per one foreign unit)}$$
 
-### Key Convention Warnings
+For example, with $d$ = USD and $f$ = EUR, $S_0 = 1.10$ means 1.10 USD per 1 EUR. Hull explicitly warns about FX quote direction differences across pairs—the same pair might be quoted as EUR/USD or USD/EUR depending on market convention, and misinterpreting this flips the sign of FX delta.
 
-> **FX Quote Direction:** Hull notes that actual market quote conventions can differ by pair; if the market quotes the inverse, you must invert and apply the chain rule for deltas.
+### 31.1.2 Discount Factors and Forward Curves
 
-> **Cross-Currency Basis Convention:** Which leg receives/pays the spread and the sign of the quoted "basis" differs across markets/venues. If your desk uses the opposite quoting convention, sensitivities will flip sign. I'm not sure which convention you want without knowing the pair and desk quoting; you must specify (i) "basis added to non-USD leg" vs "basis added to USD leg", and (ii) pay/receive sign in your risk system.
+Following the notation from earlier chapters:
 
----
+| Symbol | Meaning |
+|--------|---------|
+| $P_d(0,T)$, $P_f(0,T)$ | Discount factors in domestic and foreign currencies |
+| $P_d^{(L)}(0,T)$, $P_f^{(L)}(0,T)$ | Projection/index curves (may differ from discount curves) |
+| $L_d(0, t_i, t_{i+1})$, $L_f(0, t_i, t_{i+1})$ | Forward floating rates for accrual period $[t_i, t_{i+1}]$ |
+| $e$ | Cross-currency basis spread (quoted; convention-dependent) |
 
-## Core Concepts
+Andersen and Piterbarg note that "the term structure is not a single curve in modern markets: discounting and forecasting can be separated, yielding (at least) a discount curve and one or more forward (projection) curves." This multi-curve framework is essential for understanding curve-specific PV01s.
 
-### 1) PV in a Reporting Currency
+### 31.1.3 Risk Measures
 
-**Formal Definition:**
+| Symbol | Definition | Units |
+|--------|------------|-------|
+| $\Delta_{FX}$ | $\partial PV_d / \partial S_0$ | Foreign currency $f$ |
+| $FX01$ | $0.01 \cdot S_0 \cdot \Delta_{FX}$ | Domestic currency $d$ per 1% FX move |
+| $PV01_{c,\text{disc}}$ | PV change under +1bp bump to currency $c$'s discount curve | $d$/bp |
+| $PV01_{c,\text{proj}}$ | PV change under +1bp bump to currency $c$'s projection curve | $d$/bp |
+| $PV01_{\text{basis}}$ | PV change under +1bp move in basis spread $e$ | $d$/bp |
 
-A multi-currency portfolio is reported in a single currency $d$. Each cashflow in currency $c \in \{d, f\}$ is discounted on the curve appropriate for that currency and then converted to $d$ (if needed) using the spot FX quote convention.
+### 31.1.4 Bump Definition for This Chapter
 
-**Intuition:**
+Throughout our examples, we use:
 
-A PV is just a sum of present values of deterministic (or expected) cashflows. Multi-currency adds exactly one extra step: currency conversion.
+$$P'(0,T) = P(0,T) \exp(-0.0001 \cdot T)$$
 
-**Trading / Risk / Portfolio Practice:**
-
-Your P&L explain is cleaner if your system:
-1. Values each currency leg in its native currency using its curve(s), then
-2. Converts to the reporting currency at spot (or at an agreed conversion framework), and
-3. Reports FX delta and rate PV01s separately
+This is equivalent to a +1bp parallel shift of continuously-compounded zero rates. Different desks may use different bump conventions (par-quote bumps with curve rebuild, key-rate bumps, etc.); the exact numerical PV01 depends on this choice.
 
 ---
 
-### 2) FX Forward Parity / Arbitrage Consistency
+## 31.2 PV in a Reporting Currency
 
-**Formal Definition:**
+### 31.2.1 The Fundamental Decomposition
 
-Under Hull's convention $S_0 = d/f$, the no-arbitrage forward is:
-
-$$\boxed{F_0 = S_0 e^{(r_d - r_f)T}}$$
-
-with continuous compounding, and he explicitly warns about quote direction differences across pairs.
-
-**Intuition:**
-
-If $d$ rates exceed $f$ rates, the $f$ currency tends to trade at a forward premium in $d/f$ terms, because holding $d$ earns more interest.
-
-**Trading / Risk / Portfolio Practice:**
-
-For risk, an FX forward is not "pure FX": it also embeds the interest differential (and in modern markets, potentially cross-currency basis). This is why FX hedges can introduce (or shift) rate PV01s.
-
----
-
-### 3) Discount Curve vs Projection (Forward-Rate) Curve
-
-**Formal Definition:**
-
-The interest-rate-modeling text emphasizes that "the term structure" is not a single curve in modern markets: discounting and forecasting can be separated, yielding (at least) a discount curve and one or more forward (projection) curves.
-
-**Intuition:**
-
-You discount cashflows using a curve consistent with funding/collateralization; you project floating coupons using a curve consistent with the floating index (e.g., LIBOR tenor).
-
-**Trading / Risk / Portfolio Practice:**
-
-This matters for risk attribution:
-- "Discount PV01" and "projection PV01" can point in different directions
-- The same hedge trade can reduce one but increase the other
-
----
-
-### 4) FX Delta
-
-**Formal Definition:**
-
-Delta is a partial derivative of value with respect to an underlying price: $\Delta = \partial V / \partial X$.
-
-In multi-currency reporting, FX delta is:
-
-$$\boxed{\Delta_{FX} := \frac{\partial PV_d}{\partial S_0}}$$
-
-where $S_0$ is the spot FX in your chosen quote direction.
-
-**Intuition:**
-
-"How much does my PV change if FX moves a tiny bit, with curves held fixed?"
-
-**Trading / Risk / Portfolio Practice:**
-
-FX delta is typically hedged with:
-- Spot/forwards, or
-- FX swaps (for funding/rolling hedges)
-
-depending on settlement horizon and how you manage cash.
-
----
-
-### 5) Rate PV01 by Currency (and by Curve)
-
-**Formal Definition:**
-
-The fixed-income literature defines DV01/PV01 as a price change under a 1 bp yield move; Tuckman gives a concrete finite-difference definition of DV01.
-
-In multi-curve practice, we refine this into:
-- $PV01_{d,\text{disc}}$: PV change under a +1 bp bump to the domestic discount curve
-- $PV01_{d,\text{proj}}$: PV change under a +1 bp bump to the domestic projection curve (holding discount fixed)
-- Similarly for foreign currency $f$
-
-The interest-rate-modeling text frames curve risk through perturbations to the market instruments used to build curves: funding instruments drive discount sensitivity; index instruments drive forecasting sensitivity; basis instruments drive basis sensitivity.
-
-**Intuition:**
-
-Rate PV01 answers: "If the curve for currency $c$ shifts up 1 bp (in whatever bump definition you use), what happens to my PV in reporting currency?"
-
-**Trading / Risk / Portfolio Practice:**
-
-Hedged with swaps/futures/bonds in the relevant currency curve bucket.
-
----
-
-### 6) Cross-Currency Basis and Basis Risk
-
-**Formal Definition:**
-
-A cross-currency basis swap exchanges floating payments in two currencies, with a quoted spread (basis) added to one leg. The interest-rate-modeling text gives the valuation of a USD/JPY basis swap where USD receives Libor flat and pays JPY Libor plus spread $e_{¥}$, and it defines "par" basis quotes as those making the swap PV zero.
-
-**Intuition:**
-
-Cross-currency basis is the market's way of reconciling:
-- Two rate curves (domestic and foreign), and
-- The FX forward market
-
-in a world where simple covered-interest-parity relationships can be "broken" by funding/credit/collateral segmentation (the text motivates this through arbitrage-consistency arguments).
-
-**Trading / Risk / Portfolio Practice:**
-
-Basis DV01 measures sensitivity to the quoted basis spread. It is hedged with:
-- Cross-currency basis swaps (same convention/tenor), or
-- A replication portfolio of swaps + FX forwards that reproduces basis exposure
-
----
-
-### 7) Cross-Currency Yield Spread (Index vs Discount in a Currency)
-
-**Formal Definition:**
-
-In the multi-currency formalism, the text defines a "cross-currency yield spread" $s(t)$ between a pseudo-discount curve $P^{(L)}(t)$ and a discount curve $P(t)$ via:
-
-$$P^{(L)}(t) = P(t) \, e^{-s(t)t}$$
-
-**Intuition:**
-
-This is a convenient way to quantify "how far apart" the discounting and projection curves are, in yield terms.
-
-**Trading / Risk / Portfolio Practice:**
-
-If your system uses separate curves, your PV01 can be highly sensitive to which curve you bump and how you rebuild.
-
----
-
-## Math and Derivations
-
-### 2.1 PV of Multi-Currency Deterministic Cashflows in Domestic Currency
-
-Assume deterministic cashflows $\{(C_{d,k}, T_{d,k})\}$ in currency $d$ and $\{(C_{f,j}, T_{f,j})\}$ in currency $f$. Let $P_d(0,T)$, $P_f(0,T)$ be discount factors in their own currencies.
-
-A natural decomposition is:
+Consider a portfolio with deterministic cashflows in two currencies: domestic cashflows $\{(C_{d,k}, T_{d,k})\}$ and foreign cashflows $\{(C_{f,j}, T_{f,j})\}$. The present value in domestic currency is:
 
 $$\boxed{PV_d = \sum_k C_{d,k} \, P_d(0, T_{d,k}) \;+\; S_0 \sum_j C_{f,j} \, P_f(0, T_{f,j})}$$
 
-**Unit Check:**
-- $C_{d,k}$ is in $d$; $P_d$ is dimensionless $\Rightarrow$ term is in $d$
-- $C_{f,j}$ is in $f$; $P_f$ dimensionless; $S_0$ is $d/f$ $\Rightarrow$ $S_0 C_{f,j} P_f$ is in $d$ ✓
+This formula captures the essential structure: domestic cashflows are discounted on the domestic curve, foreign cashflows are discounted on the foreign curve in their native currency, then converted at spot FX.
 
-**Connection to Arbitrage-Consistency:**
+**Unit check:** The first term has units of $d$ (domestic currency times dimensionless discount factor). The second term has units of $(d/f) \times f = d$. Both terms are in domestic currency, as required.
 
-The interest-rate-modeling text relates FX forwards and discount factors in a USD/JPY setting, showing how inconsistency would imply arbitrage.
+Andersen and Piterbarg formalize this structure when discussing multi-currency markets: "The value $\widetilde{P}_d$ to a domestic investor of one foreign zero-coupon bond is $\widetilde{P}_d(t,T) = X(t) P_f(t,T)$" where $X(t)$ is the spot exchange rate. The arbitrage-free forward FX rate follows as the ratio of domestic to foreign discount factors.
 
----
+### 31.2.2 Why Curve Choice Matters
 
-### 2.2 FX Forward Pricing (Discount-Factor Form)
+The formula above assumes we know which discount curves to use. In practice, this depends on:
 
-Hull gives:
+1. **Collateralization status**: A collateralized trade is typically discounted on the OIS curve of the collateral currency
+2. **CSA terms**: Different Credit Support Annexes may specify different eligible collateral
+3. **Clearing vs bilateral**: Cleared trades have standardized margin arrangements
 
-$$F_0 = S_0 e^{(r_d - r_f)T}$$
-
-under $S_0 = d/f$ and continuous compounding.
-
-Using $P_d(0,T) = e^{-r_d T}$, $P_f(0,T) = e^{-r_f T}$, we get:
-
-$$F_0 = S_0 \frac{e^{-r_f T}}{e^{-r_d T}} = S_0 \frac{P_f(0,T)}{P_d(0,T)}$$
-
-This matches the general structure that forward FX depends on the ratio of foreign to domestic discounting.
+Hull notes that "after the 2007–08 crisis, institutions switched from LIBOR/swap rates to OIS rates as proxies for risk-free rates" for discounting. I'm not sure about the exact discounting curve choice without knowing your CSA/collateral currency and whether trades are cleared or bilateral.
 
 ---
 
-### 2.3 FX Delta for Deterministic Multi-Currency Cashflows
+## 31.3 First-Order Risk Decomposition
 
-Start from:
+### 31.3.1 FX Delta
 
-$$PV_d(S_0) = \sum_k C_{d,k} P_d(0, T_{d,k}) + S_0 \sum_j C_{f,j} P_f(0, T_{f,j})$$
+**Definition:** FX delta measures how PV changes when spot FX moves:
 
-Differentiate w.r.t. $S_0$:
+$$\boxed{\Delta_{FX} := \frac{\partial PV_d}{\partial S_0}}$$
 
-$$\boxed{\Delta_{FX} = \frac{\partial PV_d}{\partial S_0} = \sum_j C_{f,j} P_f(0, T_{f,j})}$$
+For the deterministic cashflow case, differentiating the PV formula with respect to $S_0$:
 
-**Units:**
-- RHS is in $f$
-- LHS: $PV_d$ is in $d$, $S_0$ is $d/f$, so $\partial PV_d / \partial S_0$ is $f$ ✓
+$$\Delta_{FX} = \sum_j C_{f,j} \, P_f(0, T_{f,j})$$
 
-**"Per 1% Move" Version (Desk-Friendly):**
+This equals the present value of foreign cashflows, computed in foreign currency. The intuition is immediate: if spot moves by $dS$, the domestic value of foreign cashflows changes by $dS$ times their foreign PV.
 
-For a small relative move $\Delta S / S$:
+**Units check:** $PV_d$ is in $d$, $S_0$ is in $d/f$, so $\partial PV_d / \partial S_0$ is in $f$. FX delta is denominated in foreign currency.
 
-$$\Delta PV_d \approx \frac{\partial PV_d}{\partial S_0} \Delta S = \Delta_{FX} (S_0 \cdot \Delta S / S_0) = (S_0 \Delta_{FX}) \cdot \frac{\Delta S}{S_0}$$
+**Desk-friendly conversion:** The "FX01" reports domestic P&L per 1% spot move:
 
-So USD P&L per 1% FX move is:
+$$\boxed{FX01 = 0.01 \cdot S_0 \cdot \Delta_{FX}}$$
 
-$$\boxed{FX01 := 0.01 \cdot S_0 \cdot \Delta_{FX}}$$
+This converts the foreign-currency sensitivity to domestic-currency P&L for a percentage move rather than an absolute move.
 
----
+### 31.3.2 Rates PV01 by Currency and Curve
 
-### 2.4 Curve-Specific PV01 (Discount vs Projection)
+In a multi-curve world, interest rate sensitivity decomposes along two dimensions: **which currency** and **which curve** (discount vs projection).
 
-The interest-rate-modeling text emphasizes that discounting and forecasting curves can be distinct, and it suggests measuring sensitivities by perturbing the market instruments that define those curves (funding instruments for discounting; index instruments for forecasting; basis instruments for basis risk).
-
-For any curve object $x$, define:
-
-$$\boxed{PV01_x := PV_d(\text{curve } x \text{ bumped by } +1\text{bp}) - PV_d}$$
-
-**Bump Definition Warning:**
-
-A "+1 bp" can mean:
-- Parallel shift of continuously-compounded zero rates, or
-- Parallel shift of par quotes with full rebuild, etc.
-
-I'm not sure which one your desk uses; to be certain, we need your risk system's bump specification (zero bump vs par bump/rebuild, and which instruments are rebuilt).
-
----
-
-### 2.5 Cross-Currency Basis Swap PV and Basis DV01
-
-The interest-rate-modeling text gives the USD PV of a USD/JPY basis swap (receive USD Libor flat, pay JPY Libor + $e_{¥}$) as:
-
-$$V_{\text{basisswap},\$}(0) = \sum_i L_{\$}(0, t_i, t_{i+1}) \tau_i P_{\$}(0, t_{i+1}) + P_{\$}(0, t_n)$$
-$$\quad - X(0) \left( \sum_i (L_{¥}(0, t_i, t_{i+1}) + e_{¥}) \tau_i P_{¥}(0, t_{i+1}) + P_{¥}(0, t_n) \right)$$
-
-and provides an equivalent rearrangement (equations (6.41)–(6.42)).
-
-**Key Point for Basis DV01:**
-
-The spread enters linearly as:
-
-$$- X(0) \cdot e_{¥} \sum_i \tau_i P_{¥}(0, t_{i+1}) \quad \text{(inside the foreign-leg PV)}$$
-
-Therefore, holding spot and curves fixed, the sensitivity to the quoted basis (per 1 unit of spread) is:
-
-$$\frac{\partial V}{\partial e_{¥}} = - X(0) \sum_i \tau_i P_{¥}(0, t_{i+1})$$
-
-and the basis DV01 is:
-
-$$\boxed{PV01_{\text{basis}} = \frac{\partial V}{\partial e} \cdot 1\text{bp} = \left(\frac{\partial V}{\partial e}\right) \cdot 0.0001}$$
-
-**Sanity Check:**
-
-If you pay "foreign + basis", then increasing basis should make the swap worse (PV down) $\Rightarrow$ negative basis DV01. The formula matches that sign.
-
----
-
-## Measurement & Risk (Chapter 31 Focus)
-
-### A) PV in a Chosen Reporting Currency
-
-**Define Reporting Currency:**
-
-Let $d$ be the reporting (domestic) currency.
-
-**PV of Multi-Currency Cashflows in Domestic Terms:**
-
-With spot $S_0 = d/f$, a useful decomposition is:
-
-$$PV_d = PV(\text{domestic cashflows discounted on } d\text{-curve}) \;+\; S_0 \cdot PV(\text{foreign cashflows discounted on } f\text{-curve})$$
-
-This structure aligns with the text's arbitrage-consistency logic linking FX forwards and discounting across currencies.
-
-**Clarify What Gets Discounted on Which Curve:**
-
-- **Domestic cashflows:** Discount on domestic curve(s) in currency $d$
-- **Foreign cashflows:** Discount on foreign curve(s) in currency $f$, then convert at spot $S_0$
-
-If you use collateral-currency discounting, the appropriate discount curve may be driven by CSA collateral currency rather than payment currency. I'm not sure the correct discounting choice without your CSA/collateral currency and whether trades are cleared or bilateral.
-
----
-
-### B) Risk Decomposition (First-Order)
-
-#### FX Delta
-
-**Definition:**
-
-$$\Delta_{FX} := \frac{\partial PV_d}{\partial S_0}$$
-
-Delta as a sensitivity concept is standard: $\Delta = \partial V / \partial X$.
-
-**Units:**
-
-If $S_0$ is $d/f$, then $\Delta_{FX}$ has units $f$.
-
-Desk reports often also show:
-
-$$FX01 = 0.01 \cdot S_0 \cdot \Delta_{FX} \quad \text{(units: } d \text{ per 1\% FX move)}$$
-
----
-
-#### Rates PV01 by Currency (Discount and Projection Curves)
-
-**Domestic Discount PV01:**
-
+**Discount curve PV01:**
 $$PV01_{d,\text{disc}} := PV_d(P_d \text{ bumped } +1\text{bp}) - PV_d$$
 
-**Domestic Projection PV01 (if relevant):**
+**Projection curve PV01 (if applicable):**
+$$PV01_{d,\text{proj}} := PV_d(P_d^{(L)} \text{ bumped } +1\text{bp}, P_d \text{ held fixed}) - PV_d$$
 
-$$PV01_{d,\text{proj}} := PV_d(\text{projection curve for } d \text{ bumped } +1\text{bp}) - PV_d$$
+The same definitions apply for foreign currency curves.
 
-with discount curve held fixed.
+Andersen and Piterbarg emphasize that sensitivity measurement should reflect "perturbations to the market instruments used to build curves: funding instruments → discount sensitivity; index instruments → forecasting sensitivity; basis instruments → basis sensitivity." This instrument-based framing is particularly useful for understanding what hedges affect which PV01.
 
-**Foreign Analogs:** $PV01_{f,\text{disc}}$, $PV01_{f,\text{proj}}$
+### 31.3.3 Cross-Currency Basis Risk
 
-**"What Does Bump Mean?"**
+Cross-currency basis swaps exchange floating payments in two currencies, with a quoted spread added to one leg. Andersen and Piterbarg provide the USD PV of a USD/JPY basis swap (receive USD Libor flat, pay JPY Libor + $e_{¥}$). The basis spread enters the PV linearly:
 
-The interest-rate-modeling text motivates measuring sensitivities through perturbations to the market instruments used for curve construction (funding instruments, basis swaps, etc.).
+$$\text{Foreign leg contribution} \supset -X(0) \cdot e \sum_i \tau_i P_f(0, t_{i+1})$$
 
-Operationally, desks choose either:
-- Parallel zero-rate bump (direct bump of curve nodes), or
-- Par-quote bump + rebuild (bump market quotes, rebuild curves)
+**Basis DV01:**
+$$\boxed{PV01_{\text{basis}} = \frac{\partial V}{\partial e} \times 0.0001}$$
 
-I'm not sure which you want without your system definition; it materially changes PV01 attribution.
+For a basis swap where you pay "foreign + basis," increasing the basis makes the swap worse for you (PV down), so basis DV01 is negative.
 
----
+**Sanity check:** This matches the formula—if $\partial V / \partial e < 0$, then basis DV01 < 0, meaning you lose when basis widens.
 
-#### Basis Risk (Cross-Currency Basis)
+### 31.3.4 Why First-Order Buckets Are Not Independent
 
-**Definition (Basis DV01):**
+A critical insight is that first-order risk buckets—FX delta, domestic PV01, foreign PV01, basis DV01—are not independent of each other. An FX forward used to hedge FX delta also embeds rate PV01 because the forward price depends on both discount curves:
 
-If the product PV depends on the quoted cross-currency basis spread $e$:
+$$F_0 = S_0 \frac{P_f(0,T)}{P_d(0,T)}$$
 
-$$PV01_{\text{basis}} := PV_d(e + 1\text{bp}) - PV_d(e)$$
-
-The text's explicit basis-swap valuation (USD/JPY) shows how $e$ enters linearly into PV.
-
-**Distinct from FX Delta and Rate PV01:**
-
-| Risk Bucket | Sensitivity To |
-|-------------|----------------|
-| FX delta | Spot $S_0$ |
-| Rate PV01 | $P_d$ or $P_f$ (and/or projection curves) |
-| Basis DV01 | Quoted spread $e$ that reconciles the cross-currency swap market |
+Differentiating shows the forward has sensitivity to both domestic and foreign discount factors. We will see this explicitly in the worked examples.
 
 ---
 
-### C) "What to Hedge with What?"
+## 31.4 Second-Order Effects: Cross-Gamma
 
-**Practitioner Mapping (First-Order Buckets):**
+### 31.4.1 Why First-Order Hedging Can Fail
+
+First-order (delta/DV01) hedging assumes that sensitivities are approximately constant. For small moves in a single market variable, this works well. But multi-currency portfolios face two challenges that make first-order hedging inadequate:
+
+1. **Large moves**: When FX moves by 5% or curves shift by 50bp, the linear approximation breaks down
+2. **Correlated moves**: FX and rates often move together (e.g., currency weakness accompanied by rising rates during a crisis)
+
+Hull explains gamma in the single-asset context: "The gamma $(\Gamma)$ of a portfolio of options on an underlying asset is the rate of change of the portfolio's delta with respect to the price of the underlying asset. It is the second partial derivative of the portfolio with respect to asset price." For a delta-neutral portfolio, the P&L under a stock price move $\Delta S$ is approximately:
+
+$$\Delta \Pi \approx \Theta \Delta t + \frac{1}{2} \Gamma \Delta S^2$$
+
+This second-order term can dominate for large moves.
+
+### 31.4.2 Cross-Gamma in Multi-Currency Portfolios
+
+In a multi-currency context, we have multiple market variables: spot FX ($S$), domestic rates ($r_d$), foreign rates ($r_f$), and possibly basis ($e$). The Taylor expansion of portfolio value includes cross-derivative terms:
+
+$$\Delta PV \approx \underbrace{\frac{\partial PV}{\partial S}\Delta S + \frac{\partial PV}{\partial r_d}\Delta r_d + \frac{\partial PV}{\partial r_f}\Delta r_f}_{\text{First-order (delta/PV01)}}$$
+$$+ \underbrace{\frac{1}{2}\frac{\partial^2 PV}{\partial S^2}(\Delta S)^2 + \frac{1}{2}\frac{\partial^2 PV}{\partial r_d^2}(\Delta r_d)^2 + \ldots}_{\text{Own second-order (gamma/convexity)}}$$
+$$+ \underbrace{\frac{\partial^2 PV}{\partial S \partial r_d}\Delta S \Delta r_d + \frac{\partial^2 PV}{\partial S \partial r_f}\Delta S \Delta r_f + \ldots}_{\text{Cross-gamma terms}}$$
+
+The **cross-gamma** terms capture how FX delta changes when rates move, and vice versa. For a cross-currency swap, these terms can be significant.
+
+### 31.4.3 When Cross-Gamma Matters
+
+Cross-gamma is most important when:
+
+1. **Large positions**: The notional is big enough that second-order effects are material
+2. **Correlated stress scenarios**: FX and rates move together (e.g., EM currency crisis with rising local rates)
+3. **Nonlinear instruments**: Options on FX or rates, callable cross-currency structures
+4. **Long horizons**: The longer the time between hedge rebalancing, the more first-order hedges can drift
+
+Hull notes in the options context: "If gamma is highly negative or highly positive, delta is very sensitive to the price of the underlying asset. It is then quite risky to leave a delta-neutral portfolio unchanged for any length of time."
+
+### 31.4.4 Measuring Cross-Gamma
+
+Cross-gamma can be computed by finite differences:
+
+$$\Gamma_{S,r_d} \approx \frac{PV(S+h_S, r_d+h_r) - PV(S+h_S, r_d) - PV(S, r_d+h_r) + PV(S, r_d)}{h_S \cdot h_r}$$
+
+In practice, risk systems often report:
+
+- **FX gamma** ($\partial^2 PV / \partial S^2$): how FX delta changes with spot
+- **Rates gamma/convexity** ($\partial^2 PV / \partial r^2$): how rates PV01 changes with rates
+- **Cross-gamma** ($\partial^2 PV / \partial S \partial r$): the interaction term
+
+I'm not sure about the exact cross-gamma reporting conventions across different risk systems without additional specification. The numerical magnitudes depend heavily on the bump sizes used.
+
+### 31.4.5 Quanto Adjustments: When Currency Mismatch Affects Pricing
+
+A special case of cross-currency risk arises with **quanto derivatives**—instruments where the underlying is measured in one currency but the payoff is in another. Hull defines these clearly: "A quanto is a derivative where the underlying asset is measured in one currency and the payoff is in another currency."
+
+**Example:** CME's Nikkei 225 futures contract is a classic quanto—the underlying Nikkei index is denominated in JPY, but the contract settles in USD.
+
+For quantos, the correlation between the underlying and the FX rate affects pricing through a **quanto adjustment**. Hull explains this in the context of diff swaps: "Sometimes a rate observed in one currency is applied to a principal amount in another currency. One such deal would be where a U.S. floating rate is exchanged for a U.K. floating rate with both principals being applied to a principal of 10 million British pounds."
+
+The quanto adjustment arises because when we price a foreign-currency payoff in domestic terms:
+
+> **Analogy: The Universal Traveler**
+>
+> A **Quanto** is like having a "Magic Wallet" for travel.
+>
+> 1.  **Normal Travel (FX Risk)**: You go to Japan. You buy a ¥10,000 meal. If the Yen is strong, that meal costs you \$100. If the Yen is weak, it costs you \$80. You care about the exchange rate.
+> 2.  **Quanto Travel (No FX Risk)**: You have the Magic Wallet. You see a ¥10,000 meal. The wallet instantly debits your bank account \$100.
+>     *   It doesn't matter if the Market FX rate is 80, 100, or 120. Your wallet *always* converts at a fixed rate (e.g., 100).
+>
+> **The Cost of Magic**: This shield isn't free. If Japanese stock prices (Nikkei) and the Yen are correlated (e.g., stocks go up when Yen goes down), the "Magic Wallet" provider loses money. They charge you for this correlation risk via the **Quanto Adjustment**.
+- If the foreign underlying rises and the foreign currency also strengthens (positive correlation), the domestic-currency payoff is amplified
+- If they move in opposite directions (negative correlation), the payoff is dampened
+
+This creates a convexity-like effect that must be reflected in the forward price used for pricing. The adjustment is approximately:
+
+$$\text{Quanto Forward} = \text{Standard Forward} \times e^{-\rho_{S,X} \sigma_S \sigma_X T}$$
+
+where $\rho_{S,X}$ is the correlation between the underlying return and the FX rate, and $\sigma_S$, $\sigma_X$ are their volatilities.
+
+**Relevance to risk:** Quanto positions have embedded correlation exposure. A change in the S-X correlation changes the fair value, creating a risk dimension not captured by simple FX delta or rates PV01.
+
+I'm not sure about the exact quanto adjustment formulas for all product types without specifying the underlying model (Hull develops this in the context of specific rate models in Chapter 30).
+
+---
+
+## 31.5 Risk Aggregation and Correlation
+
+### 31.5.1 The Aggregation Problem
+
+A multi-currency desk may compute separate risk measures for its USD book, EUR book, and cross-currency book. How should these be combined into a total portfolio risk measure?
+
+Hull provides the VaR aggregation formula:
+
+$$\boxed{\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \, \text{VaR}_j \, \rho_{ij}}}$$
+
+where $\text{VaR}_i$ is the VaR for segment $i$ and $\rho_{ij}$ is the correlation between losses from segments $i$ and $j$. He notes this "is exactly true when the losses (gains) have zero-mean normal distributions and provides a good approximation in many other situations."
+
+### 31.5.2 Diversification Effects
+
+When $\rho_{ij} < 1$, the total VaR is less than the sum of individual VaRs—this is the **diversification benefit**. Hull illustrates: "The VaR for the combined portfolio is less than the VaR for the Microsoft portfolio plus the VaR for the AT&T portfolio. Less than perfect correlation leads to some of the risk being 'diversified away.'"
+
+**Example:** If two segments have VaRs of \$60mm and \$100mm with correlation 0.4:
+
+$$\text{VaR}_{\text{total}} = \sqrt{60^2 + 100^2 + 2 \times 60 \times 100 \times 0.4} = \$135.6\text{mm}$$
+
+This is less than \$160mm (the sum), reflecting diversification.
+
+### 31.5.3 Component VaR and Risk Attribution
+
+Hull introduces **component VaR** as a way to attribute total portfolio risk to sub-portfolios:
+
+$$\text{VaR} = \sum_{i=1}^{M} C_i$$
+
+where $C_i$ is the component VaR for segment $i$. This uses Euler's theorem: for a linearly homogeneous risk measure, the total equals the sum of partial derivatives times positions.
+
+For a multi-currency desk, this allows attributing total VaR to:
+- USD rates book
+- EUR rates book
+- FX book
+- Cross-currency basis book
+
+**Why this matters:** Component VaR helps identify which segment contributes most to total risk, guiding hedging priorities and limit allocation.
+
+### 31.5.4 Principal Components for Interest Rate Risk
+
+When managing multi-currency portfolios, interest rate risk within each currency can be further decomposed using **principal components analysis (PCA)**. Tuckman explains: "Applied to a term structure of interest rates, principal components are a mathematical expression of typical changes in term structure shape as extracted from data on changes in rates."
+
+Hull RM provides a practical interpretation: "One approach to handling the risk arising from groups of highly correlated market variables is principal components analysis... It takes historical data on daily changes in the market variables and attempts to define a set of components or factors that explain the movements."
+
+The key insight from PCA is that most interest rate curve movements can be explained by just two or three factors:
+
+| Factor | Interpretation | Typical Variance Explained |
+|--------|----------------|---------------------------|
+| PC1 | Parallel shift (level) | ~80-90% |
+| PC2 | Twist (slope) | ~5-10% |
+| PC3 | Butterfly (curvature) | ~1-3% |
+
+Hull notes: "The first two factors... account for almost all of the variance in the data," showing that "most of the risk in interest rate moves is accounted for by the first two or three factors."
+
+**Multi-currency application:** For a portfolio with USD and EUR rate exposure, PCA can be applied separately to each curve. Cross-currency correlation then arises from correlations between the factor scores (level-to-level, slope-to-slope) rather than from individual rate correlations. This is more parsimonious and often more stable.
+
+### 31.5.5 Factor Models for Correlation
+
+Hull introduces a one-factor model for correlated variables:
+
+$$U_i = a_i F + \sqrt{1 - a_i^2} Z_i$$
+
+where $F$ is a common factor, $Z_i$ is an idiosyncratic component, and $a_i$ determines the correlation. This structure implies correlation $\rho_{ij} = a_i a_j$ between variables $i$ and $j$.
+
+For multi-currency risk, one might posit:
+- A global rates factor affecting all curves
+- Currency-specific factors
+- A global FX factor
+
+This reduces the number of correlations to estimate from $n(n-1)/2$ to the number of factor loadings.
+
+### 31.5.6 Correlation Breakdown in Stress
+
+A critical caveat: correlations estimated from normal market conditions may not hold during stress. McNeil et al. in *Quantitative Risk Management* emphasize "the phenomenon of dependence between extreme outcomes, when many risk factors move against us simultaneously."
+
+When correlations increase toward 1.0 during a crisis (which they tend to do), diversification benefits disappear. A portfolio that looked well-diversified in normal times may show concentrated risk in stress.
+
+**Practical implication:** Stress testing should use correlation matrices calibrated to crisis periods, not normal-market periods. Many institutions run "stressed VaR" scenarios with elevated correlations.
+
+---
+
+## 31.6 Hedge Instrument Mapping
+
+### 31.6.1 What to Hedge with What
+
+The first-order risk buckets map naturally to hedge instruments:
 
 | Exposure | Hedge Instrument | Rationale |
 |----------|------------------|-----------|
-| FX delta | FX spot/forwards (or FX swap for rolling horizon/funding) | FX forward value changes with spot; delta is the leading exposure |
-| Domestic rate PV01 | Domestic swaps/futures/bonds | These instruments are directly sensitive to the domestic curve you are bumping |
-| Foreign rate PV01 | Foreign swaps/futures/bonds | These instruments load on the foreign curve; in domestic reporting, you will also manage their FX delta separately (often with FX forwards) |
-| Basis DV01 | Cross-currency basis swaps (matching convention/tenor as closely as possible) | Basis DV01 is explicitly the derivative w.r.t. the quoted basis spread $e$ that appears in basis swaps |
+| FX delta ($\Delta_{FX}$) | FX spot, forwards, or FX swaps | Forward value changes with spot; delta is the leading exposure |
+| Domestic rate PV01 | Domestic swaps, futures, or bonds | Directly sensitive to domestic curve |
+| Foreign rate PV01 | Foreign swaps, futures, or bonds | Loads on foreign curve; hedge will also have FX exposure |
+| Basis DV01 | Cross-currency basis swaps | The quoted basis spread $e$ is exactly what basis swaps trade |
+
+### 31.6.2 Why Hedges Create Secondary Exposures
+
+This mapping is not clean in practice. Each hedge instrument brings its own risk profile:
+
+**FX forwards create rate PV01:**
+An FX forward at strike $K = F_0 = S_0 P_f/P_d$ has value:
+$$V_{\text{fwd}} = N \cdot (K \cdot P_d(0,T) - S_0 \cdot P_f(0,T))$$
+
+Differentiating with respect to domestic and foreign curves shows the forward has both domestic and foreign rate sensitivity.
+
+**Foreign rate hedges create FX exposure:**
+If you hedge foreign curve PV01 by entering a foreign-currency swap, the swap itself has value denominated in foreign currency. Its domestic-currency PV depends on spot FX, creating FX delta that must be separately hedged.
+
+**Basis swaps have rate and FX components:**
+A cross-currency basis swap combines:
+- FX delta (from the notional exchange)
+- Domestic and foreign rate PV01 (from the floating legs)
+- Basis DV01 (from the quoted spread)
+
+### 31.6.3 Iterative Hedging in Practice
+
+Because hedges create secondary exposures, practical hedge programs are iterative:
+
+1. **Hedge the largest/most liquid bucket first** (often FX delta)
+2. **Measure new exposures** created by the hedge
+3. **Hedge remaining exposures** with appropriate instruments
+4. **Iterate** until residual exposures are within limits
+
+This is why desks maintain real-time risk systems that recompute all Greeks after each trade.
 
 ---
 
-### D) Why Curve Choice Matters for Hedges
+## 31.7 Worked Examples
 
-Even if you treat curves as "inputs", hedge ratios depend on which curves you use.
-
-**Discounting Curve Choice Changes PV and PV01:**
-
-- OIS discounting is explicitly referenced as used in Hull's DerivaGem worksheets for certain interest-rate derivatives
-- Hull's risk-management text notes that after the 2007–08 crisis, institutions switched from LIBOR/swap rates to OIS rates as proxies for risk-free rates
-
-**Projection Curve Choice Changes Floating-Leg PV and PV01 Attribution:**
-
-The interest-rate-modeling text describes separate discount and forward curves and defines forward rates from the index curve.
-
-**Basis Definition/Sign/Curve Build Can Change Hedge Ratios:**
-
-Basis swaps are quoted with a par spread $e_{\text{par}}$ that makes PV zero, but which leg the spread is attached to and sign conventions vary across markets.
-
-I'm not sure your desk's exact quoting (receive/pay basis, which leg is "+basis"). To be certain, we need: currency pair, quote convention, and your risk system sign definition.
-
-**Numerical Demonstration (Preview; Full in Example K):**
-
-Changing domestic discount factor from $P_d(0,2) = 0.94$ to $0.945$ changes the fair forward $F_0 = S_0 P_f / P_d$, and therefore the locked-in domestic cash amount for an FX hedge changes. This directly changes PV and hedge ratios when you re-price or re-hedge.
-
----
-
-### E) Keep It Focused
-
-- We do **not** bootstrap cross-currency curves here; we treat curves and basis quotes as given inputs
-- We do **not** do XVA; collateral currency matters only insofar as it selects discount curves and hence changes PV/PV01 and hedge ratios
-
----
-
-## Worked Examples
-
-### Shared Baseline Conventions for Examples A–I
+### Baseline Data for Examples
 
 | Parameter | Value |
 |-----------|-------|
@@ -475,696 +374,338 @@ Changing domestic discount factor from $P_d(0,2) = 0.94$ to $0.945$ changes the 
 | $P_f(0,1)$ | 0.98 |
 | $P_f(0,2)$ | 0.95 |
 | Bump definition | $P'(0,T) = P(0,T) \exp(-0.0001 \cdot T)$ |
-| Day count/compounding | Avoided by working directly with discount factors |
 
----
-
-### Example A: PV Conversion Sanity — Two Deterministic Cashflows
+### Example A: Multi-Currency PV Calculation
 
 **Cashflows:**
 - Receive +100 USD at $T = 1$
 - Receive +80 EUR at $T = 2$
 
-**PV in USD:**
+**Step-by-step calculation:**
 
-$$PV = 100 \cdot 0.97 + 1.10 \cdot 80 \cdot 0.95$$
+1. **Domestic PV:** $100 \times 0.97 = 97.00$ USD
+2. **Foreign PV (in EUR):** $80 \times 0.95 = 76.00$ EUR
+3. **Convert to USD:** $1.10 \times 76.00 = 83.60$ USD
+4. **Total:** $97.00 + 83.60 = \mathbf{180.60}$ **USD**
 
-**Intermediate Steps:**
+**Unit verification:** All terms are in USD. ✓
 
-| Component | Calculation | Result |
-|-----------|-------------|--------|
-| Domestic PV | $100 \cdot 0.97$ | 97.00 USD |
-| Foreign PV in EUR | $80 \cdot 0.95$ | 76.00 EUR |
-| Convert to USD | $S_0 \cdot 76.00 = 1.10 \cdot 76.00$ | 83.60 USD |
-| **Total** | $97.00 + 83.60$ | **180.60 USD** |
+### Example B: FX Delta via Finite Difference
 
-**Unit Checks:**
-- $1.10$ USD/EUR $\times$ 76 EUR = USD ✓
-
----
-
-### Example B: FX Delta via Finite Difference — Spot +1%
-
-**Spot Bump:**
-
-$$S_1 = 1.10 \times 1.01 = 1.111$$
+**Bump spot by +1%:** $S_1 = 1.10 \times 1.01 = 1.111$
 
 **Reprice:**
+$$PV(S_1) = 97.00 + 1.111 \times 76.00 = 97.00 + 84.436 = 181.436 \text{ USD}$$
 
-$$PV(S_1) = 97.00 + 1.111 \cdot 76.00 = 97.00 + 84.436 = 181.436 \text{ USD}$$
+**Finite-difference FX delta:**
+$$\Delta_{FX} = \frac{181.436 - 180.60}{1.111 - 1.10} = \frac{0.836}{0.011} = \mathbf{76.00 \text{ EUR}}$$
 
-**Finite-Difference FX Delta:**
+This exactly matches the theoretical result: FX delta equals the foreign-currency PV of foreign cashflows.
 
-| Quantity | Calculation | Result |
-|----------|-------------|--------|
-| $\Delta PV$ | $181.436 - 180.60$ | 0.836 USD |
-| $\Delta S$ | $1.111 - 1.10$ | 0.011 USD/EUR |
-| $\Delta_{FX}$ | $\Delta PV / \Delta S = 0.836 / 0.011$ | **76.00 EUR** |
+**FX01:** P&L per 1% move = $0.836$ USD
 
-**"PV per 1% Move":**
+### Example C: Domestic Discount PV01
 
-+1% move produced +0.836 USD, so $FX01 = +0.836$ USD per +1% move.
-
----
-
-### Example C: Domestic PV01 — +1bp Bump to Domestic Discount Curve
-
-**Domestic DF Bump at $T = 1$:**
-
-$$P_d'(0,1) = 0.97 \exp(-0.0001) \approx 0.97 \cdot 0.9999 = 0.969903$$
+**Bump domestic DF at $T = 1$:**
+$$P_d'(0,1) = 0.97 \times e^{-0.0001} = 0.97 \times 0.9999 = 0.969903$$
 
 **Reprice:**
-
-$$PV' = 100 \cdot 0.969903 + 83.60 = 96.9903 + 83.60 = 180.5903 \text{ USD}$$
-
-**PV01 (Definition: +1bp Bump):**
-
-$$PV01_{d,\text{disc}} = PV' - PV = 180.5903 - 180.60 = \mathbf{-0.0097 \text{ USD/bp}}$$
-
-**DV01 (Tuckman-Style):**
-
-Tuckman defines $DV01 = P(y - 1\text{bp}) - P(y)$.
-
-Under symmetric small bumps, $DV01 \approx -PV01$ in sign.
-
----
-
-### Example D: Foreign PV01 — +1bp Bump to Foreign Discount Curve
-
-**Foreign DF Bump at $T = 2$:**
-
-$$P_f'(0,2) = 0.95 \exp(-0.0002) \approx 0.95 \cdot 0.9998 = 0.94981$$
-
-**Reprice Foreign PV:**
-
-| Step | Calculation | Result |
-|------|-------------|--------|
-| Foreign PV in EUR | $80 \cdot 0.94981$ | 75.9848 EUR |
-| Convert to USD | $1.10 \cdot 75.9848$ | 83.58328 USD |
-
-**Total PV':**
-
-$$PV' = 97.00 + 83.58328 = 180.58328 \text{ USD}$$
+$$PV' = 100 \times 0.969903 + 83.60 = 96.9903 + 83.60 = 180.5903 \text{ USD}$$
 
 **PV01:**
+$$PV01_{d,\text{disc}} = 180.5903 - 180.60 = \mathbf{-0.0097 \text{ USD/bp}}$$
 
-$$PV01_{f,\text{disc}} = 180.58328 - 180.60 = \mathbf{-0.01672 \text{ USD/bp}}$$
+The negative sign confirms that higher domestic rates reduce PV (consistent with standard fixed-income intuition).
 
----
+### Example D: Foreign Discount PV01
 
-### Example E: Hedging FX Delta with Forwards — Neutralize FX Delta at $t = 0$
+**Bump foreign DF at $T = 2$:**
+$$P_f'(0,2) = 0.95 \times e^{-0.0002} = 0.95 \times 0.9998 = 0.94981$$
 
-**Position to Hedge:** The EUR 80 receipt at $T = 2$ from Example A.
+**Reprice foreign PV:**
+- EUR PV: $80 \times 0.94981 = 75.9848$ EUR
+- USD equivalent: $1.10 \times 75.9848 = 83.5833$ USD
+- Total PV': $97.00 + 83.5833 = 180.5833$ USD
 
-**Fair Forward Rate $K = F_{0,2}$ Using Discount Factors:**
+**PV01:**
+$$PV01_{f,\text{disc}} = 180.5833 - 180.60 = \mathbf{-0.0167 \text{ USD/bp}}$$
 
-$$K = S_0 \frac{P_f(0,2)}{P_d(0,2)} = 1.10 \cdot \frac{0.95}{0.94} = \mathbf{1.111702 \text{ USD/EUR}}$$
+### Example E: FX Hedge Creates Rate PV01
 
-(Derived from Hull's parity form.)
+**Objective:** Hedge the 80 EUR receipt at $T = 2$ using an FX forward.
 
-**Hedge Trade:**
+**Step 1: Calculate fair forward rate**
+$$K = F_{0,2} = S_0 \frac{P_f(0,2)}{P_d(0,2)} = 1.10 \times \frac{0.95}{0.94} = \mathbf{1.1117}$$
 
-Short a 2Y forward to sell $N = 80$ EUR at $K = 1.111702$.
+**Step 2: Enter short forward (sell 80 EUR at $K$)**
 
-**FX Delta Check:**
+The forward has FX delta:
+$$\Delta_{FX,\text{fwd}} = -N \cdot P_f(0,2) = -80 \times 0.95 = -76 \text{ EUR}$$
 
-Forward (short) has:
+**Net FX delta after hedge:** $+76 - 76 = 0$ EUR ✓
 
-$$\Delta_{FX,\text{fwd}} = -N \cdot P_f(0,2) = -80 \cdot 0.95 = -76 \text{ EUR}$$
+**Step 3: Check rate PV01 of the hedge**
 
-Original position has +76 EUR delta (Example B). **Net FX delta $\approx 0$**.
+The forward value is:
+$$V_{\text{fwd}} = 80 \times (K \cdot P_d(0,2) - S_0 \cdot P_f(0,2)) = 80 \times (1.1117 \times 0.94 - 1.10 \times 0.95) = 0$$
 
-**Remaining Rate Exposures (Discount PV01s):**
+Under +1bp domestic bump ($P_d(0,2) \to 0.939812$):
+$$V_{\text{fwd}}' = 80 \times (1.1117 \times 0.939812 - 1.10 \times 0.95) = 80 \times (1.0448 - 1.045) = -0.0167 \text{ USD}$$
 
-*Domestic bump (+1 bp):*
+**Forward's domestic PV01:** $-0.0167$ USD/bp
 
-$P_d(0,2) \to 0.94 e^{-0.0002} = 0.939812$
+**Key insight:** The FX hedge neutralized FX delta but introduced domestic rate PV01. This is unavoidable because forward prices embed interest rate differentials.
 
-$$V_{\text{fwd}}' = 80(K \cdot 0.939812 - S_0 \cdot 0.95) = 80(1.04479088 - 1.045) = -0.01673 \text{ USD}$$
+### Example F: Cross-Gamma Scenario Analysis
 
-So $PV01_{d,\text{disc}}(\text{fwd}) \approx -0.01673$ USD/bp.
+**Setup:** Same position as Examples A-B (receive 100 USD at T=1, 80 EUR at T=2), but now we consider a joint move in FX and rates.
 
-*Foreign bump (+1 bp):*
+**Scenario:** EUR weakens by 5% (S falls from 1.10 to 1.045), and foreign rates rise by 25bp simultaneously (a classic EM-style stress).
 
-$P_f(0,2) \to 0.94981$
+**Linear (first-order) estimate:**
+- FX effect: $-0.05 \times S_0 \times \Delta_{FX} = -0.05 \times 1.10 \times 76 = -4.18$ USD
+- Foreign rate effect: $25 \times PV01_{f,\text{disc}} = 25 \times (-0.0167) = -0.42$ USD
+- **First-order total:** $-4.60$ USD
 
-$$V_{\text{fwd}}' = 80(K \cdot 0.94 - S_0 \cdot 0.94981) = 80(1.04499988 - 1.044791) = +0.01671 \text{ USD}$$
+**Full repricing:**
+- $P_f(0,2) \to 0.95 \times e^{-0.0025 \times 2} = 0.9453$ (25bp bump)
+- Foreign PV in EUR: $80 \times 0.9453 = 75.62$ EUR
+- Convert at stressed spot: $1.045 \times 75.62 = 79.02$ USD
+- Total PV: $97.00 + 79.02 = 176.02$ USD
 
-So $PV01_{f,\text{disc}}(\text{fwd}) \approx +0.01671$ USD/bp.
+**Actual loss:** $180.60 - 176.02 = 4.58$ USD
 
-**Interpretation:**
+**Cross-gamma contribution:** The actual loss (4.58) is close to the first-order estimate (4.60), with a small difference from:
+- Second-order FX gamma: $\frac{1}{2} \Gamma_S (\Delta S)^2$
+- Cross-gamma: $\Gamma_{S,r} \Delta S \Delta r$
+- Second-order rate convexity: $\frac{1}{2} \Gamma_r (\Delta r)^2$
 
-The FX hedge reduced FX delta but shifted curve PV01s—especially domestic PV01—because forwards embed discounting terms.
+For this simple deterministic cashflow position, cross-gamma effects are small. For portfolios with options or callable structures, they can be substantial.
 
----
+### Example G: VaR Aggregation Across Currency Desks
 
-### Example F: Foreign Bond Hedged Back to Domestic — FX Reduced, Foreign PV01 Remains
+**Setup:** A bank has three desks with independently calculated 1-day 99% VaRs:
 
-**Foreign Bond (EUR):**
+| Desk | 1-Day 99% VaR | Correlations |
+|------|---------------|--------------|
+| USD Rates | \$50mm | — |
+| EUR Rates | \$40mm | ρ(USD,EUR) = 0.65 |
+| Cross-Currency | \$30mm | ρ(USD,XC) = 0.30, ρ(EUR,XC) = 0.45 |
 
-- Face: 100 EUR
-- Coupon: 5% annual
-- Maturity: 2Y
-- Cashflows: 5 EUR at 1Y; 105 EUR at 2Y
+**Aggregation formula (Hull):**
+$$\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \text{VaR}_j \rho_{ij}}$$
 
-**Bond PV in EUR:**
+**Calculation:**
+$$= \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.65) + 2(50)(30)(0.30) + 2(40)(30)(0.45)}$$
+$$= \sqrt{2500 + 1600 + 900 + 2600 + 900 + 1080}$$
+$$= \sqrt{9580} = \mathbf{\$97.9\text{mm}}$$
 
-$$PV_f = 5 \cdot 0.98 + 105 \cdot 0.95 = 4.90 + 99.75 = 104.65 \text{ EUR}$$
+**Diversification benefit:** The sum of standalone VaRs is \$120mm. Aggregated VaR is \$97.9mm—a diversification benefit of \$22.1mm (18%).
 
-**Unhedged PV in USD:**
+**Component VaR attribution:**
+Using marginal VaR weights, we can decompose the \$97.9mm back to the three desks (component VaRs will sum to total VaR).
 
-$$PV_d = S_0 \cdot PV_f = 1.10 \cdot 104.65 = 115.115 \text{ USD}$$
+### Example H: Cross-Currency Basis Swap Risk Decomposition
 
-**Unhedged FX Delta:**
-
-$$\Delta_{FX} = PV_f = 104.65 \text{ EUR}$$
-
-**Unhedged Foreign Discount PV01 (+1bp Bump to $P_f$):**
-
-| Bumped Value | Calculation |
-|--------------|-------------|
-| $P_f(1)$ | $0.98 e^{-0.0001} = 0.979902$ |
-| $P_f(2)$ | $0.95 e^{-0.0002} = 0.94981$ |
-
-New EUR PV:
-
-$$PV_f' = 5 \cdot 0.979902 + 105 \cdot 0.94981 = 4.89951 + 99.73005 = 104.62956$$
-
-New USD PV: $PV_d' = 1.10 \cdot 104.62956 = 115.09252$
-
-**Foreign PV01:** $PV_d' - PV_d = -0.02260$ USD/bp
-
-**Hedge FX with a Single 2Y Forward (Imperfect Hedge):**
-
-Short a forward to sell $N = 100$ EUR at 2Y, at fair $K = 1.111702$.
-
-- Forward FX delta: $-N P_f(0,2) = -100 \cdot 0.95 = -95$ EUR
-- **Net FX delta:** $104.65 - 95 = 9.65$ EUR (reduced, not zero)
-
-**Foreign PV01 After Hedge:**
-
-Forward foreign PV01 under +1bp foreign bump:
-
-$$V_{\text{fwd}}' = 100(K \cdot 0.94 - S_0 \cdot 0.94981) = 100(1.04499988 - 1.044791) = +0.02089 \text{ USD}$$
-
-**Total foreign PV01:** $-0.02260 + 0.02089 = -0.00171$ USD/bp (still nonzero)
-
-**Basis Exposure Note:**
-
-If your forward pricing uses curves incorporating cross-currency basis, the hedged PV will carry basis DV01. I'm not sure how to model this without your CSA/discounting framework and basis-quote convention.
-
----
-
-### Example G: FX Swap vs Forward as Funding Hedge — Spot + Forward Decomposition
-
-**Setup (Toy):**
-
-| Parameter | Value |
-|-----------|-------|
-| $S_0$ | 1.10 USD/EUR |
-| Horizon $T$ | 0.5y |
-| $P_d(0, 0.5)$ | 0.985 (toy) |
-| $P_f(0, 0.5)$ | 0.990 (toy) |
-
-**Fair Forward:**
-
-$$F_{0,0.5} = S_0 \frac{P_f}{P_d} = 1.10 \cdot \frac{0.990}{0.985} = 1.105584$$
-
-**FX Swap as "Spot + Opposite Forward" (Conceptual):**
-
-1. At $t = 0$: Exchange notionals at spot (buy EUR, sell USD)
-2. At $T$: Reverse exchange at forward (sell EUR, buy USD)
-
-**Quantify Forward Points / Carry:**
-
-- Forward points: $F - S = 1.105584 - 1.10 = 0.005584$ USD/EUR
-- For $N = 10,000,000$ EUR, forward-points difference in USD at maturity: $0.005584 \cdot N = 55,840$ USD
-
-I'm not sure about exact spot/forward settlement conventions (T+2, tom/next, holiday calendars) because those are market- and pair-dependent and not specified in the sources you listed. To be certain, we need the currency pair and the market's standard settlement conventions.
-
----
-
-### Example H: Cross-Currency Swap Exposure Breakdown — 2-Period Toy Basis Swap
-
-**Structure (Adapted from the Book's Basis Swap PV Form):**
-
-Receive USD floating + principal, pay EUR floating + $e$ + principal. The book provides the analogous USD/JPY valuation form.
+**Structure (per Andersen & Piterbarg):** Receive USD floating + principal, pay EUR floating + $e$ + principal. Notional = 1 EUR.
 
 **Inputs:**
 
 | Parameter | Value |
 |-----------|-------|
-| $t_1$, $t_2$ | 1, 2 |
-| $\tau_1$, $\tau_2$ | 1, 1 |
+| Periods $t_1, t_2$ | 1, 2 years |
+| $\tau_1, \tau_2$ | 1, 1 |
 | $S_0$ | 1.10 |
-| $P_d(1)$, $P_d(2)$ | 0.97, 0.94 |
-| $P_f(1)$, $P_f(2)$ | 0.98, 0.95 |
-| $P_f^{(L)}(1)$, $P_f^{(L)}(2)$ | 0.97902, 0.94810 (toy) |
-| Basis spread $e$ | 0.0020 (20 bp) |
+| $P_d(1), P_d(2)$ | 0.97, 0.94 |
+| $P_f(1), P_f(2)$ | 0.98, 0.95 |
+| Basis $e$ | 20bp = 0.0020 |
 
-**EUR Forward Rates (from Projection Curve):**
+**USD floating leg PV (notional 1):**
+Using forward rates from discount factors (assuming $P^{(L)} = P$):
+- $L_d(0,0,1) = 1/0.97 - 1 = 0.0309$
+- $L_d(0,1,2) = 0.97/0.94 - 1 = 0.0319$
 
-$$L_f(0, 0, 1) = (1/0.97902 - 1) = 0.02143$$
-$$L_f(0, 1, 2) = (0.97902/0.94810 - 1) = 0.03263$$
+$$PV_{USD} = 0.0309 \times 0.97 + 0.0319 \times 0.94 + 0.94 \approx 1.0000$$
 
-**USD Floating-Leg PV (Notional 1):**
+**EUR leg PV (in EUR):**
+- $L_f(0,0,1) = 1/0.98 - 1 = 0.0204$
+- $L_f(0,1,2) = 0.98/0.95 - 1 = 0.0316$
 
-Compute USD forwards from discount factors (since $P_d^{(L)} = P_d$ in the text's simplifying assumption):
-
-$$L_d(0, 0, 1) = (1/0.97 - 1) = 0.0309278$$
-$$L_d(0, 1, 2) = (0.97/0.94 - 1) = 0.0319149$$
-
-PV:
-
-$$PV_{USD} = L_d(0,0,1) \cdot 0.97 + L_d(0,1,2) \cdot 0.94 + 0.94 \approx 0.029999 + 0.029999 + 0.94 = 0.999998 \approx 1.0000$$
-
-**EUR Leg PV in EUR (Notional 1):**
-
-$$PV_{EUR} = (L_f(0,0,1) + e) \cdot 0.98 + (L_f(0,1,2) + e) \cdot 0.95 + 0.95$$
-
-Intermediate:
-
-| Period | Calculation | Result |
-|--------|-------------|--------|
-| Period 1 | $(0.02143 + 0.0020) \cdot 0.98 = 0.02343 \cdot 0.98$ | 0.0229614 |
-| Period 2 | $(0.03263 + 0.0020) \cdot 0.95 = 0.03463 \cdot 0.95$ | 0.0328985 |
-| Principal | | 0.95 |
-| **Total** | | **1.0058599** |
+$$PV_{EUR} = (0.0204 + 0.002) \times 0.98 + (0.0316 + 0.002) \times 0.95 + 0.95 = 1.0059$$
 
 **Swap PV in USD:**
+$$PV = 1.0000 - 1.10 \times 1.0059 = \mathbf{-0.1065 \text{ USD}}$$
 
-$$PV = PV_{USD} - S_0 \cdot PV_{EUR} \approx 1.0000 - 1.10 \cdot 1.0058599 = \mathbf{-0.1064459}$$
+**Risk decomposition:**
 
-**Risk Decomposition:**
-
-*FX Delta:*
-
-$$\Delta_{FX} = \frac{\partial PV}{\partial S_0} = -PV_{EUR} = -1.0058599 \text{ EUR}$$
-
-*Basis DV01:*
-
-$$\frac{\partial PV}{\partial e} = -S_0 (\tau_1 P_f(1) + \tau_2 P_f(2)) = -1.10(0.98 + 0.95) = -2.123$$
-
-Per 1bp: $PV01_{\text{basis}} = -2.123 \cdot 0.0001 = -0.0002123$ USD/bp
-
-*Domestic Discount PV01:*
-
-Bump $P_d$, hold others fixed. $PV_{USD}$ changes from $\approx 1.0000$ to $\approx 0.9998005$, so:
-
-$$PV01_{d,\text{disc}} \approx -0.0001995 \text{ USD/bp}$$
-
-*Foreign Discount PV01:*
-
-Bump $P_f$, hold others fixed. $PV_{EUR}$ falls slightly; $PV$ increases:
-
-$$PV01_{f,\text{disc}} \approx +0.0002189 \text{ USD/bp}$$
+| Risk Bucket | Calculation | Value |
+|-------------|-------------|-------|
+| FX delta | $-PV_{EUR}$ | $-1.0059$ EUR |
+| Basis DV01 | $-S_0(\tau_1 P_f(1) + \tau_2 P_f(2)) \times 0.0001$ | $-0.000212$ USD/bp |
+| Domestic PV01 | (bump and reprice) | $\approx -0.0002$ USD/bp |
+| Foreign PV01 | (bump and reprice) | $\approx +0.0002$ USD/bp |
 
 ---
 
-### Example I: Basis Shock — Widen Basis by +5bp, Hold Spot and Curves Fixed
+## 31.8 Practical Notes
 
-Using Example H:
+### 31.8.1 Risk Report Consistency Requirements
 
-$\Delta e = +5$ bp $= 0.0005$
+A multi-currency risk report must clearly specify:
 
-**PV Change:**
+1. **Reporting currency** and FX quote convention ($S = d/f$ vs $S = f/d$)
+2. **Bump definition** for each PV01 (zero bump vs par bump/rebuild)
+3. **Which curves** are bumped for each sensitivity
+4. **Basis sign convention** (which leg has the spread, pay vs receive)
 
-$$\Delta PV \approx \frac{\partial PV}{\partial e} \cdot \Delta e = (-2.123)(0.0005) = -0.0010615 \text{ USD}$$
+Without these specifications, PV01 numbers are ambiguous.
 
-**Basis DV01 (per 1bp) from Finite Difference:**
+### 31.8.2 Common Pitfalls
 
-$$\frac{\Delta PV}{5} = -0.0002123 \text{ USD/bp}$$
+| Pitfall | Consequence |
+|---------|-------------|
+| Mixing up $S$ vs $1/S$ | FX delta sign flips |
+| Hedging FX but ignoring foreign PV01 | Residual curve risk |
+| Assuming "currency hedge = no currency risk" | Basis risk remains |
+| Inconsistent curves between pricing and risk | Wrong hedge ratios |
+| Ignoring cross-gamma in stress scenarios | Underestimate tail losses |
 
-matching the analytic basis DV01.
+### 31.8.3 Verification Checks
 
----
-
-### Example J: Hedge Mapping Demo — Stepwise Hedging in Practice (Toy Risk Numbers)
-
-**Conventions:**
-
-- Reporting currency: USD
-- Spot quote: $S$ = USD per EUR
-- Risk buckets: FX delta (EUR), domestic PV01 (USD/bp), foreign PV01 (USD/bp), basis DV01 (USD/bp)
-
-Hedge-instrument sensitivities are assumed (as would come from your risk system). I'm not sure what the correct numbers are without your curves, instruments, CSA, and risk methodology; this is a pedagogical hedge-mapping demo.
-
-**Initial Portfolio Exposures:**
-
-| Risk Bucket | Exposure |
-|-------------|----------|
-| FX delta | +50,000,000 EUR |
-| Domestic PV01 | −220,000 USD/bp |
-| Foreign PV01 | −180,000 USD/bp |
-| Basis DV01 | +35,000 USD/bp |
-
-**Hedge Instruments (Assumed Linear Sensitivities):**
-
-| Instrument | Sensitivity |
-|------------|-------------|
-| FX forward (sell EUR) | FX delta $\approx -0.99$ EUR per 1 EUR notional |
-| Domestic swap | PV01 = +85,000 USD/bp per 100mm USD notional |
-| Foreign swap | PV01 = +70,000 USD/bp per 100mm EUR notional (in USD reporting) |
-| Basis swap | Basis DV01 = −40,000 USD/bp per 100mm USD notional |
+1. **Unit checks:** Every PV term must end in reporting currency
+2. **FX hedge sanity:** After FX hedge, PV sensitivity to spot should be near zero
+3. **Small-bump stability:** PV01 stable under 0.5bp vs 1bp bumps
+4. **Repricing consistency:** All hedges priced on same curve framework as portfolio
 
 ---
 
-#### Step 1: Hedge FX Delta (Forwards)
+## Summary
 
-Need forward notional $N_{FX}$ such that:
+Multi-currency risk requires systematic decomposition across multiple dimensions:
 
-$$-0.99 \cdot N_{FX} = -50{,}000{,}000 \quad \Rightarrow \quad N_{FX} = \frac{50{,}000{,}000}{0.99} = 50{,}505{,}050.5 \text{ EUR}$$
-
-**After Step 1:**
-
-| Risk Bucket | Exposure |
-|-------------|----------|
-| FX delta | $\approx 0$ EUR |
-| Domestic PV01 | −220,000 USD/bp |
-| Foreign PV01 | −180,000 USD/bp |
-| Basis DV01 | +35,000 USD/bp |
-
-(In reality, the FX forward also carries rate PV01; see Example E.)
-
----
-
-#### Step 2: Hedge Domestic PV01 (Domestic Swaps/Futures/Bonds)
-
-Need domestic swap notional $N_d$ (in 100mm blocks) such that:
-
-$$(+85{,}000) \cdot \left(\frac{N_d}{100\text{mm}}\right) = 220{,}000 \quad \Rightarrow \quad \frac{N_d}{100\text{mm}} = \frac{220}{85} = 2.588235$$
-
-So $N_d \approx 258.8235$ mm USD.
-
-**After Step 2:**
-
-| Risk Bucket | Exposure |
-|-------------|----------|
-| FX delta | $\approx 0$ |
-| Domestic PV01 | $\approx 0$ |
-| Foreign PV01 | −180,000 |
-| Basis DV01 | +35,000 |
+1. **Choose and document your reporting currency and FX convention**—ambiguity here causes sign errors
+2. **PV decomposes cleanly:** domestic PV + (spot × foreign PV)
+3. **First-order risks separate into buckets:** FX delta, domestic PV01, foreign PV01, and basis DV01
+4. **But hedges create cross-exposures:** an FX forward has rate PV01; a foreign swap has FX delta
+5. **Second-order (cross-gamma) matters for large correlated moves** and option-like structures
+6. **Quanto derivatives** have embedded correlation exposure between the underlying and FX
+7. **PCA reduces dimensionality** of rates risk: level/slope/curvature explain ~98% of variance
+8. **VaR aggregation uses correlations:** total VaR < sum of standalone VaRs when ρ < 1
+9. **Factor models** provide parsimonious correlation structures for aggregation
+10. **Correlation breakdown in stress** can eliminate diversification benefits
+11. **Practical hedge programs are iterative:** hedge → measure new exposures → hedge residual → repeat
 
 ---
 
-#### Step 3: Hedge Foreign PV01 (Foreign Swaps/Futures/Bonds)
+## Key Concepts Summary
 
-Need foreign swap notional $N_f$ (in 100mm blocks) such that:
-
-$$(+70{,}000) \cdot \left(\frac{N_f}{100\text{mm}}\right) = 180{,}000 \quad \Rightarrow \quad \frac{N_f}{100\text{mm}} = \frac{180}{70} = 2.571429$$
-
-So $N_f \approx 257.1429$ mm EUR.
-
-**After Step 3:**
-
-| Risk Bucket | Exposure |
-|-------------|----------|
-| FX delta | $\approx 0$ (by bucket assumption; in a full system you may need to re-trim FX) |
-| Domestic PV01 | $\approx 0$ |
-| Foreign PV01 | $\approx 0$ |
-| Basis DV01 | +35,000 |
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| FX Delta | $\partial PV_d / \partial S_0$ | Primary FX exposure measure |
+| FX01 | $0.01 \cdot S \cdot \Delta_{FX}$ | Converts to domestic P&L per % move |
+| Cross-gamma | $\partial^2 PV / \partial S \partial r$ | Captures FX-rate interaction |
+| Basis DV01 | Sensitivity to quoted basis spread | Separate from FX and curve risk |
+| VaR aggregation | $\sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$ | Captures diversification benefit |
+| Component VaR | Marginal contribution to total VaR | Enables risk attribution |
+| PCA for rates | Decompose curve moves into level/slope/curvature | Reduces dimensionality; ~98% variance in 3 factors |
+| Quanto adjustment | Correction for currency mismatch in derivatives | Correlation between underlying and FX affects pricing |
+| Factor model | $U_i = a_i F + \sqrt{1-a_i^2} Z_i$ | Parsimonious correlation structure |
 
 ---
 
-#### Step 4: Hedge Basis DV01 (Cross-Currency Basis Swap)
+## Notation for This Chapter
 
-Need basis-swap notional $N_b$ (in 100mm blocks) such that:
-
-$$(-40{,}000) \cdot \left(\frac{N_b}{100\text{mm}}\right) = -35{,}000 \quad \Rightarrow \quad \frac{N_b}{100\text{mm}} = \frac{35}{40} = 0.875$$
-
-So $N_b = 87.5$ mm USD in the direction that produces −40,000 USD/bp per 100mm.
-
-**After Step 4:**
-
-| Risk Bucket | Exposure |
-|-------------|----------|
-| FX delta | $\approx 0$ |
-| Domestic PV01 | $\approx 0$ |
-| Foreign PV01 | $\approx 0$ |
-| Basis DV01 | $\approx 0$ |
-
-**Interpretation:**
-
-This is the desk workflow: hedge the largest/most liquid bucket first (often FX), then rates, then basis. In practice you iterate because hedges can create cross-exposures (Example E).
+| Symbol | Definition |
+|--------|------------|
+| $d$, $f$ | Domestic and foreign currency labels |
+| $S_0$ | Spot FX rate (domestic per foreign) |
+| $F_{0,T}$ | Forward FX rate for settlement at $T$ |
+| $P_d(0,T)$, $P_f(0,T)$ | Discount factors in each currency |
+| $\Delta_{FX}$ | FX delta (units: foreign currency) |
+| $PV01_{c,\text{disc}}$ | Discount curve PV01 for currency $c$ |
+| $PV01_{\text{basis}}$ | Basis DV01 to quoted spread $e$ |
+| $\rho_{ij}$ | Correlation between segments $i$ and $j$ |
+| PC1, PC2, PC3 | Principal components (level, slope, curvature) |
+| $a_i$ | Factor loading in factor model |
+| $F$ | Common factor in factor model |
+| $\sigma_S$, $\sigma_X$ | Volatilities of underlying and FX rate (for quantos) |
+| $\rho_{S,X}$ | Correlation between underlying and FX (for quantos) |
 
 ---
 
-### Example K: Curve-Choice Sensitivity — PV and Hedge Ratios Change Under Different Discount Curves
-
-**Goal:** Show that changing the discounting curve changes PV and forward rates.
-
-**Conventions:**
-
-- Same as Example E (hedging EUR 80 at 2Y)
-- Spot $S_0 = 1.10$, foreign DF $P_f(0,2) = 0.95$
-- Two domestic discount-curve choices:
-  - Curve A: $P_d^A(0,2) = 0.94$
-  - Curve B: $P_d^B(0,2) = 0.945$
-
-This is a sensitivity experiment. I'm not sure which curve is "correct" without the CSA/collateral currency and desk discounting policy. Modern practice often uses OIS-type discounting in derivatives contexts (noted in Hull materials).
-
-**Step 1: Compute the Fair Forwards**
-
-$$K_A = S_0 \frac{P_f}{P_d^A} = 1.10 \cdot \frac{0.95}{0.94} = 1.111702$$
-
-$$K_B = S_0 \frac{P_f}{P_d^B} = 1.10 \cdot \frac{0.95}{0.945} = 1.105820$$
-
-**Step 2: Compare Locked-In Domestic Cash Amounts for Hedging 80 EUR**
-
-| Curve | Locked USD at Maturity | Calculation |
-|-------|------------------------|-------------|
-| Curve A | 88.93616 USD | $80 \cdot 1.111702$ |
-| Curve B | 88.46560 USD | $80 \cdot 1.105820$ |
-| **Difference** | **0.47056 USD** | |
-
-**Step 3: Interpret**
-
-A different discount curve implies a different "fair" forward, hence a different FX hedge rate and potentially different hedge ratios in a system that re-optimizes hedges.
-
-Even if PV at inception is forced to 0 for the forward (by using the fair $K$), the risk (PV01 attribution, basis attribution, etc.) depends on the curve framework.
-
----
-
-### Example L: Scenario P&L Explain — Unhedged vs Hedged, 4 Scenarios, Factor P&L Table
-
-Use Example J exposures.
-
-**Base Spot:** $S_0 = 1.10$ USD/EUR
-
-**Compute FX01 for the Unhedged Portfolio:**
-
-$$FX01 = 0.01 \cdot S_0 \cdot \Delta_{FX} = 0.01 \cdot 1.10 \cdot 50{,}000{,}000 = 550{,}000 \text{ USD per +1\%}$$
-
-**Scenarios:**
-
-1. Spot FX move: +2% in $S$
-2. Domestic curve: +25 bp parallel shift
-3. Foreign curve: +25 bp parallel shift
-4. Basis: +10 bp widening
-
-Assume the hedged portfolio after Example J has bucket exposures $\approx 0$ (ignoring second-order/cross effects).
-
-| Scenario | Shock | Unhedged P&L (USD) | Hedged P&L (USD) | Dominant Bucket |
-|----------|-------|---------------------|------------------|-----------------|
-| 1 | $S$ +2% | $2 \times 550{,}000 = +1{,}100{,}000$ | $\approx 0$ | FX delta |
-| 2 | $d$-curve +25bp | $25 \times (-220{,}000) = -5{,}500{,}000$ | $\approx 0$ | Domestic PV01 |
-| 3 | $f$-curve +25bp | $25 \times (-180{,}000) = -4{,}500{,}000$ | $\approx 0$ | Foreign PV01 |
-| 4 | basis +10bp | $10 \times (+35{,}000) = +350{,}000$ | $\approx 0$ | Basis DV01 |
-
-**Explain Which Hedge Worked:**
-
-- **Scenario 1:** FX forward hedge neutralized FX delta
-- **Scenario 2:** Domestic swap hedge neutralized domestic PV01
-- **Scenario 3:** Foreign swap hedge neutralized foreign PV01
-- **Scenario 4:** Basis swap hedge neutralized basis DV01
-
-**Reality Check:**
-
-In a full repricing system, each hedge can create secondary exposures (e.g., FX forward creates rate PV01; see Example E). Therefore "$\approx 0$" becomes "small but nonzero," and you iterate.
-
----
-
-## Practical Notes
-
-### Risk Report Glossary (Must Be Consistent)
-
-**FX Delta:**
-- Definition: $\Delta_{FX} = \partial PV_d / \partial S$
-- Units if $S = d/f$: foreign currency $f$
-- Common desk conversion: $FX01 = 0.01 \cdot S \cdot \Delta_{FX}$ (units: domestic currency $d$ per 1% move)
-
-**PV01 by Curve and by Currency:**
-- $PV01_{d,\text{disc}} = PV(\text{domestic discount curve } +1\text{bp}) - PV$ in $d$/bp
-- $PV01_{d,\text{proj}} = PV(\text{domestic projection curve } +1\text{bp}) - PV$
-- Analogous for $f$
-
-**Basis DV01:**
-- $PV01_{\text{basis}} = PV(e + 1\text{bp}) - PV(e)$ in $d$/bp
-- Sign convention must be stated (pay vs receive basis; which leg has "+$e$")
-
-### Common Pitfalls
-
-1. **Mixing up quote direction** $S$ vs $1/S$ and flipping FX delta sign (Hull explicitly warns on quote conventions)
-2. **Hedging FX delta but forgetting foreign rate PV01** (especially for foreign-currency bonds and swaps)
-3. **Assuming a "currency hedge" eliminates all currency-related risk:** basis risk remains for cross-currency structures
-4. **Inconsistent curve choices** between pricing and risk (wrong hedge ratios)
-5. **Confusing discount PV01 vs projection PV01** in a multi-curve framework
-
-### Implementation Pitfalls
-
-- Using spot vs forward inconsistently for PV conversion (spot is used for immediate conversion; forwards govern future exchanges)
-- Mixing bump-and-rebuild vs direct zero bumps across systems (PV01 mismatch)
-- Calendar/settlement mismatches in FX forwards and FX swaps: I'm not sure the correct rules without the currency pair and market conventions
-
-### Verification Tests
-
-1. **Unit checks:** Every PV term must end in reporting currency $d$
-2. **FX hedge sanity:** After FX hedge, PV sensitivity to spot is materially reduced (Example E)
-3. **Small-bump stability:** PV01 and basis DV01 stable under 0.5bp vs 1bp bumps
-4. **Repricing checks:** All hedge instruments are re-priced on the same curve framework used for the portfolio
-
----
-
-## Summary & Recall
-
-### 10-Bullet Executive Summary
-
-1. **Choose a reporting currency $d$**; state it explicitly
-2. **Make FX quote direction explicit:** $S = d/f$ or $S = f/d$; deltas flip under inversion
-3. **PV in domestic currency** can be decomposed into domestic PV plus spot-times-foreign PV
-4. **FX delta** is $\partial PV_d / \partial S$ (units: foreign currency if $S = d/f$)
-5. **Rate risk splits** by currency and (in multi-curve) by discount vs projection curves
-6. **PV01 depends on the bump definition** (zero bump vs par bump/rebuild). Specify it.
-7. **Cross-currency basis swaps** embed a quoted spread $e$; basis DV01 is $\partial PV / \partial e \cdot 1$bp
-8. **"What to hedge with what":** FX delta ↔ forwards; domestic PV01 ↔ domestic swaps/bonds; foreign PV01 ↔ foreign swaps/bonds; basis DV01 ↔ basis swaps
-9. **Curve choice** (OIS vs other, collateral currency) changes PV and hedge ratios; specify your curve framework
-10. **Hedge programs are iterative** because hedges can create secondary exposures (Example E)
-
-### Cheat Sheet of Formulas
-
-**PV in Domestic Currency:**
-
-$$PV_d = \sum_k C_{d,k} P_d(0, T_k) + S_0 \sum_j C_{f,j} P_f(0, T_j)$$
-
-**FX Delta:**
-
-$$\Delta_{FX} = \frac{\partial PV_d}{\partial S_0}$$
-
-**FX01 (USD per 1% Move):**
-
-$$FX01 = 0.01 \cdot S_0 \cdot \Delta_{FX}$$
-
-**PV01 to a Curve $x$:**
-
-$$PV01_x = PV(\text{curve } x \text{ bumped } +1\text{bp}) - PV$$
-
-**Basis DV01 (from Basis Swap PV Linearity in $e$):**
-
-$$PV01_{\text{basis}} = \frac{\partial PV}{\partial e} \cdot 0.0001$$
-
-**Forward FX (Hull):**
-
-$$F_0 = S_0 e^{(r_d - r_f)T}$$
-
----
-
-### Flashcards (35 Q/A Pairs)
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What must be specified first in multi-currency PV? | The reporting currency $d$ and FX quote direction $S$ |
-| 2 | If $S = d/f$, what are the units of FX delta $\partial PV_d / \partial S$? | Units of $f$ |
-| 3 | What is $FX01$? | Approx. USD P&L for a +1% move in spot: $0.01 \cdot S \cdot \Delta_{FX}$ |
-| 4 | Why can FX hedges change rate PV01? | FX forwards embed discounting terms, creating rate sensitivities (Example E) |
-| 5 | Define PV01 | PV(bumped +1bp) − PV (must specify bump definition) |
-| 6 | How does Tuckman define DV01? | $DV01 = P(y - 1\text{bp}) - P(y)$ |
-| 7 | Discount curve vs projection curve? | Discount curve values cashflows; projection curve generates forwards for float legs |
-| 8 | What is basis DV01? | PV sensitivity to a 1bp move in the quoted cross-currency basis spread $e$ |
-| 9 | In the book's USD/JPY basis swap, which leg has the spread $e_{¥}$? | JPY leg (pay JPY Libor + $e_{¥}$) when receiving USD Libor flat |
-| 10 | What makes a basis quote "par"? | The value of $e$ such that basis swap PV is zero |
-| 11 | What is a common pitfall with FX quotes? | Confusing $S$ with $1/S$ and flipping delta |
-| 12 | What hedges FX delta? | FX spot/forwards (or FX swaps depending on horizon) |
-| 13 | What hedges domestic PV01? | Domestic swaps/futures/bonds |
-| 14 | What hedges foreign PV01? | Foreign swaps/futures/bonds (plus FX hedges as needed) |
-| 15 | What hedges basis DV01? | Cross-currency basis swaps (matching convention) |
-| 16 | What does "multi-curve" mean? | Separate curves for discounting and forecasting |
-| 17 | Why does curve choice matter? | It changes PV and hedge ratios (Example K) |
-| 18 | What must be specified to interpret PV01 numbers? | The bump method (zero bump vs rebuild; parallel vs key-rate) |
-| 19 | What is the domestic PV contribution of a domestic cashflow $C_d$ at $T$? | $C_d P_d(0,T)$ |
-| 20 | What is the domestic PV contribution of a foreign cashflow $C_f$ at $T$ under spot conversion? | $S_0 C_f P_f(0,T)$ |
-| 21 | In a simple deterministic setting, what is $\Delta_{FX}$ for foreign cashflows? | $\sum C_f P_f$ |
-| 22 | If you perfectly hedge each foreign cashflow with matching forwards, what happens to FX delta? | It is neutralized at $t = 0$ |
-| 23 | Does FX hedging always eliminate foreign PV01? | Not necessarily; depends on hedge horizon/cashflow matching (Example F) |
-| 24 | What's the key difference between rate PV01 and basis DV01? | Rate PV01 bumps curves; basis DV01 bumps the quoted spread $e$ |
-| 25 | What is the "cross-currency yield spread" $s(t)$ used for? | Relating index/pseudo-discount to discount curve: $P^{(L)} = P e^{-st}$ |
-| 26 | Name a verification test for FX delta hedging | PV sensitivity to spot materially reduced after hedge |
-| 27 | What is a common mistake in multi-currency risk reports? | Reporting PV01s without specifying curve and bump definition |
-| 28 | What is the most important "first step" before hedging? | Define factor buckets and units consistently |
-| 29 | Why is basis risk "currency-related" even if FX delta is hedged? | Because basis moves change PV even at fixed spot and curves |
-| 30 | What does it mean to "bump-and-rebuild"? | Bump market quotes, rebuild curves, then reprice |
-| 31 | Why can bump-and-rebuild differ from direct zero bumps? | Rebuild changes the entire curve shape and projection-discount interactions |
-| 32 | What is "par basis" in the text? | Basis spread making cross-currency basis swap PV zero |
-| 33 | How do you convert FX delta to USD per 1% move? | Multiply by $0.01 \cdot S$ |
-| 34 | What extra info is needed to choose the right discount curve? | CSA collateral currency, clearing status, desk policy (OIS vs other) |
-| 35 | Why is iterative hedging common? | Hedges can introduce secondary exposures (FX hedges create PV01) |
+| 1 | What must be specified first in multi-currency PV? | Reporting currency and FX quote direction |
+| 2 | If $S = d/f$, what are the units of FX delta? | Foreign currency $f$ |
+| 3 | What is FX01? | P&L per 1% FX move: $0.01 \cdot S \cdot \Delta_{FX}$ |
+| 4 | Why can FX hedges create rate PV01? | Forward prices embed discount factor ratios |
+| 5 | What is cross-gamma? | Second derivative $\partial^2 PV / \partial S \partial r$ |
+| 6 | When does cross-gamma matter most? | Large moves, correlated stress, options |
+| 7 | What is the VaR aggregation formula? | $\sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$ |
+| 8 | When is total VaR < sum of standalone VaRs? | When correlations $\rho_{ij} < 1$ |
+| 9 | What is component VaR? | Marginal contribution that sums to total VaR |
+| 10 | What hedges FX delta? | FX spot, forwards, or FX swaps |
+| 11 | What hedges domestic PV01? | Domestic swaps, futures, or bonds |
+| 12 | What hedges basis DV01? | Cross-currency basis swaps |
+| 13 | Why is multi-curve important for risk? | Discount and projection PV01 can differ in sign |
+| 14 | What does "bump-and-rebuild" mean? | Bump market quotes, rebuild curves, reprice |
+| 15 | What is basis DV01? | PV sensitivity to 1bp move in basis spread $e$ |
+| 16 | If you pay "foreign + basis," is basis DV01 positive or negative? | Negative (worse when basis widens) |
+| 17 | What is the forward FX formula? | $F_0 = S_0 \cdot P_f(0,T) / P_d(0,T)$ |
+| 18 | What is Euler's theorem used for in risk? | Decomposing total VaR into components |
+| 19 | Why can correlation breakdown hurt? | Diversification benefit disappears in stress |
+| 20 | What causes secondary exposures when hedging? | Hedge instruments have their own risk profiles |
+| 21 | What is a quanto? | Derivative where underlying is in one currency, payoff in another |
+| 22 | What creates quanto adjustment? | Correlation between underlying and FX rate |
+| 23 | What are the three main PCA factors for rates? | Level (parallel), slope (twist), curvature (butterfly) |
+| 24 | How much variance does PC1 typically explain? | 80-90% (parallel shift) |
+| 25 | What is a factor model for correlation? | $U_i = a_i F + \sqrt{1-a_i^2} Z_i$ where F is common factor |
 
 ---
 
-## Mini Problem Set (18 Questions)
+## Mini Problem Set
 
-1. **Define $S$ and explain how FX delta changes if the market quotes $1/S$.**
+**Q1.** Define $S$ as USD/EUR. If spot moves from 1.10 to 1.12, and your FX delta is +50mm EUR, what is your P&L in USD?
 
-   *Sketch:* Use chain rule: $\partial PV / \partial(1/S) = -S^2 \partial PV / \partial S$.
+*Solution sketch:* $\Delta PV = \Delta S \times \Delta_{FX} = 0.02 \times 50\text{mm} = 1.0\text{mm USD}$
 
-2. **For deterministic foreign cashflows, derive $\Delta_{FX} = \sum C_f P_f$.**
+**Q2.** Derive the FX delta for a portfolio with deterministic foreign cashflows $\{C_j, T_j\}$.
 
-   *Sketch:* Differentiate $PV_d = \sum C_d P_d + S \sum C_f P_f$.
+*Solution sketch:* $\Delta_{FX} = \partial/\partial S_0 [S_0 \sum_j C_j P_f(0,T_j)] = \sum_j C_j P_f(0,T_j)$
 
-3. **In Example A, compute FX01 (USD P&L per +1% in spot).**
+**Q3.** Explain why an FX forward used to hedge FX delta introduces domestic PV01.
 
-   *Sketch:* $FX01 = 0.01 \cdot S \cdot \Delta_{FX} = 0.01 \cdot 1.10 \cdot 76 = 0.836$.
+*Solution sketch:* Forward value = $N(K \cdot P_d - S_0 \cdot P_f)$. Taking derivative w.r.t. domestic curve shows sensitivity.
 
-4. **Using Tuckman's DV01 definition, explain sign differences between DV01 and PV01.**
+**Q4.** Two desks have VaRs of \$80mm and \$60mm with correlation 0.5. Calculate total VaR.
 
-   *Sketch:* DV01 uses yield down 1bp; PV01 as defined here uses yield up 1bp.
+*Solution sketch:* $\sqrt{80^2 + 60^2 + 2(80)(60)(0.5)} = \sqrt{6400+3600+4800} = \sqrt{14800} = \$121.7\text{mm}$
 
-5. **In Example E, show that the FX hedge introduced domestic PV01.**
+**Q5.** For the cross-currency basis swap in Example H, verify that basis DV01 has the correct sign.
 
-   *Sketch:* Reprice forward under bumped domestic DF; forward value changes with $P_d$.
+*Solution sketch:* Pay "EUR + basis" means higher $e$ increases payments, lowering PV. Thus $\partial V/\partial e < 0$ and basis DV01 < 0.
 
-6. **For a basis swap PV that includes $-S e \sum \tau P_f$, derive basis DV01.**
+**Q6.** Explain cross-gamma conceptually. When would you expect large cross-gamma?
 
-   *Sketch:* Differentiate w.r.t $e$, multiply by 1bp.
+*Solution sketch:* Cross-gamma measures how FX delta changes with rates. Large for options, callable structures, or any position where payoff depends nonlinearly on multiple factors.
 
-7. **Explain why discount vs projection PV01 can differ in sign for a floating leg.**
+**Q7.** A hedge program neutralizes FX delta but finds residual foreign PV01. Explain why and what to do.
 
-   *Sketch:* Discounting reduces PV; projection affects expected coupons; can offset.
+*Solution sketch:* The FX forward has its own rate sensitivity. Hedge residual foreign PV01 with foreign-currency swaps, which will create new FX delta requiring iteration.
 
-8. **Explain what market instruments you would perturb to measure discounting vs forecasting vs basis risk.**
+**Q8.** What happens to VaR aggregation diversification benefit if correlations go to 1.0 in stress?
 
-   *Sketch:* Funding instruments → discount; index instruments → forecasting; basis swaps → basis.
+*Solution sketch:* Total VaR becomes the sum of standalone VaRs—no diversification benefit. This is why stress testing often assumes higher correlations.
 
-9. **Given a portfolio's FX delta in EUR and spot $S$, convert it to USD per 1% move.**
+**Q9.** Explain why PCA is useful for managing multi-currency interest rate risk.
 
-   *Sketch:* Multiply by $0.01 \cdot S$.
+*Solution sketch:* PCA reduces the dimensionality of rates risk. Instead of tracking sensitivities to many individual rates, you track exposures to 2-3 factors (level, slope, curvature) that explain ~98% of variance. For multi-currency portfolios, you apply PCA to each curve separately, then model cross-currency correlations at the factor level.
 
-10. **Build a 3-cashflow multi-currency PV and compute FX delta analytically.**
+**Q10.** A trader holds a quanto derivative on a EUR asset with payoff in USD. The correlation between the asset and EUR/USD is +0.3. If this correlation increases to +0.5, what happens to the fair value (qualitatively)?
 
-11. **Create a key-rate bump PV01 grid for domestic and foreign curves (conceptually).**
-
-12. **Show how a single-maturity FX forward hedge differs from a full cashflow-matched forward strip.**
-
-13. **For a two-currency swap, explain qualitatively how collateral currency can change discounting.**
-
-14. **Using Example H structure, compute the par basis $e_{\text{par}}$ that makes PV zero (solve for $e$).**
-
-15. **Propose a hedge set when basis swaps are illiquid at the exact maturity (proxy hedging).**
-
-16. **Describe how to validate that basis DV01 is stable across bump sizes (0.5bp vs 1bp).**
-
-17. **Explain how to avoid double-counting FX effects when reporting PV01 in domestic currency.**
-
-18. **Outline a P&L explain workflow that attributes moves to FX, domestic curve, foreign curve, and basis.**
+*Solution sketch:* Higher positive correlation means the quanto adjustment increases in magnitude (more negative adjustment to the forward). This typically reduces the fair value of the derivative because when the asset does well, the currency also strengthens, but you receive the payoff in USD which is now weaker. The exact magnitude depends on the volatilities and time to maturity.
 
 ---
 
@@ -1174,29 +715,47 @@ $$F_0 = S_0 e^{(r_d - r_f)T}$$
 
 | Content | Source |
 |---------|--------|
-| FX spot/forward quote direction warning and forward formula $F_0 = S_0 e^{(r_d - r_f)T}$ | Hull |
-| Delta as $\partial V / \partial X$ sensitivity concept | Hull |
-| Multi-curve framing: separation of discount and forward curves; forwards derived from index curve | Andersen & Piterbarg |
-| Sensitivity framing: perturbations to funding/index/basis instruments correspond to discounting/forecasting/basis sensitivities | Andersen & Piterbarg |
-| Cross-currency basis swap PV form and definition of par basis $e_{\text{par}}$ | Andersen & Piterbarg |
-| Cross-currency yield spread definition $P^{(L)} = P e^{-st}$ | Andersen & Piterbarg |
-| DV01 finite-difference definition | Tuckman |
-| Discount-factor curve definition as $P(t,T)$ "zero-bond curve" | Tuckman |
-| Notes pointing to OIS discounting usage and post-crisis OIS shift | Hull |
+| FX forward formula $F_0 = S_0 e^{(r_d - r_f)T}$ and quote direction warning | Hull OFD |
+| Delta as $\partial V / \partial X$ | Hull OFD |
+| Multi-curve separation of discount and forward curves | Andersen & Piterbarg |
+| Sensitivity via perturbations to funding/index/basis instruments | Andersen & Piterbarg |
+| Cross-currency basis swap PV form and par basis definition | Andersen & Piterbarg |
+| Interest rate risk "more difficult to manage" due to term structure complexity | Hull RM Ch 9 |
+| Gamma definition as second partial derivative | Hull OFD Ch 19 |
+| For delta-neutral portfolio: $\Delta\Pi \approx \Theta\Delta t + \frac{1}{2}\Gamma\Delta S^2$ | Hull OFD Ch 19 |
+| VaR aggregation formula $\sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$ | Hull RM Ch 12 |
+| Component VaR and Euler's theorem | Hull RM Ch 12 |
+| Post-crisis shift from LIBOR to OIS for discounting | Hull RM Ch 9 |
+| PCA for interest rates: "typical changes in term structure shape" | Tuckman Ch 13 |
+| PCA explains ~98% variance with 3 factors | Tuckman Ch 13, Hull RM Ch 9 |
+| Factor model for correlation $U_i = a_i F + \sqrt{1-a_i^2} Z_i$ | Hull RM Ch 11 |
+| Quanto definition: "underlying measured in one currency, payoff in another" | Hull OFD Ch 5, 30 |
+| Diff swaps as quanto example | Hull OFD Ch 7 |
 
 ### (B) Reasoned Inference — Derived in This Chapter
 
 | Content | Derivation Logic |
 |---------|------------------|
-| Generic domestic-currency PV decomposition $PV_d = \sum C_d P_d + S \sum C_f P_f$ | Natural generalization of discount-factor valuation + FX conversion logic |
-| FX01 conversion $FX01 = 0.01 \cdot S \cdot \Delta_{FX}$ | Algebra from delta definition |
-| Basis DV01 formula | Derivative of the basis-swap PV expression with respect to $e$ |
-| Hedge mapping "what to hedge with what" | Practitioner interpretation of the risk buckets |
+| Multi-currency PV decomposition $PV_d = \sum C_d P_d + S \sum C_f P_f$ | Standard discounting + FX conversion |
+| FX01 conversion $= 0.01 \cdot S \cdot \Delta_{FX}$ | Algebra from delta definition |
+| Forward creates rate PV01 | Differentiate $V_{\text{fwd}} = N(K P_d - S P_f)$ w.r.t. curves |
+| Cross-gamma Taylor expansion | Extension of Hull's single-asset gamma to multi-factor |
+| Iterative hedging necessity | Hedges create secondary exposures; must re-measure |
+| Quanto adjustment formula form | General structure from Hull Ch 30; specific coefficients model-dependent |
+| PCA application to multi-currency | Apply single-currency PCA separately, then correlate factors |
 
-### (C) Speculation — Explicitly Flagged Uncertainties
+### (C) Flagged Uncertainties
 
 | Topic | Note |
 |-------|------|
-| Cross-currency basis quoting/sign conventions | I'm not sure without the currency pair, trade direction, and desk conventions |
-| Collateral currency/CSA-driven discounting choice | I'm not sure without CSA and clearing details |
-| Exact FX swap settlement/calendar conventions | I'm not sure without pair/market specification |
+| Cross-currency basis quoting/sign conventions | I'm not sure without currency pair, trade direction, and desk conventions |
+| Collateral currency/CSA-driven discounting | I'm not sure without CSA and clearing details |
+| Exact FX swap settlement conventions | I'm not sure without pair/market specification |
+| Cross-gamma magnitude in specific products | I'm not sure without product-specific model details |
+| Risk system bump conventions | I'm not sure without system specification |
+| Exact quanto adjustment formulas | I'm not sure without specifying the underlying rate/asset model (Hull develops specific cases in Ch 30) |
+| Factor model calibration in practice | I'm not sure about exact calibration procedures without institutional context |
+
+---
+
+*Last Updated: January 2026*

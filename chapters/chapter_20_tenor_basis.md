@@ -2,981 +2,574 @@
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
-- Multi-curve framework uses one discount curve $P_d$ and multiple tenor-specific projection curves $P^{(k)}$
-- Tenor basis arises from credit/liquidity effects and supply/demand differences across funding horizons
-- USD 1M–3M Libor basis was often <1bp in early 2007 but reached ~50bp in early 2009
-- OIS discounting is used for collateralized trades
-- Basis swaps exchange floating payments tied to different indices, plus or minus a spread on one leg
-- Par basis spread $e_{1,2}(T)$ is determined so that the swap PV equals zero at inception
+If you can earn 3-month LIBOR, why not just roll 1-month LIBOR three times? In a textbook world of perfect liquidity and risk-free counterparties, these strategies should be equivalent. Both provide funding for the same three-month horizon. Indeed, for decades, financial models assumed precisely this: that a single yield curve could price all instruments, regardless of their payment frequency or underlying tenor.
 
-### (B) Reasoned Inference (Derived from A)
-- Single-curve approaches fail when 3M and 6M instruments imply different discount factors for the same maturity
-- Sequential bootstrapping of tenor curves from basis swaps follows naturally from the curve dependency structure
-- Hedging a 6M swap with 3M instruments leaves residual basis exposure
+That assumption collapsed spectacularly in August 2007. As the Global Financial Crisis began to unfold, the spread between rolling overnight rates, 1-month rates, and 3-month rates—historically a trivial fraction of a basis point—blew out to dozens of basis points. Andersen and Piterbarg document the magnitude of this shift with striking precision: "the difference between 1 month and 3 month Libor rates was in the order of one basis point up until September 2007, but since then has been as wide as 50 basis points." Simultaneously, the spread between the Fed funds rate and 3-month LIBOR widened to as much as 275 basis points—a level that would have been considered unthinkable just months earlier.
 
-### (C) Speculation (Clearly Labeled; Minimal)
-- Market quoting conventions for specific currency/index pairs (see "I'm not sure" statements in Practical Notes)
-- Exact fails-charge formulas and penalty mechanics not specified in sources
+The emergence of **tenor basis** revealed a fundamental truth: **different funding tenors represent fundamentally different products**. A 6-month loan embeds more credit risk and liquidity premium than a 1-month loan, and the market began pricing this difference aggressively. Consequently, a single curve can no longer value both 3-month and 6-month swaps without creating arbitrage opportunities. Pricing a portfolio today without accounting for tenor basis is not just imprecise—it could result in systematic mispricing of millions of dollars on a standard vanilla swap portfolio.
 
----
+This chapter develops the machinery for handling tenor basis within the multi-curve framework introduced in Chapter 19. We assume the reader is already familiar with the distinction between discount curves (OIS) and projection curves (tenor-specific). Here, we focus specifically on:
 
-## Conventions & Notation
+1. **What tenor means economically** and why different tenors are not interchangeable (Section 20.1)
+2. **The drivers of tenor basis**: credit, liquidity, and supply/demand (Section 20.2)
+3. **Basis swaps**: the instruments used to trade and hedge the spread between tenors (Section 20.3)
+4. **The mathematics of multi-curve valuation** with tenor-specific projection curves (Section 20.4)
+5. **Bootstrapping secondary tenor curves** from basis swap quotes (Section 20.5)
+6. **Risk decomposition**: why DV01 hedging alone leaves residual basis exposure (Section 20.6)
 
-| Symbol | Meaning | Units/Type |
-|--------|---------|------------|
-| $t$ | Valuation time (mostly $t=0$) | Time |
-| $T$ | Maturity | Time |
-| $0 < t_1 < \cdots < t_n = T$ | Payment dates | Time grid |
-| $P_d(t,T)$ | Discount factor from OIS/overnight collateral curve | Dimensionless |
-| $P^{(k)}(t,T)$ | Tenor-$k$ index curve pseudo-discount factor (for forecasting only) | Dimensionless |
-| $L^{(k)}(t;T_{i-1},T_i)$ | Tenor-$k$ forward rate for period $[T_{i-1},T_i]$ | Per year |
-| $\tau_i^{(k)}$ | Year fraction for tenor-$k$ period $i$ | Dimensionless |
-| $c$ | Fixed coupon rate in an IRS | Per year |
-| $e_{1,2}(T)$ | Par basis spread at maturity $T$, added to leg 1 | Per year |
-| $N$ | Swap notional | Currency |
-| $F_i^{(k)}$ | Shorthand for $L^{(k)}(0;t_{i-1},t_i)$ | Per year |
-| $A^{(k)}$ | Annuity (PV01) for tenor-$k$ payment schedule | Dimensionless |
-
-### Defaults Used in Examples
-- Day count: Simplified year fractions $\tau_{3M} = 0.25$, $\tau_{6M} = 0.50$
-- Payment timing: Pay at period end; no notional exchanges
-- Discounting: OIS discount curve $P_d(0,T)$
-- Projection: Tenor-$k$ forward rates from tenor-$k$ index curves $P^{(k)}$
-- Basis swap quote convention: Spread added to 3M leg when writing 6M vs (3M + spread)
+**Chapter boundaries:** Chapter 19 introduced the multi-curve framework and the conceptual distinction between discount and projection curves. This chapter goes deeper into the *tenor dimension*—how to handle the differences between 1M, 3M, and 6M projection curves within a single currency. Chapter 21 extends the framework to multiple currencies, where cross-currency basis introduces additional constraints.
 
 ---
 
-## Core Concepts
+## 20.1 Tenor and the Economics of Term Funding
 
-### 1) Tenor and Tenor-Specific Indices (1M/3M/6M)
+### 20.1.1 What "Tenor" Means
 
-**Formal Definition:**
-A **tenor** is the accrual length $\tau$ associated with a quoted simple rate over $[T, T+\tau]$. The simple forward rate $L(t,T,T+\tau)$ is defined via:
+A **tenor** refers to the accrual length associated with a quoted simple rate. When a rate $L(t,T,T+\tau)$ is observed at time $t$ for borrowing over the period $[T, T+\tau]$, the tenor is the duration $\tau$.
 
-$$1 + \tau L(t,T,T+\tau) = \frac{1}{P(t,T,T+\tau)}$$
+Common tenors in interest rate markets include:
 
-where $P(t,T,T+\tau) = P(t,T+\tau)/P(t,T)$ is a forward bond price over that interval.
+| Tenor | Description | Primary Use |
+|-------|-------------|-------------|
+| Overnight (ON) | The foundation of risk-free rate (RFR) markets | SOFR, SONIA, ESTR |
+| 1 Month (1M) | Short-term funding | Money market, CP |
+| 3 Months (3M) | Most liquid swap tenor | Standard IRS |
+| 6 Months (6M) | Common in European markets | EURIBOR swaps |
+| 12 Months (12M) | Less common | Some structured products |
 
-For interbank term rates (Libor-like), tenors range from short to long (e.g., one week to 12 months) and are used as underlyings for floating-rate derivatives.
+Historically, LIBOR was the primary benchmark for these term tenors. In the post-LIBOR world, while overnight rates dominate, term rates (like Term SOFR or EURIBOR) remain critical for lending and cross-currency markets.
 
-**Intuition:**
-"1M", "3M", "6M" are not just calendar labels: they represent different funding horizons and market segments. Even within one currency, the economics of borrowing/lending for 1 month can differ from 6 months, especially under stress.
+### 20.1.2 Why Tenors Are Not Interchangeable
 
-**Trading / Risk / Portfolio Practice:**
-Portfolios referencing different tenors (e.g., assets indexed to 3M and liabilities to 6M) naturally create tenor mismatch. Basis swaps are the standard instrument to transfer/hedge this mismatch.
+The labels "1M," "3M," and "6M" are not merely calendar arithmetic. They represent **different funding markets** with distinct risk profiles. Andersen and Piterbarg explain that the tenor basis arises "partly from credit considerations and partly liquidity considerations."
 
----
+**Credit Horizon Risk.** A bank lending cash for 6 months takes on strictly more credit risk than a bank lending for 1 month, even if the borrower is the same. The probability of default increases with the time horizon. The 6-month rate must therefore include a higher credit spread. This is the *term premium for credit risk*—the compensation for locking in exposure to a counterparty over a longer horizon.
 
-### 2) Discounting Curve vs Projection Curve (Multi-Curve World)
+**Liquidity Preference.** Banks prefer short-term liabilities because shorter funding gives them more flexibility to manage their balance sheets. As Andersen and Piterbarg note, "banks have a natural desire to have longer-term deposits to better match their loan commitments." This structural demand for longer-dated funding creates a liquidity premium for 6M and 12M cash.
 
-**Formal Definition:**
-In a **multi-index curve group**, one uses:
-- A single curve $P_d(t,T)$ for **discounting** (computing present values)
-- Multiple index curves $P^{(1)}(t,T), \ldots, P^{(k)}(t,T)$ to **forecast** different Libor (or Libor-like) tenors
+**Market Segmentation.** The participants in 1-month markets (e.g., money market funds, corporate treasuries) often differ from those in 6-month markets (e.g., insurance companies, asset managers with longer duration mandates). These distinct investor bases create separate supply-demand dynamics.
 
-**Intuition:**
-- **Discounting** answers: "How much is \$1 at $T$ worth today?"
-- **Projection** answers: "What is the expected floating coupon for a given index over the accrual period?"
+In calm markets, these differences manifest as small but measurable spreads—a few basis points at most. In stressed markets, they become the dominant driver of P&L. When interbank trust evaporated in 2008, the basis between tenors widened dramatically because lenders demanded much higher compensation for the additional uncertainty of longer-term exposure.
 
-**Trading / Risk / Portfolio Practice:**
-OIS discounting is used for collateralized trades. One must often build a discount curve from OIS and separate forecasting curves from Libor instruments and basis swaps between overnight and Libor.
+> **Why this matters:** If you model 6-month rates as simply compounded 3-month rates, you will systematically misprice any instrument with 6-month floating payments. The error can be tens of basis points—material for trading or hedging decisions.
 
----
-
-### 3) Tenor Basis (1M vs 3M vs 6M)
-
-**Formal Definition:**
-**Tenor basis** is the market-observed difference between otherwise "comparable" floating rates of different tenors (e.g., 1M vs 3M vs 6M), expressed through:
-- Basis swap spreads
-- The fact that separate index curves $P^{(k)}$ are needed for different tenors
-
-**Intuition:**
-Different tenors embed different credit/liquidity/funding components, and supply/demand across funding horizons can diverge.
-
-**Trading / Risk / Portfolio Practice:**
-- Tenor basis is partly attributed to credit and liquidity effects and differing supply/demand for funding at different tenors
-- The 1M–3M USD Libor basis was often <1bp in early 2007 but reached ~50bp in early 2009
-- Basis tends to increase with the tenor difference and with maturity
-- Basis is bootstrappable from quoted basis swap and OIS markets
-
----
-
-### 4) Basis Swap (Single-Currency, Floating–Floating)
-
-**Formal Definition:**
-A **basis swap** exchanges floating payments tied to one index against floating payments tied to another index, plus or minus a spread on one leg.
-
-In the tenor-basis setting, $L^{(1)}$ and $L^{(2)}$ can be different-tenor Libor indices (e.g., 3M vs 6M). The maturity-$T$ par basis swap exchanges payments of $L^{(2)}$ against $L^{(1)} + e_{1,2}(T)$, with $e_{1,2}(T)$ determined so PV = 0.
-
-**Intuition:**
-The basis spread is the "price" of converting cashflows indexed to one tenor into cashflows indexed to another tenor.
-
-**Trading / Risk / Portfolio Practice:**
-- Basis swaps hedge exposure when "assets and liabilities have interest payments based on different floating rates"
-- Dealers often prefer hedging/quoting in the more liquid "spread" instruments (basis swaps) rather than building each tenor curve purely from outright tenor swaps
-
----
-
-### 5) Relationship Between Tenor Curves: "Basis as a Curve"
-
-**Formal Definition:**
-It can be convenient to build one tenor index curve as a spread off another:
-
-$$P^{(2)}(t,T) = P^{(1)}(t,T) \exp\!\left(-\int_0^T \eta_{1,2}(s)\,ds\right)$$
-
-where $\eta_{1,2}$ is a (term-structure) basis spread process used for curve construction.
-
-**Intuition:**
-Rather than re-solving an entire curve from scratch, you treat the less-liquid tenor curve as "base tenor curve + basis term structure."
-
-**Trading / Risk / Portfolio Practice:**
-This motivates a dependency graph: build $P_d$, then a primary forecast curve $P^{(1)}$, then derive secondary tenors via basis instruments. Sequential construction of multiple-tenor basis curves is used because basis markets can be more liquid than outright markets for some tenors/maturities.
-
----
-
-## Math and Derivations
-
-### 2.1 From Discount Factors to Simple Forward Rates (Single-Curve Identity)
-
-The simple forward rate over $[T, T+\tau]$ is defined by:
-
-$$\boxed{1 + \tau L(t,T,T+\tau) = \frac{1}{P(t,T,T+\tau)}, \quad P(t,T,T+\tau) = \frac{P(t,T+\tau)}{P(t,T)}}$$
-
-For a grid $T = T_0 < T_1 < \cdots < T_n$, the compounding relationship is:
-
-$$\frac{P(t,T_n)}{P(t,T)} = \prod_{i=1}^{n} \frac{1}{1 + (T_i - T_{i-1}) L(t,T_{i-1},T_i)}$$
-
-**Unit Check:**
-- $P(\cdot,\cdot)$: dimensionless
-- $L(\cdot)$: "per year"
-- $(T_i - T_{i-1}) L$: dimensionless
-- Product of dimensionless terms is dimensionless ✓
-
-**Key Implication (Toy Contradiction):**
-If a *single* curve must be consistent with both 3M and 6M quotes, then the 6M discount factor implied by two 3M forwards must match the 6M discount factor implied directly by the 6M quote. If not, one curve cannot fit both simultaneously.
-
----
-
-### 2.2 Multi-Curve Projection: Index Curve Definition for Tenor-$k$
-
-In a multi-index setting, the expected Libor fixing used in swap valuation is identified with a forward rate computed from a tenor-specific index curve:
-
-$$\boxed{\mathbb{E}^{t_{i+1}^{(k)}}_t\!\big[\,L^{(k)}(t_i,t_{i+1}^{(k)})\,\big] = L^{(k)}(t; t_i,t_{i+1}^{(k)}) = \frac{1}{\tau_i^{(k)}}\left(\frac{P^{(k)}(t,t_i)}{P^{(k)}(t,t_{i+1}^{(k)})}-1\right)}$$
-
-**Interpretation:**
-$P^{(k)}$ is not "the" discount curve; it is a curve object used solely to infer forwards for tenor $k$.
-
----
-
-### 2.3 Fixed–Float Swap PV in a Multi-Curve World and Par Fixed Rate
-
-The value of a fixed–floating swap (fixed rate $c$ against $k$-Libor) is:
-
-$$V^{(k)}(t) = \sum_{i=0}^{n^{(k)}-1} c\,\tau_i^{(k)}\,P_d(t,t_{i+1}^{(k)}) - \sum_{i=0}^{n^{(k)}-1} \mathbb{E}^{t_{i+1}^{(k)}}_t\!\big[\,L^{(k)}(t_i,t_{i+1}^{(k)})\,\big]\, \tau_i^{(k)}\,P_d(t,t_{i+1}^{(k)})$$
-
-with the expectation replaced by the forward computed from $P^{(k)}$.
-
-At $t=0$, write forwards $F_i^{(k)} := L^{(k)}(0;t_i^{(k)},t_{i+1}^{(k)})$. Then:
-
-$$V^{(k)}(0) = \sum_{i=0}^{n^{(k)}-1} \tau_i^{(k)} P_d(0,t_{i+1}^{(k)})\,(c - F_i^{(k)})$$
-
-**Par fixed rate** $c^\star$ satisfies $V^{(k)}(0) = 0$, hence:
-
-$$\boxed{c^\star = \frac{\sum_{i=0}^{n^{(k)}-1} F_i^{(k)}\,\tau_i^{(k)}\,P_d(0,t_{i+1}^{(k)})}{\sum_{i=0}^{n^{(k)}-1} \tau_i^{(k)}\,P_d(0,t_{i+1}^{(k)})}}$$
-
-**Sanity Checks:**
-- If all forwards $F_i^{(k)}$ are equal to a constant $F$, then $c^\star = F$ ✓
-- In a single-curve world where projection = discounting, many texts show the floating leg PV reduces to a simple expression; Tuckman notes that at initiation the floating leg is worth par. In a multi-curve setting, that par-floating identity generally **fails** because $P^{(k)} \neq P_d$.
-
----
-
-### 2.4 Basis Swap PV Equation and Par Basis Spread
-
-The tenor basis swap definition (two Libor indices $L_1$ and $L_2$) is given by the par PV condition:
-
-$$\sum_{i=0}^{n_2(T)-1} L_2(t;t_i^2,t_{i+1}^2)\,\tau_i^2\,P_d(t,t_{i+1}^2) = \sum_{i=0}^{n_1(T)-1} \big(L_1(t;t_i^1,t_{i+1}^1) + e_{1,2}(T)\big)\,\tau_i^1\,P_d(t,t_{i+1}^1)$$
-
-where $e_{1,2}(T)$ is quoted on leg 1 and can be positive or negative.
-
-Solving for the par spread at $t=0$ gives:
-
-$$\boxed{e_{1,2}(T) = \frac{\sum_{i=0}^{n_2(T)-1} F_i^2\,\tau_i^2\,P_d(0,t_{i+1}^2) - \sum_{i=0}^{n_1(T)-1} F_i^1\,\tau_i^1\,P_d(0,t_{i+1}^1)}{\sum_{i=0}^{n_1(T)-1} \tau_i^1\,P_d(0,t_{i+1}^1)}}$$
-
-**Unit Check:**
-- Numerator: PV "coupon sum" (dimensionless per 1 notional)
-- Denominator: annuity (dimensionless)
-- Ratio: rate (per year) ✓
-
----
-
-### 2.5 Bootstrapping a Secondary Tenor Curve from Basis Swaps
-
-Tenor basis swaps can be used to construct one tenor curve from another. Build each curve "as a spread off a base curve":
-
-$$P^{(2)}(t,T) = P^{(1)}(t,T) \exp\!\left(-\int_0^T \eta_{1,2}(s)\,ds\right)$$
-
-with sequential construction across multiple tenors.
-
-**Practical Bootstrapping Logic (Discrete):**
-
-1. Choose a base tenor (often the most liquid) and bootstrap $P^{(1)}$ from its outright instruments
-
-2. For the next tenor, take a basis swap quote $e_{1,2}(T)$ and solve the par PV equation for the unknown forward(s) of tenor 2 at the next maturity node(s)
-
-3. Convert solved forwards into the new curve's pseudo-discount factors using:
-
-$$\boxed{P^{(2)}(0,t_{i+1}) = \frac{P^{(2)}(0,t_i)}{1 + \tau_i^2 F_i^2}}$$
-
-This is just a rearrangement of the simple forward definition.
-
----
-
-## Measurement & Risk
-
-### 3.1 What Tenor Basis Is and Why 1M/3M/6M Forward Curves Differ
-
-Beyond the OIS-vs-Libor split, we must also account for tenor basis between swaps trading at different frequencies (e.g., 1M, 3M, 6M).
-
-Tenor basis is partly attributed to:
-- Credit and liquidity effects
-- Different supply/demand for funding across tenors
-- Historical widening of USD 1M–3M basis up to ~50bp in early 2009
-
-This motivates separate projection curves $P^{(1M)}$, $P^{(3M)}$, $P^{(6M)}$ rather than a single curve.
-
-### 3.2 What a Basis Swap Is and How It's Quoted
-
-A basis swap exchanges two floating legs tied to different indices, and "involves exchanging a floating rate in one tenor for a floating rate in another tenor plus or minus a spread."
-
-**Which leg receives the spread?**
-- **Source convention (default here):** the spread $e_{1,2}(T)$ is quoted and added on leg 1 in the exchange $L_2$ vs $L_1 + e_{1,2}(T)$
-- **Market reality:** conventions can vary by currency, index family, and dealer standard
-
-> **I'm not sure** what the market quoting convention is for your specific currency/index (e.g., USD 3M vs 6M term index, EURIBOR tenors, etc.).
+> **Analogy: Liquid Water vs. Ice**
 >
-> **Needed to be certain:** (i) currency, (ii) exact indices (e.g., USD term vs legacy Libor), and (iii) dealer quote convention ("spread on 3M" vs "spread on 6M", payer/receiver sign).
-
-### 3.3 Why Tenor Basis Exists (Source-Consistent Explanations Only)
-
-Modern basis behavior is linked to the post-crisis multi-curve world:
-- OIS discounting for collateralized trades implies discounting with an OIS curve $P_d$ and forecasting with a separate term-index curve $P^{(L)}$
-- Divergence between overnight rates and Libor (and between Libor tenors) reflects credit/liquidity/funding segmentation
-- Fed Funds used for collateral accrual and changes in bank funding conditions contributed to basis moves
-- Tenor basis can be bootstrapped explicitly from basis swap markets
-
-### 3.4 Practical Consequences for Valuation and Risk
-
-**Valuation:**
-- Discount cashflows using $P_d(0,\cdot)$ (OIS/overnight discount curve in the collateralized setting)
-- Forecast each floating leg using its own tenor curve $P^{(k)}$ via forward rates
-
-**Risk Decomposition:**
-Swap sensitivities can be expressed as sensitivities to the underlying curves. In the multi-index setting, one has separate risks to:
-- The discount curve
-- The OIS–Libor basis
-- The basis between multiple tenor curves
-
-**Practically:** PV01 to discount curve $P_d$, and "basis risks" to each projection curve $P^{(1M)}, P^{(3M)}, P^{(6M)}$ and to quoted basis spreads.
-
-**Hedging:**
-Hedging a 6M-referencing position with 3M instruments can leave residual exposure to the 3M–6M basis. Basis swaps are the direct hedge instruments for that risk (see Example J).
+> Think of cash as water.
+> *   **1-Month Cash**: It's liquid. You can drink it (use it) in 30 days.
+> *   **6-Month Cash**: It's frozen in a block of ice. You can't use it for 180 days.
+> *   **The Premium**: If I ask you to freeze your water for 6 months, you demand a premium for the inconvenience (Liquidity Risk). You also worry I might steal the ice block while it's freezing (Credit Risk).
+> *   **The Result**: 6-month rates are *structurally higher* than rolling 1-month rates. You can't just melt the 6-month rate into 1-month chunks without losing value.
 
 ---
 
-## Worked Examples
+## 20.2 The Drivers of Tenor Basis
 
-### Common Toy Conventions (Apply to Examples A–J Unless Overridden)
+### 20.2.1 Defining Tenor Basis
 
-| Convention | Value |
-|------------|-------|
-| Day count | Simplified: $\tau_{3M} = 0.25$, $\tau_{6M} = 0.50$ |
-| Payment timing | Pay at period end; no notional exchanges |
-| Discounting | OIS discount curve $P_d(0,T)$ |
-| Projection | Tenor-$k$ forward rates from $P^{(k)}$ |
-| Basis swap quote | Spread added to 3M leg in "6M vs (3M + spread)" |
+**Tenor basis** is the spread between projection curves of different tenors. When tenor basis is non-zero:
 
----
+$$P^{(3M)}(0,T) \neq P^{(6M)}(0,T)$$
 
-### Example A — Single-Curve Contradiction Toy (3M vs 6M Cannot Both Fit One Curve)
+This means the pseudo-discount factors used to calculate 3-month and 6-month forward rates differ, even for the same maturity. Equivalently, compounding 3-month rates will not reproduce the 6-month rate:
 
-**Goal:** Construct toy market quotes where 3M instruments and 6M instruments imply different discount factors/forwards, demonstrating that one curve cannot fit both.
+$$\mathbb{E}[\text{3M Rate compounded twice}] \neq \mathbb{E}[\text{6M Rate}]$$
 
-**Conventions:** Simple interest, no-arbitrage link between forwards and discount factors:
+The difference is the tenor basis.
 
-$$\frac{P(0,T_n)}{P(0,T_0)} = \prod_{i=1}^{n} \frac{1}{1 + \Delta T_i\,L(0,T_{i-1},T_i)}$$
+### 20.2.2 Empirical Behavior
 
-**Toy Market Quotes:**
+The basis tends to exhibit several regularities:
 
-**3M deposit (0–3M):** $L_{3M}(0;0,0.25) = 2.20\%$
+1. **Wider with maturity:** The 10-year basis swap spread is typically larger than the 2-year spread, reflecting long-term uncertainty about credit and liquidity conditions.
 
-$$\Rightarrow 1 + 0.25L = 1 + 0.25(0.022) = 1.0055$$
-$$\Rightarrow P(0,0.25) = \frac{1}{1.0055} = 0.9945300845$$
+2. **Wider with tenor difference:** The 1M-6M basis is typically larger than the 3M-6M basis because the difference in lock-up period is greater.
 
-**3M FRA (3M–6M):** $L_{3M}(0;0.25,0.50) = 2.40\%$
+3. **Procyclical with stress:** During crises—2008, the European debt crisis, COVID-19 in March 2020—basis spreads widen significantly as banks hoard liquidity and prefer shorter-term funding.
 
-$$\Rightarrow 1 + 0.25L = 1.0060$$
-$$\Rightarrow P(0,0.50) = \frac{P(0,0.25)}{1.0060} = \frac{0.9945300845}{1.0060} = 0.9885984936$$
+4. **Mean-reverting but persistent:** Unlike temporary dislocations, tenor basis does not fully collapse to zero even in normal markets. There is a structural component reflecting the economic differences between tenors.
 
-**6M deposit (0–6M) quote:** $L_{6M}(0;0,0.50) = 2.50\%$
+### 20.2.3 Historical Context: The 2007-2008 Regime Change
 
-$$\Rightarrow 1 + 0.50L = 1 + 0.50(0.025) = 1.0125$$
-$$\Rightarrow P(0,0.50) = \frac{1}{1.0125} = 0.9876543210$$
+Before 2007, the basis was so small that practitioners largely ignored it. Andersen and Piterbarg describe the old approach: "When various basis levels were small, the small discrepancies between different Libor-tenor swaps were often accounted for by building a unique discount curve for the subset of swaps referencing the Libor rate of a particular tenor."
 
-**Contradiction:**
-- From 3M instruments: $P(0,0.50) = 0.9885984936$
-- From 6M instrument: $P(0,0.50) = 0.9876543210$
+This created logical inconsistencies—fixed legs of swaps would be discounted at different rates depending on which tenor they happened to be paired with—but the errors were negligible in practice.
 
-They disagree by:
-$$0.9885984936 - 0.9876543210 = 0.0009441726$$
+The crisis exposed this approach as fundamentally flawed. Andersen and Piterbarg note that after September 2007, the Fed funds/LIBOR spread "went up to as much as 275 basis points, and it is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
 
-Equivalently, the 6M forward implied by the 3M-derived $P(0,0.50)$ is:
+> **Historical Note:** The 275 basis point spread between Fed funds and 3-month LIBOR in late 2008 remains one of the most dramatic dislocations in modern financial history. It signaled that banks considered lending to each other for even three months to be deeply risky.
 
-$$L_{implied}^{6M}(0;0,0.50) = \frac{1}{0.50}\left(\frac{1}{0.9885984936} - 1\right) = 2.3066\%$$
-
-which differs from the quoted 2.50%.
-
-**Conclusion:** A single curve object cannot fit both tenors; hence separate tenor curves (or basis instruments) are required in a multi-curve setting.
-
----
-
-### Example B — Define Two Projection Curves: Compute 3M Forwards from $P_d$ and $P^{(3M)}$
-
-**Goal:** Given an OIS discount curve $P_d(0,T)$ and a 3M projection curve $P^{(3M)}(0,T)$, compute 3M forwards $F_i^{3M}$.
-
-**Conventions:**
-- Discounting uses $P_d$
-- Projection uses $P^{(3M)}$
-- Forward rate from index curve:
-$$F^{3M}(0;T_{i-1},T_i) = \frac{1}{\tau}\left(\frac{P^{(3M)}(0,T_{i-1})}{P^{(3M)}(0,T_i)} - 1\right)$$
-
-**Toy Curves:**
-
-| $T$ | $P_d(0,T)$ | $P^{(3M)}(0,T)$ |
-|-----|------------|-----------------|
-| 0.00 | 1.0000000000 | 1.0000000000 |
-| 0.25 | 0.9950000000 | 0.9945300845 |
-| 0.50 | 0.9900250000 | 0.9885984936 |
-| 0.75 | 0.9850748750 | 0.9822141019 |
-| 1.00 | 0.9801495006 | 0.9753863971 |
-
-**Compute Forwards (units: per year):**
-
-**Period $[0, 0.25]$**, $\tau = 0.25$:
-$$F_1^{3M} = \frac{1}{0.25}\left(\frac{1}{0.9945300845} - 1\right) = 0.0220 = 2.20\%$$
-
-**Period $[0.25, 0.50]$**:
-$$F_2^{3M} = \frac{1}{0.25}\left(\frac{0.9945300845}{0.9885984936} - 1\right) = 0.0240 = 2.40\%$$
-
-**Period $[0.50, 0.75]$**:
-$$F_3^{3M} = \frac{1}{0.25}\left(\frac{0.9885984936}{0.9822141019} - 1\right) = 0.0260 = 2.60\%$$
-
-**Period $[0.75, 1.00]$**:
-$$F_4^{3M} = \frac{1}{0.25}\left(\frac{0.9822141019}{0.9753863971} - 1\right) = 0.0280 = 2.80\%$$
-
-**Sanity Check:** Each coupon amount for notional 1 is $F_i^{3M} \tau$: $0.0055, 0.0060, 0.0065, 0.0070$, i.e., dimensionless "interest fractions" ✓
-
----
-
-### Example C — Value a 3M Swap in Multi-Curve: OIS Discounting + 3M Projection
-
-**Goal:** Compute the 1Y par fixed rate for a fixed vs 3M swap, discounting by $P_d$ and projecting by $P^{(3M)}$.
-
-**Conventions:**
-- Maturity $T = 1$ year
-- Floating: 3M payments at $0.25, 0.50, 0.75, 1.00$, $\tau = 0.25$
-- Fixed: quarterly payments on the same dates (simplification)
-- Notional: report per $N = 1$
-
-**Step 1: PV of Projected 3M Floating Leg**
-
-$$\text{PV}_{3M} = \sum_{i=1}^{4} F_i^{3M}\,\tau\,P_d(0,t_i)$$
-
-| $i$ | $F_i^{3M}$ | $\tau$ | $P_d(0,t_i)$ | Term |
-|-----|------------|--------|--------------|------|
-| 1 | 0.022 | 0.25 | 0.995 | $0.0055 \times 0.995 = 0.0054725$ |
-| 2 | 0.024 | 0.25 | 0.990025 | $0.0060 \times 0.990025 = 0.00594015$ |
-| 3 | 0.026 | 0.25 | 0.985074875 | $0.0065 \times 0.985074875 = 0.0064029866875$ |
-| 4 | 0.028 | 0.25 | 0.9801495006 | $0.0070 \times 0.9801495006 = 0.0068610465044$ |
-
-$$\text{PV}_{3M} = 0.0246766831919$$
-
-**Step 2: Fixed-Leg Annuity**
-
-$$A_{3M} = \sum_{i=1}^{4} \tau\,P_d(0,t_i) = 0.25(0.995 + 0.990025 + 0.985074875 + 0.9801495006) = 0.9875623439063$$
-
-**Step 3: Par Fixed Rate**
-
-From the multi-curve swap PV formula, par means PV fixed = PV float:
-
-$$c_{3M}^\star = \frac{\text{PV}_{3M}}{A_{3M}} = \frac{0.0246766831919}{0.9875623439063} = 0.02498746873 = \boxed{2.498746873\%}$$
-
-**Repricing Check (per notional 1):**
-PV fixed at $c^\star$: $c^\star A_{3M} = 0.02498746873 \times 0.9875623439063 = 0.0246766831919$, equals PV float ✓
-
-**Multi-Curve "Par Floater" Contrast:**
-Single-curve intuition says a floater is near par. If we compute $1 - P_d(0,1)$:
-$$1 - P_d(0,1) = 1 - 0.9801495006 = 0.0198504994$$
-
-which is **not** equal to $\text{PV}_{3M} = 0.0246766832$. This illustrates that when discounting and projection curves differ, the floating leg PV is not simply a function of $P_d$ alone.
-
----
-
-### Example D — Value a 6M Swap in Multi-Curve: OIS Discounting + 6M Projection
-
-**Goal:** Repeat Example C for a fixed vs 6M swap; compare par rates.
-
-**Conventions:**
-- Maturity $T = 1$
-- Floating: 6M payments at $0.5, 1.0$, $\tau = 0.5$
-- Fixed: semiannual payments at $0.5, 1.0$ (toy)
-- 6M forwards (toy): $F_1^{6M}(0;0,0.5) = 2.50\%$, $F_2^{6M}(0;0.5,1.0) = 2.70\%$
-- Notional: report per $N = 1$
-
-**Step 1: PV of 6M Floating Leg**
-
-Coupon amounts:
-- Period 1: $0.025 \times 0.5 = 0.0125$
-- Period 2: $0.027 \times 0.5 = 0.0135$
-
-PV:
-- $0.0125 \times P_d(0,0.5) = 0.0125 \times 0.990025 = 0.0123753125$
-- $0.0135 \times P_d(0,1.0) = 0.0135 \times 0.9801495006 = 0.0132320182584$
-
-$$\text{PV}_{6M} = 0.0256073307584$$
-
-**Step 2: Fixed-Leg Annuity**
-
-$$A_{6M} = \sum_{i=1}^{2} \tau\,P_d(0,t_i) = 0.5(0.990025 + 0.9801495006) = 0.9850872503125$$
-
-**Step 3: Par Fixed Rate**
-
-$$c_{6M}^\star = \frac{\text{PV}_{6M}}{A_{6M}} = \frac{0.0256073307584}{0.9850872503125} = 0.02599498750 = \boxed{2.599498750\%}$$
-
-**Interpretation:**
-Par fixed rates differ: $c_{6M}^\star \approx 2.5995\%$ vs $c_{3M}^\star \approx 2.4987\%$, reflecting different projection curves (tenor basis).
-
----
-
-### Example E — Define Basis Swap PV Equation (Par Quote) for 3M–6M Basis
-
-**Goal:** Write the par PV equation that determines the basis spread for a 3M–6M basis swap.
-
-**Conventions:**
-- Maturity $T$
-- Leg 1 = 3M, Leg 2 = 6M
-- Spread on 3M leg (leg 1), consistent with the source's definition $L_2$ vs $L_1 + e_{1,2}(T)$
-- Discounting by $P_d$
-
-**Par Condition:**
-Let payment dates be $\{t_i^{3M}\}_{i=1}^{n_3}$ and $\{t_j^{6M}\}_{j=1}^{n_6}$. At $t=0$, the par basis spread $s_{3M,6M}(T)$ satisfies:
-
-$$\sum_{j=1}^{n_6} F_j^{6M}\,\tau_j^{6M}\,P_d(0,t_j^{6M}) = \sum_{i=1}^{n_3} \big(F_i^{3M} + s_{3M,6M}(T)\big)\,\tau_i^{3M}\,P_d(0,t_i^{3M})$$
-
-**Solving:**
-
-$$\boxed{s_{3M,6M}(T) = \frac{\sum_{j=1}^{n_6} F_j^{6M}\tau_j^{6M}P_d(0,t_j^{6M}) - \sum_{i=1}^{n_3} F_i^{3M}\tau_i^{3M}P_d(0,t_i^{3M})}{\sum_{i=1}^{n_3} \tau_i^{3M}P_d(0,t_i^{3M})}}$$
-
----
-
-### Example F — Compute a 3M–6M Par Basis Spread from Curves (Numeric)
-
-**Goal:** Use the toy curves from Examples B–D and compute the par basis spread.
-
-**Conventions:**
-- Maturity $T = 1$
-- Discounting: $P_d$ as given
-- 3M forwards: $2.2\%, 2.4\%, 2.6\%, 2.8\%$
-- 6M forwards: $2.5\%, 2.7\%$
-- Spread on 3M leg
-
-**Step 1: Compute PV of Each Floating Leg (per notional 1)**
-
-From Examples C and D:
-- $\text{PV}_{3M} = 0.0246766831919$
-- $\text{PV}_{6M} = 0.0256073307584$
-
-**Step 2: Compute 3M Annuity**
-
-$$A_{3M} = \sum_{i=1}^{4} \tau P_d(0,t_i) = 0.9875623439063$$
-
-**Step 3: Solve for Spread**
-
-$$s_{3M,6M} = \frac{\text{PV}_{6M} - \text{PV}_{3M}}{A_{3M}} = \frac{0.0256073307584 - 0.0246766831919}{0.9875623439063} = 0.0009423684209$$
-
-Convert to basis points:
-$$s_{3M,6M} \approx 0.0009423684 \times 10{,}000 = \boxed{9.42368421 \text{ bp}}$$
-
-**Interpretation:**
-Under this convention, the 6M leg is "richer" (higher PV) than the 3M leg, so the 3M leg must pay/receive an added +9.42bp (depending on payer/receiver orientation) to make PVs equal.
-
----
-
-### Example G — Bootstrap One Curve Using Basis Swaps
-
-**Goal:** Illustrate a sequential bootstrap step: use discount curve + calibrated 3M projection curve + one 3M–6M basis quote to infer the next 6M forward (and thus a 6M curve node).
-
-**Conventions:**
-- Maturity $T = 1$
-- Discount curve $P_d$ known
-- 3M curve $P^{(3M)}$ known → 3M forwards known
-- 6M curve unknown beyond 0.5y
-- 6M deposit gives $F_1^{6M}(0;0,0.5) = 2.50\%$ (so $P^{(6M)}(0,0.5)$ known)
-- Basis quote: $s_{3M,6M}(1Y) = 9.42368421$ bp, spread on 3M leg
-
-**Step 0: Known 6M Node at 0.5y**
-
-From 6M deposit:
-$$P^{(6M)}(0,0.5) = \frac{1}{1 + 0.5 \times 0.025} = \frac{1}{1.0125} = 0.9876543210$$
-
-**Step 1: Compute RHS PV of (3M + spread) Leg**
-
-- $\text{PV}_{3M} = 0.0246766831919$ (Example C)
-- Spread PV per notional:
-$$\text{PV}_{spr} = s \cdot A_{3M} = 0.0009423684209 \times 0.9875623439063 = 0.0009306475666$$
-
-Total RHS:
-$$\text{PV}_{3M+spr} = 0.0246766831919 + 0.0009306475666 = 0.0256073307584$$
-
-**Step 2: Write LHS PV for 6M Leg with Unknown Second Forward**
-
-$$\text{PV}_{6M} = F_1^{6M} \cdot 0.5 \cdot P_d(0,0.5) + F_2^{6M} \cdot 0.5 \cdot P_d(0,1.0)$$
-
-Known first term:
-$$F_1^{6M} \cdot 0.5 \cdot P_d(0,0.5) = 0.025 \times 0.5 \times 0.990025 = 0.0123753125$$
-
-Set par PV:
-$$0.0123753125 + F_2^{6M} \cdot 0.5 \cdot 0.9801495006 = 0.0256073307584$$
-
-Solve:
-$$F_2^{6M} = \frac{0.0256073307584 - 0.0123753125}{0.5 \times 0.9801495006} = \frac{0.0132320182584}{0.4900747503} = 0.0270 = \boxed{2.70\%}$$
-
-**Step 3: Convert to 6M Curve Node at 1.0y**
-
-$$P^{(6M)}(0,1.0) = \frac{P^{(6M)}(0,0.5)}{1 + 0.5 F_2^{6M}} = \frac{0.9876543210}{1 + 0.5 \times 0.027} = \frac{0.9876543210}{1.0135} = 0.9744985900$$
-
----
-
-### Example H — Locality of Basis Quote Bumps
-
-**Goal:** Show how a bump to one basis swap quote impacts the inferred 6M curve node (locality).
-
-**Conventions:** Same as Example G, except bump the 1Y 3M–6M basis quote by +1bp:
-$$s_{new} = s_{old} + 0.0001$$
-
-**Before Bump (from Example G):**
-- $s_{old} = 0.0009423684209$
-- $F_2^{6M} = 2.700000\%$
-- $P^{(6M)}(0,1.0) = 0.9744985900$
-
-**After Bump:**
-
-RHS PV increases by:
-$$\Delta\text{PV} = 0.0001 \times A_{3M} = 0.0001 \times 0.9875623439063 = 0.0000987562343906$$
-
-New par equation:
-$$0.0123753125 + F_{2,new}^{6M} \cdot 0.5 \cdot 0.9801495006 = 0.0256073307584 + 0.0000987562343906 = 0.0257060869928$$
-
-Solve:
-$$F_{2,new}^{6M} = \frac{0.0257060869928 - 0.0123753125}{0.4900747503} = 0.02720151259 = 2.720151259\%$$
-
-Update 6M node:
-$$P_{new}^{(6M)}(0,1.0) = \frac{0.9876543210}{1 + 0.5 \times 0.02720151259} = 0.9744017207$$
-
-**Before/After Table:**
-
-| Quantity | Before | After (+1bp basis quote) | Change |
-|----------|--------|--------------------------|--------|
-| Basis quote $s_{3M,6M}(1Y)$ | 9.423684 bp | 10.423684 bp | +1.000000 bp |
-| $F_2^{6M}(0;0.5,1.0)$ | 2.700000% | 2.720151% | +2.015126 bp |
-| $P^{(6M)}(0,1.0)$ | 0.9744985900 | 0.9744017207 | −0.0000968693 |
-
-**Interpretation:**
-Bumping one basis quote affects the inferred adjacent 6M forward/node used to fit that quote. This is the "locality" practitioners aim for with sequential bootstrapping (though interpolation choices can spread the impact).
-
----
-
-### Example I — Risk Decomposition for a Basis Swap (Finite-Difference PV01s)
-
-**Goal:** For a 1Y 3M–6M basis swap, compute sensitivities (finite difference):
-- Discount-curve PV01
-- 3M-projection PV01
-- 6M-projection PV01
-- Basis-spread sensitivity (PV per 1bp of quoted basis)
-
-**Conventions:**
-- Instrument: 1Y basis swap with spread on 3M leg
-- Position: Receive 6M, Pay (3M + spread)
-- Notional: $N = 100{,}000{,}000$
-- Base spread: par $s = 9.42368421$ bp (Example F), so base PV = 0
-- Discount bump definition (toy): apply "+1bp" bump by multiplying each $P_d(0,t)$ by $(1 - 0.0001\,t)$
-
-**Step 1: Base PV (Check)**
-
-Per notional 1:
-$$\text{PV}_{6M} = 0.0256073307584, \quad \text{PV}_{3M+spr} = 0.0256073307584 \Rightarrow \text{PV} = 0 \checkmark$$
-
-#### I.1 Discount-Curve PV01 (Hold Forwards and Spread Fixed; Bump $P_d$)
-
-**Bumped Discount Factors:**
-
-| $T$ | $P_d'(0,T)$ |
-|-----|-------------|
-| 0.25 | $0.995(1 - 0.000025) = 0.9949751250$ |
-| 0.50 | $0.990025(1 - 0.00005) = 0.9899754988$ |
-| 0.75 | $0.985074875(1 - 0.000075) = 0.9850009944$ |
-| 1.00 | $0.9801495006(1 - 0.0001) = 0.9800514857$ |
-
-**Recompute PVs (per notional 1):**
-
-6M leg:
-- $0.0125 \times 0.9899754988 = 0.0123746937344$
-- $0.0135 \times 0.9800514857 = 0.0132306950566$
-- $\text{PV}_{6M}' = 0.0256053887910$
-
-3M leg (coupons 0.0055, 0.0060, 0.0065, 0.0070):
-- $0.0055 \times 0.9949751250 = 0.0054723631875$
-- $0.0060 \times 0.9899754988 = 0.0059398529925$
-- $0.0065 \times 0.9850009944 = 0.0064025064635$
-- $0.0070 \times 0.9800514857 = 0.0068603603997$
-- $\text{PV}_{3M}' = 0.0246750830432$
-
-Spread PV:
-$$A_{3M}' = 0.25(0.9949751250 + 0.9899754988 + 0.9850009944 + 0.9800514857) = 0.9875007759523$$
-$$\text{PV}_{spr}' = s \cdot A_{3M}' = 0.0009423684209 \times 0.9875007759523 = 0.0009305895469$$
-
-Pay leg total:
-$$\text{PV}_{3M+spr}' = 0.0246750830432 + 0.0009305895469 = 0.0256056725901$$
-
-Basis swap PV (receive 6M, pay 3M+spr):
-$$\text{PV}' = 0.0256053887910 - 0.0256056725901 = -2.837991 \times 10^{-7}$$
-
-**Dollar PV01:**
-$$\text{PV01}_{disc} = \text{PV}' \times N \approx -2.837991 \times 10^{-7} \times 100{,}000{,}000 = \boxed{-\$28.38}$$
-
-#### I.2 3M-Projection PV01 (Bump 3M Forwards +1bp)
-
-A +1bp bump means each 3M coupon increases by $\tau \times 0.0001 = 0.25 \times 0.0001 = 0.000025$.
-
-PV change per notional:
-$$\Delta\text{PV}_{3M} = 0.000025 \times (P_d(0,0.25) + P_d(0,0.5) + P_d(0,0.75) + P_d(0,1))$$
-$$= 0.000025 \times 3.950249375625 = 0.0000987562343906$$
-
-Since we pay (3M + spread), the basis swap PV change is $-\Delta\text{PV}_{3M}$:
-$$\text{PV01}_{3M\,proj} = -0.0000987562343906 \times 100{,}000{,}000 = \boxed{-\$9{,}875.62}$$
-
-#### I.3 6M-Projection PV01 (Bump 6M Forwards +1bp)
-
-Each 6M coupon increases by $\tau \times 0.0001 = 0.5 \times 0.0001 = 0.00005$.
-
-PV change per notional:
-$$\Delta\text{PV}_{6M} = 0.00005 \times (P_d(0,0.5) + P_d(0,1.0)) = 0.00005 \times 1.970174500625 = 0.0000985087250313$$
-
-We receive 6M, so PV increases:
-$$\text{PV01}_{6M\,proj} = +0.0000985087250313 \times 100{,}000{,}000 = \boxed{+\$9{,}850.87}$$
-
-#### I.4 Basis-Spread Sensitivity (PV per 1bp on the Quoted Spread)
-
-Spread PV per notional is $s \cdot A_{3M}$. A +1bp change means $\Delta s = 0.0001$:
-$$\Delta\text{PV}_{spr} = 0.0001 \times A_{3M} = 0.0001 \times 0.9875623439063 = 0.0000987562343906$$
-
-We pay the spread, so PV change is negative:
-$$\frac{\partial \text{PV}}{\partial s}\bigg|_{1bp} = -0.0000987562343906 \times 100{,}000{,}000 = \boxed{-\$9{,}875.62 \text{ per 1bp}}$$
-
-#### I.5 Summary Table (for $N = 100$mm)
-
-| Risk Component | Definition (Toy FD) | Result |
-|----------------|---------------------|--------|
-| Discount PV01 | bump $P_d(0,t) \to P_d(0,t)(1-0.0001t)$ | $-\$28.38$ |
-| 3M projection PV01 | bump all $F_i^{3M}$ by +1bp | $-\$9{,}875.62$ |
-| 6M projection PV01 | bump all $F_j^{6M}$ by +1bp | $+\$9{,}850.87$ |
-| Basis-spread sensitivity | bump quoted $s$ by +1bp | $-\$9{,}875.62$ |
-
-**Hedging Interpretation:**
-The dominant sensitivities are to the projection curves (and the quoted basis spread), consistent with the idea that basis swaps are primarily basis-risk instruments rather than pure discount-curve DV01 trades.
-
----
-
-### Example J — Hedging Residual: Hedge a 6M Swap with a 3M Swap, Then Shock the Basis
-
-**Goal:** Show that hedging a 6M swap using a 3M swap can neutralize "overall DV01" (common move), but a basis widening still produces residual P&L.
-
-**Conventions:**
-- Discount curve $P_d$ fixed
-- Two par swaps, maturity 1Y:
-  - 6M swap fixed rate $c_{6M}^\star = 2.599498750\%$ (Example D)
-  - 3M swap fixed rate $c_{3M}^\star = 2.498746873\%$ (Example C)
-- "Overall DV01" shock: both 3M and 6M forward curves shift up by +1bp (basis unchanged)
-- Basis-widening scenario: 6M forwards shift up by +5bp, 3M forwards unchanged (basis widens)
-
-**Positions:**
-- **Trade 1 (target):** Pay fixed $c_{6M}^\star$, Receive 6M, notional $N_1 = 100{,}000{,}000$ (PV=0 at inception)
-- **Trade 2 (hedge):** Receive fixed $c_{3M}^\star$, Pay 3M, notional $N_2$ to be chosen (PV=0 at inception)
-
-#### J.1 Compute Each Swap's PV Change Under a Common +1bp Move
-
-For a par fixed–float swap, holding discount factors fixed, a parallel bump $\Delta$ to all forwards changes the floating leg PV by:
-$$\Delta\text{PV}_{float} = \Delta \sum_i \tau_i P_d(0,t_i) = \Delta \cdot A$$
-
-**Trade 1 (receive 6M float) DV01:**
-$$\text{DV01}_1 = N_1 \cdot 0.0001 \cdot A_{6M} = 100{,}000{,}000 \times 0.0001 \times 0.9850872503125 = +\$9{,}850.87$$
-
-**Trade 2 (pay 3M float) DV01:**
-$$\text{DV01}_2 = -N_2 \cdot 0.0001 \cdot A_{3M} = -N_2 \times 0.0001 \times 0.9875623439063$$
-
-Choose $N_2$ so that $\text{DV01}_1 + \text{DV01}_2 = 0$:
-$$N_2 = N_1 \frac{A_{6M}}{A_{3M}} = 100{,}000{,}000 \times \frac{0.9850872503125}{0.9875623439063} = 99{,}749{,}373.43$$
-
-**Result:** The hedged portfolio has (approximately) zero PV change for a common +1bp move in both tenor curves.
-
-#### J.2 Apply a +5bp Tenor-Basis Widening Shock and Compute Residual P&L
-
-**Scenario:** 6M forwards +5bp ($\Delta_{6M} = 0.0005$), 3M forwards unchanged ($\Delta_{3M} = 0$).
-
-**Trade 1 PV change:**
-$$\Delta\text{PV}_1 = N_1 \cdot 0.0005 \cdot A_{6M} = 100{,}000{,}000 \times 0.0005 \times 0.9850872503125 = +\$49{,}254.36$$
-
-**Trade 2 PV change:** 0 (3M forwards unchanged; fixed leg unchanged)
-
-**Residual P&L (hedged book):**
-$$\Delta\text{PV}_{hedged} = \boxed{+\$49{,}254.36}$$
-
-**Interpretation:**
-Even though the hedge eliminated "common" rate exposure (DV01), it left basis exposure—the very phenomenon the multi-index framework identifies as a distinct risk factor.
-
-In practice, the direct hedge for this residual is a 3M–6M basis swap (or instruments used in its curve construction).
-
----
-
-## Practical Notes
-
-### 5.1 Common Quoting Conventions and Ambiguity Traps
-
-#### Which Leg Gets the Spread
-
-- **Default in this chapter:** the spread is added to "leg 1" in $L_2$ vs $L_1 + e_{1,2}(T)$, consistent with the reference PV condition for par basis swaps
-- **Ambiguity in practice:** dealers may quote the spread on the other leg, or define the sign as "payer of basis" differently
-
-> **I'm not sure** what convention applies in your market.
+> **Visual: The Basis Spread History**
 >
-> **Needed:** currency + index family + market quote sheet convention ("3M+spread vs 6M" or "6M+spread vs 3M"), and which direction is "pay basis".
-
-#### Term vs Compounded-in-Arrears
-
-- OIS legs are typically linked to compounded overnight rates (source notes OIS involves exchanging a fixed rate for the compounded overnight rate)
-- Tenor basis swaps in this chapter are described for Libor-like term indices (simple interest over the period)
-
-> **Modern market caveat:** Some currencies have moved away from Libor and use RFR-based conventions.
+> Imagine a line graph of the 3M-OIS Annualized Spread.
+> *   **2000-2007**: A flat line near zero (0-5 bps). "Boring."
+> *   **2008**: Vertical spike to 350 bps. "Panic."
+> *   **2010-2012**: Elevated, choppy (Euro Crisis). "Stress."
+> *   **2020**: Sharp spike (Covid). "Liquidity Crunch."
 >
-> **I'm not sure** how your "1M/3M/6M" are defined today (term RFR? compounded in arrears with lookback?).
->
-> **Needed:** the exact index definitions and ISDA fallback/compounding conventions for the product.
-
-#### Day-Count and Payment-Frequency Differences
-
-- Year fractions $\tau$ can be governed by complicated conventions (the text flags this explicitly)
-- Fixed-leg frequency can differ from floating-leg frequency by currency (market convention). In examples we matched frequencies for clarity (see Tuckman-style simplification).
-
-### 5.2 Implementation Pitfalls (Multi-Curve Curve-Building and Risk)
-
-#### Dependency Graph Matters
-
-The multi-index curve group concept implies a natural construction order: discount curve $P_d$ plus multiple tenor projection curves $P^{(k)}$.
-
-Building secondary tenor curves from basis swaps (representing them as spreads off a base curve, sequentially across tenors) is the standard approach.
-
-#### Interpolation Can Create Forward "Wiggles"
-
-Interpolating $P^{(k)}$ directly vs interpolating log-discount factors vs interpolating zero rates can produce materially different forward shapes, and thus basis shapes. Keep consistent across tenors.
-
-#### Inconsistent Bump Methodology
-
-If you bump a basis quote but do not rebuild the dependent curve nodes consistently, you can create spurious P&L attribution. Risk should be expressed as sensitivities to underlying curves in the multi-index setting, which implicitly assumes a consistent curve-rebuild mapping from instruments to curves.
+> This graph proves that Tenor Basis is a **fear gauge**. When banks are scared, they hoard short-term cash, and the basis explodes.
 
 ---
 
-## Summary & Recall
+## 20.3 Basis Swaps: The Trading Instrument
 
-### 10-Bullet Executive Summary
+### 20.3.1 Structure of a Basis Swap
 
-1. **Multi-curve necessity:** 3M and 6M instruments imply different discount factors—one curve cannot fit both, requiring separate tenor projection curves
+A **basis swap** is a swap that exchanges floating payments linked to one tenor against floating payments linked to another tenor. Unlike a standard fixed-for-floating swap, both legs are floating.
 
-2. **Discounting vs projection:** Use $P_d$ (OIS) for discounting all cashflows; use $P^{(k)}$ for forecasting tenor-$k$ floating coupons
+Andersen and Piterbarg define this precisely: "A floating-floating basis swap is a swap of payments linked to a Libor rate of a particular tenor such as $L^{1}$—versus payments based on a Libor rate of different tenor—such as $L^{2}$. Each leg pays on its own schedule of a corresponding tenor."
 
-3. **Tenor basis definition:** The spread required in a basis swap to equate two floating legs of different tenors
+For example, a "3M vs 6M" basis swap might exchange:
 
-4. **Basis swap mechanics:** Exchange $L^{(2)}$ vs $L^{(1)} + e_{1,2}(T)$; the spread $e_{1,2}(T)$ is the par basis
+- **Leg 1**: 3M LIBOR + Spread, paid quarterly
+- **Leg 2**: 6M LIBOR flat, paid semi-annually
 
-5. **Par basis formula:** $e_{1,2}(T) = \frac{\text{PV}(\text{leg 2 floats}) - \text{PV}(\text{leg 1 floats})}{\text{Annuity on leg 1}}$
+A fixed spread is typically added to one of the legs to make the swap value at inception equal to zero.
 
-6. **Bootstrapping secondary curves:** Use basis swap quotes to infer forwards for less-liquid tenors from a calibrated base tenor curve
+### 20.3.2 The Par Basis Spread
 
-7. **Risk decomposition:** Separate sensitivities to discount curve, each projection curve, and quoted basis spreads
+The **par basis spread** $e_{1,2}(T)$ is the spread added to one leg such that the net present value of the swap is zero at inception.
 
-8. **Hedging limitation:** DV01-hedging a 6M swap with 3M instruments leaves residual basis exposure
+Andersen and Piterbarg present the equilibrium condition (equation 6.49):
 
-9. **Historical context:** USD 1M–3M basis widened from <1bp (2007) to ~50bp (2009) during the crisis
+$$\boxed{\sum_{i=0}^{n^{2}(T)-1} L^{2}(0, t_{i}^{2}, t_{i+1}^{2}) \tau_{i}^{2} P(t_{i+1}^{2}) = \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0, t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right) \tau_{i}^{1} P(t_{i+1}^{1})}$$
 
-10. **Convention warnings:** Leg receiving the spread, day counts, and compounding conventions vary by currency and product—always verify
+Here $e^{1,2}(T)$ is the quoted floating-floating basis spread for exchanging $L^{1}$ for $L^{2}$ to maturity $T$, quoted on the $L^{1}$ leg. As Andersen and Piterbarg explain, "It could be positive or negative, depending on perceived desirability of payments linked to $L^{1}$ versus $L^{2}$."
 
-### Cheat Sheet of Formulas
+If the market values 6M cashflows more highly (due to the higher risk premium embedded in the rate), the 6M leg will have a higher PV than the flat 3M leg. Therefore, the 3M leg must receive an additional positive spread to compensate.
 
-| Formula | Expression |
-|---------|------------|
-| Simple forward (single curve) | $L(t,T,T+\tau) = \frac{1}{\tau}\left(\frac{P(t,T)}{P(t,T+\tau)} - 1\right)$ |
-| Tenor-$k$ forward (multi-curve) | $L^{(k)}(t;T_{i-1},T_i) = \frac{1}{\tau_i^{(k)}}\left(\frac{P^{(k)}(t,T_{i-1})}{P^{(k)}(t,T_i)} - 1\right)$ |
-| Par fixed rate (swap) | $c^\star = \frac{\sum_i F_i^{(k)} \tau_i P_d(0,t_i)}{\sum_i \tau_i P_d(0,t_i)}$ |
-| Par basis spread | $e_{1,2}(T) = \frac{\text{PV}_{leg2} - \text{PV}_{leg1}}{A_{leg1}}$ |
-| Bootstrap step | $P^{(k)}(0,t_{i+1}) = \frac{P^{(k)}(0,t_i)}{1 + \tau_i F_i^{(k)}}$ |
-| Annuity | $A = \sum_i \tau_i P_d(0,t_i)$ |
+### 20.3.3 Interpreting the Spread Sign
 
-### Flashcards (20 Q/A Pairs)
+The convention for which leg receives the spread varies by market. Understanding the sign is critical to avoid confusion.
 
-1. **Q:** What is tenor basis?
-   **A:** The market-observed difference between floating rates of different tenors, requiring separate projection curves
+**Standard interpretation:** If the spread is quoted as positive on the shorter tenor leg, the market is saying the shorter tenor rate is "cheaper" than what you would expect from simply compounding. This makes economic sense: the shorter tenor has less credit/liquidity risk embedded, so it needs a spread added to equate its value to the longer tenor leg.
 
-2. **Q:** Why can't a single curve fit both 3M and 6M instruments?
-   **A:** They imply different discount factors for the same maturity due to credit/liquidity/funding differences
+> **Convention Warning:** Always verify the specific convention for your currency and counterparty. Is the quote "3s6s" paying the spread on the 3M leg or receiving it? Is it quoted as a spread *over* 3M or *under* 6M? A sign error guarantees a loss.
 
-3. **Q:** What is the discounting curve used for?
-   **A:** Computing present values of all cashflows (typically OIS for collateralized trades)
+> **I'm not sure** about the exact conventions in emerging RFR markets (e.g., SOFR 1M vs SOFR 3M term) as liquidity is still developing and conventions are evolving. Always verify with the term sheet or Bloomberg `FLDS` function.
 
-4. **Q:** What is a projection curve used for?
-   **A:** Forecasting expected floating rate fixings for a specific tenor
+> **Deep Dive: The Synthetic Loan**
+>
+> Why does the basis exist? Arbitrage holds it together.
+> *   **Approach A**: Borrow $100M for 3 months directly. Rate = 3M LIBOR.
+> *   **Approach B (Synthetic)**:
+>     1.  Borrow $100M for 1 month.
+>     2.  Enter a "1M vs 3M" Basis Swap to hedge the roll risk.
+>     3.  Roll the loan twice.
+>
+> If Approach A is expensive (Banks hate 3M lending), Approach B becomes cheaper. Traders rush to do B, pushing up the price of the Basis Swap until A and B are roughly equal. The Basis Swap is the price of *transforming* 1M risk into 3M risk.
 
-5. **Q:** What is a basis swap?
-   **A:** An exchange of two floating legs tied to different indices, plus or minus a spread
+---
 
-6. **Q:** In our convention, where is the basis spread quoted?
-   **A:** Added to leg 1 in the exchange $L_2$ vs $L_1 + e_{1,2}(T)$
+## 20.4 Mathematics of Multi-Curve Valuation
 
-7. **Q:** What makes a basis swap "par"?
-   **A:** The spread $e_{1,2}(T)$ is set so that inception PV equals zero
+### 20.4.1 Forward Rates from Projection Curves
 
-8. **Q:** Write the par basis spread formula.
-   **A:** $e_{1,2}(T) = \frac{\text{PV}(\text{leg 2}) - \text{PV}(\text{leg 1})}{\text{Annuity of leg 1}}$
+The forward rate $L^{(k)}$ for a specific tenor $k$ over period $[T_{i-1}, T_i]$ is derived from that tenor's projection curve $P^{(k)}$. Andersen and Piterbarg provide the defining relationship (equation 6.48):
 
-9. **Q:** How do you bootstrap a secondary tenor curve?
-   **A:** Use basis swap quotes to solve for unknown forwards, then convert to pseudo-discount factors
+$$\boxed{L^{(k)}(0; T_{i-1}, T_i) = \frac{1}{\tau_i^{(k)}}\left(\frac{P^{(k)}(0,T_{i-1})}{P^{(k)}(0,T_i)} - 1\right)}$$
 
-10. **Q:** What risk remains after DV01-hedging a 6M swap with 3M swaps?
-    **A:** Basis risk—exposure to relative moves between 3M and 6M curves
+This is the familiar forward rate formula, but applied to the *projection curve* for tenor $k$, not the discount curve.
 
-11. **Q:** Why did tenor basis widen in 2008-2009?
-    **A:** Credit/liquidity stress caused divergence in funding costs across different tenors
+> **Worked Example 20.1: Computing Forwards from Projection Curves**
+>
+> Assume we have a discount curve $P_d$ and a 3M projection curve $P^{(3M)}$ with the following values:
+>
+> | $T$ (years) | $P_d(0,T)$ | $P^{(3M)}(0,T)$ |
+> |-------------|------------|-----------------|
+> | 0.00 | 1.0000 | 1.0000 |
+> | 0.25 | 0.9950 | 0.9945 |
+> | 0.50 | 0.9900 | 0.9886 |
+>
+> To compute the 3M forward rate for the period $[0.25, 0.50]$:
+> $$F^{(3M)} = \frac{1}{0.25}\left(\frac{0.9945}{0.9886} - 1\right) = \frac{1}{0.25}(1.005968 - 1) = 2.387\%$$
+>
+> **Note:** We used $P^{(3M)}$ to calculate the rate. We did **not** use $P_d$. The discount curve $P_d$ will be used later to value the cashflow.
+>
+> **Sanity check:** The 3M forward rate is higher than what we would compute from the discount curve alone (which would give roughly 2.0%). This difference—about 39 basis points—is the cumulative effect of the tenor basis.
 
-12. **Q:** What is the formula for a tenor-$k$ forward from its index curve?
-    **A:** $L^{(k)}(t;T_{i-1},T_i) = \frac{1}{\tau}\left(\frac{P^{(k)}(t,T_{i-1})}{P^{(k)}(t,T_i)} - 1\right)$
+### 20.4.2 Fixed-Float Swap Pricing
 
-13. **Q:** In multi-curve, does the floating leg PV equal $1 - P_d(0,T)$?
-    **A:** No, that identity fails when $P^{(k)} \neq P_d$
+The value of a swap receiving fixed rate $c$ and paying floating rate $L^{(k)}$ is:
 
-14. **Q:** What is the dependency order for building multi-tenor curves?
-    **A:** Build $P_d$ first, then base tenor curve, then secondary tenors via basis
+$$V^{(k)}(0) = \underbrace{\sum_{i} c \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Fixed PV}} - \underbrace{\sum_{i} F_i^{(k)} \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Float PV}}$$
 
-15. **Q:** What causes "forward wiggles" in curve construction?
-    **A:** Choice of interpolation method (discount factors vs log-DFs vs zero rates)
+The **par fixed rate** $c^*$ is the rate that makes $V^{(k)}(0) = 0$. Andersen and Piterbarg express this for a swap with $n$ periods (equation 6.47):
 
-16. **Q:** What is $A_{3M}$ in the worked examples?
-    **A:** The annuity (sum of $\tau \cdot P_d$ terms) for the 3M payment schedule
+$$\boxed{c^\star = \frac{\sum_{i=0}^{n-1} L^{k}(0, t_{i}^{k}, t_{i+1}^{k}) \tau_{i}^{k} P(t_{i+1}^{k})}{\sum_{i=0}^{n-1} \tau_{i}^{k} P(t_{i+1}^{k})}}$$
 
-17. **Q:** If 6M leg has higher PV than 3M leg, what sign does the basis spread have?
-    **A:** Positive (added to 3M leg to equalize PVs)
+Crucially, the par rate depends on **two** curves: the projection curve determines the forwards ($L^{k}$) in the numerator, while the discount curve determines the weights ($P$) in both numerator and denominator.
 
-18. **Q:** What is the main sensitivity of a basis swap?
-    **A:** Projection curve and basis spread sensitivities dominate; discount curve sensitivity is small
+> **Worked Example 20.2: 3M vs 6M Par Rates**
+>
+> Consider a 1-year swap. Because the projection curves differ:
+>
+> - **3M Swap**: Uses 3M forwards averaging, say, 2.50%. Reprices quarterly. The par rate might be **2.50%**.
+> - **6M Swap**: Uses 6M forwards. Since 6M rates include a higher credit/liquidity premium, the forwards might average 2.60%. The par rate might be **2.60%**.
+>
+> This 10 basis point difference is a direct manifestation of the tenor basis. A trader who quotes "the 1-year swap rate" without specifying the tenor is being imprecise.
 
-19. **Q:** How do you verify a bootstrap step worked correctly?
-    **A:** Reprice the calibrating basis swap—it should have PV = 0
+### 20.4.3 Basis Swap Valuation
 
-20. **Q:** What should you verify about quoting conventions before trading?
-    **A:** Which leg gets the spread, sign convention, day count, and compounding method
+For a basis swap exchanging Tenor 2 versus (Tenor 1 + Spread $e$), the par condition is:
+
+$$\sum_{j} F_j^{(2)} \tau_j P_d(0,t_j) = \sum_{i} (F_i^{(1)} + e) \tau_i P_d(0,t_i)$$
+
+Solving for the spread $e$:
+
+$$\boxed{e = \frac{\text{PV}(\text{Leg 2 Float}) - \text{PV}(\text{Leg 1 Float})}{\text{PV01}(\text{Leg 1})}}$$
+
+The PV01 of Leg 1 (sometimes called the "annuity" or "DV01 of the spread leg") is $\sum_i \tau_i P_d(0,t_i)$.
+
+> **Worked Example 20.3: Calculating the Basis Spread**
+>
+> Consider a 1-year swap exchanging 6M LIBOR against 3M LIBOR + Spread.
+>
+> **Given:**
+> - PV(6M Float Leg): \$0.0256 per unit notional
+> - PV(3M Float Leg): \$0.0247 per unit notional
+> - Annuity (Leg 1): 0.9876
+>
+> The 6M leg is more valuable (higher embedded risk premium). To balance, we add a spread to the 3M leg:
+>
+> $$e = \frac{0.0256 - 0.0247}{0.9876} = \frac{0.0009}{0.9876} \approx 9.1 \text{ bps}$$
+>
+> **Interpretation:** The market requires approximately 9 basis points added to 3M LIBOR to make receiving it equivalent to receiving 6M LIBOR flat.
+
+---
+
+## 20.5 Bootstrapping a Secondary Tenor Curve
+
+### 20.5.1 The Hierarchical Construction Algorithm
+
+In practice, curves are built sequentially in order of liquidity. Andersen and Piterbarg describe this as constructing each index curve $P^{k}(\cdot)$ for $k>1$ "as a spread, or basis, curve to one of the previous curves."
+
+**Step 1: Build $P_d$ (Discount Curve)**
+
+Use OIS swaps to construct the discount curve. This reflects the cost of funding for collateralized derivatives.
+
+**Step 2: Build $P^{(3M)}$ (Base Projection Curve)**
+
+Use the most liquid fixed-float swaps (typically 3M tenor) along with FRAs. Andersen and Piterbarg recommend using "vanilla instruments referencing $L^{1}$ such as FRAs on $L^{1}$ and fixed-floating swaps on $L^{1}$ versus a fixed rate."
+
+**Step 3: Build $P^{(6M)}$ (Secondary Projection Curve)**
+
+Use **basis swaps** (3M vs 6M) to determine the spread of the 6M curve relative to the 3M curve. Andersen and Piterbarg express this relationship:
+
+$$P^{2}(t)=P^{1}(t) e^{-\int_{0}^{t} \eta^{1,2}(s) d s}$$
+
+for a piecewise-constant spread function $\eta^{1,2}(\cdot)$.
+
+### 20.5.2 The Bootstrapping Algorithm
+
+To bootstrap the 6M curve point by point:
+
+1. Take the already-calibrated 3M curve and discount curve as given.
+
+2. For each basis swap maturity $T$:
+   a. Compute the PV of the 3M+Spread leg (all inputs are known from Step 2).
+   b. Set the 6M leg PV equal to this value.
+   c. Solve for the unknown 6M forward(s) that satisfy the equality.
+   d. Convert the forward to a pseudo-discount factor:
+   $$P^{(6M)}(0, T_i) = \frac{P^{(6M)}(0, T_{i-1})}{1 + \tau F^{(6M)}}$$
+
+3. Repeat for successively longer maturities.
+
+> **Worked Example 20.4: Bootstrapping a 6M Discount Factor**
+>
+> **Given (from prior calibration):**
+> - $P_d(0, 0.5) = 0.9900$ (OIS discount curve)
+> - $P^{(3M)}(0, 0.25) = 0.9945$, $P^{(3M)}(0, 0.50) = 0.9886$
+> - 1-year 3s6s basis swap: +8 bps on the 3M leg
+>
+> **Objective:** Find $P^{(6M)}(0, 0.5)$
+>
+> **Step 1:** Compute 3M forwards
+> - $F^{(3M)}_{0-3M} = (1/0.9945 - 1)/0.25 = 2.21\%$
+> - $F^{(3M)}_{3M-6M} = (0.9945/0.9886 - 1)/0.25 = 2.39\%$
+>
+> **Step 2:** Compute PV of 3M+8bp leg (first 6 months only for simplicity)
+> $$\text{PV}_{3M} = (2.21\% + 0.08\%) \times 0.25 \times P_d(0.25) + (2.39\% + 0.08\%) \times 0.25 \times P_d(0.50)$$
+> $$= 2.29\% \times 0.25 \times 0.9950 + 2.47\% \times 0.25 \times 0.9900 = 0.5696\% + 0.6113\% = 1.1809\%$$
+>
+> **Step 3:** Set 6M leg PV equal and solve for $F^{(6M)}$
+> $$F^{(6M)}_{0-6M} \times 0.50 \times P_d(0.50) = 1.1809\%$$
+> $$F^{(6M)}_{0-6M} \times 0.50 \times 0.9900 = 1.1809\%$$
+> $$F^{(6M)}_{0-6M} = 2.386\%$$
+>
+> **Step 4:** Convert to pseudo-discount factor
+> $$P^{(6M)}(0, 0.5) = \frac{1.0000}{1 + 0.50 \times 2.386\%} = 0.9882$$
+>
+> **Verification:** The 6M pseudo-discount factor (0.9882) is lower than the 3M factor at the same point (0.9886), reflecting the higher forward rate embedded in 6-month funding.
+
+### 20.5.3 Why Sequential Construction Matters
+
+This hierarchical approach has an important property: **locality**. If the 5-year basis swap spread rises by 1 bp, it primarily affects the 6M forward rates around the 5-year point.
+
+If we solved all curves simultaneously, a change in a basis swap quote might propagate unexpectedly into the discount curve or the 3M curve, which is economically nonsensical—liquidity conditions in 6M markets shouldn't change the price of an OIS swap.
+
+As Andersen and Piterbarg emphasize, this "spread-based method of curve group construction" ensures that "sensitivities to instruments used in the curve group have clear, and orthogonal, meaning":
+
+- Perturbations to OIS instruments define **discounting risk**.
+- Perturbations to 3M swaps define **overall rate level risk**.
+- Perturbations to basis spreads define **basis risk**.
+
+---
+
+## 20.6 Risk Decomposition in Multi-Curve
+
+### 20.6.1 Three Distinct Risk Dimensions
+
+In a single-curve world, you had one sensitivity: interest rate risk (DV01). In the multi-curve world, any position has three orthogonal sensitivities:
+
+| Risk Dimension | Sensitivity To | Hedge Instrument |
+|----------------|----------------|------------------|
+| **Discount Risk** | OIS curve shifts | OIS swaps |
+| **Projection Risk** | Tenor curve shifts (e.g., 3M) | FRAs, Eurodollar/SOFR futures |
+| **Basis Risk** | Spread between curves changing | Basis swaps |
+
+A portfolio with zero DV01 may still have massive basis exposure. A trader who hedges a 6M exposure with 3M instruments leaves the tenor basis completely unhedged.
+
+### 20.6.2 Why DV01 Hedging Is Insufficient
+
+> **Worked Example 20.5: The Flawed Hedge**
+>
+> A trader has a loan paying **6M LIBOR** (\$100M notional). She wants to hedge the interest rate risk.
+>
+> **Hedge:** She sells a standard **3M LIBOR swap** (receive fixed / pay 3M float) with a matching DV01.
+>
+> **Scenario A: Parallel Shift.** All rates rise 100 bps in parallel.
+> - Loan (receive 6M): Coupon increases—gain.
+> - Swap (pay 3M): Float payment increases—loss.
+> - **Net:** The hedge works. Gains and losses approximately offset.
+>
+> **Scenario B: Basis Blowout.** Market stress. OIS and 3M rates unchanged, but 6M rates widen by 20 bps due to credit concerns.
+> - Loan (receive 6M): Coupon increases by 20 bps—gain of \$50,000 annualized.
+> - Swap (pay 3M): 3M rates unchanged—no offset.
+> - **Net:** Unhedged P&L swing of \$50,000.
+>
+> **Scenario C: Reverse Position.** If the trader were *paying* 6M on a liability (instead of receiving), a basis widening would increase her cost with no hedge offset—potentially a large unexpected loss.
+
+This example illustrates why **basis swaps** are essential hedging instruments. They allow you to isolate and manage the risk of the spread itself, independent of the overall level of rates.
+
+### 20.6.3 Practical Risk Reporting
+
+A modern risk system should decompose interest rate risk into at least:
+
+1. **OIS DV01**: Sensitivity to parallel shift of the discount curve
+2. **Projection DV01**: Sensitivity to parallel shift of each tenor curve
+3. **Basis DV01**: Sensitivity to change in each basis spread
+
+For more granular analysis, key-rate exposures (see Chapter 14) should be computed for each curve separately.
+
+---
+
+## 20.7 Practical Notes
+
+### 20.7.1 Implementation Pitfalls
+
+**Circular Dependencies.** Ensure your curve construction code respects the hierarchy: OIS → Base Projection → Spread curves. Do not let the 6M curve feed back into the 3M curve construction. If using a global optimizer, this can introduce subtle cross-dependencies that are hard to debug.
+
+**Interpolation Choices.** When interpolating tenor curves, remember that $P^{(k)}$ is not a real discount factor—it is a mathematical construct. Interpolating directly on the "basis spread" $\eta(t)$ often yields smoother results than interpolating the raw pseudo-discount factors. This avoids artifacts where the basis curve develops unexpected wiggles.
+
+**Turn-of-Year Effects.** Some systems maintain "clean" curves (pure interest rate expectations) and "dirty" curves (including turn-of-year premiums). Basis swaps often pick up these seasonal liquidity crunches, so the December basis spread may differ materially from nearby months.
+
+### 20.7.2 Convention Ambiguities
+
+**Which leg gets the spread?** This varies by market and by dealer. In USD, standard inter-dealer basis swaps typically pay the spread on the *shorter* leg (e.g., 3M+spread vs 6M flat). However, quoting conventions can flip. The quote "6s3s" in one system might mean the opposite of "3s6s" in another.
+
+**Best practice:** Before executing any trade, explicitly confirm:
+1. Which leg receives the spread
+2. Whether the spread is added (+) or subtracted (-)
+3. The daycount convention for each leg
+
+> **I'm not sure** about the exact conventions for newer RFR-based tenor basis markets (e.g., SOFR 1M vs SOFR 3M) as these markets are still developing. Liquidity varies by currency and maturity. Always verify with the specific term sheet or electronic trading platform.
+
+---
+
+## Summary
+
+1. **The Paradigm Shift.** Since 2007, single-curve pricing is obsolete for any portfolio with exposure to multiple tenors. Distinct funding tenors (1M, 3M, 6M) require distinct projection curves.
+
+2. **Curve Roles.** The OIS curve ($P_d$) is used for discounting all collateralized cashflows. Tenor-specific projection curves ($P^{(k)}$) are used solely for computing forward rates.
+
+3. **Tenor Basis Economics.** The basis reflects credit risk differences (longer tenor = more default risk) and liquidity preferences (banks prefer shorter liabilities). These premiums are small in normal times but flare dramatically during crises.
+
+4. **Basis Swap Pricing.** The par basis spread is the amount added to one leg (typically the shorter tenor) to equate the PVs of the two floating streams. The spread encodes the market's view of the relative value of different funding tenors.
+
+5. **Sequential Construction.** Curves are built in order of liquidity: OIS → 3M → Basis curves. This ensures stable, local sensitivities and orthogonal risk dimensions.
+
+6. **Risk Management.** Standard DV01 hedging leaves residual basis risk. A portfolio is only fully hedged if it is neutral to discount curve moves, projection curve moves, *and* basis spread changes.
+
+---
+
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **Tenor** | The accrual period of a floating rate (e.g., 3M, 6M) | Different tenors embed different credit/liquidity risk |
+| **Tenor Basis** | The spread between forward rates of different tenors | Creates pricing differences; prevents arbitrage between instruments |
+| **Multi-Curve Framework** | Using separate curves for discounting (OIS) and projecting (tenor-specific) | The only consistent way to price post-2007 markets |
+| **Basis Swap** | A floating-for-floating swap exchanging payments at two different tenors | The primary instrument for hedging tenor mismatch |
+| **Projection Curve** | A pseudo-discount curve used to calculate forwards for a specific tenor | Ensures forwards match market FRA/basis quotes exactly |
+| **Sequential Bootstrapping** | Building curves in hierarchy: OIS → base tenor → spread curves | Ensures locality and orthogonality of sensitivities |
+| **Basis Risk** | The risk that the spread between tenors changes | Not eliminated by DV01 hedging; requires basis swaps |
+
+---
+
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $P_d(t,T)$ | Discount factor from discount curve (OIS/collateral) |
+| $P^{(k)}(t,T)$ | Pseudo-discount factor for projection curve of tenor $k$ |
+| $L^{(k)}(t;T_1,T_2)$ | Forward rate for tenor $k$ over period $[T_1,T_2]$ |
+| $e^{1,2}(T)$ or $e_{1,2}(T)$ | Par basis spread at maturity $T$ (Tenor 1 vs Tenor 2) |
+| $\tau_i^{(k)}$ | Year fraction for period $i$ in tenor structure $k$ |
+| $\eta^{1,2}(t)$ | Continuous spread function between curves 1 and 2 |
+
+---
+
+## Flashcards
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is the fundamental economic difference between a 1M and 6M rate? | The 6M rate embeds higher credit risk (longer exposure) and liquidity premium (longer lock-up of funds). |
+| 2 | Why can't a single curve price both 3M and 6M swaps consistently? | They imply different discount factors for the same date; using one curve creates arbitrage. |
+| 3 | Which curve is used for discounting in a collateralized swap? | The OIS curve (reflecting the rate paid on collateral). |
+| 4 | Which curve is used for calculating floating payments? | The projection curve specific to that tenor (e.g., 3M curve for 3M LIBOR). |
+| 5 | What is a basis swap? | A swap exchanging floating payments of two different tenors (e.g., 3M vs 6M). |
+| 6 | In a 3s6s basis swap, which leg usually receives the spread? | Typically the shorter/lower-rate tenor leg (3M) to compensate for its lower embedded risk premium. |
+| 7 | What is "basis risk"? | The risk that the spread between two tenors widens or tightens unexpectedly. |
+| 8 | Does a DV01-neutral hedge eliminate basis risk? | No. You can be DV01 flat but still have large exposure if the basis widens. |
+| 9 | What is the correct order for curve bootstrapping? | Discount (OIS) first, then base projection (3M), then secondary projections via basis swaps. |
+| 10 | Why did the 1M-3M basis widen in 2007-2008? | Concerns over bank credit quality and liquidity hoarding made longer-term unsecured lending appear much riskier. |
+| 11 | What was the approximate peak of the Fed funds/LIBOR spread during the crisis? | Up to 275 basis points. |
+| 12 | How wide did the 1M-3M basis get during the crisis? | Up to approximately 50 basis points. |
+| 13 | What does a positive basis spread on the 3M leg mean? | The market views 3M cash flows as "less valuable" than 6M, so a spread must be added to equate PVs. |
+| 14 | Why is sequential curve construction preferred over simultaneous solving? | It ensures locality (bumping 5Y basis only affects 5Y region) and orthogonal risk sensitivities. |
+| 15 | What three risk dimensions should a multi-curve position be analyzed for? | Discount risk, projection risk, and basis risk. |
+| 16 | If you receive 6M LIBOR and hedge by paying 3M LIBOR, what residual risk do you have? | Basis risk—if 6M-3M spread widens, you gain; if it tightens, you lose. |
+| 17 | What is a "pseudo-discount factor"? | A mathematical construct ($P^{(k)}$) that reproduces tenor-specific forwards via the standard formula, but is not used for discounting cash flows. |
+| 18 | Why might interpolating on basis spreads be preferable to interpolating pseudo-discount factors? | It often produces smoother curves and avoids interpolation artifacts. |
 
 ---
 
 ## Mini Problem Set
 
-### Problem 1 (Basic)
-Given $P^{(3M)}(0,0) = 1$, $P^{(3M)}(0,0.25) = 0.9940$, and $\tau = 0.25$, compute the 3M forward rate $F_1^{3M}(0;0,0.25)$.
+### Problem 1 (Basic: Forward Rate Calculation)
 
-*Solution sketch:* $F = \frac{1}{0.25}\left(\frac{1}{0.9940} - 1\right) = \frac{1}{0.25}(1.00604 - 1) = 2.416\%$
+Given $P^{(3M)}(0,0) = 1$, $P^{(3M)}(0,0.25) = 0.9940$, and $\tau = 0.25$, compute the 3M forward rate for the first period.
 
-### Problem 2 (Basic)
-If $\text{PV}_{6M} = 0.0300$ and $\text{PV}_{3M} = 0.0280$ (per notional 1), and $A_{3M} = 0.98$, what is the par 3M–6M basis spread?
+**Solution:**
+$$F = \frac{1}{0.25}\left(\frac{1}{0.9940} - 1\right) = \frac{1}{0.25}(0.006036) = 2.414\%$$
 
-*Solution sketch:* $s = \frac{0.0300 - 0.0280}{0.98} = 0.00204 = 20.4$ bp
+### Problem 2 (Basic: Basis Spread Calculation)
 
-### Problem 3 (Intermediate)
-A 1Y 3M swap has par rate $c_{3M}^\star = 3.00\%$ and annuity $A_{3M} = 0.985$. A 1Y 6M swap has par rate $c_{6M}^\star = 3.15\%$ and annuity $A_{6M} = 0.980$. Estimate the 3M–6M basis spread.
+You are pricing a 6M vs 3M basis swap with the following values:
+- PV(6M Leg) = \$1,020,000
+- PV(3M Leg) = \$1,000,000
+- PV01(3M Leg) = \$5,000
 
-*Hint:* Compute floating leg PVs from $c^\star \times A$, then apply the basis formula.
+What is the par basis spread added to the 3M leg?
 
-### Problem 4 (Intermediate)
-You receive 6M float and pay 3M + 12bp on a \$50mm 1Y basis swap. If the 3M annuity is 0.99 and 6M annuity is 0.98, and par basis is currently 10bp, what is the mark-to-market PV?
+**Solution:**
+$$\text{Spread} = \frac{1,020,000 - 1,000,000}{5,000} = \frac{20,000}{5,000} = 4 \text{ bps}$$
 
-*Hint:* You locked in paying 12bp when fair is 10bp.
+### Problem 3 (Intermediate: Hedging and Basis Risk)
 
-### Problem 5 (Intermediate)
-Bootstrap: Given $P_d(0,0.5) = 0.99$, $P_d(0,1.0) = 0.98$, $P^{(6M)}(0,0.5) = 0.9875$, and $\text{PV}_{3M+spr}(1Y) = 0.0250$, solve for $F_2^{6M}(0;0.5,1.0)$.
+A trader hedges a \$100 million 6M-LIBOR loan (receiving float) by paying fixed on a 3M-LIBOR swap. The 6M-3M basis widens by 10 bps. Does the trader gain or lose money, and approximately how much (annualized)?
 
-### Problem 6 (Advanced)
-Derive the formula for par basis spread starting from the PV equations for both legs. Show all steps and verify units.
+**Solution:** The trader receives 6M rates, which increase relative to 3M. The swap (paying 3M via receiving fixed) doesn't offset this increase. The trader **gains** approximately:
+$$\$100\text{M} \times 0.0010 = \$100,000 \text{ annualized}$$
 
-### Problem 7 (Advanced)
-A trader is DV01-flat on a 6M swap hedged with 3M swaps (using annuity ratio). If 6M forwards increase by 3bp while 3M forwards increase by 1bp, what is the basis P&L direction?
+### Problem 4 (Intermediate: Pseudo-Discount Factor)
 
-### Problem 8 (Advanced)
-Explain why interpolating pseudo-discount factors $P^{(k)}$ directly versus interpolating zero rates can produce different forward curves. Which approach preserves forward positivity?
+If the 6M forward rate is 2.60% and the 6-month year fraction is 0.5, and $P^{(6M)}(0,0) = 1$, what is $P^{(6M)}(0, 0.5)$?
 
-### Problem 9 (Risk)
-A portfolio has +\$10,000 6M projection PV01 and −\$9,500 3M projection PV01. What is the approximate P&L if 3M–6M basis widens by 5bp (6M forwards up 5bp, 3M unchanged)?
+**Solution:**
+$$P^{(6M)}(0, 0.5) = \frac{1.0}{1 + 0.5 \times 0.0260} = \frac{1}{1.013} = 0.9872$$
 
-### Problem 10 (Conceptual)
-Why is the discount curve PV01 on a par basis swap typically small compared to projection curve sensitivities?
+### Problem 5 (Intermediate: Comparing Par Rates)
 
-### Problem 11 (Implementation)
-Describe the curve construction dependency graph for a system that builds: OIS discount, 3M projection, and 6M projection curves. What instruments calibrate each?
+Two swaps have identical structures except for tenor:
+- Swap A: 2-year, pays 3M LIBOR, average 3M forward = 2.80%
+- Swap B: 2-year, pays 6M LIBOR, average 6M forward = 3.00%
 
-### Problem 12 (Advanced)
-If you bump a 2Y basis swap quote by +1bp but fail to rebuild the 6M curve consistently, what type of error could this introduce in P&L attribution?
+Assuming identical discount factors, which swap has a higher par fixed rate, and by approximately how much?
+
+**Solution:** Swap B has higher forwards (3.00% vs 2.80%), so its par rate is higher by approximately 20 bps. The par rate is roughly the weighted average of forwards, so Swap B's par rate exceeds Swap A's by about 20 bps.
+
+### Problem 6 (Advanced: Floater Valuation)
+
+Derive why a floating rate note (FRN) paying 3M LIBOR does not trade at par in a multi-curve world, even on a coupon reset date.
+
+**Solution Sketch:** On a reset date in a single-curve world, the FRN prices at par because the next coupon equals the discount rate × accrual, and future coupons can be shown to telescope to principal.
+
+In multi-curve: The coupons are set by the 3M projection curve ($F^{(3M)}$), but discounted at OIS ($P_d$). Since typically $F^{(3M)} > F^{OIS}$ (LIBOR includes credit/liquidity premium), coupons are "richer" than what the discount curve expects. The telescoping identity breaks:
+$$\text{PV} = \sum F^{(3M)} \tau P_d + 100 \cdot P_d(T) \neq 100$$
+
+The FRN trades above par when LIBOR > OIS.
+
+### Problem 7 (Advanced: Sequential Bootstrapping)
+
+Explain what would go wrong if you tried to bootstrap the 6M curve directly from 6M swap rates without first building the OIS and 3M curves.
+
+**Solution Sketch:**
+1. You wouldn't know how to discount the fixed leg (need OIS curve).
+2. If you used the 6M curve for both projection and discounting, you'd create internal inconsistency with collateralized trades (which should discount at OIS).
+3. You couldn't properly value basis swaps (which compare 6M to 3M), so the 6M curve wouldn't be consistent with basis swap quotes.
+4. Risk sensitivities would not be orthogonal—a change in 6M swaps would move what should be the discount curve.
+
+### Problem 8 (Advanced: Curve Shock Decomposition)
+
+A portfolio has:
+- OIS DV01 = +\$100,000
+- 3M projection DV01 = -\$80,000
+- 3s6s basis DV01 = +\$20,000
+
+If rates move as follows: OIS +5bp, 3M projection +5bp, 3s6s basis +3bp, what is the approximate P&L?
+
+**Solution:**
+$$\text{P\&L} = (100,000 \times 5) + (-80,000 \times 5) + (20,000 \times 3)$$
+$$= 500,000 - 400,000 + 60,000 = +\$160,000$$
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Specific Source Citations
+### (A) Verified Facts (Source-Backed)
 
 | Fact | Source |
 |------|--------|
-| Multi-curve framework definition | Andersen & Piterbarg Vol 1, Ch 6 |
-| Simple forward rate definition | Andersen & Piterbarg Vol 1, §6.48 |
-| Basis swap PV equation | Andersen & Piterbarg Vol 1, §6.47–6.48 |
-| OIS discounting for collateralized trades | Hull Ch 4, Andersen Vol 1 Ch 6 |
-| USD 1M–3M basis historical widening (~50bp in 2009) | Andersen & Piterbarg Vol 1 |
-| Tenor basis attributed to credit/liquidity effects | Andersen & Piterbarg Vol 1 |
-| Sequential curve construction from basis swaps | Andersen & Piterbarg Vol 1, Ch 6 |
-| "Assets and liabilities with different floating rates" | Hull Ch 7 |
+| Multi-index curve group definition: collection $\{P(\cdot), P^{1}(\cdot), \ldots, P^{K}(\cdot)\}$ | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Basis swap PV equality equation (6.49) | Andersen & Piterbarg Vol 1, §6.5.3 |
+| 1M–3M basis historically ~1bp, widened to ~50bp post-2007 | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Fed funds/LIBOR spread reached 275bp post-2007 | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Tenor basis attributed to "credit considerations and partly liquidity considerations" | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Banks "have a natural desire to have longer-term deposits to better match their loan commitments" | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Sequential curve construction methodology with spread functions | Andersen & Piterbarg Vol 1, §6.5.3 |
+| OIS discounting for collateralized trades | Hull Ch 7; Andersen & Piterbarg Vol 1, §6.5.3 |
+| Forward rate formula from projection curve (6.48) | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Fixed-float swap valuation with separate discount/projection (6.47) | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Orthogonal risk sensitivities from spread-based construction | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Basis swap spread can be "positive or negative, depending on perceived desirability" | Andersen & Piterbarg Vol 1, §6.5.3 |
 
-### (B) Reasoned Inference — Derivation Logic
+### (B) Reasoned Inference (Derived from A)
 
 | Inference | Derivation |
 |-----------|------------|
-| Par basis spread formula | Algebraic rearrangement of PV equation setting both legs equal |
-| Single-curve contradiction | Direct computation showing different $P(0,T)$ from different instruments |
-| Bootstrap step formula | Rearrangement of forward rate definition |
-| DV01 hedge ratio | Setting sum of DV01s to zero and solving for notional |
-| Residual basis P&L | Applying basis shock to hedged position |
+| Par Basis Spread Formula | Derived algebraically from the standard PV equality condition (rearranging equation 6.49). |
+| Example Calculations | Constructed to demonstrate the arithmetic of the derived formulas using typical market values. |
+| Risk Scenarios (hedging examples) | Inferred from the definitions of curve sensitivities and the orthogonal decomposition. |
+| FRN above par in multi-curve | Derived from the fact that $F^{(3M)} > F^{OIS}$ breaks the telescoping sum identity. |
 
-### (C) Speculation — Flagged Uncertainties
+### (C) Flagged Uncertainties
 
-| Item | Uncertainty |
-|------|-------------|
-| Market quoting conventions for specific currency/index pairs | Varies by market; not specified in sources |
-| Modern RFR-based tenor conventions | Post-Libor transition details not in reference texts |
-| Exact day-count conventions for specific products | Market-specific; simplified in examples |
-
----
-
-*Last Updated: January 2026*
+| Topic | Uncertainty |
+|-------|-------------|
+| Market Quoting Conventions | Specifics of which leg pays the spread (3s6s vs 6s3s) vary by dealer, currency, and electronic platform. Always verify. |
+| RFR Tenor Conventions | I'm not sure about the exact conventions for developing SOFR Term / RFR basis markets as liquidity is still emerging. |
+| Turn-of-year effects | Seasonal effects on basis spreads are market-dependent and evolve year to year. |

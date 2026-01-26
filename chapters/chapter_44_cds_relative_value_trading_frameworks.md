@@ -1,1435 +1,782 @@
-# Chapter 44: CDS Relative Value and Trading Frameworks (Risk-First, Not "Tips")
+# Chapter 44: CDS Relative Value Trading Frameworks
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-### Notation Glossary
+A corporate's 3-year CDS trades at 80bp, its 5-year at 120bp. Is that steep or flat? A hedge fund manager sees the cash bond trading 30bp wider than the CDS. Is that a buying opportunity or a warning sign? A credit trader notices that senior and subordinated CDS spreads have compressed. Should she put on a capital structure trade?
 
-| Symbol | Definition |
-|--------|------------|
-| $t$ | Time (today) |
-| $T$ | Maturity in years |
-| $N$ | Notional in USD |
-| $S$ | CDS quoted spread in bp/year (convert to decimal/year via $S_{\text{dec}} = S_{\text{bp}} / 10{,}000$) |
-| $R \in [0,1]$ | Recovery rate (e.g., $40\% \Rightarrow R = 0.40$) |
-| $\text{LGD}$ | Loss-given-default $= 1 - R$ |
-| $Z(t,u)$ | Risk-free discount factor (dimensionless) |
-| $Q(t,u)$ | Survival probability $= P(\tau > u \mid \mathcal{F}_t)$ (dimensionless) |
-| $h(u)$ | Hazard / forward default rate (per year) with $Q(t,u) = \exp\bigl(-\int_t^u h(s)\,ds\bigr)$ |
-| $\text{RPV01}(t,T)$ | Risky PV01 / risky annuity in years (present value of 1 unit spread paid until default/maturity). Discrete approximation via trapezoid in survival between coupon dates is used in the reference text for forward-starting CDS annuities. |
-| $V$ | Mark-to-market value (USD) uses signed convention: value to the holder of the position |
-| $\text{CS01}_i$ | Signed CS01 (bucketed): USD per 1bp for bucket/node $i$ |
-| $\text{VOD}$ | Value-on-Default (jump-to-default proxy from the reference): value at default minus current value |
+These questions sit at the heart of CDS relative value trading. Unlike directional credit positions that simply bet on spreads widening or tightening, relative value (RV) trades attempt to exploit mispricings between related instruments while hedging out broader market exposure. The appeal is obvious: if you can identify a temporary dislocation between the 3-year and 5-year CDS curve, why take outright default risk when you can trade the relationship instead?
 
-**Additional Notes:**
-- "Carry" and "rolldown" are treated as P&L decompositions under explicit "curves unchanged" assumptions (not forecasts).
+The danger lies in what appears market-neutral but is not. O'Kane emphasizes in his treatment of CDS risk management that a CDS position carries multiple, distinct risks: "sensitivities to changes in the credit spread curve, changes in the Libor rate curve, changes in the recovery rate, the passage of time, and the risk of a default event." A curve trade that neutralizes total CS01 may still carry massive jump-to-default risk. A basis trade that looks like pure arbitrage may blow up when funding markets seize. The 2008 financial crisis provided brutal lessons in how "market-neutral" positions can generate catastrophic losses when correlations spike and liquidity evaporates.
+
+This chapter takes a risk-first approach to CDS relative value. Building on the CDS mechanics from Chapter 38, the pricing framework from Chapter 41, and the risk measures from Chapter 43, we develop a systematic framework for translating any RV idea into explicit risk exposures, designing hedges that target specific risks, identifying failure modes before they materialize, and constructing verification tests that expose hidden vulnerabilities. The framework applies equally to curve trades (steepeners and flatteners), cash-CDS basis trades, capital structure trades (senior versus subordinated), and index versus single-name relative value. For index-specific mechanics, we connect to Chapter 45's treatment of CDS indices.
+
+We begin with the core risk concepts that underpin all CDS positions: CS01, jump-to-default, recovery sensitivity, and theta. We then apply these concepts systematically to the major RV trade types, working through the mechanics of constructing and hedging each position. Throughout, we maintain the discipline that no trade idea is meaningful until it has been decomposed into measurable exposures and stress-tested against failure scenarios.
 
 ---
 
-## 0. Setup
+## 44.1 Core Risk Concepts for CDS Relative Value
 
-### Conventions Used in This Chapter
+Before constructing any relative value trade, we must establish a precise vocabulary for the risks we will be taking and hedging. O'Kane's Chapter 8 provides the canonical framework for CDS risk management, which we summarize here with emphasis on RV applications.
 
-- Single-name CDS described via a premium leg (spread payments) and a protection leg (default contingent payment), with settlement determined by physical or cash settlement conventions and deliverables; premium generally paid periodically and a final accrued premium may be due at default under standard market conventions discussed in the sources.
-- Credit risk modeled via survival curve $Q(t,u)$ and hazard rate $h(u)$, with the standard reduced-form relation $Q = \exp(-\int h)$.
-- "Risk-first" means we define exposures first (CS01 buckets, JTD/VOD, recovery sensitivity, liquidity/roll/technical risks), then design hedges and tests—not "trade tips."
+### 44.1.1 The CDS Mark-to-Market Identity
 
-### Notation Glossary (Symbols + Definitions)
+The mark-to-market value of a CDS position depends on the difference between the contractual spread and the current market spread. O'Kane provides the fundamental relationship:
 
-| Symbol | Definition |
-|--------|------------|
-| $\tau$ | Default time |
-| $Q(t,u)$ | Survival probability to $u$ conditional on information at $t$ |
-| $h(u)$ | Hazard/forward default rate used in $Q(t,u) = \exp\bigl(-\int_t^u h(s)\,ds\bigr)$ |
-| $Z(t,u)$ | Discount factor from $t$ to $u$ |
-| $S(t,T)$ | Par CDS spread for maturity $T$ observed/derived at time $t$ |
-| $c$ | Contractual CDS coupon/spread in the contract |
-| $\text{RPV01}(t,T)$ | Risky PV01 (years) |
-| $V$ | MTM value of a CDS position |
-| $\text{CS01}$ | Spread DV01 (USD per 1bp) |
-| $\text{VOD}$ | Value-on-default (USD) (jump-to-default proxy) |
-| "Basis" | Difference between CDS spread and bond spread (definition varies by chosen bond spread measure) |
+$$\boxed{V(t) \approx (S_{\text{market}}(t,T) - S_{\text{contract}}) \cdot \text{RPV01}(t,T) \cdot N}$$
 
----
+where $S_{\text{market}}(t,T)$ is the current par spread for maturity $T$, $S_{\text{contract}}$ is the contractual coupon, $\text{RPV01}(t,T)$ is the risky PV01 (present value of 1bp of spread payments), and $N$ is the notional. This identity is central to RV analysis: it shows that spread differences translate into P&L through the RPV01 multiplier.
 
-## 1. Core Concepts (Definitions First)
+The RPV01 itself is a survival-weighted annuity. Using O'Kane's discrete approximation (Ch 6.4):
 
-### 1.1 Credit Default Swap (CDS)
+$$\text{RPV01}(t,T) = \frac{1}{2} \sum_{n=1}^{N} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) + Q(t, t_n))$$
 
-**Formal Definition:**
+where $\Delta$ is the accrual factor, $Z$ is the discount factor, and $Q$ is the survival probability. The trapezoidal weighting of survival probabilities accounts for premium accrued at default.
 
-A CDS is an agreement where the protection buyer pays periodic premiums and receives a default-contingent payoff if a credit event occurs; a standard description is: the buyer has the right to "sell" eligible bonds for face value upon a credit event, and the seller agrees to "buy" at face (physical settlement framing), or equivalently cash settles against a recovery price determined via market mechanisms (e.g., auction).
+### 44.1.2 Credit DV01 (CS01)
 
-**Intuition:**
+The credit DV01, often called CS01, measures the sensitivity of the CDS value to parallel shifts in the spread curve. O'Kane (Ch 8.3.2) defines it with a sign convention:
 
-A CDS converts default risk into an insurance-like premium stream + a jump payoff. The premium leg resembles a risky annuity; the protection leg resembles a default digital scaled by $(1 - R)$.
+$$\text{Credit DV01} = -(V(S + 1\text{bp}) - V(S))$$
 
-**How It Appears in Trading/Risk/Portfolio Practice:**
+The negative sign ensures that a short protection position (which loses value when spreads widen) has positive Credit DV01. For a long protection position at par:
 
-A CDS position carries (i) spread risk (mark-to-market from changes in the CDS curve), (ii) jump-to-default risk (large discrete move on default), (iii) recovery risk (payout depends on recovery), (iv) contract/settlement risk (deliverables, auction mechanics, accrual). These are explicitly discussed in the sources via DV01 and value-on-default style measures.
+$$\text{CS01} \approx N \cdot 0.0001 \cdot \text{RPV01}(t,T)$$
 
----
+**Critical for RV:** CS01 is a scalar that summarizes sensitivity to parallel shifts. But RV trades often involve curve positions where the front and back ends move differently. For these, we need bucket or key-rate CS01s, analogous to key-rate DV01s in the rates world (covered in Chapter 14).
 
-### 1.2 Credit Curve (Single-Name CDS Term Structure)
+O'Kane provides a summary of CDS risk sensitivities in Table 8.3 of his book, which we adapt here:
 
-**Formal Definition:**
+**Table 44.1: CDS Risk Summary (adapted from O'Kane Table 8.3)**
 
-The credit curve is the term structure of credit risk for an issuer, represented by any equivalent object:
-- par CDS spreads $S(t,T)$ across maturities $T$,
-- survival probabilities $Q(t,T)$,
-- hazard rates $h(T)$ or piecewise-constant forward hazards.
+| Risk Measure | Definition | Sign Convention |
+|--------------|------------|-----------------|
+| Credit DV01 | Sensitivity to 1bp parallel spread shift | Positive for short protection |
+| Interest Rate DV01 | Sensitivity to 1bp rate shift | Small; usually second-order |
+| Recovery DV01 | Sensitivity to 1% recovery change | Depends on position direction |
+| Theta | Sensitivity to time passage | Positive for short protection |
+| VOD | Value change on immediate default | Gain for long protection |
 
-A common representation uses $Q(t,u) = \exp\bigl(-\int_t^u h(s)\,ds\bigr)$.
+### 44.1.3 Bucket CS01 (Credit Key-Rate Style)
 
-**Intuition:**
+Just as key-rate DV01s decompose interest rate sensitivity into maturity buckets, bucket CS01s decompose credit spread sensitivity. For a CDS position, we can split the RPV01 by time intervals:
 
-Short maturities reflect near-term default risk; longer maturities incorporate longer-horizon default risk plus term premia and liquidity/technical effects. The curve's shape matters: "parallel shifts" are not the only plausible moves.
+| Bucket | RPV01 Contribution | Bucket CS01 |
+|--------|-------------------|-------------|
+| 0-2 years | $\text{RPV01}_{0-2}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{0-2}$ |
+| 2-5 years | $\text{RPV01}_{2-5}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{2-5}$ |
+| 5-10 years | $\text{RPV01}_{5-10}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{5-10}$ |
 
-**How It Appears in Practice:**
+**Why this matters:** A curve steepener that is CS01-neutral in aggregate may have large opposite-sign bucket exposures. This is the intended bet. But failing to report bucket exposures masks the true risk profile.
 
-"Curve trades" are relative value positions between maturities (e.g., 5y vs 1y) and must be risk-managed via bucketed CS01 (credit key-rate style), not only total CS01.
+### 44.1.4 Jump-to-Default (JTD) and Value on Default (VOD)
 
----
+The VOD measures the change in position value upon immediate default. O'Kane (Ch 8.3.7) defines it as:
 
-### 1.3 Par Spread, Risky PV01 (RPV01), and CDS Value
+$$\boxed{\text{VOD} = \begin{cases} -V(t) - (1-R) + \Delta_0 S_0 & \text{for protection seller} \\ -V(t) + (1-R) - \Delta_0 S_0 & \text{for protection buyer} \end{cases}}$$
 
-**Formal Definition:**
+where $\Delta_0 S_0$ is the accrued premium at default. If the position is at par ($V(t) \approx 0$) and we ignore accrued premium:
 
-In reduced-form pricing, premium leg PV and protection leg PV can be written (continuous-time form shown in the reference) as:
+$$\text{JTD}_{\text{buy protection}} \approx +N(1-R)$$
+$$\text{JTD}_{\text{sell protection}} \approx -N(1-R)$$
 
-$$\text{PV}_{\text{prem}} = S \int_0^T Z(0,t)\,Q(0,t)\,dt$$
+O'Kane emphasizes that "if default follows a gradual but significant widening in credit spreads, then we should find that the VOD is small." The VOD is therefore "a measure of the 'unexpected shock' of the default." This insight is crucial: a name that gradually widens from 100bp to 2000bp before defaulting will have a small VOD because the MTM already reflects the elevated default probability.
 
-$$\text{PV}_{\text{prot}} = (1-R) \int_0^T Z(0,t)\,\lambda(t)\,Q(0,t)\,dt$$
+**Critical for RV:** A curve trade with zero net CS01 can still have massive net JTD if the notionals are unbalanced. This is the single most important risk often overlooked in curve trades.
 
-with $\lambda$ the default intensity/hazard term used in the reference. A "credit triangle" approximation gives $S \approx h(1-R)$ (useful but approximate).
+### 44.1.5 Recovery Sensitivity
 
-A forward-starting CDS spread is written in the reference as:
+The protection payoff depends on $(1-R)$. O'Kane notes that practitioners "calculate the change in the mark-to-market value for an absolute change of 1% in the recovery rate. This is known as the recovery rate DV01."
 
-$$S(t, t_F, T) = (1-R) \frac{\int_{t_F}^T Z(t,t')\,(-dQ(t,t'))}{\text{RPV01}(t, t_F, T)}$$
+Recovery sensitivity affects both:
+1. **The default payoff:** Higher recovery means smaller protection payment
+2. **The calibrated hazard rate:** For fixed spreads, $h \approx S/(1-R)$ via the credit triangle (Chapter 43), so recovery changes affect the implied default probability
 
-The reference also gives a practical mark-to-market identity:
+O'Kane presents empirical recovery data from Altman et al. (Table 3.2 in his book), which provides essential context for capital structure trades:
 
-$$\boxed{V(0,T) \approx \bigl(S(t,T) - S(0,T)\bigr) \cdot \text{RPV01}(t,T)}$$
+**Table 44.2: Recovery Rates by Seniority (O'Kane Table 3.2, Altman et al. data)**
 
-i.e., value is approximately "spread difference $\times$ risky PV01".
+| Seniority | Mean Recovery | Median Recovery | Std Dev |
+|-----------|--------------|-----------------|---------|
+| Senior Secured | 51.08% | 51.63% | 25.18% |
+| Senior Unsecured | 34.89% | 42.27% | 26.08% |
+| Senior Subordinated | 30.17% | 32.35% | 24.05% |
+| Subordinated | 29.03% | 31.96% | 20.29% |
+| Junior Subordinated | 18.19% | 14.29% | 14.16% |
 
-**Intuition:**
+O'Kane notes that "the standard deviation of the recovery rate distributions is rather broad," implying that using point estimates for recovery introduces significant model risk.
 
-$\text{RPV01}$ is the present value of 1 unit of spread payments, survival-weighted. If credit worsens (spreads widen), the protection leg becomes more valuable and the premium leg less costly for a protection buyer, leading to positive spread sensitivity.
+### 44.1.6 Theta (Time Decay)
 
-**How It Appears in Practice:**
+Theta measures the sensitivity to the passage of time with curves unchanged:
 
-Most first-order spread risk reports for CDS are driven by $\text{RPV01}$ scaled by notional and quoted spread bumps. But whether you bump market quotes with curve rebuild or hazard nodes directly changes the computed CS01 and bucket decomposition (model risk).
+$$\Theta = \frac{\partial V}{\partial t}$$
 
----
+For a short protection position (receiving premium), theta is generally positive: the position gains value as time passes without default. For a long protection position, theta is negative.
 
-### 1.4 CS01 / Credit DV01 (Spread DV01)
+O'Kane (Ch 8.3.5) provides insight into theta dynamics. He notes that for a protection seller, theta "is made up of three components: the value of the premium receipt, the change in the protection leg value, and the change in the premium leg value." The interplay of these components means theta is not constant over time. O'Kane's Figure 8.1 shows that theta for a protection seller position tends to be highest (most positive) early in the contract's life and diminishes as the contract approaches maturity.
 
-**Formal Definition:**
-
-The reference defines the credit DV01 as the change in value under a +1bp parallel increase in the CDS curve, with a sign convention chosen so that the credit DV01 of a short-protection position is positive:
-
-$$\text{Credit DV01} = -\bigl(V(S + 1\text{bp}) - V(S)\bigr)$$
-
-$$\text{Credit DV01} \approx -\frac{\partial V}{\partial S} \cdot 1\text{bp}$$
-
-**Intuition:**
-
-"DV01-style" reporting often wants positive numbers for positions that lose value when spreads widen (e.g., short protection), hence the leading minus sign.
-
-**How It Appears in Practice:**
-
-Risk systems often provide both:
-- a **signed CS01**: $\Delta V$ for +1bp widening (useful for scenario P&L), and
-- a **DV01-style magnitude** (positive by convention for specific position directions).
-
-Mixing these conventions is a common failure mode (see §8).
+**For RV:** Carry and rolldown decompositions use theta logic. "Carry" refers to net premium accrual; "rolldown" refers to the MTM change from moving along a static curve as maturity shortens. These decompositions are conditional on no curve movement and no default—they are accounting tools, not return forecasts.
 
 ---
 
-### 1.5 Jump-to-Default / Value-on-Default (VOD)
+## 44.2 The CDS-Cash Basis: Drivers and Dynamics
 
-**Formal Definition:**
+The CDS-cash basis is one of the most actively traded RV relationships. O'Kane (Ch 5.6) defines it as:
 
-The reference defines the "value at default" of a CDS (for the protection buyer) as $N(1-R)$, adjusted for accrued premium owed at default, and defines the value on default (VOD) as value-at-default minus current value:
+$$\text{CDS basis} = S_{\text{CDS}} - S_{\text{Bond}}$$
 
-$$\boxed{\text{VOD} = N(1-R) - (\text{accrued premium}) - V}$$
+where the bond spread measure requires specification (Z-spread, asset swap spread, or par floater spread). O'Kane notes that "there are now a significant number of market participants who actively trade the default swap basis, viewing it as a new relative value opportunity."
 
-**Intuition:**
+### 44.2.1 Fundamental Drivers of the Basis
 
-Even if a curve trade is "CS01-neutral," default produces a discontinuous payoff that can dominate.
+O'Kane (Ch 5.6.1) distinguishes between **fundamental factors** (contractual differences) and **market factors** (liquidity and technicals). The fundamental factors are:
 
-**How It Appears in Practice:**
+**1. Funding:** "Default swaps are unfunded transactions and bonds are funded. For the same spread, CDS are favoured by investors who have funding costs above Libor while bonds are favoured by those who fund below. As a result, the basis is affected by the differing funding levels of the market participants."
 
-JTD/VOD is a key stress metric. Hedging spread risk alone does not hedge default-event P&L.
+**2. Delivery Option:** "For a protection buyer who is using the CDS to hedge a specific security, the value of the delivery option following a credit event is simply the difference between the value of the security they hold and the value of the cheapest deliverable." O'Kane provides an example: if a protection buyer holds an asset trading at \$43 and can deliver a different asset trading at \$37, they can profit by \$6 from the delivery option.
 
----
+**3. Technical Default:** "The standard credit events may be viewed as being broader than those which constitute default on a bond. As a result, protection sellers in a CDS may demand a higher spread."
 
-### 1.6 Interest-Rate DV01 and Theta (Time Decay Under Fixed Curves)
+**4. Loss on Default:** "The protection payment on a CDS following a credit event is a fraction $(1-R)$ of the face value. The default risk on a bond purchased at a full price of $P$ is a loss of $P-R$."
 
-**Formal Definition:**
+**5. Premium Accrued at Default:** "Following a credit event, a CDS pays the protection seller the premium which has accrued since the previous payment date. However, when a bond defaults, the owner's claim is on the face value, and so any accrued coupons are lost."
 
-Interest rate DV01 is defined analogously (bump discount curve by 1bp, holding credit curve fixed), again with a sign convention in the reference:
+### 44.2.2 Market Factors Driving the Basis
 
-$$\text{IR DV01} = -\bigl(V(H + 1\text{bp}) - V(H)\bigr)$$
+The market factors O'Kane identifies (Ch 5.6.2) are equally important for understanding basis dynamics:
 
-Theta for CDS is defined as the change in value due to passage of time with curves unchanged:
+**1. Relative Liquidity:** "The liquidity of the cash and CDS markets is different across the term structure... The CDS market has its liquidity points at fixed term points with most liquidity concentrated at the three-, five-, seven- and 10-year maturity 'IMM' dates."
 
-$$\Theta = -\bigl(V(T - \Delta t) - V(T)\bigr)$$
+**2. Synthetic CDO Technical:** "When dealers issue synthetic CDOs, they then hedge their spread risk by selling CDS credit protection on each of the 100 or more credits in the reference portfolio. CDO issuance is therefore usually accompanied by a tightening (reduction) in CDS spreads. This reduces the CDS basis."
 
-**Intuition:**
+**3. Demand for Protection:** "It is much easier to go short a credit by buying protection in the CDS market than by shorting a cash bond. As a result, if there is negative news on a credit, it will tend to result in a flurry of protection buying in the CDS market thus increasing the CDS basis."
 
-Theta captures "time decay / rolldown" under fixed curves. It is not realized P&L if curves move or if default occurs.
+**4. Funding Risk:** "Since the CDS is unfunded, it effectively locks in a funding rate of Libor flat until maturity or a credit event, whichever occurs first. There is therefore no funding risk."
 
-**How It Appears in Practice:**
+**5. Convertible Bond Arbitrage:** O'Kane notes that convertible arbitrage strategies can affect the basis: hedge funds buying convertible bonds and hedging credit risk via CDS create basis effects.
 
-Theta is used in carry/roll decompositions and in explaining daily P&L, especially for curve positions.
+**6. Repo Market Conditions:** The availability and cost of financing in the repo market affects the relative attractiveness of cash bonds versus synthetic exposure.
 
----
+O'Kane concludes: "All of these fundamental and market factors are reasons why the CDS and cash market spreads should diverge. It is difficult to assign degrees of importance to the individual factors as it is hard to tease them apart empirically."
 
-### 1.7 Recovery Sensitivity ("Recovery DV01")
+> **Deep Dive: The Negative Basis Trade ("The Package")**
+>
+> This is one of the most famous RV trades.
+>
+> *   **The Setup**:
+>     *   Buy the Bond (Yields L + 150bp).
+>     *   Buy CDS Protection (Pay 120bp).
+>     *   **Net**: You earn L + 30bp *risk-free* (theoretically).
+> *   **Why does it exist?**: Usually because "cash is king." In a crisis, people sell bonds to raise cash, driving bond yields up. They don't sell CDS because it generates no cash.
+> *   **The Catch**: You need to fund the bond purchase (Repo). If Repo rates spike, your 30bp profit vanishes.
 
-**Formal Definition:**
+> **Analogy: The Lock-In**
+>
+> The Negative Basis trade is like finding a \$100 bill on the floor of a room, but the door locks behind you.
+>
+> *   **The \$100**: The 30bp arbitrage profit.
+> *   **The Lock**: You own an illiquid bond. You cannot exit easily without paying a liquidity premium.
+> *   **The Risk**: If the building catches fire (funding crisis), you are trapped inside with your \$100 bill.
 
-The reference discusses sensitivity to an absolute change of 1% in recovery rate ("recovery DV01").
+### 44.2.3 Why Basis Trades Can Fail
 
-**Intuition:**
+The basis trade appears to offer near-arbitrage: buy a cheap bond, hedge with CDS, collect the positive carry from the basis. The risks are:
 
-Recovery affects the size of default payoff and (in calibration) can affect inferred hazard rates and therefore $\text{RPV01}$.
+1. **Funding blowout:** If repo markets seize (as in 2008), the funding leg of the trade can become prohibitively expensive or impossible to roll.
 
-**How It Appears in Practice:**
+2. **Correlation breakdown:** The bond and CDS may not move together. A liquidity shock can widen bond spreads while CDS spreads remain stable, or vice versa.
 
-Recovery risk is often "invisible" in spread-only hedges but material in distressed names and event scenarios (auction final price, deliverable price).
+3. **JTD mismatch:** If the CDS notional is sized for CS01 neutrality rather than JTD neutrality, default produces a P&L discontinuity.
 
----
+4. **Delivery option uncertainty:** At default, the cheapest deliverable may trade far from expectations, affecting realized recovery.
 
-### 1.8 Basis (Bond–CDS) and Index Basis
-
-**Formal Definition:**
-
-The reference defines the CDS basis as the difference between the quoted CDS spread and a bond spread measure:
-
-$$\text{basis} = S_{\text{CDS}} - S_{\text{Bond}}$$
-
-The reference defines index basis as the difference between index spread and intrinsic spread, and defines a "portfolio swap adjustment" as the difference between the (scaled) index spread and intrinsic spread (index minus intrinsic).
-
-**Intuition:**
-
-"Basis" is not a pure "mispricing" statistic; it reflects funding, liquidity, contract/settlement, deliverability, and technical demand/supply factors.
-
-**How It Appears in Practice:**
-
-Basis trades require explicit controls for non-credit risks (funding/liquidity), instrument-definition risk, and event/settlement risk.
-
----
-
-## 2. Risk-First Trading Framework (The Organizing Backbone)
-
-This section is an educational workflow: **object → metric → exposures → hedges → failure modes → verification tests**.
-
-### 2.1 Identify the Object Being Traded
-
-Common "objects" (choose one explicitly):
-
-| Object | Description |
-|--------|-------------|
-| Single-name CDS curve point | e.g., 5y CDS |
-| Single-name CDS curve spread | e.g., 5y–1y steepener |
-| Index CDS vs intrinsic | index basis / PSA |
-| Bond–CDS basis | bond + CDS package |
-| Capital structure slice | senior vs subordinated CDS where relative value is linked (conceptually) to recoveries and hazard assumptions; the reference gives a rough relationship and cautions it is "rough in practice" |
+5. **Counterparty risk:** The CDS hedge is only as good as the counterparty providing it. In systemic stress, counterparty credit becomes correlated with the underlying credit.
 
 ---
 
-### 2.2 Define the "Relative Value" Metric
+## 44.3 Credit Curve Trades: Steepeners and Flatteners
 
-Pick the metric that matches the object:
+Curve trades express views on the shape of the credit term structure. They are constructed by taking opposite positions at different maturities.
 
-| Metric | Description |
-|--------|-------------|
-| **Level** | $S(t,T)$ vs peer/sector/curve model level (educationally: "is spread high/low vs a curve fit?") |
-| **Slope / curvature** | $S(t,T_2) - S(t,T_1)$ (steepener/flattener) |
-| **Basis** | bond–CDS basis $S_{\text{CDS}} - S_{\text{Bond}}$; index basis = index spread − intrinsic spread |
-| **Implied recovery / implied default loss** | implied from auction final price / recovery price at settlement; auctions are referenced in the sources as the mechanism for cash settlement in standard practice descriptions |
+### 44.3.1 Defining Curve Positions
 
-**Risk-first rule:** a metric is not "tradeable" unless you can map it into exposures and design hedges/tests.
+For maturities $T_1 < T_2$:
 
----
+| Trade | Definition | Instrument Position |
+|-------|------------|---------------------|
+| **Steepener** | Profits if $S(T_2) - S(T_1)$ increases | Buy protection at $T_2$, sell protection at $T_1$ |
+| **Flattener** | Profits if $S(T_2) - S(T_1)$ decreases | Sell protection at $T_2$, buy protection at $T_1$ |
 
-### 2.3 Translate the "Trade Idea" into Explicit Risk Exposures
+The steepener profits when the curve gets steeper (long end widens relative to short end). The flattener profits when the curve flattens.
 
-#### (i) CS01 (Spread DV01) by Maturity Bucket / Curve Node
+### 44.3.2 CS01-Neutral Construction
 
-Define a vector of spread sensitivities:
+To hedge against parallel curve moves, we choose notionals such that net CS01 equals zero:
 
-$$\text{CS01} = \bigl(\text{CS01}_{1y},\; \text{CS01}_{3y},\; \text{CS01}_{5y},\; \ldots\bigr)$$
+$$N_1 \cdot \text{CS01}^{(1)} + N_2 \cdot \text{CS01}^{(2)} = 0$$
 
-computed either by:
-- **market-quote bumps + curve rebuild**: bump par spreads, recalibrate $Q$ / $h$, reprice, or
-- **direct hazard-node / key-rate hazard bumps**: bump hazard buckets, reprice.
+where $\text{CS01}^{(1)}$ and $\text{CS01}^{(2)}$ have opposite signs (one buy, one sell protection). Solving:
 
-**Why bucket exposures matter (rates analogy):** in interest rates, "key rate exposures decompose DV01 into component sensitivities," and more key rates improves hedge quality. Credit curve hedging is structurally analogous (replace yield key rates with credit curve nodes/buckets).
+$$\boxed{\frac{N_1}{N_2} = -\frac{\text{CS01}^{(2)}}{\text{CS01}^{(1)}} = -\frac{\text{RPV01}(T_2)}{\text{RPV01}(T_1)}}$$
 
-#### (ii) Jump-to-Default (JTD) / VOD
+Since $\text{RPV01}(T_2) > \text{RPV01}(T_1)$ for $T_2 > T_1$, we need more notional at the short maturity.
 
-Use VOD/JTD as the default-event stress:
+### 44.3.3 The JTD Problem in Curve Trades
 
-$$\text{VOD} \approx N(1-R) - \text{accrued premium} - V$$
+CS01 neutrality does not imply JTD neutrality. Consider a 5Y vs 1Y steepener with:
+- Buy 5Y protection: $N_5 = 10\text{mm}$, $\text{RPV01}(5) = 4.7$
+- Sell 1Y protection: notional chosen for CS01 neutrality
 
-#### (iii) Recovery Sensitivity
+The CS01-neutral notional ratio is approximately $4.7 / 1.0 = 4.7$, so $N_1 \approx 47\text{mm}$.
 
-Measure PV change under $\Delta R$ (e.g., 1% absolute recovery bump), as discussed as "recovery DV01" in the reference.
+**JTD calculation:**
+- 5Y buy protection JTD: $+10 \times 0.60 = +6.0\text{mm}$ (gain at default)
+- 1Y sell protection JTD: $-47 \times 0.60 = -28.2\text{mm}$ (loss at default)
+- **Net JTD: $-22.2\text{mm}$**
 
-#### (iv) Liquidity / Roll / Technical Risks (Conceptual but Source-Consistent)
+This trade is massively short default. If the reference entity defaults, the loss overwhelms any curve P&L. This is the central warning: **curve trades can be dominated by default-event risk even when CS01-neutral**.
 
-- **Liquidity & technical factors** are explicitly cited in basis discussions (e.g., liquidity preference for on-the-run maturities like 5y, demand for protection, technical supply/demand).
-- **Settlement / deliverability risk:** deliverables and settlement method (physical vs cash/auction) affect realized payoff and can introduce option-like value (delivery option).
+### 44.3.4 When Curve Trades Historically Failed
 
----
+Curve trades have historically failed in several scenarios:
 
-### 2.4 Specify Hedge Instruments and What Each Hedge Targets
+1. **Sudden default:** A company defaults before expected. The CS01-neutral steepener with large net short JTD produces catastrophic losses.
 
-A hedge is defined by what exposure it neutralizes:
+2. **Curve inversion:** Credit curves can invert (front end wider than back) during acute stress, as the market prices high near-term default probability.
 
-| Hedge Target | Method |
-|--------------|--------|
-| **Hedge CS01 level (parallel shift)** | Use another CDS maturity on the same name, or an index hedge (for broad beta) if that aligns with the intended risk (but basis to index can remain) |
-| **Hedge curve shape (bucketed CS01)** | Use multiple maturities to match multiple bucket exposures—analogous to key rate hedging in rates |
-| **Hedge JTD** | Requires offsetting default payoff exposure (e.g., offsetting notional in protection buying/selling). Two-leg CS01-neutral curve trades can still be heavily net long/short default (see Example G) |
-| **Hedge recovery sensitivity** | Often only partially hedgeable with standard CDS instruments; scenario management is central |
+3. **Liquidity divergence:** The 5Y point typically has better liquidity than off-the-run maturities. In stress, liquidity can evaporate at the short end while remaining at 5Y, causing basis moves that overwhelm the curve bet.
 
-**Recovery swaps:** I'm not sure. The provided sources here discuss recovery in CDS payoff/settlement and recovery sensitivity, but do not provide contract mechanics for recovery swaps. To be certain, we would need (i) recovery swap contract definitions (ISDA product definitions), (ii) market quotation conventions, and (iii) settlement terms.
+4. **Roll and technical effects:** CDS indices roll semi-annually. Around roll dates, the market's preferred maturity points shift, creating technical moves that are unrelated to credit fundamentals.
 
----
+### 44.3.5 Carry and Rolldown for Curve Trades
 
-### 2.5 Failure Modes + Verification Tests (Mandatory)
+Under a "curves unchanged" assumption, we can decompose expected P&L:
 
-For any RV framework, define in advance:
+**Carry:** Net premium accrual from premium receipts minus payments. For a steepener (buy long end, sell short end), you typically pay premium on the long leg and receive on the short leg. Whether net carry is positive depends on the spread levels and notional ratios.
 
-#### Failure Modes
+**Rolldown:** The MTM change from the remaining maturities shortening along a static curve. If the curve is upward sloping, buying protection at 5Y and letting it roll to 4.9Y produces a gain (you're now at a lower spread point on the curve).
 
-- **Curve-shape risk** left behind by "parallel CS01 neutral" hedges.
-- **Default-event risk:** JTD dominates.
-- **Recovery shock / auction surprise:** payout differs from assumed recovery.
-- **Liquidity/roll:** hedge instrument liquidity differs (e.g., 5y on-the-run vs off-the-run maturity) and impacts ability to rebalance.
-- **Model risk:** quote bump vs hazard bump; discount curve assumptions; accrual at default conventions.
-
-#### Verification Tests
-
-| Test | Description |
-|------|-------------|
-| Parallel spread shock | $\Delta S(T) = +\delta$ for all $T$ |
-| Twist | front-end $+\delta_1$, back-end $+\delta_2$ |
-| Recovery shock | $R \to R \pm 10\%$ absolute |
-| Default event | apply VOD |
-| Repricing check | compare linear CS01 approximation vs full repricing under bumps |
+**Caution:** These decompositions are conditional on no curve movement and no default. They are accounting tools, not return forecasts.
 
 ---
 
-## 3. Credit Curve Trades (Steepeners/Flatteners) — Must Include
+## 44.4 Capital Structure Trades: Senior vs Subordinated
 
-### 3.1 Define the "Credit Curve"
+Capital structure trades exploit the relationship between CDS referencing different seniority tiers of the same issuer.
 
-**Formal Definition:**
+### 44.4.1 The Spread Ratio Approximation
 
-A credit curve is the term structure $T \mapsto S(t,T)$ and its equivalent survival/hazard curve $T \mapsto Q(t,T)$ or $h(T)$, with:
-
-$$Q(t,T) = \exp\biggl(-\int_t^T h(s)\,ds\biggr)$$
-
-**Practice:**
-
-Credit curve construction requires interpolation choices; the reference discusses linear interpolation of $-\log Q$ implying piecewise-constant forward hazards.
-
----
-
-### 3.2 Define Steepener vs Flattener Explicitly in Instruments
-
-Let $T_1 < T_2$, and define:
-
-| Trade | Definition | Instrument Example |
-|-------|------------|--------------------|
-| **Steepener (in spreads)** | Position that profits if $S(t,T_2) - S(t,T_1)$ increases | Long (buy protection) $T_2$-maturity CDS, short (sell protection) $T_1$-maturity CDS |
-| **Flattener (in spreads)** | The opposite exposure | Short $T_2$, long $T_1$ |
-
-**Important:** The "object traded" is a pair of CDS contracts; the risk is a vector of bucket CS01 plus JTD, not a scalar.
-
----
-
-### 3.3 Designing Curve Trades: Parallel CS01-Neutral vs Target-Slope Exposure
-
-#### (a) Parallel CS01-Neutral Design
-
-Choose notionals $N_1$ (short maturity) and $N_2$ (long maturity) such that:
-
-$$\text{CS01}_{\text{net}} = \text{CS01}(T_2; N_2) + \text{CS01}(T_1; N_1) = 0$$
-
-with signs reflecting buy vs sell protection.
-
-This reduces sensitivity to parallel curve shifts but **does not eliminate twist risk**.
-
-#### (b) Bucketed Exposures ("Credit Key-Rate Style")
-
-Define buckets (e.g., 0–2y, 2–5y, 5–10y). Compute bucket CS01s by bumping the curve only in that bucket (or proxy by splitting $\text{RPV01}$ contributions by time interval, in a simplified setting).
-
-**Rates analogy:** key rate exposures decompose DV01 and enable hedging of curve shapes beyond parallel shifts.
-
-#### (c) "Target Slope Exposure"
-
-After making parallel CS01 near-neutral, the remaining bucket profile is the intended slope exposure (e.g., short front bucket, long belly bucket). You must report it explicitly.
-
----
-
-### 3.4 Carry and Roll-Down Intuition for CDS Curve Trades (Cautious Decomposition)
-
-**Carry (definition):**
-Cash premium accrual/payments from the premium leg over a holding horizon.
-
-**Rolldown (definition):**
-Change in mark-to-market from the remaining maturity shortening while the credit curve $S(t,\cdot)$ is assumed unchanged; related to theta defined in the reference via $V(T - \Delta t) - V(T)$.
-
-**Caution:**
-Carry/rolldown are not guaranteed positive and are not forecasts. They are conditional decompositions under "curves unchanged" assumptions.
-
----
-
-### 3.5 Scenario Analysis for Curve Trades
-
-For a two-leg trade (long $T_2$, short $T_1$):
-
-| Scenario | Description |
-|----------|-------------|
-| **Parallel move** | $\Delta S(T_1) = \Delta S(T_2) = \delta$ |
-| **Twist** | $\Delta S(T_1) = \delta_1$, $\Delta S(T_2) = \delta_2$ |
-| **Recovery shock** | $R \to R + \Delta R$ |
-| **Default event** | apply VOD/JTD as discontinuous payoff shock |
-
----
-
-## 4. Capital Structure / Recovery Trades (Conceptual) — Must Include
-
-### 4.1 Define "Capital Structure" in This Context
-
-**Formal Definition:**
-
-Capital structure here refers to different claims on the same issuer: senior vs subordinated obligations, and the associated CDS referencing those obligations; also bond vs CDS exposures (cash vs synthetic).
-
-**Practice:**
-
-Different CDS contracts can reference different obligation tiers and have different recoveries and liquidity.
-
----
-
-### 4.2 Senior vs Subordinated CDS Spreads (Conceptual; Avoid Strict Arb Unless Sourced)
-
-**Source-Backed Conceptual Relationship:**
-
-The reference gives a rough relation: for two CDS contracts on the same name (senior and subordinated) assumed to share default probability, the spread ratio is linked to recoveries:
+For senior and subordinated CDS on the same entity, O'Kane provides a rough relationship:
 
 $$\frac{S_{\text{sub}}}{S_{\text{senior}}} \approx \frac{1 - R_{\text{sub}}}{1 - R_{\text{senior}}}$$
 
 and explicitly notes this is "very rough in practice."
 
-**Risk-First Interpretation:**
+Using the recovery data from Table 44.2:
+- Senior unsecured: mean recovery 34.89%
+- Subordinated: mean recovery 29.03%
 
-This relationship is best treated as a diagnostic about whether differences are plausibly coming from assumed recoveries, liquidity, deliverability, or modeling assumptions—not as a strict arbitrage identity.
+The theoretical ratio would be: $(1-0.29)/(1-0.35) = 0.71/0.65 = 1.09$. But empirically, subordinated spreads are often 1.5x to 3x senior spreads, implying the market prices additional factors beyond the simple recovery differential.
 
----
+### 44.4.2 Why the Relationship is "Very Rough"
 
-### 4.3 Bond–CDS Basis: Definition and Drivers (Source-Consistent)
+Several factors cause deviations from the theoretical spread ratio:
 
-**Definition:**
+1. **Liquidity differences:** Senior CDS is far more liquid than subordinated CDS for most issuers.
 
-$$\text{CDS basis} = S_{\text{CDS}} - S_{\text{Bond}}$$
+2. **Recovery uncertainty:** Actual recoveries vary widely around averages. O'Kane notes "the standard deviation of the recovery rate distributions is rather broad" and "the absolute priority rule (APR) is not always obeyed in the US, meaning that in certain circumstances, holders of subordinated debt may recover more than holders of more senior debt."
 
-where "bond spread" depends on the spread measure chosen (Z-spread, asset swap spread, OAS, etc.).
+3. **Technical supply/demand:** Bank regulatory capital rules, CDO structuring, and index composition create supply/demand imbalances that vary by seniority.
 
-**Drivers (qualitative, source-consistent):**
+4. **Different default triggers:** Some credit events may trigger protection on one seniority tier but not another, particularly around restructuring.
 
-The reference emphasizes multiple factors (fundamental and market/technical), including liquidity differences and maturity points like the 5y as a common liquidity point.
+### 44.4.3 Constructing a Capital Structure Trade
 
-**Risk-First Implications:**
+A typical trade expresses a view on the senior-sub spread differential:
 
-A basis position is exposed to:
-- credit (default and spread),
-- rates (bond DV01 / curve),
-- funding and liquidity (bond financing, repo, balance-sheet constraints),
-- settlement/contract differences (deliverability option).
+- **Compression trade:** Buy senior protection, sell subordinated protection. Profits if the sub/senior spread ratio narrows.
+- **Decompression trade:** Sell senior protection, buy subordinated protection. Profits if the sub/senior spread ratio widens.
 
----
+**Sizing:** CS01-neutral sizing uses the same hedge ratio logic:
 
-### 4.4 Recovery as an Implied Quantity
+$$\frac{N_{\text{senior}}}{N_{\text{sub}}} = -\frac{\text{CS01}_{\text{sub}}}{\text{CS01}_{\text{senior}}}$$
 
-**Mechanisms:**
+**JTD consideration:** Because recovery assumptions differ, JTD depends on both notional and assumed recovery:
+- Sub buy protection JTD: $+N_{\text{sub}}(1-R_{\text{sub}})$
+- Senior sell protection JTD: $-N_{\text{senior}}(1-R_{\text{senior}})$
 
-Cash settlement recovery can be tied to a "recovery price" determined via auction processes for CDS cash settlement (as described in general terms in the sources).
+Even with CS01 neutrality, the different recoveries create JTD imbalance.
 
-**Risk Framing:**
+### 44.4.4 When Capital Structure Trades Widen or Tighten
 
-Recovery can be treated as implied from auction final price, distressed bond prices, or via pricing assumptions; the key is consistency across analytics.
+Events that affect the senior-sub spread:
 
----
+**Compression (sub/senior ratio tightens):**
+- Credit improvement: as default risk falls, the absolute spreads compress and the recovery differential matters less
+- Regulatory changes favoring sub debt
 
-### 4.5 Recovery Trade Framing
-
-**Recovery Sensitivity in CDS PV and in JTD:**
-- JTD/VOD depends directly on $(1-R)$.
-- PV recovery sensitivity ("recovery DV01") is the PV change for a 1% absolute recovery change.
-
-**Instruments:**
-
-Recovery swaps: I'm not sure (not in provided sources). To be certain, we need recovery swap payoff definition, quotation convention, settlement, and documentation.
+**Decompression (sub/senior ratio widens):**
+- Credit deterioration: higher default probability amplifies the recovery differential
+- Distress: market prices in that sub will recover less than expected
+- Liquidity crisis: sub CDS liquidity evaporates first
 
 ---
 
-## 5. Math and Derivations (Step-by-Step)
+## 44.5 Index vs Single-Name Relative Value
 
-### 5.1 CDS Valuation Skeleton (Premium Leg vs Protection Leg)
+The relationship between a CDS index and its constituent single-name CDS creates another RV opportunity. This section provides a brief treatment; Chapter 45 covers index mechanics in depth.
 
-**Assumptions (for clean derivations):**
-- Reduced-form survival curve $Q(t,u)$ and discounting $Z(t,u)$.
-- Fixed recovery $R$ for pricing.
-- Ignore counterparty risk (CVA/DVA) in this chapter.
+### 44.5.1 Intrinsic Spread and Index Basis
 
-From the reference (continuous-time form):
+O'Kane (Ch 10.5) defines the intrinsic value of a CDS index as the sum of the values of its constituent CDS. The intrinsic spread is the spread that makes the intrinsic value equal to zero.
 
-$$\text{PV}_{\text{prem}} = S \int_0^T Z(0,t)\,Q(0,t)\,dt$$
+The **index basis** is:
 
-$$\text{PV}_{\text{prot}} = (1-R) \int_0^T Z(0,t)\,\lambda(t)\,Q(0,t)\,dt$$
+$$\text{Index basis} = S_{\text{index}} - S_{\text{intrinsic}}$$
 
-A par spread is determined by equating legs (modulo accrual conventions):
+O'Kane shows that the intrinsic spread can be calculated as:
 
-$$S_{\text{par}} \approx (1-R) \frac{\int_0^T Z(0,t)\,\lambda(t)\,Q(0,t)\,dt}{\int_0^T Z(0,t)\,Q(0,t)\,dt}$$
+$$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot \text{RPV01}_m}{\sum_{m=1}^{M} \text{RPV01}_m}}$$
 
-**Unit Check:**
-- $S$: 1/year (or bp/year).
-- $\int ZQ\,dt$: years.
-- So $S \times \int ZQ\,dt$ is dimensionless; multiplying by $N$ gives USD PV.
+where the weighting by RPV01 accounts for the fact that higher-spread names contribute more to index value. This is an RPV01-weighted average, not a simple average of spreads.
 
----
+**Table 44.3: Intrinsic vs Average Spread**
 
-### 5.2 Risky PV01 (RPV01)
+| Spread Type | Formula | When Different |
+|-------------|---------|----------------|
+| Simple Average | $\bar{S} = \frac{1}{M}\sum_{m=1}^{M} S_m$ | All names equal weight |
+| Intrinsic | $S_{\text{intrinsic}} = \frac{\sum S_m \cdot \text{RPV01}_m}{\sum \text{RPV01}_m}$ | Higher-spread names get more weight |
 
-For forward-starting CDS, the reference gives a discrete approximation:
+The difference between the intrinsic spread and the simple average can be material when spread dispersion is high.
 
-$$\boxed{\text{RPV01}(t, t_F, T) = \frac{1}{2} \sum_{n=1}^{N} \Delta(t_{n-1}, t_n)\,Z(t, t_n)\bigl(Q(t, t_{n-1}) + Q(t, t_n)\bigr)}$$
+### 44.5.2 Drivers of Index Basis
 
-which includes the effect of accrued coupon at default through the trapezoidal survival weighting across payment intervals.
+The index basis can be positive or negative depending on:
 
-For spot-starting CDS (today to $T$), set $t_F = t$.
+1. **Liquidity premium:** The index is more liquid than individual constituents, so it may trade tighter.
 
-**Interpretation:**
+2. **Transaction costs:** Replicating the index via singles incurs more transaction costs.
 
-$\text{RPV01}$ is "risky annuity": survival-weighted PV of premium payments.
+3. **Supply/demand:** Macro hedgers often use indices, creating technical demand.
 
----
+4. **CDO issuance:** Synthetic CDO issuance creates supply of index protection.
 
-### 5.3 Mark-to-Market Value vs Spread Difference
+5. **Skew effects:** When a few names are much wider than the rest, the intrinsic spread is pulled higher, potentially creating a negative basis.
 
-The reference provides:
+### 44.5.3 Trading the Index Basis
 
-$$\boxed{V(0,T) \approx \bigl(S(t,T) - S(0,T)\bigr) \cdot \text{RPV01}(t,T)}$$
+The trade involves going long (short) the index versus short (long) the constituents:
 
-**Interpretation:**
+- **Long basis:** Buy index protection, sell protection on constituents
+- **Short basis:** Sell index protection, buy protection on constituents
 
-If you entered at $S(0,T)$ and today's par is $S(t,T)$, the PV is approximately "spread change $\times$ risky PV01" (times notional).
-
-**Unit Check:**
-- $\Delta S$ in decimal/year; $\text{RPV01}$ in years; product dimensionless; multiply by $N$ gives USD.
+Sizing requires matching the overall CS01, typically by scaling constituent positions to match the index notional divided by the number of names.
 
 ---
 
-### 5.4 CS01 (Credit DV01) Definitions and Computation
+## 44.6 The Risk-First Framework: Putting It Together
 
-The reference defines:
+For any CDS relative value position, apply this systematic framework:
 
-$$\text{Credit DV01} = -\bigl(V(S + 1\text{bp}) - V(S)\bigr)$$
+### 44.6.1 Step 1: Identify the Object
 
-$$\text{Credit DV01} \approx -\frac{\partial V}{\partial S} \cdot 1\text{bp}$$
+Explicitly state what relationship you are trading:
 
-**Practical Computation Options:**
-- **Market-quote bump + survival-curve rebuild:** bump quoted par spreads, rebuild $Q/h$, reprice.
-- **Hazard-bucket bumps:** bump hazard in chosen maturity buckets.
+| Object | Description |
+|--------|-------------|
+| Single-name curve point | Level of 5Y CDS vs model/sector |
+| CDS curve spread | 5Y-1Y steepener/flattener |
+| Cash-CDS basis | Bond Z-spread vs CDS spread |
+| Capital structure | Senior vs subordinated |
+| Index basis | Index vs intrinsic |
 
-**Unit Check:**
-- $1\text{bp} = 10^{-4}$ in decimal/year.
-- CS01 in USD per bp.
+### 44.6.2 Step 2: Decompose into Exposures
 
----
+For the identified trade, compute:
 
-### 5.5 Hedge Ratios to Neutralize Exposures
+| Exposure | Metric |
+|----------|--------|
+| Spread risk (total) | Total CS01 (USD per bp) |
+| Spread risk (bucketed) | Bucket CS01 by maturity |
+| Default risk | JTD/VOD (USD) |
+| Recovery risk | Recovery DV01 (USD per 1% R) |
+| Rates risk | IR DV01 (USD per bp) |
+| Time decay | Theta (USD per day) |
+| Liquidity/technical | Qualitative assessment |
 
-#### (a) Parallel CS01 Neutral (Two Instruments)
+### 44.6.3 Step 3: Design Hedges
 
-For instruments A and B with signed CS01s $\text{CS01}_A$, $\text{CS01}_B$, choose hedge notional ratio:
+For each exposure, specify the hedge instrument and what risk it targets:
 
-$$\boxed{w_B = -w_A \frac{\text{CS01}_A}{\text{CS01}_B}}$$
+| Target | Hedge Instrument |
+|--------|------------------|
+| Total CS01 | Opposite CDS position |
+| Bucket CS01 | Multiple CDS maturities |
+| JTD | Balanced notional positions |
+| IR DV01 | Interest rate swaps |
+| Recovery | Often unhedgeable; scenario management |
 
-#### (b) Bucketed Neutralization (Credit Key-Rate Style)
+### 44.6.4 Step 4: Identify Failure Modes
 
-Let $i = 1, \ldots, k$ buckets. For $m$ instruments with weights $w_j$:
+Before entering the trade, enumerate what can go wrong:
 
-$$\sum_{j=1}^{m} w_j\,\text{CS01}_{j,i} = 0, \quad i = 1, \ldots, k$$
+1. **Default event:** JTD dominates
+2. **Curve shape moves:** Bucket CS01 mismatch
+3. **Basis blowout:** Cash-CDS disconnection
+4. **Liquidity evaporation:** Unable to exit or rebalance
+5. **Recovery surprise:** Auction final price differs from assumption
+6. **Roll/technical:** Index rolls, liquidity point shifts
 
-This is the same linear algebra structure as key-rate hedging in rates: more buckets/key rates means better protection against curve shape changes.
+### 44.6.5 Step 5: Define Verification Tests
 
----
-
-### 5.6 P&L Decomposition (First-Order + Jump + Residual)
-
-A risk-first approximation over a short horizon:
-
-$$\boxed{\Delta V \approx \sum_i \text{CS01}_i\,\Delta S_i + \text{RecSens} \cdot \Delta R + \text{JTD scenario} + \text{Residual}}$$
-
-| Component | Description |
-|-----------|-------------|
-| $\sum_i \text{CS01}_i\,\Delta S_i$ | Spread P&L (bucketed) |
-| $\text{RecSens} \cdot \Delta R$ | Recovery sensitivity contribution (model-dependent) |
-| JTD scenario | Default event shock via VOD/JTD |
-| **Residual sources** | second-order terms (convexity), curve rebuild nonlinearities, discounting changes, basis / liquidity effects, accrual/settlement conventions |
-
----
-
-## 6. Measurement & Risk (Only What Belongs in Chapter 44)
-
-### 6.1 "Risk Report" View (Template)
-
-For any CDS RV framework, a minimum report includes:
-
-| Risk Category | Metric |
-|---------------|--------|
-| **Spread risk** | Total CS01 (USD/bp); Bucket CS01s (USD/bp by maturity bucket) |
-| **Default risk** | JTD/VOD (USD) under immediate default scenario |
-| **Recovery risk** | PV change per +1% recovery (USD per 1% absolute $R$) |
-| **Rates risk** | IR DV01 (USD/bp) |
-| **Carry / theta** | Theta (USD/day) under curves unchanged |
-| **Liquidity / roll / technical** | Qualitative flags: on-the-run maturity liquidity, deliverability/settlement, rebalancing feasibility |
-
----
-
-### 6.2 Model/Convention Dependence (Must Be Explicit)
-
-| Aspect | Dependence |
-|--------|------------|
-| **What is bumped?** | par spread quotes vs hazard buckets; each yields different "CS01 decomposition" |
-| **Discount curve** | Interest-rate DV01 depends on how discount factors are shocked |
-| **Recovery assumptions** | Recovery affects protection payoff and calibration; recovery DV01 must state whether spreads are held fixed and curve recalibrated |
-| **Accrual-at-default conventions** | VOD includes accrued premium at default in the reference discussion |
-
----
-
-### 6.3 Validation Checklist (Scenario Suite + Repricing Tests)
+Run the following scenarios before and during the trade:
 
 | Test | Description |
 |------|-------------|
-| **Parallel spread shock** | +10bp, +50bp (all nodes) |
-| **Twist** | front-end +10bp, back-end +50bp; and reverse |
-| **Recovery shock** | $R \pm 10\%$ absolute (e.g., 40% → 30% / 50%) |
-| **Default-event scenario** | apply VOD/JTD |
-| **Repricing checks** | Compare linear CS01 approximation vs full repricing under the same shocks |
-| **Numerical stability** | bump size sensitivity (0.5bp vs 1bp), curve interpolation robustness |
+| Parallel spread shock | All spreads +10bp, +50bp |
+| Curve twist | Front +10bp, back +50bp; reverse |
+| Default scenario | Apply VOD/JTD |
+| Recovery shock | R ± 10% absolute |
+| Repricing check | Linear CS01 vs full repricing |
 
 ---
 
-## 7. Worked Examples (At Least 12 Numeric Examples)
+## 44.7 Worked Examples
 
-### Global Toy Conventions for Examples A–L (Unless Stated Otherwise)
+### Example A: CS01-Neutral 5Y vs 1Y Steepener
 
-- **Notional** $N$ in USD.
-- **Recovery** $R = 40\%$ unless stated otherwise.
-- **Discounting:** flat $r = 0\%$ so $Z = 1$ (toy simplification).
-- **Survival curve representation** uses:
-  - $Q(t,T) = \exp\bigl(-\int_t^T h(s)\,ds\bigr)$ (source-backed)
-  - linear interpolation of $-\log Q$ $\Rightarrow$ piecewise-constant forward hazard (source-backed)
-  - "credit triangle" approximation $S \approx h(1-R)$ as a quick mapping (source-backed as an approximation)
-- **Mark-to-market identity:**
-  $$V \approx N\,(S_{\text{mkt}} - c)\,\text{RPV01}$$
-  consistent with the reference's "spread difference $\times$ RPV01" relation.
-- $1\text{bp} = 10^{-4}$ in decimal.
+**Setup:**
+- Reference entity spreads: $S(1Y) = 80\text{bp}$, $S(5Y) = 160\text{bp}$
+- Recovery: $R = 40\%$
+- Buy 5Y protection: $N_5 = 10\text{mm}$
+- Sell 1Y protection: notional $N_1$ to be determined
 
----
+**Step 1: Compute RPV01s**
 
-### Example A: Define a CDS Curve
+Using the credit triangle approximation $h \approx S/(1-R)$ and flat hazard per tenor:
 
-**Given (toy par spreads):**
-- $S(1y) = 80\text{bp}$, $S(3y) = 120\text{bp}$, $S(5y) = 160\text{bp}$
-- $R = 40\% \Rightarrow 1 - R = 0.60$
+For 1Y: $h_1 = 0.0080/0.60 = 0.0133$
+$$\text{RPV01}(1) = \frac{1 - e^{-0.0133 \cdot 1}}{0.0133} \approx 0.993$$
 
-**Step 1: Convert spreads to decimals**
+For 5Y (with piecewise hazards): $\text{RPV01}(5) \approx 4.74$
 
-$$0.0080,\; 0.0120,\; 0.0160 \text{ per year}$$
+**Step 2: Compute CS01 per 10mm**
 
-**Step 2: "Flat hazard" mapping via credit triangle** $h(T) \approx S(T)/(1-R)$
+$$\text{CS01}_{1Y} = 10\text{mm} \times 0.0001 \times 0.993 = \$993/\text{bp}$$
+$$\text{CS01}_{5Y} = 10\text{mm} \times 0.0001 \times 4.74 = \$4,740/\text{bp}$$
 
-$$h_1 = 0.0080 / 0.60 = 0.013333$$
-$$h_3 = 0.0120 / 0.60 = 0.020000$$
-$$h_5 = 0.0160 / 0.60 = 0.026667$$
+**Step 3: Determine $N_1$ for CS01 neutrality**
 
-**Step 3: Convert to survival at tenor points** using $Q(T) = e^{-h(T) \cdot T}$
+$$4,740 - 993 \times \frac{N_1}{10} = 0 \implies N_1 = 47.7\text{mm}$$
 
-$$Q(1) = e^{-0.013333 \cdot 1} = 0.9868$$
-$$Q(3) = e^{-0.020000 \cdot 3} = e^{-0.06} = 0.9418$$
-$$Q(5) = e^{-0.026667 \cdot 5} = e^{-0.13333} = 0.8752$$
+**Step 4: Check JTD**
 
-**Step 4: Piecewise-constant forward hazards** from linear interpolation of $-\log Q$
+$$\text{JTD}_{5Y} = +10 \times 0.60 = +\$6.0\text{mm}$$
+$$\text{JTD}_{1Y} = -47.7 \times 0.60 = -\$28.6\text{mm}$$
+$$\text{Net JTD} = -\$22.6\text{mm}$$
 
-Let $H(T) = -\log Q(T)$.
-- $H(1) = 0.013333$
-- $H(3) = 0.060000$
-- $H(5) = 0.133333$
-
-Forward hazards:
-
-$$h_{0 \to 1} = H(1)/1 = 0.013333$$
-
-$$h_{1 \to 3} = \frac{H(3) - H(1)}{3 - 1} = \frac{0.060000 - 0.013333}{2} = 0.023333$$
-
-$$h_{3 \to 5} = \frac{H(5) - H(3)}{5 - 3} = \frac{0.133333 - 0.060000}{2} = 0.036667$$
-
-**Output (simple survival/hazard representation):**
-- Tenor survival: $Q(1) = 0.9868$, $Q(3) = 0.9418$, $Q(5) = 0.8752$
-- Forward hazards: $h_{0-1} = 1.33\%$, $h_{1-3} = 2.33\%$, $h_{3-5} = 3.67\%$
-
-(We treat this as an input representation, consistent with the chapter instruction that the curve can be considered bootstrapped in prior material.)
+**Conclusion:** The trade is CS01-neutral but carries $22.6\text{mm}$ short default exposure.
 
 ---
 
-### Example B: Compute CS01 by Maturity
+### Example B: Curve Trade P&L Scenarios
 
-Compute CS01 for: (i) 1y CDS, (ii) 5y CDS
+Using Example A's steepener, compute P&L under various scenarios.
 
-- Notional $N = 10{,}000{,}000$
-- Recovery $R = 40\%$
-- Bump method: ±1bp bump to the relevant spread quote; for this toy we hold $\text{RPV01}$ fixed under the bump (first-order).
+**Scenario 1: Parallel +20bp**
 
-**Step 1: Compute toy** $\text{RPV01}(T) = \int_0^T Q(t)\,dt$ **(continuous-time toy)**
+$$\Delta V = 4,740 \times 20 + (-4,740) \times 20 = 0$$
 
-For 1y with hazard $h_{0-1} = 0.013333$:
+**Scenario 2: Steepening (front +5bp, back +25bp)**
 
-$$\text{RPV01}(1) = \frac{1 - e^{-0.013333 \cdot 1}}{0.013333} = 0.9934$$
+$$\Delta V = 4,740 \times 25 + (-4,740) \times 5 = 4,740 \times 20 = +\$94,800$$
 
-For 5y using piecewise hazards:
+**Scenario 3: Flattening (front +25bp, back +5bp)**
 
-$$\text{RPV01}(5) = \int_0^1 e^{-0.013333t}\,dt + \int_1^3 Q(1)\,e^{-0.023333(t-1)}\,dt + \int_3^5 Q(3)\,e^{-0.036667(t-3)}\,dt$$
+$$\Delta V = 4,740 \times 5 + (-4,740) \times 25 = -\$94,800$$
 
-Numeric components:
-- $0\text{–}1$: $0.9934$
-- $1\text{–}3$: $1.9281$
-- $3\text{–}5$: $1.8156$
+**Scenario 4: Default**
 
-**Total** $\text{RPV01}(5) = 4.7371$
+$$\Delta V = \text{Net JTD} = -\$22.6\text{mm}$$
 
-**Step 2: CS01 via ±1bp repricing (first-order)**
-
-Using $V \approx N(S_{\text{mkt}} - c)\,\text{RPV01}$.
-
-For a par CDS at inception, $c = S_{\text{mkt}} \Rightarrow V = 0$. Under a +1bp move, $\Delta S = +0.0001$:
-
-$$V_+ \approx N \cdot 0.0001 \cdot \text{RPV01}$$
-
-Similarly $V_- \approx -N \cdot 0.0001 \cdot \text{RPV01}$.
-
-Thus the signed CS01 is:
-
-$$\text{CS01} = \frac{V_+ - V_-}{2} = N \cdot 0.0001 \cdot \text{RPV01}$$
-
-**1y:**
-$$\text{CS01}_{1y} = 10{,}000{,}000 \cdot 0.0001 \cdot 0.9934 = 1000 \cdot 0.9934 = \$993.4/\text{bp}$$
-
-**5y:**
-$$\text{CS01}_{5y} = 10{,}000{,}000 \cdot 0.0001 \cdot 4.7371 = 1000 \cdot 4.7371 = \$4{,}737.1/\text{bp}$$
-
-**Unit check:** $N \times 0.0001$ has units USD; multiplying by $\text{RPV01}$ (years) is consistent with the "spread-per-year" unit embedded in $0.0001$.
+The default scenario dominates all spread scenarios by two orders of magnitude.
 
 ---
 
-### Example C: Build a Credit Curve Steepener; Parallel CS01-Neutral
+### Example C: Cash-CDS Basis Trade with Financing
 
-**Trade definition:**
-- **Long 5y CDS:** buy protection (signed CS01 $+$).
-- **Short 1y CDS:** sell protection (signed CS01 $-$).
+**Setup:**
+- Bond: \$10mm face, price 102, duration 4.5, Z-spread 150bp
+- CDS: 5Y spread 120bp, RPV01 = 4.7
+- Basis: CDS 30bp cheap to bond
+- Financing: repo at Libor + 25bp
 
-Choose notionals so net parallel CS01 is zero.
+**Step 1: Size for JTD neutrality**
 
-**Given:**
-- $\text{CS01}_{5y}$ per 10mm buy protection: $+4{,}737.1/\text{bp}$ (from Example B)
-- $\text{CS01}_{1y}$ per 10mm buy protection: $+993.4/\text{bp}$
+Bond loss at default (price 102, recovery 40): $(1.02 - 0.40) \times 10 = \$6.2\text{mm}$
 
-Let $N_5 = 10\text{mm}$ (buy 5y). Let $N_1$ be the 1y notional (sell 1y).
+CDS notional for JTD match: $6.2 / 0.60 = \$10.33\text{mm}$
 
-**Step 1: Write net CS01**
-- 5y leg: $+4{,}737.1/\text{bp}$
-- 1y sell leg: $-(993.4/\text{bp}) \cdot (N_1 / 10\text{mm})$
+**Step 2: Compute CS01s**
 
-Set net = 0:
+Bond DV01: $4.5 \times 10.2 \times 0.0001 = \$4,590/\text{bp}$
 
-$$4{,}737.1 - 993.4 \cdot \frac{N_1}{10} = 0 \quad \Rightarrow \quad \frac{N_1}{10} = \frac{4{,}737.1}{993.4} = 4.768$$
+CDS CS01: $10.33 \times 0.0001 \times 4.7 = \$4,855/\text{bp}$
 
-**Step 2: Solve**
+**Step 3: Monthly carry**
 
-$$N_1 = 10 \cdot 4.768 = 47.68\text{mm}$$
+Bond spread income: $150\text{bp} \times 10.2\text{mm} / 12 = \$12,750$
 
-**Output:**
-- Buy protection 5y: $N_5 = 10.00\text{mm}$
-- Sell protection 1y: $N_1 = 47.68\text{mm}$
-- Net parallel CS01 $\approx 0$
+CDS premium: $120\text{bp} \times 10.33\text{mm} / 12 = \$10,330$ (paid)
 
----
+Financing cost: $25\text{bp} \times 10.2\text{mm} / 12 = \$2,125$
 
-### Example D: Steepener P&L Scenarios Using CS01 Buckets
+**Net monthly carry: $12,750 - 10,330 - 2,125 = +\$295$**
 
-Use Example C trade. For simplicity, treat the trade as having two nodes: 1y and 5y.
+**Step 4: Basis risk**
 
-**Signed CS01s:**
-- 5y buy: $+4{,}737.1/\text{bp}$
-- 1y sell 47.68mm: $-4{,}737.1/\text{bp}$ (by construction)
+If CDS widens 50bp while bond widens only 30bp:
 
-**Approximate P&L:**
+$$\Delta V_{\text{bond}} = -4,590 \times 30 = -\$137,700$$
+$$\Delta V_{\text{CDS}} = +4,855 \times 50 = +\$242,750$$
+$$\text{Net} = +\$105,050$$
 
-$$\Delta V \approx \text{CS01}_{5y}\,\Delta S_{5y} + \text{CS01}_{1y}\,\Delta S_{1y}$$
-
-#### Scenario 1: Parallel widening +20bp all tenors
-
-$\Delta S_{1y} = +20$, $\Delta S_{5y} = +20$
-
-$$\Delta V \approx 4{,}737.1 \cdot 20 + (-4{,}737.1) \cdot 20 = 0$$
-
-**Output:** $\Delta V \approx \$0$
-
-#### Scenario 2: Twist (front +5bp, back +25bp)
-
-$\Delta S_{1y} = +5$, $\Delta S_{5y} = +25$
-
-$$\Delta V \approx 4{,}737.1 \cdot 25 + (-4{,}737.1) \cdot 5 = 4{,}737.1 \cdot 20 = \$94{,}742$$
-
-**Output:** $\Delta V \approx +\$94{,}742$
-
-#### Scenario 3: Flattening (front +25bp, back +5bp)
-
-$\Delta S_{1y} = +25$, $\Delta S_{5y} = +5$
-
-$$\Delta V \approx 4{,}737.1 \cdot 5 + (-4{,}737.1) \cdot 25 = -4{,}737.1 \cdot 20 = -\$94{,}742$$
-
-**Output:** $\Delta V \approx -\$94{,}742$
-
-**Repricing reconciliation (toy):** this equals direct repricing under $V \approx N\,\Delta S\,\text{RPV01}$, which is the same first-order approximation used here.
+The basis convergence produces profit. But if the basis diverges further (CDS widens less than bond), the trade loses.
 
 ---
 
-### Example E: Credit Key-Rate Style Buckets
+### Example D: Senior vs Subordinated Trade
 
-**Define buckets:**
-- **Bucket A:** 0–2y
-- **Bucket B:** 2–5y
-- **Bucket C:** 5–10y
+**Setup:**
+- Senior 5Y CDS: $S = 120\text{bp}$, $R = 40\%$
+- Sub 5Y CDS: $S = 250\text{bp}$, $R = 20\%$
+- Buy sub protection: $N_{\text{sub}} = 10\text{mm}$
+- Sell senior protection: notional for CS01 neutrality
 
-Compute bucket exposures for a 5y CDS with $N = 10\text{mm}$ buy protection.
+**Step 1: Compute hazards and RPV01s**
 
-**Step 1: Compute $\text{RPV01}$ contributions**
+Senior: $h = 0.012/0.60 = 0.02$, $\text{RPV01} \approx 4.76$
 
-From Example A hazards:
+Sub: $h = 0.025/0.80 = 0.03125$, $\text{RPV01} \approx 4.63$
 
-**0–1 integral:**
-$$\int_0^1 Q(t)\,dt = 0.9934$$
+**Step 2: CS01 neutrality**
 
-**1–2 integral** (hazard $h_{1-3} = 0.023333$, start survival $Q(1) = 0.9868$):
-$$\int_1^2 Q(t)\,dt = Q(1) \cdot \frac{1 - e^{-0.023333 \cdot 1}}{0.023333} \approx 0.9751$$
+$$\frac{N_{\text{senior}}}{10} = \frac{4.63}{4.76} \implies N_{\text{senior}} = 9.73\text{mm}$$
 
-So:
-- **Bucket A (0–2):** $0.9934 + 0.9751 = 1.9685$
-- **Total** $\text{RPV01}(5) = 4.7371$ $\Rightarrow$ **Bucket B (2–5):** $4.7371 - 1.9685 = 2.7686$
-- **Bucket C:** 0 (5y maturity)
+**Step 3: JTD**
 
-**Step 2: Convert to bucket CS01s**
+$$\text{JTD}_{\text{sub}} = +10 \times 0.80 = +\$8.0\text{mm}$$
+$$\text{JTD}_{\text{senior}} = -9.73 \times 0.60 = -\$5.84\text{mm}$$
+$$\text{Net JTD} = +\$2.16\text{mm}$$
 
-$$\text{CS01}_{\text{bucket}} = N \cdot 0.0001 \cdot \text{RPV01}_{\text{bucket}}$$
+The trade is net long default due to the different recoveries, even with CS01 neutrality.
 
-For $N = 10\text{mm}$, multiplier $N \cdot 0.0001 = 1000$.
+**Step 4: Spread ratio check**
 
-- **Bucket A:** $1000 \cdot 1.9685 = \$1{,}968.5/\text{bp}$
-- **Bucket B:** $1000 \cdot 2.7686 = \$2{,}768.6/\text{bp}$
-- **Bucket C:** $0$
+Theoretical ratio: $(1-0.20)/(1-0.40) = 0.80/0.60 = 1.33$
 
-**Step 3: Why a 1y hedge doesn't neutralize all bucket risk**
+Market ratio: $250/120 = 2.08$
 
-A 1y CDS only loads Bucket A (0–1 subset of 0–2). If you hedge total CS01 with 1y (Example C), you end up with:
-- Bucket A net: $+1{,}968.5 - 4{,}737.1 = -2{,}768.6$
-- Bucket B net: $+2{,}768.6$
-
-So the "parallel CS01 neutral" trade is actually a **bucket twist exposure**: short front bucket, long belly bucket.
-
-This mirrors the rates insight that DV01 hedging can leave curve exposure; key rate/bucket analysis reveals what remains.
+The market prices sub materially wider than the simple recovery model predicts, suggesting either (a) the market expects lower sub recovery than 20%, (b) liquidity premium in sub, or (c) the simple model is inadequate.
 
 ---
 
-### Example F: Carry/Rolldown Decomposition — Cautious
+### Example E: Three-Leg Trade for JTD Neutrality
 
-Use Example C steepener. Horizon: $\Delta t = 1/12$ year (≈1 month). Assume:
-- hazard curve and discount curve unchanged,
-- no default during horizon,
-- ignore accrual-at-default and discounting (toy),
-- "rolldown" approximated by interpolating the quoted spread curve.
+To achieve both CS01 and JTD neutrality, we need three instruments.
 
-**Step 1: Carry (premium accrual over the month)**
+**Setup:**
+- Buy 5Y protection: $N_5 = 10\text{mm}$ (given)
+- Sell 3Y protection: $N_3$ (to be determined)
+- Buy 1Y protection: $N_1$ (to be determined)
 
-**5y leg (buy protection):** pay $S_{5y} = 160\text{bp} = 0.016/\text{year}$ on 10mm:
-- annual premium = $0.016 \cdot 10{,}000{,}000 = 160{,}000$
-- 1-month carry ≈ $-160{,}000 / 12 = -13{,}333.33$
+**Constraints:**
 
-**1y leg (sell protection):** receive $S_{1y} = 80\text{bp} = 0.008/\text{year}$ on 47.68mm:
-- annual premium = $0.008 \cdot 47{,}680{,}000 = 381{,}440$
-- 1-month carry ≈ $+381{,}440 / 12 = +31{,}786.67$
+1. JTD neutral: $N_5 + N_3 + N_1 = 0$ (with signs for buy/sell)
+2. CS01 neutral: $N_5 \cdot \text{RPV01}(5) + N_3 \cdot \text{RPV01}(3) + N_1 \cdot \text{RPV01}(1) = 0$
 
-**Net carry:** $31{,}786.67 - 13{,}333.33 = +18{,}453.34$
+Using RPV01(1) = 0.99, RPV01(3) = 2.92, RPV01(5) = 4.74:
 
-**Step 2: Rolldown (curve unchanged; maturity shortens)**
+From JTD neutral: $N_1 = -10 - N_3$
 
-5y becomes 4.9167y. Approximate spread at 4.9167y by linear interpolation between 3y (120bp) and 5y (160bp):
-- slope = $(160 - 120) / (5 - 3) = 20$ bp per year
-- $S(4.9167) \approx 120 + 20 \cdot (4.9167 - 3) = 120 + 38.333 = 158.333\text{bp}$
-- spread change from rolldown: $\Delta S_{\text{roll}} = 158.333 - 160 = -1.667\text{bp}$
+Substitute into CS01:
+$$10 \times 4.74 + N_3 \times 2.92 + (-10 - N_3) \times 0.99 = 0$$
+$$47.4 + 2.92 N_3 - 9.9 - 0.99 N_3 = 0$$
+$$37.5 + 1.93 N_3 = 0$$
+$$N_3 = -19.4\text{mm}$$
 
-Rolldown MTM impact (using CS01):
-$$\Delta V_{\text{roll},5y} \approx \text{CS01}_{5y} \cdot (-1.667) = 4{,}737.1 \cdot (-1.667) = -\$7{,}911 \text{ (approx)}$$
+Therefore: $N_1 = -10 - (-19.4) = +9.4\text{mm}$
 
-Assume short-end curve is flat near 1y $\Rightarrow$ $\Delta V_{\text{roll},1y} \approx 0$ (toy).
+**Result:**
+- Buy 5Y: 10mm
+- Sell 3Y: 19.4mm
+- Buy 1Y: 9.4mm
 
-**Step 3: Total (carry + rolldown)**
-
-$$\Delta V_{\text{carry+roll}} \approx 18{,}453 - 7{,}911 = +\$10{,}542$$
-
-**Caution labels:**
-- This is **not** a realized-return forecast. It is a conditional decomposition using theta/rolldown logic (theta defined in the reference).
-- Default and curve moves dominate in stressed scenarios (see Example G).
+Net notional = 0 (JTD neutral); Net CS01 $\approx$ 0. The remaining exposure is pure curve shape.
 
 ---
 
-### Example G: JTD Sizing for Curve Trades
+## 44.8 Practical Notes and Common Pitfalls
 
-Use Example C. Assume PV $V \approx 0$ at inception (par trades).
-
-Reference VOD for protection buyer is approximately $N(1-R)$ (minus accrued premium), and VOD = value-at-default minus current value.
-
-Ignore accrued premium (toy).
-
-**5y buy protection, $N_5 = 10\text{mm}$:**
-$$\text{JTD}_5 \approx +N_5(1-R) = 10{,}000{,}000 \cdot 0.60 = +\$6{,}000{,}000$$
-
-**1y sell protection, $N_1 = 47.68\text{mm}$:**
-$$\text{JTD}_1 \approx -N_1(1-R) = -47{,}680{,}000 \cdot 0.60 = -\$28{,}608{,}000$$
-
-**Net JTD:**
-$$\text{JTD}_{\text{net}} \approx 6{,}000{,}000 - 28{,}608{,}000 = -\$22{,}608{,}000$$
-
-**Interpretation:**
-
-The curve steepener is CS01-neutral but has a **large net short-default exposure** (negative JTD). This is the central "risk-first" warning: curve trades can be dominated by default-event risk.
-
----
-
-### Example H: Bond–CDS Basis Hedge Toy
-
-**Goal:** show a JTD-matched hedge can still have basis/spread residuals.
-
-**Bond position (toy):**
-- Face $F = 10\text{mm}$
-- Full price $P = 1.02$ (102% of par)
-- Recovery $R = 0.40$
-
-Reference states: default risk on a bond purchased at full price $P$ is a loss of $P - R$.
-
-**Step 1: Bond JTD**
-
-Loss fraction = $P - R = 1.02 - 0.40 = 0.62$
-
-Bond JTD $\approx -0.62 \cdot 10{,}000{,}000 = -\$6{,}200{,}000$
-
-**Step 2: CDS notional to match JTD**
-
-A CDS protection buyer receives $(1-R)N$ at default (ignoring accrued premium).
-
-Set $(1-R)N_{\text{CDS}} = 6.2\text{mm}$:
-$$0.60 \cdot N_{\text{CDS}} = 6.2 \quad \Rightarrow \quad N_{\text{CDS}} = 10.3333\text{mm}$$
-
-**Step 3: Spread sensitivity (bond vs CDS)**
-
-Assume bond modified duration $D = 4.5$ (toy) and bond PV $= 10.2\text{mm}$.
-
-Bond DV01:
-$$\text{DV01}_{\text{bond}} = D \cdot PV \cdot 0.0001 = 4.5 \cdot 10.2\text{mm} \cdot 0.0001 = 4.5 \cdot 1020 = \$4{,}590/\text{bp}$$
-
-CDS CS01 (use $\text{RPV01}(5) = 4.7371$ from Example B):
-$$\text{CS01}_{\text{CDS}} = N_{\text{CDS}} \cdot 0.0001 \cdot \text{RPV01} = 10.3333\text{mm} \cdot 0.0001 \cdot 4.7371 \approx 1033.33 \cdot 4.7371 \approx \$4{,}895/\text{bp}$$
-
-#### Scenario 1: Basis move (CDS widens more than bond)
-
-- CDS $\Delta S_{\text{CDS}} = +50\text{bp}$
-- Bond credit spread widens $\Delta s_{\text{bond}} = +30\text{bp}$
-
-Bond P&L (spread-only):
-$$\Delta V_{\text{bond}} \approx -4{,}590 \cdot 30 = -\$137{,}700$$
-
-CDS P&L (spread-only):
-$$\Delta V_{\text{CDS}} \approx +4{,}895 \cdot 50 = +\$244{,}750$$
-
-**Net:**
-$$\Delta V_{\text{net}} \approx +\$107{,}050$$
-
-**Interpretation:** JTD hedge $\neq$ basis hedge.
-
-#### Scenario 2: Funding/liquidity shock (conceptual)
-
-Suppose bond price drops 1 point (1%) due to funding/liquidity, CDS unchanged.
-- Bond P&L $\approx -0.01 \cdot 10\text{mm} = -\$100{,}000$
-- CDS P&L $\approx 0$
-- Net $-\$100{,}000$
-
-**Label:** This is a conceptual non-credit driver consistent with the reference discussion that basis reflects multiple factors beyond "pure credit."
-
----
-
-### Example I: Senior vs Subordinated CDS Conceptual Trade
-
-**Given:**
-- 5y senior CDS: $S_{\text{sen}} = 120\text{bp}$, assume $R_{\text{sen}} = 40\%$
-- 5y sub CDS: $S_{\text{sub}} = 250\text{bp}$, assume $R_{\text{sub}} = 20\%$
-- Notional for sub leg: $N_{\text{sub}} = 10\text{mm}$ (buy protection)
-- Hedge senior notional to be parallel-CS01 neutral
-
-**Step 1: Compute toy hazards via credit triangle** $h = S/(1-R)$
-
-- Senior: $h_{\text{sen}} = 0.012 / 0.60 = 0.02$
-- Sub: $h_{\text{sub}} = 0.025 / 0.80 = 0.03125$
-
-**Step 2: Compute toy** $\text{RPV01}(5) = (1 - e^{-hT})/h$ **(flat hazard toy)**
-
-**Senior:**
-- $e^{-0.1} = 0.904837$
-- $\text{RPV01}_{\text{sen}} = (1 - 0.904837) / 0.02 = 4.75815$
-
-**Sub:**
-- $e^{-0.15625} \approx 0.85535$
-- $\text{RPV01}_{\text{sub}} = (1 - 0.85535) / 0.03125 = 4.62893$
-
-**Step 3: CS01 per 10mm (signed, buy protection)**
-
-- Senior: $1000 \cdot 4.75815 = 4{,}758.15/\text{bp}$
-- Sub: $1000 \cdot 4.62893 = 4{,}628.93/\text{bp}$
-
-**Step 4: Choose senior notional $N_{\text{sen}}$ to neutralize parallel CS01**
-
-Trade: buy sub, sell senior. Net CS01 = 0:
-
-$$4{,}628.93 \cdot \frac{N_{\text{sub}}}{10} - 4{,}758.15 \cdot \frac{N_{\text{sen}}}{10} = 0 \quad \Rightarrow \quad N_{\text{sen}} = 10 \cdot \frac{4.62893}{4.75815} = 9.73\text{mm}$$
-
-**Step 5: Remaining exposures**
-
-**Net JTD** (ignore accrued premium; use $(1-R)N$):
-- Sub buy JTD $= +10 \cdot 0.80 = +8.00\text{mm}$
-- Senior sell JTD $= -9.73 \cdot 0.60 = -5.84\text{mm}$
-- Net $= +2.16\text{mm}$ (still material)
-
-**Interpretation:**
-
-Even with CS01 neutrality, you retain default-event and recovery exposures, and the "spread ratio ↔ recovery ratio" relation is only rough in practice per the reference.
-
----
-
-### Example J: Recovery Sensitivity Comparison
-
-Compute PV at $R = 20\%, 40\%, 60\%$ and compare two positions.
-
-#### Position 1 (off-market 5y CDS)
-
-- Notional $N = 10\text{mm}$
-- Contract coupon $c = 100\text{bp} = 0.010$
-- Current market spread $S_{\text{mkt}} = 160\text{bp} = 0.016$
-- Maturity $T = 5$
-
-Toy pricing: $V \approx N(S_{\text{mkt}} - c)\,\text{RPV01}(R)$ with $\text{RPV01}(R)$ implied by hazard $h = S_{\text{mkt}}/(1-R)$ (flat hazard toy).
-
-Compute $\Delta S = 0.016 - 0.010 = 0.006$.
-
-**For each $R$:**
-
-**$R = 20\%$:** $1 - R = 0.8$, $h = 0.016/0.8 = 0.02$
-- $\text{RPV01} = (1 - e^{-0.02 \cdot 5}) / 0.02 = 4.75815$
-- $V = 10\text{mm} \cdot 0.006 \cdot 4.75815 = 10\text{mm} \cdot 0.0285489 = \$285{,}489$
-
-**$R = 40\%$:** $h = 0.016/0.6 = 0.0266667$
-- $e^{-0.133333} \approx 0.87517$
-- $\text{RPV01} = (1 - 0.87517) / 0.0266667 = 4.6810$
-- $V = 10\text{mm} \cdot 0.006 \cdot 4.6810 = \$280{,}860$
-
-**$R = 60\%$:** $h = 0.016/0.4 = 0.04$
-- $\text{RPV01} = (1 - e^{-0.2}) / 0.04 = 4.53173$
-- $V = 10\text{mm} \cdot 0.006 \cdot 4.53173 = \$271{,}902$
-
-**Approx recovery sensitivity (coarse slope over 40% range):**
-
-$$\frac{V(60\%) - V(20\%)}{0.60 - 0.20} = \frac{271{,}902 - 285{,}489}{0.40} = -33{,}968 \text{ USD per 1.00 in } R \Rightarrow -\$340 \text{ per 1\% } R$$
-
-#### Position 2 (off-market 1y CDS)
-
-- $N = 10\text{mm}$
-- $c = 50\text{bp} = 0.005$
-- $S_{\text{mkt}} = 80\text{bp} = 0.008$
-- $T = 1$
-- $\Delta S = 0.003$
-
-**$R = 20\%$:** $h = 0.008/0.8 = 0.01$, $\text{RPV01} = (1 - e^{-0.01})/0.01 = 0.99502$
-- $V = 10\text{mm} \cdot 0.003 \cdot 0.99502 = \$29{,}851$
-
-**$R = 40\%$:** $h = 0.008/0.6 = 0.013333$, $\text{RPV01} = 0.99336$
-- $V = 10\text{mm} \cdot 0.003 \cdot 0.99336 = \$29{,}801$
-
-**$R = 60\%$:** $h = 0.008/0.4 = 0.02$, $\text{RPV01} = 0.99010$
-- $V = 10\text{mm} \cdot 0.003 \cdot 0.99010 = \$29{,}703$
-
-**Sensitivity:**
-
-$$\frac{29{,}703 - 29{,}851}{0.40} = -370 \text{ USD per 1.00 in } R \Rightarrow -\$3.7 \text{ per 1\% } R$$
-
-**Conclusion:**
-
-The longer-dated off-market CDS shows materially larger recovery sensitivity in this toy setup, consistent with the idea that recovery impacts default leg sizing and calibration (and thus PV). The reference identifies recovery DV01 as a key sensitivity metric.
-
----
-
-### Example K: Auction Final Price Shock
-
-Assume CDS cash settlement uses an auction-determined "final price" (as described conceptually in the sources).
-
-**Given:**
-- CDS notional $N = 10\text{mm}$
-- Expected final price = 40 (i.e., 40% of par)
-- Realized final price = 30
-- Difference = 10 points
-
-**Step 1: CDS payout difference**
-
-Cash-settled payoff per notional is approximately $1 - \text{final price}$.
-
-- Expected payout = $10\text{mm} \cdot (1 - 0.40) = 6\text{mm}$
-- Realized payout = $10\text{mm} \cdot (1 - 0.30) = 7\text{mm}$
-- Difference $= +1\text{mm}$ to the protection buyer.
-
-**Step 2: Effect on a hedged bond+CDS package (toy)**
-
-Bond face $F = 10\text{mm}$.
-- Expected recovery value = $0.40 \cdot 10 = 4\text{mm}$
-- Realized recovery value = $0.30 \cdot 10 = 3\text{mm}$
-- Unexpected bond loss = $-1\text{mm}$
-
-If you held long bond + long CDS on the same face:
-- bond unexpected $-1\text{mm}$
-- CDS unexpected $+1\text{mm}$
-- Net ≈ 0.
-
-**Interpretation:**
-
-This is event/recovery risk: the hedge effectiveness depends on settlement mechanics and sizing, and auction outcomes can shift realized P&L materially.
-
----
-
-### Example L: Full Risk Report and Hedge Plan
-
-**Framework:** 5y vs 1y steepener (Example C), plus optional improvement.
-
-#### L1) Base Position
-
-- Buy 5y protection: $N_5 = 10.00\text{mm}$
-- Sell 1y protection: $N_1 = 47.68\text{mm}$
-- Recovery $R = 40\%$
-
-#### L2) Exposures Table (Toy)
-
-Use buckets from Example E.
-
-| Exposure | 0–2y bucket | 2–5y bucket | 5–10y bucket | Total |
-|----------|-------------|-------------|--------------|-------|
-| 5y buy (10mm) CS01 (USD/bp) | +1,968.5 | +2,768.6 | 0.0 | +4,737.1 |
-| 1y sell (47.68mm) CS01 (USD/bp) | −4,737.1 | 0.0 | 0.0 | −4,737.1 |
-| **Net CS01 (USD/bp)** | **−2,768.6** | **+2,768.6** | **0.0** | **0.0** |
-
-**JTD** (ignore accrued premium; VOD logic):
-- 5y buy: $+10 \cdot 0.60 = +6.000\text{mm}$
-- 1y sell: $-47.68 \cdot 0.60 = -28.608\text{mm}$
-- **Net JTD** $= -22.608\text{mm}$ (large)
-
-**Recovery sensitivity (JTD-only proxy):**
-
-$$\text{JTD} = (1-R)(N_5 - N_1) \quad \Rightarrow \quad \frac{\partial \text{JTD}}{\partial R} = -(N_5 - N_1) = -(10 - 47.68) = +37.68\text{mm}$$
-
-So +1% absolute recovery change increases JTD by $0.01 \cdot 37.68 = 0.3768\text{mm}$ (i.e., +$376,800) in this simplified proxy.
-
-#### L3) Hedge Instruments and Hedge Ratios (What They Target)
-
-**Target:** reduce net JTD while keeping curve-shape exposure
-
-Add a third CDS maturity to create degrees of freedom (credit "key-rate" style), similar in spirit to using more key rates in rates hedging.
-
-**Illustration (toy 3-leg adjustment):** add a 3y leg to make net JTD = 0 and net parallel CS01 = 0.
-
-From Example A:
-- $\text{RPV01}(1) = 0.9934$
-- $\text{RPV01}(3) = 2.9215$
-- $\text{RPV01}(5) = 4.7371$
-
-Let signed notionals (buy protection positive):
-- $N_5 = +10\text{mm}$ (given)
-- choose $N_1$, $N_3$ so:
-  1. JTD neutral $\Rightarrow N_1 + N_3 + N_5 = 0$
-  2. CS01 neutral $\Rightarrow N_1\,\text{RPV01}(1) + N_3\,\text{RPV01}(3) + N_5\,\text{RPV01}(5) = 0$
-
-**Solve:**
-
-From (1): $N_1 = -10 - N_3$
-
-Plug into (2):
-$$(-10 - N_3) \cdot 0.9934 + N_3 \cdot 2.9215 + 10 \cdot 4.7371 = 0$$
-$$-9.934 - 0.9934 N_3 + 2.9215 N_3 + 47.371 = 0 \quad \Rightarrow \quad 1.9281 N_3 + 37.437 = 0 \quad \Rightarrow \quad N_3 = -19.41\text{mm}$$
-
-Then:
-$$N_1 = -10 - (-19.41) = +9.41\text{mm}$$
-
-**Resulting 3-leg package (toy):**
-- Buy 5y 10.00mm
-- Sell 3y 19.41mm
-- Buy 1y 9.41mm
-
-Net notional $= 0$ $\Rightarrow$ JTD approx 0; net parallel CS01 approx 0; remaining bucket exposures represent a curve-shape bet.
-
-#### L4) Scenario Validation Table (Base 2-Leg Trade)
-
-| Scenario | $\Delta S_{1y}$ | $\Delta S_{5y}$ | Approx P&L |
-|----------|-----------------|-----------------|------------|
-| Parallel +20bp | +20 | +20 | $0 |
-| Twist (front +5, back +25) | +5 | +25 | +$94,742 |
-| Flatten (front +25, back +5) | +25 | +5 | −$94,742 |
-| Default event (immediate) | — | — | ≈ −$22.6mm (JTD) |
-| Recovery shock +10% | — | — | JTD improves by ≈ +$3.768mm (toy JTD proxy) |
-
-#### L5) Failure Modes Narrative (Base 2-Leg Trade)
-
-1. **Default dominates:** CS01 neutrality does not control JTD; a default-event overwhelms spread P&L (Example G).
-2. **Bucket mismatch:** total CS01 neutral still leaves a large twist exposure across 0–2 vs 2–5 buckets (Example E).
-3. **Recovery/auction risk:** payoff depends on auction final price and accrued premium conventions.
-4. **Liquidity/roll risk:** rebalancing is sensitive to liquidity points (e.g., 5y maturity liquidity) and technical demand/supply.
-
----
-
-## 8. Practical Notes
-
-### 8.1 "No-Trade-Tips" Rule
-
-Everything in this chapter is framed as:
-1. define exposures,
-2. choose hedges by targeted exposures,
-3. enumerate failure modes,
-4. run verification tests.
-
-**No forecasting, signals, or recommendations.**
-
----
-
-### 8.2 Common Pitfalls
+### 44.8.1 Convention Mismatches
 
 | Pitfall | Description |
 |---------|-------------|
-| **Mixing CS01 definitions** | quote bump + curve rebuild vs hazard-bucket bump (can give different bucket decompositions) |
-| **"CS01-neutral" $\neq$ "curve-risk neutral"** | ignoring curve-shape risk (bucket CS01) |
-| **Ignoring JTD/VOD** | curve trades can carry huge default-event exposure (Example G) |
-| **Ignoring recovery sensitivity** | auction/final price uncertainty changes realized payout; recovery DV01 matters |
-| **Treating bond–CDS basis as pure credit mispricing** | liquidity/technical/funding/settlement features can dominate (source emphasizes multiple drivers) |
-| **Inconsistent recovery assumptions across analytics** | bond valuation vs CDS valuation vs hedge sizing |
+| **CS01 sign confusion** | Different systems use different sign conventions. Always verify whether "CS01" means signed (value change) or unsigned (magnitude). |
+| **Quote bump vs hazard bump** | Bumping par spreads and recalibrating gives different bucket decomposition than bumping hazard rates directly. |
+| **Recovery assumption mismatch** | Bond valuations may use different recovery assumptions than CDS analytics. |
+| **Day count differences** | Bond accrual and CDS accrual may use different conventions. |
+
+### 44.8.2 Implementation Issues
+
+1. **Survival curve interpolation:** Different interpolation schemes (linear on $-\log Q$, piecewise constant hazard) give different bucket CS01s.
+
+2. **Accrual at default:** VOD calculations must include accrued premium; ignoring this creates small but systematic errors.
+
+3. **Roll dates:** Index rolls and single-name CDS rolls on different schedules can create basis moves.
+
+4. **Liquidity cliff:** 5Y is typically liquid; 4Y and 6Y may not be. Hedging curve positions requires trading at illiquid points.
+
+### 44.8.3 Why RV Trades Fail
+
+The most common failure modes:
+
+1. **Underestimating JTD:** Curve trades with large notional imbalances
+2. **Funding assumptions:** Basis trades that assume stable repo funding
+3. **Correlation spikes:** "Hedged" positions that become correlated in stress
+4. **Liquidity evaporation:** Inability to rebalance or exit
+5. **Model error:** Analytics that don't match market pricing conventions
 
 ---
 
-### 8.3 Implementation Pitfalls
+## 44.9 Summary
 
-- Survival curve bootstrapping sensitivity to recovery and discount inputs.
-- Calendar/accrual inconsistencies (quarterly payments, accrual at default).
-- Numerical noise in small bumps (0.5bp vs 1bp) and interpolation artifacts.
-- Liquidity points and contract rolls: hedges may not remain stable across roll dates (technical risk).
+CDS relative value trading requires a disciplined risk-first framework. The key points:
 
----
+1. **Every RV trade carries multiple risks:** CS01 (total and bucketed), JTD, recovery sensitivity, IR DV01, theta, and liquidity. All must be measured and managed.
 
-### 8.4 Verification Tests (Minimum Suite)
+2. **CS01-neutral does not mean risk-neutral:** Curve trades can have massive JTD exposure. Index-vs-single trades carry basis risk. Capital structure trades retain recovery risk.
 
-1. Parallel shock test (all maturities).
-2. Twist/flattening tests (front vs back).
-3. Recovery shock test ($\pm 10\%$ absolute).
-4. Default-event scenario (apply VOD/JTD).
-5. Repricing checks: linear vs full repricing under same bumps.
+3. **The CDS-cash basis reflects fundamental and market factors:** Funding, delivery option, liquidity, and technicals all contribute. The basis is not pure credit mispricing.
 
----
+4. **O'Kane's VOD formula captures jump-to-default risk:** $\text{VOD} = -V(t) \pm (1-R) \mp \Delta_0 S_0$. The VOD measures the "unexpected shock" of default.
 
-## 9. Summary & Recall
+5. **Three-leg trades can achieve both CS01 and JTD neutrality:** But they still carry curve shape exposure, which is the intended bet.
 
-### 9.1 Ten-Bullet Executive Summary
+6. **Failure modes must be identified before entering trades:** Default, basis blowout, funding shock, liquidity evaporation, recovery surprise.
 
-1. A CDS RV "trade idea" is only meaningful after mapping it to exposures (CS01 buckets, JTD, recovery sensitivity, IR DV01, liquidity/roll).
-
-2. The credit curve can be represented by spreads $S(t,T)$, survival $Q(t,T)$, or hazards $h(T)$, linked by $Q = \exp(-\int h)$.
-
-3. CDS PV can be approximated by $(S_{\text{today}} - S_{\text{entry}}) \times \text{RPV01}$ (times notional).
-
-4. Credit DV01/CS01 is a first-order spread sensitivity; sign conventions differ and must be explicit.
-
-5. "CS01-neutral" curve trades still carry shape risk (bucket CS01) and can carry huge JTD.
-
-6. VOD/JTD captures default-event risk; it is discontinuous and can dominate P&L.
-
-7. Recovery risk matters via payoff $(1-R)$ and via calibration; recovery DV01 must state conventions.
-
-8. Bond–CDS basis is $S_{\text{CDS}} - S_{\text{Bond}}$ and reflects many drivers beyond pure credit.
-
-9. Key-rate style thinking applies: bucket exposures decompose total sensitivity and improve hedging against curve moves.
-
-10. A proper framework includes failure modes and verification tests (parallel/twist/recovery/default/repricing).
+7. **Scenario testing is mandatory:** Parallel shocks, twists, default, recovery shocks, and repricing checks reveal hidden exposures.
 
 ---
 
-### 9.2 Cheat Sheet
+## Key Concepts Summary
 
-#### Core Definitions
-
-| Formula | Description |
-|---------|-------------|
-| $Q(t,T) = \exp\bigl(-\int_t^T h(s)\,ds\bigr)$ | Survival probability |
-| $\text{RPV01} = \frac{1}{2}\sum \Delta\,Z(Q_{n-1} + Q_n)$ | Risky annuity (discrete approximation in reference) |
-| $V \approx (S_{\text{today}} - S_{\text{entry}})\,\text{RPV01}$ | MTM value (× notional) |
-| $\text{Credit DV01} = -(V(S + 1\text{bp}) - V(S))$ | Credit spread sensitivity |
-| $\text{IR DV01} = -(V(H + 1\text{bp}) - V(H))$ | Interest rate sensitivity |
-| $\Theta = -(V(T - \Delta t) - V(T))$ | Time decay / theta |
-| $\text{VOD} \approx N(1-R) - \text{accrued premium} - V$ | Value on default |
-
-#### Hedge Ratio
-
-Parallel CS01 neutral (two legs):
-
-$$\boxed{w_B = -w_A \frac{\text{CS01}_A}{\text{CS01}_B}}$$
-
-#### Exposure Checklist
-
-- [ ] CS01 by bucket/node
-- [ ] Total CS01
-- [ ] JTD/VOD
-- [ ] Recovery DV01
-- [ ] IR DV01
-- [ ] Theta/carry
-- [ ] Liquidity/roll/settlement flags
-
-#### Scenario Suite
-
-- [ ] Parallel +10/+50bp
-- [ ] Twist/flatten
-- [ ] Recovery ±10%
-- [ ] Default event (VOD)
-- [ ] Full repricing vs linear check
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| CS01 | Value change per 1bp spread widening | Primary spread risk metric |
+| Bucket CS01 | CS01 decomposed by maturity | Reveals curve shape exposure |
+| JTD/VOD | Value change on immediate default | Discontinuous risk that can dominate |
+| CDS basis | CDS spread minus bond spread | Driven by multiple factors, not just credit |
+| Intrinsic spread | RPV01-weighted spread of index constituents | Benchmark for index RV trades |
+| Carry | Net premium accrual per period | "Curves unchanged" P&L component |
+| Rolldown | MTM from maturity shortening on static curve | "Curves unchanged" P&L component |
+| Recovery DV01 | Value change per 1% recovery shift | Critical for capital structure trades |
 
 ---
 
-### 9.3 Flashcards (35 Q/A)
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $S(t,T)$ | Par CDS spread at time $t$ for maturity $T$ |
+| $\text{RPV01}(t,T)$ | Risky PV01 from $t$ to $T$ |
+| $Q(t,T)$ | Survival probability to time $T$ |
+| $h(t)$ | Hazard rate at time $t$ |
+| $Z(t,T)$ | Risk-free discount factor |
+| $R$ | Recovery rate |
+| $V(t)$ | CDS mark-to-market value |
+| $N$ | Notional |
+| VOD | Value on default |
+| JTD | Jump-to-default (often used interchangeably with VOD) |
+| $S_{\text{intrinsic}}$ | Intrinsic spread of a CDS index |
+
+---
+
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is the premium leg of a CDS? | The stream of periodic spread payments made by the protection buyer until maturity or default. |
-| 2 | What is the protection leg of a CDS? | The default-contingent payoff (physical delivery at par or cash settlement against recovery price/auction). |
-| 3 | Define survival probability $Q(t,T)$. | $P(\tau > T \mid \mathcal{F}_t)$. |
-| 4 | How is $Q(t,T)$ linked to hazard $h$? | $Q(t,T) = \exp\bigl(-\int_t^T h(s)\,ds\bigr)$. |
-| 5 | What is $\text{RPV01}$? | Risky PV01 (risky annuity): survival-weighted PV of 1 unit spread payments. |
-| 6 | Give the reference's MTM approximation for CDS value. | $V \approx (S_{\text{today}} - S_{\text{entry}})\,\text{RPV01}$ (× notional). |
-| 7 | Define credit DV01 in the reference. | $-(V(S + 1\text{bp}) - V(S))$. |
-| 8 | Why does the reference include a minus sign in credit DV01? | To make DV01 positive for short-protection positions (sign convention). |
-| 9 | What is IR DV01 for a CDS? | $-(V(H + 1\text{bp}) - V(H))$ (discount curve bump). |
-| 10 | Define theta for CDS in the reference. | $\Theta = -(V(T - \Delta t) - V(T))$. |
-| 11 | What is VOD/JTD? | Value at default minus current value; proxy for jump-to-default risk. |
-| 12 | Why can a CS01-neutral curve trade still be risky? | It can have large JTD and bucket CS01 (curve-shape) exposures. |
-| 13 | What does "bucketed CS01" mean? | Spread sensitivity decomposed by maturity buckets/nodes (credit key-rate style). |
-| 14 | What is the bond–CDS basis? | $S_{\text{CDS}} - S_{\text{Bond}}$ (bond spread measure dependent). |
-| 15 | Name one non-credit driver of basis emphasized by sources. | Liquidity/technical demand-supply effects. |
-| 16 | Define index basis in the reference. | Index spread minus intrinsic spread. |
-| 17 | Define portfolio swap adjustment in the reference. | (Scaled) index spread minus intrinsic spread. |
-| 18 | What is a CDS curve steepener (instrument definition)? | Buy longer-maturity CDS and sell shorter-maturity CDS. |
-| 19 | What is a CDS curve flattener? | Sell longer maturity and buy shorter maturity (opposite slope exposure). |
-| 20 | What does "parallel CS01 neutral" mean? | Net CS01 to a parallel spread shift is ~0. |
-| 21 | Why is key-rate logic relevant to credit? | It shows how total sensitivity decomposes and why more buckets improve hedging. |
-| 22 | What is the "credit triangle" approximation? | $S \approx h(1-R)$ (approximate). |
-| 23 | What is a primary verification test for a curve trade? | Twist/flatten shocks to front vs back spreads. |
-| 24 | What happens to CDS payoff if recovery is lower? | Protection payout $(1-R)N$ increases (all else equal). |
-| 25 | Why is auction final price important? | It can determine cash settlement recovery/price and thus realized payout. |
-| 26 | What is the key risk-first question before any RV position? | "What exposures am I taking (CS01 buckets, JTD, recovery, liquidity)?" |
-| 27 | What is a common failure mode in basis trades? | Confusing funding/liquidity effects with pure credit mispricing. |
-| 28 | How do you hedge curve-shape risk beyond total CS01? | Match bucketed CS01 exposures using multiple maturities. |
-| 29 | What exposure does JTD capture that CS01 does not? | Discrete default jump payoff. |
-| 30 | What does "model dependence" mean for CS01? | Results change depending on quote-bump vs hazard-bump and curve rebuild conventions. |
-| 31 | What is "rolldown" in CDS terms? | MTM change from moving to shorter maturity on an unchanged curve (theta concept). |
-| 32 | What is "carry" in CDS terms? | Premium accrual/receipt over the holding horizon. |
-| 33 | What is an example of a technical liquidity point in CDS? | 5y is often cited as a common liquidity point. |
-| 34 | Why can senior vs sub spreads differ? | Different recoveries, liquidity, contract terms; the reference links spread ratio to recovery ratio but notes it is rough in practice. |
-| 35 | What's the core deliverable from a risk-first framework? | A hedgeable exposure map + scenario test plan + identified failure modes. |
+| 1 | What is the CDS mark-to-market formula? | $V \approx (S_{\text{market}} - S_{\text{contract}}) \cdot \text{RPV01} \cdot N$ |
+| 2 | How is Credit DV01 (CS01) defined? | $-(V(S+1\text{bp}) - V(S))$, with negative sign for convention |
+| 3 | Why is bucket CS01 important for curve trades? | Total CS01 can be zero while bucket exposures are large and opposite |
+| 4 | What is VOD for a protection buyer? | $-V(t) + (1-R) - \Delta_0 S_0$ |
+| 5 | Why can CS01-neutral curve trades have large JTD? | Notional imbalance: longer maturity needs less notional for same CS01 |
+| 6 | What is the CDS-cash basis? | $S_{\text{CDS}} - S_{\text{Bond}}$ (spread measure must be specified) |
+| 7 | Name three fundamental drivers of the basis | Funding, delivery option, loss on default |
+| 8 | Name three market drivers of the basis | Relative liquidity, CDO technical, demand for protection |
+| 9 | What is a curve steepener? | Buy long-maturity protection, sell short-maturity protection |
+| 10 | What is a curve flattener? | Sell long-maturity protection, buy short-maturity protection |
+| 11 | What is the senior/sub spread ratio approximation? | $S_{\text{sub}}/S_{\text{senior}} \approx (1-R_{\text{sub}})/(1-R_{\text{senior}})$ |
+| 12 | Why is this ratio "very rough in practice"? | Liquidity, recovery uncertainty, APR violations, technicals |
+| 13 | What is the intrinsic spread of an index? | RPV01-weighted average spread that makes sum of constituent values zero |
+| 14 | What is index basis? | Index spread minus intrinsic spread |
+| 15 | What is "carry" in a CDS position? | Net premium accrual under curves unchanged |
+| 16 | What is "rolldown" in a CDS position? | MTM change from maturity shortening on static curve |
+| 17 | How many instruments to achieve CS01 and JTD neutrality? | Three (two constraints, three unknowns) |
+| 18 | What is the biggest failure mode in curve trades? | JTD dominance: default produces outsized loss |
+| 19 | Why do basis trades fail? | Funding blowout, correlation breakdown, JTD mismatch |
+| 20 | What is the key test for any RV position? | Scenario suite: parallel, twist, default, recovery, repricing |
+| 21 | What is the mean recovery for senior unsecured bonds (Altman data)? | 34.89% (median 42.27%) |
+| 22 | What is the mean recovery for subordinated bonds (Altman data)? | 29.03% (median 31.96%) |
+| 23 | Why is VOD called a measure of "unexpected shock"? | If spreads widen gradually before default, V(t) already reflects default risk, so VOD is small |
+| 24 | What determines the sign of theta for a CDS position? | Short protection (receiving premium) has positive theta; long protection has negative theta |
+| 25 | What is Recovery DV01? | Change in MTM for 1% absolute change in recovery rate assumption |
 
 ---
 
-## 10. Mini Problem Set (18 Questions)
+## Mini Problem Set
 
-**1.** Given $R = 40\%$ and $S = 150\text{bp}$, compute credit triangle hazard $h \approx S/(1-R)$.
+**1.** A 5Y CDS has RPV01 = 4.5, a 2Y CDS has RPV01 = 1.9. For a 5Y vs 2Y steepener with $N_5 = 10\text{mm}$ buy protection, what $N_2$ achieves CS01 neutrality?
 
-> **Solution sketch:** Convert $S = 0.015$; $1-R = 0.6$; $h = 0.015/0.6 = 0.025$ (2.5%/yr).
+> **Solution sketch:** $N_2 = 10 \times 4.5 / 1.9 = 23.7\text{mm}$ sell protection.
 
-**2.** For flat hazard $h = 2\%$ and $T = 5$, compute toy $\text{RPV01} = (1 - e^{-hT})/h$.
+**2.** Using Problem 1, compute net JTD assuming $R = 40\%$.
 
-> **Solution sketch:** $hT = 0.10$; $e^{-0.10} = 0.9048$; $\text{RPV01} = (1 - 0.9048)/0.02 = 4.76$.
+> **Solution sketch:** JTD$_5 = +6.0\text{mm}$, JTD$_2 = -14.2\text{mm}$, Net = $-8.2\text{mm}$ (short default).
 
-**3.** For $N = 10\text{mm}$ and $\text{RPV01} = 4.5$, compute CS01 $= N \cdot 0.0001 \cdot \text{RPV01}$.
+**3.** A bond trades at 98 with Z-spread 180bp. The 5Y CDS trades at 150bp. What is the basis?
 
-> **Solution sketch:** $N \cdot 0.0001 = 1000$; CS01 $= 1000 \cdot 4.5 = \$4{,}500/\text{bp}$.
+> **Solution sketch:** Basis = 150 - 180 = -30bp (CDS tighter than bond, negative basis).
 
-**4.** A 5y CDS buy position has CS01 $+4{,}600/\text{bp}$. What notional of 1y sell with CS01 $+900/\text{bp}$ per 10mm (buy) makes net CS01 zero if 5y is 10mm?
+**4.** Explain why a negative basis trade (buy bond, buy CDS protection) can fail even if the basis converges.
 
-> **Solution sketch:** Need 1y sell CS01 magnitude $= 4{,}600$. Per 10mm buy is 900, so scale $= 4600/900 = 5.111 \Rightarrow N_{1y} = 51.11\text{mm}$ sell.
+> **Solution sketch:** Funding costs may exceed the carry from basis convergence; liquidity shock may prevent rolling repo; default may occur with JTD mismatch.
 
-**5.** Compute net JTD for a two-leg trade: buy 5y $N_5 = 10\text{mm}$, sell 1y $N_1 = 40\text{mm}$, $R = 40\%$.
+**5.** Senior CDS trades at 100bp ($R=40\%$), subordinated at 200bp. What recovery assumption for sub makes the theoretical ratio match?
 
-> **Solution sketch:** Net notional $= 10 - 40 = -30\text{mm}$; JTD $(1-R) \cdot (-30) = -18\text{mm}$.
+> **Solution sketch:** $200/100 = 2 = (1-R_{\text{sub}})/0.60 \implies R_{\text{sub}} = 1 - 1.2 < 0$. Impossible, implying the market prices additional risks beyond simple recovery.
 
-**6.** Explain (one paragraph) why CS01-neutral does not imply JTD-neutral.
+**6.** For a three-leg trade with $N_1 = 8$, $N_3 = -20$, $N_5 = 12$ (positive = buy protection), verify JTD neutrality and compute the bucket exposure profile.
 
-> **Solution sketch:** CS01 scales with RPV01 (maturity-dependent), while JTD scales mainly with notional and $(1-R)$ (weakly maturity dependent), so matching CS01 can require large notional imbalances.
+> **Solution sketch:** Net notional = $8 - 20 + 12 = 0$ (JTD neutral). Bucket exposures depend on RPV01 contributions by tenor; the trade is a curve shape bet.
 
-**7.** Define basis risk in a bond–CDS hedge and list two drivers.
+**7.** Why does O'Kane say VOD measures "unexpected shock"?
 
-> **Solution sketch:** Basis risk is residual P&L when bond spread and CDS spread move differently; drivers include liquidity/funding differences and contract/settlement differences.
+> **Solution sketch:** If spreads widen gradually before default, V(t) approaches $(1-R)$ for protection buyer, so VOD approaches zero. Large VOD means default was a surprise relative to prior MTM.
 
-**8.** Describe a minimum scenario suite for a CDS curve trade.
+**8.** Design a scenario test suite for a senior-sub compression trade.
 
-> **Solution sketch:** Parallel spread shock, twist/flatten, recovery shock, default event (VOD), repricing vs linear check.
+> **Solution sketch:** (1) Parallel spread shock both tiers; (2) Sub widens more than senior (decompression); (3) Default with both recovery assumptions; (4) Recovery shock on sub only; (5) Liquidity scenario where sub becomes untradeable.
 
-**9.** A CDS protection buyer expects auction final price 40 but realizes 30 on $N = 10\text{mm}$. Compute payoff difference.
+**9.** An index has 100 names. The simple average spread is 80bp, but the intrinsic spread is 95bp. What does this imply about the spread distribution?
 
-> **Solution sketch:** Difference $= (0.40 - 0.30) \cdot N = 0.10 \cdot 10\text{mm} = 1\text{mm}$ to the protection buyer.
+> **Solution sketch:** The intrinsic spread being higher implies that wider-spread names (with higher RPV01 weights) are pulling up the weighted average. There is likely significant dispersion with a few names trading much wider than the median.
 
-**10.** Show how to set up linear equations to match bucket CS01 for three buckets using three CDS maturities.
+**10.** A trader has a 5Y CDS position with CS01 = \$5,000/bp. The theta is +\$200/day. How many days of carry equals a 1bp parallel spread move?
 
-**11.** Explain why liquidity differences between 5y and 4y CDS can create roll/technical risk in a hedge.
-
-**12.** Using the reference's senior/sub relation, discuss why it is "very rough in practice" and what data you'd need to refine it.
-
-**13.** Define index basis and portfolio swap adjustment and explain the difference.
-
-**14.** Explain how accrual-at-default affects VOD measurement.
-
-**15.** Provide a method to distinguish "curve move" vs "basis move" in daily P&L.
-
-**16.** Discuss model risk between quote-bump CS01 and hazard-bump CS01 in a single-name CDS.
-
-**17.** Design a test to detect numerical noise in CS01 computation.
-
-**18.** Describe how you would validate recovery DV01 in an analytics system (repricing and bump consistency).
-
-*(Solution sketches are provided for 1–9 only, as required.)*
+> **Solution sketch:** 1bp move = \$5,000. Days to offset = 5,000 / 200 = 25 days. The position needs 25 days of positive theta to compensate for a 1bp spread widening.
 
 ---
 
@@ -1437,29 +784,43 @@ $$\boxed{w_B = -w_A \frac{\text{CS01}_A}{\text{CS01}_B}}$$
 
 ### (A) Verified Facts — Cite Specific Sources
 
-- CDS mechanics (premium leg, protection leg, settlement): O'Kane Ch 5–6
-- Survival probability and hazard rate framework: O'Kane Ch 3, 6–7
-- RPV01 discrete approximation with trapezoidal survival weighting: O'Kane Ch 6
-- Credit DV01 / CS01 sign convention: O'Kane Ch 8
-- VOD / value-on-default definition: O'Kane Ch 8
-- IR DV01 and Theta definitions: O'Kane Ch 8
-- Recovery DV01 sensitivity: O'Kane Ch 8
-- Bond–CDS basis definition and drivers: O'Kane Ch 8
-- Index basis and portfolio swap adjustment: O'Kane Ch 10
-- Senior vs subordinated spread ratio relation: O'Kane Ch 8 (noted as "very rough in practice")
-- Credit triangle approximation $S \approx h(1-R)$: O'Kane Ch 6
-- Auction settlement mechanisms: O'Kane Ch 5
+| Fact | Source |
+|------|--------|
+| CDS mark-to-market identity | O'Kane Ch 6, Eq 6.2 |
+| Credit DV01 definition with sign convention | O'Kane Ch 8.3.2 |
+| VOD formula | O'Kane Ch 8.3.7 |
+| VOD as "measure of unexpected shock" | O'Kane Ch 8.3.7 |
+| RPV01 discrete approximation | O'Kane Ch 6.4 |
+| CDS basis definition | O'Kane Ch 5.6 |
+| Fundamental factors driving basis (funding, delivery option, technical default, loss on default, premium accrued) | O'Kane Ch 5.6.1 |
+| Market factors driving basis (liquidity, CDO technical, demand for protection, funding risk) | O'Kane Ch 5.6.2 |
+| Senior/sub spread ratio approximation ("very rough in practice") | O'Kane Ch 8 |
+| Recovery rate empirical data by seniority | O'Kane Table 3.2, Altman et al. |
+| Credit triangle approximation ($h \approx S/(1-R)$) | O'Kane Ch 3.10 |
+| Intrinsic spread calculation (RPV01-weighted) | O'Kane Ch 10.5 |
+| Index basis definition | O'Kane Ch 10.6 |
+| Theta dynamics and components | O'Kane Ch 8.3.5 |
+| Risk sensitivity table structure | O'Kane Table 8.3 |
+| Broad standard deviation of recovery distributions | O'Kane Ch 3, discussion of Table 3.2 |
+| APR violations in US bankruptcy | O'Kane Ch 3 |
 
 ### (B) Reasoned Inference — Note Derivation Logic
 
-- Bucket CS01 decomposition via RPV01 time intervals: derived from RPV01 integral structure
-- Hedge ratio formula $w_B = -w_A \cdot \text{CS01}_A / \text{CS01}_B$: direct from CS01 neutrality condition
-- P&L decomposition structure: first-order Taylor expansion of valuation formulas
-- JTD-neutrality via net notional: derived from VOD formula structure
+| Inference | Derivation |
+|-----------|------------|
+| Bucket CS01 from RPV01 intervals | Partition RPV01 integral by time bucket |
+| CS01-neutral hedge ratio | Linear CS01 neutrality condition |
+| Three-leg JTD + CS01 neutrality | Two linear constraints, three unknowns |
+| Net JTD with different recoveries | Apply VOD formula to each leg |
+| Intrinsic vs simple average spread difference | Algebraic comparison of weighting schemes |
+| Carry days to offset 1bp move | Ratio of CS01 to daily theta |
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
-- Recovery swaps: I'm not sure. The provided sources discuss recovery in CDS payoff/settlement and recovery sensitivity, but do not provide contract mechanics for recovery swaps. To be certain, we would need (i) recovery swap contract definitions (ISDA product definitions), (ii) market quotation conventions, and (iii) settlement terms.
+- **Recovery swaps:** I'm not sure about contract mechanics. The sources discuss recovery sensitivity but not recovery swap instruments.
+- **Historical basis behavior in 2008:** The sources discuss basis drivers conceptually but do not provide time-series data on basis movements during the crisis. The statement that basis trades failed in 2008 is widely known but not directly sourced from O'Kane.
+- **Exact curve inversion dynamics:** The sources discuss curve shape generally but do not provide specific examples of credit curve inversions.
+- **Convertible arbitrage effects on basis:** O'Kane mentions this briefly but does not quantify the impact.
 
 ---
 

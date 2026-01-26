@@ -1,906 +1,774 @@
-# Chapter 45: CDS Indices — Structure, Quoting, and Lifecycle (On-the-Run vs Off-the-Run, Coupon vs Upfront, Rolls)
+# Chapter 45: CDS Indices — Structure, Quoting, and Lifecycle
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-### Notation Glossary
+"CDX.NA.IG.42 5Y" — what does each part of this cryptic string mean, and why does misunderstanding it matter?
+
+When a trader says they're "buying CDX," they're entering a single contract that provides credit exposure to 125 investment-grade North American companies simultaneously. This is the power of CDS indices: one trade to express a macro credit view, one instrument to hedge a diverse credit book, and — crucially — far more liquidity than trading 125 single-name CDS contracts individually. O'Kane emphasizes that "CDS portfolio indices have transformed the credit derivatives markets by providing a highly liquid product which investors can use to assume or hedge the risk of a broad portfolio of credit exposures." But this convenience comes with complexity. The naming convention encodes geography, credit quality, vintage, and tenor. The quoting convention shifts between spread and price depending on the index family. And the lifecycle — from new series launch through constituent defaults to roll dates — creates operational landmines for the unwary.
+
+**Why this matters:** Consider a trader who books a CDX.NA.HY trade using the wrong quoting convention. High-yield indices quote as "bond price" (not spread), so confusion between the two conventions can cause upfront payment errors of several percent of notional — on a $100 million trade, that's millions of dollars. Similarly, failing to track which series is "on-the-run" versus "off-the-run" affects liquidity, hedge effectiveness, and roll P&L. These aren't theoretical concerns; they're daily operational realities on credit trading desks.
+
+**Chapter roadmap:** This chapter covers the **market structure and operational mechanics** of CDS indices:
+
+- **Section 45.1** decodes index naming conventions — the systematic structure behind identifiers like "iTraxx Europe Series 6"
+- **Section 45.2** explains quoting conventions — when indices quote as spread versus price, and how to convert between them
+- **Section 45.3** covers the index lifecycle — from series launch through rolls to maturity
+- **Section 45.4** addresses default handling within indices — the timeline from credit event to auction to settlement
+- **Section 45.5** presents worked examples for common operational calculations
+
+**Relationship to other chapters:** Chapter 41 covers the *economics* of CDS indices — coupon mechanics, premium leg valuation, and the upfront-spread relationship. This chapter focuses on *market structure and operations*. Chapter 46 addresses the intrinsic spread calculation and index basis. Chapter 40 provides the detailed CDS auction mechanics that we reference for default settlement.
+
+---
+
+## Notation for This Chapter
 
 | Symbol | Definition |
 |--------|------------|
 | $N$ | Index trade notional (USD) |
-| $M$ | Number of index constituents |
+| $M$ | Number of index constituents (e.g., 125 for CDX.NA.IG) |
 | $C$ or $c$ | Annualized running coupon rate in decimal (e.g., 100 bp $= 0.01$) |
-| bp | Basis point $= 10^{-4}$ |
-| $\alpha$ | Accrual fraction (year fraction for a coupon period under Actual/360) |
-| $U\%$ | Upfront quote as percent of notional exchanged at settlement |
-| $U_\$$ | Dollar upfront $= N \times U\%$ |
-| $t$ | Trade date |
-| $\tau$ | Default time |
-| $FP$ | Auction "final price" (value per 100 of deliverable) used for cash settlement |
-
-### Defaults Used in Examples
-
-| Convention | Default |
-|------------|---------|
-| Premium payments | Quarterly with Actual/360 accrual |
-| Notional currency | USD (examples use $\$mm$) |
-| Coupon notation | Annualized decimal |
+| $S_I(t,T)$ | Market-quoted flat index spread at time $t$ for maturity $T$ |
+| $U_I$ | Upfront payment (percent of notional; can be negative) |
+| $\text{RPV01}_I$ | Risky PV01 of the index (PV of 1 bp running premium) |
+| $P_{\text{bond}}$ | Bond-price quote (as percent of notional, e.g., 102.18%) |
+| $FP$ | Auction final price (value per 100 of deliverable) used for cash settlement |
 
 ---
 
-## Fact Classification
+## 45.1 Index Naming Conventions: Decoding the Identifier
 
-### (A) Verified Facts (Source-Backed)
+A CDS index identifier encodes multiple pieces of information in a structured format. Understanding this structure is essential for correct trade booking and risk management.
 
-- Index series are issued/rolled every six months, with on-the-run liquidity concentrating in the most recent series
-- A "$T$-year" on-the-run index does not have exactly $T$ years remaining at issue; at issuance it is typically $T+3$ months and becomes $T-3$ months by the next roll
-- The index coupon is fixed, set close to fair value at inception and often chosen as a multiple of 5 bp
-- Premium is usually paid quarterly on Actual/360
-- Defaults reduce outstanding notional by $1/M$, and the contract includes an accrued-premium-at-default component
-- For investment-grade index contracts, the market may quote an "index spread" (a flat spread concept) and infer an upfront; for lower credit quality indices a "bond price" style quote (price minus 100) can be used to avoid disputes about index PV01 used to translate spread to upfront
-- Cash settlement via auction: a two-stage auction can determine the mid-market value of a deliverable bond after a credit event; cash payoff equals par minus that value (e.g., 35 per 100 $\Rightarrow$ 65% payout)
+### 45.1.1 The Standard Index Families
 
-### (B) Reasoned Inference (Derived from A)
+O'Kane provides a comprehensive taxonomy of the main CDS indices, noting that "the arrival of the first CDS portfolio indices in 2002 heralded the start of a new era for the credit derivatives market." Table 45.1 summarizes the key index families.
 
-- "On-the-run" can be treated as the most recently issued series; "off-the-run" as previous series (still tradable, typically less liquid), consistent with the roll description and liquidity drop after roll
-- With fixed coupons, the market's price discovery naturally shifts into the upfront (or "price") dimension, because coupon is no longer the free variable
+**Table 45.1: Major CDS Index Families**
 
-### (C) Speculation (Clearly Labeled; Minimal)
+| Index Name | Geography | Credit Quality | Number of Credits |
+|------------|-----------|----------------|-------------------|
+| CDX.NA.IG | North America | Investment Grade | 125 |
+| CDX.NA.HY | North America | High Yield | 100 |
+| CDX.NA.XO | North America | Crossover | 35 |
+| CDX.EM | Emerging Markets | Sovereign | 15 |
+| CDX.EM.Diversified | Emerging Markets | Sovereign + Corporate | 40 |
+| iTraxx Europe | Europe | Investment Grade | 125 |
+| iTraxx Europe HiVol | Europe | High Volatility | 30 |
+| iTraxx Europe Crossover | Europe | Crossover | 40-50 |
+| iTraxx Japan | Japan | Investment Grade | 50 |
+| iTraxx Asia ex-Japan | Asia ex-Japan | Investment Grade | 50 |
+| iTraxx Australia | Australia | Investment Grade | 25 |
 
-- I'm not sure about the current standardized coupons, exact roll dates by calendar day for every index family, exact membership rules, or settlement day conventions for your specific trade. To be certain, we would need the relevant index rulebook (e.g., Markit index documentation) and the applicable ISDA Definitions and (if relevant) auction protocols.
+*Source: O'Kane Ch. 10, Table 10.1*
 
----
+> **Note on constituent counts:** The numbers shown are standards at launch. O'Kane clarifies that "the number of credits in any one index may be lower than the number shown here due to their removal following credit events" — defaulted names are removed without replacement within a series.
 
-## Setup
+> **What is a "crossover" credit?** O'Kane defines crossover as "a credit which was previously investment grade but has since been downgraded."
 
-**Conventions used in this chapter:**
+### 45.1.2 Index Governance and Administration
 
-- **Mechanics-first:** we focus on contract structure, quoting, lifecycle, and default handling, not full calibration
-- **"Long credit" vs "long protection":**
-  - "Long credit" (credit risk exposure) corresponds economically to selling protection (receiving premium, paying losses on default)
-  - "Long protection" corresponds to buying protection (paying premium, receiving default payoff)
-- Where the sources' "buyer/seller" language is ambiguous, we will explicitly restate which side pays premium and which side pays loss
+O'Kane explains that "since there are no published estimates for the trading volume of different issuers in the CDS market, determining which issuers are the most liquid is not easy." To ensure unbiased composition decisions, "the decision-making process is managed by independent index administrators in consultation with a consortium of investment banks, based on defined and published rules."
 
----
+The owner and administrator of the CDX and iTraxx indices is **Markit Group Limited** (now part of IHS Markit/S&P Global). This matters operationally because Markit publishes official constituent lists, coupon fixings, and settlement prices that serve as reference data for trade processing.
 
-## Core Concepts
+### 45.1.3 Anatomy of an Index Identifier
 
-### 1) CDS Index
+A complete index identifier follows the pattern:
 
-**Formal Definition:**
+$$\boxed{\text{[Family].[Region].[Quality].[Series]}\ [\text{Tenor}]}$$
 
-A standardized multi-name credit derivative referencing a portfolio of $M$ reference entities, structured so premium and default-loss cashflows are aggregated and standardized. The book models protection losses as an equal-weighted average across names, i.e. default of name $m$ generates a loss contribution scaled by $1/M$.
+**Example: CDX.NA.IG.42 5Y**
 
-**Intuition:**
+| Component | Value | Meaning |
+|-----------|-------|---------|
+| CDX | — | Index family (North American indices) |
+| NA | — | North America |
+| IG | — | Investment Grade |
+| 42 | — | Series number (42nd vintage) |
+| 5Y | — | 5-year maturity contract |
 
-"One trade to express a view on broad credit." Instead of trading many single-name CDS, you trade one instrument representing a basket.
+**Example: iTraxx Europe Series 6 7Y**
 
-**Trading/Risk/Portfolio Practice:**
+| Component | Value | Meaning |
+|-----------|-------|---------|
+| iTraxx | — | Index family (European indices) |
+| Europe | — | European constituents |
+| (IG implied) | — | Investment grade unless otherwise noted |
+| Series 6 | — | 6th vintage |
+| 7Y | — | 7-year maturity contract |
 
-Traders use indices to take macro credit views and to hedge broader credit exposures; liquidity can make the index a "lead" instrument relative to single names.
+### 45.1.4 Why Indices Exist: Operational Advantages
 
----
+O'Kane enumerates several advantages of portfolio CDS indices that explain their market success:
 
-### 2) Series / Version / On-the-Run vs Off-the-Run
+1. **Diversified exposure in one trade:** "Since the indices contain as many as 125 credits, the portfolio CDS index allows investors to take a broad exposure to the credit markets in a single transaction."
 
-**Formal Definition:**
+2. **Efficient shorting:** "The portfolio CDS index allows hedgers to go short the credit markets in a single transaction. This is useful for credit funds, hedge funds or banks who wish to hedge a broad exposure to the credit markets."
 
-| Term | Definition |
-|------|------------|
-| **Series (issue)** | A particular issuance of the index with a fixed constituent list for its lifetime (except default removals) |
-| **On-the-run** | The most recently issued series (inferred from the "roll into the new on-the-run" description) |
-| **Off-the-run** | Older series after the next roll |
+3. **Capital efficiency:** "Since the portfolio CDS indices have a small initial cost, they can be used to take a leveraged credit exposure. In addition, it makes them efficient for those who fund above Libor."
 
-**Intuition:**
+4. **Derivative underlyings:** "Portfolio CDS indices can be used as the underlying for other derivative products such as synthetic loss tranches and spread options." This is the foundation for the tranche products covered in Chapters 48-51.
 
-Like benchmark bonds, the newest contract concentrates dealer inventory, hedging flows, and quoted liquidity.
+5. **Sector trading:** "By allowing the trading of constituent subindices, it becomes possible to take relative value views on sectors." Both CDX and iTraxx publish sector subindices that reference subsets of the main index.
 
-**Trading/Risk/Portfolio Practice:**
+**Exceptional liquidity:** O'Kane notes that "the format of these indices was driven primarily by the need to make them as easy to trade as possible and by doing so, to encourage liquidity. This has succeeded. Liquidity of this market is now exceptional, with **bid-offer spreads of one quarter of a basis point** on the most liquid investment grade indices rising to just **4 bp on the high yield index**."
 
-Hedging an off-the-run index with the on-the-run index can create mismatch because series constituents can differ.
+> **Tradable vs. benchmark indices:** O'Kane distinguishes CDS portfolio indices from benchmark indices: "While the CDS indices are designed with the primary aim of tradability, benchmark indices are more concerned with providing an accurate reflection of the performance of the 'market'."
 
----
+### 45.1.5 Series and Version: The Vintage System
 
-### 3) Fixed Coupon vs "Index Spread"
+O'Kane explains that "most CDS indices are issued or rolled semi-annually with a coupon which is fixed for the lifetime of the issue." Each issuance creates a new **series** with a fixed constituent list (except for default removals).
 
-**Formal Definition:**
+**Series numbering:**
+- CDX.NA.IG Series 35 was defined in September 2020 (per Hull)
+- iTraxx Europe Series 34 was defined in September 2020
+- The series number indicates how many times the index has been "refreshed" since inception
 
-| Term | Definition |
-|------|------------|
-| **Contractual coupon $C$** | Fixed premium rate specified by the index contract, paid on outstanding notional |
-| **Index spread quote** | A market quote representing a "flat spread" level at which the index would price like a single CDS; used especially for investment-grade indices |
+**On-the-run vs. off-the-run:**
+- **On-the-run:** The most recently issued series — "from the time a new index is issued to the time that the next series of the index is issued, this index is known as the on-the-run index" (O'Kane)
+- **Off-the-run:** All previous series remain tradable but with reduced liquidity
 
-**Intuition:**
+> **Practical note:** Liquidity concentrates heavily in the on-the-run series. O'Kane notes that for index options, "expiries beyond six months are rare because liquidity drops immediately after the next roll," reflecting the dominance of on-the-run trading.
 
-Coupon is standardized (set in 5 bp increments near inception fair value), so price variation is carried by upfront (or by a quoted spread translated into upfront).
+### 45.1.6 Maturity Labels and Actual Tenors
 
-**Trading/Risk/Portfolio Practice:**
+O'Kane emphasizes an important detail: "the so-called 3Y, 5Y, 7Y or 10Y on-the-run indices do not have exactly 3, 5, 7 or 10 years to maturity on their issue date."
 
-A spread quote usually requires an index PV01 (annuity) to translate into upfront; bond-price quoting avoids PV01 disagreements.
+**The ±3 month rule:**
+- At issuance, a "T-year" index typically has $T + 3$ months to maturity
+- By the next roll (6 months later), it has $T - 3$ months to maturity
+- Example: A 5Y index issued in March 2006 maturing in June 2011 has 63 months at issuance
 
----
+**Maturity date conventions:**
+- Indices issued on March 20 mature on June 20 of the appropriate year
+- Indices issued on September 20 mature on December 20 of the appropriate year
 
-### 4) Roll
+**Table 45.2: Standard Maturity Points**
 
-**Formal Definition:**
+| Maturity Label | Most Liquid? | Typical Use |
+|----------------|--------------|-------------|
+| 3Y | No | Short-dated hedging |
+| 5Y | Yes | Benchmark trading, hedging |
+| 7Y | No | Curve trades |
+| 10Y | Yes | Long-dated exposure |
 
-Replacing the on-the-run series with a newly issued series (typically every six months), and market participants often "roll" positions by selling the old series and buying the new.
+*Source: O'Kane Ch. 10*
 
-**Intuition:**
-
-Keeps index representative and liquid; removes defaulted/illiquid names over time.
-
-**Trading/Risk/Portfolio Practice:**
-
-Rolling can cause P&L due to composition change and maturity extension (new series is ~6 months longer).
-
----
-
-## What a CDS Index Is (Structure)
-
-### Index as a Portfolio of Reference Entities
-
-The index references $M$ names; the book's index-leg expressions and mechanics treat each name as contributing $1/M$ of the portfolio notional and loss.
-
-**Notional allocation/weighting:** Equal weighting is the convention used in the book's mechanics (loss and notional reductions by $1/M$).
-
-> **Note:** If your market index uses different weights: I'm not sure. We would need the index rulebook to confirm.
-
-### Series, Versioning, and "On-the-Run" Terminology
-
-**What it means:**
-
-- Each issuance defines a constituent set for the index's life, except default removals
-- On-the-run refers to the current, most recently issued series (inferred from roll mechanics)
-
-**Why liquidity concentrates in the on-the-run series:**
-
-- Market participants typically roll into the new on-the-run series, concentrating trading activity there
-- In index options, expiries beyond six months are rare because liquidity "drops immediately after the next roll," raising hedging costs—evidence of on-the-run dominance
-
-**What "off-the-run" implies for liquidity/hedging:**
-
-- Off-the-run positions may be hedged with on-the-run, but constituent differences can create mismatch risk
+O'Kane confirms: "In the early days of the CDS index, the only tenor was five years. However, there is now a liquid index with a tenor of 10 years and indices with lower liquidity at three and seven years."
 
 ---
 
-## Lifecycle Overview
+## 45.2 Quoting Conventions: Spread vs. Price
 
-### Launch of a New Series (Roll)
+One of the most operationally critical aspects of CDS indices is understanding when they quote as **spread** versus when they quote as **price**. Getting this wrong leads to booking errors.
 
-- Indices roll every six months; investors roll by selling old and buying new
-- Issuance timing example in the book: 5Y index swaps issued in March and September and mature in June and December, respectively (five years out)
-- Hull also describes standard index portfolio updates on March 20 and September 20 for two major portfolios (CDX NA IG and iTraxx Europe)
+### 45.2.1 The Two Quoting Regimes
 
-### Trading During the Series' Life
+O'Kane describes the bifurcation clearly: "Most investors prefer to trade the indices in unfunded format. For investment grade contracts such as the CDX IG and the iTraxx Europe, the market quotes an **index spread** which represents the flat spread at which the index should be priced if it were a simple CDS contract."
 
-- At trade date $t$, the contract is described as cash-settled three days later; upfront exchanges hands at settlement and coupon flows run thereafter
+However, "other lower credit quality indices such as the EM and HY indices are quoted using the **bond price convention** ... in which the upfront value is computed simply by subtracting 100."
 
-### What Happens When Constituents Default (Conceptual)
+**Table 45.3: Quoting Convention by Index Family**
 
-When a name defaults, the mechanics in the book show:
+| Index Family | Typical Quoting Convention | Reason |
+|--------------|---------------------------|--------|
+| CDX.NA.IG | Spread | Low PV01 dispute risk |
+| iTraxx Europe | Spread | Low PV01 dispute risk |
+| CDX.NA.HY | Bond Price | Avoids PV01 disputes |
+| CDX.EM | Bond Price | Avoids PV01 disputes |
+| iTraxx Crossover | Bond Price | Higher credit risk |
 
-1. A default-related exchange (described in the figure narrative) and an auction-based cash fallback if deliverables are scarce
-2. Coupon accrued on the defaulted name is paid
-3. Outstanding notional (and hence future coupon amounts) is reduced by $1/M$
+### 45.2.2 Spread Quoting (Investment Grade)
 
-### Maturity/End of Life
+When an index quotes by spread, the **upfront payment** is derived from the difference between the quoted spread and the contractual coupon, scaled by the risky PV01:
 
-- Premium payments continue until maturity $T$ if no credit events; otherwise premium payments reduce as notional is reduced
+$$\boxed{U_I = (S_I - C) \times \text{RPV01}_I}$$
 
-### Clarify What Is Standardized vs What Can Vary (Only as Sourced)
+**Interpretation:**
+- If $S_I > C$: Spread has widened since issuance → investor entering receives upfront (index "trades below par")
+- If $S_I < C$: Spread has tightened → investor entering pays upfront (index "trades above par")
 
-**Standardized in the book's description:**
+**The flat curve convention:** O'Kane explains that "market convention dictates that the index curve used to value an index has a flat term structure. So if we wish to value the 7Y CDX NA Investment Grade index, we would simply use a flat CDS curve at a level of 44 bp." This is important: the $\text{RPV01}_I$ in the formula above is computed using a flat spread assumption, not a term structure.
 
-- Fixed coupon chosen near inception fair value and in multiples of 5 bp
-- Quarterly premium on Actual/360
-- Rolling every six months
+**Example from O'Kane (Table 10.2, November 2006):**
 
-**Can vary across index families/regions:**
+| Index | Series | Coupon (bp) | Index Spread (bp) | Implied Bond Price |
+|-------|--------|-------------|-------------------|-------------------|
+| CDX.NA.IG | 7 | 40 | 34 | 100.27% |
+| iTraxx Europe | 6 | 30 | 24 | 100.28% |
 
-- Credit-event definitions can differ (e.g., for one US index, restructuring excluded in the index contract though it may be included in single-name standards), creating basis
+The CDX.NA.IG spread (34 bp) is below the coupon (40 bp), meaning credit quality has improved since issuance. An investor entering must pay upfront (reflected in the bond price above 100).
 
-**I'm not sure about:**
+### 45.2.3 Bond Price Quoting (High Yield / EM)
 
-- Exact membership rules, exact standard recovery assumptions, and detailed settlement calendars for your particular index—needs the index rulebook + ISDA definitions
+O'Kane explains the rationale: "this convention has the advantage that it avoids any disagreement about the value of the index PV01 which is required to convert a spread-based quotation into an upfront value."
 
----
+**The conversion is simple:**
 
-## Quoting: Coupon vs Upfront (How Indices Trade)
+$$\boxed{U_{\%} = P_{\text{bond}} - 100\%}$$
 
-### Distinguish Clearly
+**Examples:**
+- Bond price = 102.18% → Pay 2.18% upfront
+- Bond price = 99.50% → Receive 0.50% upfront
 
-#### Running Coupon $C$
+**Dollar upfront from bond price:**
 
-The contract pays a fixed coupon (contractual index spread) $C(T)$, paid on outstanding notional, with frequency and accrual per index specification.
+$$\boxed{U_{\$} = N \times (P_{\text{bond}}/100 - 1)}$$
 
-In the mechanics description, coupon is typically paid quarterly on Actual/360.
+**Why bond price avoids disputes:**
 
-> **Standardized coupon levels (e.g., "always 100 bp"):** I'm not sure. The book states coupons are set near fair value and in 5 bp increments, but does not assert a universal coupon set across all indices and time.
+The spread-to-upfront conversion requires computing $\text{RPV01}_I$, which depends on assumptions about the flat spread level used for discounting. O'Kane notes that the index RPV01 "depends implicitly on $S_I$" — solving for the spread that matches the upfront may require iteration. By quoting directly in price terms, counterparties avoid disagreements about the correct PV01.
 
-#### Upfront Payment $U\%$
+### 45.2.4 Converting Between Spread and Price
 
-At settlement, an upfront payment equals the contract's value (can be negative so that one party receives upfront).
+**From spread to upfront (when spread-quoted):**
 
-#### Quoted "Spread" Language vs Coupon+Upfront Quoting
+Given spread $S_I$, coupon $C$, and $\text{RPV01}_I$:
 
-- **Investment grade indices:** market may quote an "index spread" (flat spread concept) used to translate into upfront relative to the fixed coupon
-- **Some lower quality indices:** may use a bond-price convention where "upfront" is computed as price minus 100 (per 100 notional), avoiding PV01 disputes
-- Hull notes that CDS and CDS indices "trade like bonds" with a fixed coupon specified for standard transactions
+$$U_{\%} = (S_I - C) \times \text{RPV01}_I$$
 
-### Explain Economically
+**From upfront to implied spread:**
 
-**Why standardizing the coupon can shift price discovery to upfront:**
+$$S_I = C + \frac{U_{\%}}{\text{RPV01}_I}$$
 
-If $C$ is fixed by contract design, ensuring the contract can trade across dealers and platforms, then market clearing must occur via upfront (or equivalently via a quoted spread translated into upfront). This is exactly the reason "bond-like" quoting conventions exist for CDS/CDS indices in practice.
+**Hull's example (Example 25.1):** For iTraxx Europe:
+- Quoted spread: 34.5 bp (actual/360) ≈ 34 bp (actual/actual)
+- Coupon: 40.6 bp (actual/actual)
+- RPV01 ("duration"): 4.447 years
+- Price calculation: $100 - 100 \times 4.447 \times (0.00345 - 0.00406) = 100.27$
 
-**How upfront converts to a dollar amount:**
+This confirms: spread below coupon means index trades above par.
 
-$$\boxed{U_\$ = N \times U\%}$$
+### 45.2.5 Clean vs. Full (Dirty) Pricing
 
-(with $U\%$ in fractional units, e.g. 3.25% $= 0.0325$)
+Just as with bonds, CDS indices have accrued premium mechanics:
 
-### Accrued Premium Mechanics (Between Coupon Dates)
+$$\text{Clean MTM} = \text{Full MTM} - \text{Accrued Premium}$$
 
-**Supported mechanics:**
+O'Kane notes that for a **long protection position**, accrued is negative (you owe the accrued premium when transferring the position mid-period).
 
-- **Clean vs full MTM convention:** clean MTM excludes accrued; full MTM includes it
-- The sign of accrued depends on whether you are long or short protection (single-name CDS explanation, but used here as a generic quoting convention)
+**Accrued premium formula:**
 
-**Generic accrual math** (used if you don't have the exact schedule/day count details):
+$$\text{Accrued} = N_{\text{out}} \times C \times \Delta(t_{\text{last}}, t)$$
 
-If the annual coupon is $c$ (decimal), and the elapsed accrual fraction since last coupon date is $\Delta$, then accrued premium magnitude is:
-
-$$\text{Accrued magnitude} = N \times c \times \Delta$$
-
-For a long protection position, O'Kane's sign convention for quoting accrued is negative (you owe accrued when transferring the position).
-
-**Default-time accrual** (cashflow-relevant, not just quoting):
-
-The contract may require payment of coupon accrued up to default time (a contingent cashflow) and this is distinct from "clean price" quoting conventions.
-
----
-
-## Rolls and Index Lifecycle in Practice
-
-### What "Roll" Means and Why It Happens
-
-**Refreshing constituents / removing defaulted names:**
-
-- Within a given issuance, constituents stay fixed except defaulted names are removed without replacement
-- Across rolls, constituents can change: names may be removed for criteria like downgrade out of IG, a credit event, or reduced liquidity, and replaced with new names that meet criteria
-
-> **Exact criteria:** I'm not sure beyond these qualitative descriptions; the index rulebook would be needed.
-
-**Concentrating liquidity:**
-
-- Investors roll into the new on-the-run series; liquidity drops after roll (seen explicitly in index options hedging costs)
-
-### Roll Schedules Conceptually
-
-- The book indicates a six-month roll cadence and illustrates March/September issuance (for 5Y index swaps) with June/December maturities
-- Hull describes portfolio updates on March 20 and September 20 for major index portfolios
-
-> **For your specific index (exact dates, business-day adjustments, series naming):** I'm not sure without the rulebook.
-
-### Roll Consequences
-
-**Series basis (on-the-run vs off-the-run) conceptually:**
-
-If on-the-run and off-the-run have different constituents and different time-to-maturity (new is ~6 months longer), their market levels can differ, creating a "series basis" between contracts.
-
-**How rolling affects hedging and P&L explain:**
-
-O'Kane attributes P&L impact from roll to:
-1. Composition changes and perceived credit quality
-2. Longer maturity by six months, with upward-sloping credit curves tending to widen spreads all else equal
-
-**Liquidity/transaction costs:** on-the-run liquidity generally tighter; off-the-run may have wider bid/ask and hedging mismatch risk.
+where $\Delta(t_{\text{last}}, t)$ is the accrual fraction (typically Actual/360) since the last coupon date.
 
 ---
 
-## Defaults and Settlement Inside Indices (Mechanics Only)
+## 45.3 Index Lifecycle: From Launch to Maturity
 
-### How Default Events of Constituents Affect Index Cashflows
+### 45.3.1 Series Launch and Roll Dates
 
-**Premium payments after a constituent default:**
+O'Kane describes the roll schedule: "Issue dates typically fall on one of the CDS 'IMM' dates, i.e. 20 March, 20 June, 20 September or 20 December."
 
-The book's index mechanics reduce outstanding notional by $1/M$ after each default; therefore future coupon cashflows decline proportionally. Constituents that default are removed without replacement.
+Hull confirms: "These portfolios are updated on March 20 and September 20 each year."
 
-**Default settlement amount link to auction final price/recovery:**
+**The roll calendar:**
 
-- O'Kane notes that when deliverables are scarce, ISDA introduced a protocol (2005) allowing a fallback to cash settlement with an auction-determined cash settlement price
-- Hull provides a concrete cash-settlement illustration: if auction implies a cheapest deliverable worth 35 per 100, the cash payoff is 65% of notional
+| Issue Date | Maturity Alignment | Next Roll |
+|------------|-------------------|-----------|
+| March 20 | Matures June 20 (T years out) | September 20 |
+| September 20 | Matures December 20 (T years out) | March 20 |
 
-> **Note:** We do not derive intrinsic vs quoted index spread calibration here (that's next chapter).
+### 45.3.2 What Happens at Roll
 
----
+O'Kane explains that at roll, "investors who hold the existing on-the-run index will generally try to roll into the new on-the-run index by selling the old index contract and buying the new one."
 
-## Math and Derivations
+> **Analogy: The Rolling Train**
+>
+> Imagine a train (Liquidity) that switches tracks every 6 months.
+>
+> *   **On-the-Run (Series 42)**: The train is here. Spreads are tight (0.5bp). Everyone is trading.
+> *   **The Roll (Mar 20)**: The train switches to the Series 43 track.
+> *   **The Choices**:
+>     1.  **Roll**: Jump to Series 43 (Pay transaction costs). Stay liquid.
+>     2.  **Stay**: You are now "Off-the-Run." The station is empty. Spreads widen (5bp). You are stuck with an illiquid position.
+> *   **The Force**: Traders *must* roll to maintain the ability to exit. This creates massive volume on Mar 20/Sep 20.
 
-### Assumptions (Explicit)
+**This "almost certainly" generates P&L from two sources:**
 
-- Coupon payments occur on scheduled dates with accrual $\alpha$ (Actual/360)
-- "Upfront" is quoted as a percent of notional
-- For cash settlement, "final price" $FP$ is a value per 100 of face; payout follows the single-name cash settlement logic in Hull's example
+1. **Composition changes:** "The new index will not contain any names which have been downgraded below investment grade or whose liquidity has declined." However, O'Kane clarifies that "this does not mean that the new index will be issued at a tighter spread than the current market spread of the old index since liquidity requirements may result in some names being replaced with wider spread names."
 
----
+2. **Maturity extension:** "The new index has a longer maturity, by six months, than the previous index. As credit curves tend to be upward sloping, this would tend to cause the new index spread to be wider, all other things being the same."
 
-### 6.1 Coupon Payment Formula
+### 45.3.3 Constituent Changes Between Series
 
-Contractual coupon payment per period:
+Within a series, "the constituents of a specific issue of an index remain fixed for the lifetime of the index, except when they default in which case they are removed without replacement" (O'Kane).
 
-$$\boxed{\text{Payment}_n = N_{\text{out}}(t_n) \times c \times \alpha_n}$$
+**Across series**, the constituent list can change due to:
+- Downgrade out of investment grade
+- Credit events
+- Material reduction in liquidity
+- New qualifying names added as replacements
 
-where:
-- $N_{\text{out}}(t_n)$ is outstanding notional at payment date (reduced after defaults)
-- $c$ is annual coupon in decimal
-- $\alpha_n$ is year fraction under Actual/360
+### 45.3.4 Settlement Timing
 
-**Unit check:** $N$ in dollars, $c$ dimensionless (per year), $\alpha$ in years $\Rightarrow$ payment in dollars.
+O'Kane describes the standard mechanics: "The contract is entered into on trade date $t$ and is cash settled three days later."
 
-**Sanity checks:**
-- If $c = 0$, payment is 0
-- If $\alpha \approx 0.25$ for a quarter, then quarterly payment $\approx N \times c/4$
+| Event | Timing |
+|-------|--------|
+| Trade date | T |
+| Cash settlement | T+3 |
+| First coupon | Next scheduled IMM date |
+| Subsequent coupons | Quarterly (Actual/360) |
 
----
+**Coupon setting at inception:** O'Kane notes that "at inception, the index coupon is set close to the fair-value spread of the index. It is not set exactly equal to the fair-value spread as the index coupon is usually chosen to be a multiple of 5 bp."
 
-### 6.2 Upfront Dollar Conversion
+### 45.3.5 Index Options and Roll Timing
 
-If upfront is quoted as $U\%$ of notional:
+O'Kane discusses the relationship between index options and the roll cycle. Index options (payer and receiver swaptions) are actively traded, with O'Kane noting that "there is currently active trading in options on all of the traded indices, with most liquidity in the cross-over indices of CDX and iTraxx and the CDX high yield index."
 
-$$\boxed{U_\$ = N \times U\%}$$
+However, **option expiries are typically short-dated**: "Because of the six monthly index roll, option expiries beyond six months are rare since the liquidity of the index drops immediately after the next roll and this can significantly increase hedging costs."
 
-**Unit check:** dollars $=$ dollars $\times$ dimensionless.
-
----
-
-### 6.3 Accrued Premium (Generic)
-
-If trade occurs between coupon dates $t_{k-1}$ and $t_k$, and $\Delta$ is the elapsed year fraction since $t_{k-1}$:
-
-$$\boxed{\text{Accrued magnitude} = N_{\text{out}} \times c \times \Delta}$$
-
-**Quoting sign convention** (single-name CDS, used generically): accrued is $+\Delta S_0$ for short protection and $-\Delta S_0$ for long protection, scaled by notional.
-
----
-
-### 6.4 Default Settlement Payoff Mapping from Auction Final Price
-
-Hull's cash settlement example implies:
-
-$$\boxed{\text{Payoff to protection buyer} = N_{\text{name}} \times \left(1 - \frac{FP}{100}\right)}$$
-
-because $FP = 35 \Rightarrow 65\%$ payout.
-
-**Sanity checks:**
-- If $FP = 100$, payoff $= 0$
-- If $FP = 0$, payoff $= N_{\text{name}}$
+This matters operationally because:
+- Index option traders must be aware of the roll calendar
+- Long-dated hedging strategies may need to roll options as well as the underlying index
+- Off-the-run indices have higher hedging costs due to wider bid-ask spreads
 
 ---
 
-## Measurement & Risk (Only What Belongs in Chapter 45)
+## 45.4 Default Handling Within Indices
 
-### Index "Spread DV01 / CS01" Concept (Mechanics-First)
+When a constituent defaults, the index contract must handle the credit event systematically. This section covers the mechanics; Chapter 40 provides the detailed auction process.
 
-**Practical idea:** sensitivity of index PV (or upfront) to a 1 bp shift in the quoted index spread level.
+### 45.4.1 What Happens When a Constituent Defaults
 
-**Precision caveat:** the book explicitly notes PV01 disagreement matters for translating spread quotes into upfront; thus a precise DV01 depends on the valuation convention.
+O'Kane describes the mechanics triggered by a default in an $M$-name index:
 
-**Working definition (finite difference; assumption):**
+> "If there is a default, and assuming that the portfolio consists of $M$ credits, what happens is that:
+> 1. the buyer pays $1/M$ of the face value of the contract to the seller in return for delivery of a defaulted asset also on $1/M$ of the contract notional. In situations where the outstanding notional of derivative contracts exceeds the supply of deliverable obligations, a new protocol was introduced by ISDA in 2005 which allows a fallback to cash settlement in which case an auction method is used to determine a cash settlement price.
+> 2. The buyer receives the fraction of premium which has accrued from the previous coupon date on the defaulted credit.
+> 3. The notional of the contract is reduced by $1/M$. As a result, the absolute amount of spread received on the premium leg is reduced."
 
-$$\text{Spread DV01} \approx \frac{PV(S + 1\text{bp}) - PV(S)}{1\text{bp}}$$
+### 45.4.2 Default Settlement Timeline
 
-> I'm not sure what your desk's canonical $PV(\cdot)$ convention is (clean vs full, recovery assumption, curve method). You'd need your valuation policy + ISDA/index docs.
+The timeline from credit event to settlement follows the CDS auction framework (detailed in Chapter 40):
 
-### Default Event Exposure (Jump-to-Default Aggregate Effect)
+| Stage | Timing | Action |
+|-------|--------|--------|
+| Credit Event | Day 0 | Bankruptcy, failure to pay, or (for iTraxx) restructuring |
+| Event Determination Date | Within 60 days | ISDA Determinations Committee confirms credit event |
+| Auction Announcement | ~5 business days after | Auction date, deliverables announced |
+| Auction Date | ~30 days after event | Two-stage auction determines final price |
+| Settlement | T+3 after auction | Cash settlement based on auction final price |
 
-- Each constituent default produces a jump loss (or gain) proportional to its notional share $1/M$ and to $(1 - \text{recovery})$ (book's equal-share mechanics)
-- The outstanding notional reduction by $1/M$ also reduces future premium cashflows
+### 45.4.3 Cash Settlement Calculation
 
-### Roll/Series Basis as a Practical Risk (Preview-Level)
+From the auction final price $FP$ (value per 100 of deliverable), the protection payment is:
 
-- Composition mismatch risk when hedging off-the-run with on-the-run
-- Liquidity/hedging cost risk: liquidity drops after roll and can materially affect hedge cost (explicitly noted for index options)
+$$\boxed{\text{Protection Payment (per name)} = \frac{N}{M} \times \left(1 - \frac{FP}{100}\right)}$$
 
----
+**Hull's example:** If auction implies deliverable worth 35 per 100, the cash payoff is 65% of the per-name notional.
 
-## Worked Examples
+### 45.4.4 Accrued Premium at Default
 
-### Shared Toy Conventions for Examples A–L
+The accrued premium on the defaulted credit is paid:
 
-| Parameter | Value |
-|-----------|-------|
-| Notional $N$ | $\$10,000,000$ unless otherwise stated |
-| Quarterly coupons | $\alpha = 0.25$ as simple quarterly approximation to Actual/360 (toy) |
-| Coupon $c$ | 100 bp $= 0.0100$ (toy; coupon levels vary by series in reality) |
+$$\text{Accrued at Default} = \frac{N}{M} \times C \times \Delta(t_{\text{last coupon}}, \tau)$$
 
-> **Note:** The book's convention is quarterly Actual/360. The book states coupons are chosen near fair value and in 5 bp increments.
+where $\tau$ is the default time.
 
----
+### 45.4.5 Notional Reduction After Default
 
-### Example A: Convert an Index Coupon $c$ into a Quarterly Premium Payment
+After settlement, the index outstanding notional reduces:
 
-**Inputs:** $N = \$10{,}000{,}000$, $c = 100$ bp $= 0.0100$, $\alpha = 0.25$
+$$\boxed{N_{\text{out}}^{\text{new}} = N_{\text{out}}^{\text{old}} \times \left(1 - \frac{1}{M}\right)}$$
 
-**Step 1:** Compute $N \times c$:
+For a 125-name index, each default reduces outstanding notional by 0.8%.
 
-$$\$10{,}000{,}000 \times 0.0100 = \$100{,}000 \text{ per year}$$
+> **Deep Dive: The "Big Short" Mechanics**
+>
+> In the movie *The Big Short*, Dr. Burry waits for defaults. How does the payout actually look?
+>
+> 1.  **The Wait**: He pays premium (bleed). The index notional is full (\$100m).
+> 2.  **The Event**: A name defaults.
+> 3.  **The Payout**: He gets paid $(1-R) \times \$800k$ immediately (cash settlement).
+> 4.  **The Aftermath**: The index notional shrinks to \$99.2m. He stops paying premium on the dead name.
+> 5.  **The End Game**: If 10 names default, he collects $\sim\$6m$ in payouts, and the index shrinks. He doesn't get "The Jackpot" all at once; he gets it name-by-name interaction.
 
-**Step 2:** Apply quarterly accrual fraction $\alpha$:
+**Impact on future coupons:**
 
-$$\$100{,}000 \times 0.25 = \$25{,}000$$
+$$\text{Coupon}_{\text{new}} = N_{\text{out}}^{\text{new}} \times C \times \alpha$$
 
-**Output:** Quarterly premium payment $= \$25{,}000$
+where $\alpha$ is the accrual fraction for the period.
 
-**Unit check:** $\$ \times (\text{per year}) \times (\text{years}) = \$$
+### 45.4.6 Regional Differences in Credit Event Definitions
 
----
+O'Kane notes an important difference: "While the European iTraxx indices include a restructuring credit event, the North American CDX index protection leg is only triggered by a bankruptcy or failure to pay on a reference credit. Restructuring is not included as a credit event."
 
-### Example B: Build a Short Coupon Schedule (4 Periods) and Compute Each Payment
-
-**Inputs:** Same as Example A; 4 quarters; $\alpha = 0.25$ each (toy)
-
-**Each quarter payment:**
-
-$$\text{Payment} = 10{,}000{,}000 \times 0.0100 \times 0.25 = \$25{,}000$$
-
-**Total premium over year:**
-
-$$\$25{,}000 \times 4 = \$100{,}000$$
-
-**Output:**
-
-| Period | Payment |
-|--------|---------|
-| Q1 | $25,000 |
-| Q2 | $25,000 |
-| Q3 | $25,000 |
-| Q4 | $25,000 |
-| **Total** | **$100,000** |
+This means CDX trades as "No-Re" (no restructuring), while iTraxx typically includes restructuring (Mod-Re or Old-Re). O'Kane adds: "The CDX is therefore consistent with the No-Re category of CDS which trades at a spread which is lower than the spread of the standard Mod-Re restructuring clause CDS." This creates basis between indices and their single-name constituents when single-name contracts include restructuring.
 
 ---
 
-### Example C: Accrued Premium Between Coupon Dates
+## 45.5 Worked Examples
 
-**Scenario:** Trade date is halfway through a coupon period.
+### Example 45.A: Parse a Complete Index Identifier
 
-**Inputs:** $N = \$10{,}000{,}000$, $c = 0.0100$, elapsed fraction $\Delta = 0.125$ (half of a quarter: $45/360$)
+**Task:** Decode "CDX.NA.HY.7 5Y" and identify all relevant parameters.
 
-**Step 1:** Accrued magnitude:
+**Solution:**
 
-$$10{,}000{,}000 \times 0.0100 \times 0.125 = 10{,}000{,}000 \times 0.00125 = \$12{,}500$$
+| Component | Parsed Value | Meaning |
+|-----------|--------------|---------|
+| CDX | Index family | North American CDS index family |
+| NA | Region | North America |
+| HY | Credit quality | High Yield |
+| 7 | Series | 7th vintage (issued ~2007) |
+| 5Y | Tenor label | 5-year maturity contract |
 
-**Step 2:** Sign convention (quoting):
-- **Long protection:** accrued is negative (you pay it when transferring the position)
-- **Short protection:** accrued is positive (you receive it)
-
-**Output:**
-- Accrued magnitude: $12,500
-- Quoted accrued: $-\$12{,}500$ (long protection) or $+\$12{,}500$ (short protection)
-
----
-
-### Example D: Upfront Conversion
-
-**Inputs:** Upfront $= 3.25\% = 0.0325$, $N = \$10{,}000{,}000$
-
-**Step:**
-
-$$U_\$ = N \times U\% = 10{,}000{,}000 \times 0.0325$$
-
-$$10{,}000{,}000 \times 0.03 = 300{,}000$$
-$$10{,}000{,}000 \times 0.0025 = 25{,}000$$
-$$\text{Total} = 325{,}000$$
-
-**Output:** Upfront dollar amount $= \$325{,}000$
-
-**Sign (stated assumption):** We will treat positive upfront as paid by the party entering the position that is "priced below par" (bond-analogy). Actual sign conventions are deal-confirmation specific; I'm not sure without the confirmation.
+**Additional facts from Table 45.1:**
+- Number of credits: 100 (standard for CDX.NA.HY)
+- Quoting convention: Bond price (not spread)
+- Roll dates: March 20 and September 20
 
 ---
 
-### Example E: Coupon+Upfront Cashflow Timeline
+### Example 45.B: Convert Between Spread and Price Quoting
 
-**Inputs:** $N = \$10mm$, $c = 100$ bp, $\alpha = 0.25$, upfront $= +3.25\%$
+**Given:** CDX.NA.IG Series 7
+- Coupon $C = 40$ bp $= 0.0040$
+- Market spread $S_I = 34$ bp $= 0.0034$
+- $\text{RPV01}_I = 4.447$ years
 
-**Timeline (toy):**
+**Task:** Calculate the bond-equivalent price.
 
-| Time | Cashflow | Amount |
-|------|----------|--------|
-| $t_0$ | Upfront | $-\$325{,}000$ (paid) |
-| $t_1$ (Q1) | Coupon | $-\$25{,}000$ |
-| $t_2$ (Q2) | Coupon | $-\$25{,}000$ |
-| $t_3$ (Q3) | Coupon | $-\$25{,}000$ |
+**Step 1:** Calculate upfront as percent of notional:
 
-**Cumulative outflow through $t_3$:**
+$$U_{\%} = (S_I - C) \times \text{RPV01}_I$$
+$$U_{\%} = (0.0034 - 0.0040) \times 4.447$$
+$$U_{\%} = (-0.0006) \times 4.447 = -0.002668 = -0.2668\%$$
 
-$$-325{,}000 - 25{,}000 - 25{,}000 - 25{,}000 = -\$400{,}000$$
+**Step 2:** Convert to bond price:
 
----
+$$P_{\text{bond}} = 100\% - (-0.2668\%) = 100.27\%$$
 
-### Example F: Series Basis Toy (On-the-Run vs Off-the-Run Upfront)
+**Interpretation:** The negative upfront means the investor entering receives this amount (or equivalently, the index trades above par at 100.27%). This matches Hull's Example 25.1 and O'Kane's Table 10.2.
 
-**Inputs:** Same coupon; on-the-run upfront $= 2.0\%$, off-the-run upfront $= 2.6\%$, $N = \$10mm$
-
-**Step:** Dollar upfronts
-
-- On-the-run: $10{,}000{,}000 \times 0.020 = \$200{,}000$
-- Off-the-run: $10{,}000{,}000 \times 0.026 = \$260{,}000$
-
-**Difference (basis proxy):**
-
-$$\$260{,}000 - \$200{,}000 = \$60{,}000$$
-
-**Interpretation (toy):** Off-the-run is "60k cheaper/more expensive" in upfront terms depending on direction; treat as a simple proxy for series basis (liquidity + composition + maturity effects).
+**Unit check:** bp × years = dimensionless (percent of notional) ✓
 
 ---
 
-### Example G: Roll Trade Mechanics (Close Old Series and Enter New Series)
+### Example 45.C: Calculate Index Notional and Coupon After Defaults
 
-**Scenario:** You hold long protection in the old series and want to roll to new on-the-run.
+**Given:** CDX.NA.IG with:
+- Initial notional $N = \$100,000,000$
+- Number of constituents $M = 125$
+- Coupon $C = 100$ bp $= 0.0100$
+- Quarterly accrual fraction $\alpha = 0.25$
+- **Two defaults have occurred**
 
-**Toy market quotes (upfront paid by protection buyer):**
-- Old series upfront = 2.0%
-- New series upfront = 1.5%
-- Notional $N = \$10mm$
+**Task:** Calculate outstanding notional and quarterly coupon.
 
-**Step 1:** Unwind old long protection
+**Step 1:** Notional reduction per default:
 
-To close long protection, enter offsetting short protection at market. If protection buyer pays 2.0% to protection seller, then as protection seller you receive:
+$$\Delta N = \frac{N}{M} = \frac{100,000,000}{125} = \$800,000$$
 
-$$\$10mm \times 0.020 = \$200{,}000$$
+**Step 2:** Outstanding notional after 2 defaults:
 
-**Step 2:** Enter new long protection
+$$N_{\text{out}} = N - 2 \times \Delta N = 100,000,000 - 2 \times 800,000 = \$98,400,000$$
 
-Pay upfront:
+Alternatively:
+$$N_{\text{out}} = N \times \left(1 - \frac{2}{M}\right) = 100,000,000 \times \frac{123}{125} = \$98,400,000$$
 
-$$\$10mm \times 0.015 = \$150{,}000$$
+**Step 3:** Quarterly coupon payment:
 
-**Step 3:** Net upfront exchanged:
+**Before defaults:**
+$$\text{Coupon} = 100,000,000 \times 0.0100 \times 0.25 = \$250,000$$
 
-$$\$200{,}000 - \$150{,}000 = +\$50{,}000 \text{ (net received)}$$
+**After 2 defaults:**
+$$\text{Coupon} = 98,400,000 \times 0.0100 \times 0.25 = \$246,000$$
 
-**Accrued note:** If both trades settle on the same coupon schedule date grid, accrued may largely offset; if not, it won't. Exact schedule rules are index-doc dependent (I'm not sure without the confirmations).
-
----
-
-### Example H: Liquidity Cost of Rolling (Wider Bid/Ask Off-the-Run)
-
-**Assume bid/ask on upfront:**
-- Off-the-run (old): 1.8% / 2.2% (mid 2.0%)
-- On-the-run (new): 1.45% / 1.55% (mid 1.50%)
-
-**Rolling a long protection position:**
-- Unwind old by selling protection $\Rightarrow$ you receive bid on old
-- Enter new long protection $\Rightarrow$ you pay ask on new
-
-**Step 1:** Old unwind slippage vs mid
-
-Mid receipt would be 2.0%; actual receipt is 1.8%.
-
-$$\text{Slippage} = 0.2\% \times \$10mm = 0.002 \times 10{,}000{,}000 = \$20{,}000$$
-
-**Step 2:** New entry slippage vs mid
-
-Mid payment would be 1.50%; actual payment is 1.55%.
-
-$$\text{Slippage} = 0.05\% \times \$10mm = 0.0005 \times 10{,}000{,}000 = \$5{,}000$$
-
-**Output:** Estimated transaction cost of roll $= \$20{,}000 + \$5{,}000 = \$25{,}000$
+**Reduction:** $\$250,000 - \$246,000 = \$4,000$ per quarter
 
 ---
 
-### Example I: Single Default in Index with Auction Final Price $FP = 40$
+### Example 45.D: Default Settlement Calculation
 
-Use equal-weight notional allocation consistent with the book's mechanics ($1/M$ per name).
+**Given:**
+- Index notional $N = \$50,000,000$
+- Number of names $M = 125$
+- One constituent defaults
+- Auction final price $FP = 35$ (per 100 face value)
 
-**Inputs:** $N = \$10mm$, $M = 125$ (toy but consistent with common examples in the sources for standard portfolios), $FP = 40$
+**Task:** Calculate the protection payment.
 
 **Step 1:** Per-name notional:
 
-$$N_{\text{name}} = \frac{10{,}000{,}000}{125} = 80{,}000$$
+$$N_{\text{name}} = \frac{N}{M} = \frac{50,000,000}{125} = \$400,000$$
 
-**Step 2:** Cash-settlement payoff magnitude:
+**Step 2:** Loss given default (LGD) fraction:
 
-$$80{,}000 \times \left(1 - \frac{40}{100}\right) = 80{,}000 \times 0.60 = 48{,}000$$
+$$\text{LGD fraction} = 1 - \frac{FP}{100} = 1 - 0.35 = 0.65 = 65\%$$
 
-This matches the "par minus price" logic illustrated by Hull (35 $\Rightarrow$ 65%).
+**Step 3:** Protection payment:
 
-**Output:**
-- Payoff to protection buyer: $+\$48{,}000$
-- Payoff by protection seller: $-\$48{,}000$
+$$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400,000 \times 0.65 = \$260,000$$
 
----
-
-### Example J: After-Default Premium Adjustment (Notional Reduction)
-
-The index mechanics reduce outstanding notional by $1/M$ after default.
-
-**Inputs:** $N = \$10mm$, $M = 125$, coupon $c = 0.0100$, $\alpha = 0.25$
-
-**Step 1:** Notional reduction:
-
-$$\Delta N = \frac{10{,}000{,}000}{125} = 80{,}000$$
-
-**Step 2:** New outstanding notional:
-
-$$N_{\text{out}} = 10{,}000{,}000 - 80{,}000 = 9{,}920{,}000$$
-
-**Step 3:** Next-quarter coupon payment before vs after default:
-
-- **Before:** $10{,}000{,}000 \times 0.0100 \times 0.25 = 25{,}000$
-- **After:** $9{,}920{,}000 \times 0.0100 \times 0.25$:
-
-$$9{,}920{,}000 \times 0.0100 = 99{,}200$$
-$$99{,}200 \times 0.25 = 24{,}800$$
-
-**Output:**
-- New coupon payment: $24,800
-- Reduction vs pre-default: $25,000 − $24,800 = $200
+**Sanity checks:**
+- If $FP = 0$ (total loss): Payment $= \$400,000$ ✓ (bounded by per-name notional)
+- If $FP = 100$ (full recovery): Payment $= \$0$ ✓
 
 ---
 
-### Example K: Exposure Scaling with Notional ($N = \$5mm$ vs $N = \$50mm$)
+### Example 45.E: Roll Trade Mechanics
 
-Use $c = 0.0100$, $\alpha = 0.25$, upfront $= 3.25\%$
+**Scenario:** You hold long protection on off-the-run CDX.NA.IG Series 6 and want to roll to on-the-run Series 7.
 
-**For $N = \$5mm$:**
-- Quarterly coupon: $5{,}000{,}000 \times 0.0100 \times 0.25 = 12{,}500$
-- Upfront: $5{,}000{,}000 \times 0.0325 = 162{,}500$
+**Given:**
+- Notional $N = \$25,000,000$
+- Series 6 (off-the-run) upfront to unwind: you receive 0.80% to close
+- Series 7 (on-the-run) upfront to enter: you pay 0.50%
 
-**For $N = \$50mm$:**
-- Quarterly coupon: $50{,}000{,}000 \times 0.0100 \times 0.25 = 125{,}000$
-- Upfront: $50{,}000{,}000 \times 0.0325 = 1{,}625{,}000$
+**Task:** Calculate net cash from roll.
 
-**Output:** All cashflows scale linearly with $N$.
+**Step 1:** Cash from unwinding Series 6:
 
----
+To close long protection, you enter offsetting short protection. You receive:
+$$\text{Receive} = 25,000,000 \times 0.0080 = \$200,000$$
 
-### Example L: On-the-Run Dominance (Toy Hedge Slippage via Bid/Ask)
+**Step 2:** Cash to enter Series 7:
 
-**Goal:** Quantify incremental cost if hedging in off-the-run with wider bid/ask vs on-the-run.
+To enter new long protection, you pay:
+$$\text{Pay} = 25,000,000 \times 0.0050 = \$125,000$$
 
-**Inputs:** Hedge notional $N = \$50mm$
-- On-the-run upfront bid/ask: 1.95% / 2.05% (mid 2.00%, half-spread 0.05%)
-- Off-the-run upfront bid/ask: 1.60% / 2.00% (mid 1.80%, half-spread 0.20%)
+**Step 3:** Net roll cash:
 
-Assume you must cross the spread once (one trade) to put on the hedge.
+$$\text{Net} = \$200,000 - \$125,000 = +\$75,000 \text{ (received)}$$
 
-**Cost approximation:** Transaction cost $\approx$ half-spread $\times N$
-
-- On-the-run cost: $0.05\% \times 50{,}000{,}000 = 0.0005 \times 50{,}000{,}000 = 25{,}000$
-- Off-the-run cost: $0.20\% \times 50{,}000{,}000 = 0.0020 \times 50{,}000{,}000 = 100{,}000$
-
-**Incremental cost of using off-the-run:**
-
-$$\$100{,}000 - \$25{,}000 = \$75{,}000$$
-
-**Interpretation (toy):** Wider off-the-run liquidity directly translates into hedge slippage; the book flags liquidity differences and constituent mismatch as practical hedging issues.
+**Note:** This ignores bid/ask spreads and assumes both trades settle on the same accrual grid. In practice, off-the-run bid/ask is wider (O'Kane notes liquidity drops after roll), so actual roll may cost more.
 
 ---
 
-## Practical Notes
+### Example 45.F: Impact of Quoting Convention Error
 
-### Booking Checklist for an Index Trade
+**Scenario:** A trader mistakenly books a CDX.NA.HY trade using spread convention instead of price convention.
 
-- [ ] Index family / series (and version if applicable)
-- [ ] Maturity (3Y/5Y/7Y/10Y, noting on-the-run tenor is $T \pm 3$ months)
-- [ ] Coupon $C$ (fixed contractual spread; check it is the series coupon, multiple of 5 bp in the book's description)
-- [ ] Upfront $U\%$ and direction (pay/receive); settlement timing (book: cash settled 3 days after trade date)
-- [ ] Notional $N$ and how it maps to per-name notional (often equal share in mechanics: $N/M$)
-- [ ] Payment dates, day count (Actual/360)
-- [ ] Default settlement assumptions (physical vs cash; auction fallback)
-- [ ] Clean vs full MTM / accrued treatment
+**Given:**
+- Notional $N = \$100,000,000$
+- Correct quote: Bond price = 102.18%
+- Incorrectly assumed: Spread quote treated as coupon + upfront
 
-### Common Pitfalls
+**What's the error?**
 
-1. Mixing "quoted spread" with "coupon+upfront" without a consistent translation (PV01 disagreement is exactly why some indices use bond-price quoting)
-2. Forgetting accrued premium when transferring positions between coupon dates
-3. Assuming roll dates/coupons/membership rules without sourcing (need rulebook)
-4. Confusing "index series" (roll/issuance) with "maturity" (3Y/5Y/7Y/10Y)
+**Correct (price convention):**
+$$U_{\%} = 102.18\% - 100\% = +2.18\%$$
+$$U_{\$} = 100,000,000 \times 0.0218 = \$2,180,000 \text{ paid}$$
 
-### Implementation Pitfalls
+**If spread were misinterpreted:**
+Suppose the trader thought "102.18" was a spread in bp and applied spread mechanics with a different result — the error could be millions of dollars.
 
-- Date schedule generation (coupon dates, settlement lag, roll schedule)
-- Unit errors (bp vs decimal; percent vs fraction; price-per-100 vs percent-of-notional)
-- Handling defaults consistently: reduce outstanding notional by $1/M$; include accrued-at-default where contract requires it
-
-### Verification Tests
-
-1. **Premium cashflows:** Verify each coupon $= N_{\text{out}} \times c \times \alpha$
-2. **Default payoff bounds:** With $FP \in [0, 100]$, payout $N(1 - FP/100) \in [0, N]$
-3. **Scaling sanity:** Double notional $\Rightarrow$ double all cashflows
+**Lesson:** Always verify the quoting convention for the specific index family before booking. CDX.NA.HY uses bond price; CDX.NA.IG uses spread.
 
 ---
 
-## Summary & Recall
+## 45.6 Practical Notes
 
-### 10-Bullet Executive Summary
+### 45.6.1 Booking Checklist for Index Trades
 
-1. A CDS index is a standardized basket credit derivative referencing $M$ names; the book models losses and notional reductions in $1/M$ shares
-2. Each index series has a fixed constituent list for its life, except defaulted names are removed without replacement
-3. Indices roll every six months; market participants often roll positions from old (off-the-run) to new (on-the-run)
-4. A "$T$-year" on-the-run index starts near $T+3$ months to maturity and becomes $T-3$ months by the next roll
-5. The contractual coupon is fixed, set near fair value at inception and often in 5 bp increments
-6. Premium is usually paid quarterly on Actual/360
-7. Investment grade indices may quote an "index spread" (flat spread concept); translating spread into upfront can require PV01, which can be disputed
-8. Some indices use bond-price style quoting (price − 100) to avoid PV01 translation disputes
-9. Defaults trigger settlement (physical or cash via auction fallback) and reduce outstanding notional by $1/M$, shrinking future coupons
-10. On-the-run liquidity dominates; liquidity drops after roll, affecting hedge costs (noted explicitly for index options)
+- [ ] **Index identifier:** Family, region, quality, series number
+- [ ] **Tenor:** 3Y/5Y/7Y/10Y (note actual maturity is ±3 months from label)
+- [ ] **On-the-run vs. off-the-run:** Affects liquidity and roll timing
+- [ ] **Quoting convention:** Spread (IG) vs. price (HY/EM)
+- [ ] **Coupon:** Fixed contractual spread for the series (typically multiples of 5 bp)
+- [ ] **Upfront:** Amount and direction (pay/receive)
+- [ ] **Settlement date:** Typically T+3 from trade date
+- [ ] **Current defaults:** Number of names removed and current outstanding notional
+- [ ] **Accrued premium:** If trading between coupon dates
+
+### 45.6.2 Common Pitfalls
+
+1. **Quoting convention confusion:** IG indices quote spread; HY/EM quote price. Mixing them causes large booking errors.
+
+2. **Series/tenor confusion:** "Series 7 5Y" means the 7th vintage of the 5-year contract, not a 7-year contract in Series 5.
+
+3. **Forgetting the ±3 month rule:** A "5Y" index at issuance has ~63 months to maturity, not 60.
+
+4. **Roll date assumptions:** Verify actual roll schedule — market conventions can shift.
+
+5. **Constituent count after defaults:** The index may have fewer than 125 names if defaults have occurred.
+
+6. **Regional credit event differences:** CDX excludes restructuring (No-Re); iTraxx includes it (Mod-Re). This affects basis calculations.
+
+7. **Hedging off-the-run positions:** O'Kane warns that "if we hedge an off-the-run index swap position with an on-the-run index swap position, there may be a mismatch in terms of some credits being in one index but not in the other."
+
+### 45.6.3 Verification Tests
+
+1. **Price-spread consistency:** $P_{\text{bond}} = 100 + (S_I - C) \times \text{RPV01}_I$ should match market quote
+
+2. **Notional bounds:** After $d$ defaults: $N_{\text{out}} = N \times (1 - d/M)$
+
+3. **Payment bounds:** Protection payment per default $\leq N/M$
+
+4. **Coupon scaling:** Coupon payments scale linearly with outstanding notional
 
 ---
 
-### Cheat Sheet: Key Definitions & Formulas
+## Summary
 
-| Term/Formula | Definition |
-|--------------|------------|
-| **Series** | A particular issuance; constituents fixed except default removals |
-| **On-the-run** | Most recent series (liquidity benchmark) |
-| **Off-the-run** | Older series |
-| **Roll** | Transition from old to new series (often by selling old, buying new) |
-| **Coupon payment** | $\text{Payment} = N_{\text{out}} \times c \times \alpha$ |
-| **Upfront dollars** | $U_\$ = N \times U\%$ |
-| **Accrued (magnitude)** | $N \times c \times \Delta$ |
-| **Cash-settlement payoff (auction)** | $N(1 - FP/100)$ |
+CDS indices provide efficient exposure to diversified credit portfolios through standardized contracts. The key operational considerations are:
+
+1. **Naming conventions** encode geography, credit quality, series (vintage), and tenor — each component affects liquidity and pricing
+
+2. **Quoting conventions** differ by index family: investment grade quotes by spread, high yield/EM quote by bond price — confusion causes booking errors
+
+3. **The ±3 month rule** means a "5Y" index at issuance is actually ~5.25 years to maturity
+
+4. **Series roll every six months** (March 20 and September 20), with liquidity concentrating in on-the-run
+
+5. **Defaults reduce outstanding notional by 1/M**, lowering future coupon payments proportionally
+
+6. **Cash settlement via auction** determines recovery; protection payment is $(1 - FP/100)$ times per-name notional
+
+7. **Regional differences** in credit event definitions (CDX = No-Re, iTraxx = Mod-Re) create basis versus single-name CDS
+
+8. **Exceptional liquidity** of the major indices — O'Kane cites bid-offer spreads as tight as 0.25 bp for IG indices
 
 ---
 
-## Flashcards (35 Q/A Pairs)
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **On-the-run** | Most recently issued series | Concentrates liquidity; benchmark for hedging |
+| **Off-the-run** | Previous series (still tradable) | Lower liquidity; may have different constituents |
+| **Series** | A specific vintage with fixed coupon and constituent list | Identifies which version you're trading |
+| **Bond price convention** | Quote as price (100 = par); upfront = price - 100 | Used for HY/EM; avoids PV01 disputes |
+| **Spread convention** | Quote as spread; upfront = (spread - coupon) × RPV01 | Used for IG indices |
+| **Roll** | Transitioning from old to new series | Causes P&L from composition and maturity changes |
+| **Notional reduction** | Outstanding notional drops by 1/M per default | Affects future coupon amounts |
+| **Flat curve convention** | Index priced using flat term structure at quoted spread | Standard market convention for index valuation |
+
+---
+
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is a CDS index (in one sentence)? | A standardized CDS-like contract referencing a basket of $M$ names, with aggregated premium and default-loss cashflows |
-| 2 | What is an index "series"? | A particular issuance of the index with a fixed constituent set for its life (except default removals) |
-| 3 | What does "on-the-run" mean for indices? | The most recently issued series that concentrates liquidity (inferred from roll behavior) |
-| 4 | What does "off-the-run" mean? | An older series after the next roll; typically less liquid and may have different constituents |
-| 5 | How often do indices roll (per the primary source)? | Every six months |
-| 6 | Why can rolling cause P&L? | Composition changes and a maturity extension by ~6 months can change perceived credit and spread levels |
-| 7 | What is the contractual coupon $C$? | The fixed premium rate specified by the index contract, paid on outstanding notional |
-| 8 | How is the coupon chosen at inception (per the book)? | Set close to fair value but usually in multiples of 5 bp |
-| 9 | What day count is typical for index coupons in the mechanics description? | Actual/360 |
-| 10 | What is the coupon payment formula? | $\text{Payment} = N_{\text{out}} \times c \times \alpha$ |
-| 11 | What is "upfront" in indices? | A one-time payment at settlement equal to the contract's value (can be negative/received) |
-| 12 | Convert upfront percent to dollars | $U_\$ = N \times U\%$ |
-| 13 | What is "index spread" quoting (IG indices)? | A quoted flat-spread level used to price the index like a single CDS, with coupon fixed and upfront implied |
-| 14 | Why can spread-quoting be contentious operationally? | Translating spread into upfront requires index PV01, which can be disputed |
-| 15 | What's the "bond price convention" for some indices? | Quote a price and compute upfront as (price − 100), avoiding PV01 translation |
-| 16 | What happens to constituents within a series when they default? | They are removed without replacement |
-| 17 | What happens to outstanding index notional after a default (book mechanics)? | It is reduced by $1/M$ |
-| 18 | Why do future coupon payments decline after defaults? | Coupons are paid on outstanding notional, which shrinks by $1/M$ per default |
-| 19 | What is accrued premium "clean vs full MTM" about? | Clean MTM excludes accrued to avoid jumps at coupon dates; full includes it |
-| 20 | What is the sign of accrued for long protection (quoting convention)? | Negative (you owe accrued when transferring/closing) |
-| 21 | What is "coupon accrued at default"? | A contingent cashflow requiring payment of accrued premium up to default time |
-| 22 | What is physical settlement in CDS terms? | Protection buyer delivers bonds and receives par from protection seller |
-| 23 | What is cash settlement? | Protection seller pays par minus recovery price, determined by dealer poll/auction |
-| 24 | Why was an auction protocol important? | It supports cash settlement when deliverables are scarce relative to CDS notional |
-| 25 | How does auction final price map to payoff? | Payoff $= N(1 - FP/100)$ (e.g., 35 → 65% payout) |
-| 26 | What is "series mismatch risk"? | Hedging off-the-run with on-the-run can mismatch constituents |
-| 27 | What does the book say about liquidity and index options after roll? | Liquidity drops after roll, raising hedging costs; thus long-dated expiries beyond six months are rare |
-| 28 | What maturities are described as tradable in indices (primary source)? | 3Y, 5Y, 7Y, 10Y, with 5Y and 10Y most liquid |
-| 29 | Why does a "5Y" index not start with exactly 5 years maturity? | It starts near 5y+3m and declines to 5y−3m by next roll |
-| 30 | What's the operational meaning of "unfunded" trading in indices? | Investors prefer unfunded format; IG indices can quote spread and infer upfront |
-| 31 | Why might HY/EM quote as bond price? | To avoid disagreement about index PV01 needed for spread-to-upfront conversion |
-| 32 | What is "index basis" (conceptually)? | Quoted index spread can differ from a CDS-implied intrinsic spread, for reasons including contract clause differences and liquidity |
-| 33 | Give one clause difference that can create index basis | For one US index, restructuring is excluded (No-Re) while market single-name may use Mod-Re |
-| 34 | What is a practical roll P&L driver besides liquidity? | The new series' longer maturity and upward-sloping credit curves can widen the new series spread |
-| 35 | What document do you need for exact roll dates, coupons, and membership rules? | The index rulebook (e.g., Markit documentation) plus ISDA definitions/auction protocols |
+| 1 | What does "CDX.NA.IG.42 5Y" mean? | CDX index, North America, Investment Grade, Series 42, 5-year maturity |
+| 2 | How many constituents in CDX.NA.IG? | 125 |
+| 3 | How many constituents in CDX.NA.HY? | 100 |
+| 4 | What is "on-the-run"? | The most recently issued series (concentrates liquidity) |
+| 5 | How often do CDS indices roll? | Every six months (March 20 and September 20) |
+| 6 | Does a "5Y" index have exactly 5 years to maturity at issue? | No — typically T+3 months at issuance, T-3 months by next roll |
+| 7 | How does CDX.NA.IG quote in the market? | By spread (not price) |
+| 8 | How does CDX.NA.HY quote in the market? | By bond price (not spread) |
+| 9 | Why do HY indices use bond price quoting? | To avoid disputes about index PV01 for spread-to-upfront conversion |
+| 10 | Convert bond price 102.18% to upfront | Upfront = 102.18% - 100% = +2.18% (you pay) |
+| 11 | Convert bond price 99.50% to upfront | Upfront = 99.50% - 100% = -0.50% (you receive) |
+| 12 | Formula: Upfront from spread | $U_I = (S_I - C) \times \text{RPV01}_I$ |
+| 13 | If spread < coupon, what happens to upfront? | Upfront is negative (investor receives payment) |
+| 14 | What happens to index notional when a constituent defaults? | Reduced by 1/M (e.g., 0.8% for 125-name index) |
+| 15 | Cash settlement payment per default formula | Payment = $(N/M) \times (1 - FP/100)$ |
+| 16 | If auction final price = 35, what is LGD percentage? | 65% (protection payment = 65% of per-name notional) |
+| 17 | What credit events trigger CDX protection? | Bankruptcy and failure to pay (NOT restructuring) |
+| 18 | What credit events trigger iTraxx protection? | Bankruptcy, failure to pay, AND restructuring |
+| 19 | What causes P&L at roll (two reasons)? | 1) Composition changes; 2) Maturity extension by 6 months |
+| 20 | What day count is used for index coupons? | Actual/360, paid quarterly |
+| 21 | How is coupon set at index inception? | Close to fair-value spread, rounded to multiple of 5 bp |
+| 22 | Why does liquidity matter at roll? | Liquidity drops immediately after roll for off-the-run |
+| 23 | What is "accrued premium at default"? | Premium owed from last coupon date to default date |
+| 24 | Why do off-the-run series have hedge mismatch risk? | Constituents may differ from on-the-run |
+| 25 | Settlement timing for index trades? | T+3 (cash settled three days after trade date) |
+| 26 | What is the typical bid-offer spread for IG indices? | ~0.25 bp (exceptionally tight due to high liquidity) |
+| 27 | Who administers the CDX and iTraxx indices? | Markit Group Limited |
+| 28 | Why are index option expiries beyond 6 months rare? | Liquidity drops after roll, increasing hedging costs |
 
 ---
 
-## Mini Problem Set (18 Questions)
+## Mini Problem Set
 
-*Solution sketches provided for questions 1–9 only.*
+**Questions 1-6: Solution sketches provided**
 
----
+**1.** Parse the identifier "iTraxx Europe HiVol Series 6 7Y" and list all components.
 
-**1.** Compute the quarterly coupon payment for $N = \$25mm$, $c = 75$ bp, $\alpha = 0.252$.
+> **Sketch:** iTraxx (family), Europe (region), HiVol (high volatility subset), Series 6 (vintage), 7Y (maturity label). Number of names: 30.
 
-> **Sketch:** Convert $c = 0.0075$. Payment $= 25{,}000{,}000 \times 0.0075 \times 0.252$.
+**2.** CDX.NA.IG Series 7: Coupon = 40 bp, spread = 48 bp, RPV01 = 4.0. Calculate upfront % and whether you pay or receive.
 
----
+> **Sketch:** $U = (0.0048 - 0.0040) \times 4.0 = 0.0032 = 0.32\%$. Spread > coupon → you receive 0.32% to enter long protection.
 
-**2.** A trade has upfront $U = 1.80\%$ on $N = \$40mm$. What is $U_\$$?
+**3.** CDX.NA.HY bond price = 103.50%. Calculate dollar upfront on $50mm notional.
 
-> **Sketch:** $U_\$ = 40{,}000{,}000 \times 0.018$.
+> **Sketch:** $U_{\%} = 103.50 - 100 = 3.50\%$. $U_{\$} = 50,000,000 \times 0.035 = \$1,750,000$ paid.
 
----
+**4.** An index has notional $100mm, 125 names, coupon 80 bp, quarterly α = 0.25. After 3 defaults, what is the quarterly coupon payment?
 
-**3.** Mid-period elapsed accrual fraction is $\Delta = 0.10$. For $N = \$10mm$, $c = 200$ bp, compute accrued magnitude.
+> **Sketch:** $N_{\text{out}} = 100mm \times (122/125)$. Coupon = $N_{\text{out}} \times 0.008 \times 0.25$.
 
-> **Sketch:** $c = 0.02$. Accrued $= 10{,}000{,}000 \times 0.02 \times 0.10$.
+**5.** Auction final price = 22. Calculate protection payment per name if per-name notional is $800,000.
 
----
+> **Sketch:** LGD = 1 - 0.22 = 0.78. Payment = $800,000 \times 0.78 = \$624,000$.
 
-**4.** Using the quoting sign convention, what is the quoted accrued for a long protection position in (3)?
+**6.** At issuance on March 20, 2024, a "5Y" CDX.NA.IG matures on what date? How many months to maturity?
 
-> **Sketch:** Long protection accrued is negative.
+> **Sketch:** Matures June 20, 2029. Months = 63 (5 years + 3 months).
 
----
+**Questions 7-12: No sketches**
 
-**5.** A constituent defaults with auction final price $FP = 25$. Per-name notional is $\$100{,}000$. Compute cash settlement payoff to protection buyer.
+**7.** You roll $30mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Calculate net roll cash.
 
-> **Sketch:** Payoff $= 100{,}000(1 - 0.25) = 75{,}000$.
+**8.** Explain why CDX.NA.IG and iTraxx Europe can have basis versus their single-name constituents.
 
----
+**9.** After 5 defaults in a 100-name index, what fraction of original notional remains?
 
-**6.** With $M = 125$ and index notional $N = \$12.5mm$, compute the notional reduction after one default and new notional outstanding.
+**10.** An index has current outstanding notional of $94.4mm after defaults. If original notional was $100mm and M = 125, how many defaults have occurred?
 
-> **Sketch:** $\Delta N = N/M$; new $N_{\text{out}} = N - \Delta N$.
+**11.** Why are index option expiries beyond 6 months rare?
 
----
-
-**7.** Explain two reasons why rolling an index position can generate P&L.
-
-> **Sketch:** Composition change + maturity extension by 6 months.
-
----
-
-**8.** Give one practical risk when hedging off-the-run with on-the-run.
-
-> **Sketch:** Constituent mismatch across series.
-
----
-
-**9.** Why might a market prefer bond-price style quoting for some indices?
-
-> **Sketch:** Avoid PV01 disputes in spread-to-upfront conversion.
-
----
-
-**10.** *(No sketch)* Suppose the old series upfront is 3.0% and the new series is 1.0%. For $N = \$20mm$, compute net cash exchanged for a roll (assume you receive old upfront and pay new upfront).
-
----
-
-**11.** *(No sketch)* Construct a 4-coupon cashflow table with Actual/360 fractions 0.2528, 0.2611, 0.2528, 0.2528 for $N = \$10mm$, $c = 50$ bp.
-
----
-
-**12.** *(No sketch)* In a widening market, explain qualitatively why on-the-run might "lead" single-name CDS pricing.
-
----
-
-**13.** *(No sketch)* Describe the difference between "clean MTM" and "full MTM" and why desks quote clean.
-
----
-
-**14.** *(No sketch)* An index has two defaults; show the sequence of notional reductions and coupon reductions using $M = 100$, $N = \$10mm$, $c = 100$ bp, $\alpha = 0.25$.
-
----
-
-**15.** *(No sketch)* Explain why option expiries beyond six months can be illiquid for index options.
-
----
-
-**16.** *(No sketch)* State what extra documentation you need to be certain about standard coupon levels and settlement conventions for a live trade.
-
----
-
-**17.** *(No sketch)* Explain why "5Y" indices can start with more than 5 years remaining.
-
----
-
-**18.** *(No sketch)* Provide a cautious definition of "index spread DV01" and list what assumptions must be specified to compute it.
+**12.** List three types of constituent changes that can occur at roll.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Verified Facts (Source-Backed)
 
-- Index structure, roll mechanics, coupon setting (5 bp increments), Actual/360: O'Kane Ch 9-10
-- Cash settlement auction mechanics (35 → 65% example): Hull Ch 25
-- Equal-weight loss allocation ($1/M$): O'Kane index mechanics discussion
-- March/September roll dates for CDX NA IG and iTraxx Europe: Hull Ch 25
-- Liquidity drop after roll affecting index options: O'Kane Ch 10
+| Fact | Source |
+|------|--------|
+| Index families (CDX.NA.IG, iTraxx Europe, etc.) and constituent counts | O'Kane Ch. 10, Table 10.1 |
+| "CDS portfolio indices have transformed the credit derivatives markets" | O'Kane Ch. 10, Section 10.1 |
+| Roll dates (March 20, September 20) and IMM alignment | O'Kane Ch. 10; Hull Ch. 25 |
+| "T-year" indices have T±3 months actual maturity | O'Kane Ch. 10 |
+| IG indices quote by spread; HY/EM quote by bond price | O'Kane Ch. 10 |
+| Bond price convention avoids PV01 disputes | O'Kane Ch. 10 |
+| Upfront = (Spread - Coupon) × RPV01 | O'Kane Eq. 10.7 |
+| Default reduces notional by 1/M | O'Kane Ch. 10 |
+| Accrued premium paid at default | O'Kane Ch. 10 |
+| CDX = No-Re; iTraxx = Mod-Re (restructuring clause difference) | O'Kane Ch. 10 |
+| ISDA 2005 auction protocol for cash settlement | O'Kane Ch. 10 |
+| Liquidity drops after roll; expiries beyond 6 months rare for options | O'Kane Ch. 10-11 |
+| Example price calculation (CDX.NA.IG = 100.27%) | O'Kane Table 10.2; Hull Example 25.1 |
+| Bid-offer spread of 0.25 bp for IG indices, ~4 bp for HY | O'Kane Ch. 10 |
+| Markit as index administrator | O'Kane Ch. 10 |
+| Index coupon set as multiple of 5 bp | O'Kane Ch. 10 |
+| Flat curve convention for index pricing | O'Kane Ch. 10 |
+| Five advantages of index products (diversification, shorting, capital efficiency, derivatives underlying, sector trading) | O'Kane Ch. 10 |
+| Off-the-run hedge mismatch due to constituent differences | O'Kane Ch. 10 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Reasoned Inference (Derived from A)
 
-- "On-the-run" as most recent series: inferred from roll description and liquidity concentration language
-- Price discovery shifting to upfront with fixed coupon: economic reasoning from contract structure
+| Inference | Derivation |
+|-----------|------------|
+| Coupon payment formula after defaults | Linear scaling of coupon × outstanding notional from mechanics |
+| Roll P&L from composition + maturity | Direct from O'Kane's two listed drivers |
+| Booking error magnitude from quoting confusion | Arithmetic consequence of formula differences |
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
-- Exact standardized coupon levels for all indices: not asserted as universal in sources
-- Exact roll dates, membership rules, settlement conventions for specific indices: requires index rulebook + ISDA definitions
-- Desk-specific PV01/DV01 conventions: requires valuation policy documentation
+- **Exact current series numbers:** Series numbers increment with each roll; specific numbers depend on date
+- **Exact constituent lists:** Require index rulebook (Markit documentation) for current series
+- **Precise settlement conventions:** May vary; verify against trade confirmation and ISDA definitions
+- **Desk-specific PV01/MTM conventions:** Require valuation policy documentation
+- **Current bid-offer spreads:** O'Kane's figures are from ~2006-2007; current spreads may differ
+
+---
+
+## Cross-References
+
+- **Chapter 40** — CDS Auction Process: Detailed two-stage auction mechanics for default settlement
+- **Chapter 41** — CDS Index Pricing: Economics and cashflow valuation (premium/protection legs)
+- **Chapter 46** — Intrinsic Spread and Index Basis: Calculating intrinsic spread from constituents
+- **Chapter 47** — Index Hedging: Managing index versus single-name hedge mismatches
+- **Chapters 48-51** — Tranche Products: CDO tranches built on index portfolios

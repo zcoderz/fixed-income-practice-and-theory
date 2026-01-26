@@ -1,1047 +1,625 @@
-# Chapter 10: Treasury Market Microstructure for Relative Value
+# Chapter 10: Treasury Market Microstructure and Relative Value
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
+A trader quotes you two five-year Treasury notes with identical maturity dates—one yielding 4.97%, the other 5.02%. They have nearly the same DV01. They pay coupons on the same dates. By any fundamental measure, they should trade at the same yield. Yet one trades five basis points rich to the other, and this spread persists day after day.
 
-- Treasuries are issued via auction; institutions can submit competitive bids (quantity+yield) and noncompetitive bids (quantity only), with noncompetitive filled at the average yield of accepted competitive bids
-- The on-the-run Treasury is the most recently issued security of a given maturity; older issues are off-the-run and generally less liquid with wider bid-ask spreads
-- Repo is economically like a collateralized loan implemented as a sale and repurchase: the repurchase price equals principal times $(1 + rd/360)$ in the book's simple-interest convention
-- In the repo market, general collateral (GC) refers to borrowing/lending cash against a broad class of acceptable collateral; special collateral refers to a repo against a particular security, usually at a lower repo rate when that security is in demand ("special")
-- The book defines the special spread as $r_{GC} - r_{sp}$. Special repo rates are bounded below (effectively by 0 in the book's discussion) because a trader unable to borrow to make delivery can fail rather than accept a negative special rate; therefore, special spreads cannot exceed $r_{GC}$
-- On-the-run Treasuries often exhibit a liquidity premium, with two components emphasized: (i) a financing advantage (ability to borrow at below-GC rates using the security as collateral), and (ii) a pure liquidity premium (value of holding the most liquid benchmark)
-- The book describes an auction-cycle pattern for special spreads: spreads are small right after auctions and tend to rise, often peaking before the next auction; reopenings behave differently from new issues in the pattern shown
-- Using on-the-run yields as "fundamental" curve points or benchmarks can be misleading because OTR yields embed liquidity premiums and special financing effects; one remedy is to fit a curve using off-the-run data or adjust OTR yields for liquidity/financing effects
-- The book shows how to translate a financing advantage into a yield-equivalent by dividing (price-point financing advantage) by $DV01$
-- Long/short positions and repo mechanics: to short a bond, a desk can use a reverse repo (lending cash to borrow the bond), and if it cannot cover, it must "roll" the short by extending repo or borrowing elsewhere
+What explains this difference? The answer lies not in term structure theory, not in credit risk, and not in tax treatment—but in **market microstructure**: the mechanics of how Treasuries are issued, financed, and traded. The five-basis-point "anomaly" reflects the fact that one bond is *on-the-run* (the most recently issued) while the other is *off-the-run* (an older issue). The on-the-run bond commands a premium because it is more liquid and because holders can finance it at below-market rates in the repo market.
 
-### (B) Reasoned Inference (Derived from A)
+Understanding Treasury microstructure matters for three practical reasons. First, it affects how you measure value: using on-the-run yields as "the" curve can systematically bias your spread calculations. Second, it affects your P&L: the carry on a position depends critically on whether your collateral trades "special" in repo. Third, it creates trading opportunities: relative value strategies that exploit microstructure wedges are a core activity on rates desks.
 
-- "Relative value" in Treasuries is not only about term-structure expectations; it is also about microstructure wedges: liquidity and financing create persistent deviations between otherwise similar cash flows
-- A clean decomposition for many OTR/off-run RV questions is:
+This chapter examines the "plumbing" that drives these price differences. We begin with the on-the-run phenomenon and the financing channel provided by the repurchase agreement (repo) market. We then analyze how supply and demand for specific collateral creates "special" repo rates, and how these rates drive the wedge between fundamental and observed values. Finally, we integrate these concepts into a relative value framework for trading and curve fitting.
 
-$$\text{observed yield/price difference} \approx \underbrace{\text{cash-flow/curve component}}_{\text{macro}} + \underbrace{\text{financing component}}_{\text{repo specialness}} + \underbrace{\text{pure liquidity component}}_{\text{benchmark demand}}$$
-
-  Only the first is "fundamental curve"; the latter two are microstructure.
-
-- Any hedge that uses an OTR benchmark inherits exposure to liquidity/specialness shocks, even if macro rates are unchanged
-
-### (C) Speculation (Clearly Labeled; Minimal)
-
-- **I'm not sure** about the exact current U.S. Treasury announcement/auction/issue/settlement timeline (dates and sequencing) from these sources alone. To be certain, we would need the precise U.S. Treasury auction rules (or a specific book section that enumerates the calendar).
-- **I'm not sure** about modern "fails charges," fails netting mechanics, or post-crisis institutional rules beyond what is stated (e.g., the special-rate floor logic). To be certain, we would need a source section explicitly detailing fails treatment and penalties.
+The concepts introduced here connect back to the carry mechanics of Chapter 7 and the repo fundamentals of Chapter 9. They will reappear in Chapter 23 when we examine Treasury futures basis trading.
 
 ---
 
-## Conventions & Notation
+## 10.1 The Treasury Market as an OTC Dealer Market
 
-### Default Market Context
+### Market Structure
 
-We treat U.S. Treasury trading as an OTC dealer market, with auctions feeding the secondary market and repo financing supporting inventories and shorts. The core microstructure mechanisms emphasized are: on-the-run (OTR) liquidity, repo specialness, and auction/issuance cycles.
+The U.S. Treasury market operates as an over-the-counter (OTC) dealer market rather than a centralized exchange. Primary dealers make markets in Treasury securities, posting bid and ask prices to customers and trading among themselves through interdealer brokers. This structure has important implications for liquidity: different securities can have very different bid-ask spreads and market depth, even when their fundamental characteristics are similar.
 
-### Interest and Accrual Conventions
+Treasury prices are quoted in dollars and 32nds per $100 face value. A quote of "99-16" means $99 + 16/32 = 99.50$ per $100 par. Finer increments use fractions of 32nds—"101-04+" or "101-04 5/8" denotes additional precision. This is the **clean price**, which excludes accrued interest; the actual cash exchanged at settlement is the **dirty** (invoice) price.
 
-Repo interest is computed with simple-interest conventions shown in the sources (360 denominator). Coupon accrual conventions can differ in practice; where we need accrual numbers for examples, we state toy assumptions.
+> **Why microstructure matters:** Tuckman emphasizes that "microstructure" is not merely a technical detail—transaction costs, inventory constraints, and liquidity preferences directly affect traded prices and yields. A bond that appears cheap on a term structure model may be illiquid; a bond that appears rich may command a premium for its financing characteristics. Any relative value analysis must account for these effects.
 
-### Notation Glossary
+### Bid-Ask Spreads and Transaction Costs
 
-| Symbol | Definition |
-|--------|------------|
-| $P$ | Clean price per 100 |
-| $AI$ | Accrued interest per 100 |
-| $y$ | Yield-to-maturity (decimal) |
-| $\Delta y_{\text{bp}}$ | Yield change in basis points |
-| $DV01$ | Price change per 100 for a 1 bp yield change |
-| $r_{GC}$ | General collateral repo rate |
-| $r_{sp}$ | Special repo rate |
-| $s = r_{GC} - r_{sp}$ | Special spread |
-| $d$ | Day count (days) |
-| $P_{fwd}$ | Forward clean price |
-| $F$ | Futures price |
-| $cf$ | Conversion factor |
+Bid-ask spreads in Treasuries vary substantially by issue. On-the-run securities typically have the tightest spreads—often 1/64th or less for the most liquid issues. Off-the-run securities trade wider, sometimes several 32nds for illiquid issues. To understand the economic impact of these spreads, consider a bid-ask spread of $1/32$ on $100 million face value. The transaction cost is:
+
+$$\$100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = \$31{,}250$$
+
+This formula reflects that a 1/32 price difference (per $100 face) on $100 million notional translates to $31,250 in P&L. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
 
 ---
 
-## Core Concepts
+## 10.2 On-the-Run versus Off-the-Run
 
-### 1) Treasury Trading Venue and Quoting
+### Definitions
 
-**Formal Definition:**
+The **on-the-run (OTR)** Treasury is the most recently issued security in a given maturity sector. It serves as the primary benchmark for that tenor. The **old** issue is the next most recent, the **double-old** is the issue before that, and all older issues are collectively termed **off-the-run**.
 
-The Treasury market is described as an over-the-counter (OTC) market where dealers/financial institutions make markets; trading is not centralized like a pure exchange.
-
-Treasury prices can be quoted in fractions of par (e.g., 1/32 increments) and bid-ask spreads vary by liquidity.
-
-**Intuition:**
-
-"Microstructure" matters because the traded price/yield includes transaction costs, inventory constraints, and liquidity preference.
-
-**Trading / Risk / Portfolio Practice:**
-
-- Bid-ask and market impact set a floor on exploitable RV (expected microstructure "alpha" must exceed trading costs)
-- Liquidity differences can dominate short-horizon P&L even when "rates" are stable
-
----
-
-### 2) On-the-Run vs Off-the-Run
-
-**Formal Definition:**
-
-- **On-the-run (OTR):** The most recently issued Treasury security of a given maturity sector
-- **Off-the-run:** Older issues
-
-**Intuition:**
-
-OTR issues concentrate trading, hedging, and benchmark demand. Off-the-runs may be "buy-and-hold" and trade less.
-
-**Trading / Risk / Portfolio Practice:**
-
-- OTR trades often have tighter bid-ask and are preferred hedges
-- OTR yields may be lower (prices higher) than near-maturity off-the-runs due to a liquidity premium (defined below)
-
----
-
-### 3) Repurchase Agreements (Repo)
-
-**Formal Definition:**
-
-A repo is a transaction where one party buys securities and agrees to sell them back later at a higher price; the implied interest is the repo rate.
-
-**Example:** Repurchase price $= 100{,}000{,}000 \times (1 + 0.0545/360)$ for overnight at 5.45%.
-
-**Intuition:**
-
-Repo is the financing "plumbing" that allows dealers to hold inventory and allows shorts to source bonds.
-
-**Trading / Risk / Portfolio Practice:**
-
-- Carry in Treasury RV is largely "coupon minus repo"
-- Repo haircuts/repricing provisions exist (collateral > cash lent; margining), though the book abstracts from them in many calculations
-
----
-
-### 4) General Collateral (GC) vs Special Repo
-
-**Formal Definition:**
-
-- **GC repo:** Cash borrowed/lent against collateral drawn from a broad acceptable set (e.g., "any Treasury"), with rate $r_{GC}$
-- **Special repo:** Repo against a specific security; rate $r_{sp}$ is usually below GC when that security is in high demand to borrow
-- **Special spread:** $s = r_{GC} - r_{sp}$
-
-**Intuition:**
-
-"Special" means the market is paying (via accepting a low repo rate) to obtain a particular bond.
-
-**Trading / Risk / Portfolio Practice:**
-
-- Specialness changes the financing cost of being long and the borrow cost of being short
-- Term repos exist to lock in rates and reduce overnight risks tied to both money rates and collateral supply/demand shocks
-
----
-
-### 5) Liquidity Premium
-
-**Formal Definition:**
-
-In the book's framing, the OTR liquidity premium has two components:
-
-1. **Financing advantage:** Ability to borrow money at below-GC rates when using the security as collateral
-2. **Pure liquidity premium:** Value investors place on holding the most liquid benchmark, independent of financing
-
-**Intuition:**
-
-OTR securities are "special" in both trading liquidity and repo funding.
-
-**Trading / Risk / Portfolio Practice:**
-
-RV desks track OTR/off-run yield gaps as a proxy for liquidity/financing conditions, not as a stable "fair value constant."
-
----
-
-### 6) Financing Advantage via Repo
-
-**Formal Definition:**
-
-The financing advantage is the benefit from financing at $r_{sp}$ rather than $r_{GC}$, applied to the funded amount. The book converts this to yield-equivalent terms by dividing by $DV01$.
-
-**Intuition:**
-
-If you can fund a position cheaper, you can rationally pay a higher price (accept a lower yield).
-
-**Trading / Risk / Portfolio Practice:**
-
-Funding differences can explain why a bond looks "rich" on a spot-yield basis but is fair once carry/financing is included.
-
----
-
-### 7) Auction Cycle, Issuance, and "When-Issued" Trading
-
-**Formal Definition:**
-
-Auctions can be new issues (creating a new on-the-run) or reopenings (adding supply to an existing on-the-run); the special spread pattern in the book is marked by auction dates (vertical lines).
-
-The sources indicate that new issues can trade when-issued before they become the new OTR (e.g., "When-issued 10-year..." in a data table; and a narrative example of a new five-year trading when-issued).
-
-**Intuition:**
-
-Issuance changes the available float, affecting both liquidity and specialness.
-
-**Trading / Risk / Portfolio Practice:**
-
-Auction dates matter for:
-- OTR/off-run "roll" dynamics
-- Repo specialness paths
-- Temporary cheapening/richening due to inventory positioning (conceptually consistent with dealer inventory and seasoning; secondary source notes dealers may hold new issues until "seasoned" and distributed)
-
----
-
-### 8) Shorting Constraints, Fails, and the Special-Rate Floor
-
-**Formal Definition:**
-
-If a trader cannot borrow a security to make delivery, it may fail, losing one day's interest on the sale proceeds; this makes failing economically similar to borrowing at a 0% repo rate, supporting a floor at 0 and implying the special spread cannot exceed $r_{GC}$.
-
-**Intuition:**
-
-When a bond is hard to borrow, the short's cost rises until it hits a boundary where failing dominates.
-
-**Trading / Risk / Portfolio Practice:**
-
-"Short squeeze" type dynamics manifest as widening special spreads and distorted relative value in cash yields.
-
----
-
-### 9) Benchmark Distortion and Curve/Spread Measurement
-
-**Formal Definition:**
-
-OTR securities embed liquidity premiums and special financing; therefore, constructing a term structure from OTR yields can be problematic. The book suggests alternatives like discarding OTRs, weighting them differently, or adjusting yields for liquidity/financing effects.
-
-Similarly, using OTR yields in swap spread measurement can be misleading; alternatives include fitted curves or adjusting OTR yields for liquidity premiums.
-
-**Intuition:**
-
-A "benchmark yield" can move for microstructure reasons, not purely because discount rates changed.
-
-**Trading / Risk / Portfolio Practice:**
-
-RV signals that use OTR benchmarks (swap spreads, asset swap spreads, curve point spreads) can be biased.
-
----
-
-## Math and Derivations
-
-### 1) Price-Yield Linearization and DV01
-
-**Derivation:**
-
-By definition, yield-based DV01 is the price change for a 1 bp increase in yield:
-
-$$\boxed{DV01 \equiv -\frac{\partial P}{\partial y} \times 0.0001}$$
-
-In linear approximation:
-
-$$\boxed{\Delta P \approx -DV01 \cdot \Delta y_{\text{bp}}}$$
-
-The book provides a practical expression:
-
-$$DV01 \approx \frac{P \cdot D_{mod}}{10000}$$
-
-where $D_{mod}$ is modified duration and $P$ is price per 100.
-
-**Unit Checks and Sanity Checks:**
-
-- $DV01$: "price points per bp" (e.g., 0.085 means 0.085 points per bp)
-- If $\Delta y > 0$ (yields up), $\Delta P < 0$ for standard bonds
-
----
-
-### 2) Repo Interest and Financing Cost
-
-**Derivation:**
-
-A repo over $d$ days with principal (cash lent/borrowed) $X$ and rate $r$ has repurchase price:
-
-$$\boxed{X_{rep} = X\left(1 + \frac{rd}{360}\right)}$$
-
-consistent with the repo examples in the book.
-
-For a long bond position financed in repo, approximate financing cost over $d$ days (per $100 par) is:
-
-$$\text{FinCost} \approx (P + AI) \cdot \frac{rd}{360}$$
-
-**Unit Checks and Sanity Checks:**
-
-- $r$ is annualized; multiplying by $d/360$ gives a period fraction
-- A higher repo rate raises the cost of funding a long position
-
----
-
-### 3) Carry (Interest Income Minus Financing Cost) and P&L Decomposition
-
-**Derivation:**
-
-The book decomposes P&L over a holding period as:
-
-$$P\&L = \Delta(P + AI) + \text{Carry}$$
-
-where carry equals interest income minus financing cost.
-
-It gives a practical "carry-only" expression (for unchanged prices) as:
-
-$$\boxed{\text{Carry} = \left[(AI_1 - AI_0) + \text{Coupon received}\right] - (P + AI_0) \cdot r \cdot \frac{d}{360}}$$
-
-with the idea that the relevant funded amount is the invoice price and the financing cost uses money-market day count conventions.
-
-**Unit Checks and Sanity Checks:**
-
-- Carry in price points: compare to bid-ask in price points (e.g., 1/32 = 0.03125 points)
-- In "normal" upward-sloping curves, coupon may exceed repo, producing positive carry (book discussion in forward pricing)
-
----
-
-### 4) Special Spread and Financing Advantage
-
-**Derivation:**
-
-Special spread (definition):
-
-$$\boxed{s \equiv r_{GC} - r_{sp}}$$
-
-Financing advantage over $d$ days (per $100 par), approximating funded amount by invoice price:
-
-$$\boxed{\text{FinAdv}_{100} \approx (P + AI) \cdot s \cdot \frac{d}{360}}$$
-
-Yield-equivalent financing advantage:
-
-$$\boxed{\text{FinAdv}_{\text{bp}} \approx \frac{\text{FinAdv}_{100}}{DV01}}$$
-
-This is exactly the conversion used in the book's example: financing advantage divided by DV01 gives "basis points in yield terms."
-
-**Unit Checks and Sanity Checks:**
-
-- $\text{FinAdv}_{100}$ is in price points; dividing by $DV01$ (price points per bp) yields bp
-- If $r_{sp} < r_{GC}$, then $s > 0$: a long funded special has lower funding cost, i.e., positive advantage
-
----
-
-### 5) Forward Price from Repo (Microstructure Enters Through Repo)
-
-**Derivation:**
-
-For a coupon bond with no coupon payments during the forward window, the book derives:
-
-$$\boxed{P_{fwd} + AI(d) = (P(0) + AI(0))\left(1 + \frac{rd}{360}\right)} \quad \text{(16.7)}$$
-
-Rearranged:
-
-$$\boxed{P_{fwd} = P(0) - \text{Carry}} \quad \text{(16.8)}$$
-
-where:
-
-$$P_{fwd} = P(0) - \left(AI(d) - AI(0) - (P(0) + AI(0))\frac{rd}{360}\right)$$
-
-**Sanity Checks:**
-
-If carry is positive (income > financing cost), the forward price is lower than spot, consistent with the book's interpretation.
-
----
-
-### 6) Futures Basis (Preview)
-
-**Derivation:**
-
-For a deliverable bond $i$, the book defines:
-
-$$\boxed{GB_i(t) = P_i(t) - cf_i \cdot F(t)} \quad \text{(20.10)}$$
-
-$$\boxed{NB_i(t) = P_{fwd}^i(t) - cf_i \cdot F(t)} \quad \text{(20.11)}$$
-
-Using $P_{fwd} = P - \text{carry}$, net basis becomes:
-
-$$\boxed{NB_i(t) = GB_i(t) - \text{carry}_i(t)} \quad \text{(20.12)}$$
-
-**Assumptions (Explicit):**
-
-This chapter does not develop CTD, delivery options, or full Treasury futures microstructure; we only use these definitions as a bridge to "implied repo" arithmetic.
-
----
-
-## Measurement & Risk
-
-### How Auction Cycles, Liquidity, and Financing Show Up In:
-
-#### Observed Yields/Spreads
-
-- **OTR vs off-run yields:** OTR issues can trade at lower yields due to liquidity premium, which includes both financing advantage and pure liquidity demand
-- **Special spreads:** Specialness varies over time and exhibits an auction-cycle pattern: small after auctions, rising toward the next auction, with differences for reopenings vs new issues
-- **Spot vs forward yield spreads:** Even if the spot yield spread between two issues is small, expected differences in future specialness can create significant differences in forward yields/spreads (book example logic)
-
-#### Carry/Rolldown
-
-- Carry explicitly depends on the repo financing rate in the book's decomposition; if a bond goes special (repo rate falls), carry improves for a levered long funded in repo
-- Rolldown signals can be distorted if the curve "point" used for comparison is an OTR yield that embeds a time-varying liquidity premium; the book notes curve fitting is complicated by OTR liquidity premium and special financing effects
-
-#### Relative Value Signals
-
-- A "cheap/rich" signal based on observed yields may flip after adjusting for financing advantage; the book converts financing advantage to yield-equivalent by dividing by DV01, enabling apples-to-apples comparison across issues
-- Auction-cycle information matters because special spreads are not constant; expected changes in specialness affect forward valuation and RV decisions
-
-#### Hedging Outcomes
-
-If you hedge with an OTR benchmark, you are exposed to changes in its liquidity premium and specialness. The book explicitly warns that using OTR yields for swap spreads and term-structure extraction can be misleading and suggests alternatives (fitted curves, adjustments).
-
----
-
-### Key Definitions and Interpretations
-
-#### "Liquidity Premium" (Observed Price/Yield Difference, Not a Fundamental Constant)
-
-**Definition (operational):** The part of the observed OTR-off-run price/yield difference that cannot be explained by cash-flow differences under a smooth curve, and is attributed to (i) financing advantage and (ii) pure liquidity in the book's framing.
-
-**Interpretation:** It is time-varying, sensitive to market stress, dealer balance sheet, and benchmark demand. (Time-varying is a logical implication; the book's empirical patterns in special spreads and curve-fitting complications support non-constancy.)
-
-#### "Financing Advantage" via Repo (GC vs Special)
-
-**Definition:** The benefit of being able to finance (or equivalently borrow cash against) a bond at a rate below GC because that bond is special collateral.
-
-**Computation:** $\text{FinAdv}_{100} \approx (P + AI) \cdot (r_{GC} - r_{sp}) \cdot d/360$, and yield-equivalent $\approx \text{FinAdv}_{100}/DV01$.
-
-#### Link Between Specialness and Shorting Constraints
-
-**Mechanism:** Shorts need to borrow the specific bond to deliver; the desire to borrow drives specialness (low $r_{sp}$). When borrowing becomes too costly (would require negative special rates), participants may fail, implying a floor at 0% and bounding the special spread by $r_{GC}$.
-
----
-
-## Worked Examples
-
-*All examples use toy numbers but realistic magnitudes (bp, price per 100, days). We explicitly state simplifying assumptions.*
-
----
-
-### Example A: On-the-Run Premium in Yield Terms
-
-**Objective:** Two Treasuries with similar maturity—compute yield difference and translate into a price difference using DV01. Interpret as a "liquidity premium" proxy.
-
-**Given (toy but realistic):**
-
-- OTR 5-year: $y_{OTR} = 4.80\%$
-- Off-run 5-year: $y_{off} = 4.83\%$
-- Yield difference: $\Delta y = y_{off} - y_{OTR} = 0.03\% = 3$ bp
-- $DV01 = 0.045$ price points per bp (per $100 par)
-- Notional: $100,000,000 face
-
-**Step 1: Convert yield difference to price difference (per $100 par)**
-
-$$\Delta P \approx -DV01 \cdot \Delta y_{\text{bp}}$$
-
-Off-run has higher yield, so OTR is richer (higher price). Magnitude:
-
-$$|\Delta P| \approx 0.045 \times 3 = 0.135 \text{ points per 100}$$
-
-**Step 2: Convert price points to dollars**
-
-$100mm: 1.00 price point = $1,000,000
-
-$$\$\Delta \approx 0.135 \times \$1{,}000{,}000 = \$135{,}000$$
-
-**Interpretation (microstructure lens):**
-
-A 3 bp yield "richness" corresponds to $135k per $100mm—large relative to many transaction-cost budgets. Per the book, such OTR richness can proxy a liquidity premium, which itself includes financing advantage and pure liquidity value rather than a fundamental curve difference.
-
----
-
-### Example B: Auction Cycle Stylized Timeline
-
-**Objective:** Construct a 2-3 week timeline around an auction and show a toy series of (i) on-the-run yield vs off-the-run yield and (ii) specialness (GC repo vs special repo). Compute the implied $ financing benefit/cost over the period.
-
-**Source-backed anchor for the pattern:** Special spreads are small just after auctions and tend to rise toward the next auction; reopenings differ from new issues.
-
-**Toy Setup:**
-
-- Horizon: 15 days (days 0-14), where day 0 is an auction/issue event (stylized)
-- Notional: $100,000,000 financed in repo
-- Assume invoice price $\approx \$100$ per $100 par for funding amount (simplifying)
-- $r_{GC} = 5.00\%$ constant (toy)
-- Special repo rate drifts down as specialness rises (toy)
-
-**Toy Time Series (selected columns):**
-
-| Day | $y_{OTR}$ (%) | $y_{off}$ (%) | $r_{GC}$ (%) | $r_{sp}$ (%) | Special spread $s$ (bp) |
-|-----|---------------|---------------|--------------|--------------|-------------------------|
-| 0   | 4.860         | 4.850         | 5.00         | 4.90         | 10                      |
-| 4   | 4.840         | 4.850         | 5.00         | 4.00         | 100                     |
-| 9   | 4.828         | 4.850         | 5.00         | 2.50         | 250                     |
-| 14  | 4.822         | 4.850         | 5.00         | 2.00         | 300                     |
-
-(Daily special spreads used in the sum: 10, 20, 40, 70, 100, 120, 150, 190, 220, 250, 270, 280, 290, 295, 300.)
-
-**Step 1: Compute total financing benefit from specialness**
-
-Financing benefit (vs GC) over one day:
-
-$$\text{Benefit}_{day} = N \cdot \frac{s}{10000} \cdot \frac{1}{360}$$
-
-Over 15 days:
-
-$$\text{Benefit}_{15d} = N \cdot \frac{1}{360} \cdot \sum_{k=0}^{14} \frac{s_k}{10000}$$
-
-Sum of daily spreads:
-
-$$\sum s_k = 2605 \text{ bp-days}$$
-
-So:
-
-$$\text{Benefit}_{15d} = 100{,}000{,}000 \times \frac{1}{360} \times \frac{2605}{10000}$$
-
-Compute the fraction:
-
-$$\frac{2605}{10000 \times 360} = \frac{2605}{3{,}600{,}000} \approx 0.000723611$$
-
-Therefore:
-
-$$\text{Benefit}_{15d} \approx 100{,}000{,}000 \times 0.000723611 = \$72{,}361$$
-
-**Step 2 (optional): Translate financing benefit to yield-equivalent**
-
-Assume (toy) $DV01 = 0.085$ points per bp (per $100 par) for a 10-year-like security.
-
-DV01 in dollars for $100mm: $0.085$ points per bp $\Rightarrow \$85{,}000$ per bp.
-
-So yield-equivalent of $72,361:
-
-$$\Delta y_{eq} \approx \frac{72{,}361}{85{,}000} \approx 0.85 \text{ bp}$$
-
-This mirrors the book's conversion logic (price-point advantage divided by DV01 gives bp).
-
-**Interpretation:**
-
-Over just ~3 weeks, specialness can contribute meaningful carry ($72k on $100mm) even with no macro rate move. The OTR yield in the toy also richens vs off-run (OTR yield falls), consistent with the idea that OTR liquidity premium can build over time (conceptual; the book explicitly documents the special-spread pattern and liquidity-premium components).
-
----
-
-### Example C: Financing Advantage Math
-
-**Objective:** Given a bond position and two repo rates (GC and special), compute the difference in financing cost over $N$ days. Translate to bp of yield-equivalent advantage using DV01.
-
-**Given:**
-
-- Notional: $100,000,000 face
-- Clean price $P = 101.50$, accrued $AI = 0.80$
-- Invoice per 100: $P + AI = 102.30$
-- Horizon $d = 30$ days
-- $r_{GC} = 5.10\%$, $r_{sp} = 3.60\%$
-- $DV01 = 0.0435$ points per bp (per $100) (similar scale to the book's 5-year example)
-
-**Step 1: Financing cost per $100 at GC**
-
-$$\text{FinCost}_{GC,100} = (P + AI) \cdot r_{GC} \cdot \frac{d}{360}$$
-
-Compute $r_{GC} \cdot d/360 = 0.0510 \cdot 30/360 = 0.0510/12 = 0.00425$.
-
-$$\text{FinCost}_{GC,100} = 102.30 \times 0.00425 = 0.434775$$
-
-**Step 2: Financing cost per $100 at special**
-
-$$\text{FinCost}_{sp,100} = 102.30 \cdot 0.0360 \cdot \frac{30}{360}$$
-
-Compute $0.0360 \cdot 30/360 = 0.0360/12 = 0.003$.
-
-$$\text{FinCost}_{sp,100} = 102.30 \times 0.003 = 0.3069$$
-
-**Step 3: Financing advantage per $100**
-
-$$\text{FinAdv}_{100} = 0.434775 - 0.3069 = 0.127875 \text{ points}$$
-
-**Step 4: Dollar financing advantage on $100mm**
-
-1 price point on $100mm = $1,000,000
-
-$$\text{FinAdv}_{\$} = 0.127875 \times 1{,}000{,}000 = \$127{,}875$$
-
-**Step 5: Yield-equivalent advantage**
-
-$$\text{FinAdv}_{\text{bp}} \approx \frac{0.127875}{0.0435} \approx 2.94 \text{ bp}$$
-
-This is exactly the book's method: convert financing advantage to yield-equivalent by dividing by $DV01$.
-
----
-
-### Example D: Shorting Constraint Economics
-
-**Objective:** Show the economics of being short a "special" Treasury: compute the incremental cost of borrowing at a special rate vs GC.
-
-**Source-backed bounds:** The book argues special repo rates are bounded below (effectively at 0) because failing becomes preferable to paying a negative special rate; thus special spread $\leq r_{GC}$.
-
-**Toy Setup:**
-
-- You are short $100,000,000 face of a particular OTR note
-- To maintain the short, you must borrow the security; the book describes doing this via reverse repo (lending cash motivated by the need to borrow particular bonds)
-- GC rate $r_{GC} = 5.00\%$
-- Special rate $r_{sp} = 0.50\%$ (highly special)
-- Horizon $d = 7$ days
-- Approximate cash posted $\approx \$100mm$ (toy simplification)
-
-**Step 1: Incremental cost vs GC**
-
-As the cash lender in reverse repo, you earn $r_{sp}$ instead of $r_{GC}$. Opportunity cost:
-
-$$\Delta\text{Cost} = N \cdot (r_{GC} - r_{sp}) \cdot \frac{d}{360}$$
-
-Compute spread:
-
-$$r_{GC} - r_{sp} = 0.0500 - 0.0050 = 0.0450$$
-
-Compute:
-
-$$\Delta\text{Cost} = 100{,}000{,}000 \times 0.0450 \times \frac{7}{360}$$
-
-First $0.0450 \times 7 = 0.3150$. Then $0.3150/360 = 0.000875$.
-
-$$\Delta\text{Cost} = 100{,}000{,}000 \times 0.000875 = \$87{,}500$$
-
-**Step 2: Relate to the "fails / floor" logic**
-
-If specialness tried to push $r_{sp}$ below 0, the book's logic says failing dominates (economically similar to a 0% special), bounding the special rate and capping the special spread at $r_{GC}$.
-
-**Interpretation:**
-
-Even without any yield move, being short a very special issue can be expensive in carry terms ($87.5k/week on $100mm), explaining why "hard-to-borrow" securities can look rich in cash yields.
-
----
-
-### Example E: When-Issued / Auction Supply Effect (Conceptual with Numbers)
-
-**Objective:** Use a toy supply shock around issuance to illustrate how yields can temporarily cheapen/richen. Compute the implied RV trade P&L under stated assumptions.
-
-**What we can source vs what we can't:**
-
-*Verified from sources:*
-- New issues can trade when-issued before they become the new on-the-run (table and narrative)
-- Auction-cycle dynamics affect specialness in systematic ways
-
-*I'm not sure* (from these sources alone) about the precise, empirically correct sign/magnitude of "cheapening into auction" for yields in today's market. To be certain, we would need either (i) a specific empirical section in the sources quantifying this, or (ii) an explicitly cited market-microstructure study.
-
-**Toy Scenario (explicitly stylized):**
-
-- A new 10-year note trades when-issued
-- Assume into the auction the WI yield cheapens by +5 bp due to supply/inventory positioning; after issuance it richens by -4 bp as benchmark demand develops
-- DV01 (10-year-like): $DV01 = 0.085$ points per bp (per $100)
-- Notional: $100,000,000
-
-**Toy yield path:**
-
-- At auction (enter trade): $y = 4.95\%$
-- Five days later (exit): $y = 4.91\%$
-- Yield change: $\Delta y = -4$ bp
-
-**Step 1: Unhedged price P&L**
-
-$$\Delta P \approx -DV01 \cdot \Delta y_{\text{bp}} = -0.085 \cdot (-4) = +0.340 \text{ points}$$
-
-Dollar:
-
-$$\$P\&L \approx 0.340 \times \$1{,}000{,}000 = \$340{,}000$$
-
-**Step 2: DV01-matched hedge to isolate relative/microstructure move**
-
-Suppose a DV01-matched hedge (e.g., an off-the-run 10-year proxy) rallied by 3 bp over the same window due to macro rates:
-
-- Hedge yield change: $-3$ bp
-- Relative move of WI vs hedge: $(-4) - (-3) = -1$ bp (WI richens 1 bp more)
-
-Residual (relative) P&L:
-
-$$\Delta P_{rel} \approx -DV01 \cdot (-1) = +0.085 \text{ points} \Rightarrow \$85{,}000$$
-
-**Interpretation:**
-
-Even if most of the yield move is "macro," the extra 1 bp richening can be thought of as an issuance/microstructure effect (toy), and it is economically meaningful.
-
----
-
-### Example F: Benchmark Distortion
-
-**Objective:** Show how using an on-the-run yield as a "curve point" can bias a spread measurement versus using a fitted/smoothed curve. Provide a toy bond spread calculation under both benchmarks and compare.
-
-**Source-backed principle:** OTR yields embed liquidity premiums and special financing, so using them as benchmarks (e.g., swap spreads) can be misleading; using fitted curves or adjustments is proposed.
-
-**Toy Setup:**
-
-- Consider a 5-year swap fixed rate: $R_{swap} = 5.20\%$ (toy)
-- OTR 5-year Treasury yield: $y_{OTR} = 4.80\%$ (toy)
-- Fitted (off-the-run-based) 5-year curve yield: $y_{fit} = 4.85\%$ (toy; 5 bp higher than OTR)
-
-**Step 1: Swap spread using OTR**
-
-$$\text{SwapSpread}_{OTR} = R_{swap} - y_{OTR} = 5.20\% - 4.80\% = 0.40\% = 40 \text{ bp}$$
-
-**Step 2: Swap spread using fitted curve**
-
-$$\text{SwapSpread}_{fit} = R_{swap} - y_{fit} = 5.20\% - 4.85\% = 0.35\% = 35 \text{ bp}$$
-
-**Step 3: Distortion**
-
-$$\Delta = 40 - 35 = 5 \text{ bp}$$
-
-**Interpretation:**
-
-A 5 bp difference is large relative to typical bid-ask in many rates products, and it is purely a benchmark choice issue. This is exactly why the book cautions against taking OTR yields as "fundamental" curve points.
-
----
-
-### Example G: Link to Futures Basis (Optional Preview)
-
-**Objective:** Provide a simple "implied repo" style calculation linking cash price, futures price, and carry over the delivery window.
-
-**What is source-backed:**
-
-- Forward price from repo (no coupon in window): $P_{fwd} + AI(d) = (P(0) + AI(0))(1 + rd/360)$
-- Basis and carry relations: $GB = P - cf \cdot F$, $NB = P_{fwd} - cf \cdot F = GB - \text{carry}$
-
-**What is not fully developed here:**
-
-*I'm not sure* about CTD selection, delivery options, invoice-price conventions in full detail from the limited excerpts used here. To be certain, we'd need the specific Treasury futures delivery mechanics section (not just the basis definitions) and/or the full CTD discussion.
-
-**Toy implied repo calculation (clean preview, no coupon paid during window):**
-
-**Given:**
-
-- Spot clean price $P(0) = 100.50$
-- Accrued interest today $AI(0) = 0.80$
-- Days to delivery $d = 60$
-- Accrued interest at delivery $AI(d) = 1.20$ (toy)
-- Futures price $F = 112.00$
-- Conversion factor $cf = 0.90$
-
-**Approximate futures-implied forward clean price:**
-
-$$P_{fwd} \approx cf \cdot F = 0.90 \times 112.00 = 100.80$$
-
-(This is a simplifying assumption for preview purposes.)
-
-**Step 1: Solve for implied repo rate $r$ using (16.7)**
-
-$$P_{fwd} + AI(d) = (P(0) + AI(0))\left(1 + \frac{rd}{360}\right)$$
-
-Compute left side:
-
-$$P_{fwd} + AI(d) = 100.80 + 1.20 = 102.00$$
-
-Compute right-side base:
-
-$$P(0) + AI(0) = 100.50 + 0.80 = 101.30$$
-
-Take ratio:
-
-$$\frac{102.00}{101.30} \approx 1.006909$$
-
-So:
-
-$$1 + \frac{rd}{360} = 1.006909 \Rightarrow \frac{rd}{360} = 0.006909$$
-
-With $d = 60$:
-
-$$r = \frac{360}{60} \times 0.006909 = 6 \times 0.006909 = 0.041454 \approx 4.15\%$$
-
-**Step 2: Compute carry implied by this repo**
-
-From (16.8), $P_{fwd} = P(0) - \text{Carry}$. Rearranged:
-
-$$\text{Carry} = P(0) - P_{fwd} = 100.50 - 100.80 = -0.30 \text{ points}$$
-
-Alternatively, using the "income minus financing" intuition:
-
-- Interest income from accrual: $AI(d) - AI(0) = 1.20 - 0.80 = 0.40$
-- Financing cost:
-
-$$(P(0) + AI(0)) \cdot r \cdot \frac{d}{360} = 101.30 \times 0.041454 \times \frac{60}{360}$$
-
-Since $0.041454 \times 60/360 = 0.006909$,
-
-$$\text{FinCost} = 101.30 \times 0.006909 \approx 0.700 \text{ points}$$
-
-Carry $= 0.40 - 0.700 = -0.300$ points (matches).
-
-**Step 3: Basis check**
-
-$$GB = P - cf \cdot F = 100.50 - 100.80 = -0.30$$
-
-$$NB = GB - \text{carry} = -0.30 - (-0.30) = 0$$
-
-This aligns with the identity $NB = GB - \text{carry}$.
-
----
-
-## Practical Notes
-
-### Market Mechanics Vocabulary
+As Tuckman explains, "current issues tend to be more liquid. This means that their bid-ask spreads are particularly low and that trades of large size can be conducted relatively quickly."
 
 | Term | Definition |
 |------|------------|
-| **On-the-run vs off-the-run** | OTR is the most recently issued Treasury of a maturity; off-the-runs are older and typically less liquid |
-| **Auction cycle** | Auctions introduce new supply (new issue) or add to supply (reopening). The book's empirical discussion ties auction dates to systematic patterns in special spreads and, by implication, financing conditions. When-issued trading exists before the new issue becomes the new OTR |
-| **Specials vs GC** | GC repo: broad collateral class; special repo: specific security; special rates often lower than GC when that security is in demand |
-| **Liquidity and "flight to quality" effects** | The provided general derivatives/risk texts describe "flight to quality" episodes (e.g., widening credit spreads, liquidity stress) and note how liquidity can evaporate in crises. This is relevant as context for why liquidity premiums can spike |
+| On-the-run (OTR) | Most recently issued Treasury in a maturity sector |
+| Old | The previous on-the-run |
+| Double-old | The issue before the old |
+| Off-the-run | All issues that are not currently on-the-run |
 
-### Common Pitfalls
+### The Self-Fulfilling Nature of Liquidity
 
-1. **Treating on-the-run yields as "fundamental curve points"** without adjusting for liquidity premium and special financing effects (the book explicitly flags this)
+Why do on-the-run issues concentrate liquidity? Tuckman identifies a self-reinforcing dynamic where expectations drive behavior: "Since everyone expects a recent issue to be liquid, investors and traders who demand liquidity and who trade frequently flock to that issue and thus endow it with the anticipated liquidity." Additionally, the dealer community tends to hold substantial inventory of new issues until they "season" and are distributed to buy-and-hold investors. This dealer inventory supports market-making and further enhances liquidity.
 
-2. **Ignoring financing when evaluating RV:** Repo specialness can dominate carry and forward valuation
+The result is a two-tier market: on-the-run securities trade with tight spreads and deep markets, while off-the-run securities—even those with similar maturity and coupon—trade with wider spreads and less depth.
 
-3. **Comparing securities with different liquidity/financing characteristics "as if identical":** OTR vs off-run can differ in both pure liquidity and financing advantage
+### Why Shorts Prefer On-the-Run
 
-### Implementation Pitfalls
+The liquidity advantage of on-the-run securities makes them preferred not only for long positions but also for short positions. Tuckman observes that "most shorts in Treasuries are for relatively brief holding periods: a trading desk hedging the interest rate risk of its current position, a corporation or its underwriter hedging an upcoming sale of its own bonds, or an investor betting that interest rates will rise." Holders of these relatively brief short positions "prefer to sell particularly liquid Treasuries so that, when necessary, they can cover their short positions quickly and at relatively low transaction costs."
 
-1. **Inconsistent clean vs dirty handling:** Financing uses the funded invoice amount, and the book's forward-price derivation explicitly uses $P + AI$
+This preference creates demand to borrow on-the-run securities, which drives their repo rates lower—a phenomenon we explore next.
 
-2. **Day count mismatch:** Repo interest uses 360 denominator in the book; coupon accrual can differ and must be handled consistently
-
-3. **Sign mistakes:**
-   - Long financed in repo: higher repo rate $\rightarrow$ higher cost
-   - Short requires borrowing security via reverse repo: a lower special rate means lower interest earned on cash posted $\rightarrow$ higher cost (lost carry)
-
-### Verification Tests
-
-1. **DV01 translation:** Confirm $\$P\&L \approx DV01_{\$} \times \Delta y_{\text{bp}}$ and $\Delta P_{100} \approx DV01 \times \Delta y_{\text{bp}}$
-
-2. **Sanity-check magnitudes:**
-   - Compare liquidity premium proxies (bp) to bid-ask (in 32nds) and to financing carry over realistic horizons
-   - The book gives a transaction-cost benchmark: $1/32\%$ on $100mm is $31,250, illustrating that microstructure costs matter relative to small RV edges
-
-3. **Financing:** Confirm directionality—specialness ($r_{sp} < r_{GC}$) increases carry for levered longs
+> **Analogy: The New Car Smell (Liquidity Premium)**
+>
+> Why does the OTR bond cost more (yield less)?
+> *   **On-the-Run**: The **2025 Model** on the showroom floor. Everyone wants it. Parts are available. It's liquid.
+> *   **Off-the-Run**: The **2024 Model**. Just as good functionally (same cash flows), but harder to sell.
+> *   **Result**: You pay a premium for the "New" one. This is the **Liquidity Premium**.
 
 ---
 
-## Summary & Recall
+## 10.3 Repurchase Agreements: The Financing Channel
 
-### 10-Bullet Executive Summary
+### Repo as Collateralized Lending
 
-1. Treasuries trade in an OTC dealer market; microstructure (liquidity + financing) matters for RV
-2. On-the-run issues are the most recent and tend to be more liquid than off-the-runs
-3. Repo is the key financing mechanism; repo math uses simple interest with a 360 denominator in the book's examples
-4. Special repo means a specific bond is demanded; it borrows/lends at a lower rate than GC
-5. Special spread $= r_{GC} - r_{sp}$ is a central state variable for Treasury RV
-6. OTR liquidity premium has two components: financing advantage + pure liquidity value
-7. Special spreads follow an auction-cycle pattern in the book: small after auctions, rising toward the next auction
-8. Shorting constraints and failing logic bound specialness (special rates effectively not negative in the book's discussion)
-9. Benchmark yields can move for microstructure reasons; using OTR yields as "curve points" can bias spreads. Use fitted curves/adjustments when appropriate
-10. Convert microstructure advantages (price points) to yield equivalents using $DV01$: divide advantage by DV01 to get bp
+A **repurchase agreement (repo)** is economically equivalent to a collateralized loan, implemented as a sale and repurchase of securities. The borrower sells securities to the lender with an agreement to buy them back at a higher price. The difference between the repurchase price and the original sale price represents the interest on the loan.
 
-### Cheat Sheet of Key Definitions + "How to Compute" Snippets
+For a repo with principal $X$, repo rate $r$, and term $d$ days, the repurchase price is:
 
-| Item | Formula / Definition |
-|------|---------------------|
-| OTR vs off-run | OTR = most recent issue; off-run = older |
-| Repo repurchase price | $X_{rep} = X(1 + rd/360)$ |
-| Special spread | $s = r_{GC} - r_{sp}$ |
-| Financing advantage per 100 | $(P + AI) \cdot s \cdot d/360$ |
-| Yield-equivalent advantage | $\text{bp} \approx \text{Adv}_{100}/DV01$ |
-| Price from yield move | $\Delta P \approx -DV01 \cdot \Delta y_{\text{bp}}$ |
-| Forward price from repo (no coupons) | $P_{fwd} + AI(d) = (P(0) + AI(0))(1 + rd/360)$ |
-| Gross basis | $GB = P - cf \cdot F$ |
-| Net basis | $NB = GB - \text{carry}$ |
+$$\boxed{X_{\text{rep}} = X\left(1 + \frac{rd}{360}\right)}$$
+
+The $360$-day denominator reflects standard money market convention (Actual/360 day count).
+
+**Example from Tuckman (Ch 15):** A trading desk finances $\$105,071,823$ overnight at 5.10%. The repurchase amount is:
+
+$$\$105{,}071{,}823 \times \left(1 + \frac{0.0510}{360}\right) = \$105{,}086{,}710$$
+
+The financing cost is $\$14,887$ for one day.
+
+### Reverse Repo and Short Positions
+
+When a trader wants to short a bond they don't own, they must borrow it. The standard mechanism is a **reverse repurchase agreement**: the trader lends cash to a party who owns the bond, taking the bond as collateral. The trader can then deliver the borrowed bond to satisfy their short sale. Tuckman describes this process: "The trading desk finds some party that owns the [bonds]... lends that bank the cash... takes the [bonds] as collateral; and, finally, delivers that collateral to the [buyer]."
+
+The term "reverse repo" emphasizes that the cash lender is motivated by the need to borrow particular bonds, not simply to earn interest on cash.
+
+### Rolling and Covering
+
+A short position must eventually be **covered**—the trader must purchase and deliver the securities they sold and borrowed. If a trader cannot immediately cover, they must **roll** the short by extending the repo or finding another counterparty willing to lend the bonds. The ability to borrow specific securities, and the rate at which one can borrow, is a critical factor in relative value trading.
 
 ---
 
-### 25 Flashcards (Q/A)
+## 10.4 General Collateral versus Special Repo
 
-**Q1:** What is "on-the-run" in Treasuries?
-**A:** The most recently issued Treasury of a maturity sector.
+### The Two-Tier Repo Market
 
-**Q2:** Why are OTR issues often more liquid?
-**A:** Benchmark and hedging demand concentrates trading in the latest issue; off-the-runs trade less.
+Not all repo is created equal. The market distinguishes between **General Collateral (GC)** and **Special Collateral**. Tuckman explains: "Investors using the repo market to earn interest on cash balances with the security of U.S. Treasury collateral do not usually care about which particular Treasury securities they take as collateral. These investors are said to accept general collateral."
 
-**Q3:** Define repo in one line.
-**A:** A sale of securities with an agreement to repurchase later at a higher price, implying an interest rate.
+In a GC repo, the cash lender accepts any security from a broad acceptable class (e.g., "any Treasury"). The GC rate reflects the general cost of secured short-term borrowing and typically tracks closely with (but slightly below) the fed funds rate. Tuckman notes that "the GC rate is typically below the fed funds target rate because loans through repurchase agreement are effectively secured by collateral, while loans in the fed funds market are not."
 
-**Q4:** What is the basic repo interest formula used in the book?
-**A:** Repurchase price $= X(1 + rd/360)$.
+In contrast, a special repo occurs when the cash lender requires a specific security as collateral. The **special rate** for a particular bond depends on supply and demand for that specific issue. When a bond is in high demand for borrowing, its special repo rate falls below the GC rate. The **special spread** measures this difference:
 
-**Q5:** What is GC repo?
-**A:** Repo where collateral can be any security in a broad acceptable class (e.g., any Treasury).
+$$\boxed{s \equiv r_{GC} - r_{sp}}$$
 
-**Q6:** What is a "special" repo?
-**A:** Repo against a particular security; rate often below GC when that security is in demand.
+A bond "trading special" has $r_{sp} < r_{GC}$, meaning $s > 0$. The owner of a special bond enjoys a financing advantage: they can borrow money at below-GC rates by lending their bond.
 
-**Q7:** Define special spread $s$.
-**A:** $s = r_{GC} - r_{sp}$.
+### Empirical Magnitudes
 
-**Q8:** Why might a special repo rate be low?
-**A:** Market participants accept low interest to obtain a particular bond as collateral (high demand to borrow it).
+Table 10.1 reproduces Tuckman's data on repo rates for February 15, 2001, illustrating the range of special spreads.
 
-**Q9:** What are the two components of the OTR liquidity premium in the book?
-**A:** Financing advantage and pure liquidity premium.
+**Table 10.1: Selected Repo Rates for February 15, 2001**
 
-**Q10:** What is "financing advantage"?
-**A:** Benefit from financing at below-GC rates using a bond as collateral (specialness).
+| Treasury Issue | Comment | Special Repo Rate |
+|---------------|---------|------------------|
+| General Collateral | | 5.44% |
+| 5.125% 12/31/02 | Old 2-year | 4.75% |
+| 4.750% 01/31/03 | On-the-run 2-year | 4.88% |
+| 6.750% 05/15/05 | Old 5-year | 5.35% |
+| 5.750% 11/15/05 | On-the-run 5-year | 3.85% |
+| 6.500% 02/15/10 | Old 10-year | 5.35% |
+| 5.750% 08/15/10 | On-the-run 10-year | 4.25% |
 
-**Q11:** How do you convert a financing advantage into yield-equivalent bp?
-**A:** Divide the price-point advantage by $DV01$.
+*Source: Tuckman, Table 15.1*
 
-**Q12:** What is DV01?
-**A:** Price change per 1 bp change in yield (per $100 par for the bond-level DV01).
+The on-the-run five-year traded 159 basis points special (5.44% – 3.85%), while the old five-year traded at essentially GC. As Tuckman notes: "Someone taking the OTR five-year as collateral is willing to lend money overnight at 3.85%, 159 basis points below the GC rate, in order to cover or initiate a short sale."
 
-**Q13:** Why can OTR yields distort curve fitting?
-**A:** They embed liquidity premiums and special financing effects beyond the smooth term structure.
+### Why Bonds Trade Special
 
-**Q14:** What are common remedies for OTR distortion in curve fitting?
-**A:** Discard OTRs, weight them differently, or adjust yields for liquidity/financing effects.
+The special repo rate is entirely a product of supply and demand for specific collateral. Tuckman identifies several distinct forces that can drive a bond to trade special:
 
-**Q15:** Why can swap spreads using OTR Treasuries be misleading?
-**A:** Because OTR yields include liquidity premiums; use fitted curves or adjust yields instead.
+1. **Short interest**: Bonds that many traders want to short become special because shorts must borrow them through reverse repo to make delivery.
 
-**Q16:** What is the auction-cycle pattern of special spreads described in the book?
-**A:** Small after auctions; tend to rise and peak before the next auction.
+2. **Proximity to on-the-run**: Bonds maturing on the same date as an OTR issue may trade somewhat special as substitutes for shorting the OTR. Tuckman notes that "some traders short these issues instead of the most recent issues."
 
-**Q17:** How do reopenings relate to the auction cycle?
-**A:** Auctions can be new issues or reopenings; the book's figure marks both, and reopenings can affect the special spread pattern differently.
+3. **Arbitrage activity**: "Arbitrage traders deciding that a particular sector of the Treasury market is rich relative to swaps might form a large short base... and cause the issues in that sector to trade special."
 
-**Q18:** What does "reverse repo" mean in the book's trading-desk language?
-**A:** From the desk's perspective, lending cash to borrow particular bonds (repo from the counterparty viewpoint).
+4. **Inventory effects**: "A large sale of a particular security from the dealer community to an investor that does not participate in the repo market might suddenly make it difficult for shorts to borrow that security."
 
-**Q19:** How does a short Treasury position interact with repo?
-**A:** The short must borrow the bond (often via reverse repo) and may need to roll if not covered.
+---
 
-**Q20:** What is "covering a short"?
-**A:** Purchasing and delivering securities that were sold and borrowed.
+## 10.5 Special Repo Rates and the Auction Cycle
 
-**Q21:** Why can special repo rates have a floor in the book's discussion?
-**A:** Because failing can dominate paying negative special rates; special cannot go below 0, bounding special spread by GC.
+### The Cyclical Pattern
 
-**Q22:** How do you compute carry in the book's P&L framework?
-**A:** Carry = interest income (accrual + coupons) minus financing cost (repo on invoice).
+Tuckman documents a systematic pattern in special spreads linked to the Treasury auction cycle: "while the cycle of on-the-run special spreads is far from regular, these spreads tend to be small immediately after auctions and to peak before auctions."
 
-**Q23:** Why must RV signals consider bid-ask?
-**A:** Trading costs can be comparable to small RV edges; the book illustrates costs in 32nds on large notionals.
+The mechanism is straightforward. Immediately after an auction introduces a new on-the-run security, shorts have a choice between the new OTR and the previous OTR. This substitutability depresses special spreads. Over time, however, the short base coalesces around the new benchmark. As Tuckman explains, "as time passes after an auction, shorts tend to migrate toward the on-the-run security and its special spread tends to rise."
 
-**Q24:** What is the forward price identity linking repo and carry (no coupons)?
-**A:** $P_{fwd} = P(0) - \text{Carry}$.
+Empirically, Tuckman observes that "special spreads can be quite large: Spreads of 200 to 400 basis points are quite common."
 
-**Q25:** What is net basis (preview)?
-**A:** $NB = P_{fwd} - cf \cdot F = GB - \text{carry}$.
+> **Visualization: The Heartbeat of Liquidity**
+>
+> The Auction Cycle drives the "Heartbeat" of the repo market.
+> *   **Auction Day**: huge pulse of liquid supply. Specialness drops. "The patient is flush with blood."
+> *   **Weeks Later**: Supply gets locked away in buy-and-hold portfolios. Specialness (scarcity) rises. The market tightens.
+> *   **Next Auction**: The "Old" OTR dies (becomes Off-the-Run), and a new Heartbeat starts with the new issue.
+
+### Auction Types and When-Issued Trading
+
+The type of auction influences the magnitude of specialness. A **New Issue** creates a new on-the-run security, pushing the previous OTR to "old" status. A **Reopening**, by contrast, adds supply to the existing on-the-run issue. Tuckman observes that "special spreads for reopened issues do not get as wide as special spreads of new issues," as the additional supply alleviates collateral scarcity.
+
+Bonds can also trade on a **when-issued (WI)** basis before they are actually issued. Tuckman notes that "Bonds to be sold by the Treasury trade on a when-issued basis for a short time before they are actually issued." These WI bonds often trade at a premium to existing OTRs, anticipating the liquidity status they will inherit upon issuance.
+
+---
+
+## 10.6 The Fails Mechanism and the Special Rate Floor
+
+### The Economics of Fails
+
+If a short seller cannot borrow a security to make delivery, they **fail**—they do not deliver the bond and consequently do not receive the sale proceeds. Economically, a fail is equivalent to an involuntary zero-interest loan to the failed-to party: the seller loses one day's interest on the cash proceeds they would have received.
+
+Tuckman explains the implication for special rates. Consider a trader who is short a bond and needs to borrow it through repo:
+
+> "If for some reason the bond cannot be borrowed, the trader will fail to deliver it and, consequently, not receive the proceeds from the sale. In effect, the trader will lose one day of interest on the proceeds. On the other hand, if the bond can be borrowed, the trader will deliver the bond, receive the proceeds, and lend them at the special repo rate. But if the repo rate is 0%, there is no point in bothering with the repo agreement: Earning 0% on the proceeds is the equivalent of having failed to deliver the bond. And certainly the trader will prefer to fail rather than accept a special rate less than 0%."
+
+### The Zero Bound on Special Rates
+
+This logic establishes a historical floor on special rates:
+
+$$\boxed{r_{sp} \geq 0 \quad \Rightarrow \quad s \leq r_{GC}}$$
+
+The special spread cannot exceed the GC rate. As Tuckman notes, "In the fall of 2001, for example, with the GC rate near 2%, the maximum special spread was about 200 basis points."
+
+> **Post-2008 Note:** This analysis reflects the historical environment described in the primary sources. Post-2008 regulatory changes introduced explicit fails charges (often structured as 300 basis points minus the fed funds target, with a floor at zero) to penalize fails more heavily. This mechanism effectively allows for negative repo rates during periods of extreme collateral scarcity. I'm not sure about the precise mechanics of modern fails charges—the sources discuss the zero-floor logic but do not detail the TMPG fails charge framework introduced in 2009.
+
+---
+
+## 10.7 Liquidity Premiums of Recent Issues
+
+### Decomposing the Premium
+
+On-the-run securities trade at higher prices (lower yields) than comparable off-the-run issues. Tuckman decomposes this premium into two distinct components:
+
+> "Some of this premium is due to the demand for shorts and the resulting financing advantage, that is, the ability to borrow money at less than GC rates when using these bonds as collateral. Any additional premium, which might be called a pure liquidity premium, is due to the liquidity demands from long positions."
+
+Market participants often use the term "liquidity premium" to refer to the entire observed yield difference between OTR and off-the-run bonds, encompassing both components.
+
+### Empirical Evidence
+
+Tuckman's data for February 15, 2001 (Table 15.2), shows the OTR two-year trading almost 6 basis points rich to a comparable maturity bond, and the five-year OTR trading 5 basis points rich. The when-issued 10-year traded about 12 basis points rich to the existing OTR.
+
+### Distinguishing Financing Advantage from Pure Liquidity
+
+It is important to understand that financing advantage and pure liquidity have different sources:
+
+> "A pure liquidity premium arises because of a large demand to hold a particular bond relative to the supply of that bond available for trading. A bond trades special because of a large demand to short the bond relative to the supply of bonds available in the repo market."
+
+Since the sources are different, these effects can surface in various permutations. Tuckman provides examples:
+
+- A typical OTR issue, highly valued for liquidity and attracting a large short base, commands both a pure liquidity premium and trades special.
+- The 30-year OTR in 2001 was valued for liquidity but few wanted to short it—so it commanded a liquidity premium but did not trade special.
+- A seasoned issue with a large short base relative to repo supply might trade special without commanding a liquidity premium.
+
+---
+
+## 10.8 Valuing the Financing Advantage
+
+### Converting Financing Advantage to Yield-Equivalent
+
+A portfolio manager considering two similar bonds must translate the financing advantage into comparable terms. The key is to express the financing benefit in basis points of yield.
+
+**Step 1: Compute the financing advantage in price terms**
+
+For a bond trading at special spread $s$ over horizon $d$ days:
+
+$$\boxed{\text{FinAdv}_{100} = (P + AI) \times s \times \frac{d}{360}}$$
+
+where $P$ is the clean price and $AI$ is accrued interest (both per 100 par).
+
+**Step 2: Convert to yield-equivalent**
+
+Divide by DV01 to express in basis points:
+
+$$\boxed{\text{FinAdv}_{\text{bp}} = \frac{\text{FinAdv}_{100}}{DV01}}$$
+
+### Tuckman's Worked Example
+
+Consider a manager choosing between the OTR five-year (5.75s of 11/15/05) yielding 4.97% and the comparable 5.875s of 11/15/05 yielding 5.02%—a 5 basis point premium for the OTR.
+
+Assume the manager values pure liquidity at 1 basis point, the OTR trades 100 basis points special (on average) over 90 days, and the yield spread narrows from 5 to 3 basis points over the horizon. With a DV01 of 4.261, we can calculate the net advantage following Tuckman's equations (15.16-15.19):
+
+The **financing advantage** is:
+$$\frac{0.01 \times 90}{360} = 0.25\% \text{ of face value}$$
+
+The **coupon disadvantage** (since OTR has a coupon 12.5 bp lower) is:
+$$\frac{0.00125 \times 90}{365} = 0.0308\% \text{ of face value}$$
+
+The **capital loss from spread narrowing** (2 bp at DV01 4.261) is:
+$$2 \times 0.04261\% = 0.0852\% \text{ of face value}$$
+
+The net advantage is:
+$$0.25\% - 0.0308\% - 0.0852\% = 0.134\% \text{ of face value}$$
+
+Converting to yield-equivalent: $0.134\% / 0.04261\% \approx 3.1$ basis points.
+
+However, the OTR trades 4 basis points rich (after accounting for 1 bp liquidity value). Tuckman's conclusion: "using the preferences and assumptions of this money manager, the 5.875s are the preferred investment."
+
+---
+
+## 10.9 Benchmark Distortion and Curve Fitting
+
+### The Problem with OTR Benchmarks
+
+On-the-run yields embed liquidity premiums and financing effects that reflect microstructure, not the fundamental term structure. Using OTR yields as "the" curve creates systematic bias.
+
+Tuckman addresses this directly in the context of swap spreads (Ch 18): "While quoted swap spreads are useful for investigating broad themes... in the small these data can be misleading. The problem derives from quoting swap spreads using on-the-run Treasury securities." He explains that "liquidity premiums and special financing have a large impact on the yield of on-the-run government bonds. This means that the swap spread is not a clean measure of the credit of the banking system and of demand and supply in the swap and government bond markets."
+
+### Remedies
+
+Tuckman identifies several approaches to address OTR distortion:
+
+1. **Exclude OTRs** entirely from the curve-fitting universe, using only off-the-run bonds to define the zero curve.
+
+2. **Weight differently**: Give OTRs lower weight in the objective function of the fitting algorithm.
+
+3. **Use multiple curves**: Maintain separate "benchmark" and "off-the-run" curves for different purposes.
+
+4. **Adjust yields explicitly**: Apply explicit liquidity or financing corrections to OTR yields before fitting. Tuckman notes that possible solutions include "measuring swap spreads with respect to fitted yields from an off-the-run government curve or explicitly adjusting on-the-run yield for financing and liquidity."
+
+Tuckman observes that "both of these solutions require a good deal of subjective judgement" and therefore "adjusted swap spreads tend to be used by individual trading desks and houses rather than being widely quoted in the marketplace."
+
+### Swap Spread Measurement
+
+The conventional swap spread—swap rate minus Treasury yield—is particularly affected by benchmark choice. A swap spread computed against the OTR five-year may differ by several basis points from one computed against a fitted curve yield.
+
+**Example:** If the 5-year swap rate is 5.20% and the OTR yield is 4.80%, the headline spread is 40 bp. But if the fitted off-the-run yield is 4.85%, the "fundamental" spread is only 35 bp. This 5 basis point difference is economically significant relative to typical bid-ask spreads.
+
+---
+
+## 10.10 Application: The September 2001 Collateral Crisis
+
+### Market Stress Reveals Microstructure
+
+The terrorist attacks of September 11, 2001, created unprecedented disruption in the Treasury repo market. As Tuckman documents: "The terrorist attack on the World Trade Center disrupted the specials market in two ways. First, the resulting confusion and the destruction of records caused many government bond transactions to fail... Second, heightened uncertainty and credit concerns caused many participants in the repo markets to pull their securities from the repo market."
+
+The result was a severe shortage of on-the-run collateral. Table 10.2 shows average repo rates on September 20, 2001.
+
+**Table 10.2: Selected Repo Rates on September 20, 2001**
+
+| Treasury Issue | Comment | Special Repo Rate |
+|---------------|---------|------------------|
+| General Collateral | | 1.75% |
+| 3.625% 08/31/03 | On-the-run 2-year | 0.65% |
+| 4.625% 05/15/06 | On-the-run 5-year | 0.10% |
+| 5.000% 08/15/11 | On-the-run 10-year | 0.35% |
+
+*Source: Tuckman, Table 15.3*
+
+Tuckman notes: "the GC rate was 1.75% while the fed funds rate at the time was 3%. The widespread shortage of Treasury collateral widened the spread between fed funds and GC to 125 basis points." The five-year OTR was trading at just 0.10%—essentially at the fails floor.
+
+### The Treasury's Response
+
+In an unprecedented move on October 4, 2001, the Treasury announced a surprise auction of $6 billion of the OTR 10-year note. As Tuckman emphasizes: "This was unprecedented in two ways. First, the Treasury usually keeps to a strict issuance calendar. Second, the Treasury almost always gives much more notice of auctions. These policies are designed to foster market stability, but on October 4 the Treasury judged that drastic action was required."
+
+The market impact was immediate. The 10-year futures fell, the spread between the OTR and old 10-year tightened from 5.2 to 3.7 basis points, and the OTR special spread collapsed by approximately 100 basis points.
+
+This episode illustrates how microstructure effects can dominate during stress: collateral scarcity drove large price and spread moves independent of fundamental changes in the risk-free rate.
+
+> **Narrative: The Repo Squeeze**
+>
+> 1.  **Setup**: Too many shorts crowd into the OTR 10y (betting on rates rising).
+> 2.  **Trigger**: Market panic (e.g., 9/11). Lenders pull collateral back to safety.
+> 3.  **Consequence**: Shorts *must* borrow the bond to deliver, but no one is lending.
+> 4.  **Price**: Repo rate hits 0% (or -3% today). Shorts bleed cash daily to hold the position.
+> 5.  **Blowout**: The price of the OTR *spikes* relative to the curve. Shorts are forced to cover at any price, driving it higher.
+
+---
+
+## 10.11 Relative Value Framework
+
+### Decomposing Observed Spreads
+
+For any comparison between Treasury issues, the observed yield or price difference can be decomposed into three parts:
+
+$$\boxed{\text{Observed diff} = \underbrace{\text{Curve component}}_{\text{fundamental}} + \underbrace{\text{Financing component}}_{\text{specialness}} + \underbrace{\text{Pure liquidity}}_{\text{benchmark demand}}}$$
+
+Only the first component is "fundamental" in the sense of reflecting the term structure of discount rates. The latter two are microstructure effects that can persist, vary over time, and create trading opportunities.
+
+### Implications for Hedging
+
+Hedging with on-the-run securities introduces exposure to microstructure shocks. If you hedge a corporate bond position using the OTR Treasury, you are not just hedging duration risk; you are acquiring exposure to:
+
+- Changes in the OTR liquidity premium
+- Changes in the OTR special spread
+- Roll effects when a new issue becomes OTR
+
+These exposures can cause P&L variation even when "rates" (in the fundamental sense) are stable.
+
+### RV Signals and Microstructure
+
+Relative value signals based on OTR benchmarks require careful interpretation:
+
+- OTR/off-run yield spreads often proxy for liquidity conditions rather than stable fair value
+- Swap spreads using OTR may move for microstructure reasons unrelated to credit or swap market supply
+- Auction-cycle positioning matters because specialness follows a predictable pattern
+
+As Tuckman emphasizes: "Any trade or hedge involving a security that is trading special requires the same set of assumptions and calculations... How much is liquidity worth? How will special spreads behave? How will the premium change over time?"
+
+> **Visualization: The RV Trade (The Fly Chart)**
+>
+> *   **X-axis**: Maturity.
+> *   **Y-axis**: Yield - Fitted Curve (Spread to Curve).
+> *   **The Visual**: Most dots scatter around 0. The OTR points are typically **below** the line (Rich/Expensive).
+> *   **The Trade**: "Buy the cheap dot, Sell the rich dot" (Convergence Arbitrage).
+> *   **Warning**: The "Coupon Effect" often distorts raw yields. You must compare "Apples to Apples" (using a Fitted Curve or Z-Spread) to strip out structural bias.
+> *   **Famous Failure**: LTCM (1998) went Long Off-the-Run / Short On-the-Run. A "Flight to Quality" blew out the spread, and they couldn't hold on for convergence.
+
+---
+
+## 10.12 Carry and P&L Decomposition with Financing
+
+### The Carry Formula
+
+Following Tuckman's notation (Ch 15, Eq 15.8), the P&L from holding a bond over $d$ days can be decomposed into price change and carry:
+
+$$\boxed{P\&L = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{cd}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
+
+where $P(0), P(d)$ are clean prices, $c$ is the annual coupon rate, $D$ is days in the coupon period, and $r$ is the repo rate.
+
+Carry is simply interest income minus financing cost. If the bond trades special ($r = r_{sp} < r_{GC}$), the financing cost is lower, and carry is higher than for a GC-financed position.
+
+### Breakeven Analysis
+
+Carry is useful for computing breakeven price changes. Tuckman provides an example: "an investor might plan to purchase the 5⅞s of November 15, 2005, for an invoice price of 105.103073 and hold them for 30 days. If the 30-day term rate for financing the bonds is 5.10%, how big a price decline can occur before the investment shows a loss?"
+
+With carry of approximately $40,190 on $100 million face, the price can fall by about 4 cents per 100 face value before the trade turns unprofitable. Specialness directly affects this breakeven: if the bond goes special, carry improves and the breakeven cushion widens.
+
+---
+
+## 10.13 Forward Prices and the Repo Connection
+
+### No-Arbitrage Forward Price
+
+For a bond with no coupon payment during the forward window, the forward price is tied to spot price and repo by no-arbitrage. Tuckman derives this in Chapter 16 (Eq 16.7):
+
+$$\boxed{P_{fwd} + AI(d) = (P(0) + AI(0))\left(1 + \frac{rd}{360}\right)}$$
+
+Rearranging (following Eq 16.8):
+
+$$\boxed{P_{fwd} = P(0) - \text{Carry}}$$
+
+The forward price equals the spot price minus carry. If carry is positive (income exceeds financing), the forward clean price is below spot. If carry is negative, the forward price is above spot.
+
+### The Repo Rate in Forward Pricing
+
+The repo rate $r$ in these formulas is the rate at which *that specific bond* can be financed. For a special bond, $r = r_{sp} < r_{GC}$, so carry is higher and the forward price is lower than for an otherwise identical bond financing at GC.
+
+This means spot versus forward yield spreads can differ substantially: even if two bonds have similar spot yields, differences in expected specialness create different forward yields. Tuckman illustrates this with the OTR and old five-year: "the forward yield spread was only 3.4 basis points, 8.5 basis points below the 11.9 spot yield spread... The market priced the bonds... under the assumption that the OTR and old five-year would not then trade so differently in the special repo market."
+
+---
+
+## Summary
+
+1.  **Market structure matters:** The Treasury market is an OTC dealer market where liquidity concentrates in on-the-run issues. Off-the-run bonds, even with similar fundamentals, trade differently.
+
+2.  **Repo is the financing backbone:** Repurchase agreements allow dealers to finance inventory and traders to borrow securities for short positions. The repo rate directly affects carry and position economics.
+
+3.  **Special versus GC:** On-the-run securities typically trade "special"—their repo rates are below GC because of strong demand to borrow them. Special spreads can be 100-400 basis points.
+
+4.  **Auction cycle dynamics:** Special spreads are small after auctions and tend to widen toward the next auction as the short base migrates to the OTR.
+
+5.  **Liquidity premium decomposition:** OTR richness reflects both cheaper financing (borrowing availability) and pure liquidity demand (benchmark status).
+
+6.  **Fails create a floor:** Historically, special rates cannot go below 0% because failing to deliver is equivalent to financing at 0%. This bounds the special spread at the GC rate.
+
+7.  **Benchmark distortion:** Using OTR yields as "the curve" systematically biases spread measurements. Practitioners must use fitted curves or adjust for liquidity effects to isolate fundamental value.
+
+8.  **Convert financing to yield-equivalent:** Divide the financing advantage (in price terms) by DV01 to express in basis points for apples-to-apples comparison.
+
+9.  **Stress reveals microstructure:** The September 2001 episode showed how collateral scarcity can drive extreme special spreads and price dislocations even without fundamental rate changes.
+
+10. **RV decomposition:** Observed yield differences = curve component + financing component + pure liquidity. Only the first is "fundamental."
+
+---
+
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| On-the-run (OTR) | Most recently issued Treasury of a maturity | Concentrates liquidity and short interest |
+| Special repo | Repo rate below GC for a specific bond | Affects carry and relative value |
+| Special spread | $s = r_{GC} - r_{sp}$ | Measures financing advantage |
+| Liquidity premium | OTR yield depression vs comparable off-run | Sum of financing + pure liquidity effects |
+| Financing advantage | $(P + AI) \times s \times d/360$ | Dollar benefit of trading special |
+| Yield-equivalent | FinAdv / DV01 | Converts to comparable basis points |
+| Fails | Non-delivery of sold securities | Creates 0% floor (historically) on special rates |
+| Auction cycle | Special spreads small after auctions, rise before | Creates predictable RV patterns |
+
+---
+
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $r_{GC}$ | General collateral repo rate |
+| $r_{sp}$ | Special repo rate |
+| $s = r_{GC} - r_{sp}$ | Special spread |
+| $d$ | Holding period (days) |
+| $P$ | Clean price per 100 par |
+| $AI$ | Accrued interest per 100 par |
+| $DV01$ | Price change per bp yield change (per 100) |
+| $P_{fwd}$ | Forward clean price |
+
+---
+
+## Flashcards
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is "on-the-run" in Treasuries? | The most recently issued Treasury of a maturity sector. |
+| 2 | Why do OTR issues concentrate liquidity? | It is self-fulfilling: traders expecting liquidity flock to OTRs, endowing them with the anticipated liquidity. |
+| 3 | Define repo in one sentence. | A collateralized loan implemented as a sale and repurchase of securities. |
+| 4 | What is the repo interest formula? | Repurchase price $= X(1 + rd/360)$. |
+| 5 | What is GC repo? | Repo where any Treasury is acceptable as collateral. |
+| 6 | What is special repo? | Repo requiring a specific security; the rate is often below GC. |
+| 7 | Define special spread. | $s = r_{GC} - r_{sp}$. |
+| 8 | Why might a bond trade special? | High demand to borrow it for short positions. |
+| 9 | What creates the OTR liquidity premium? | Two components: financing advantage + pure liquidity demand. |
+| 10 | How do you convert financing advantage to bp? | Divide price-point advantage by DV01. |
+| 11 | What bounds the special spread? | The GC rate (since special cannot go below 0% in the historical model). |
+| 12 | Why couldn't special rates go negative historically? | Failing to deliver is equivalent to 0% financing, so no one would lend at negative rates. |
+| 13 | What is the auction-cycle pattern for specials? | Small after auctions, rising toward next auction. |
+| 14 | How do reopenings affect specials? | They add supply, so specials don't get as wide as with new issues. |
+| 15 | What is when-issued trading? | Trading bonds before they are actually issued. |
+| 16 | Why can OTR yields distort curve fitting? | They embed liquidity premiums beyond the fundamental term structure. |
+| 17 | How to remedy OTR distortion? | Exclude OTRs, weight them less, or explicitly adjust yields. |
+| 18 | What is a reverse repo? | Lending cash to borrow specific securities. |
+| 19 | What is "covering a short"? | Purchasing and delivering securities previously sold and borrowed. |
+| 20 | What happened to specials in September 2001? | Extreme shortages drove rates near zero; Treasury made a surprise auction to alleviate the squeeze. |
 
 ---
 
 ## Mini Problem Set
 
-*14 questions, increasing difficulty. Solution sketches provided for questions 1-7 only.*
+**1.** A 5-year Treasury has DV01 = 0.045 per 100. If yields fall 6 bp, estimate the price change.
+
+**Solution:** $\Delta P \approx -DV01 \times \Delta y = -0.045 \times (-6) = +0.27$ points per 100.
 
 ---
 
-**1.** A 5-year Treasury has $DV01 = 0.045$ per 100. If its yield falls by 6 bp, estimate the price change per 100.
+**2.** You finance $\$200$ million overnight at 4.80%. Compute interest cost (ACT/360).
 
-**Sketch:** $\Delta P \approx -DV01 \cdot \Delta y = -0.045 \cdot (-6) = +0.27$ points.
-
----
-
-**2.** You finance $200mm at repo rate 4.8% for 10 days. Compute interest cost (assume simple, 360).
-
-**Sketch:** Cost $= 200{,}000{,}000 \cdot 0.048 \cdot 10/360 = 200{,}000{,}000 \cdot 0.001\overline{3} \approx \$266{,}667$.
+**Solution:** Cost $= 200{,}000{,}000 \times 0.048 \times (1/360) = \$26{,}667$.
 
 ---
 
-**3.** A bond is special at 2.0% while GC is 5.0%. For a $100mm long funded position over 7 days, compute financing advantage.
+**3.** A bond trades 300 bp special (GC = 5.00%, special = 2.00%). For $\$100$mm face over 7 days, compute financing advantage.
 
-**Sketch:** Advantage $= 100{,}000{,}000 \cdot (0.05 - 0.02) \cdot 7/360 = 100{,}000{,}000 \cdot 0.03 \cdot 0.019444 \approx \$58{,}333$.
-
----
-
-**4.** Using the answer to (3), compute yield-equivalent advantage if $DV01_{\$}$ is $85,000 per bp.
-
-**Sketch:** bp $\approx 58{,}333/85{,}000 \approx 0.69$ bp.
+**Solution:** FinAdv $= 100{,}000{,}000 \times 0.03 \times (7/360) = \$58{,}333$.
 
 ---
 
-**5.** A trader measures a 5-year swap spread using OTR yield 4.70% and swap rate 5.05%. Then uses fitted curve yield 4.74%. What is the difference in measured swap spread?
+**4.** Using Problem 3, if DV01 = $\$85{,}000$ per bp, what is the yield-equivalent advantage?
 
-**Sketch:** OTR spread = 35 bp; fitted spread = 31 bp; difference = 4 bp.
-
----
-
-**6.** A short position must borrow a security at special repo 0.25% while GC is 4.75% for 14 days on $50mm. Compute the incremental cost vs GC.
-
-**Sketch:** Cost $= 50{,}000{,}000 \cdot (0.0475 - 0.0025) \cdot 14/360 = 50{,}000{,}000 \cdot 0.045 \cdot 0.038\overline{8} \approx \$87{,}500$.
+**Solution:** $58{,}333 / 85{,}000 \approx 0.69$ bp.
 
 ---
 
-**7.** Using (16.7) with no coupon in the window: $P(0) = 100.00$, $AI(0) = 0.50$, $P_{fwd} = 100.10$, $AI(d) = 0.80$, $d = 30$. Solve for implied repo $r$.
+**5.** Swap rate = 5.15%, OTR 5-year yield = 4.75%, fitted curve yield = 4.80%. What are the two swap spreads?
 
-**Sketch:**
-- Left $= 100.10 + 0.80 = 100.90$
-- Denom $= 100.00 + 0.50 = 100.50$
-- Ratio $\approx 1.0039801$
+**Solution:** OTR spread = 40 bp; fitted spread = 35 bp; difference = 5 bp.
 
-$$r = \frac{360}{30} \times (1.0039801 - 1) \approx 12 \times 0.0039801 \approx 0.04776 = 4.78\%$$
+---
+
+**6.** A short must borrow a bond at special 0.25% when GC is 4.75%, for 14 days on $\$50$mm. Compute incremental cost vs GC.
+
+**Solution:** Cost $= 50{,}000{,}000 \times 0.045 \times (14/360) = \$87{,}500$.
+
+---
+
+**7.** Using the forward-price formula: $P(0) = 100.00$, $AI(0) = 0.50$, $P_{fwd} = 100.10$, $AI(d) = 0.80$, $d = 30$. Solve for implied repo.
+
+**Solution:**
+- $(P_{fwd} + AI(d)) / (P(0) + AI(0)) = 100.90 / 100.50 = 1.00398$
+- $r = (360/30) \times 0.00398 = 4.78\%$
 
 ---
 
 **8.** Explain qualitatively why OTR/off-run yield spreads might widen during market stress even if the fitted curve slope is unchanged.
 
----
-
-**9.** Construct a simple RV signal combining an OTR/off-run yield spread with a special spread. Explain how you would avoid double-counting (financing vs pure liquidity).
+**Solution Sketch:** During stress, "flight to quality" drives demand for the most liquid assets (OTR), pushing their yields down relative to off-the-runs. Simultaneously, collateral scarcity may drive OTRs to trade special, further lowering their yields via the financing component. These are microstructure effects, not term structure slope changes.
 
 ---
 
-**10.** Suppose a new auction is a reopening. Based on the book's qualitative description, how might you expect the special spread dynamics to differ vs a brand-new issue? (Qualitative.)
+**9.** After an auction, would you expect the new OTR to be more or less special than immediately before? Why?
+
+**Solution Sketch:** Less special (or not special at all initially). The new supply and the presence of the old OTR as a substitute for shorts means supply is ample relative to demand. Specialness typically builds up over time as the issue seasons and shorts accumulate.
 
 ---
 
-**11.** Design a hedged trade to isolate changes in specialness from general rate moves. What hedge ratio would you use and why?
+**10.** Design a trade to profit from an expected widening of the OTR five-year special spread over the next month. What are the risks?
+
+**Solution Sketch:** Buy the OTR 5-year and short the old 5-year (or a matched maturity substitute). As the OTR becomes more special, its relative financing advantage grows, potentially widening the price spread. Risks include the "pure" yield curve changing (if not duration matched perfectly) or the OTR losing specialness faster than expected (e.g., if a reopening is announced).
 
 ---
 
-**12.** Describe an empirical test (data inputs and regressors) to estimate the sensitivity of OTR-off-run yield spread to special spread.
+**11.** How would you adjust a swap spread calculation to remove OTR distortion?
+
+**Solution Sketch:** Instead of $r_{swap} - y_{OTR}$, use $r_{swap} - y_{fitted}$, where $y_{fitted}$ is the yield implied by a curve fitted to off-the-run bonds.
 
 ---
 
-**13.** In a curve-fitting context, describe how you would "adjust" on-the-run yields for microstructure before fitting, consistent with the book's discussion. What quantities would you need?
+**12.** If a bond's special spread widens from 50 to 150 bp over 30 days, how does this affect carry for a long position?
 
----
-
-**14.** (Preview) Using the basis identity $NB = GB - \text{carry}$, explain how a trader might interpret a persistently positive net basis in the presence of repo constraints.
+**Solution Sketch:** It improves carry. The owner of the bond can lend it out at the lower special rate ($r_{sp}$ decreases), effectively borrowing cash at a cheaper rate. This reduces financing costs and increases net carry.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts
+### (A) Verified Facts (Source-Backed)
 
 | Fact | Source |
 |------|--------|
-| Treasury auction mechanics (competitive/noncompetitive bids) | Tuckman Ch 15-16 (secondary source) |
-| On-the-run vs off-the-run definitions and liquidity differences | Tuckman Ch 15-16 |
-| Repo as collateralized loan; repurchase price formula | Tuckman Ch 15-16 |
-| GC vs special repo definitions | Tuckman Ch 15-16 |
-| Special spread definition and floor at 0 (fails logic) | Tuckman Ch 15-16 |
-| OTR liquidity premium components (financing + pure liquidity) | Tuckman Ch 15-16 |
-| Auction-cycle pattern for special spreads | Tuckman Ch 15-16 (empirical figure description) |
-| OTR yields distort curve fitting; remedies proposed | Tuckman Ch 15-16 |
-| Financing advantage to yield-equivalent conversion | Tuckman Ch 15-16 (explicit example) |
-| Forward price from repo (Eq 16.7, 16.8) | Tuckman Ch 16 |
-| Basis identities (Eq 20.10-20.12) | Tuckman Ch 20 |
+| On-the-run vs off-the-run definitions | Tuckman Ch 15 |
+| Self-fulfilling nature of OTR liquidity | Tuckman Ch 15 |
+| Repo repurchase price formula | Tuckman Ch 15, Eq 15.3-15.4 |
+| GC vs special repo definitions | Tuckman Ch 15 |
+| GC rate typically below fed funds (secured vs unsecured) | Tuckman Ch 15 |
+| Special spread magnitude (159 bp for 5-year) | Tuckman Table 15.1 |
+| Shorts prefer liquid securities | Tuckman Ch 15 |
+| Auction-cycle pattern for specials | Tuckman Ch 15 |
+| Reopenings produce smaller special spreads | Tuckman Ch 15 |
+| Fails mechanism and 0% floor | Tuckman Ch 15 |
+| Liquidity premium decomposition (financing + pure liquidity) | Tuckman Ch 15 |
+| Liquidity premium magnitudes (5-6 bp for 5-year) | Tuckman Table 15.2 |
+| Financing advantage calculation | Tuckman Ch 15, Eq 15.16-15.19 |
+| September 2001 collateral crisis data | Tuckman Ch 15, Table 15.3 |
+| Treasury surprise auction response | Tuckman Ch 15 |
+| Carry decomposition formula | Tuckman Ch 15, Eq 15.8 |
+| Forward price = Spot - Carry | Tuckman Ch 16, Eq 16.7-16.8 |
+| OTR yields distort swap spread measurement | Tuckman Ch 18 |
+| Solutions: fitted curves or adjusted yields | Tuckman Ch 18 |
+| Forward yield spread vs spot yield spread difference | Tuckman Ch 18 |
 
-### (B) Reasoned Inference
+### (B) Reasoned Inference (Derived from A)
 
 | Inference | Derivation Logic |
 |-----------|------------------|
-| Microstructure decomposition (curve + financing + liquidity) | Logical combination of the two liquidity-premium components and carry/forward mechanics |
-| Hedging with OTR exposes to liquidity/specialness shocks | Direct implication of OTR yield containing non-fundamental components |
-| Time-varying liquidity premium | Implied by auction-cycle patterns in specialness and curve-fitting complications |
+| RV decomposition: curve + financing + liquidity | Combines liquidity premium definition with carry mechanics |
+| Hedging with OTR creates microstructure exposure | Follows from OTR yield including non-fundamental components |
+| Time-varying liquidity premium | Implied by auction-cycle patterns and crisis behavior |
+| Special spread bounded by GC rate | Direct implication of fails/zero-bound logic |
+| Forward price lower when special | Follows from $P_{fwd} = P - \text{Carry}$ where carry is higher when special |
 
-### (C) Speculation
+### (C) Flagged Uncertainties
 
 | Item | Uncertainty |
 |------|-------------|
-| Exact U.S. Treasury auction calendar/timeline | Not enumerated in provided sources |
-| Modern fails charges and penalty mechanics | Not detailed beyond the floor logic |
-| CTD selection and delivery option details | Only basis definitions used; full machinery not developed here |
-| Empirical sign/magnitude of when-issued cheapening | Would require specific empirical source |
-
----
-
-*Last Updated: January 2026*
+| Exact current U.S. Treasury auction calendar | Not enumerated in provided sources |
+| Modern fails charges and penalty mechanics | Not detailed beyond the zero-floor logic (TMPG charges post-2009 are not in Tuckman 2nd Ed) |
+| Precise empirical magnitude of when-issued cheapening | Would require specific empirical study |
+| Open repo mechanics (indefinite term, daily rate reset) | Sources discuss overnight and term repo but do not define open repo specifically |

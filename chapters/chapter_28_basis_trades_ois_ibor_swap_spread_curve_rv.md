@@ -138,6 +138,24 @@ Basis swap PV can be decomposed into:
 
 Tenor basis (e.g., 3M vs 6M) is treated similarly; the reference notes that pre-2007 such basis was small, but widened significantly post-crisis due to credit/liquidity forces.
 
+> **Analogy: Celsius vs. Fahrenheit**
+>
+> Basis trades are like measuring the temperature of money using two different thermometers.
+>
+> *   **Thermometer A (OIS)**: Measures the "Risk-Free" temperature. (Is money expensive because the Fed hiked rates?)
+> *   **Thermometer B (LIBOR/IBOR)**: Measures the "Bank Risk" temperature. (Is money expensive because banks are scared to lend to each other?)
+>
+> In normal times, they move together (0°C = 32°F). But in a crisis, Thermometer B spikes while Thermometer A might stay low.
+>
+> **The Basis Trade**: You are betting on the *difference* between the readings. If you think the gap is too wide, you sell Thermometer B and buy Thermometer A.
+
+> **Visual: The Basis Scale**
+>
+> *   **Left Side (OIS)**: Heavy, stable, clean. Represents the "Risk-Free" anchor.
+> *   **Right Side (IBOR)**: Lighter, volatile, dirty. Represents "Bank Risk."
+>
+> A Basis Swap balances the scale. If the Right Side gets heavier (Credit Risk rises), you must add more weight (Spread) to the Left Side to keep it balanced. The "Spread" is the fear premium.
+
 ---
 
 ### 4) Swap Spreads (Swap Rate vs Government Yield) and Benchmark Dependence

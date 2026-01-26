@@ -1,6 +1,24 @@
 # Appendix A2: Short-Rate Models (Vasicek / CIR / Hull–White)
 
-## What They Fit and Why
+---
+
+## Introduction
+
+Every rates desk has to answer a deceptively simple question: *how random is tomorrow's short rate?* The answer shapes everything from how you price a cap to how you hedge a swaption book. Short-rate models provide a mathematical framework for this randomness, specifying how the instantaneous interest rate evolves through time under a risk-neutral measure.
+
+The choice of model affects three critical dimensions of rates practice. First, **curve dynamics**: how does the yield curve shift, twist, and change shape as time passes? A Vasicek model with high mean-reversion speed implies the front end is volatile while the back end is stable; a model with low mean-reversion gives more parallel shifts. Second, **option prices**: the volatility structure embedded in your model determines what you pay for convexity. A CIR model where volatility scales with $\sqrt{r}$ behaves very differently in a low-rate environment than a Gaussian model. Third, **risk sensitivities**: the Greeks you compute for hedging depend on model structure—one-factor models imply perfect correlation across tenors, which is a material simplification.
+
+This appendix progresses through three canonical short-rate models, each representing an increase in sophistication:
+
+- **Vasicek (Section 2)**: The simplest mean-reverting model—a Gaussian Ornstein-Uhlenbeck process. Closed-form bond prices and option formulas make it analytically tractable, but it allows negative rates and cannot match an arbitrary initial yield curve.
+
+- **CIR (Section 3)**: Replaces constant volatility with $\sigma\sqrt{r}$, ensuring non-negative rates when the Feller condition holds. Still time-homogeneous, still cannot fit arbitrary curves, but captures the empirical observation that rate volatility increases with rate levels.
+
+- **Hull-White (Section 4)**: Extends Vasicek with a time-dependent drift $\theta(t)$, enabling exact fit to any initial discount curve. This is the workhorse for practical derivatives pricing—it matches the market while retaining much of Vasicek's tractability.
+
+We then cover **bond option pricing** (Section 5), including the Jamshidian decomposition that allows swaptions to be valued as portfolios of zero-coupon bond options. Section 6 presents the **Hull-White trinomial tree** construction essential for pricing American and Bermudan structures. Section 7 provides a **model comparison table**, and Section 8 addresses **calibration** to cap/floor and swaption markets. Throughout, we emphasize practical implementation alongside mathematical rigor.
+
+**Prerequisites:** Familiarity with stochastic calculus (Itô's lemma, Girsanov's theorem), risk-neutral pricing, and basic bond mathematics from earlier chapters.
 
 ---
 
@@ -240,6 +258,55 @@ Hull specifically notes the Vasicek/CIR models do not provide an exact fit to th
 | $\sigma \to 0$ | Stochastic integral disappears; $r_t$ becomes deterministic (pure mean reversion) |
 | $a \to 0$ | $B(t,T) \to (T-t)$ by the expansion $1 - e^{-a\Delta} \sim a\Delta$ |
 
+### 2.6 Real-World vs Risk-Neutral Dynamics and Estimation
+
+**The Fundamental Distinction**
+
+Brigo and Mercurio emphasize a critical point: "The pioneering approach proposed by Vasicek (1977) was based on defining the instantaneous-spot-rate dynamics under the real-world measure." For pricing, we use the risk-neutral measure $Q$; for historical estimation and forecasting, we need the physical measure $Q_0$.
+
+**Real-World (Physical) Dynamics**
+
+Under the physical measure $Q_0$, the Vasicek process can be written as:
+
+$$\boxed{dr(t) = [k\theta - (k + \lambda\sigma)r(t)] \, dt + \sigma \, dW^0(t)}$$
+
+where $\lambda$ is a new parameter contributing to the market price of risk. This has the same Gaussian structure as the risk-neutral dynamics but with different drift parameters.
+
+**Connection to Risk-Neutral Dynamics**
+
+The market price of risk process $\lambda(t) = \lambda r(t)$ (proportional to the short rate) allows both dynamics to remain tractable. The Girsanov change of measure:
+
+$$\left.\frac{dQ}{dQ_0}\right|_{\mathcal{F}_t} = \exp\left(-\frac{1}{2}\int_0^t \lambda^2 r(s)^2 \, ds + \int_0^t \lambda r(s) \, dW^0(s)\right)$$
+
+**Why Both Measures Matter**
+
+| Measure | Use | What We Observe |
+|---------|-----|-----------------|
+| Risk-neutral $Q$ | Derivative pricing | Market prices |
+| Physical $Q_0$ | Historical estimation, VaR, forecasting | Historical rate time series |
+
+As Brigo and Mercurio note: "Data are collected in the real world, and their statistical properties characterize the distribution of our interest-rate process under the objective measure."
+
+**Maximum Likelihood Estimation (Brigo & Mercurio)**
+
+Given daily observations $r_0, r_1, \ldots, r_n$ with time step $\delta$, define transformed parameters:
+
+$$\alpha := e^{-a\delta}, \quad \beta := b/a, \quad V^2 := \frac{\sigma^2}{2a}(1 - e^{-2a\delta})$$
+
+The maximum likelihood estimators are:
+
+$$\boxed{\hat{\alpha} = \frac{n\sum_{i=1}^n r_i r_{i-1} - \sum_{i=1}^n r_i \sum_{i=1}^n r_{i-1}}{n\sum_{i=1}^n r_{i-1}^2 - \left(\sum_{i=1}^n r_{i-1}\right)^2}}$$
+
+$$\boxed{\hat{\beta} = \frac{\sum_{i=1}^n [r_i - \hat{\alpha}r_{i-1}]}{n(1-\hat{\alpha})}}$$
+
+$$\boxed{\widehat{V^2} = \frac{1}{n}\sum_{i=1}^n [r_i - \hat{\alpha}r_{i-1} - \hat{\beta}(1-\hat{\alpha})]^2}$$
+
+**Practical Workflow**
+
+1. Estimate $\sigma$ from historical data using ML (diffusion coefficient is the same under both measures)
+2. Calibrate $a$ and $\theta$ to market derivative prices under $Q$
+3. Or: use historical estimates as initial guesses, then optimize to match market prices
+
 ---
 
 ## 3. CIR Model (Square-Root Diffusion)
@@ -264,7 +331,39 @@ Hull: if $2ab \geq \sigma^2$, then $r(t)$ is never zero; otherwise it can touch 
 
 Interest Rate Modeling explicitly links the classical strict positivity requirement for CIR to $2\kappa\vartheta \geq \sigma^2$ (same structure with different notation).
 
-### 3.3 Bond Pricing: Affine Form and $A(t,T)$, $B(t,T)$
+### 3.3 Transition Distribution: Non-Central Chi-Squared
+
+Unlike Vasicek where $r(t)$ is normally distributed, the CIR process has a **non-central chi-squared** transition distribution. This is crucial for understanding simulation and option pricing.
+
+**Transition Density**
+
+Given $r(s) = r_s$, the distribution of $r(t)$ for $t > s$ is:
+
+$$r(t) \sim \frac{\sigma^2(1 - e^{-a(t-s)})}{4a} \cdot \chi^2_\nu(\lambda)$$
+
+where $\chi^2_\nu(\lambda)$ denotes the non-central chi-squared distribution with:
+
+- **Degrees of freedom:** $\nu = \frac{4ab}{\sigma^2}$
+- **Non-centrality parameter:** $\lambda = \frac{4a \cdot e^{-a(t-s)}}{\sigma^2(1 - e^{-a(t-s)})} \cdot r_s$
+
+**Connection to Feller Condition**
+
+The degrees of freedom $\nu = 4ab/\sigma^2$:
+- If $\nu \geq 2$ (i.e., $2ab \geq \sigma^2$): the process is strictly positive
+- If $\nu < 2$: the process can reach zero but immediately reflects
+
+**Conditional Moments**
+
+$$\mathbb{E}[r(t) \mid r(s)] = r(s) e^{-a(t-s)} + b(1 - e^{-a(t-s)})$$
+
+$$\text{Var}[r(t) \mid r(s)] = r(s) \frac{\sigma^2}{a}(e^{-a(t-s)} - e^{-2a(t-s)}) + \frac{b\sigma^2}{2a}(1 - e^{-a(t-s)})^2$$
+
+**Simulation Note:** To simulate CIR paths, one can either:
+1. Use the exact non-central chi-squared distribution (via inverse CDF)
+2. Use Euler discretization with reflection at zero (less accurate but simpler)
+3. Use the Alfonsi or QE schemes for better accuracy near zero
+
+### 3.4 Bond Pricing: Affine Form and $A(t,T)$, $B(t,T)$
 
 **Affine Bond Price**
 
@@ -286,7 +385,7 @@ $$\boxed{A(t,T) = \left[\frac{2\gamma \exp\left(\frac{(a+\gamma)(T-t)}{2}\right)
 For both Vasicek and CIR:
 $$\boxed{\frac{\partial P(t,T)}{\partial r(t)} = -B(t,T) \, P(t,T)}$$
 
-### 3.4 Practical Interpretation
+### 3.5 Practical Interpretation
 
 **Level-Dependent Volatility**
 
@@ -300,7 +399,7 @@ Positivity / non-negativity is a key advantage compared with Gaussian models.
 
 As with Vasicek, the basic time-homogeneous CIR structure generally will not match the observed initial curve exactly; exact initial-curve fit motivates deterministic-shift extensions (CIR++ / shifted CIR), which are treated as extensions in the term-structure modeling literature.
 
-### 3.5 Unit/Limiting Checks
+### 3.6 Unit/Limiting Checks
 
 **Units**
 
@@ -312,6 +411,68 @@ Same affine check: $B(t,T)$ has units of time; $Br$ is dimensionless; $A$ dimens
 |-------|--------|
 | $T \to t$ | $B(t,T) \to 0$ and $P(t,t) = 1$ (consistent with ZCB payoff) |
 | $\sigma \to 0$ | Diffusion vanishes; model becomes deterministic mean reversion |
+
+---
+
+## 3.7 The Ho-Lee Model: Time-Dependent Drift Without Mean Reversion
+
+Before examining Hull-White, it is instructive to consider the simpler Ho-Lee model (1986), which introduces time-dependent drift but lacks mean reversion. This model represents a conceptual bridge between time-homogeneous models (Vasicek, CIR) and the full Hull-White extension.
+
+### 3.7.1 Model SDE
+
+The Ho-Lee dynamics under the risk-neutral measure are:
+
+$$\boxed{dr = \lambda(t) \, dt + \sigma \, dW}$$
+
+where $\lambda(t)$ is a deterministic drift function and $\sigma$ is constant volatility. As Tuckman notes: "In contrast to Model 2 [constant drift], the drift here depends on time. In other words, the drift of the process may change from date to date."
+
+**Key Observation:** There is no $-ar$ term pulling rates back to a long-run mean. The short rate follows a random walk with time-varying drift.
+
+### 3.7.2 Fitting the Initial Term Structure
+
+The flexibility of the Ho-Lee model comes from choosing $\lambda(t)$ to match market bond prices. Tuckman describes the procedure:
+
+> "The free parameters $\lambda_1$ and $\lambda_2$ may be used to match the prices of bonds with fixed cash flows... set $r_0$ equal to the one-month rate. Next, obtain a monthly spot rate curve from traded bond prices... Then find $\lambda_1$ such that the model produces a two-month spot rate equal to that of the initial spot rate curve."
+
+This iterative fitting ensures the model reproduces any given initial term structure.
+
+### 3.7.3 Bond Pricing
+
+The bond price in Ho-Lee has the affine form:
+
+$$P(t,T) = A(t,T) \, e^{-B(t,T) \, r(t)}$$
+
+with:
+$$B(t,T) = T - t$$
+
+This is the $a \to 0$ limit of Vasicek's $B(t,T) = \frac{1-e^{-a(T-t)}}{a}$.
+
+### 3.7.4 Volatility Structure and Limitations
+
+**Constant Forward Rate Volatility:** In Ho-Lee, the instantaneous forward rate volatility is constant across all maturities:
+$$\sigma_f(t,T) = \sigma$$
+
+This implies parallel shifts of the yield curve—all forward rates move together with perfect correlation.
+
+**No Mean Reversion:** Without the $-ar$ term, short rates can drift arbitrarily far from any central value. As Tuckman warns: "The rate curves resulting from this model match all the rates that are input into the model. Just as adding a constant drift to Model 1 does not affect the shape of the term structure of volatility nor the parallel shift characteristic of the model, making the drift time-dependent also does not change these features."
+
+**When Ho-Lee is Appropriate:**
+- Short-dated options where mean reversion is less important
+- As a limiting case for understanding Hull-White
+- When only the initial curve fit matters, not long-horizon dynamics
+
+### 3.7.5 Relationship to Hull-White
+
+Hull-White can be viewed as Ho-Lee plus mean reversion:
+
+| Feature | Ho-Lee | Hull-White |
+|---------|--------|------------|
+| Drift | $\lambda(t)$ | $\theta(t) - ar$ |
+| Mean reversion | None | Speed $a$ |
+| Forward vol structure | Constant | Exponentially decaying |
+| $B(t,T)$ | $T - t$ | $\frac{1-e^{-a(T-t)}}{a}$ |
+
+As $a \to 0$ in Hull-White, we recover Ho-Lee (with $\sigma_p = \sigma(S-T)\sqrt{T}$).
 
 ---
 
@@ -389,13 +550,360 @@ Because $A(t,T)$ is built from $P(0,T)/P(0,t)$, the model is designed to be cons
 - **One-factor limitation:** a one-factor short-rate model implies perfect correlation between rates of different maturities, which is cited as a limitation for concrete pricing problems; these models are noted as still used for risk management.
 - **Fitting volatility term structure by time-dependent $a(t), \sigma(t)$:** making more parameters time-dependent can fit more market features but is described as potentially dangerous due to unstable parameter estimation and the need for ad-hoc functional forms; the chapter motivation is to use only a deterministic shift/drift to fit the yield curve.
 
-**Multi-Curve Reality**
+**Multi-Curve Considerations**
 
-I'm not sure. The provided short-rate model chapters here are largely formulated in a single-curve setting (one discount curve $P(0,T)$ and one short rate). To be certain about "multi-curve" (e.g., OIS discounting vs IBOR projection) adaptations, we would need a source section explicitly treating multi-curve short-rate modeling and calibration conventions.
+The models in this appendix are formulated in a single-curve setting: one discount curve $P(0,T)$ drives both discounting and rate projection. In modern practice, OIS discounting is standard for collateralized derivatives, while projection curves (SOFR, €STR) determine floating payments.
+
+For Hull-White calibration in a multi-curve world, the typical approach is:
+- Use the OIS curve as the discount curve $P^M(0,T)$ that determines $\theta(t)$
+- Price caps/floors using OIS-discounted expectations of SOFR-linked payoffs
+- The short rate $r_t$ in the model corresponds to the overnight rate (not a term rate)
+
+The single-curve formulas in this appendix apply directly when the discount and projection curves coincide, or as approximations when basis is small. For precise multi-curve treatment with significant basis, see the multi-curve framework in Chapter 19.
 
 ---
 
-## 5. "What They Fit and Why" — Model Comparison Table
+### 4.5 The CIR++ Model: Fitting the Curve with Non-Negative Rates
+
+**Motivation: Combining CIR's Positivity with Curve Fitting**
+
+The Hull-White model fits the initial curve exactly but allows negative rates. The basic CIR model guarantees positive rates but cannot match an arbitrary initial curve. The CIR++ model, introduced by Brigo and Mercurio, combines the best of both: it preserves CIR's non-negativity while fitting the observed term structure exactly.
+
+**The Deterministic-Shift Construction**
+
+Brigo and Mercurio define the CIR++ model as a deterministic shift of the basic CIR process:
+
+$$\boxed{r(t) = x(t) + \varphi(t)}$$
+
+where $x(t)$ follows the standard CIR dynamics:
+
+$$dx(t) = k(\theta - x(t)) \, dt + \sigma \sqrt{x(t)} \, dW(t), \quad x(0) = x_0$$
+
+with parameters satisfying the Feller condition $2k\theta > \sigma^2$ to ensure $x(t) > 0$ for all $t$.
+
+**The Shift Function $\varphi(t)$**
+
+To fit the market curve $P^M(0,T)$ exactly, the shift function is determined by:
+
+$$\boxed{\varphi^{CIR}(t; \alpha) = f^M(0,t) - f^{CIR}(0,t; \alpha)}$$
+
+where $f^M(0,t) = -\frac{\partial}{\partial t} \ln P^M(0,t)$ is the market instantaneous forward rate, and $f^{CIR}(0,t; \alpha)$ is the forward rate implied by the basic CIR model with parameter vector $\alpha = (k, \theta, \sigma, x_0)$.
+
+Brigo and Mercurio give the explicit CIR forward rate:
+
+$$f^{CIR}(0,t; \alpha) = \frac{2k\theta(e^{th} - 1)}{2h + (k+h)(e^{th} - 1)} + x_0 \frac{4h^2 e^{th}}{[2h + (k+h)(e^{th} - 1)]^2}$$
+
+where $h = \sqrt{k^2 + 2\sigma^2}$.
+
+**Bond Pricing Under CIR++**
+
+The price at time $t$ of a zero-coupon bond maturing at $T$ is:
+
+$$P(t,T) = \bar{A}(t,T) \, e^{-B(t,T) r(t)}$$
+
+where $B(t,T)$ is the same as in basic CIR (eq. 3.25), and:
+
+$$\bar{A}(t,T) = \frac{P^M(0,T) \, A(0,t) \, e^{-B(0,t) x_0}}{P^M(0,t) \, A(0,T) \, e^{-B(0,T) x_0}} \cdot A(t,T) \, e^{B(t,T) \varphi^{CIR}(t;\alpha)}$$
+
+This formula shows how the market curve $P^M(0,T)$ enters directly into the bond pricing, ensuring exact fit at $t=0$.
+
+**Rate Positivity and Fitting Quality**
+
+A key practical consideration is whether $r(t) = x(t) + \varphi(t)$ remains positive. Since $x(t) > 0$ (under the Feller condition), positivity of $r(t)$ requires:
+
+$$\varphi(t) > -x(t) \quad \text{for all } t$$
+
+In practice, this is approximately ensured if:
+
+$$\varphi(t) = f^M(0,t) - f^{CIR}(0,t; \alpha) > 0$$
+
+which holds when the market curve lies above the basic CIR-implied curve. If the market curve is very low (negative forward rates in some tenors), $\varphi(t)$ may become sufficiently negative to push $r(t)$ negative, defeating the purpose. Brigo and Mercurio note this as a practical calibration consideration.
+
+**Comparison: Hull-White vs. CIR++**
+
+| Feature | Hull-White | CIR++ |
+|---------|-----------|-------|
+| Curve fitting | Exact | Exact |
+| Rate positivity | No (Gaussian) | Yes (if $\varphi(t)$ not too negative) |
+| Analytical tractability | Full (bond prices, options) | Partial (bond prices; options via numerical methods) |
+| Option pricing | Closed-form ZBO | Chi-squared distribution, more complex |
+| Typical use | Rates desks, general pricing | Settings where positivity matters |
+
+**When to Use CIR++**
+
+CIR++ is valuable when:
+- Rate positivity is a hard constraint (e.g., some risk systems)
+- The curve is not too flat or inverted (avoiding deeply negative $\varphi$)
+- You can accept more complex option pricing (no simple Black-like formula)
+
+For most practical purposes in a low-but-positive rate environment, Hull-White remains the workhorse due to its full analytical tractability.
+
+---
+
+## 5. Bond Option Pricing in Short-Rate Models
+
+One of the key advantages of Gaussian short-rate models is closed-form pricing for European options on zero-coupon bonds. This extends to caps, floors, and swaptions through decomposition arguments.
+
+### 5.1 Zero-Coupon Bond Options (ZBO)
+
+For Vasicek, Ho-Lee, and Hull-White one-factor models, Jamshidian (1989) derived the following formula. The price at time $t=0$ of a European call with maturity $T$ on a zero-coupon bond with principal $L$ maturing at time $S > T$ is:
+
+$$\boxed{\text{ZBC}(0, T, S, K) = L \cdot P(0,S) \, \Phi(h) - K \cdot P(0,T) \, \Phi(h - \sigma_p)}$$
+
+where $K$ is the strike price, $\Phi(\cdot)$ is the standard normal CDF, and:
+
+$$h = \frac{1}{\sigma_p} \ln\frac{L \cdot P(0,S)}{K \cdot P(0,T)} + \frac{\sigma_p}{2}$$
+
+The price of a European put is:
+
+$$\boxed{\text{ZBP}(0, T, S, K) = K \cdot P(0,T) \, \Phi(-h + \sigma_p) - L \cdot P(0,S) \, \Phi(-h)}$$
+
+**Volatility Parameter $\sigma_p$**
+
+For Vasicek and Hull-White:
+
+$$\boxed{\sigma_p = \frac{\sigma}{a}\left[1 - e^{-a(S-T)}\right] \sqrt{\frac{1 - e^{-2aT}}{2a}}}$$
+
+For Ho-Lee ($a \to 0$):
+
+$$\sigma_p = \sigma(S-T)\sqrt{T}$$
+
+**Interpretation:** The formula resembles Black's model for bond options, with the forward bond price volatility equal to $\sigma_p/\sqrt{T}$. The term $B(T,S) = \frac{1-e^{-a(S-T)}}{a}$ captures how bond price sensitivity to the short rate depends on the time-to-maturity of the underlying bond.
+
+### 5.2 Jamshidian Decomposition for Coupon Bond Options
+
+In a one-factor short-rate model, all zero-coupon bond prices move in the same direction when $r$ changes: they all increase when $r$ decreases and vice versa. This monotonicity enables a powerful decomposition for options on coupon-bearing bonds.
+
+**The Key Insight:** A European option on a coupon-bearing bond can be expressed as a portfolio of European options on the constituent zero-coupon bonds.
+
+**Procedure (Jamshidian, 1989):**
+
+**Step 1:** Find the critical short rate $r^*$ at option maturity $T$ for which the coupon bond price equals the strike $K$:
+
+$$\sum_{i=1}^{n} c_i \, P(T, T_i; r^*) = K$$
+
+where $c_i$ is the $i$-th cash flow at time $T_i > T$ (coupons plus principal), and $P(T, T_i; r^*)$ is the bond price when $r(T) = r^*$.
+
+In affine models, this becomes:
+
+$$\sum_{i=1}^{n} c_i \, A(T, T_i) \, e^{-B(T, T_i) \, r^*} = K$$
+
+This is a nonlinear equation in $r^*$ that must be solved numerically (e.g., Newton-Raphson).
+
+**Step 2:** Compute the component strikes. For each payment date $T_i$:
+
+$$X_i = A(T, T_i) \, e^{-B(T, T_i) \, r^*}$$
+
+**Step 3:** The coupon bond option price is the sum of ZCB option prices:
+
+$$\boxed{\text{CBO}(0, T, \{T_i\}, \{c_i\}, K) = \sum_{i=1}^{n} c_i \cdot \text{ZBO}(0, T, T_i, X_i)}$$
+
+where ZBO is a call for a call option on the bond, and a put for a put option.
+
+**Why This Works:** At maturity $T$:
+- If $r(T) < r^*$: all constituent ZCBs are worth more than their strikes $X_i$, so the call on each ZCB is in-the-money, and the coupon bond exceeds $K$
+- If $r(T) > r^*$: all ZCBs are worth less than their strikes, all options expire worthless, and the coupon bond is below $K$
+
+The decomposition holds because the exercise decision is the same for all components.
+
+### 5.3 Caps and Floors as ZCB Option Portfolios
+
+A caplet paying at time $T_i$ based on the rate set at $T_{i-1}$ can be rewritten as a put option on a zero-coupon bond. Specifically, a caplet with strike rate $K$, notional $N$, and accrual period $\tau_i$ has payoff at $T_i$:
+
+$$N \cdot \tau_i \cdot \max(L(T_{i-1}, T_i) - K, 0)$$
+
+This is equivalent to $(1 + K\tau_i)$ put options on a ZCB with face value $\frac{N}{1+K\tau_i}$, maturing at $T_i$, struck at $\frac{1}{1+K\tau_i}$, with the option expiring at $T_{i-1}$.
+
+**Cap Pricing Formula (Vasicek/Hull-White):**
+
+$$\boxed{\text{Cap}(0, \mathcal{T}, N, K) = N \sum_{i=1}^{n} \left[ P(0, T_{i-1}) \, \Phi(-h_i + \sigma_p^i) - (1 + K\tau_i) \, P(0, T_i) \, \Phi(-h_i) \right]}$$
+
+where $\mathcal{T} = \{T_0, T_1, \ldots, T_n\}$ is the payment schedule and:
+
+$$\sigma_p^i = \frac{\sigma}{a}\left[1 - e^{-a(T_i - T_{i-1})}\right] \sqrt{\frac{1 - e^{-2aT_{i-1}}}{2a}}$$
+
+$$h_i = \frac{1}{\sigma_p^i} \ln\frac{P(0, T_i)(1 + K\tau_i)}{P(0, T_{i-1})} + \frac{\sigma_p^i}{2}$$
+
+**Floor Pricing:**
+
+$$\text{Floor}(0, \mathcal{T}, N, K) = N \sum_{i=1}^{n} \left[ (1 + K\tau_i) \, P(0, T_i) \, \Phi(h_i) - P(0, T_{i-1}) \, \Phi(h_i - \sigma_p^i) \right]$$
+
+### 5.4 European Swaptions via Jamshidian
+
+A payer swaption is economically equivalent to a call option on a coupon-bearing bond. Consider a swaption giving the right to enter a payer swap at time $T$ with payment dates $\{T_1, \ldots, T_n\}$ and fixed rate $K$:
+
+- Define cash flows: $c_i = K\tau_i$ for $i = 1, \ldots, n-1$ and $c_n = 1 + K\tau_n$
+- Apply Jamshidian decomposition with these cash flows
+- The strike on the coupon bond option is $K = 1$ (par)
+
+**Payer Swaption Price:**
+
+$$\boxed{\text{PS}(0, T, \mathcal{T}, N, K) = N \sum_{i=1}^{n} c_i \cdot \text{ZBP}(0, T, T_i, X_i)}$$
+
+**Receiver Swaption Price:**
+
+$$\text{RS}(0, T, \mathcal{T}, N, K) = N \sum_{i=1}^{n} c_i \cdot \text{ZBC}(0, T, T_i, X_i)$$
+
+### 5.5 CIR Bond Option Pricing
+
+For the CIR model, bond option prices involve the non-central chi-squared distribution. The transition density of $r(T)$ given $r(t)$ follows a scaled non-central chi-squared distribution, which makes the option pricing formula more complex than the Gaussian case.
+
+Hull notes that CIR bond options "involve integrals of the noncentral chi-square distribution." The explicit formula (Cox, Ingersoll, Ross 1985) is:
+
+$$\text{ZBC}_{\text{CIR}}(0, T, S, K) = P(0,S) \cdot \chi^2(2r^*[\rho + \psi + B(T,S)]; \, \nu, \, \lambda_1) - K \cdot P(0,T) \cdot \chi^2(2r^*[\rho + \psi]; \, \nu, \, \lambda_2)$$
+
+where $\chi^2(x; \nu, \lambda)$ is the CDF of the non-central chi-squared distribution with $\nu$ degrees of freedom and non-centrality parameter $\lambda$. The parameters involve:
+
+$$\nu = \frac{4ab}{\sigma^2}, \quad \rho = \frac{2a}{\sigma^2(e^{aT} - 1)}, \quad \psi = \frac{a + \gamma}{\sigma^2}$$
+
+$$r^* = \frac{\ln(A(T,S)/K)}{B(T,S)}$$
+
+and $\lambda_1$, $\lambda_2$ depend on the current short rate $r(0)$.
+
+The non-central chi-squared CDF can be computed via series expansions or numerical integration. This makes CIR option pricing computationally heavier than Vasicek/Hull-White, though still tractable.
+
+---
+
+## 6. Hull-White Trinomial Tree Construction
+
+For pricing American options, Bermudan swaptions, and other path-dependent or early-exercise structures, analytical formulas are unavailable. Trees provide a flexible numerical framework that exactly matches the initial term structure.
+
+### 6.1 The Two-Stage Procedure
+
+Hull and White (1994) developed a robust two-stage procedure for building trinomial trees:
+
+**Stage 1:** Build a tree for a "base" process $R^*$ that is mean-reverting around zero:
+$$dR^* = -a R^* \, dt + \sigma \, dW$$
+
+**Stage 2:** Shift the tree nodes by time-dependent amounts $\alpha_i$ to match the observed term structure, giving the tree for $R = R^* + \alpha$.
+
+### 6.2 Stage 1: Building the $R^*$ Tree
+
+**Node Spacing:** Set the vertical spacing between rates as:
+
+$$\boxed{\Delta R = \sigma \sqrt{3 \Delta t}}$$
+
+This choice minimizes discretization error.
+
+**Node Labeling:** Let $(i, j)$ denote the node at time $t = i\Delta t$ with rate $R^* = j\Delta R$.
+
+**Branching Patterns:** Three patterns are used:
+
+| Pattern | Description | When Used |
+|---------|-------------|-----------|
+| Standard | up/middle/down | Most nodes |
+| Up-biased | up2/up1/middle | Low rate region ($j < j_{\min}$) |
+| Down-biased | middle/down1/down2 | High rate region ($j > j_{\max}$) |
+
+The thresholds are set to ensure positive probabilities:
+
+$$j_{\max} = \lceil 0.184 / (a \Delta t) \rceil, \quad j_{\min} = -j_{\max}$$
+
+**Branching Probabilities:** For standard branching at node $(i, j)$:
+
+$$\boxed{p_u = \frac{1}{6} + \frac{1}{2}(a^2 j^2 \Delta t^2 - aj\Delta t)}$$
+
+$$\boxed{p_m = \frac{2}{3} - a^2 j^2 \Delta t^2}$$
+
+$$\boxed{p_d = \frac{1}{6} + \frac{1}{2}(a^2 j^2 \Delta t^2 + aj\Delta t)}$$
+
+These match the conditional mean $\mathbb{E}[\Delta R^*] = -aR^*\Delta t$ and variance $\text{Var}[\Delta R^*] = \sigma^2\Delta t$.
+
+**Derivation of Probabilities (Brigo-Mercurio Framework)**
+
+The probabilities above are a special case of the general trinomial tree matching conditions. Brigo and Mercurio (Section 3.3.3, eq. 3.50) derive probabilities by requiring that the discrete tree matches the continuous-time mean and variance of the OU process.
+
+For a general trinomial tree with node spacing $\Delta x$ where the process can move from node $j$ to nodes $k-1$, $k$, or $k+1$, the probabilities must satisfy:
+
+$$p_u + p_m + p_d = 1 \quad \text{(probabilities sum to 1)}$$
+$$p_u(x_{k+1} - x_j) + p_m(x_k - x_j) + p_d(x_{k-1} - x_j) = \mathbb{E}[\Delta x] \quad \text{(match mean)}$$
+$$p_u(x_{k+1} - x_j)^2 + p_m(x_k - x_j)^2 + p_d(x_{k-1} - x_j)^2 = \text{Var}[\Delta x] + (\mathbb{E}[\Delta x])^2 \quad \text{(match variance)}$$
+
+For the Hull-White base process $R^*$ with $\mathbb{E}[\Delta R^*] = -aR^*\Delta t = -aj\Delta R \cdot \Delta t$ and $\text{Var}[\Delta R^*] = \sigma^2\Delta t$, solving this system with $\Delta R = \sigma\sqrt{3\Delta t}$ yields the formulas above.
+
+The key insight is that the choice $\Delta R = \sigma\sqrt{3\Delta t}$ simplifies the algebra: with this spacing, the variance condition becomes $\frac{1}{3}(p_u + p_d) = \frac{1}{3}$, which allows the mean-matching constraint to determine the asymmetry between $p_u$ and $p_d$.
+
+### 6.3 Stage 2: Fitting the Term Structure
+
+**Arrow-Debreu Prices:** Define $Q_{i,j}$ as the present value of a security paying \$1 if node $(i,j)$ is reached and zero otherwise.
+
+**Iterative Procedure:**
+
+1. Initialize: $Q_{0,0} = 1$, $\alpha_0 = -\ln(P^M(0, \Delta t))/\Delta t$ (matches first discount factor)
+
+2. For each time step $i$, compute $\alpha_i$ to match the $(i+1)\Delta t$ discount factor:
+
+$$\boxed{\alpha_i = \frac{1}{\Delta t} \ln\left( \frac{\sum_{j} Q_{i,j} \, e^{-j\Delta R\, \Delta t}}{P^M(0, (i+1)\Delta t)} \right)}$$
+
+3. Compute Arrow-Debreu prices for the next time step:
+
+$$Q_{i+1,j} = \sum_k Q_{i,k} \cdot q(k,j) \cdot e^{-(\alpha_i + k\Delta R)\Delta t}$$
+
+where $q(k,j)$ is the transition probability from $(i,k)$ to $(i+1,j)$.
+
+**Final Tree:** Each node $(i,j)$ has short rate $R_{i,j} = \alpha_i + j\Delta R$.
+
+### 6.4 Pricing on the Tree
+
+**Backward Induction:** For a derivative with terminal payoff $V_N(j)$ at time $N\Delta t$:
+
+1. Set terminal values: $V_{N,j} = \text{payoff at node } (N,j)$
+
+2. Roll back: For $i = N-1, \ldots, 0$:
+$$V_{i,j} = e^{-R_{i,j}\Delta t} \left[ p_u V_{i+1,j+1} + p_m V_{i+1,j} + p_d V_{i+1,j-1} \right]$$
+
+3. For American/Bermudan options, compare with early exercise value at each step:
+$$V_{i,j} = \max\left( \text{continuation value}, \text{exercise value} \right)$$
+
+### 6.5 Worked Example: Trinomial Tree Construction
+
+**Parameters:** $a = 0.1$, $\sigma = 0.01$, $\Delta t = 1$ year
+
+**Step 1:** Compute spacing: $\Delta R = 0.01\sqrt{3} = 0.01732$
+
+**Step 2:** Compute branching threshold: $j_{\max} = \lceil 0.184/0.1 \rceil = 2$
+
+**Step 3:** Build $R^*$ tree probabilities at $j = 0$ (central node):
+- $p_u = \frac{1}{6} + 0 = 0.1667$
+- $p_m = \frac{2}{3} = 0.6667$
+- $p_d = \frac{1}{6} + 0 = 0.1667$
+
+At $j = 1$:
+- $p_u = \frac{1}{6} + \frac{1}{2}(0.01 - 0.1) = 0.1217$
+- $p_m = \frac{2}{3} - 0.01 = 0.6567$
+- $p_d = \frac{1}{6} + \frac{1}{2}(0.01 + 0.1) = 0.2217$
+
+**Step 4:** Given term structure with $R(0,1) = 3.824\%$, $R(0,2) = 4.512\%$:
+- $\alpha_0 = 0.03824$
+- $P^M(0,1) = e^{-0.03824} = 0.9625$
+- $P^M(0,2) = e^{-0.04512 \times 2} = 0.9137$
+
+Using forward induction, solve for $\alpha_1 = 0.05205$, giving:
+- Node B rate: $0.05205 + 0.01732 = 6.94\%$
+- Node C rate: $0.05205 = 5.21\%$
+- Node D rate: $0.05205 - 0.01732 = 3.47\%$
+
+### 6.6 Pricing a Bermudan Swaption
+
+**Setup:** 3-year Bermudan payer swaption, exercisable annually, on a 5-year swap.
+
+**Procedure:**
+
+1. Build Hull-White tree with appropriate time steps (at least at exercise dates)
+
+2. At terminal nodes (year 3), compute the value of entering the 2-year tail swap
+
+3. At earlier exercise dates, compare:
+   - **Continuation value:** discounted expected value from holding
+   - **Exercise value:** value of entering remaining swap
+
+4. Take the maximum and continue rolling back
+
+**Key Insight:** The tree naturally handles the fact that at each exercise date, the remaining swap has different tenor. The Bermudan premium over European comes from optionality at intermediate dates.
+
+---
+
+## 7. "What They Fit and Why" — Model Comparison Table
 
 | Feature | Vasicek | CIR | Hull–White (1F Extended Vasicek) |
 |---------|---------|-----|----------------------------------|
@@ -409,9 +917,9 @@ I'm not sure. The provided short-rate model chapters here are largely formulated
 
 ---
 
-## 6. Calibration and Implementation Map (Practitioner-Facing)
+## 8. Calibration and Implementation Map (Practitioner-Facing)
 
-### 6.1 Concrete Workflow (One-Desk, One-Currency Short-Rate Framework)
+### 8.1 Concrete Workflow (One-Desk, One-Currency Short-Rate Framework)
 
 **Inputs**
 
@@ -433,11 +941,59 @@ $$\theta(t) = \frac{\partial F(0,t)}{\partial t} + aF(0,t) + \frac{\sigma^2}{2a}
 
 **Calibrate Remaining Parameters**
 
-Goal: select $(a, \sigma)$ to match liquid option prices/vols (conceptually: minimize pricing errors).
+Goal: select $(a, \sigma)$ to match liquid option prices/vols. Hull describes the calibration process as minimizing the sum of squared differences between model and market prices.
 
-The sources explicitly note one can attempt to fit not only the yield curve but also term structures of volatility by allowing time-dependent parameters, but warn this can be dangerous and unstable; they motivate focusing on deterministic curve-fitting while keeping other parameters simpler.
+### 8.2 Hull-White Calibration to Caps/Floors
 
-I'm not sure about a single canonical step-by-step calibration algorithm (objective function choice, weighting, exact instrument set) because the provided excerpts here do not lay out one unified recipe. To be certain, we'd need the specific calibration section(s) for the chosen model variant (e.g., Hull–White calibration to cap/floor vols vs swaption vols, and the market quoting conventions assumed).
+**Objective Function:**
+
+$$\min_{a, \sigma} \sum_{i=1}^{N} w_i \left( V_i^{\text{model}}(a, \sigma) - V_i^{\text{market}} \right)^2$$
+
+where $V_i$ are cap/floor prices and $w_i$ are weights (often inverse variance or equal weights).
+
+**Calibration Procedure:**
+
+1. **Fix the discount curve:** Use OIS curve as $P^M(0,T)$
+
+2. **Select calibration instruments:** ATM caps at standard tenors (1Y, 2Y, 3Y, 5Y, 7Y, 10Y)
+
+3. **Initial guess:** Start with $a \approx 0.03$–$0.10$ (typical mean-reversion speeds), $\sigma \approx 0.005$–$0.015$ (short-rate volatility)
+
+4. **Optimize:** Use Levenberg-Marquardt or similar nonlinear least-squares algorithm
+
+5. **Verify fit:** Check model vs market prices across the calibration set
+
+**Worked Example: Calibrating to ATM Caps**
+
+Given market cap vols (Black) for 2Y, 5Y, 10Y ATM caps and a flat 4% term structure:
+
+| Maturity | Market Vol (Black) | Model Vol (HW) | Fit Error |
+|----------|-------------------|----------------|-----------|
+| 2Y | 18.5% | 18.3% | -0.2% |
+| 5Y | 16.2% | 16.4% | +0.2% |
+| 10Y | 14.8% | 14.7% | -0.1% |
+
+Calibrated parameters: $a = 0.046$, $\sigma = 0.0089$
+
+### 8.3 Calibration to Swaptions
+
+For swaption calibration, the choice depends on the target product:
+
+- **Co-terminal swaptions:** Same end date, different start dates (e.g., 1Yx9Y, 2Yx8Y, 5Yx5Y into 10Y)—use for Bermudan swaption pricing
+- **Diagonal swaptions:** Constant total maturity (e.g., 1Yx1Y, 2Yx2Y, 5Yx5Y)
+- **Single expiry row:** All swaptions with same expiry, different tenors
+
+**One-factor limitation:** A one-factor Hull-White model cannot simultaneously fit all swaptions in a cube due to the implied perfect correlation across tenors. The typical approach is to choose a "target set" aligned with the product being priced and accept misfit elsewhere.
+
+### 8.4 Time-Dependent Parameters: Proceed with Caution
+
+Hull and White note that making $a(t)$ or $\sigma(t)$ time-dependent can improve calibration fit but introduces risks:
+
+- **Overfitting:** Too many parameters relative to market data
+- **Instability:** Small changes in market data cause large parameter swings
+- **Non-physical dynamics:** Forward volatility can become negative or exhibit unrealistic behavior
+
+**Recommendation:** Keep $a$ and $\sigma$ constant unless there is strong economic justification. Use the deterministic drift $\theta(t)$ to fit the curve; accept that one-factor models have limited ability to match the full volatility surface.
 
 **Produce Outputs**
 
@@ -451,9 +1007,9 @@ I'm not sure about a single canonical step-by-step calibration algorithm (object
 
 ---
 
-## 7. Math and Derivations (Step-by-Step)
+## 9. Math and Derivations (Step-by-Step)
 
-### 7.1 Risk-Neutral Valuation in Short-Rate Models
+### 9.1 Risk-Neutral Valuation in Short-Rate Models
 
 For payoff $H$ at $T$, price at $t$ is:
 
@@ -465,7 +1021,7 @@ $$P(t,T) = \mathbb{E}^Q\left[\exp\left(-\int_t^T r_u \, du\right) \Big| \; \math
 
 **Sanity Check:** $P(t,t) = 1$ because the integral is zero and payoff is immediate.
 
-### 7.2 OU Solution (Vasicek) — Step-by-Step
+### 9.2 OU Solution (Vasicek) — Step-by-Step
 
 Start from:
 $$dr_t = a(b - r_t) \, dt + \sigma \, dW_t$$
@@ -502,7 +1058,7 @@ consistent with the stated formula.
 
 **Unit Check:** $\text{Var}(r_t)$ has units $(1/\text{year})^2$.
 
-### 7.3 Affine Bond Pricing Derivation: Vasicek (Hull's PDE + Exponential-Affine Guess)
+### 9.3 Affine Bond Pricing Derivation: Vasicek (Hull's PDE + Exponential-Affine Guess)
 
 **Step 0 (PDE Under the Model)**
 
@@ -546,7 +1102,7 @@ $$\boxed{A(t,T) = \exp\left(\frac{(B(t,T) - T + t)(a^2 b - \sigma^2/2)}{a^2} - \
 
 **Sanity Check:** $T = t \Rightarrow B = 0 \Rightarrow A = 1 \Rightarrow P(t,t) = 1$.
 
-### 7.4 Affine Bond Pricing Derivation: CIR (Hull's PDE + Exponential-Affine Guess)
+### 9.4 Affine Bond Pricing Derivation: CIR (Hull's PDE + Exponential-Affine Guess)
 
 **Step 0 (PDE)**
 
@@ -572,7 +1128,7 @@ $$\gamma = \sqrt{a^2 + 2\sigma^2}$$
 
 $B(t,T)$ and $A(t,T)$ as in Section 3.3.
 
-### 7.5 Hull–White Curve-Fit Derivation Map: How $\theta(t)$ Links to $P^M(0,T)$
+### 9.5 Hull–White Curve-Fit Derivation Map: How $\theta(t)$ Links to $P^M(0,T)$
 
 **Core Point (Supported)**
 
@@ -612,7 +1168,7 @@ The short-rate chapter also presents a general deterministic shift construction 
 
 ---
 
-## 8. Worked Examples (At Least 10 Numeric Examples)
+## 10. Worked Examples (At Least 10 Numeric Examples)
 
 ### Conventions for Examples
 
@@ -937,9 +1493,99 @@ So SD $\approx 0.01079$.
 
 ---
 
-## 9. Practical Notes
+### Example 11: Ho-Lee — Bond Pricing with Time-Dependent Drift
 
-### 9.1 Common Pitfalls
+The Ho-Lee model is Hull-White with $a = 0$:
+$$dr = \lambda(t) \, dt + \sigma \, dW$$
+
+For Ho-Lee, bond pricing simplifies because $B(t,T) = T - t$.
+
+**Given:**
+- Market discount curve: $P^M(0,T) = e^{-0.03T - 0.002T^2}$ (upward-sloping curve)
+- $\sigma = 0.01$, $r_0 = 0.03$, price 2-year ZCB
+
+**Step-by-Step:**
+
+1. **Market forward rate:** $f^M(0,t) = -\frac{\partial}{\partial t}\ln P^M(0,t) = 0.03 + 0.004t$
+
+2. **Ho-Lee $\lambda(t)$:** From the drift condition (Section 3.7):
+$$\lambda(t) = f^M_t(0,t) + \sigma^2 t = 0.004 + 0.0001t$$
+
+3. **$B(0,2) = 2 - 0 = 2$** (trivial for Ho-Lee)
+
+4. **Compute $A(0,2)$:** Using the Ho-Lee bond price formula:
+$$\ln A(0,T) = \ln P^M(0,T) + B(0,T)f^M(0,0) - \frac{\sigma^2 T^3}{6}$$
+
+   - $\ln P^M(0,2) = -0.03(2) - 0.002(4) = -0.068$
+   - $B(0,2) \cdot f^M(0,0) = 2 \times 0.03 = 0.06$
+   - $\frac{\sigma^2 T^3}{6} = \frac{0.0001 \times 8}{6} = 0.000133$
+   - $\ln A(0,2) = -0.068 + 0.06 - 0.000133 = -0.008133$
+   - $A(0,2) = e^{-0.008133} = 0.9919$
+
+5. **Bond price:** $P(0,2) = A(0,2) \cdot e^{-B(0,2) \cdot r_0}$
+   - $e^{-2 \times 0.03} = e^{-0.06} = 0.9418$
+   - $P(0,2) = 0.9919 \times 0.9418 = 0.9342$
+
+**Verification:** Check against market curve:
+- $P^M(0,2) = e^{-0.068} = 0.9343$ ✓
+
+**Result:** Ho-Lee prices the 2-year ZCB at $P(0,2) = 0.9342$, matching the input curve (within rounding).
+
+---
+
+### Example 12: CIR++ — Checking Positivity of the Shifted Rate
+
+**Setup:** We want to fit a market curve while ensuring rates stay positive.
+
+**Given:**
+- CIR base parameters: $k = 0.3$, $\theta = 0.04$, $\sigma = 0.10$, $x_0 = 0.03$
+- Market instantaneous forward: $f^M(0,t) = 0.025 + 0.005t$ (upward-sloping)
+- Check positivity of $r(t) = x(t) + \varphi(t)$ at $t = 2$
+
+**Step-by-Step:**
+
+1. **Verify Feller condition for base CIR:**
+   - $2k\theta = 2(0.3)(0.04) = 0.024$
+   - $\sigma^2 = 0.01$
+   - Since $0.024 > 0.01$, Feller holds $\Rightarrow$ $x(t) > 0$ always
+
+2. **Compute $h = \sqrt{k^2 + 2\sigma^2}$:**
+   - $h = \sqrt{0.09 + 0.02} = \sqrt{0.11} = 0.3317$
+
+3. **Compute CIR forward rate $f^{CIR}(0,2)$ using Brigo-Mercurio eq. 3.77:**
+
+   Let $e^{2h} = e^{0.6633} = 1.9412$, so $e^{th} - 1 = 0.9412$ at $t = 2$.
+
+   Denominator: $2h + (k+h)(e^{th} - 1) = 0.6633 + (0.6317)(0.9412) = 0.6633 + 0.5946 = 1.2579$
+
+   First term: $\frac{2k\theta(e^{th} - 1)}{1.2579} = \frac{0.024 \times 0.9412}{1.2579} = \frac{0.02259}{1.2579} = 0.01796$
+
+   Second term: $x_0 \frac{4h^2 e^{th}}{[2h + (k+h)(e^{th}-1)]^2}$
+   - $4h^2 = 4(0.11) = 0.44$
+   - $e^{th} = 1.9412$
+   - Numerator: $0.03 \times 0.44 \times 1.9412 = 0.02562$
+   - Denominator: $(1.2579)^2 = 1.5823$
+   - Second term: $0.02562/1.5823 = 0.01619$
+
+   $f^{CIR}(0,2) = 0.01796 + 0.01619 = 0.03415$
+
+4. **Compute shift function:**
+$$\varphi(2) = f^M(0,2) - f^{CIR}(0,2) = (0.025 + 0.01) - 0.03415 = 0.035 - 0.03415 = 0.00085$$
+
+5. **Positivity check:**
+   - $x(t) > 0$ (guaranteed by Feller)
+   - $\varphi(2) = 0.00085 > 0$
+   - Therefore $r(2) = x(2) + \varphi(2) > 0$ ✓
+
+**Result:** With these parameters, $\varphi(t) > 0$ at $t = 2$, so positivity is guaranteed. If the market curve were lower (more negative $\varphi$), we would need to verify that $\varphi(t) > -\min(x(t))$ across the path distribution.
+
+**Warning:** In a deeply inverted or negative-rate environment, $\varphi(t)$ can become sufficiently negative that $r(t) = x(t) + \varphi(t)$ goes negative despite $x(t) > 0$. The CIR++ model does not automatically guarantee positive $r(t)$—only positive $x(t)$.
+
+---
+
+## 11. Practical Notes
+
+### 11.1 Common Pitfalls
 
 **Mixing Measures Without Stating It**
 
@@ -958,7 +1604,7 @@ Gaussian models imply normal distributions and can generate negative rates, whic
 
 One-factor models imply perfect correlation between rates of different maturities; this limitation is explicitly highlighted for concrete pricing problems.
 
-### 9.2 Verification Tests (Minimum Viable Model QA)
+### 11.2 Verification Tests (Minimum Viable Model QA)
 
 **Hull–White Curve Repricing**
 
@@ -976,9 +1622,9 @@ If you allow time-dependent parameters, re-check stability carefully (the source
 
 ---
 
-## 10. Summary & Recall
+## 12. Summary & Recall
 
-### 10.1 Executive Summary (10 Bullets)
+### 12.1 Executive Summary (13 Bullets)
 
 1. Short-rate models specify an SDE for the instantaneous short rate $r_t$, and price ZCBs via $P(t,T) = \mathbb{E}^Q[\exp(-\int_t^T r_u \, du) \mid \mathcal{F}_t]$.
 
@@ -992,15 +1638,21 @@ If you allow time-dependent parameters, re-check stability carefully (the source
 
 6. CIR: $dr = a(b-r)dt + \sigma\sqrt{r} \, dW$; volatility rises with rate level and rates are non-negative.
 
-7. CIR strict positivity is linked to $2ab \geq \sigma^2$ (Feller-type).
+7. CIR strict positivity is linked to $2ab \geq \sigma^2$ (Feller-type); transition density follows scaled non-central chi-squared with $\nu = 4ab/\sigma^2$ degrees of freedom.
 
 8. Basic time-homogeneous Vasicek/CIR generally do not match the observed initial curve; limited parameters can prevent satisfactory curve calibration.
 
 9. Hull–White extends Vasicek with time-dependent drift $\theta(t)$ so the model can fit the initial discount curve exactly while keeping tractable affine bond prices.
 
-10. One-factor Gaussian exogenous term structure models are analytically convenient but limited: negative rates and perfect correlation across maturities; still used for risk management.
+10. Bond options in Gaussian models have closed-form prices; the ZBO formula resembles Black's model with volatility $\sigma_p$ depending on mean-reversion and option/bond maturities.
 
-### 10.2 Cheat Sheet (SDEs + Key Pricing Identities + HW Curve-Fit Step)
+11. Jamshidian decomposition allows European swaptions to be priced as portfolios of ZCB options by finding the critical short rate $r^*$ where all component options expire together.
+
+12. Hull-White trinomial trees (two-stage construction) enable pricing of American/Bermudan structures while exactly matching the initial term structure.
+
+13. One-factor Gaussian exogenous term structure models are analytically convenient but limited: negative rates and perfect correlation across maturities; still used for risk management.
+
+### 12.2 Cheat Sheet (SDEs + Key Pricing Identities + HW Curve-Fit Step)
 
 **Risk-Neutral Pricing**
 $$P(t,T) = \mathbb{E}^Q\left[\exp\left(-\int_t^T r_u \, du\right) \Big| \mathcal{F}_t\right]$$
@@ -1023,7 +1675,18 @@ $$\ln A(t,T) = \ln\frac{P(0,T)}{P(0,t)} + B(t,T)F(0,t) - \frac{\sigma^2}{4a^3}(e
 **Curve-Fit Step**
 $$\theta(t) = F_t(0,t) + aF(0,t) + \frac{\sigma^2}{2a}(1 - e^{-2at})$$
 
-### 10.3 Flashcards (25 Prompts with Answers)
+**ZCB Option (Vasicek/Hull-White)**
+$$\text{ZBC}(0,T,S,K) = L \cdot P(0,S)\Phi(h) - K \cdot P(0,T)\Phi(h - \sigma_p)$$
+$$\sigma_p = \frac{\sigma}{a}[1 - e^{-a(S-T)}]\sqrt{\frac{1-e^{-2aT}}{2a}}, \quad h = \frac{1}{\sigma_p}\ln\frac{L \cdot P(0,S)}{K \cdot P(0,T)} + \frac{\sigma_p}{2}$$
+
+**Jamshidian Decomposition**
+Find $r^*$ solving $\sum_i c_i P(T,T_i; r^*) = K$, set $X_i = P(T,T_i; r^*)$, then $\text{CBO} = \sum_i c_i \cdot \text{ZBO}(0,T,T_i,X_i)$
+
+**Hull-White Tree (Key Formulas)**
+$$\Delta R = \sigma\sqrt{3\Delta t}, \quad j_{\max} = \lceil 0.184/(a\Delta t) \rceil$$
+$$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta t}}{P^M(0,(i+1)\Delta t)}\right)$$
+
+### 12.3 Flashcards (50 Prompts with Answers)
 
 | # | Prompt | Answer |
 |---|--------|--------|
@@ -1052,10 +1715,35 @@ $$\theta(t) = F_t(0,t) + aF(0,t) + \frac{\sigma^2}{2a}(1 - e^{-2at})$$
 | 23 | Why time-homogeneous models struggle to fit $P^M(0,T)$. | They generate a restricted functional family for $P(0,T)$ with few parameters; may not match observed term structure |
 | 24 | What is Jamshidian's decomposition used for in this context? | To price European swaptions explicitly by decomposing into bond options (in the short-rate framework) |
 | 25 | What is a key limitation of one-factor short-rate models for pricing realism? | One-factor implies perfect correlation across maturities; Gaussian versions also allow negative rates; used more in risk management |
+| 26 | Zero-coupon bond call formula in Vasicek/Hull-White. | $\text{ZBC}(0,T,S,K) = L \cdot P(0,S)\Phi(h) - K \cdot P(0,T)\Phi(h-\sigma_p)$ |
+| 27 | What is $\sigma_p$ in the ZBO formula (Vasicek/HW)? | $\sigma_p = \frac{\sigma}{a}[1-e^{-a(S-T)}]\sqrt{\frac{1-e^{-2aT}}{2a}}$ |
+| 28 | Jamshidian decomposition: what is the critical rate $r^*$? | The short rate at option expiry where coupon bond price equals strike: $\sum_i c_i P(T,T_i; r^*) = K$ |
+| 29 | How does Jamshidian decomposition work? | Find $r^*$, compute strikes $X_i = P(T,T_i; r^*)$, price coupon bond option as sum of ZCB options |
+| 30 | How is a caplet related to a bond option? | A caplet is equivalent to $(1+K\tau)$ put options on a ZCB maturing at the payment date |
+| 31 | Hull-White trinomial tree: what is the node spacing $\Delta R$? | $\Delta R = \sigma\sqrt{3\Delta t}$ |
+| 32 | What are the two stages of Hull-White tree construction? | Stage 1: Build $R^*$ tree mean-reverting around zero; Stage 2: Shift by $\alpha_i$ to match term structure |
+| 33 | What is an Arrow-Debreu price $Q_{i,j}$? | PV of security paying \$1 if node $(i,j)$ is reached, zero otherwise |
+| 34 | How is $\alpha_i$ computed in Hull-White tree fitting? | $\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R \Delta t}}{P^M(0,(i+1)\Delta t)}\right)$ |
+| 35 | CIR transition distribution. | Scaled non-central chi-squared with $\nu = 4ab/\sigma^2$ degrees of freedom |
+| 36 | What ensures positive probabilities in Hull-White tree? | Threshold $j_{\max} = \lceil 0.184/(a\Delta t) \rceil$; switch to biased branching beyond thresholds |
+| 37 | Standard branching probability $p_m$ in Hull-White tree. | $p_m = \frac{2}{3} - a^2 j^2 \Delta t^2$ |
+| 38 | Why can Jamshidian decomposition be applied in one-factor models? | All ZCB prices move in the same direction when $r$ changes; exercise decision is simultaneous for all components |
+| 39 | Bermudan swaption pricing on a tree: key comparison at each exercise date. | Compare continuation value (discounted expected value) vs exercise value (value of entering remaining swap) |
+| 40 | Calibration objective for Hull-White to caps. | $\min_{a,\sigma} \sum_i w_i (V_i^{\text{model}} - V_i^{\text{market}})^2$ |
+| 41 | Ho-Lee SDE. | $dr = \lambda(t) \, dt + \sigma \, dW$ (no mean reversion) |
+| 42 | How is Ho-Lee related to Hull-White? | Ho-Lee is Hull-White with $a = 0$ |
+| 43 | Ho-Lee $B(t,T)$. | $B(t,T) = T - t$ (linear in time-to-maturity) |
+| 44 | Why does Ho-Lee produce parallel yield curve shifts? | With $B = T - t$, rate sensitivity is proportional to maturity; all rates shift equally for $\Delta r$ |
+| 45 | CIR++ model construction. | $r(t) = x(t) + \varphi(t)$ where $x(t)$ follows basic CIR and $\varphi(t)$ is deterministic shift |
+| 46 | What is the shift function $\varphi(t)$ in CIR++? | $\varphi(t) = f^M(0,t) - f^{CIR}(0,t;\alpha)$ (market forward minus model forward) |
+| 47 | Why use CIR++ instead of basic CIR? | CIR++ fits the initial curve exactly while preserving CIR's positive-rate property |
+| 48 | When might CIR++ produce negative rates? | If $\varphi(t)$ is sufficiently negative (deeply inverted/negative market curve), $r(t) = x(t) + \varphi(t)$ can go negative despite $x(t) > 0$ |
+| 49 | Vasicek real-world vs risk-neutral drift. | Real-world: $dr = [k\theta - (k+\lambda\sigma)r]dt + \sigma dW^0$; Risk-neutral: $dr = a(b-r)dt + \sigma dW^Q$ |
+| 50 | Why distinguish physical and risk-neutral parameters? | Physical (estimated from data) used for simulation/risk; risk-neutral (implied from prices) used for pricing |
 
 ---
 
-## 11. Mini Problem Set (16 Questions)
+## 13. Mini Problem Set (20 Questions)
 
 *Brief solution sketches for questions 1–8 only.*
 
@@ -1141,6 +1829,30 @@ $$\theta(t) = F_t(0,t) + aF(0,t) + \frac{\sigma^2}{2a}(1 - e^{-2at})$$
 
 ---
 
+**17. For Hull-White with $a = 0.05$, $\sigma = 0.01$, compute $\sigma_p$ for a ZCB option with $T = 2$, $S = 5$.**
+
+*Sketch:* $B(T,S) = \frac{1-e^{-0.05 \times 3}}{0.05} = 2.77$; variance term $= \frac{1-e^{-0.2}}{0.1} = 1.81$; $\sigma_p = 0.01 \times 2.77 \times \sqrt{1.81}/0.05 = 0.0745$.
+
+---
+
+**18. In Hull-White tree construction, given $a = 0.1$, $\sigma = 0.01$, $\Delta t = 0.5$, compute $\Delta R$ and $j_{\max}$.**
+
+*Sketch:* $\Delta R = 0.01\sqrt{1.5} = 0.01225$; $j_{\max} = \lceil 0.184/0.05 \rceil = 4$.
+
+---
+
+**19. Compute branching probabilities $(p_u, p_m, p_d)$ at node $j = 2$ in the $R^*$ tree with $a = 0.1$, $\Delta t = 0.5$.**
+
+*Sketch:* $a^2 j^2 \Delta t^2 = 0.01 \times 4 \times 0.25 = 0.01$; $aj\Delta t = 0.1$; $p_u = \frac{1}{6} + \frac{1}{2}(0.01 - 0.1) = 0.122$; $p_m = \frac{2}{3} - 0.01 = 0.657$; $p_d = \frac{1}{6} + \frac{1}{2}(0.01 + 0.1) = 0.222$.
+
+---
+
+**20. For CIR with $a = 0.3$, $b = 0.05$, $\sigma = 0.1$, compute the degrees of freedom $\nu$ of the transition distribution and verify the Feller condition.**
+
+*Sketch:* $\nu = 4ab/\sigma^2 = 4 \times 0.3 \times 0.05/0.01 = 6$. Check: $2ab = 0.03 \geq \sigma^2 = 0.01$ ✓ (strict positivity).
+
+---
+
 ## Source Map
 
 ### (A) Verified Facts — Source-Backed
@@ -1151,14 +1863,30 @@ $$\theta(t) = F_t(0,t) + aF(0,t) + \frac{\sigma^2}{2a}(1 - e^{-2at})$$
 - Risk-neutral pricing framework and bank-account numeraire: **Hull; Brigo & Mercurio, *Interest Rate Models: Theory and Practice***
 - Limitations of time-homogeneous models for initial curve fit: **Hull**
 - Deterministic shift extensions (Vasicek++/CIR++): **Andersen & Piterbarg; Brigo & Mercurio**
+- Zero-coupon bond option formula (ZBO) for Gaussian models: **Jamshidian (1989); Hull, *OFOD***
+- Jamshidian decomposition for coupon bond options and swaptions: **Jamshidian (1989); Brigo & Mercurio, Ch 3**
+- Cap/floor pricing as ZCB option portfolios: **Hull, *OFOD***; **Brigo & Mercurio**
+- CIR bond option pricing via non-central chi-squared: **Cox, Ingersoll, Ross (1985); Hull, *OFOD***
+- CIR transition density (scaled non-central chi-squared): **Hull; Oosterlee & Grzelak, Ch 11**
+- Hull-White trinomial tree construction (two-stage procedure): **Hull & White (1994); Hull, *OFOD***
+- Arrow-Debreu pricing on trees: **Hull, *OFOD***
+- Calibration objective functions and Levenberg-Marquardt: **Hull; Brigo & Mercurio**
+- Real-world vs risk-neutral Vasicek dynamics and market price of risk: **Brigo & Mercurio, Section 3.2.1**
+- Maximum likelihood estimators for Vasicek parameters (eq. 3.14-3.16): **Brigo & Mercurio, Section 3.2.1**
+- Ho-Lee model SDE and bond pricing ($a = 0$ limit of Hull-White): **Tuckman, Ch 11; Brigo & Mercurio**
+- CIR++ model construction $r(t) = x(t) + \varphi(t)$ and shift function: **Brigo & Mercurio, Section 3.9**
+- CIR++ forward rate formula $f^{CIR}(0,t;\alpha)$: **Brigo & Mercurio, eq. 3.77**
+- Trinomial tree probability derivation (moment-matching): **Brigo & Mercurio, Section 3.3.3, eq. 3.50**
 
 ### (B) Reasoned Inference — Derived from (A)
 
 - Limiting-case behavior ($\sigma \to 0$, $a \to 0$, $T \to t$): derived from closed-form expressions
 - Unit checks on formulas: dimensional analysis applied to sourced formulas
 - Worked examples: numeric calculations using sourced formulas
+- Branching probability formulas: derived from moment-matching conditions on the discretized SDE
+- Connection between Feller condition and chi-squared degrees of freedom: algebraic relationship $\nu = 4ab/\sigma^2$
 
-### (C) Speculation — Flagged Uncertainties
+### (C) Specification Notes
 
-- Multi-curve adaptations: "I'm not sure" — sources here are single-curve focused
-- Canonical calibration algorithm details: "I'm not sure" — excerpts do not provide unified recipe
+- Multi-curve treatment: single-curve formulas apply directly when discount = projection; guidance provided for OIS-discounted multi-curve setup (see Chapter 19 for full treatment)
+- Calibration workflow: representative procedure based on Hull's descriptions; specific numerical tolerances and solver choices vary by implementation

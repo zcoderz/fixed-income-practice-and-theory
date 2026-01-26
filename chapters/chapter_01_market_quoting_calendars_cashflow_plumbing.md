@@ -2,693 +2,740 @@
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
+Before you can price a bond, value a swap, or compute the risk of a portfolio, you must answer a deceptively simple question: *what exactly are we talking about?*
 
-- Bonds are typically quoted **clean** (a "flat/quoted price") and the **invoice/full/dirty** amount exchanged is **clean + accrued interest**
-- With the accrued-interest convention, if yield is unchanged then the **quoted (clean) price does not mechanically drop** on the coupon date; the drop occurs in the **full** price via accrued resetting
-- Accrued interest is defined as the portion of the next coupon that has accrued since the previous coupon date, computed via a day-count fraction that depends on the market convention
-- US Treasury bond prices are quoted in **32nds** (per $100 par); "cash/dirty price = quoted/clean price + accrued interest"
-- Day-count conventions are commonly written **X/Y** and determine the fraction of a coupon/reference-period interest earned between two dates
-- USD LIBOR-style money-market conventions include **Actual/360**, and spot LIBOR has a **two-business-day** start delay; USD LIBOR uses **Modified Following** date rolling
-- In USD vanilla swaps (typical market convention), schedule dates are rolled (often Modified Following); floating fixings are typically **2 business days before** the accrual start; fixed-leg year fraction is commonly **30/360** and floating-leg year fraction commonly **Actual/360**
-- Bond settlement lags vary by instrument (examples: some bonds T+1; Eurobonds T+3)
+A trader says a Treasury is "bid at 99-16." A salesperson quotes a swap rate of "3.25%." A risk report shows duration of "7.2 years." Each of these numbers carries implicit assumptions about day counts, compounding, settlement timing, and dozens of other conventions that turn abstract rates into actual dollars. Get any of these conventions wrong, and your "price" becomes meaningless—or worse, you wire the wrong amount on settlement day.
 
-### (B) Reasoned Inference (Derived from A)
+This chapter is about the **plumbing**: the infrastructure of market conventions that translates quotes into cashflows and cashflows into cash exchanged. We cover:
 
-- If you mix conventions (e.g., compute accrued on ACT/ACT but discount/price on a different basis) you will create apparent "P&L" that is purely plumbing noise; consistent conventions reconcile PV from price vs PV from yield/spread
-- PV should be monotone decreasing in discount rates (sanity check) because discount factors shrink as rates rise; violations are typically implementation bugs (sign, timing, or compounding mismatch)
+1. **How markets quote instruments** — price vs yield vs spread, and why each market chooses its convention
+2. **Day counts and compounding as a unit system** — the "measurement units" of interest rates
+3. **Settlement, calendars, and timing** — when cash actually moves
+4. **Clean vs dirty pricing** — how bond markets avoid artificial price jumps (a preview; full treatment in Chapter 5)
 
-### (C) Speculation (Clearly Labeled; Minimal)
-
-- **End-of-month (EOM) roll rules** are market- and contract-specific (e.g., ISDA schedule generation). The exact EOM rule wording for specific products requires the desk's contract standard (e.g., "EOM = true" conventions) or an explicit reference section
+None of this is glamorous. But every mispriced trade, every reconciliation break, and every "mystery P&L" you will encounter in your career traces back to someone getting the plumbing wrong.
 
 ---
 
-## Chapter Outline
+## 1.1 What Markets Quote: Price, Yield, and Spread
 
-### Prerequisites
+### The Quote Is a Communication Protocol
 
-- Time value of money: discounting and present value (PV)
-- Basic bond cashflows (coupon + principal) and basic derivative cashflows (fixed vs floating legs)
-- Comfort with dates, day counts, and simple arithmetic
+Every market has developed conventions for how participants communicate value. These conventions reflect what is *useful* for that market's participants—not what is mathematically fundamental.
 
-### Learning Objectives
+**Cash bonds** are typically quoted as a **price** (per 100 face value). This makes sense: the price directly tells you the dollars exchanged per unit of face value.
 
-By the end of this chapter you should be able to:
+**Money markets** quote **rates** (annualized). A 3-month deposit rate of 5% tells you the interest earned over that period, scaled to an annual basis.
 
-1. Identify what is being quoted (price vs yield vs spread) and convert quotes into **cashflows** and **invoice amounts**
-2. Build/verify a cashflow schedule: trade date vs settlement/effective date, payment dates, fixing dates, and business day rolling
-3. Compute accrued interest, and explain **clean vs dirty** pricing and their P&L implications across coupon dates
-4. Treat day count and compounding as a "units system" and convert between simple/discrete/continuous compounding consistently
-5. Run practitioner sanity checks (monotonicity, boundary conditions, reconciliation PV-from-price vs PV-from-yield)
+**Credit default swaps** quote **spreads** (in basis points). The spread is the annual premium the protection buyer pays.
 
-### Key Notation & Conventions
+**Interest rate swaps** quote the **fixed rate** that makes the swap have zero value at inception—the par swap rate.
 
-#### Dates
+Each quote type serves its market. But here is the critical point: **the quote alone is not enough information to calculate cash**. You also need to know the conventions that interpret that quote.
 
-| Symbol | Definition |
-|--------|------------|
-| $t_0$ | Trade date |
-| $t_s$ | Settlement date |
-| $T_i$ | (Unadjusted) schedule dates; after rolling become adjusted dates |
-| $T_i^f$ | Fixing date (often 2 business days before $T_i$) |
-| $T_i^p$ | Payment date (often $T_{i+1}$, sometimes with delay) |
+### Bonds: Clean Price and 32nds
 
-#### Prices
+U.S. Treasury bonds are quoted in dollars and 32nds per $100 face value. Tuckman notes that bond prices "are expressed as a percent of face value and that numbers after the hyphens denote 32nds, often called ticks." The notation "99-16" means:
 
-| Symbol | Definition |
-|--------|------------|
-| $P$ | Clean/quoted/flat price (per 100 par unless stated) |
-| $AI$ | Accrued interest (per 100 par unless stated) |
-| $P^{\text{dirty}}$ | Full/invoice/dirty price; $P^{\text{dirty}} = P + AI$ |
+$$99 + \frac{16}{32} = 99.50$$
 
-#### Rates and Accrual
+> **Anatomy of a Quote:** `99-16+`
+>
+> | Part | Component | Value | Calculated As |
+> | :--- | :--- | :--- | :--- |
+> | **99** | Handle | 99 | $99$ |
+> | **16** | Ticks (32nds) | 16/32 | $0.5$ |
+> | **+** | Plus (1/64th) | 1/64 | $0.015625$ |
+> | **Total** | | **99.515625** |
+>
+> *Note: The '+' is not a plus sign in the algebraic sense of adding 1; it's a specific shorthand for 'half a tick' (1/64).*
 
-| Symbol | Definition |
-|--------|------------|
-| $c$ | Annual coupon rate (as a fraction, e.g., 0.05 for 5%) |
-| $f$ | Coupon frequency per year (e.g., $f=2$ semiannual) |
-| $\Delta(t_1,t_2)$ | Accrual fraction between dates (day-count fraction) |
-| $r$ | Interest rate used for financing/discounting (context-specific) |
-| $m$ | Compounding frequency per year (discrete compounding) |
+Finer increments use fractions of 32nds. The quote "101-04⁵⁄₈" means:
 
-#### Discounting
+$$101 + \frac{4 + \frac{5}{8}}{32} = 101 + \frac{4.625}{32} = 101.1445$$
 
-| Symbol | Definition |
-|--------|------------|
-| $P(t,T)$ | Discount bond price (discount factor) paying 1 at $T$ |
-| $e^{-y(t,T,T+\tau)\tau}$ | Continuous forward yield: $= P(t,T,T+\tau)$ |
-| $1+\tau L(t,T,T+\tau)$ | Simple forward rate: $= 1/P(t,T,T+\tau)$ |
+**Tick Precision Across Instruments:** Different Treasury futures contracts use different precision levels. Hull notes that 10-year Treasury note futures are "quoted to the nearest half of a thirty-second," so a settlement price of "139-025" means $139 + \frac{2.5}{32} = 139.078125$. The 5-year and 2-year Treasury note contracts are quoted "to the nearest quarter of a thirty-second," so "125-132" means $125 + \frac{13.25}{32} = 125.4140625$.
 
----
+This is the **clean** or **flat** price—it excludes accrued interest. The actual cash exchanged (the **invoice** or **dirty** price) equals the clean price plus accrued interest.
 
-## Section-by-Section Outline
+Why quote clean? Because if markets quoted dirty prices, bond prices would mechanically drift upward between coupon dates as interest accrued, then drop on coupon payment. Clean pricing removes this sawtooth pattern, making prices more comparable across dates.
 
-### 1. Market Quoting Basics
+> **Source:** Hull confirms that Treasury bonds are "quoted in dollars and thirty-seconds of a dollar" and that "the quoted price, which traders refer to as the clean price, is not the same as the cash price paid by the purchaser of the bond, which is referred to by traders as the dirty price."
 
-- Quote objects: price vs yield vs spread (conceptual)
-- Bid/ask, mid; quoting units:
-  - Treasuries in 32nds
-  - "bp" as rate quote unit (basis point = 0.01%)
-- "Par" as anchor:
-  - Par yield defined as coupon rate that prices bond at par
-  - Preview: par swap rate as fixed rate that makes swap PV zero
+### T-Bill Quotations: Discount Rate Convention
 
-### 2. Cashflow Timing and Calendars
+Treasury bills use a different quoting convention entirely. Hull explains that T-bill prices "are sometimes quoted using a discount rate. This is the interest earned as a percentage of the final face value rather than as a percentage of the initial price paid."
 
-- Trade vs settlement date; settlement lag examples (T+1, T+3)
-- Effective date vs trade date in confirmations
-- Payment dates, fixing dates, payment delays
-- Business day adjustments:
-  - Modified Following rule
-  - Other conventions (Following, Preceding, Modified Preceding)
-- Stubs (front/back): why irregular first/last periods affect accrual factors and PV
-- End-of-month: varies by contract
+If a 91-day Treasury bill is quoted at 8, this means the rate of interest earned is 8% of face value per 360 days. For a $100 face value bill:
 
-### 3. Accrual and Clean vs Dirty
+$$\text{Interest} = \$100 \times 0.08 \times \frac{91}{360} = \$2.0222$$
 
-- Accrued interest definition and motivation (avoid artificial price jumps)
-- Identity: invoice/full price equals PV of remaining cashflows; quoted price adjusts to convention
-- Coupon-date behavior: clean price continuity if yield unchanged
-- P&L attribution: separating price change vs carry/financing
+The cash price is therefore $\$100 - \$2.0222 = \$97.9778$.
 
-### 4. Day Count and Compounding as the "Units System"
+The relationship between the quoted discount rate $P$ and the cash price $Y$ for a T-bill with $n$ days remaining is:
 
-- Day count X/Y and generic accrual formula
-- US examples: ACT/ACT for Treasuries; 30/360 and ACT/360 common in other products
-- Compounding frequency as a unit system; conversion across frequencies
-- Continuous compounding and conversions
+$$\boxed{P = \frac{360}{n}(100 - Y)}$$
 
-### 5. Sanity Checks Every Practitioner Should Run
+This "discount yield" convention understates the true rate of return because it divides by face value rather than the actual investment amount. The true rate for the 91-day example is $\frac{2.0222}{97.9778} = 2.064\%$ for 91 days.
 
-- Timing checks: cashflow dates, fixing dates, payment dates, settlement/effective dates
-- Sign checks: payer vs receiver PV sign; coupon vs principal sign
-- Monotonicity: PV down when rates up (under standard discounting)
-- Coupon boundary checks: accrued resets to 0 right after coupon; invoice price jumps by coupon cashflow but clean stays consistent
-- Reconciliation: PV from price (dirty) equals PV from discounting cashflows
+### Money Markets: Rates with Day Counts
+
+Money market instruments quote rates, not prices. But a "5% rate" is meaningless without knowing:
+
+1. **Day count convention**: How do we measure the time period?
+2. **Compounding convention**: Simple interest? Compound interest?
+
+A 3-month rate (e.g., legacy LIBOR or Term SOFR) of 5% under **Actual/360** with simple interest means that for a loan of $1 over $d$ actual days:
+
+$$\text{Interest} = 1 \times 0.05 \times \frac{d}{360}$$
+
+The denominator is 360 (not 365 or actual days in the year). This is not a mathematical choice—it is a market convention that affects the actual dollars owed.
+
+> **Source:** Tuckman explains that "lending $\$1$ for $d$ days at a rate of $r$ will earn the lender an interest payment of $r \times d/360$ dollars at the end of the $d$ days" under the actual/360 convention.
+
+### Why Conventions Differ Across Markets
+
+Conventions evolved historically and persist because changing them would require coordinated action across thousands of market participants, legal documents, and systems. A few examples:
+
+| Market | Quote Convention | Day Count | Compounding |
+|--------|------------------|-----------|-------------|
+| U.S. Treasuries | Price (32nds), clean | ACT/ACT | Semiannual |
+| U.S. Corporate bonds | Price (decimals), clean | 30/360 | Semiannual |
+| USD term money market | Rate | ACT/360 | Simple |
+| USD swaps (fixed leg) | Rate | 30/360 or ACT/360 | Varies |
+| USD swaps (floating leg) | Rate | ACT/360 | Simple |
+| EUR/GBP money market deposits | Rate | ACT/360 (EUR), ACT/365 (GBP) | Simple |
+
+O'Kane notes that "in US dollars, Japanese yen and euros, the standard money-market deposit convention is Actual/360. For UK sterling, Actual/365 is used." These differences are not arbitrary annoyances—they reflect each market's history and what information participants find most useful. But they create traps for anyone who moves between markets without adjusting their mental model.
 
 ---
 
-## Key Formulas
+## 1.2 Day Counts: The Unit System of Interest Rates
 
-### 1. Invoice (Dirty) vs Quoted (Clean)
+### Day Counts Define How Time Is Measured
 
-$$P^{\text{dirty}} = P^{\text{clean}} + AI$$
+Hull provides the canonical definition: "The day count defines the way in which interest accrues over time." More precisely, a day count convention determines two things:
 
-**Units:** dollars per $100 par (or percent of par); $AI$ same units.
+1. How to count days between two dates (the numerator)
+2. How to define the "reference period" (the denominator)
 
-### 2. PV Identity with Accrued Interest (Bond)
+The interest earned between two dates is then:
 
-$$P + AI = PV(\text{future cashflows})$$
+$$\boxed{\text{Interest} = \frac{\text{Number of days between dates}}{\text{Number of days in reference period}} \times \text{Interest earned in reference period}}$$
 
-**Units:** price per $100 par.
+This fraction—(days between dates) / (days in reference period)—is the **accrual fraction** or **year fraction**, often denoted $\Delta$ or $\tau$.
 
-### 3. Accrued Interest (Generic Proportional Accrual)
+> **Source:** Hull states: "The day count convention is usually expressed as $X/Y$. When we are calculating the interest earned between two dates, $X$ defines the way in which the number of days between the two dates is calculated, and $Y$ defines the way in which the total number of days in the reference period is measured."
 
-If coupon per period is $c/f$ and accrual fraction since last coupon is $\Delta$, then:
+### The Three Common U.S. Conventions
 
-$$AI = \Delta \cdot \frac{c}{f}$$
+**Actual/Actual (in period):** Used for U.S. Treasury bonds. Both numerator and denominator use actual calendar days.
 
-**Units:** "dollars per $1 face" (or per $100 face).
+- Numerator: actual days between dates
+- Denominator: actual days in the coupon period
 
-### 4. Day Count Fraction Concept
+**Worked Example (Hull):** Consider a Treasury bond with coupon payment dates March 1 and September 1, paying an 8% annual coupon ($4 semiannually). To calculate interest earned between March 1 and July 3:
 
-$$\text{Interest earned} = \frac{\text{days between dates}}{\text{days in reference period}} \times \text{interest in reference period}$$
+- Reference period: March 1 to September 1 = 184 actual days
+- Days elapsed: March 1 to July 3 = 124 actual days
+- Interest earned: $\frac{124}{184} \times \$4 = \$2.6957$
 
-**Unit check:** dimensionless fraction × dollars = dollars.
+**30/360:** Used for U.S. corporate and municipal bonds. Assumes 30 days per month and 360 days per year.
 
-### 5. Money-Market Simple Interest (ACT/360 Example)
+- Numerator: computed assuming each month has 30 days
+- Denominator: 360
 
-Interest on $1 for $d$ days at rate $r$:
+Hull notes that with 30/360, "we assume 30 days per month and 360 days per year when carrying out calculations." For the same March 1 to July 3 period:
 
-$$\text{Interest} = r \cdot \frac{d}{360}$$
+- Days elapsed: $(4 \times 30) + 2 = 122$ days (4 full months plus 2 days)
+- Reference period: 180 days (6 months × 30 days)
+- Interest earned: $\frac{122}{180} \times \$4 = \$2.7111$
 
-### 6. Compounding Frequency
+### The 30/360 Day Counting Algorithm
 
-**Discrete compounding:**
+The 30/360 convention requires a specific algorithm for counting days. Tuckman provides a detailed example: to count days from August 27, 2001 to February 15, 2002:
 
-$$A\left(1+\frac{R}{m}\right)^{mn}$$
+| From | To | Days |
+|------|-----|------|
+| 8/27/01 | 8/30/01 | 3 |
+| 8/30/01 | 9/30/01 | 30 |
+| 9/30/01 | 10/30/01 | 30 |
+| 10/30/01 | 11/30/01 | 30 |
+| 11/30/01 | 12/30/01 | 30 |
+| 12/30/01 | 1/30/02 | 30 |
+| 1/30/02 | 2/15/02 | 15 |
+| **Total** | | **168** |
+
+The general formula for 30/360 day count between dates $(Y_1, M_1, D_1)$ and $(Y_2, M_2, D_2)$ is:
+
+$$\text{Days} = 360(Y_2 - Y_1) + 30(M_2 - M_1) + (D_2 - D_1)$$
+
+with adjustments at month boundaries (e.g., if $D_1 = 31$, set $D_1 = 30$).
+
+**Actual/360:** Used for USD money markets. Actual calendar days, but divided by 360.
+
+- Numerator: actual days between dates
+- Denominator: 360 (always)
+
+This means a full year of 365 days earns $365/360 \approx 1.0139$ times the quoted rate, not exactly the quoted rate. Hull confirms: "the interest earned in a whole year of 365 days is $365/360$ times the quoted rate."
+
+### Why Day Counts Matter: A Concrete Example
+
+Hull provides a vivid illustration in Business Snapshot 6.1. Between February 28 and March 1 in a non-leap year:
+
+- Under **30/360**: There are 3 days (Feb 28 → Feb 30 → Mar 1)
+- Under **ACT/ACT**: There is 1 day
+
+If a corporate bond and a Treasury bond have the same coupon and same quoted price, the corporate bond (using 30/360) accrues **three times as much interest** over this one-day period as the Treasury (using ACT/ACT).
+
+> **Source:** Hull's Business Snapshot 6.1: "Between February 28, 2018, and March 1, 2018, you have a choice between owning a U.S. government bond and a U.S. corporate bond. They pay the same coupon and have the same quoted price... In fact you should have a marked preference for the corporate bond."
+
+This is not a mathematical curiosity—it affects which bond you should prefer to hold over that date.
+
+> **Case Study: The "Million Dollar Calendar Mistake"**
+>
+> **The Scenario**: You hold $100 million face value of 5% coupon bonds overnight from February 28 to March 1 (non-leap year).
+>
+> **The Trap**:
+> *   **Corporate Bond (30/360)**: Counts as **3 days** of accrual (Feb 28 $\to$ Feb 30 $\to$ Mar 1).
+>     *   Interest = $\$100m \times 5\% \times \frac{3}{360} \approx \$41,666$.
+> *   **Treasury Bond (Act/Act)**: Counts as **1 day** of accrual (Feb 28 $\to$ Mar 1).
+>     *   Interest = $\$100m \times 5\% \times \frac{1}{365} \approx \$13,698$.
+>
+> **The Lesson**: The corporate bond pays $\approx 3x$ the interest for that single overnight hold. Trading systems that mismatch these conventions can generate massive "mystery P&L" breaks overnight.
+
+### International Day Count Conventions
+
+Day count conventions vary by currency and market. Hull notes that "conventions vary from country to country and from instrument to instrument":
+
+| Market | Day Count |
+|--------|-----------|
+| U.S. Treasury bonds | Actual/Actual (in period) |
+| U.S. Corporate bonds | 30/360 |
+| USD money markets | Actual/360 |
+| EUR money markets | Actual/360 |
+| GBP money markets | Actual/365 |
+| EUR/GBP bonds | Actual/Actual |
+| Australian/Canadian money markets | Actual/365 |
+
+O'Kane emphasizes that "every time we encounter a day count fraction, we must take care to apply the correct day count basis convention."
+
+### Day Count as a "Unit System"
+
+Think of day counts like measurement systems. Quoting a rate as "5%" without specifying the day count is like saying a distance is "100" without specifying whether it's meters or feet.
+
+The same economic arrangement can have different quoted rates depending on the day count. Consider a loan from February 15, 2001, to August 15, 2001 (181 actual days):
+
+- At 5% under Actual/360: $\text{Interest} = 5\% \times \frac{181}{360} = 2.5139\%$
+- At 5% under semiannual compounding: $\text{Interest} = \frac{5\%}{2} = 2.500\%$
+- At 5% under monthly compounding: $\text{Interest} = (1 + 0.05/12)^6 - 1 = 2.5262\%$
+- At 5% under daily compounding: $\text{Interest} = (1 + 0.05/365)^{181} - 1 = 2.5103\%$
+
+Different numbers, same economic reality. Tuckman emphasizes: "compounding conventions do not really matter so long as cash flows are properly computed." The danger is when conventions get mixed up during computation.
+
+---
+
+## 1.3 Compounding: Another Unit Choice
+
+### What Compounding Means
+
+Compounding frequency determines how often interest is calculated and added to principal. Hull explains that with compounding $m$ times per year, an investment of $A$ at annual rate $R$ grows to:
+
+$$\boxed{A\left(1 + \frac{R}{m}\right)^{mn}}$$
 
 after $n$ years.
 
-**Continuous compounding:**
+The effect of compounding frequency is shown in Hull's Table 4.1:
 
-$$Ae^{Rn}$$
+| Compounding Frequency | Value of $100 at end of 1 year (10% rate) |
+|----------------------|------------------------------------------|
+| Annually ($m=1$) | $110.00 |
+| Semiannually ($m=2$) | $110.25 |
+| Quarterly ($m=4$) | $110.38 |
+| Monthly ($m=12$) | $110.47 |
+| Weekly ($m=52$) | $110.51 |
+| Daily ($m=365$) | $110.52 |
+| Continuous | $110.52 |
 
-**Discounting:**
+### Continuous Compounding
 
-$$e^{-Rn}$$
+**Continuous compounding** is the limit as $m \to \infty$. Hull explains that "with continuous compounding, it can be shown that an amount $A$ invested for $n$ years at rate $R$ grows to":
 
-### 7. Forward Discount Factor ↔ Rate Relationships
+$$\boxed{Ae^{Rn}}$$
 
-**Continuous:**
+And discounting uses the inverse:
 
-$$e^{-y\tau} = P(t,T,T+\tau)$$
+$$\boxed{e^{-Rn}}$$
 
-**Simple:**
+Hull notes that "for most practical purposes, continuous compounding can be thought of as being equivalent to daily compounding."
 
-$$1 + \tau L = \frac{1}{P(t,T,T+\tau)}$$
+> **Why Continuous Compounding in Derivatives:** Hull states: "In this book, interest rates will be measured with continuous compounding except where stated otherwise... continuously compounded interest rates are used to such a great extent in pricing derivatives that it makes sense to get used to working with them now." The mathematical convenience—particularly that discount factors multiply simply as $e^{-r_1 t_1} \times e^{-r_2 t_2} = e^{-(r_1 t_1 + r_2 t_2)}$—makes continuous compounding the standard in quantitative finance.
 
-### 8. Bond Trading P&L Decomposition (Clean + Accrued + Financing)
+### Compounding Is a Unit Choice, Not an Economic Choice
 
-$$P\&L = P(d) + AI(d) - (P(0) + AI(0))\left(1 + r\frac{d}{360}\right)$$
+Tuckman makes a key point: "There can be only one market-clearing interest payment for money from February 15, 2001, to August 15, 2001." The actual dollars exchanged are fixed by supply and demand. What differs is how we *express* that payment as a rate.
 
-**Interpretation:** price change + interest income − financing cost.
+A 5% rate with semiannual compounding and a 4.939% rate with continuous compounding describe the **same** economic outcome over a six-month period:
 
----
+- Semiannual: $1 \times (1 + 0.05/2) = 1.025$
+- Continuous: $1 \times e^{0.04939 \times 0.5} = 1.025$
 
-## Full Chapter Notes
+Tuckman states: "compounding conventions must be understood in order to determine cash flows. But with respect to valuation, compounding conventions do not matter: The market-clearing prices for cash flows on particular dates are the fundamental quantities."
 
-### 0. Setup
+### Conversion Formulas
 
-This chapter is "desk plumbing": how quotes become cashflows and invoice amounts; how calendars shape accrual; how clean/dirty conventions prevent mechanical price jumps; and how day count + compounding define the *units* of every rate and PV.
+When converting between compounding conventions, Hull provides the formulas. To convert from $m$-times-per-year compounding at rate $R_m$ to continuous at rate $R_c$:
 
-#### Conventions Used in This Chapter
+$$\boxed{R_c = m \ln\left(1 + \frac{R_m}{m}\right)}$$
 
-Because conventions vary across markets, we will:
-- **Describe** the alternatives when the sources flag them
-- **Adopt "USD-typical" defaults for examples**, explicitly labeled
+And the reverse:
 
-**USD-typical example defaults:**
+$$\boxed{R_m = m\left(e^{R_c/m} - 1\right)}$$
 
-| Instrument | Conventions |
-|------------|-------------|
-| **US Treasuries** | Clean quoted in 32nds; accrued computed with ACT/ACT (in period) |
-| **Corporate bonds** | Often use 30/360 and settle with varying lags; invoice = clean + accrued |
-| **USD swaps** | Schedule dates rolled (typically Modified Following); floating fixings ~2 business days before accrual start; fixed leg commonly 30/360 and floating leg commonly ACT/360 |
-| **USD LIBOR-style money market** | Actual/360; spot start delayed by 2 business days; Modified Following rolling |
+More generally, to convert from compounding $m_1$ times per year at rate $R_1$ to compounding $m_2$ times per year at rate $R_2$:
 
----
+$$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 
-### 1. Core Concepts
+> **Source:** Hull provides these conversion formulas explicitly and notes that continuous compounding "can be regarded as the limit as the compounding period becomes infinitely small." Actuaries sometimes refer to a continuously compounded rate as the "force of interest."
 
-#### 1.1 Quote Objects: Price vs Yield vs Spread
+### Convention Risk
 
-**Formal Definitions:**
+The practical danger is **convention risk**: accidentally using the wrong compounding assumption. A risk system that assumes continuous compounding when the market quotes semiannual will systematically misprice by a small but consistent amount—easily enough to cause P&L breaks.
 
-- A **price quote** is a number that, together with conventions (clean/dirty, day count, settlement), determines the **invoice amount** at settlement
-- A **yield quote** is an internal-rate-of-return style rate that (together with compounding/day count conventions) equates discounted cashflows to a price
-- A **spread quote** (conceptually) is a rate-like adjustment or premium over a reference. In CDS practice, "spread" is quoted and contracts often trade with fixed coupons plus an upfront to match the quoted spread
+**Worked Example 1:** Convert 10% semiannual to continuous (Hull Example 4.1).
 
-**Intuition:**
+$$R_c = 2 \ln(1 + 0.10/2) = 2 \ln(1.05) = 2 \times 0.04879 = 0.09758 = 9.758\%$$
 
-Traders like quoting the object that is "stable" or liquid for that market:
-- **Cash bonds:** clean price is standard because it removes mechanical coupon jumps
-- **Money markets:** rates are quoted with simple accrual conventions
-- **CDS:** spreads quoted; standardized coupons mean an upfront exchanges hands to align PV
+The continuous rate is lower because continuous compounding "works harder"—interest compounds more frequently.
 
-**How it appears in trading/risk practice:**
+**Worked Example 2:** Convert 8% continuous to quarterly (Hull Example 4.2).
 
-- Risk engines store **one canonical representation** (often cashflows + conventions) and can reproduce price/yield/spread consistently
-- Misinterpreting the quote object (e.g., treating a clean price as dirty) creates immediate PV and P&L errors
+$$R_m = 4 \times (e^{0.08/4} - 1) = 4 \times (e^{0.02} - 1) = 4 \times 0.0202 = 0.0808 = 8.08\%$$
 
----
+This means on a $1,000 loan with interest paid quarterly, each payment would be $\$1,000 \times 0.0808/4 = \$20.20$.
 
-#### 1.2 Bid/Ask, Mid, and Quoting Increments
+**Worked Example 3:** Convert 6% semiannual to quarterly.
 
-**Formal Definition:**
-
-- **Bid:** price at which market-maker buys
-- **Ask/Offer:** price at which market-maker sells
-- **Mid:** average of bid and ask
-
-Bid/ask is a *trading friction* that shows up in realized P&L even if "the market didn't move."
-
-**Intuition:**
-
-If you buy at ask and sell at bid with no market move, you lose the spread.
-
-**Practice:**
-
-Example of bid/ask effect in bond trading P&L decomposition: isolating a "price change" contribution driven by bid/ask (in a Treasury-style 32nds world).
-
-> **Note:** Exact tick sizes and rounding rules vary by venue/instrument. 32nds for US Treasuries is explicit; other increments are desk-specific.
+$$R_2 = 4\left[\left(1 + \frac{0.06}{2}\right)^{2/4} - 1\right] = 4\left[(1.03)^{0.5} - 1\right] = 4 \times 0.01489 = 0.0596 = 5.96\%$$
 
 ---
 
-#### 1.3 "Par" as an Anchor
+## 1.4 Settlement, Calendars, and Timing
 
-**Formal Definition:**
+### Trade Date vs Settlement Date
 
-- **Par yield (bond):** coupon rate per year that makes the bond price equal to par (face value)
+When you trade a bond, cash does not move immediately. The **settlement date** is when the buyer pays and the seller delivers. The gap between trade date and settlement is the **settlement lag**.
 
-**Intuition:**
+Tuckman explains: "An investor purchasing a Treasury bond on a particular date must usually pay for the bond on the following business day. Similarly, the investor selling the bond on that date must usually deliver the bond on the following business day. The practice of delivery or settlement one day after a transaction is known as T+1 settle."
 
-"Par" means "no upfront premium/discount": coupon is set so the bond issues at 100.
+| Instrument | Typical Settlement |
+|------------|-------------------|
+| U.S. Treasuries | T+1 |
+| U.S. Corporate bonds | T+2 |
+| Eurobonds | T+2 or T+3 |
+| USD Term Deposits/Swaps | T+2 |
+| Money market deposits | T+2 (spot) |
 
-**Practice:**
+O'Kane confirms: "An interest rate swap traded at time 0 settles at time $t_s$. This typically occurs two days later, i.e. the settlement convention is known as 'T+2'."
 
-- New-issue desks talk about "printing at par" or "reoffering price ~par"
-- For swaps, traders use "par swap rate" similarly: fixed rate that makes PV=0 at inception
+**Trends in Settlement Lag:**
+Settlement times are shrinking globally to reduce counterparty risk.
+*   **Analogy:** Settlement lag is like the time between swiping your credit card and the money actually leaving your bank. In markets, this gap creates risk: if your counterparty goes bankrupt during the lag (after trade but before cash moves), you have a problem.
+*   **The Shift to T+1:** In May 2024, U.S. Equities moved to T+1 settlement. U.S. Treasuries have long been T+1. The goal is to minimize the "pending" exposure in the system.
 
----
+### What Happens on Settlement Day
 
-### 2. Math and Derivations
+O'Kane describes the settlement mechanics for bonds: "On the settlement date, the purchaser of the bond pays the full bond price to the seller. The full bond price is determined by adding the clean price of the bond, which is how the bond price is quoted in the market, and the accrued interest calculated according to some accrual convention."
 
-#### 2.1 Clean vs Dirty and the PV Identity
+Settlement matters for two key reasons:
 
-**Source-backed identity (bond):**
+1. **Accrued interest is computed to the settlement date, not the trade date.** If you trade on Friday but settle on Monday, the seller gets three extra days of accrued interest.
 
-When accrued is nonzero, the amount exchanged (full/dirty) equals PV of future cashflows:
+2. **Discount factors are computed from the settlement date.** When pricing a bond, the "today" in your present value calculation is settlement, not trade date.
 
-$$P + AI = PV(\text{future cashflows})$$
+### Business Day Conventions
 
-**Interpretation:**
+What happens when a payment date falls on a weekend or holiday? Markets use **business day adjustment rules**.
 
-$P$ (clean) is *not* itself the PV unless $AI=0$ (e.g., exactly on coupon date).
+**Following:** Move to the next business day.
 
-**Unit check:**
+**Modified Following:** Move to the next business day, *unless* that would push into the next calendar month—in which case, move to the previous business day instead.
 
-$P$, $AI$, and $PV$ are all in "price per $100 par" (or percent of par).
+**Preceding:** Move to the previous business day.
 
-**Sanity check:**
+**Modified Preceding:** Move to the previous business day, unless that would push into the previous calendar month—in which case, move forward.
 
-If you compute PV of future cashflows and compare to **dirty**, they should match (modulo rounding).
+Hull explains: "Another business day convention that is sometimes specified is the modified following business day convention, which is the same as the following business day convention except that when the next business day falls in a different month from the specified day, the payment is made on the immediately preceding business day."
 
----
+Modified Following is the most common for swaps because it keeps payments within the same month for accounting purposes, while minimizing the delay.
 
-#### 2.2 Why Bonds Quote Clean: Coupon-Date Continuity
+> **Source:** Hull's Business Snapshot 7.1 shows a swap confirmation specifying "Following business day" convention with the "U.S." holiday calendar, meaning "if a payment date falls on a weekend or a U.S. holiday, the payment is made on the next business day."
 
-Let $P^b$ be clean price right **before** coupon payment and $P^a$ right **after** coupon payment, coupon $c/2$ (semiannual example).
+### Holiday Calendars
 
-**Argument:**
+Different markets use different holiday calendars:
 
-- Right before coupon, accrued is $c/2$ and PV includes the next coupon
-- Right after coupon, accrued is 0 and PV excludes the paid coupon
-- Therefore (if yield unchanged), the same remaining-cashflow PV appears on both sides, implying clean price continuity:
+| Currency/Market | Holiday Calendar |
+|-----------------|------------------|
+| USD | U.S. (Federal Reserve holidays) |
+| EUR | TARGET (Trans-European Automated Real-time Gross settlement) |
+| GBP | London |
+| JPY | Tokyo |
 
-$$P^b = PV(\text{cashflows after next coupon}) = P^a$$
+For cross-currency products, payment dates typically must be business days in *all* relevant calendars.
 
-**Intuition:**
+### Fixing Dates vs Payment Dates
 
-Full/dirty price *does* jump because you just received a coupon cashflow; clean price removes that mechanical jump.
+For **term** floating-rate instruments (like legacy LIBOR or Term SOFR), the **fixing date** (when the rate is observed) typically precedes the **accrual start date** by 2 business days. This gives operational time to calculate the payment.
 
----
+O'Kane explains: "In the standard swap contract, each floating rate coupon is set in advance, and paid in arrears meaning that the value of the next coupon payment is determined by observing the appropriate term Libor on the fixing date which typically falls two days before the immediately preceding coupon payment date."
 
-#### 2.3 Accrued Interest Formulas
+A typical vanilla term swap timeline for one period:
 
-**Generic Proportional Accrual:**
+```
+Fixing Date (T-2 business days) → Accrual Start → Accrual End → Payment Date
+                                   |_____________Accrual Period_____________|
+```
 
-Accrued interest = fraction of coupon period elapsed × coupon-per-period:
+The payment is calculated based on the rate observed on the fixing date, but the cash moves on the payment date.
 
-$$AI = \Delta \left(\frac{c}{f}\right)$$
+> **Expert Note on RFRs:** In modern Over-the-Counter markets using Overnight Risk-Free Rates (like SOFR and SONIA), the timeline differs. Hull notes that the new reference rates "are backward looking. The rate applicable to a particular period is not known until the end of the period when all the relevant overnight rates have been observed."
+>
+> Interest is typically calculated daily *during* the accrual period ("in arrears"), and the compounded rate is computed as:
+> $$\left[\prod_{i=1}^{n}(1 + r_i \hat{d}_i) - 1\right] \times \frac{360}{D}$$
+> where $r_i$ is the overnight rate on day $i$, $\hat{d}_i = d_i/360$, and $D$ is total days in the period.
+>
+> Various mechanisms (lookback, payment delay, lockout) address the operational challenge that the final payment amount is not known until the end of the period. This is covered in detail in **Chapter 18**.
 
-where $\Delta = d_1/d_2$ is "elapsed days / period days" under the chosen day-count.
+### Stub Periods
 
-**Treasury Convention Example (ACT/ACT-in-period):**
+When a swap or bond's effective date doesn't align with the regular payment schedule, the first or last period may be shorter or longer than standard. This creates a **stub period**.
 
-$$AI = \frac{\text{actual days since last coupon}}{\text{actual days in coupon period}} \times \text{coupon per period}$$
+**Front stub:** First period is irregular (shorter or longer than standard).
+**Back stub:** Last period is irregular.
 
-**Example:** 54 days since Jan 10, 181-day period to Jul 10, coupon per period $5.50 → accrued ≈ $1.64 per $100.
+O'Kane notes that in a CDS premium leg schedule, "the cash flows are not all equal amounts, reflecting the small but real differences in the time between payments caused by adjustments to avoid weekends and public holidays. There is also a short stub at the beginning reflecting the shorter period to the first premium payment."
 
----
+Stubs matter because the **accrual fraction** for a stub period differs from regular periods, which changes the actual cash payment. O'Kane provides an example where "the first accrual fraction is 0.161111" for a short stub period—roughly 58 days out of 360—compared to the standard quarterly fraction of 0.25.
+ 
+ **Visualizing a Long First Coupon:**
+ 
+ ```mermaid
+ timeline
+     title Long First Coupon Timeline
+     section Issuance
+         Issue Date : 01 Jan
+     section First Coupon (Long)
+         Regular Q1 (Skipped) : 01 Apr
+         First Payment (4+3=7mo?) -> No, Example:
+         Issue Date : 15 Nov
+         Regular Date : 15 Dec (Skipped)
+         First Coupon : 15 Mar (4 months later)
+     section Regular Coupons
+         Second Coupon : 15 Jun
+         Third Coupon : 15 Sep
+ ```
+ 
+ *Diagram Explanation*: In a "Long First Coupon," the first payment covers more than one full period (e.g., 4 months instead of 3). The payment will be $\approx 1.33 \times$ a normal coupon. This often happens when a bond is issued mid-cycle.
 
-#### 2.4 Day Count as "Time Measurement"
-
-**General Day-Count Framing:**
-
-Day count convention X/Y determines how to measure "days between dates" and "days in reference period," and interest earned scales with their ratio.
-
-**Practical Implication:**
-
-Two bonds with identical coupon and clean price can have different daily carry purely due to day-count conventions.
-
----
-
-#### 2.5 Compounding as "Units": Discrete vs Continuous vs Simple
-
-**Discrete Compounding Growth Formula:**
-
-$$A\left(1+\frac{R}{m}\right)^{mn}$$
-
-**Continuous Compounding:**
-
-$$A e^{Rn}$$
-
-**Discount factor over $n$ years:**
-
-$$e^{-Rn}$$
-
-**Interest-rate-modeling notation (forward setting):**
-
-- Continuous forward yield: $e^{-y\tau} = P(t,T,T+\tau)$
-- Simple forward rate: $1 + \tau L = 1/P(t,T,T+\tau)$
-
-**Why This Matters Operationally:**
-
-A "5%" quote is meaningless without stating (i) day count and (ii) compounding. Different compounding conventions for the same "5%" produce different interest payments over the same calendar interval.
-
----
-
-#### 2.6 Calendars, Rolling, Settlement, and Schedule Plumbing
-
-**Settlement Lag:**
-
-| Instrument Type | Settlement |
-|-----------------|------------|
-| Some bonds | T+1 |
-| Eurobonds | T+3 |
-| LIBOR-style deposits | T+2 |
-
-**Business Day Rolling:**
-
-| Convention | Rule |
-|------------|------|
-| **Modified Following** | Roll forward unless that pushes into next calendar month, then roll back |
-| **Following** | Roll forward to next business day |
-| **Preceding** | Roll back to previous business day |
-| **Modified Preceding** | Roll back unless that pushes into previous month, then roll forward |
-
-**Swap Schedule Mechanics (Vanilla):**
-
-1. Build unadjusted dates at base frequency
-2. Roll them (typically Modified Following)
-3. Fixing date $T_i^f$ often 2 business days before $T_i$
-4. Payment date $T_i^p$ often $T_{i+1}$, possibly with a 1–2 business day delay
-
-**Stubs:**
-
-Schedules often generate irregular first/last accrual periods ("stubs") when effective date and regular grid don't align. Rolling dates changes period lengths (and hence accrual factors and payments).
 
 ---
 
-### 3. Measurement & Risk (Chapter 1 Scope: PV & P&L Attribution Plumbing)
+## 1.5 Clean vs Dirty: Avoiding Mechanical Price Jumps (Preview)
 
-#### 3.1 Clean/Dirty and P&L Attribution
+### The Problem with Quoting Full Price
 
-P&L for buying a bond and selling $d$ days later (with repo financing):
+Imagine a bond pays a $5 coupon every six months. If markets quoted the **dirty** (full) price, here's what would happen:
 
-$$P\&L = P(d) + AI(d) - (P(0) + AI(0))\left(1 + r\frac{d}{360}\right)$$
+- Day 1 after coupon: dirty price = 100 (say)
+- Day 90: dirty price = 102.50 (same "underlying" value, but accrued interest has built up)
+- Coupon date: dirty price jumps down by ~$5 when the coupon is paid
 
-Decomposes into: **price change + interest income − financing cost**
+This sawtooth pattern would make it hard to compare prices across dates or to distinguish real price moves from mechanical accrual.
 
-**Key Desk Interpretation:**
+### The Clean/Dirty Convention
 
-- If you track **clean price only**, you must separately track **accrual** to reconcile to economic P&L
-- If you track **dirty PV**, the accrued is already embedded; adding accrued again double-counts
+Markets solve this by quoting the **clean** (flat) price and separately tracking **accrued interest**:
 
-#### 3.2 Coupon Boundary Behavior (Risk + Reconciliation)
+$$\boxed{P_{\text{dirty}} = P_{\text{clean}} + \text{AI}}$$
 
-- Immediately after coupon payment, accrued resets to 0
-- Immediately before, it approaches the full coupon amount (under typical linear accrual conventions)
-- This creates a "sawtooth" pattern in accrued interest but not in clean price (when yields unchanged)
-- That's why clean quoting is operationally helpful
+Where:
+- $P_{\text{dirty}}$ is the actual cash exchanged per 100 face (the invoice price)
+- $P_{\text{clean}}$ is the quoted price
+- $\text{AI}$ is accrued interest
 
----
+O'Kane explains the rationale: "The purpose of accrued interest is to avoid a sudden drop in the quoted price of bonds as we pass through a coupon payment which is what must happen with the bond full price. These effects are not helpful to investors as they do not represent a change in credit quality or interest rates. The market therefore prefers to quote bonds using a clean price."
 
-### 4. Worked Examples
+### The Continuity Proof
 
-#### Example 1 — US Treasury: 32nds Quote → Accrued → Dirty Price
+Tuckman provides a rigorous demonstration that clean prices are continuous across coupon dates when yields don't change. The argument proceeds as follows:
 
-**Given:**
+**Setup:** Let $P^b$ and $P^a$ be the quoted (clean) prices of a bond right before and right after a coupon payment of $c/2$, respectively. The fundamental pricing equation is:
 
-- Quoted (clean) price: 155-16 = $155 + 16/32 = 155.50$
-- Coupon: 11% annually paid semiannually → coupon per period = $5.50 per $100
-- Dates: last coupon Jan 10, next coupon Jul 10; valuation Mar 5
-- Day counts: actual days since last coupon = 54; in period = 181
-- Day count convention: ACT/ACT-in-period (Treasuries)
+$$P + AI = PV(\text{future cash flows})$$
 
-**Step 1: Accrued Interest**
+**Before the coupon payment:** Right before a coupon date, accrued interest equals the full coupon ($c/2$), and the present value of the next coupon (which is about to be paid) also equals $c/2$. Therefore:
 
-$$AI = \frac{54}{181} \times 5.50 \approx 1.64$$
+$$P^b + \frac{c}{2} = \frac{c}{2} + PV(\text{cash flows after the next coupon})$$
 
-**Step 2: Dirty Price**
+Simplifying:
+$$P^b = PV(\text{cash flows after the next coupon})$$
 
-$$P^{\text{dirty}} = P^{\text{clean}} + AI = 155.50 + 1.64 = 157.14$$
+**After the coupon payment:** Right after the coupon payment, accrued interest equals zero:
 
-**Sanity Checks:**
+$$P^a + 0 = PV(\text{cash flows after the next coupon})$$
 
-- AI is less than the next coupon ($5.50): ✓
-- Dirty > clean between coupon dates: ✓
+**Conclusion:** Since both expressions equal the same present value, $P^a = P^b$. The clean price is continuous across the coupon date.
 
----
+By contrast, the dirty price falls from $(P^b + c/2)$ before the coupon to $P^a = P^b$ after the coupon—a drop of exactly $c/2$.
 
-#### Example 2 — "101–4 5/8" Quote + Accrued → Invoice Amount
+> **Source:** Tuckman states: "With an accrued interest convention, if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment."
 
-**Given:**
+### Why This Matters for P&L
 
-- Clean/flat price: $101-4\frac{5}{8}$
-- Accrued interest: $22.79 per $10,000 face = 0.2279% of par
+When marking a bond position to market:
 
-**Step 1: Convert 32nds**
+- If you track **clean price**, your P&L reflects genuine market moves. Coupon payments appear as separate coupon income.
+- If you track **dirty price**, your P&L includes mechanical accrual drift, which must be separated from actual market moves.
 
-- $4\frac{5}{8}$ thirty-seconds = $4.625/32$
-- Clean in % of par: $101 + 4.625/32 = 101.14453125$
+Most trading desks quote clean and track accrued interest separately, then reconcile to the full settlement amount.
 
-**Step 2: Add Accrued**
+> **Stock vs Bond Convention:** Tuckman notes an important difference: "The behavior of quoted bond prices differs from that of stocks that do not have an accrued dividend convention. Stock prices fall by approximately the amount of the dividend on the day ownership of the dividend payment is established. The accrued convention does make more sense in bond markets than in stock markets because dividend payment amounts are generally much less certain than coupon payments."
 
-$$P^{\text{dirty}} = 101 + \frac{4.625}{32} + 0.2279 = 101.3724\% \text{ of par}$$
-
-**Step 3: Invoice for $10,000 Face**
-
-$$\text{Invoice} = 10,000 \times 1.013724 = \$10,137.24$$
-
-**Sanity Checks:**
-
-- Dirty > clean: ✓
-- Accrued is small compared to price: ✓ (plausible for a bond not near coupon date)
+**Full treatment of accrued interest mechanics appears in Chapter 5.**
 
 ---
 
-#### Example 3 — CDS Stub Premium: Why Stubs Change Cashflows
+## 1.6 Practical Sanity Checks
 
-**Given:**
+Every practitioner should run these checks on any fixed-income calculation:
 
-- Notional $10mm
-- Contractual spread 35.0 bp (= 0.0035)
-- Quarterly schedule, Actual/360, Following business day rule, TARGET calendar
-- Short stub at the beginning
-- First accrual fraction: 0.161111
-- First flow date: Thu 20 Dec 2007
+### Timing Checks
 
-**Compute:**
+- **Fixing date before accrual start:** For term rates, the rate must be known before accrual begins.
+- **Payment date at or after accrual end:** You can't pay before the period is complete.
+- **Settlement vs effective:** Know which date your valuation uses.
+- **Holiday consistency:** Ensure all dates respect the appropriate calendar(s).
 
-Premium payment per period (per notional) is $S \times \Delta$ under ACT/360; dollar payment is $N \times S \times \Delta$.
+### Accrued Interest Checks
 
-$$\text{Payment} = 10,000,000 \times 0.0035 \times 0.161111 \approx 5,638.89$$
+- $0 \leq \text{AI} \leq \text{Coupon}$ between payment dates
+- AI resets to 0 immediately after coupon payment
+- AI approaches full coupon immediately before payment
+- AI computed to settlement date, not trade date
 
-**Takeaway:**
+### Monotonicity Check (Positive Rates)
 
-Stub periods mechanically change $\Delta$, so even with a "fixed" spread, cash coupons vary period to period.
+If rates are positive, discount factors should decrease with maturity. A discount factor curve that increases with maturity (except in negative-rate environments) suggests a bug.
 
----
+### Convention Consistency
 
-#### Example 4 — Compounding Conversion (Semiannual → Continuous)
+- Day count used for accrued interest should match the instrument convention
+- Compounding assumption should match the market's convention
+- Settlement lag should match the market standard
+- Business day convention should match the contract specification
 
-**Conversion Formulas:**
+### Invoice Price Sanity
 
-$$R_c = m \ln\left(1 + \frac{R_m}{m}\right)$$
+Tuckman notes that "the amount paid or received for a bond (i.e., its full price) equals the present value of its cash flows." So:
 
-$$R_m = m\left(e^{R_c/m} - 1\right)$$
+$$P_{\text{dirty}} \approx PV(\text{remaining cashflows})$$
 
-**For $R_m = 10\%$ with $m = 2$:**
-
-$$R_c = 2 \ln(1.05) \approx 0.09758 = 9.758\%$$
-
-**Sanity Check:**
-
-Continuous rate is slightly lower than semiannual nominal for the same effective growth: expected.
+This provides a sanity check: if your computed dirty price differs materially from the sum of discounted cashflows, something is wrong.
 
 ---
 
-### 5. Practical Notes
+## 1.7 Common Implementation Bugs
 
-#### 5.1 Implementation Checklist: "Quote → PV"
-
-1. **Identify quote object:**
-   - Bond clean price? CDS spread + standard coupon? Money-market rate?
-
-2. **Confirm conventions:**
-   - Day count (ACT/ACT vs ACT/360 vs 30/360)
-   - Compounding (simple vs discrete vs continuous)
-   - Settlement lag (T+1/T+2/T+3)
-   - Business day roll (Following / Modified Following / Preceding)
-
-3. **Build schedule:**
-   - Unadjusted grid → roll dates → assign fixing/payment dates
-   - Identify stubs and compute each $\Delta_i$ explicitly
-
-4. **Compute cashflows:**
-   - Coupon per period: $c/f$; premium: $S\Delta$; etc.
-
-5. **Compute PV consistently and reconcile to invoice/dirty:**
-   - Use $P + AI = PV(\text{future cashflows})$
-
-#### 5.2 Verification Tests ("Sanity Checks")
-
-**Date/Timing Tests:**
-
-- Fixing date should precede accrual start
-- Payment date should be at/after accrual end
-- Settlement vs effective: ensure you're valuing "as of" correctly
-
-**Boundary Tests:**
-
-- Right after coupon date: $AI = 0$
-- Right before: $AI \approx$ full coupon
-
-**Monotonicity:**
-
-- Increase discount rates → PV decreases (for positive cashflows)
-
-**Reconciliation:**
-
-- PV from discounted cashflows equals dirty price
-- Clean = dirty − AI
-
-#### 5.3 Common Plumbing Bugs
-
-| Bug | Description |
-|-----|-------------|
-| Off-by-one in schedule | Forgetting to roll **all** dates, or rolling payment dates but not accrual boundaries |
-| Day count mismatch | Using ACT/360 on a leg that should be 30/360 (or vice versa) |
-| Clean/dirty confusion | Treating quoted clean as if it were dirty (or adding accrued twice) |
-| Ignoring stubs | Assuming equal $\Delta_i$ across periods |
+| Bug | Description | Consequence |
+|-----|-------------|-------------|
+| **Off-by-one in schedule** | Rolling some dates but not others, or miscounting periods | Wrong number of cashflows, wrong accrual |
+| **Day count mismatch** | Using ACT/360 when ACT/ACT is correct (or vice versa) | Systematic accrual error |
+| **Clean/dirty confusion** | Treating clean price as dirty, or adding accrued twice | Wrong settlement amount |
+| **Ignoring stubs** | Assuming all periods have equal accrual fraction | Wrong first/last cashflows |
+| **Settlement lag error** | Computing accrued to trade date instead of settlement | Wrong accrued interest |
+| **Calendar mismatch** | Using wrong holiday calendar for payment date adjustment | Payments on wrong dates |
+| **Compounding mismatch** | Converting rates with wrong frequency assumption | Systematic pricing error |
+| **End-of-month error** | Incorrect handling of dates near month-end in 30/360 | Wrong day count |
 
 ---
 
-### 6. Summary & Recall
+## Summary
 
-#### 10-Bullet Executive Summary
+This chapter established the "plumbing" that underlies all fixed-income pricing:
 
-1. Always ask: **what is being quoted** (price, yield, spread) and what conventions interpret it
-2. Bonds usually quote **clean**; cash exchanged at settlement is **dirty = clean + accrued**
-3. Accrued interest is the pro-rated portion of the next coupon since last coupon date
-4. PV identity: **dirty** price equals PV of remaining cashflows; clean adjusts to whatever accrued convention is used
-5. Clean price does not mechanically jump on coupon date if yield is unchanged; accrued resets instead
-6. Settlement lags matter (T+1/T+3 etc); cash moves on settlement, not trade
-7. Business day rolling (Following vs Modified Following vs Preceding) changes dates and thus accrual factors
-8. Stubs create irregular accrual periods; coupon amounts vary because $\Delta$ varies
-9. Day count and compounding define the *units* of rates; converting is like converting km↔miles
-10. Always run sanity checks: timing, sign, monotonicity, boundary (coupon), and PV reconciliation
+1. **Markets quote what's useful for their participants**: Bonds quote clean prices in 32nds; T-bills quote discount rates; money markets quote rates; swaps quote fixed rates. The quote alone isn't enough—you need the conventions.
 
-#### Cheat Sheet of Formulas/Definitions
+2. **Day counts are a unit system**: ACT/ACT, 30/360, and ACT/360 measure time differently. Using the wrong convention means computing the wrong interest. The same one-day period can count as 1 day (ACT) or 3 days (30/360) depending on convention.
 
-| Formula | Expression |
-|---------|------------|
-| Dirty price | $P^{\text{dirty}} = P + AI$ |
-| PV identity | $P + AI = PV(\text{future cashflows})$ |
-| Accrued interest | $AI = \Delta(c/f)$ |
-| Day count | Earned = (days between / days in ref period) × ref-period interest |
-| Simple interest (ACT/360) | Interest on $1 for $d$ days: $rd/360$ |
-| Discrete compounding | $A(1+R/m)^{mn}$ |
-| Continuous compounding | Growth $Ae^{Rn}$; discount $e^{-Rn}$ |
-| Forward rate (continuous) | $e^{-y\tau} = P(t,T,T+\tau)$ |
-| Forward rate (simple) | $1 + \tau L = 1/P(t,T,T+\tau)$ |
-| Trading P&L | $P\&L = P(d) + AI(d) - (P(0) + AI(0))(1 + rd/360)$ |
+3. **Compounding is also a unit choice**: A 5% semiannual rate is not the same as 5% continuous. Conversion formulas exist, but mixing conventions creates errors. Continuous compounding is standard in derivatives pricing for its mathematical convenience.
+
+4. **Settlement timing matters**: Cash moves on settlement date, not trade date. Accrued interest is computed to settlement. Different markets have different settlement lags (T+1 for Treasuries, T+2 for swaps).
+
+5. **Clean pricing removes mechanical drift**: Markets quote clean to make prices comparable across dates. The dirty price is what actually changes hands. Tuckman proves that clean prices are continuous across coupon dates when yields are unchanged.
+
+None of this is mathematically deep, but all of it must be exactly right. The chapters that follow will build on these conventions: Chapter 2 develops discount factors and present value; Chapter 3 covers the zero-forward-par rate relationships; Chapter 5 fully develops bond pricing with accrued interest mechanics.
 
 ---
 
-### 7. Flashcards (Q/A)
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Clean vs dirty | Dirty = clean + accrued interest | Clean is quoted; dirty is exchanged |
+| Day count (X/Y) | Fraction = (days between) / (days in reference period) | Different conventions → different dollars |
+| 30/360 | Assume 30 days/month, 360 days/year | Used for corporates; smooths calendar irregularity |
+| ACT/ACT | Actual days / actual days in period | Used for Treasuries; exact calendar counting |
+| ACT/360 | Actual days / 360 | Used for money markets; inflates annual return |
+| Compounding | Frequency of interest computation | Unit of rate quotes; affects conversions |
+| Continuous compounding | Limit as frequency → ∞ | Standard in derivatives pricing |
+| Settlement | Date when cash moves | Accrued computed to settlement |
+| Business day roll | What to do when date is a holiday | Modified Following is common for swaps |
+| Stub | Irregular first/last period | Affects actual cash payment amount |
+| Fixing date | When floating rate is observed | Typically T-2 for term rates |
+
+---
+
+## Notation for This Book
+
+The following notation will be used throughout subsequent chapters:
+
+| Symbol | Definition |
+|--------|------------|
+| $P_{\text{clean}}$ or $P$ | Clean/quoted/flat price (per 100 par) |
+| $P_{\text{dirty}}$ or $P_{\text{full}}$ | Dirty/invoice/full price (per 100 par) |
+| $\text{AI}$ | Accrued interest (per 100 par) |
+| $P(0,T)$ or $d(T)$ | Discount factor: PV of $1 at time $T$ |
+| $c$ | Annual coupon rate (as decimal) |
+| $m$ | Coupon frequency per year |
+| $\tau$, $\alpha$, or $\Delta$ | Year fraction / accrual fraction |
+| $z(T)$ or $r(T)$ | Zero (spot) rate to maturity $T$ |
+| $f(T_1, T_2)$ | Forward rate for period $[T_1, T_2]$ |
+| $R_c$ | Continuously compounded rate |
+| $R_m$ | Rate compounded $m$ times per year |
+
+---
+
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is the difference between clean and dirty price? | Clean is the quoted price; dirty is cash exchanged: clean + accrued interest |
-| 2 | Why do bond markets quote clean? | To avoid mechanical price jumps at coupon dates; accrued handles the jump |
-| 3 | What is accrued interest? | The pro-rated portion of the next coupon that has accrued since the last coupon date |
-| 4 | State the PV identity involving accrued interest | $P + AI = PV(\text{future cashflows})$ |
-| 5 | What happens to clean price on coupon date if yield is unchanged? | It does not mechanically drop; accrued resets and the coupon cashflow occurs |
-| 6 | What is a day-count convention X/Y? | A rule for measuring the fraction of a reference period between two dates |
-| 7 | Give common US day counts | ACT/ACT (in period), 30/360, ACT/360 |
-| 8 | What day count is used for US Treasury bonds? | ACT/ACT (in period) |
-| 9 | What is Modified Following? | Roll forward to next business day unless that moves into next month, then roll back |
-| 10 | What is a stub period? | An irregular first/last accrual period created by schedule alignment/rolling; affects $\Delta$ and payments |
-| 11 | Why do stub periods matter? | Because coupon/premium cashflows scale with $\Delta$; different $\Delta$ → different cash amounts |
-| 12 | How are US Treasury bond prices quoted? | In dollars and 32nds per $100 face |
-| 13 | What is the discrete compounding growth formula? | $A(1+R/m)^{mn}$ |
-| 14 | What is continuous discounting over $n$ years at rate $R$? | Multiply by $e^{-Rn}$ |
-| 15 | Give the bond+repo P&L plumbing identity | $P\&L = P(d) + AI(d) - (P(0) + AI(0))(1 + rd/360)$ |
+| 1 | What is the difference between clean and dirty price? | Clean is quoted; dirty = clean + accrued interest is exchanged |
+| 2 | Why do bond markets quote clean prices? | To remove mechanical accrual drift and make prices comparable across dates |
+| 3 | What does the day count convention determine? | How to compute the fraction of time between dates for interest calculation |
+| 4 | Name the three common U.S. day count conventions | Actual/Actual (Treasuries), 30/360 (corporates), Actual/360 (money markets) |
+| 5 | Under Actual/360, a full 365-day year earns how much of the quoted rate? | 365/360 = 1.0139 times the quoted rate |
+| 6 | What is Modified Following? | Move to next business day unless that crosses month-end, then move back |
+| 7 | What is a stub period? | An irregular first or last accrual period that doesn't match the standard length |
+| 8 | What is T+1 settlement? | Cash and securities exchange one business day after trade date |
+| 9 | To what date is accrued interest computed? | Settlement date (not trade date) |
+| 10 | What is a fixing date? | The date when a floating rate is observed (typically 2 business days before accrual start for term rates) |
+| 11 | How are U.S. Treasury prices quoted? | In dollars and 32nds per $100 face value |
+| 12 | Convert 100-16 to decimal | 100 + 16/32 = 100.50 |
+| 13 | Why does compounding frequency matter? | It's part of the rate's "unit"; different frequencies with same number mean different economics |
+| 14 | Formula to convert semiannual rate to continuous | $R_c = 2\ln(1 + R_m/2)$ |
+| 15 | What check confirms you haven't added accrued twice? | Dirty price should roughly equal PV of remaining cashflows |
+| 16 | How many days between Feb 28 and Mar 1 under 30/360? | 3 days (Feb 28 → Feb 30 → Mar 1) |
+| 17 | How many days between Feb 28 and Mar 1 under ACT/ACT? | 1 day |
+| 18 | Why is continuous compounding used in derivatives pricing? | Mathematical convenience: discount factors multiply simply |
+| 19 | What is the relationship between T-bill quoted price and cash price? | $P = \frac{360}{n}(100 - Y)$ where $P$ is quoted, $Y$ is cash, $n$ is days |
+| 20 | What holiday calendar is used for EUR payments? | TARGET (Trans-European Automated Real-time Gross settlement) |
 
 ---
 
 ## Mini Problem Set
 
-### Questions
+1. A Treasury is quoted at 98-24. Convert to decimal.
 
-1. A Treasury bond quote is 120-05 (per $100). Convert it into a decimal clean price.
+2. Under Actual/Actual, with 60 days elapsed in a 182-day coupon period and a $3 semiannual coupon, what is the accrued interest?
 
-2. Using ACT/ACT-in-period, compute accrued interest given 54 days since last coupon, 181-day coupon period, and $5.50 semiannual coupon per $100.
+3. A money market deposit of $1,000,000 for 90 days at 4% (Actual/360) earns how much interest?
 
-3. Compute the dirty price given the clean price in (1) and accrued in (2).
+4. Convert 8% with semiannual compounding to continuous compounding.
 
-4. A bond has clean price 101–4 5/8 and accrued interest 0.2279% of par. Compute the dirty price in % of par and the invoice amount for $10,000 face.
+5. If you trade on Wednesday and settlement is T+2, when does cash move (assuming no holidays)?
 
-5. Explain (with a one-line equation) why the *clean* price does not jump down on a coupon date if yield is unchanged.
+6. A swap's effective date is March 20, but the first regular payment date would be June 20 (a Sunday). Under Modified Following, when is payment?
 
-6. A bond settles T+3. If you trade on Monday, what is the earliest possible settlement day ignoring holidays? (State your assumption.)
+7. Explain why 30/360 can produce more accrued interest than Actual/Actual for February.
 
-7. For a swap, list the ordered timeline for one period: fixing date → accrual start → accrual end → payment date (include the "2 business day" convention).
+8. A bond's clean price is 102.50 and accrued interest is 1.875. What is the dirty price?
 
-8. Define Modified Following and give an example where it differs from Following.
+9. A 91-day T-bill is quoted at 5.00 (discount rate). What is the cash price per $100 face value?
 
-9. A CDS has contractual spread 35 bp, notional $10mm, and first accrual fraction 0.161111. Compute the first premium payment amount.
+10. Convert 6% semiannual to quarterly compounding.
 
-10. Convert 10% per annum with semiannual compounding to an equivalent continuously compounded rate (use $R_c = m\ln(1+R_m/m)$).
+11. Using 30/360, how many days are there from August 27 to November 15?
 
-11. Show that if you compute PV using dirty price, you must not separately add "accrued" again. (Explain in one paragraph using $P + AI = PV$.)
+12. A Treasury bond has coupon dates March 1 and September 1, with an 8% annual coupon. Under ACT/ACT, what is the accrued interest on July 3 per $100 face?
+
+### Brief Solutions
+
+1. $98 + 24/32 = 98.75$
+
+2. $\text{AI} = (60/182) \times 3 = 0.989$
+
+3. $1{,}000{,}000 \times 0.04 \times 90/360 = \$10{,}000$
+
+4. $R_c = 2\ln(1.04) = 2 \times 0.0392 = 7.84\%$
+
+5. Friday (Wednesday + 2 business days)
+
+6. Monday, June 21 (roll forward to next business day; stays in same month)
+
+7. 30/360 counts February as having 30 days; Actual/Actual counts 28 (or 29 in leap year). End of February to March 1 is 3 days under 30/360 but only 1 day under Actual/Actual.
+
+8. $102.50 + 1.875 = 104.375$
+
+9. Interest = $100 \times 0.05 \times 91/360 = \$1.2639$; Cash price = $100 - 1.2639 = \$98.7361$
+
+10. $R_2 = 4[(1.03)^{0.5} - 1] = 4 \times 0.01489 = 5.96\%$
+
+11. Aug 27 → Aug 30 = 3; Aug 30 → Nov 30 = 90 (3 months); Nov 30 → Nov 15: this is negative, so instead: Aug 30 → Nov 15 = 75 days (2 months + 15 days = 60 + 15). Total = 3 + 75 = 78 days.
+
+12. Days from Mar 1 to Jul 3 = 124; Days from Mar 1 to Sep 1 = 184; Semiannual coupon = $4; AI = $(124/184) \times 4 = \$2.6957$
 
 ---
 
 ## Source Map
 
-### Directly Source-Backed
+### (A) Verified Facts (Source-Backed)
 
-- Clean vs dirty pricing; Treasury 32nds; dirty = clean + accrued; ACT/ACT Treasury example
-- Accrued interest definition and motivation; bond settlement lag variability
-- PV identity $P + AI = PV$ and clean-price coupon-date continuity argument
-- LIBOR ACT/360 and T+2 settlement; USD LIBOR delay and Modified Following
-- Swap schedule plumbing: rolling, fixing/payment dates, and typical USD leg day counts
-- Day count and compounding conversion formulas
-- CDS schedule construction/rolling and short stub illustration
+| Fact | Source |
+|------|--------|
+| Treasury prices quoted in 32nds | Tuckman Ch 1, Hull Ch 6 |
+| Futures quoted to half/quarter 32nds | Hull Ch 6 |
+| T-bill discount rate quotation formula | Hull Ch 6 |
+| Dirty = clean + accrued interest | Tuckman Ch 4, Hull Ch 6, O'Kane Ch 4 |
+| Day count defines interest accrual (X/Y definition) | Hull Ch 6 |
+| Three U.S. day counts: ACT/ACT, 30/360, ACT/360 | Hull Ch 6 |
+| 30/360 day counting algorithm | Tuckman Ch 17 |
+| Actual/360 money market convention | Tuckman Ch 4, Hull Ch 6 |
+| ACT/365 for GBP, ACT/360 for USD/EUR/JPY money markets | Hull Ch 6, O'Kane Ch 2 |
+| Clean price continuity across coupon dates (proof) | Tuckman Ch 4 |
+| T+1 settlement for Treasuries | Tuckman Ch 1 |
+| T+2 settlement for swaps | O'Kane Ch 2, Hull Ch 7 |
+| Compounding conversion formulas | Hull Ch 4 |
+| Modified Following business day rule | Hull Ch 7, O'Kane Ch 2 |
+| February day count anomaly (3 days vs 1 day) | Hull Business Snapshot 6.1 |
+| Fixing date 2 days before accrual start for term rates | O'Kane Ch 2 |
+| Stub periods in CDS premium leg | O'Kane Ch 5 |
+| RFR backward-looking compounding | Hull Ch 4 |
+| Stock vs bond accrual convention difference | Tuckman Ch 4 footnote |
+| Continuous compounding preferred in derivatives | Hull Ch 4 |
 
-### Derived (Reasoned Inference)
+### (B) Reasoned Inference (Derived from A)
 
-- Par swap rate concept as "fixed rate making swap PV=0" (derived from swap valuation expressions)
-- PV monotonicity and reconciliation tests (derived from discounting identities and PV algebra)
+- Clean pricing removes sawtooth accrual pattern (follows from the clean/dirty identity and the coupon-date continuity proof)
+- Day counts are like measurement units (conceptual framing consistent with Tuckman's statement that conventions "do not really matter so long as cash flows are properly computed")
+- Convention risk exists whenever conventions are mixed (implied by the existence of multiple conventions)
+- Dirty price ≈ PV of remaining cashflows (follows from Tuckman's pricing equation P + AI = PV)
 
-### Uncertain / Needs More Info
+### (C) Flagged Uncertainties
 
-- End-of-month rule specifics for target products (requires explicit contract standard or a specific source section)
-- Exact tick/rounding conventions beyond Treasuries-in-32nds (depends on product/venue)
+- **End-of-month rules:** Exact EOM conventions for 30/360 vary by specific variant (30/360 ISDA, 30E/360, etc.); specific rules require contract documentation
+- **Exact settlement lags:** May vary by market, currency, instrument type, and can change over time (e.g., U.S. equities moved from T+2 to T+1)
+- **Business day calendars:** Holiday calendars are jurisdiction-specific and change annually; production systems require maintained calendar data
+- **RFR compounding conventions:** Specific lookback, lockout, and payment delay conventions vary by currency and product; covered in Chapter 18

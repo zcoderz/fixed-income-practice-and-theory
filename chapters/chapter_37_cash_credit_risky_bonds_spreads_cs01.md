@@ -208,7 +208,15 @@ It is a single spread number that "tilts" the entire discount curve to match the
 
 **Practice:**
 
-Used widely in cash credit to compare bonds across maturities and coupons (but still depends on the chosen base curve and compounding convention).
+Used widely in cash credit to compare bonds across maturities and coupons (but still disordered by base curve and compounding convention).
+
+> **Analogy: The Level Playing Field**
+>
+> Why use Z-Spread?
+>
+> *   **Yield Spread**: Like comparing heights of two people standing on different hills. (Bad comparison).
+> *   **Z-Spread**: We build a platform (the Z-spread) that lifts the *entire* risk-free curve by a constant amount until the bond's price makes sense. It levels the field across different maturities.
+> *   **Result**: It's the "average" risk premium over the whole life of the bond.
 
 ---
 
@@ -425,6 +433,16 @@ But O'Kane also emphasizes that observed spreads can include multiple premia; he
 (as a conceptual decomposition).
 
 **Practical Takeaway:** Z-spread is a pricing statistic; it should not be equated mechanically to expected loss without acknowledging modeling assumptions and risk premia.
+
+> **Deep Dive: The Spread Zoo**
+>
+> Which spread should I use?
+>
+> 1.  **G-Spread (Govt)**: Yield - Treasury Yield. (Quick & Dirty).
+> 2.  **I-Spread (Interploated)**: Yield - Interpolated Swap Rate. (Better).
+> 3.  **Z-Spread (Zero-Vol)**: Constant shift to the zero curve. (Standard for pricing).
+> 4.  **OAS (Option-Adjusted)**: Z-Spread minus the value of call options. (Essential for Callable Bonds).
+> 5.  **ASW (Asset Swap)**: What you pay to swap the bond into floating rate cashflows. (Used by Banks/Hedge Funds).
 
 ---
 

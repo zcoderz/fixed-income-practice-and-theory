@@ -1,1381 +1,1017 @@
-# Chapter 50: Correlation and Tranche Pricing Frameworks (Conceptual Map)
-
-**Why Tranches Are Correlation-Sensitive; Gaussian Copula & Base Correlation as Market Language**
+# Chapter 50: Correlation and Tranche Pricing Frameworks
 
 ---
 
-## Conventions & Notation
+## Introduction
+
+Why do equity and senior tranches respond in *opposite directions* to changes in "correlation"? This question lies at the heart of structured credit risk and reveals why tranche pricing cannot be reduced to simple spread-plus-leverage intuition.
+
+Consider a portfolio of 125 investment-grade names backing a synthetic CDO. A risk manager bumps the correlation parameter from 30% to 35% and observes something counterintuitive: the equity tranche *gains* value (for a protection seller) while the super-senior tranche *loses* value. Both tranches reference the same portfolio, yet they respond with opposite signs to the same parameter change. Understanding why requires grasping how dependence reshapes the *entire distribution* of portfolio losses, not just its mean.
+
+The Gaussian copula framework—sometimes called "the formula that killed Wall Street" after its role in the 2007-2008 crisis—remains the market's standard language for quoting tranche prices. Despite its well-documented limitations (no tail dependence, calibration instabilities, base correlation pathologies), it persists because it provides a common vocabulary for traders, a tractable calibration framework, and a starting point for more sophisticated models. As O'Kane emphasizes, "the one-factor Gaussian copula model has become the market standard for pricing and hedging synthetic CDO tranches."
+
+This chapter develops the conceptual and mathematical framework for correlation-sensitive tranche pricing. We begin with the fundamental question of why tranches are correlation-sensitive at all (Section 50.1), then develop copula theory from Sklar's theorem (Section 50.2). The Gaussian copula one-factor model receives detailed treatment (Section 50.3), including its critical limitation: zero tail dependence. The Large Homogeneous Portfolio (LHP) model provides analytical tractability for large portfolios (Section 50.4). We then examine the market's two correlation languages—compound correlation (Section 50.5) and base correlation (Section 50.6)—with particular attention to the pathologies that arise from base correlation interpolation (Section 50.8). Model risk and lessons from 2008 (Section 50.9) connect the framework to practical risk management. Throughout, we build intuition through worked examples that make the mathematics concrete.
+
+**Prerequisites:** This chapter assumes familiarity with tranche mechanics and the waterfall structure (Chapter 48), expected tranche loss calculations (Chapter 49), and basic probability theory. Readers seeking deeper mathematical foundations should consult Appendix A6 on credit portfolio models.
+
+---
+
+## Conventions and Notation
 
 | Convention | Description |
 |------------|-------------|
 | **Time** | $t \ge 0$ in **years**; trade inception at $t=0$, maturity at $T$ |
-| **Loss units** | Losses are expressed as **fractions of portfolio notional** unless stated otherwise |
-| **Tranche strikes** | $A,D$ (attachment, detachment) are **fractions of portfolio notional** (e.g., $3\% \equiv 0.03$); tranche width $w=D-A$ |
-| **Tranche loss fraction** | Always bounded in $[0,1]$ (loss as a fraction of tranche notional) |
-| **Discount factor** | $Z(t)$ is the present value of \$1 at time $t$; risky cashflows are discounted with $Z(\cdot)$ |
-| **Quoting conventions** | When quoting examples mention coupon frequency/day count, they are **as described in the reference text** (e.g., quarterly with Act/360 in one historical tranche quote table). Verify current market conventions separately |
-
----
-
-## Notation Glossary
+| **Loss units** | Losses expressed as **fractions of portfolio notional** unless stated otherwise |
+| **Tranche strikes** | $A,D$ (attachment, detachment) as **fractions of portfolio notional** (e.g., 3% ≡ 0.03); tranche width $w = D - A$ |
+| **Tranche loss fraction** | Always bounded in $[0,1]$ (loss as fraction of tranche notional) |
+| **Discount factor** | $Z(t)$ is the present value of \$1 at time $t$ |
 
 | Symbol | Definition |
 |--------|------------|
-| $i=1,\dots,N$ | Names in the reference portfolio |
+| $i = 1, \dots, N$ | Names in the reference portfolio |
 | $\tau_i$ | Default time of name $i$ |
-| $Y_{t,i}=\mathbf{1}_{\{\tau_i\le t\}}$ | Default indicator process (1 if defaulted by $t$, else 0) |
-| $R_i$ | Recovery rate of name $i$; $\mathrm{LGD}_i=1-R_i$ |
-| $L(t)$ | **Fractional portfolio loss** at time $t$ (fraction of portfolio notional lost to defaults by $t$) |
-| $L_{\max}$ | Maximum possible portfolio loss under the recovery assumptions (e.g., with fixed $R=40\%$, $L_{\max}=60\%$) |
-| $A,D$ | Tranche attachment/detachment (fractions of portfolio notional); $w=D-A$ |
-| $L(t;A,D)$ (or $TL(t)$) | **Tranche loss fraction** at time $t$, in $[0,1]$ |
-| $Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]$ | Tranche survival curve / expected surviving tranche notional fraction |
-| $\psi(T,K)=\mathbb{E}[\min(L(T),K)]$ | ETL of the **equity/base tranche** $[0,K]$ |
-| $S(A,D)$ | Contractual tranche spread (annualized), paid on outstanding tranche notional |
-| $\rho$ | (Copula) correlation parameter in one-factor Gaussian copula / latent-variable model |
-| $\Phi(\cdot)$, $\Phi^{-1}(\cdot)$ | Standard normal CDF and inverse CDF |
+| $Y_{t,i} = \mathbf{1}_{\{\tau_i \le t\}}$ | Default indicator (1 if defaulted by $t$, else 0) |
+| $R_i$ | Recovery rate of name $i$; $\text{LGD}_i = 1 - R_i$ |
+| $L(t)$ | **Fractional portfolio loss** at time $t$ |
+| $L_{\max}$ | Maximum possible portfolio loss under recovery assumptions |
+| $L(t; A, D)$ | **Tranche loss fraction** at time $t$, in $[0,1]$ |
+| $Q(t; A, D) = \mathbb{E}[1 - L(t; A, D)]$ | Tranche survival curve |
+| $\psi(T, K) = \mathbb{E}[\min(L(T), K)]$ | ETL of base tranche $[0, K]$ |
+| $\rho$ | Correlation parameter in one-factor Gaussian copula |
+| $\Phi(\cdot), \Phi^{-1}(\cdot)$ | Standard normal CDF and inverse CDF |
+| $t_\nu(\cdot), t_\nu^{-1}(\cdot)$ | Student's t CDF with $\nu$ degrees of freedom and its inverse |
+| $\lambda_U, \lambda_L$ | Upper and lower tail dependence coefficients |
 
 ---
 
-## 0. Setup
+## 50.1 Why Tranche Valuation Is Correlation-Sensitive
 
-### Conventions Used in This Chapter
+### 50.1.1 The Nonlinearity at the Core
 
-- We treat **single-name marginal default curves** (survival/hazard) and **recoveries** as given inputs (from CDS calibration in prior chapters)
-- We focus on how a **dependence model** turns these marginals into a **joint loss distribution** for the portfolio, which then drives tranche ETL and PV
-- We speak in terms of **expected tranche loss** (ETL) and the **tranche survival curve** $Q(t,A,D)$ because tranche pricing can be mapped to CDS-style PV once $Q$ is known
+The fundamental reason tranches are correlation-sensitive lies in a simple mathematical fact: tranche loss is a *nonlinear* function of portfolio loss. Recall from Chapter 48 the tranche loss mapping:
 
----
+$$\boxed{L(T; A, D) = \frac{\min(L(T), D) - \min(L(T), A)}{D - A}}$$
 
-## 1. Core Concepts (Definitions First)
+This piecewise-linear function has kinks at $A$ and $D$. Below $A$, the tranche suffers no loss (subordination absorbs everything). Between $A$ and $D$, losses pass through dollar-for-dollar. Above $D$, the tranche is wiped out.
 
-### 1.1 Portfolio Loss $L(t)$ and Tranche Loss $L(t;A,D)$
+**Why nonlinearity matters:** Because tranche loss is nonlinear in portfolio loss, the expected tranche loss $\mathbb{E}[L(T; A, D)]$ depends on the *entire distribution* of $L(T)$, not just its mean. Two portfolios with identical expected losses but different loss *distributions* will have different tranche expected losses.
 
-**Formal Definition (Portfolio):**
+This is Jensen's inequality at work: for a nonlinear function $f$, generally $\mathbb{E}[f(X)] \neq f(\mathbb{E}[X])$.
 
-The book defines **fractional portfolio loss** $L(T)$ as the fraction of reference-portfolio notional lost due to defaults by horizon $T$. With recoveries, $L(T)\in[0,L_{\max}]$.
+### 50.1.2 How Correlation Reshapes the Loss Distribution
 
-**Formal Definition (Tranche):**
+In the one-factor Gaussian copula framework, correlation controls how much portfolio loss is driven by the systematic factor $X$ versus idiosyncratic shocks. O'Kane provides the intuition:
 
-A key identity connects portfolio loss and tranche loss using "min" operators:
+- **Low correlation ($\rho \to 0$):** Defaults are nearly independent. By the law of large numbers, portfolio loss concentrates around its expected value. The distribution is "peaked" in the middle.
 
-$$
-(D-A)\,L(T;A,D)=\min(L(T),D)-\min(L(T),A)
-$$
+- **High correlation ($\rho \to 1$):** The systematic factor dominates. In good states ($X$ high), almost no one defaults. In bad states ($X$ low), many default together. The distribution becomes "bimodal," with more mass at the extremes.
 
-This is exactly how the text aggregates expected losses across contiguous tranches. Hence the tranche loss fraction can be written as:
+> **Analogy: The Magnet**
+>
+> Think of defaults as metal balls on a table.
+> *   **Zero Correlation**: They roll randomly. Sometimes one falls off, sometimes two. It's predictable on average, but noisy.
+> *   **High Correlation (Strong Magnet)**: A magnet underneath pulls them together.
+>     *   **Scenario A**: The magnet holds them ALL on the table (Survival).
+>     *   **Scenario B**: The magnet pulls them ALL off the edge (Systemic Collapse).
+> *   **Who loves the Magnet?**: The Equity Tranche. Why? Because in Scenario A, Equity survives! With zero correlation, Equity *always* dies. With high correlation, Equity has a "fighting chance" to survive.
+> *   **Who hates the Magnet?**: The Senior Tranche. Why? Because Scenario B is the *only* way Senior loses money.
 
-$$
-L(T;A,D)=\frac{\min(L(T),D)-\min(L(T),A)}{D-A}\in[0,1]
-$$
+**The critical insight:** Changing correlation doesn't change the *expected* portfolio loss (which depends only on marginal default probabilities), but it dramatically changes the *shape* of the loss distribution.
 
-**Intuition:**
+### 50.1.3 Opposite Sensitivities Across the Capital Structure
 
-- $L(T)$ is "how much the whole portfolio lost"
-- $L(T;A,D)$ is "what fraction of the tranche notional got eaten after the portfolio burned through subordination $A$, capped at $D$"
+This distributional reshaping affects tranches differently based on their position in the capital structure:
 
-**How It Appears in Practice:**
+**Equity tranche (low attachment):** The equity tranche is concerned with whether *any* losses occur. When correlation increases, more probability mass shifts to the "no loss" scenario (everyone survives in good states). This *decreases* expected equity tranche loss.
 
-Traders/risk managers think in terms of:
-- **Probability of zero tranche loss**: $\Pr(L(T)\le A)$
-- **Probability of full tranche wipeout**: $\Pr(L(T)\ge D)$, which (per the text) increases with correlation in Gaussian-factor settings
+**Senior tranche (high attachment):** The senior tranche only suffers when losses exceed its attachment point—a tail event. When correlation increases, the probability of extreme joint defaults rises. This *increases* expected senior tranche loss.
 
----
+O'Kane quantifies this with "correlation 01" values—the change in tranche PV for a 1% increase in correlation:
 
-### 1.2 Dependence vs Correlation
+| Tranche | Correlation 01 (bps running) |
+|---------|------------------------------|
+| 0–3% Equity | −148 |
+| 3–7% Junior Mezz | −17 |
+| 7–10% Senior Mezz | +35 |
+| 10–15% Senior | +66 |
+| 15–30% Super-Senior | +43 |
 
-**Dependence (Formal):**
+The sign flip between equity and senior is not an anomaly—it's the fundamental signature of tranche correlation sensitivity.
 
-"Dependence" is about the **full joint behavior** of defaults (or default times) across names: joint probabilities like $\Pr(\tau_1\le t_1,\dots,\tau_N\le t_N)$.
+### 50.1.4 Position Matters: Long vs. Short Protection
 
-**Correlation as a Summary Statistic:**
+The above sensitivities assume a **short protection** position (receiving premium, paying losses). For a **long protection** position, all signs reverse:
 
-The Pearson linear correlation between random variables $X$ and $Y$ is:
+- Long protection equity: *short* correlation (loses when correlation rises)
+- Long protection senior: *long* correlation (gains when correlation rises)
 
-$$
-\rho_P=\frac{\mathbb{E}[XY]-\mathbb{E}[X]\mathbb{E}[Y]}{\sqrt{(\mathbb{E}[X^2]-\mathbb{E}[X]^2)(\mathbb{E}[Y^2]-\mathbb{E}[Y]^2)}}
-$$
-
-The text emphasizes why linear correlation can be misleading in credit: default indicators are Bernoulli, and the feasible range of their linear correlation depends on marginals.
-
-**Copula as the Object Linking Marginals to Joint Behavior:**
-
-A copula is a multivariate distribution function with uniform marginals that "links uni-variate marginals to a full multi-variate distribution." Formally, for uniform $\hat u_i$:
-
-$$
-\Pr(\hat u_1\le u_1,\dots,\hat u_N\le u_N)=C(u_1,\dots,u_N)
-$$
-
-**Sklar's Theorem:** Any joint CDF $H$ can be written using a copula and marginals $F_i$:
-
-$$
-H(x_1,\dots,x_N)=C(F_1(x_1),\dots,F_N(x_N))
-$$
-
-with uniqueness if marginals are continuous.
-
-**Intuition:**
-
-- Marginals tell you "how likely each name defaults by time $t$"
-- The copula tells you "how likely they default together (cluster) vs separately"
-
-**How It Appears in Practice:**
-
-Desk language often compresses the copula choice into a parameter labeled "correlation," but conceptually it stands in for the dependence model. The book explicitly frames copulas as suited to correlation products because marginals come from CDS calibration, leaving flexibility for the joint.
+This distinction is crucial for hedging. A trader hedging equity risk with senior tranches is implicitly taking a correlation view.
 
 ---
 
-### 1.3 Default Indicators and Default-Time Representation
+## 50.2 Copula Theory: Linking Marginals to Joint Behavior
 
-**Formal Definition:**
+### 50.2.1 The Separation Problem
 
-Default time $\tau_i>0$, default indicator $Y_{t,i}=\mathbf{1}_{\{\tau_i\le t\}}$.
+Credit portfolio modeling faces a fundamental challenge: we have good tools for estimating *individual* default probabilities (from CDS curves), but we need to price instruments that depend on *joint* default behavior.
 
-**Intuition:**
+Copulas provide a mathematically elegant solution by separating these two problems:
+1. **Marginal distributions:** How likely is each name to default by time $t$?
+2. **Dependence structure:** Given these marginals, how do defaults cluster together?
 
-Modeling $\tau_i$ (time-to-default) is natural for copulas: we specify each $\Pr(\tau_i\le t)$ and then bind them together with a copula.
+### 50.2.2 Sklar's Theorem: The Mathematical Foundation
 
-**How It Appears in Practice:**
+**Theorem (Sklar, 1959):** For any joint distribution function $H$ with marginals $F_1, \ldots, F_N$, there exists a copula $C$ such that:
 
-Single-name calibration gives survival curves $Q_i(t)=\Pr(\tau_i>t)$. In latent-variable Gaussian settings, default thresholds are chosen to match these marginals.
+$$H(x_1, \ldots, x_N) = C(F_1(x_1), \ldots, F_N(x_N))$$
 
----
+If the marginals are continuous, $C$ is unique.
 
-## 2. Why Tranche Valuation Is Correlation-Sensitive (The Key Intuition)
+**Intuition:** Think of $C$ as a "coupling device." It takes $N$ uniform random variables (the probability-transformed marginals) and produces their joint distribution. The copula captures *how* the marginals are coupled—whether they tend to move together, opposite, or independently—while remaining agnostic about the marginals themselves.
 
-### 2.1 Tranche Nonlinearity: $L(T;A,D)$ is a Nonlinear Function of $L(T)$
+McNeil, Frey, and Embrechts in *Quantitative Risk Management* emphasize why this matters for credit: "The copula approach allows us to study the dependence structure of random vectors in a scale-free way, independently of the marginal distributions."
 
-From the tranche mapping:
+### 50.2.3 Common Copulas
 
-$$
-L(T;A,D)=\frac{\min(L(T),D)-\min(L(T),A)}{D-A}
-$$
+**Independence copula:**
+$$C_{\perp}(u_1, \ldots, u_N) = \prod_{i=1}^N u_i$$
 
-the tranche loss is **piecewise linear** in $L(T)$, with kinks at $A$ and $D$.
+No dependence—knowing one default tells you nothing about others.
 
-**Why This Matters:**
+**Gaussian copula:**
+$$C_{\Phi}(u_1, \ldots, u_N; \Sigma) = \Phi_N(\Phi^{-1}(u_1), \ldots, \Phi^{-1}(u_N); \Sigma)$$
 
-- Expected tranche loss $\mathbb{E}[L(T;A,D)]$ depends on the **distribution** of $L(T)$, not just its mean
-- Changing dependence (often summarized by a "correlation" parameter) reshapes the distribution of $L(T)$ and therefore reshapes ETL differently for different $[A,D]$
+where $\Phi_N(\cdot; \Sigma)$ is the $N$-dimensional standard normal CDF with correlation matrix $\Sigma$.
 
----
+**Student's t-copula:**
+$$C_t(u_1, \ldots, u_N; \Sigma, \nu) = t_N(t_\nu^{-1}(u_1), \ldots, t_\nu^{-1}(u_N); \Sigma, \nu)$$
 
-### 2.2 Qualitative "Shape" Explanation: Higher Correlation Pushes Probability Mass to Extremes
+where $t_\nu^{-1}$ is the inverse t-distribution CDF and $\nu$ is degrees of freedom.
 
-In one-factor Gaussian-style models, conditional on the market factor, defaults become independent; but unconditionally, the portfolio exhibits **systemic clustering** (good states: few defaults; bad states: many defaults).
+### 50.2.4 Why Copulas Fit Credit Portfolio Modeling
 
-The text explicitly highlights extreme-factor limits:
-- $Z\to -\infty$: portfolio loss tends to $(1-R)$ (all default)
-- $Z\to +\infty$: portfolio loss tends to $0$ (no defaults)
+For synthetic CDOs, the copula approach is natural:
 
-**Interpretation:** Higher correlation makes "good vs bad world" states more influential → more probability at **very low** and **very high** losses.
+1. **Marginals are market-observable:** Single-name CDS curves give us $Q_i(t) = \Pr(\tau_i > t)$ for each name.
 
----
+2. **Joint behavior is the unknown:** How defaults cluster is what we're trying to model/calibrate.
 
-### 2.3 Who Benefits / Who Is Hurt? (Must Be Tied to Tranche Position)
+3. **Separation enables calibration:** We can calibrate marginals to single-name CDS, then calibrate the copula to tranche prices.
 
-To avoid sign confusion, fix a position:
-
-Consider a **short protection** tranche position (i.e., you receive premium and pay tranche losses). This is the "protection seller" framing used in the text's implied correlation discussion.
-
-**Equity (Low Attachment):**
-
-The book states a short protection equity tranche holder is **long correlation** in the sense that increasing correlation can increase tranche PV for that holder (more scenarios with no defaults).
-
-*Intuition:* Equity mostly cares about whether there are *any* losses. More correlation increases the chance of "almost no defaults," which keeps equity outstanding.
-
-**Senior / Super-Senior (High Attachment):**
-
-Senior tranches are dominated by tail events. The probability of full loss $\Pr(L(T)\ge D)$ increases with correlation in the LHP tranche-loss discussion.
-
-*Intuition:* Correlation increases the chance of **many defaults together**, which is exactly what can reach high attachments.
-
-**Tie to ETL(t) and PV Legs (Chapter 49 Treated as Known):**
-
-Tranche PV depends on the **expected path of tranche notional outstanding**, equivalently $Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]$.
-
-- Premium leg PV is increasing in expected outstanding notional
-- Protection leg PV is increasing in expected increments of tranche loss
-
-Therefore anything (like correlation/dependence) that changes ETL over time changes both legs.
+As O'Kane notes, this separation means "we can use the copula function to vary the correlation between obligors without having to change the cumulative default time distributions."
 
 ---
 
-## 3. From Marginal Default Risk to Joint Loss Distribution: Modeling Map
+## 50.3 Gaussian Copula One-Factor Model
 
-This section is a **conceptual workflow** (not code).
+### 50.3.1 The Latent Variable Construction
 
-### Step 1: Specify Single-Name Marginal Default Behavior (Given Input)
+The market-standard Gaussian copula model uses a one-factor latent variable representation. For each name $i$:
 
-Inputs per name $i$:
-- Survival curve $Q_i(t)=\Pr(\tau_i>t)$ from CDS calibration
-- Recovery $R_i$ (assumption or market-implied)
+$$\boxed{Z_i = \sqrt{\rho} X + \sqrt{1-\rho} \varepsilon_i}$$
 
-In Gaussian latent-variable language, thresholds are calibrated via:
+where:
+- $X \sim N(0,1)$: the **systematic factor** (market-wide credit conditions)
+- $\varepsilon_i \sim N(0,1)$: the **idiosyncratic factor** for name $i$ (independent across names, independent of $X$)
+- $\rho \in [0,1]$: the **correlation parameter**
 
-$$
-C_i(T)=\Phi^{-1}(1-Q_i(T))
-$$
+**Verification:** $Z_i$ is standard normal: $\mathbb{E}[Z_i] = 0$, $\text{Var}(Z_i) = \rho + (1-\rho) = 1$.
 
-i.e., default by $T$ when the latent variable falls below $C_i(T)$.
+**Pairwise correlation:** For $i \neq j$:
+$$\text{Corr}(Z_i, Z_j) = \mathbb{E}[Z_i Z_j] = \rho \mathbb{E}[X^2] + 0 = \rho$$
 
----
+This is the "flat correlation" assumption: all pairs have the same correlation $\rho$.
 
-### Step 2: Specify Dependence Across Names
+### 50.3.2 Default Thresholds from Marginal Probabilities
 
-**Independence Baseline:**
+Given marginal default probability $\text{PD}_i(T) = 1 - Q_i(T)$ from CDS calibration, we set a threshold:
 
-Independence copula:
+$$a_i(T) = \Phi^{-1}(\text{PD}_i(T))$$
 
-$$
-C(u_1,\dots,u_N)=\prod_{i=1}^N u_i
-$$
+and define default by time $T$ as:
 
-**One-Factor Copula / Latent-Variable Models:**
+$$\tau_i \le T \iff Z_i \le a_i(T)$$
 
-Gaussian copula / one-factor Gaussian latent variable model is the baseline "market language" (see next section). The text notes Li (2000) as early application and stresses equivalence of one-factor Gaussian copula and one-factor Gaussian latent variable.
+**Why this works:** $\Pr(Z_i \le a_i(T)) = \Phi(a_i(T)) = \text{PD}_i(T)$, matching the marginal.
 
-**t-Copula / Other Copulas:**
+### 50.3.3 Conditional Independence: The Computational Key
 
-Sources do cover that alternative copulas can generate tail dependence:
-- QRM contrasts Gaussian copula (no tail dependence) with t-copula (tail dependence)
-- Hull notes Student's t-copula can better describe joint extreme behavior than Gaussian in some contexts
+Conditional on $X = x$, the $Z_i$ are independent normal random variables:
 
-We keep this as a **brief mention** here; Gaussian remains the baseline for implied correlation language.
+$$Z_i \mid X = x \sim N(\sqrt{\rho} x, 1 - \rho)$$
 
----
+This yields the **conditional default probability**:
 
-### Step 3: Generate/Approximate Portfolio Loss Distribution $L(t)$
+$$\boxed{p_i(T \mid X = x) = \Phi\left(\frac{a_i(T) - \sqrt{\rho} x}{\sqrt{1-\rho}}\right)}$$
 
-Under one-factor Gaussian latent-variable ideas, conditional on the factor, names are independent and (for homogeneous assumptions) conditional loss can be approximated as binomial, with conditional expected loss $\mathbb{E}[L(T)\mid Z]=(1-R)p(T\mid Z)$.
+**Why this matters:** Conditional independence transforms an intractable $N$-dimensional integration into:
+1. A one-dimensional integral over $X$
+2. $N$ independent Bernoulli trials conditional on each $X$ realization
 
----
+For large homogeneous portfolios, this enables analytical approximations via the Large Homogeneous Portfolio (LHP) model developed in Section 50.4.
 
-### Step 4: Map $L(t)\rightarrow L(t;A,D)\rightarrow \mathrm{ETL}(t)\rightarrow$ PV and Tranche Spread
+### 50.3.4 Limiting Cases and Sanity Checks
 
-Use the tranche loss mapping:
+**$\rho = 0$ (independence):**
+$$Z_i = \varepsilon_i, \quad p_i(T \mid X = x) = \Phi(a_i(T)) = \text{PD}_i(T)$$
+Conditional equals marginal; defaults are independent.
 
-$$
-L(t;A,D)=\frac{\min(L(t),D)-\min(L(t),A)}{D-A}
-$$
+**$\rho \to 1$ (comonotonicity):**
+$$Z_i \approx X$$
+All latent variables collapse to the single factor. Defaults become perfectly dependent—either everyone survives or everyone defaults together.
 
-Compute ETL:
+**Extreme factor realizations:**
+- $X \to -\infty$: $p_i(T \mid X) \to 1$ (all default)
+- $X \to +\infty$: $p_i(T \mid X) \to 0$ (none default)
 
-$$
-\mathrm{ETL}_{A,D}(t)=\mathbb{E}[L(t;A,D)]
-$$
+### 50.3.5 Tail Dependence: The Critical Limitation
 
-Convert ETL to tranche survival curve $Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]$.
+**Definition:** The upper and lower tail dependence coefficients measure the probability of joint extremes:
 
-Then premium/protection legs follow CDS-like formulas using $Q(\cdot;A,D)$ (with the mapping noted in the text).
+$$\lambda_U = \lim_{u \to 1^-} \Pr(U_2 > u \mid U_1 > u)$$
+$$\lambda_L = \lim_{u \to 1^-} \Pr(U_2 \le 1-u \mid U_1 \le 1-u)$$
 
----
+**The Gaussian copula has zero tail dependence:** $\lambda_U = \lambda_L = 0$ for all $\rho < 1$.
 
-## 4. Gaussian Copula Framework (High-Level but Mathematically Explicit)
+McNeil, Frey, and Embrechts in *Quantitative Risk Management* explain the implication: "In the Gaussian case, extreme joint events are asymptotically independent... This means that if we observe that $X_1$ takes a very extreme value, this conveys relatively little information about whether $X_2$ is also extreme."
 
-### 4.1 One-Factor Gaussian Latent Variable Construction
+**Why this matters for senior tranches:** Senior tranches are tail-driven instruments. They only suffer losses in extreme scenarios where many names default together. A model with no tail dependence may systematically underestimate senior tranche risk.
 
-A standard one-factor representation (aligned with the sources) is:
+**The t-copula alternative:** McNeil et al. (QRM Example 5.33) derive the tail dependence coefficient for the t-copula with correlation $\rho$ and $\nu$ degrees of freedom:
 
-$$
-Z_i=\sqrt{\rho}\,X+\sqrt{1-\rho}\,\varepsilon_i,
-\quad X\sim N(0,1),\ \varepsilon_i\sim N(0,1)\ \text{i.i.d., independent of }X
-$$
+$$\boxed{\lambda_U = \lambda_L = 2 t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)}$$
 
-This factor copula form is shown in Hull's treatment (with $U_i$ notation).
+where $t_{\nu+1}(\cdot)$ is the CDF of the Student's t-distribution with $\nu+1$ degrees of freedom.
 
-**Interpretation:**
-- $X$: common/systematic "state of the world" factor
-- $\varepsilon_i$: idiosyncratic shock for name $i$
-- $\rho$: pairwise correlation between $Z_i$ and $Z_j$ in this symmetric one-factor setting
+**Numerical values from McNeil Table 5.1 (t-copula tail dependence):**
 
----
+| $\nu \backslash \rho$ | 0.5 | 0.7 | 0.9 |
+|-----------------------|-----|-----|-----|
+| 1 | 0.39 | 0.50 | 0.67 |
+| 4 | 0.18 | 0.28 | 0.47 |
+| 10 | 0.08 | 0.14 | 0.32 |
+| 25 | 0.03 | 0.06 | 0.19 |
+| $\infty$ (Gaussian) | 0 | 0 | 0 |
 
-### 4.2 Default Event via Threshold Determined by Marginal Default Probability
+**Key observations:**
+- As $\nu \to \infty$, the t-copula converges to Gaussian and tail dependence vanishes
+- Lower $\nu$ (fatter tails) implies more tail dependence
+- Even moderate correlation ($\rho = 0.5$) with fat tails ($\nu = 4$) gives $\lambda = 0.18$—far from zero
 
-Let the marginal (risk-neutral) default probability by horizon $T$ be:
-
-$$
-\mathrm{PD}_i(T)=\Pr(\tau_i\le T)=1-Q_i(T)
-$$
-
-Choose threshold:
-
-$$
-a_i(T)=\Phi^{-1}(\mathrm{PD}_i(T))
-$$
-
-Then define default by $T$ as the event:
-
-$$
-\tau_i\le T \iff Z_i \le a_i(T)
-$$
-
-This matches the book's statement that default occurs if the latent variable falls below a threshold calibrated to survival probabilities, expressed there as $C_i(T)=\Phi^{-1}(1-Q_i(T))$.
+**Implication:** The correlation skew observed in market base correlations (Section 50.6.5) can be interpreted as the market compensating for the Gaussian copula's lack of tail dependence. Senior tranches require higher base correlation to generate sufficient ETL, implicitly pricing in tail dependence the model cannot capture.
 
 ---
 
-### 4.3 Conditional Default Probability Given the Factor
+## 50.4 Large Homogeneous Portfolio (LHP) Model
 
-Condition on $X=x$. Then $Z_i\mid X=x\sim N(\sqrt{\rho}x,\,1-\rho)$, so:
+### 50.4.1 The Vasicek Limit
 
-$$
-\Pr(\tau_i\le T\mid X=x)
-=\Pr(Z_i\le a_i(T)\mid X=x)
-=\Phi\!\left(\frac{a_i(T)-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)
-$$
+For large portfolios with identical names, the one-factor Gaussian copula admits a powerful analytical simplification known as the Large Homogeneous Portfolio (LHP) model, originally due to Vasicek (1987).
 
-This is the standard conditional probability form (the book writes an equivalent form with $\beta_i$ as factor loading).
+**Assumptions:**
+- $N$ names with identical marginal default probabilities: $\text{PD}_i(T) = p$ for all $i$
+- Identical recovery rates: $R_i = R$
+- Equal weights: $w_i = 1/N$
+- Flat correlation: $\rho$ for all pairs
 
----
+**The key insight:** As $N \to \infty$, conditional on the systematic factor $X = x$, the portfolio loss converges to its conditional expectation by the law of large numbers:
 
-### 4.4 Sanity Checks and Limiting Cases
+$$L(T) \mid X = x \xrightarrow{N \to \infty} (1-R) \cdot p(x)$$
 
-**$\rho=0$:**
+where $p(x) = \Phi\left(\frac{\Phi^{-1}(p) - \sqrt{\rho} x}{\sqrt{1-\rho}}\right)$ is the conditional default probability.
 
-$$
-Z_i=\varepsilon_i,\quad \Pr(\tau_i\le T\mid X=x)=\Phi(a_i(T))=\mathrm{PD}_i(T)
-$$
+### 50.4.2 The LHP Loss Distribution
 
-and defaults are (conditionally and unconditionally) independent.
+In the LHP limit, portfolio loss becomes a deterministic function of $X$. Inverting:
 
-**$\rho\to 1$:**
+$$L = (1-R) \cdot \Phi\left(\frac{\Phi^{-1}(p) - \sqrt{\rho} x}{\sqrt{1-\rho}}\right)$$
 
-$$
-Z_i\approx X \quad (\text{comonotonic limit})
-$$
+Solving for $x$ in terms of $L$:
 
-so names default together in extreme clustering (all driven by the single factor).
+$$x(L) = \frac{\Phi^{-1}(p) - \sqrt{1-\rho}\Phi^{-1}(L/(1-R))}{\sqrt{\rho}}$$
 
-**Unit Check:**
-- $Z_i,X,\varepsilon_i,a_i$ are all dimensionless standard-normal variables
-- $\rho\in[0,1]$ dimensionless
+The CDF of portfolio loss is:
 
----
+$$\boxed{F_L(\ell) = \Phi\left(\frac{\sqrt{1-\rho}\Phi^{-1}(\ell/(1-R)) - \Phi^{-1}(p)}{\sqrt{\rho}}\right)}$$
 
-### 4.5 Multi-Factor Variants
+This closed-form expression enables analytical computation of tranche expected losses.
 
-The provided snippets explicitly develop one-factor factor models for copulas. A full multi-factor Gaussian copula discussion is not in the snippets we used.
+### 50.4.3 Analytical Tranche Expected Loss
 
-**I'm not sure** how deeply the attached credit-derivatives text develops multi-factor tranche calibration in the same implied-correlation market language (vs one-factor). To be certain, we would need: the book's explicit multi-factor specification (loadings), and how implied "correlation" is quoted/aggregated in that setting.
+For a base tranche $[0, K]$, the expected tranche loss in the LHP limit is:
 
----
+$$\psi(T, K) = \mathbb{E}[\min(L, K)] = \int_0^K (1 - F_L(\ell)) d\ell$$
 
-## 5. Market Correlation Language: Compound Correlation vs Base Correlation
+O'Kane (Chapter 16) shows this reduces to a bivariate normal integral:
 
-This section is a **core deliverable**: how the market turns tranche prices into "correlations."
+$$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\left(\Phi^{-1}(p), -\Phi^{-1}\left(\frac{K}{1-R}\right); -\sqrt{\rho}\right)}$$
 
-### 5.1 Compound Correlation (A Single $\rho$ for One Tranche)
+where $\Phi_2(a, b; \rho)$ is the bivariate standard normal CDF with correlation $\rho$.
 
-**Definition:**
+### 50.4.4 When LHP Applies
 
-Compound correlation is the **flat correlation** $\rho$ implied by the price of a given tranche using the Gaussian copula model: solve for $\rho$ such that the tranche PV at initiation is zero.
+The LHP model is appropriate when:
+- Portfolio is large ($N \geq 100$)
+- Names are reasonably homogeneous in credit quality
+- Equal or near-equal weighting
 
-In the text:
+**Limitations:**
+- Ignores name-specific variation in spreads and recovery
+- Cannot capture concentration risk
+- Fails for small portfolios or when a few names dominate
 
-$$
-PV(A,D,\rho)=0
-$$
-
-is solved by a one-dimensional root search.
-
-**Practical Meaning:**
-- It is tranche-specific: $\rho=\rho(A,D)$
-- It is a convenient *diagnostic* ("what correlation does this tranche price correspond to in a one-factor Gaussian model?")
-
-**Known Issue (From the Text):**
-
-For mezzanine tranches, PV as a function of $\rho$ can be non-monotonic, leading to multiple solutions for compound correlation.
+For bespoke portfolios with heterogeneous names, Monte Carlo simulation of the full model is typically required.
 
 ---
 
-### 5.2 Base Correlation (Correlation by Strike / Capital-Structure "Skew")
+## 50.5 Compound Correlation and Its Pathologies
 
-**Definition:**
+### 50.5.1 Definition
 
-Base correlation assigns a correlation $\rho(0,K)\equiv \rho(K)$ to each **equity/base tranche** $[0,K]$.
+**Compound correlation** is the flat correlation $\rho$ that, when used in the one-factor Gaussian copula, reprices a given tranche to its market value:
 
-Any tranche $[A,D]$ is decomposed into a linear combination of two base tranches, and **two base correlations** are used:
+$$\boxed{PV(A, D, \rho^*) = 0}$$
 
-$$
-\mathbb{E}[L(T;A,D)]
-=\frac{\mathbb{E}_{\rho(D)}[\min(L(T),D)]-\mathbb{E}_{\rho(A)}[\min(L(T),A)]}{D-A}
-$$
+This is a one-dimensional root-finding problem: find $\rho^*$ such that model PV equals market PV.
 
-**Intuition:**
+### 50.5.2 The Multiple Solutions Problem
 
-The market observes that a single flat $\rho$ cannot match all tranches at once ("correlation smile/skew"). Base correlation is a way to create a **term structure across attachment points**: $\rho(K)$ varies with $K$. The text notes the base correlation curve is generally termed a "skew."
+For equity and super-senior tranches, PV is typically monotonic in $\rho$, yielding a unique solution. But for **mezzanine tranches**, PV can be non-monotonic in $\rho$, potentially yielding:
 
-**Why It Exists:**
+- **Two solutions:** The market spread can be consistent with both a low and high correlation
+- **No solution:** The market spread may be outside the model's feasible range
 
-The text discusses that compound correlation fails key properties in a smile world (e.g., conservation of expected loss across capital structure). Base correlation, while still not fully arbitrage-free, has practical advantages and became preferred.
+O'Kane illustrates this with market data showing that mezzanine tranche PV first decreases then increases as $\rho$ rises from 0 to 1.
 
-**Pros (Source-Backed):**
+### 50.5.3 Failure of Conservation of Expected Loss
 
-- **Bootstrap feasibility:** standard tranches are contiguous, enabling a bootstrap up the capital structure from the equity tranche
-- **Uniqueness/monotonicity for base-tranche steps:** in the bootstrap, because the changing part is the PV of a base tranche, the PV can be monotone and yield a unique solution (when it exists)
+Consider a portfolio with expected loss $E = \mathbb{E}[L(T)]$. By linearity:
 
-**Cons / Pathologies (Source-Backed at High Level):**
+$$\sum_{k} w_k \cdot \mathbb{E}[L(T; A_k, D_k)] = E$$
 
-Interpolation can generate arbitrage-like behavior in tranchelets:
-- Tranchelet spreads not monotonically decreasing with subordination
-- Even negative tranchelet spreads in some strike ranges in an example
-- Implied loss density can show spikes and even negative regions depending on interpolation
-- Extrapolation below the lowest quoted strike (often 3%) is ambiguous and can materially affect thin equity tranchelet pricing
+where the sum is over contiguous tranches covering the capital structure and $w_k = D_k - A_k$.
+
+**The problem:** If we use *different* compound correlations $\rho_k$ for each tranche (as implied by market prices), we're using *different models* for each tranche. The expected losses computed under these different models will not sum to $E$.
+
+This inconsistency motivated the development of base correlation.
 
 ---
 
-## 6. Calibration Workflow (Conceptual + Transparent Numerics)
+## 50.6 Base Correlation: The Market Standard
 
-### 6.1 Inputs
+### 50.6.1 Definition and Intuition
 
-- **Portfolio definition:** constituents, weights/notionals, maturity, credit-event definitions (standard index vs bespoke)
-- **Single-name marginals:** survival curves $Q_i(t)$ or hazards; calibration instruments and conventions
-- **Recoveries:** fixed $R_i$ or recovery model; $L_{\max}$ implied
-- **Dependence model choice:** Gaussian copula one-factor (baseline), parameterization of $\rho$ or $\beta$
-- **Tranche contract:** $[A,D]$, coupon schedule, accrual convention, upfront vs running terms
-- **Discount curve** $Z(t)$ and settlement assumptions for default timing
-- **Market tranche quotes** (spread and/or upfront)
-  - In one historical table, equity tranche quotes included an upfront plus a running spread (paid quarterly Act/360), while more senior tranches had running spreads without upfront
-  - **Important:** These are examples; **verify current quoting conventions** for the specific index/vintage
+**Base correlation** assigns a correlation $\rho(K)$ to each **base (equity) tranche** $[0, K]$:
 
----
+$$\psi(T, K; \rho(K)) = \text{Market ETL for } [0, K]$$
 
-### 6.2 Objective
+The key insight: rather than finding a single $\rho$ for each tranche, we find a $\rho$ for each *detachment point*, always measuring from zero.
 
-Choose correlation parameter(s) so that model PV matches market PV:
+> **Deep Dive: Base Correlation (The "Implied Volatility" of Credit)**
+>
+> In option markets, every strike has its own "Implied Volatility." In credit, every detachment point has its own "Base Correlation."
+>
+> *   **The Problem**: Tranche prices are inconsistent if you force one correlation $\rho$ on the whole capital structure.
+> *   **The Fix**: Don't price $[3, 7]$. Price $[0, 7]$ and $[0, 3]$ separately.
+>     *   Find $\rho_3$ that fits the market price of the Equity tranche $[0, 3]$.
+>     *   Find $\rho_7$ that fits the virtually constructed Equity tranche $[0, 7]$.
+> *   **The Result**: A "Skew" of correlations. Often $\rho_3 < \rho_7 < \rho_{10}$.
+> *   **Why?**: Senior tranches effectively "bid up" correlation (demand protection against tail risk), just like deep OTM puts bid up implied volatility (skew).
 
-$$
-PV_{\text{model}}(\text{corr params})=PV_{\text{market}}
-$$
+### 50.6.2 Pricing Non-Equity Tranches
 
-In standard "par" quoting, this often means setting $PV=0$ at initiation when contractual spread/upfront is set to market.
+Any tranche $[A, D]$ is priced as the difference of two base tranches:
 
----
+$$\boxed{\mathbb{E}[L(T; A, D)] = \frac{\psi(T, D; \rho(D)) - \psi(T, A; \rho(A))}{D - A}}$$
 
-### 6.3 Inversion: "Implied Correlation"
+where $\psi(T, K; \rho(K)) = \mathbb{E}_{\rho(K)}[\min(L(T), K)]$ is the expected loss of base tranche $[0, K]$ computed using base correlation $\rho(K)$.
 
-**Compound Correlation Inversion:**
+**Note the asymmetry:** The tranche $[A, D]$ uses *two different* correlations: $\rho(A)$ for the lower bound and $\rho(D)$ for the upper bound.
 
-For each tranche $[A,D]$, solve $PV(A,D,\rho)=0$ for a single $\rho$. Beware non-monotonicity / multiple solutions for some tranches.
+### 50.6.3 The Bootstrap Algorithm
 
-**Base Correlation Bootstrap Inversion:**
+O'Kane (Chapter 20) details the sequential calibration:
 
-Use contiguity of standard tranches:
-1. Solve $\rho(K_1)$ from equity tranche $[0,K_1]$
-2. Then solve $\rho(K_2)$ from tranche $[K_1,K_2]$ holding $\rho(K_1)$ fixed, etc.
+**Step 1:** From equity tranche $[0, K_1]$ market quote, solve for $\rho(K_1)$ using:
+$$PV([0, K_1]; \rho(K_1)) = 0$$
 
-Conceptually: each step is a one-dimensional root search in the next node $\rho(K_m)$.
+**Step 2:** Given $\rho(K_1)$, from tranche $[K_1, K_2]$ market quote, solve for $\rho(K_2)$ using:
+$$PV([K_1, K_2]; \rho(K_1), \rho(K_2)) = 0$$
 
----
+where the tranche PV uses the base correlation formula with $\rho(K_1)$ and $\rho(K_2)$.
 
-### 6.4 Quote-Type Caveat
+**Step 3:** Continue up the capital structure.
 
-The book provides concrete examples of upfront + running for equity and running-only for other tranches in a specific historical dataset.
+**Why it works:** Each step is a one-dimensional root search. Because we're always varying the *upper* base correlation while holding lower correlations fixed, the problem is well-posed.
 
-**I'm not sure** what the exact quote package is for *your* index/vintage (e.g., standard coupon + upfront vs spread-only, front-end protection conventions, etc.). To be certain we'd need: the exact index tranche quoting convention, contractual coupon conventions, and settlement rules used by your market.
+### 50.6.4 Conservation of Expected Loss
 
----
+A key property of base correlation is that it **preserves conservation of expected loss** within each base tranche calculation. O'Kane emphasizes this: for the base tranche $[0, K]$, we use a single correlation $\rho(K)$, so the model is internally consistent for that tranche.
 
-## 7. Measurement & Risk (Only What Belongs in Chapter 50)
+However, when computing ETL for a mezzanine tranche $[A, D]$ using two different base correlations $\rho(A)$ and $\rho(D)$, we are effectively mixing two different models. This means:
 
-### 7.1 Correlation Risk (Framework-Level)
+- The *base tranche* ETLs $\psi(K; \rho(K))$ are each computed consistently
+- The *difference* used for mezzanine tranches is a model approximation
+- Conservation holds for the full capital structure only if we use a consistent correlation for the whole structure
 
-Correlation risk is the sensitivity of tranche PV to changes in the correlation parameter(s) used in the dependence model.
+**Practical implication:** Base correlation is a quoting convention, not a no-arbitrage model. It provides a common language but does not eliminate model risk.
 
-The text gives an example of "correlation 01" (PV change for a 1% change in correlation) with opposite signs across the capital structure:
-- Correlation 01 of the $0\!-\!3\%$ tranche is negative (loss for a 1% increase in correlation)
-- Correlation 01 of the $15\!-\!30\%$ tranche is positive
+### 50.6.5 Advantages Over Compound Correlation
 
-**Interpretation:**
+1. **Uniqueness:** Base correlation typically yields unique solutions (monotonicity is preserved for base tranches)
 
-Sign depends on:
-- Tranche attachment/detachment
-- Whether you are **long or short protection**
-- And whether you are using compound or base correlation as your "bump" parameterization
+2. **Consistency framework:** While not fully arbitrage-free, base correlation provides a coherent interpolation framework
 
----
+3. **Market convention:** Base correlation has become the standard quoting language, enabling communication between desks
 
-### 7.2 "Who Is Long Correlation?" (Qualitative, Position-Aware)
+### 50.6.6 The Base Correlation Skew
 
-From the perspective of a **short protection** position:
-- Equity/base tranches can be **long correlation** (PV rises with correlation)
-- Seniority can flip the sign (as the correlation 01 example indicates across equity vs senior)
+Market data consistently shows that base correlation *increases* with detachment:
 
-For a **long protection** position, signs reverse.
+| Detachment $K$ | Typical Base Correlation |
+|----------------|-------------------------|
+| 3% | 15–25% |
+| 7% | 25–35% |
+| 10% | 35–45% |
+| 15% | 50–60% |
+| 30% | 60–75% |
 
----
-
-### 7.3 Model Risk (Dependence, Recovery, Marginal Curves)
-
-**Copula Choice:**
-
-Gaussian copula has no tail dependence; t-copula can create tail dependence. This matters because senior tranches are tail-driven.
-
-**Recovery Assumptions:**
-
-Changing $R$ changes $L_{\max}$ and the mapping from default counts to losses; implied correlations can shift materially (see Worked Example 10).
-
-**Marginal Curves:**
-
-If single-name curves are inconsistent with tranche quotes, "implied correlation" may become unstable or nonsensical (e.g., no solution).
+**Interpretation:** To match market prices, the model needs "more dependence" for senior tranches than for equity. This is the market's way of compensating for model deficiencies (particularly the lack of tail dependence).
 
 ---
 
-### 7.4 Hedging Preview Only (No Recommendations)
+## 50.7 Calibration Workflow
 
-Tranche exposures can be decomposed into:
-- Systemic spread risk (portfolio-wide spread moves)
-- Idiosyncratic/default-event risk
-- Correlation-parameter risk (smile/skew risk)
-
-(The text discusses systemic measures and correlation 01 as part of tranche risk measurement.)
-
----
-
-## 8. Math and Derivations (Step-by-Step)
-
-### 8.1 Tranche Loss Mapping Reminder
-
-Start from the identity (for $0\le A<D\le 1$):
-
-$$
-(D-A)L(T;A,D)=\min(L(T),D)-\min(L(T),A)
-$$
-
-Divide by $D-A$ to obtain:
-
-$$
-L(T;A,D)=\frac{\min(L(T),D)-\min(L(T),A)}{D-A}
-$$
-
-**Unit check:** numerator and denominator are both fractions of portfolio notional; ratio is dimensionless $\in[0,1]$.
-
----
-
-### 8.2 ETL and Its Role in PV (Brief)
-
-Define tranche survival curve:
-
-$$
-Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]
-$$
-
-**Premium leg PV** (approximation using average outstanding notional over accrual period):
-
-$$
-PV_{\text{prem}}
-=\frac{S(A,D)}{2}\sum_{i=1}^{N_T}\Delta(t_{i-1},t_i)\,Z(t_i)\big(Q(t_{i-1};A,D)+Q(t_i;A,D)\big)
-$$
-
-**Protection leg PV:**
-
-$$
-PV_{\text{prot}}=\int_0^T Z(s)\,(-dQ(s;A,D))
-$$
-
-These mirror CDS pricing once tranche $Q$ is known.
-
----
-
-### 8.3 Gaussian Copula One-Factor Construction and Thresholds
-
-**Latent variable:**
-
-$$
-Z_i=\sqrt{\rho}\,X+\sqrt{1-\rho}\,\varepsilon_i
-$$
-
-**Default by $T$ if $Z_i\le a_i(T)$**, where $a_i(T)=\Phi^{-1}(\mathrm{PD}_i(T))$ and $\mathrm{PD}_i(T)=1-Q_i(T)$.
-
-**Conditional default probability:**
-
-$$
-p_i(T\mid X=x)=\Phi\!\left(\frac{a_i(T)-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)
-$$
-
----
-
-### 8.4 "Implied Correlation Solve" Problem Statement
-
-Given market quote(s) defining $PV_{\text{market}}$ for tranche $[A,D]$, define:
-
-$$
-f(\rho)=PV_{\text{model}}(A,D;\rho)-PV_{\text{market}}
-$$
-
-The implied (compound) correlation solves:
-
-$$
-\boxed{\ \rho^\star\ \text{s.t.}\ f(\rho^\star)=0\ }
-$$
-
-This is exactly the one-dimensional root search framing for compound correlation.
-
-For base correlation, one solves sequentially for $\rho(K_m)$ via a bootstrap using contiguous tranches.
-
----
-
-## 9. Worked Examples (12 Numeric Examples, Fully Numeric)
-
-> **Reminder:** Examples below are **toy** calculations meant to make the correlation/tranche-loss mapping concrete. When a pricing shortcut deviates from the book's full cashflow formula, it is explicitly labeled.
-
----
-
-### Example 1: Two-State Dependence Toy (2 Names, Same Marginal PD): Independence vs Perfect Correlation
-
-Let two names $A,B$ each have 1y default probability $p=10\%=0.10$.
-
-**Case 1: Independent Defaults**
-- $\Pr(0\ \text{defaults})=(1-p)^2=0.9^2=0.81$
-- $\Pr(1\ \text{default})=2p(1-p)=2(0.1)(0.9)=0.18$
-- $\Pr(2\ \text{defaults})=p^2=0.1^2=0.01$
-
-**Case 2: Perfectly Positively Dependent (Comonotonic) Defaults**
-
-To preserve marginal $\Pr(\text{default})=0.10$, enforce "default together":
-- $\Pr(2\ \text{defaults})=0.10$
-- $\Pr(0\ \text{defaults})=0.90$
-- $\Pr(1\ \text{default})=0$
-
-**Key Takeaway:** Dependence changes the probability of *clusters* (2 defaults) from $1\%$ to $10\%$ while keeping each name's PD fixed.
-
----
-
-### Example 2: Tranche Sensitivity Intuition via ETL Under Low vs High Dependence
-
-We create two **portfolio loss** distributions (loss $L$ as % of portfolio notional). Compute ETL for equity $[0,3\%]$ and senior $[10,15\%]$.
-
-**Define tranche loss fraction:**
-
-$$
-L_{\text{tr}}(L;A,D)=\frac{\min(L,D)-\min(L,A)}{D-A}
-$$
-
-#### Case "Low Dependence" (More Mass in the Middle)
-
-| Outcome | $L$ | Probability |
-|---------|-----|-------------|
-| Low loss | 0% | 0.05 |
-| Moderate loss | 8% | 0.90 |
-| High loss | 40% | 0.05 |
-
-#### Case "High Dependence" (More Mass at Extremes, Same Mean)
-
-| Outcome | $L$ | Probability |
-|---------|-----|-------------|
-| Low loss | 0% | 0.30 |
-| Moderate loss | 8% | 0.5875 |
-| High loss | 40% | 0.1125 |
-
-**Check Means:**
-- Low: $0\cdot0.05+0.08\cdot0.90+0.40\cdot0.05=0.072+0.020=0.092$ (9.2%)
-- High: $0\cdot0.30+0.08\cdot0.5875+0.40\cdot0.1125=0.0470+0.0450=0.092$ (9.2%)
-
-#### ETL for Equity Tranche $[0,3\%]$, Width $w=0.03$
-
-For $A=0$, $L_{\text{tr}}=\min(L,0.03)/0.03$.
-
-- If $L=0\%$: $L_{\text{tr}}=0$
-- If $L=8\%$: $\min(0.08,0.03)/0.03=0.03/0.03=1$
-- If $L=40\%$: also $1$
-
-Results:
-- Low dep: $\mathrm{ETL}=0.05\cdot0+0.95\cdot1=0.95$
-- High dep: $\mathrm{ETL}=0.30\cdot0+0.70\cdot1=0.70$
-
-**Equity ETL decreases** when probability mass moves to "no loss" extreme.
-
-#### ETL for Senior Tranche $[10,15\%]$, Width $w=0.05$
-
-Compute $L_{\text{tr}}=\frac{\min(L,0.15)-\min(L,0.10)}{0.05}$.
-
-- If $L=0\%$ or $8\%$ (<10%): $\min(L,0.15)=\min(L,0.10)=L\Rightarrow L_{\text{tr}}=0$
-- If $L=40\%$ (≥15%): $\min(L,0.15)=0.15,\ \min(L,0.10)=0.10\Rightarrow L_{\text{tr}}=(0.05)/0.05=1$
-
-Results:
-- Low dep: $\mathrm{ETL}=0.05\cdot 1=0.05$
-- High dep: $\mathrm{ETL}=0.1125\cdot 1=0.1125$
-
-**Senior ETL increases** because "tail loss" probability increased.
-
----
-
-### Example 3: Limiting-Case Toy — Probability of "Many Defaults" Rises with Stronger Systemic Dependence
-
-Let $N=5$ names, each with marginal PD $p=2\%$ over 1y.
-
-**Case A (Low Dependence / Effectively Independent):** $K\sim \mathrm{Binomial}(5,0.02)$
-
-- $P(K=0)=0.98^5$
-  - $0.98^2=0.9604$
-  - $0.98^4=0.9604^2=0.92236816$
-  - $0.98^5=0.92236816\cdot0.98=0.90392080$
-- $P(K=1)=\binom{5}{1}(0.02)(0.98^4)=5\cdot0.02\cdot0.92236816=0.09223682$
-- Therefore $P(K\ge2)=1-0.90392080-0.09223682=0.00384238$ (≈0.38%)
-
-**Case B (High Systemic Dependence via 2-State Mixture; Toy Proxy for Higher $\rho$):**
-
-- Good state (prob 90%): default probability $p_g=0.2\%=0.002$
-- Bad state (prob 10%): default probability $p_b=18.2\%=0.182$
-- Check marginal PD: $0.9(0.002)+0.1(0.182)=0.0018+0.0182=0.0200=2\%$
-
-Compute $P(K\ge2)$ in each state and mix:
-
-**Good state** $p=0.002$:
-- $P_0=0.998^5\approx 0.9900$
-- $P_1=5(0.002)(0.998^4)\approx 0.00992$
-- $P(K\ge2)\approx 0.00008$
-
-**Bad state** $p=0.182$, $q=0.818$:
-- $P_0=q^5=0.818^5\approx 0.366$
-- $P_1=5pq^4\approx 0.408$
-- $P(K\ge2)=1-0.366-0.408=0.226$
-
-**Mix:**
-
-$$
-P(K\ge2)\approx 0.9(0.00008)+0.1(0.226)=0.000072+0.0226=0.0227
-$$
-
-**Result:** $P(K\ge2)$ jumps from ≈0.38% (independent) to ≈2.27% (high systemic clustering), even with the same marginal PD.
-
----
-
-### Example 4: One-Factor Gaussian Copula Threshold Mapping — $\mathrm{PD}=2\%$ $\Rightarrow a=\Phi^{-1}(0.02)$
-
-Compute:
-
-$$
-a=\Phi^{-1}(0.02)\approx -2.0537
-$$
-
-(Meaning: the 2% left-tail quantile of a standard normal.)
-
-**Sanity check:** $\Phi(-2.05)\approx 0.0202$ so the magnitude is consistent.
-
----
-
-### Example 5: Conditional Default Probability Under One-Factor Gaussian Copula
-
-**Parameters:**
-- Marginal 1y PD $=2\%\Rightarrow a\approx -2.0537$
-- $\rho=0.20\Rightarrow \sqrt{\rho}=0.4472,\ \sqrt{1-\rho}=0.8944$
-
-**Formula:**
-
-$$
-p(x)=\Pr(\text{default}\mid X=x)=\Phi\!\left(\frac{a-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)
-$$
-
-**Case 1: Bad Factor Realization $x=-1$**
-- Numerator: $a-\sqrt{\rho}x=a-0.4472(-1)=a+0.4472=-2.0537+0.4472=-1.6065$
-- Divide: $-1.6065/0.8944=-1.796$
-- $p(-1)=\Phi(-1.796)\approx 0.036$ (3.6%)
-
-**Case 2: Good Factor Realization $x=+1$**
-- Numerator: $a-0.4472(1)=-2.0537-0.4472=-2.5009$
-- Divide: $-2.5009/0.8944=-2.796$
-- $p(1)=\Phi(-2.796)\approx 0.0026$ (0.26%)
-
-**Interpretation:** Bad systemic states multiply default probability relative to marginal.
-
----
-
-### Example 6: Approximate Portfolio Default-Count Distribution via Conditional Mixture (Toy, Small $N$)
-
-Let $N=5$, marginal PD $=2\%$ ($a=-2.0537$), $\rho=0.20$.
-
-Use a **3-point factor approximation** (toy quadrature): $x\in\{-1.5,0,+1.5\}$ with weights $(0.25,0.50,0.25)$.
-
-**Constants:** $\sqrt{\rho}=0.4472,\ \sqrt{1-\rho}=0.8944$
-
-**Compute conditional PDs:**
-
-| $x$ | $(a-\sqrt{\rho}x)/\sqrt{1-\rho}$ | $p(x)=\Phi(\cdot)$ |
-|-----|----------------------------------|-------------------|
-| $-1.5$ | $(-2.0537+0.6708)/0.8944=-1.5459$ | $0.0612$ |
-| $0$ | $-2.0537/0.8944=-2.296$ | $0.0108$ |
-| $+1.5$ | $(-2.0537-0.6708)/0.8944=-3.0456$ | $0.00116$ |
-
-Now conditional on each $x$, default count $K\mid x \sim \mathrm{Binomial}(5,p(x))$.
-
-**At $x=-1.5$, $p=0.0612,\ q=0.9388$:**
-- $P_0=q^5\approx 0.7285$
-- $P_1=5pq^4\approx 0.2377$
-- $P_2=10p^2q^3\approx 0.0310$
-- $P_3\approx 0.00202$
-- $P_4\approx 0.0000658$
-- $P_5\approx 0.00000086$
-
-**At $x=0$, $p=0.0108,\ q=0.9892$:**
-- $P_0\approx 0.9473$
-- $P_1\approx 0.0517$
-- $P_2\approx 0.00113$
-- $P_3\approx 0.0000123$
-- Higher orders negligible
-
-**At $x=1.5$, $p=0.00116,\ q=0.99884$:**
-- $P_0\approx 0.99420$
-- $P_1\approx 0.00577$
-- $P_2\approx 0.0000134$
-- Higher orders negligible
-
-**Now mix:**
-
-$$
-P(K=k)\approx 0.25P_k(-1.5)+0.5P_k(0)+0.25P_k(1.5)
-$$
-
-| $K$ | Mixture $P(K=k)$ |
-|-----|-----------------|
-| 0 | $0.25(0.7285)+0.5(0.9473)+0.25(0.9942)=0.9044$ |
-| 1 | $0.25(0.2377)+0.5(0.0517)+0.25(0.00577)=0.0867$ |
-| 2 | $0.25(0.0310)+0.5(0.00113)+0.25(0.0000134)=0.00831$ |
-| 3 | $0.25(0.00202)+0.5(0.0000123)+0.25(0)=0.000510$ |
-
-**Interpretation:** Unconditional distribution has a fatter right tail than a simple binomial with $p=2\%$, reflecting systemic mixing.
-
----
-
-### Example 7: Implied (Compound) Correlation Solve (Toy Bisection) — Using a Simplified PV Proxy
-
-We demonstrate a root-search concept consistent with "solve $PV(\rho)=0$" for implied correlation.
-
-**Important Simplifications (Explicit):**
-- We use a **single-payment-at-maturity** PV proxy rather than the book's full coupon schedule integrals. **I'm not sure** this proxy matches any specific index tranche quoting convention; it's purely illustrative.
-- We use an **LHP-style** approximation: conditional portfolio loss is deterministic given factor $X=x$. (The text discusses large homogeneous portfolio limits where conditional loss variance shrinks with $N$.)
-
-**Setup:**
-- Horizon $T=5$ years
-- Homogeneous marginal default probability to $T$: $p=10\%\Rightarrow a=\Phi^{-1}(0.10)\approx -1.2816$
-- Recovery $R=40\%\Rightarrow \mathrm{LGD}=0.60$
-- Equity tranche $[0,K]$ with $K=3\%=0.03$
-- Market running spread (toy) $S_{\text{mkt}}=2000$ bp $=0.20$ per year, paid once at $T$ on expected outstanding tranche notional
-
-**PV Proxy (Short Protection):**
-- Protection leg PV proxy: $PV_{\text{prot}}=Z(T)\cdot \mathrm{ETL}(\rho)$
-- Premium leg PV proxy: $PV_{\text{prem}}=Z(T)\cdot S_{\text{mkt}}T\cdot (1-\mathrm{ETL}(\rho))$
-- Set $PV_{\text{prem}}-PV_{\text{prot}}=0$:
-
-$$
-S_{\text{mkt}}T(1-\mathrm{ETL})-\mathrm{ETL}=0
-\Rightarrow \mathrm{ETL}_{\text{target}}=\frac{S_{\text{mkt}}T}{1+S_{\text{mkt}}T}
-$$
-
-Here $S_{\text{mkt}}T=0.20\cdot5=1\Rightarrow \mathrm{ETL}_{\text{target}}=1/2=0.50$.
-
-**Compute $\mathrm{ETL}(\rho)$ Approximately:**
-- Use factor points $x\in\{-1.5,0,+1.5\}$ with weights $(0.25,0.50,0.25)$
-- Conditional default probability: $p(x)=\Phi\!\left(\frac{a-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)$
-- Conditional portfolio loss (LHP proxy): $L(x)=\mathrm{LGD}\cdot p(x)=0.60p(x)$
-- Equity tranche loss fraction: $\mathrm{TL}(x)=\min(L(x),0.03)/0.03$
-- Approximate ETL: $\mathrm{ETL}(\rho)\approx \sum w_j \mathrm{TL}(x_j)$
-
-**Step 1: Evaluate at $\rho=0.50$**
-
-$\sqrt{\rho}=0.7071,\ \sqrt{1-\rho}=0.7071$
-
-| $x$ | Ratio | $p$ | $L=0.60p$ | $\mathrm{TL}$ |
-|-----|-------|-----|-----------|---------------|
-| $-1.5$ | $(a+1.0607)/0.7071=-0.3125$ | $0.377$ | $0.226$ | $1$ |
-| $0$ | $a/0.7071=-1.812$ | $0.0350$ | $0.0210$ | $0.700$ |
-| $+1.5$ | $(a-1.0607)/0.7071=-3.312$ | $0.00046$ | $0.000276$ | $0.0092$ |
-
-ETL: $\mathrm{ETL}(0.50)\approx 0.25(1)+0.5(0.700)+0.25(0.0092)=0.6023$
-
-Define $f(\rho)=\mathrm{ETL}(\rho)-0.50$:
-- $f(0.50)=0.6023-0.50=+0.1023$ (too much loss; need higher $\rho$ to reduce equity ETL)
-
-**Step 2: Evaluate at $\rho=0.80$**
-
-$\sqrt{\rho}=0.8944,\ \sqrt{1-\rho}=0.4472$
-
-| $x$ | Ratio | $p$ | $L$ | $\mathrm{TL}$ |
-|-----|-------|-----|-----|---------------|
-| $-1.5$ | $(a+1.3416)/0.4472=0.134$ | $0.553$ | $0.332$ | $1$ |
-| $0$ | $a/0.4472=-2.866$ | $0.00208$ | $0.00125$ | $0.0416$ |
-| $+1.5$ | $\approx -5.867$ | $\approx 0$ | $\approx 0$ | $\approx 0$ |
-
-ETL: $\mathrm{ETL}(0.80)\approx 0.25(1)+0.5(0.0416)+0.25(0)=0.2708$
-
-So $f(0.80)=0.2708-0.50=-0.2292$ (too little loss; need lower $\rho$).
-
-**Bisection Interval:** Root lies between $\rho=0.50$ and $\rho=0.80$.
-
-**Step 3: Midpoint $\rho=0.65$**
-
-$\sqrt{\rho}=0.8062,\ \sqrt{1-\rho}=0.5916$
-
-| $x$ | Ratio | $p$ | $L$ | $\mathrm{TL}$ |
-|-----|-------|-----|-----|---------------|
-| $-1.5$ | $(a+1.2093)/0.5916=-0.122$ | $0.451$ | $0.271$ | $1$ |
-| $0$ | $-2.166$ | $0.0152$ | $0.00912$ | $0.304$ |
-| $+1.5$ | $-4.211$ | $0.0000124$ | $\approx 0$ | $\approx 0.00025$ |
-
-ETL: $\mathrm{ETL}(0.65)\approx 0.25(1)+0.5(0.304)+0.25(0.00025)=0.4021$
-
-So $f(0.65)=0.4021-0.50=-0.0979$. Root between $0.50$ and $0.65$.
-
-**Step 4: Midpoint $\rho=0.575$**
-
-$\sqrt{\rho}=0.7583,\ \sqrt{1-\rho}=0.6519$
-
-| $x$ | Ratio | $p$ | $L$ | $\mathrm{TL}$ |
-|-----|-------|-----|-----|---------------|
-| $-1.5$ | $-0.221$ | $0.4125$ | $0.2475$ | $1$ |
-| $0$ | $-1.966$ | $0.0247$ | $0.0148$ | $0.494$ |
-| $+1.5$ | $-3.711$ | $0.000102$ | $0.000061$ | $0.00204$ |
-
-ETL: $\mathrm{ETL}(0.575)\approx 0.25(1)+0.5(0.494)+0.25(0.00204)=0.4975$
-
-So $f(0.575)=0.4975-0.50=-0.0025$ (very close).
-
-**Toy Implied Correlation (Compound):**
-
-$$
-\boxed{\rho^\star \approx 0.58}
-$$
-
-under these approximations.
-
----
-
-### Example 8: Base Correlation Idea via "Difference of Equities" (Source-Backed Identity)
-
-Suppose we have (toy) base correlations:
-- $\rho(3\%)=20\%$
-- $\rho(7\%)=30\%$
-
-The base-correlation method prices tranche $[3\%,7\%]$ via two equity/base tranche ETLs:
-
-$$
-\mathbb{E}[L(T;3\%,7\%)]
-=\frac{\mathbb{E}_{\rho(7\%)}[\min(L(T),7\%)]-\mathbb{E}_{\rho(3\%)}[\min(L(T),3\%)]}{7\%-3\%}
-$$
-
-**Numerical Illustration (Toy ETLs):**
-
-Assume (just to illustrate arithmetic):
-- $\mathbb{E}_{\rho(3\%)}[\min(L,3\%)]=2.4\%$
-- $\mathbb{E}_{\rho(7\%)}[\min(L,7\%)]=4.9\%$
-
-Then:
-- Numerator $=4.9\%-2.4\%=2.5\%$
-- Denominator $=4\%$
-- $\mathbb{E}[L(T;3,7)]=2.5/4=0.625$
-
-So expected **tranche loss fraction** is $62.5\%$ of tranche notional.
-
-**Unit Check:** Numerator and denominator are both in "% of portfolio notional," ratio is dimensionless.
-
----
-
-### Example 9: Correlation Smile / Skew Illustration (Toy)
-
-A toy implied base correlation "skew" by detachment $K$:
-
-| Detachment $K$ | Base Correlation $\rho(K)$ |
-|----------------|---------------------------|
-| 3% | 20% |
-| 7% | 30% |
-| 10% | 40% |
-| 15% | 55% |
-| 30% | 70% |
-
-**Interpretation:**
-
-Increasing $\rho(K)$ with $K$ suggests the market needs "more dependence strength" (in a Gaussian one-factor sense) to match the pricing of more senior risk. The text notes base correlation is typically not flat and is termed a "skew."
-
----
-
-### Example 10: Recovery Sensitivity Interaction (Toy) — How Implied Correlation Shifts When Recovery Changes
-
-We reuse Example 7 setup but change recovery.
-
-**Recall Example 7:**
-- Target equity ETL = 0.50 (from toy PV proxy)
-- With $R=40\%$ (LGD=0.60), we found $\rho^\star \approx 0.575$
-
-**Now set higher recovery** $R=50\%\Rightarrow \mathrm{LGD}=0.50$, keep everything else fixed (same marginal PD curve).
-
-Compute ETL at $\rho=0.575$ using the same factor points and conditional PDs from Example 7:
-
-At $\rho=0.575$, we had $p(-1.5)=0.4125,\ p(0)=0.0247,\ p(1.5)=0.000102$.
-
-Portfolio loss $L(x)=0.50p(x)$:
-
-| $x$ | $L$ | $\mathrm{TL}$ |
-|-----|-----|---------------|
-| $-1.5$ | $0.2063$ | $1$ |
-| $0$ | $0.01235$ | $0.01235/0.03=0.412$ |
-| $+1.5$ | $0.000051$ | $0.0017$ |
-
-ETL: $\mathrm{ETL}(0.575)\approx 0.25(1)+0.5(0.412)+0.25(0.0017)=0.4564$
-
-This is **below** the target 0.50, so to increase ETL we must move $\rho$ downward (because for equity, higher $\rho$ tends to reduce ETL by creating more "no loss" mass).
-
-**Try $\rho=0.54$ (Quick Check):**
-
-$\sqrt{\rho}=0.7348,\ \sqrt{1-\rho}=0.6782$, $a=-1.2816$
-
-| $x$ | Ratio | $p$ | $L$ | $\mathrm{TL}$ |
-|-----|-------|-----|-----|---------------|
-| $-1.5$ | $-0.2646$ | $0.3957$ | $0.1979$ | $1$ |
-| $0$ | $-1.889$ | $0.0294$ | $0.0147$ | $0.490$ |
-| $+1.5$ | $-3.515$ | $0.000219$ | $0.0001095$ | $0.00365$ |
-
-ETL: $\mathrm{ETL}(0.54)\approx 0.25(1)+0.5(0.490)+0.25(0.00365)=0.4959\approx 0.50$
-
-**Toy Conclusion:**
-
-$$
-R\uparrow\ (LGD\downarrow)\ \Rightarrow\ \rho^\star \downarrow\ \text{(for this equity tranche under this proxy)}
-$$
-
----
-
-### Example 11: Nonlinearity by Tranche — Same Dependence Change Impacts Senior Much More Than Mezz (Toy Numbers)
-
-Use two portfolio loss distributions representing "low corr" vs "high corr" (not derived from a full copula here—purely illustrative distribution shift).
-
-**Low Dependence Distribution:**
-
-| $L$ | Probability |
-|-----|-------------|
-| 0% | 0.10 |
-| 12% | 0.89 |
-| 40% | 0.01 |
-
-**High Dependence Distribution:**
-
-| $L$ | Probability |
-|-----|-------------|
-| 0% | 0.30 |
-| 12% | 0.50 |
-| 40% | 0.20 |
-
-Consider two tranches:
-1. Mezzanine $[10,15]$, width $0.05$
-2. Super-senior $[15,30]$, width $0.15$
-
-#### Mezzanine $[10,15]$
-
-Compute $L_{\text{tr}}=(\min(L,0.15)-\min(L,0.10))/0.05$.
-
-| $L$ | $L_{\text{tr}}$ |
-|-----|-----------------|
-| $12\%$ | $(0.12-0.10)/0.05=0.4$ |
-| $40\%$ | $(0.15-0.10)/0.05=1$ |
-| $0\%$ | $0$ |
-
-ETL:
-- Low dep: $0.89(0.4)+0.01(1)=0.356+0.01=0.366$
-- High dep: $0.50(0.4)+0.20(1)=0.20+0.20=0.40$
-
-**Change:** $\Delta \mathrm{ETL}=+0.034$
-
-#### Super-Senior $[15,30]$
-
-Compute $L_{\text{tr}}=(\min(L,0.30)-\min(L,0.15))/0.15$.
-
-| $L$ | $L_{\text{tr}}$ |
-|-----|-----------------|
-| $12\%$ | $0$ (below 15%) |
-| $40\%$ | $(0.30-0.15)/0.15=1$ |
-| $0\%$ | $0$ |
-
-ETL:
-- Low dep: $0.01(1)=0.01$
-- High dep: $0.20(1)=0.20$
-
-**Change:** $\Delta \mathrm{ETL}=+0.19$
-
-**Key Takeaway:** Tail-probability shifts barely move mezz ETL but can massively move senior ETL, consistent with "senior is tail-driven."
-
----
-
-### Example 12: Sanity Checks — ETL Bounds and Detecting Inconsistent Tranche-Loss Mapping
-
-#### A. ETL Bounds Check
-
-For any tranche, by construction $0\le L(T;A,D)\le 1$, so:
-
-$$
-0\le \mathrm{ETL}_{A,D}(T)\le 1
-$$
-
-Check Example 11:
-- Mezz ETL: 0.366 and 0.40 (both in $[0,1]$) ✓
-- Super-senior ETL: 0.01 and 0.20 (both in $[0,1]$) ✓
-
-#### B. Expected Loss Amount Bounds
-
-Expected loss amount (as fraction of portfolio notional) for tranche $[A,D]$ is:
-
-$$
-\mathbb{E}[\min(L,D)-\min(L,A)] \in [0, D-A]
-$$
-
-Because $\min(L,D)-\min(L,A)$ is always between 0 and $D-A$.
-
-Example 11, super-senior $[15,30]$: $D-A=0.15$.
-- In high dep distribution, loss amount is $0.15$ only when $L=40\%$ (prob 0.20):
-  $\mathbb{E}[\text{loss amount}]=0.20\cdot 0.15=0.03$, which is in $[0,0.15]$ ✓
-
-#### C. Detecting a Wrong Mapping (Common Pitfall)
-
-Suppose someone mistakenly uses:
-
-$$
-\widetilde{L}_{\text{tr}}(L;A,D)=\frac{L-A}{D-A}\quad\text{(without capping at 0 and 1)}
-$$
-
-Take $A=0.15,\ D=0.30,\ L=0.40$:
-- $\widetilde{L}_{\text{tr}}=(0.40-0.15)/0.15=0.25/0.15=1.666$ (impossible: >1)
-
-**How you detect it:** Any ETL computation yielding values outside $[0,1]$ is automatically inconsistent with tranche-loss definitions.
-
----
-
-## 10. Practical Notes
-
-### 10.1 Checklist of Inputs Needed (Copula Tranche Pricing / Calibration)
+### 50.7.1 Required Inputs
 
 | Category | Inputs |
 |----------|--------|
-| **Portfolio definition** | Constituents, weights/notionals, maturity, credit-event definitions (standard index vs bespoke) |
-| **Single-name marginals** | Survival curves $Q_i(t)$ or hazards; calibration instruments and conventions |
-| **Recoveries** | Fixed $R_i$ or recovery model; $L_{\max}$ implied |
-| **Dependence model choice** | Gaussian copula one-factor (baseline), parameterization of $\rho$ or $\beta$ |
-| **Tranche contract** | $[A,D]$, coupon schedule, accrual convention, upfront vs running terms |
-| **Discount curve** | $Z(t)$ and settlement assumptions for default timing |
+| **Portfolio** | Constituents, weights, maturity, credit event definitions |
+| **Single-name marginals** | Survival curves $Q_i(t)$ from CDS calibration |
+| **Recoveries** | Fixed $R_i$ or recovery model; determines $L_{\max}$ |
+| **Dependence model** | Gaussian copula one-factor (standard) |
+| **Tranche contracts** | $[A, D]$, coupon schedule, accrual convention |
+| **Discount curve** | $Z(t)$ for discounting |
+| **Market quotes** | Spread and/or upfront for each tranche |
+
+### 50.7.2 Standard Index Tranches
+
+For CDX and iTraxx indices, standard tranches are:
+
+| Index | Equity | Junior Mezz | Senior Mezz | Senior | Super-Senior |
+|-------|--------|-------------|-------------|--------|--------------|
+| CDX.NA.IG | 0–3% | 3–7% | 7–10% | 10–15% | 15–30% |
+| iTraxx Europe | 0–3% | 3–6% | 6–9% | 9–12% | 12–22% |
+
+Equity tranches typically trade with upfront + 500bp running; others trade as running spread.
+
+### 50.7.3 Calibration Objective
+
+For each tranche, find correlation such that:
+
+$$PV_{\text{model}}(\text{correlation}) = PV_{\text{market}}$$
+
+At initiation with market quotes, this typically means $PV = 0$.
 
 ---
 
-### 10.2 Common Pitfalls
+## 50.8 Base Correlation Interpolation Pathologies
 
-| Pitfall | Explanation |
+### 50.8.1 The Interpolation Problem
+
+Standard tranches have discrete attachment points (3%, 7%, 10%, etc.). To price **bespoke tranches** or **tranchelets** at non-standard strikes, we must interpolate the base correlation curve.
+
+O'Kane devotes significant attention to the pathologies that can arise.
+
+### 50.8.2 Non-Monotonic Tranchelet Spreads
+
+A fundamental consistency requirement: tranchelet spreads should decrease as subordination increases. More subordination means more protection, hence lower spread.
+
+**The pathology:** Linear interpolation of base correlation can produce tranchelet spreads that *increase* with subordination in certain strike ranges.
+
+O'Kane provides an example: with linear interpolation between 3% and 7% base correlations, tranchelet spreads can be non-monotonic, violating economic logic.
+
+### 50.8.3 Negative Tranchelet Spreads
+
+In extreme cases, interpolation can produce **negative implied spreads** for thin tranchelets. This is economically absurd—it would imply the protection buyer pays the seller.
+
+**Why it happens:** The base correlation formula computes tranche ETL as a difference of two base tranche ETLs. If the interpolated correlations cause the lower base tranche ETL to exceed the upper (adjusted for width), the result is negative.
+
+### 50.8.4 Implied Loss Density Spikes
+
+The **implied loss density** $f(K)$ is the derivative of expected loss with respect to strike:
+
+$$f(K) = \frac{\partial}{\partial K} \mathbb{E}[\min(L, K)]$$
+
+For a valid probability distribution, $f(K) \geq 0$ everywhere.
+
+**The pathology:** Interpolation can produce:
+- **Spikes:** Unrealistically high density at certain strikes
+- **Negative regions:** $f(K) < 0$, which is mathematically impossible for a true distribution
+
+O'Kane shows that with linear base correlation interpolation, the implied density can have sharp discontinuities at quoted strikes and negative values between them.
+
+### 50.8.5 ETL-Space Interpolation
+
+A partial remedy: instead of interpolating base *correlation*, interpolate base tranche *expected loss* (ETL) directly.
+
+$$\psi(T, K) = \text{interpolate}(\{\psi(T, K_i)\})$$
+
+Then back out the implied correlation from interpolated ETL.
+
+**Advantages:**
+- ETL is bounded in $[0, K]$ by construction
+- Linear ETL interpolation preserves monotonicity of tranchelet ETL
+- Avoids some (but not all) density pathologies
+
+**Remaining issues:** ETL-space interpolation can still produce:
+- Non-smooth implied densities
+- Arbitrage in dynamic hedging scenarios
+
+### 50.8.6 Extrapolation Below 3%
+
+The lowest quoted strike is typically 3% (the equity detachment). Pricing thin equity tranches (0–1%, 1–2%, etc.) requires extrapolation.
+
+**The problem:** Base correlation behavior below 3% is essentially unconstrained by market data. Small changes in extrapolation assumptions can dramatically affect thin tranchelet prices.
+
+O'Kane notes that the 0–3% tranche's implied correlation already reflects the market's view of extreme losses, and further decomposition is speculative.
+
+---
+
+## 50.9 Model Risk and Lessons from 2008
+
+### 50.9.1 The "Formula That Killed Wall Street"
+
+The Gaussian copula's role in the 2007-2008 crisis has been extensively documented. Key failures:
+
+1. **Underestimation of tail risk:** Zero tail dependence meant the model systematically underestimated the probability of widespread defaults
+
+2. **Correlation instability:** Implied correlations proved highly unstable during the crisis, with base correlation skews steepening dramatically
+
+3. **False precision:** The single-parameter model gave an illusion of precision while masking fundamental uncertainty about joint default behavior
+
+4. **Calibration to benign conditions:** Models calibrated to pre-crisis data failed catastrophically when correlations spiked
+
+### 50.9.2 Model Risk Dimensions
+
+| Risk Dimension | Description |
+|----------------|-------------|
+| **Copula choice** | Gaussian vs. t-copula vs. other; tail dependence implications |
+| **Correlation stability** | Implied correlation is not constant; depends on market conditions |
+| **Recovery assumptions** | Fixed vs. stochastic recovery; affects correlation calibration |
+| **Marginal curve risk** | Single-name curves may be inconsistent with tranche quotes |
+| **Interpolation arbitrage** | Non-standard strikes may have negative spreads or density violations |
+
+### 50.9.3 Stress Testing Framework
+
+Prudent risk management requires stress testing beyond base case calibration:
+
+**Correlation stress:**
+- Parallel shift: $\rho(K) \to \rho(K) + \Delta\rho$ for all $K$
+- Steepening: $\rho(K) \to \rho(K) + \alpha K$ for some $\alpha$
+- Flattening: test impact of flat correlation at various levels
+
+**Tail scenarios:**
+- Compute tranche losses under t-copula with low $\nu$
+- Simulate "crisis correlation" levels (60%+ for all tranches)
+
+**Recovery stress:**
+- Test sensitivity to recovery assumptions ($R = 20\%$ vs. $40\%$ vs. $60\%$)
+
+**Jump-to-default:**
+- Scenario analysis for individual name defaults
+- Particularly relevant for concentrated portfolios
+
+### 50.9.4 Practical Hedging Implications
+
+The correlation smile implies that **delta hedging with single-names is incomplete**. A perfectly delta-hedged equity tranche still has:
+
+- **Correlation exposure:** PV changes when implied correlation moves
+- **Gamma exposure:** Non-linear response to spread changes
+- **Gap risk:** Discrete defaults cause discontinuous PV jumps
+
+Traders often hedge correlation exposure by trading tranches against each other (equity vs. mezzanine), but this introduces **basis risk** if the correlation smile shifts.
+
+---
+
+## 50.10 Worked Examples
+
+### Example 1: Independence vs. Perfect Dependence (Two Names)
+
+Let two names each have 1-year PD = 10%.
+
+**Case 1: Independence**
+- $\Pr(0 \text{ defaults}) = 0.9^2 = 0.81$
+- $\Pr(1 \text{ default}) = 2(0.1)(0.9) = 0.18$
+- $\Pr(2 \text{ defaults}) = 0.1^2 = 0.01$
+
+**Case 2: Perfect positive dependence**
+- $\Pr(2 \text{ defaults}) = 0.10$ (both default together)
+- $\Pr(0 \text{ defaults}) = 0.90$ (both survive together)
+- $\Pr(1 \text{ default}) = 0$ (impossible)
+
+**Key insight:** Dependence multiplies the probability of joint extremes (from 1% to 10%) while preserving marginal PDs.
+
+---
+
+### Example 2: ETL Under Different Dependence Structures
+
+Consider portfolio loss distributions:
+
+**Low dependence:**
+| Loss $L$ | Probability |
+|----------|-------------|
+| 0% | 0.05 |
+| 8% | 0.90 |
+| 40% | 0.05 |
+
+**High dependence (same mean):**
+| Loss $L$ | Probability |
+|----------|-------------|
+| 0% | 0.30 |
+| 8% | 0.5875 |
+| 40% | 0.1125 |
+
+Both have mean loss = 9.2%.
+
+**Equity tranche [0%, 3%]:**
+$$L_{tr} = \min(L, 0.03) / 0.03$$
+
+- Low dep: ETL = $0.05(0) + 0.95(1) = 0.95$
+- High dep: ETL = $0.30(0) + 0.70(1) = 0.70$
+
+**Senior tranche [10%, 15%]:**
+$$L_{tr} = (\min(L, 0.15) - \min(L, 0.10)) / 0.05$$
+
+- Low dep: ETL = $0.05(1) = 0.05$
+- High dep: ETL = $0.1125(1) = 0.1125$
+
+**Result:** Higher dependence *decreases* equity ETL but *increases* senior ETL.
+
+---
+
+### Example 3: Conditional Default Probability Calculation
+
+**Parameters:**
+- Marginal 1y PD = 2% → $a = \Phi^{-1}(0.02) = -2.054$
+- $\rho = 0.20$ → $\sqrt{\rho} = 0.447$, $\sqrt{1-\rho} = 0.894$
+
+**Conditional PD formula:**
+$$p(x) = \Phi\left(\frac{a - \sqrt{\rho} x}{\sqrt{1-\rho}}\right)$$
+
+**Bad state ($x = -1$):**
+$$p(-1) = \Phi\left(\frac{-2.054 + 0.447}{0.894}\right) = \Phi(-1.80) = 0.036$$
+
+**Good state ($x = +1$):**
+$$p(+1) = \Phi\left(\frac{-2.054 - 0.447}{0.894}\right) = \Phi(-2.80) = 0.0026$$
+
+**Interpretation:** In bad states, default probability nearly doubles; in good states, it drops to 1/8 of the unconditional level.
+
+---
+
+### Example 4: Full Base Correlation Bootstrap
+
+**Market data (toy):**
+- Portfolio: 125 names, 5y maturity, $R = 40\%$
+- Discount rate: 5% continuous
+
+| Tranche | Market Spread (bps) | Upfront |
+|---------|---------------------|---------|
+| 0–3% | 500 running | 35% |
+| 3–7% | 250 running | — |
+| 7–10% | 85 running | — |
+
+**Step 1: Calibrate $\rho(3\%)$**
+
+Using one-factor Gaussian copula, find $\rho$ such that equity tranche PV = 0 at 35% upfront + 500bp running.
+
+Iterating:
+- $\rho = 10\%$: Model upfront = 42% (too high)
+- $\rho = 20\%$: Model upfront = 33% (too low)
+- $\rho = 18\%$: Model upfront = 35.1% ≈ market
+
+**Result:** $\rho(3\%) = 18\%$
+
+**Step 2: Calibrate $\rho(7\%)$**
+
+Holding $\rho(3\%) = 18\%$ fixed, find $\rho(7\%)$ such that [3%, 7%] tranche prices at 250bp.
+
+Compute [3%, 7%] ETL as:
+$$\text{ETL}_{3,7} = \frac{\psi(7\%, \rho(7\%)) - \psi(3\%, \rho(3\%))}{0.04}$$
+
+Iterating:
+- $\rho(7\%) = 25\%$: Implied spread = 230bp (too low)
+- $\rho(7\%) = 30\%$: Implied spread = 255bp (close)
+- $\rho(7\%) = 29\%$: Implied spread = 249bp ≈ market
+
+**Result:** $\rho(7\%) = 29\%$
+
+**Step 3: Calibrate $\rho(10\%)$**
+
+Similarly: **Result:** $\rho(10\%) = 38\%$
+
+**Final base correlation curve:**
+| Strike | Base Correlation |
+|--------|------------------|
+| 3% | 18% |
+| 7% | 29% |
+| 10% | 38% |
+
+---
+
+### Example 5: Detecting Interpolation Arbitrage
+
+Using the base correlations from Example 4, price tranchelets [4%, 5%] and [5%, 6%].
+
+**Linear interpolation:**
+$$\rho(4\%) = 18\% + \frac{1}{4}(29\% - 18\%) = 20.75\%$$
+$$\rho(5\%) = 18\% + \frac{2}{4}(29\% - 18\%) = 23.5\%$$
+$$\rho(6\%) = 18\% + \frac{3}{4}(29\% - 18\%) = 26.25\%$$
+
+**Compute tranchelet ETLs:**
+- $\psi(4\%, 20.75\%) = 2.85\%$
+- $\psi(5\%, 23.5\%) = 3.90\%$
+- $\psi(6\%, 26.25\%) = 4.82\%$
+
+**Tranchelet spreads (using simplified spread ≈ ETL / risky PV01):**
+- [4%, 5%]: ETL = $(3.90 - 2.85)/0.01 = 105\%$ → spread ≈ 2100bp
+- [5%, 6%]: ETL = $(4.82 - 3.90)/0.01 = 92\%$ → spread ≈ 1840bp
+
+**Monotonicity check:** [5%, 6%] has more subordination but lower spread than [4%, 5%]. ✓ Passes.
+
+**Sensitivity:** If interpolation were steeper, [5%, 6%] could have *higher* spread—an arbitrage signal.
+
+---
+
+### Example 6: Recovery Sensitivity
+
+Using Example 4 setup with $\rho(3\%) = 18\%$ calibrated at $R = 40\%$.
+
+**Question:** What happens to implied $\rho(3\%)$ if we assume $R = 50\%$?
+
+**At $R = 50\%$:** Higher recovery means lower loss-given-default, so the same tranche spread requires *lower* correlation to generate enough expected loss.
+
+Recalibrating:
+- With $R = 50\%$, $\rho(3\%) = 14\%$ matches the 35% upfront
+
+**Key insight:** Recovery and correlation are not independently identifiable from a single tranche quote. Higher assumed recovery implies lower implied correlation.
+
+---
+
+### Example 7: Correlation 01 Calculation
+
+**Setup:** Use calibrated base correlations from Example 4.
+
+**Equity [0–3%] correlation 01:**
+1. Compute PV at $\rho(3\%) = 18\%$: PV = 0 (calibrated)
+2. Bump to $\rho(3\%) = 19\%$: recompute ETL and PV
+3. $\text{Corr01} = \text{PV}(19\%) - \text{PV}(18\%)$
+
+Result: Corr01 ≈ −15bp (short protection loses when correlation rises)
+
+**Senior [7–10%] correlation 01:**
+1. Bump both $\rho(7\%)$ and $\rho(10\%)$ by 1%
+2. Recompute tranche PV
+
+Result: Corr01 ≈ +8bp (short protection gains when correlation rises)
+
+**Sign confirmation:** Opposite signs across capital structure, as expected.
+
+---
+
+### Example 8: Tail Dependence Comparison
+
+**Question:** Compare the probability of joint extreme events under Gaussian vs. t-copula.
+
+**Setup:** Two names with pairwise correlation $\rho = 0.5$.
+
+**Gaussian copula ($\nu = \infty$):**
+- Tail dependence coefficient: $\lambda = 0$
+- $\Pr(\text{both in worst 1\%}) \approx 0.01 \times 0.01 = 0.0001$ (asymptotically)
+
+**t-copula with $\nu = 4$:**
+Using McNeil's formula:
+$$\lambda = 2 t_5\left(-\sqrt{\frac{5 \times 0.5}{1.5}}\right) = 2 t_5(-1.29) = 2 \times 0.089 = 0.178$$
+
+For extreme events (worst 1%), the joint probability is approximately:
+- $\Pr(\text{both in worst 1\%}) \approx 0.01 \times 0.178 = 0.00178$
+
+**Result:** The t-copula assigns **18× higher probability** to joint extreme events than asymptotic Gaussian independence would suggest.
+
+**Implication for tranches:** A super-senior tranche that appears safe under Gaussian assumptions may have substantially higher risk under t-copula. This explains why markets price in a correlation premium for senior tranches.
+
+---
+
+## 50.11 Practical Notes
+
+### 50.11.1 Input Checklist
+
+| Category | Required Inputs |
+|----------|-----------------|
+| **Portfolio** | Constituents, notional weights, maturity |
+| **Marginals** | CDS curves for each name (survival probabilities) |
+| **Recovery** | Fixed or stochastic; typically 40% for IG |
+| **Tranches** | Attachment/detachment, coupon, day count |
+| **Discount** | OIS curve for discounting |
+| **Quotes** | Market spreads and/or upfronts |
+
+### 50.11.2 Common Pitfalls
+
+| Pitfall | Description |
 |---------|-------------|
-| **Confusing correlation with dependence** | Linear correlation is a summary statistic; copula encodes the dependence |
-| **Treating "$\rho$" as universal** | Market-implied $\rho$ varies by tranche (smile/skew), motivating base correlation |
-| **Mixing inconsistent inputs** | Single-name curves inconsistent with tranche quotes can produce unstable implied correlations or no solution |
-| **Ignoring recovery and discounting** | Recovery changes $L_{\max}$ and loss mapping when inferring implied correlation |
-| **Treating base correlation as structural truth** | Base correlation is a practical quoting framework; interpolation/extrapolation can create implied-density pathologies |
+| **Confusing correlation with dependence** | $\rho$ is a model parameter, not the true dependence |
+| **Ignoring recovery** | Recovery affects $L_{\max}$ and correlation calibration |
+| **Naive interpolation** | Linear base correlation can create arbitrage |
+| **Treating implied $\rho$ as stable** | Implied correlations move with market conditions |
+| **Ignoring tail dependence** | Gaussian copula underestimates senior risk |
+
+### 50.11.3 Verification Tests
+
+| Test | What to Check |
+|------|---------------|
+| **Repricing** | Each calibration instrument reprices to market |
+| **ETL bounds** | $0 \le \text{ETL} \le 1$; loss amount in $[0, D-A]$ |
+| **Spread monotonicity** | Tranchelet spreads decrease with subordination |
+| **Density positivity** | Implied loss density $\geq 0$ everywhere |
+| **Limiting cases** | $\rho = 0$ gives independence; $\rho \to 1$ gives clustering |
 
 ---
 
-### 10.3 Verification Tests (Practical "Does This Implementation Make Sense?")
+## 50.12 Summary
 
-| Test | Description |
-|------|-------------|
-| **Repricing check** | Each calibration tranche should reprice to its market PV/quote |
-| **ETL bounds** | $0\le \mathrm{ETL}\le 1$; loss amount in $[0,D-A]$ |
-| **Monotonicity checks (strike dimension)** | Tranchelet spreads should generally decrease with more subordination; violations can indicate interpolation-arbitrage issues |
-| **Limiting-case checks** | $\rho=0$ should approach independence behavior; $\rho\to 1$ should approach extreme clustering |
-| **Stability** | Small quote bumps should not create absurd implied-correlation jumps (qualitative; often affected by interpolation choice) |
+1. **Tranche loss is nonlinear** in portfolio loss, so tranche PV depends on the *entire* loss distribution, not just expected loss.
 
----
+2. **Correlation reshapes** the loss distribution: higher correlation pushes mass to extremes (both "no loss" and "many losses").
 
-## 11. Summary & Recall
+3. **Equity and senior** tranches respond oppositely to correlation changes: equity benefits from more "no loss" mass, senior suffers from more tail mass.
 
-### 11.1 Executive Summary (10 Bullets)
+4. **Copulas** separate marginal default distributions (from CDS) from dependence structure—Sklar's theorem formalizes this.
 
-1. Portfolio loss $L(t)$ is a fraction of portfolio notional lost to defaults; tranche loss is a nonlinear mapping of $L(t)$ with kinks at $A$ and $D$
-2. Because tranche loss is nonlinear in $L$, tranche PV depends on the **full distribution** of portfolio loss, not just expected loss
-3. "Dependence" is the joint default behavior; "correlation" is often just a compressed parameterization of a dependence model
-4. Copulas separate marginals (from CDS curves) from joint structure; Sklar's theorem formalizes this separation
-5. Gaussian one-factor copula uses $Z_i=\sqrt{\rho}X+\sqrt{1-\rho}\varepsilon_i$ and default thresholds from marginal PDs
-6. Higher correlation tends to shift probability to extremes (few defaults vs many defaults), which affects ETL differently by tranche attachment
-7. Tranche pricing can be expressed via tranche survival curve $Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]$ and mapped to CDS-style PV formulas
-8. Compound correlation is a flat $\rho$ implied by one tranche (solve $PV(\rho)=0$); it can have multiple solutions for mezz tranches
-9. Base correlation assigns $\rho(K)$ to equity/base tranches $[0,K]$ and prices $[A,D]$ as a difference of two base tranches using $\rho(A)$ and $\rho(D)$
-10. Base correlation is useful but can generate interpolation/extrapolation pathologies (non-monotone tranchelet spreads, negative implied density regions)
+5. **Gaussian copula one-factor** model uses $Z_i = \sqrt{\rho}X + \sqrt{1-\rho}\varepsilon_i$, enabling tractable conditional independence.
+
+6. **Gaussian copula has zero tail dependence**, systematically underestimating senior tranche risk.
+
+7. **The LHP model** provides analytical tractability for large homogeneous portfolios via the Vasicek limit.
+
+8. **Compound correlation** (flat $\rho$ per tranche) can have multiple solutions for mezzanine and fails conservation of expected loss.
+
+9. **Base correlation** (one $\rho(K)$ per detachment) is the market standard, calibrated via bootstrap.
+
+10. **Interpolation pathologies** (non-monotonic spreads, negative densities) require careful handling—ETL-space interpolation helps.
+
+11. **Model risk** is substantial: correlation is not stable, tail dependence matters, and the 2008 crisis demonstrated limitations.
 
 ---
 
-### 11.2 Cheat Sheet (Key Formulas)
+## 50.13 Key Concepts Summary
 
-**Tranche Loss Fraction:**
-
-$$
-L(T;A,D)=\frac{\min(L(T),D)-\min(L(T),A)}{D-A}
-$$
-
-**Equity/Base Tranche ETL:**
-
-$$
-\psi(T,K)=\mathbb{E}[\min(L(T),K)]
-$$
-
-**Gaussian One-Factor Latent Variable:**
-
-$$
-Z_i=\sqrt{\rho}\,X+\sqrt{1-\rho}\,\varepsilon_i
-$$
-
-**Threshold from Marginal PD:**
-
-$$
-a_i(T)=\Phi^{-1}(\mathrm{PD}_i(T)),\quad \tau_i\le T \iff Z_i\le a_i(T)
-$$
-
-**Conditional PD:**
-
-$$
-p_i(T\mid X=x)=\Phi\!\left(\frac{a_i(T)-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)
-$$
-
-**Compound Correlation Implied Solve:**
-
-$$
-\rho^\star:\ PV(A,D,\rho^\star)=0
-$$
-
-**Base Correlation Tranche ETL Identity:**
-
-$$
-\mathbb{E}[L(T;A,D)]
-=\frac{\mathbb{E}_{\rho(D)}[\min(L(T),D)]-\mathbb{E}_{\rho(A)}[\min(L(T),A)]}{D-A}
-$$
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| Tranche loss mapping | $L(T;A,D) = [\min(L,D) - \min(L,A)]/(D-A)$ | Nonlinearity drives correlation sensitivity |
+| Sklar's theorem | Joint CDF = copula of marginal CDFs | Separates marginals from dependence |
+| One-factor Gaussian | $Z_i = \sqrt{\rho}X + \sqrt{1-\rho}\varepsilon_i$ | Enables conditional independence |
+| Tail dependence | $\lim \Pr(U_2 > u \mid U_1 > u)$ as $u \to 1$ | Gaussian has zero; t-copula has positive |
+| LHP model | Vasicek limit for large homogeneous portfolios | Closed-form tranche ETL via bivariate normal |
+| Compound correlation | Flat $\rho$ pricing single tranche | Multiple solutions for mezz; fails consistency |
+| Base correlation | $\rho(K)$ for base tranche $[0,K]$ | Market standard; enables bootstrap |
+| Correlation skew | $\rho(K)$ increases with $K$ | Market's compensation for model deficiencies |
+| Correlation 01 | $\partial PV / \partial \rho$ per 1% | Opposite signs across capital structure |
 
 ---
 
-### 11.3 Flashcards (30 Q/A)
+## 50.14 Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is $L(T)$? | Fractional portfolio loss (fraction of portfolio notional lost by $T$) |
-| 2 | What is $L_{\max}$? | Maximum possible portfolio loss implied by recovery assumptions (e.g., $1-R$ if fixed recovery) |
-| 3 | Define tranche loss $L(T;A,D)$ | $\frac{\min(L(T),D)-\min(L(T),A)}{D-A}$ |
-| 4 | Why are tranches correlation-sensitive? | Because tranche loss is nonlinear in portfolio loss, so dependence reshapes loss distribution and ETL |
-| 5 | What is Pearson correlation? | $\rho_P=\frac{\mathrm{Cov}(X,Y)}{\sigma_X\sigma_Y}$ |
-| 6 | Why can Pearson correlation be misleading for defaults? | Defaults are Bernoulli; correlation bounds depend on marginals |
-| 7 | What is a copula? | A multivariate CDF with uniform marginals linking marginals to joint distribution |
-| 8 | State Sklar's theorem (informally) | Any joint CDF can be expressed as a copula applied to its marginals; unique if marginals continuous |
-| 9 | What is a default indicator process? | $Y_{t,i}=1$ if name $i$ defaulted by $t$, else 0 |
-| 10 | Write the one-factor Gaussian copula latent variable | $Z_i=\sqrt{\rho}X+\sqrt{1-\rho}\varepsilon_i$ |
-| 11 | How do marginals determine thresholds? | $a_i(T)=\Phi^{-1}(\mathrm{PD}_i(T))$ with $\mathrm{PD}_i(T)=1-Q_i(T)$ |
-| 12 | Conditional PD formula in Gaussian one-factor? | $\Phi\!\big(\frac{a_i(T)-\sqrt{\rho}x}{\sqrt{1-\rho}}\big)$ |
-| 13 | Limiting case $\rho=0$? | Defaults independent; conditional PD equals marginal PD |
-| 14 | Limiting case $\rho\to 1$? | Comonotonic extreme clustering (single factor drives all) |
-| 15 | Define tranche survival curve $Q(t;A,D)$ | $\mathbb{E}[1-L(t;A,D)]$ |
-| 16 | Protection leg PV in terms of $Q$? | $\int_0^T Z(s)(-dQ(s;A,D))$ |
-| 17 | Premium leg PV uses what notion? | Expected outstanding tranche notional via $Q$ |
-| 18 | What is compound correlation? | Flat $\rho$ that reprices a specific tranche in Gaussian copula |
-| 19 | How is compound correlation found? | Solve $PV(A,D,\rho)=0$ via 1D root search |
-| 20 | Why can compound correlation be problematic? | PV may be non-monotone → multiple solutions; also fails conservation of expected loss in smile world |
-| 21 | What is base correlation? | Correlation $\rho(K)$ assigned to base tranche $[0,K]$ |
-| 22 | How to price $[A,D]$ under base correlation? | Use $\rho(A)$ and $\rho(D)$ via difference-of-equities ETL identity |
-| 23 | Why does base correlation exist? | Need strike-dependent dependence to fit tranche "skew/smile" |
-| 24 | What is a key base-correlation challenge? | Interpolation can imply arbitrage-like tranchelet spreads or negative densities |
-| 25 | What is tail dependence? | Tendency of variables to be jointly extreme; differs by copula choice |
-| 26 | Which copula has no tail dependence in the sources? | Gaussian copula |
-| 27 | Which copula can have tail dependence? | Student's t-copula (sources mention) |
-| 28 | What is "correlation 01"? | PV change for a 1% correlation change (example shows sign differs by tranche) |
-| 29 | Why verify quoting conventions? | Upfront vs running, coupons/day counts vary; examples are historical |
-| 30 | What is the conceptual pipeline for tranche pricing? | Marginals → dependence model → portfolio loss distribution → tranche loss → ETL/$Q$ → PV/spread |
+| 1 | Why are tranches correlation-sensitive? | Tranche loss is nonlinear in portfolio loss, so PV depends on the full loss distribution |
+| 2 | What is Sklar's theorem? | Any joint CDF can be written as a copula of its marginals; unique if marginals continuous |
+| 3 | Write the one-factor Gaussian latent variable | $Z_i = \sqrt{\rho}X + \sqrt{1-\rho}\varepsilon_i$ |
+| 4 | What is the conditional default probability formula? | $\Phi((a_i - \sqrt{\rho}x)/\sqrt{1-\rho})$ |
+| 5 | What happens to portfolio loss distribution when $\rho$ increases? | Mass shifts to extremes (more "no loss" and more "high loss") |
+| 6 | How does equity tranche ETL respond to higher $\rho$? | Decreases (more mass at "no loss") |
+| 7 | How does senior tranche ETL respond to higher $\rho$? | Increases (more mass at tail) |
+| 8 | What is tail dependence? | Probability of joint extremes in the limit |
+| 9 | Does Gaussian copula have tail dependence? | No ($\lambda_U = \lambda_L = 0$) |
+| 10 | Does t-copula have tail dependence? | Yes, for finite degrees of freedom |
+| 11 | What is the t-copula tail dependence formula? | $\lambda = 2t_{\nu+1}(-\sqrt{(\nu+1)(1-\rho)/(1+\rho)})$ |
+| 12 | What is compound correlation? | Flat $\rho$ that reprices a single tranche |
+| 13 | Why can compound correlation fail for mezzanine? | PV may be non-monotonic in $\rho$, giving multiple solutions |
+| 14 | What is base correlation? | Correlation $\rho(K)$ assigned to base tranche $[0,K]$ |
+| 15 | How is non-equity tranche ETL computed under base correlation? | $[\psi(D;\rho(D)) - \psi(A;\rho(A))]/(D-A)$ |
+| 16 | What is the base correlation bootstrap? | Sequential calibration: $\rho(K_1)$ from equity, then $\rho(K_2)$ from [K_1,K_2], etc. |
+| 17 | What does a positive correlation skew mean? | Base correlation increases with detachment |
+| 18 | What is an interpolation pathology? | Non-monotonic tranchelet spreads or negative implied density |
+| 19 | How does ETL-space interpolation help? | Preserves ETL monotonicity; avoids some density issues |
+| 20 | What is correlation 01? | PV sensitivity to 1% correlation change |
+| 21 | Why do equity and senior have opposite correlation 01 signs? | Different exposure to loss distribution extremes |
+| 22 | What is the LHP model? | Large Homogeneous Portfolio limit giving closed-form loss distribution |
 
 ---
 
-## 12. Mini Problem Set (18 Questions)
+## 50.15 Mini Problem Set
 
-*(Brief solution sketches provided for questions 1–9 only.)*
+**1)** Derive the tranche loss bounds: show $L(T;A,D) \in [0,1]$.
 
-**1)** Show that $L(T;A,D)\in[0,1]$ given the min-formula.
+> **Hint:** Show $\min(L,D) - \min(L,A) \in [0, D-A]$.
 
-> **Sketch:** Since $\min(L,D)-\min(L,A)\in[0,D-A]$, divide by $D-A>0$.
+**2)** Compute tranche loss fractions for $A=3\%$, $D=7\%$ when $L=2\%$, $5\%$, $10\%$.
 
-**2)** Compute $L(T;A,D)$ for $A=3\%$, $D=7\%$ when $L(T)=2\%,5\%,9\%$.
+**3)** Under independence, compute $\Pr(K \geq 3)$ for 10 names with PD = 5%.
 
-> **Sketch:** Use $(\min(L,D)-\min(L,A))/(D-A)$; evaluate three cases (below $A$, between, above $D$).
+**4)** Under perfect dependence, compute $\Pr(K \geq 3)$ for the same names.
 
-**3)** For two names with PD $p$, compute distribution of default count under independence.
+**5)** Given PD = 1%, compute threshold $a = \Phi^{-1}(0.01)$.
 
-> **Sketch:** Binomial with $N=2$: $(1-p)^2, 2p(1-p), p^2$.
+**6)** Derive the conditional PD formula from the latent variable construction.
 
-**4)** Under perfect positive dependence with marginal PD $p$, compute distribution of default count for two names.
+**7)** Explain why $\rho = 0$ gives independence in the one-factor model.
 
-> **Sketch:** Only 0 or 2 defaults: $P(2)=p$, $P(0)=1-p$.
+**8)** Explain why $\rho \to 1$ gives comonotonicity.
 
-**5)** Given PD $=1\%$, compute threshold $a=\Phi^{-1}(0.01)$ approximately.
+> **Solution:** As $\rho \to 1$, $Z_i \to X$ for all $i$, so all defaults are driven by the same variable.
 
-> **Sketch:** Use known quantile $\Phi^{-1}(0.01)\approx -2.326$.
+**9)** Using McNeil's formula, compute the tail dependence coefficient for a t-copula with $\rho = 0.7$ and $\nu = 4$.
 
-**6)** Derive the conditional PD formula $p(x)=\Phi((a-\sqrt{\rho}x)/\sqrt{1-\rho})$.
+> **Hint:** $\lambda = 2t_5(-\sqrt{5 \times 0.3/1.7})$.
 
-> **Sketch:** Condition on $X=x$, $Z_i\mid x\sim N(\sqrt{\rho}x,1-\rho)$; standardize.
+**10)** Why does the Gaussian copula have zero tail dependence? (Qualitative)
 
-**7)** Explain qualitatively why increasing $\rho$ can decrease equity ETL but increase senior ETL.
+**11)** Construct a 2-state example showing compound correlation can have two solutions.
 
-> **Sketch:** Higher $\rho$ moves mass to extremes: more $L\approx 0$ helps equity; more far-tail $L$ hurts seniors.
+**12)** State the base correlation ETL formula for tranche $[A,D]$.
 
-**8)** Define compound correlation and explain one reason it can fail as a smile-consistent model.
+**13)** Explain why the bootstrap works sequentially.
 
-> **Sketch:** Flat $\rho$ per tranche from $PV(\rho)=0$; fails conservation of expected loss across structure.
+**14)** Give an example of interpolation creating arbitrage.
 
-**9)** Write the base-correlation "difference of equities" formula for $\mathbb{E}[L(T;A,D)]$.
+**15)** How would you stress test a tranche book for correlation risk?
 
-> **Sketch:** $\frac{\mathbb{E}_{\rho(D)}[\min(L,D)]-\mathbb{E}_{\rho(A)}[\min(L,A)]}{D-A}$.
+**16)** Why does recovery affect implied correlation?
 
-**10)** Explain how interpolation of base correlation can create negative tranchelet spreads.
-
-**11)** Describe a verification test that checks "conservation of expected loss" across tranches.
-
-**12)** For a Gaussian one-factor model, explain what happens to conditional PD as $x\to-\infty$ and $x\to+\infty$.
-
-**13)** Describe how recovery assumptions affect $L_{\max}$ and why this impacts implied correlation.
-
-**14)** Why might senior tranches be more sensitive to tail dependence than equity tranches?
-
-**15)** In a base correlation bootstrap, why does contiguity of standard tranches matter?
-
-**16)** Describe conceptually how you would compute "correlation 01" for a tranche under base correlation.
-
-**17)** Explain why "correlation" is not a universal dependence descriptor across all marginals/copulas.
-
-**18)** Give two reasons why Gaussian copula might be chosen in practice even if it lacks tail dependence.
+**17)** Derive the LHP loss CDF from the conditional default probability formula.
 
 ---
 
-## 13. Source Map
+## 50.16 Source Map
 
-### (A) Verified Facts — Directly Supported by the Provided Sources
+### (A) Verified Facts — Source-Backed
 
-- Definition of copula and its role linking marginals to a joint distribution; Sklar's theorem representation and uniqueness (continuous marginals)
-- Independence copula and dependence bounds discussion (independence formula shown)
-- Pearson correlation definition and limitations for non-Gaussian marginals / default indicators
-- Default indicator process $Y_{t,i}$ and default time $\tau_i$
-- Fractional portfolio loss $L(T)$, max loss $L_{\max}$, and ETL $\psi(T,K)=\mathbb{E}[\min(L(T),K)]$
-- Tranche loss identity via "min" operators and conservation of expected loss across capital structure
-- Tranche pricing in terms of tranche survival curve $Q(t;A,D)$ and CDS-analogy; premium/protection leg PV formulas in terms of $Q$
-- Gaussian factor copula form $U_i=\sqrt{\rho}F+\sqrt{1-\rho}Z_i$ (Hull) consistent with one-factor Gaussian latent variable
-- Threshold calibration to marginals and conditional default probability form (credit-derivatives text)
-- Definition of compound correlation as solving $PV(A,D,\rho)=0$ and possibility of multiple solutions
-- Base correlation decomposition and tranche expected loss formula using two base correlations $\rho(A),\rho(D)$
-- Base correlation bootstrap logic (contiguous tranches) and monotonic/unique-solution rationale in the text's bootstrap framing
-- Pathologies from naive base-correlation interpolation (non-monotone tranchelet spreads, negative spreads, implied density spikes/negative regions) and extrapolation ambiguity below 3%
-- Tail dependence contrast: Gaussian copula has no tail dependence; t-copula can have tail dependence (QRM; Hull mentions)
+| Fact | Source |
+|------|--------|
+| Tranche loss mapping formula | O'Kane Ch 12, Hull Ch 24 |
+| Sklar's theorem statement | McNeil QRM Ch 5, O'Kane Ch 13 |
+| One-factor Gaussian construction | O'Kane Ch 13, Hull Ch 24 |
+| Conditional default probability formula | O'Kane Ch 13 |
+| Zero tail dependence of Gaussian copula | McNeil QRM Ch 5, Example 5.32 |
+| Positive tail dependence of t-copula | McNeil QRM Ch 5, Example 5.33 |
+| t-copula tail dependence formula | McNeil QRM Ch 5, Example 5.33 |
+| t-copula tail dependence values (Table 5.1) | McNeil QRM Ch 5, Table 5.1 |
+| Compound correlation definition | O'Kane Ch 13 |
+| Base correlation definition and bootstrap | O'Kane Ch 14, Ch 20 |
+| Conservation of expected loss property | O'Kane Ch 20 |
+| Interpolation pathologies (spreads, density) | O'Kane Ch 14, Ch 20 |
+| Correlation 01 values and sign patterns | O'Kane Ch 14, Ch 17 |
+| ETL-space interpolation improvement | O'Kane Ch 14, Ch 20 |
+| LHP model (Vasicek limit) | O'Kane Ch 16, Vasicek (1987) |
+| LHP closed-form ETL via bivariate normal | O'Kane Ch 16 |
 
-### (B) Reasoned Inference — Derived/Implicated by (A)
+### (B) Reasoned Inference
 
-- The "mass to extremes" intuition is derived from one-factor conditioning and the tranche loss nonlinearity, using the conditional-independence structure and extreme factor limits
-- The qualitative mapping "equity vs senior" sensitivity is derived by applying the tranche loss function to shifts in $\Pr(L\le A)$ and $\Pr(L\ge D)$, consistent with the tranche loss distribution discussion
-- Worked examples compute numeric ETLs and toy distributions using the source-backed tranche loss mapping; they illustrate how ETL can move differently by tranche
+- Opposite correlation sensitivities for equity vs. senior derived from loss distribution reshaping under one-factor model
+- Worked examples derive numeric results from source-backed formulas
+- Example 8 (tail dependence comparison) applies McNeil's formula to illustrative parameters
+- Model risk discussion synthesizes crisis experience documented in multiple sources
 
-### (C) Speculation (Clearly Labeled)
+### (C) Flagged Uncertainties
 
-- **I'm not sure** the toy PV proxy in Example 7 reflects any specific tranche quoting convention; it is a didactic simplification (single payment at maturity) to demonstrate the root-search concept
-- **I'm not sure** whether your desk's base correlation implementation uses the exact same interpolation/extrapolation procedure as the one described in the book's later sections; implementation details can vary (ETL-space interpolation, spline choices, etc.). To be certain, we would need your desk's specified interpolation and arbitrage-check framework
+- **I'm not sure** about exact current market quoting conventions for specific index tranches—conventions evolve. Verify for your desk.
+- **I'm not sure** whether your implementation uses linear correlation or ETL-space interpolation—implementations vary.
+- **I'm not sure** about multi-factor model calibration in the same implied correlation language—sources focus on one-factor.
 
 ---
 
-> *"Generated from the provided reference books; verify tranche market quoting and calibration conventions for your specific desk."*
+## 50.17 Cross-References
+
+- **Chapter 48:** Tranche mechanics, waterfall, attachment/detachment definitions
+- **Chapter 49:** Expected tranche loss calculation, survival curves
+- **Appendix A6:** Credit portfolio models, factor models, copula mathematics
 
 ---
 
-## Open Questions for Discussion
+## Resolution of Open Questions
 
-1. Should the notes treat **base correlation** as the primary market quoting language, or present **compound correlation first** and base correlation as an extension?
+**Q1: Should base correlation be the primary market language, or present compound correlation first?**
 
-2. Should later chapters include an alternative to Gaussian copula (e.g., **t-copula / factor intensity model**) if the sources support it, or stay Gaussian-copula-centric?
+**Recommendation:** Present compound correlation first pedagogically (it's simpler), but emphasize that **base correlation is the market standard**. O'Kane confirms: base correlation "has become the market standard for pricing synthetic CDO tranches."
+
+**Q2: Should we cover t-copula or alternative copulas?**
+
+**Recommendation:** Include t-copula as the primary alternative, given its positive tail dependence and coverage in McNeil. Full treatment belongs in Appendix A6; here we note the limitation and point to the alternative.
+
+**Q3: Should LHP model be included?**
+
+**Recommendation:** Yes, LHP provides important analytical tractability and is the foundation of many risk management approaches (including Basel IRB). O'Kane Chapter 16 provides the treatment.
+
+---
+
+> *"Generated from O'Kane, McNeil QRM, Hull, and related sources. Verify tranche quoting conventions for your specific market."*

@@ -1,1042 +1,597 @@
-# Chapter 17: Curve Construction as an Inverse Problem (Bootstrapping + Interpolation)
+# Chapter 17: Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
-- Discount curve definition and properties (Interest Rate Modeling Vol 1)
-- Bootstrap methodology as sequential node solving (Interest Rate Modeling Vol 1 Ch 4-6)
-- Swap PV formula: $V_{\text{swap}} = 1 - P(t_n) - \sum_{j=1}^{n} c\tau P(j\tau)$ (Interest Rate Modeling)
-- Simple forward rate identity: $1 + \tau L(0,T,T+\tau) = \frac{P(T)}{P(T+\tau)}$ (Interest Rate Modeling, Hull Ch 4)
-- Piecewise linear yield interpolation and its forward-curve artifacts (Tuckman, Interest Rate Modeling)
-- Piecewise-flat forward rates formula: $P(T) = P(T_i)\exp(-f(T_i)(T-T_i))$ (Interest Rate Modeling)
-- Smoothing/best-fit as constrained optimization with regularity norms (Interest Rate Modeling)
-- Post-crisis multi-curve framework preview (Interest Rate Modeling, Hull Ch 4)
-- Cubic spline curve fitting and locality concerns (Tuckman, Interest Rate Modeling)
-- OIS zero curve linear interpolation assumption (Hull Ch 4)
+Imagine you are trying to draw a map of the ocean floor, but you only have depth measurements at ten specific buoys. You know exactly how deep it is at those ten points, but what is happening in between? Is the floor flat? Does it slope gently? Or is there a sudden trench just barely missing your measurements?
 
-### (B) Reasoned Inference (Derived from A)
-- Linear-in-log-DF interpolation produces equal simple forwards over equal sub-intervals at midpoint (algebraic consequence of geometric mean)
-- Jacobian structure is near-triangular in sequential bootstrap (follows from sequential dependence)
-- Unit checks on all formulas (dimensional analysis)
+This is the fundamental challenge of **curve construction**. In the fixed income market, we observe prices for a finite set of "benchmark" instruments—a few dozen deposits, futures, and swaps. From these sparse data points, we must infer a continuous **discount factor curve** that allows us to assign a value to cash flows occurring on *any* date, not just the ones where instruments mature.
 
-### (C) Speculation (Clearly Labeled; Minimal)
-- Specific smoothing algorithm details for production desks (marked with "I'm not sure" where applicable)
+This is an **inverse problem**. The market gives us the outputs (prices), and we must reverse-engineer the input (the discount function). Andersen and Piterbarg frame the issue precisely: "the problem of curve construction essentially boils down to supplementing [the pricing equations] with enough additional assumptions to allow us to extract $\mathbf{P}$ and to determine $P(T)$ for values of $T$ not in the cash flow timing set." The problem is inherently **underdetermined**—there are infinitely many curves that could perfectly explain the observed market prices. To choose one, we must impose a structure: a mathematical rule for how to connect the dots.
 
----
+**Why this matters:** The choice of structure—specifically, the **interpolation method**—is not a neutral administrative detail. It is a modeling decision with real financial consequences. Two desks using identical market quotes but different interpolation schemes will calculate different forward rates, different risk sensitivities, and ultimately different valuations for non-standard instruments. As Andersen and Piterbarg emphasize, understanding the artifacts introduced by your curve construction routine—such as "saw-tooth" forwards or "ringing" oscillations—is crucial for managing a book's actual risk. Tuckman adds that "the shortcomings of a curve fitting technique are least noticeable in the discount function, more noticeable in the spot rate curve, and particularly noticeable in the forward rate curve."
 
-## Conventions & Notation
+**Roadmap:** This chapter will:
 
-### Notation Glossary
+1. **Frame the Inverse Problem** (Section 17.1): Why finite quotes cannot uniquely determine a continuous function.
+2. **Master Bootstrapping** (Section 17.2): The industry-standard sequential algorithm for extracting discount factors.
+3. **Survey the Interpolation Zoo** (Section 17.3): From piecewise linear yields to cubic splines to tension splines—each method's artifacts and tradeoffs.
+4. **Derive Forward Rate Behavior** (Section 17.4): The mathematical reason behind saw-tooth and staircase patterns.
+5. **Examine Locality and Ringing** (Section 17.5): The critical question of whether bumping one quote disturbs distant parts of the curve.
+6. **Explore Smoothing vs. Exact Fit** (Section 17.6): When to sacrifice precision for stability.
 
-| Symbol | Meaning |
-|--------|---------|
-| $T \geq 0$ | Time measured in years |
-| $P(0,T) \equiv P(T)$ | Discount factor: time-0 price of ZCB paying 1 at $T$ |
-| $P(0) = 1$ | Normalization at valuation date |
-| $y(T)$ | Continuously compounded spot yield: $P(T) = e^{-y(T)T}$ |
-| $f(T)$ | Instantaneous forward rate: $f(T) = -\frac{d}{dT}\ln P(T)$ |
-| $L(0,T,T+\tau)$ | Simple forward (money-market) rate over $[T, T+\tau]$ |
-| $\{T_i\}$ | Curve nodes: maturities where we solve for $P(T_i)$ |
-| $V_i$ | Model present value of calibration instrument $i$ |
-| $c$ | Fixed swap rate (per year) on the fixed leg |
-| $\tau_j$ | Accrual year fraction for coupon period $j$ |
-| 1 bp | Basis point $= 10^{-4}$ |
-
-### Key Identities
-
-Forward-yield relationship:
-$$f(T) = y(T) + T y'(T)$$
-
-Simple forward rate definition:
-$$1 + \tau L(0,T,T+\tau) = \frac{P(T)}{P(T+\tau)}$$
-
-Special case $T=0$:
-$$P(\tau) = \frac{1}{1 + \tau L(0,0,\tau)}$$
-
-### Conventions Used in This Chapter
-
-- **Valuation time**: all prices/discount factors are at $t=0$
-- **Single-curve setup**: one curve $P(T)$ is used for discounting all cash flows (pre-crisis framing; multi-curve previewed only)
-- **Calibration goal**: reproduce (exactly, in bootstrap) the observed quotes of liquid benchmark instruments
-- **Toy day-count**: year fractions equal year-length intervals (e.g., 6 months $= 0.5$ years)
-- **Toy money-market quoting**: deposit/bill-style quotes are simple rates with $1 + \tau L = \frac{1}{P(\tau)}$
+We focus here on the mechanics of building a *single* discount curve. The modern multi-curve framework (OIS discounting distinct from projection curves) builds directly on these techniques and is the subject of Chapters 18–19.
 
 ---
 
-## Core Concepts
+## 17.1 The Inverse Problem: Finite Quotes, Continuous Curve
 
-### 1) Discount Curve $P(T)$
+### 17.1.1 The Pricing Equation
 
-**Formal Definition:**
-The discount curve is the function $T \mapsto P(T) = P(0,T)$, the price at time 0 of a $T$-maturity discount bond paying 1 at $T$. In the discount-curve setup in Interest Rate Modeling, $P(T)$ is taken as continuous and monotonically decreasing.
+At its core, valuation is linear algebra. The value of any fixed-income instrument is the sum of its cash flows multiplied by the discount factors for those dates. If instrument $i$ pays cash flows $c_{i,j}$ at times $t_j$, its value $V_i$ is:
 
-**Intuition:**
-$P(T)$ is "how much today" one unit of currency received at $T$ is worth.
+$$\boxed{V_i = \sum_{j=1}^{M} c_{i,j} \, P(t_j)}$$
 
-**Trading / Risk / Portfolio Practice:**
-- A curve lets you PV any deterministic cash-flow stream by discounting cash flows
-- In Tuckman's Treasury context, a discount function derived from traded bonds can be used for rich/cheap analysis and to fill missing prices when some maturities are illiquid
-- Swap desk analog: discount functions from traded swaps are used to value illiquid swap maturities
+Here, $P(t)$ is the **discount factor**: the value today of one unit of currency to be received at time $t$. This is the fundamental object we are trying to discover.
 
----
+If we have $N$ benchmark instruments with cash flows on $M$ distinct dates, we can stack these equations into a matrix system. Let $\mathbf{V} = (V_1, \ldots, V_N)^\top$ be the vector of observed market prices, $\mathbf{P} = (P(t_1), \ldots, P(t_M))^\top$ the vector of discount factors, and $\mathbf{C}$ the $N \times M$ matrix of cash flow coefficients. We are solving:
 
-### 2) Yield Curve $y(T)$ and Forward Curve $f(T)$
+$$\mathbf{V} = \mathbf{C} \mathbf{P}$$
 
-**Formal Definition:**
+### 17.1.2 The Underdetermined Nature
 
-*Yield curve (continuous comp):*
-$$y(T) \text{ defined by } P(T) = e^{-y(T)T}$$
+The difficulty lies in the dimensions. A typical curve might be built from 15 liquid instruments (deposits, futures, swaps). However, these instruments generate cash flows on hundreds of distinct dates—every coupon payment for 30 years. Worse, to price a client's specific deal, we might need a discount factor for a date like 1.42 years, which appears in none of our benchmarks.
 
-*Instantaneous forward:*
-$$f(T) = -\frac{d}{dT}\ln P(T), \quad \text{with } f(T) = y(T) + Ty'(T)$$
+We are solving for a continuous function $P(T)$ defined for all $T \ge 0$, but we only have $N$ constraints. This means **you cannot build a curve without an interpolation assumption**. When a trader quotes the "market rate" for a 17-month loan, but there is no 17-month liquidity, they are quoting you their interpolation model, not a traded price.
 
-*Simple forward over $[T, T+\tau]$:*
-$$1 + \tau L(0,T,T+\tau) = \frac{P(T)}{P(T+\tau)}$$
+Andersen and Piterbarg identify three basic approaches to resolve this underdetermination:
 
-**Intuition:**
-- $y(T)$ compresses the whole discount factor $P(T)$ into an annualized number at horizon $T$
-- $f(T)$ describes the market-implied "instantaneous" rate around time $T$; it is the derivative object controlling how $P(T)$ changes with maturity
+1. **Add fictitious securities:** Pad the benchmark set using interpolation rules applied to existing instruments. This is ad-hoc and can lead to odd-looking curves.
 
-**Trading / Risk / Portfolio Practice:**
-Many hedges and risk decompositions are stated in forward-rate space (e.g., bucket exposures / key rates). Tuckman explicitly computes exposures to changes in forward rates and shows how a 1 bp bump to one forward bucket changes spot rates/discount factors and the PV of a par swap.
+2. **Parametric/Spline representation:** Assume the yield curve has a specific functional form (e.g., Nelson-Siegel) or is a spline with $N$ knots at benchmark maturities. Solve for the knot values.
+
+3. **Optimization with regularization:** Replace exact pricing with penalized least-squares, allowing the curve to miss quotes slightly in exchange for smoothness.
+
+In practice, option 2 (splines with bootstrapping) is the most common for constructing LIBOR/SOFR curves, while option 3 is used for noisy benchmark sets like corporate bonds.
 
 ---
 
-### 3) Calibration Instruments and Cash-Flow Representation
+## 17.2 Bootstrapping: Sequential Inversion
 
-**Formal Definition:**
-A fixed-cash-flow instrument's PV is a linear combination of discount factors at its cash-flow dates:
-$$V_i = \sum_{j=1}^{m_i} c_{i,j} P(t_j)$$
-where $c_{i,j}$ are the instrument's cash flows (scaled by notional) at dates $t_j$.
+The most common method to solve the curve is **bootstrapping**. Instead of solving for all discount factors simultaneously, we order the instruments by maturity and solve for them one by one, extending the curve step-by-step.
 
-**Intuition:**
-A curve is useful because it turns pricing into "cash flows $\times$ discount factors."
+> **Analogy: Building a Bridge Plank by Plank**
+>
+> You can't just build the middle of a bridge. You have to start at the bank (Today) and extend out.
+> *   **Plank 1 (3 Months)**: You attach the 3-month deposit rate. Secure it.
+> *   **Plank 2 (6 Months)**: You attach the 6-month rate, *standing on* the 3-month plank.
+> *   **Plank 3 (5 Years)**: You attach the 5-year swap, *standing on* all the previous planks.
+>
+> If Plank 1 is loose (bad 3m rate), Plank 3 will wobble violently. This is how errors propagate in bootstrapping.
 
-**Trading / Risk / Portfolio Practice:**
-Curve nodes are often chosen to align with liquid benchmark maturities (bills/deposits, futures/FRAs, swaps, on-the-run bonds), because these instruments provide the best information for those maturities.
+### 17.2.1 The Algorithm
 
----
+Andersen and Piterbarg describe the basic bootstrap iteration:
 
-### 4) Curve Construction as an Inverse Problem
+1. Let $P(t_j)$ be known for $t_j \le T_{i-1}$, such that prices for benchmark securities $1, \ldots, i-1$ are matched.
+2. Make a guess for $P(T_i)$.
+3. Use an interpolation rule to fill in $P(t_j)$ for $T_{i-1} < t_j < T_i$.
+4. Compute $V_i$ from the now-known values of $P(t_j)$, $t_j \le T_i$.
+5. If $V_i$ equals the market value, stop. Otherwise return to Step 2.
+6. If $i < N$, set $i = i + 1$ and repeat.
 
-**Formal Definition:**
-We observe a finite set of market quotes (prices/par rates) on benchmark instruments, and we infer a continuous curve object $P(T)$ (or $y(T)$, $f(T)$) consistent with those quotes. Because "only a few short-dated discount bonds are directly quoted," and in general we must "uncover the whole discount curve" from "a finite set of benchmark securities," we require an interpolation/curve-building method.
+The updating of guesses in Steps 2–5 can be handled by any standard one-dimensional root-search algorithm (Newton-Raphson or secant method). Hull emphasizes that this bootstrap method "involves starting with short-term instruments and moving progressively to longer-term instruments, making sure that the zero rates calculated at each stage are consistent with the prices of the instruments. It is used daily by trading desks to calculate a variety of zero curves."
 
-**Intuition:**
-You're reconstructing a function from sparse measurements—like reconstructing a smooth line from a handful of points.
+### 17.2.2 Closed-Form Solutions for Standard Instruments
 
-**Trading / Risk / Portfolio Practice:**
-Different interpolation/representation choices can produce different implied forward curves and therefore different derivative prices and hedges, even if benchmark instruments are repriced exactly.
+For common instruments, each bootstrap step often has a closed-form solution.
 
----
+**Money Market Deposits**
 
-### 5) Bootstrapping (Exact Fit) vs Smoothing (Best Fit)
+A deposit earning a simple rate $L$ over time $\tau$ pays $(1 + L\tau)$ at maturity. Its present value must equal the notional (which we normalize to 1). Thus:
 
-**Formal Definition:**
+$$\boxed{P(\tau) = \frac{1}{1 + L\tau}}$$
 
-*Bootstrapping / exact fit:* Choose a curve representation and solve sequentially for curve nodes so that each calibration instrument is matched exactly (up to rounding), i.e., $V_i(\text{curve}) = V_i^{\text{mkt}}$.
+**Par Swaps**
 
-*Smoothing / best fit:* When quotes are noisy/inconsistent, choose a curve that fits "well" while controlling roughness. Interest Rate Modeling describes choosing an "optimal" yield curve by minimizing a regularity norm subject to a constraint on the RMS fit error.
+A standard fixed-for-floating swap is quoted at a fixed rate $c$ that makes the NPV zero. Since the floating leg is worth par at inception (by the standard replication argument), the fixed leg plus principal repayment must also equal 1:
 
-**Intuition:**
-Exact fit forces the curve through every quote; best fit trades small pricing errors for a more stable/realistic curve shape.
+$$1 = c \sum_{j=1}^n \tau_j P(t_j) + P(t_n)$$
 
-**Trading / Risk / Portfolio Practice:**
-Bid/ask, stale prints, or inconsistent quotes motivate smoothing/cleaning. Tuckman emphasizes that curve fitting is "part art," and choices like which bonds to include and where to place spline knots must be adapted to market context.
+If we already know the discount factors for all previous coupons $P(t_1), \ldots, P(t_{n-1})$, we can rearrange to solve for the final discount factor:
 
----
+$$\boxed{P(t_n) = \frac{1 - c \sum_{j=1}^{n-1} \tau_j P(t_j)}{1 + c \tau_n}}$$
 
-### 6) Interpolation as a Modeling Choice
+### 17.2.3 Worked Example: Building a Curve from Scratch
 
-**Formal Definition:**
-Given solved values at nodes $\{T_i\}$, define the curve for intermediate maturities by an interpolation rule (in $P$, $\log P$, $y$, $f$, spline coefficients, etc.). Interest Rate Modeling stresses that with finite instruments we must choose a curve interpolation/parameterization because the problem is otherwise underdetermined.
+Let's construct a simple curve to see the mechanics in action.
 
-**Intuition:**
-Interpolation is where you "choose the shape" of the curve between quotes.
+**Market Quotes:**
+- 3M Deposit: 5.00%
+- 6M Deposit: 5.50%
+- 1Y Deposit: 6.00%
+- 2Y Swap (Annual Pay): 6.50%
 
-**Trading / Risk / Portfolio Practice:**
-Forward-rate behavior can be strongly affected. Tuckman warns that a "common but unsatisfactory" approach is linear yield interpolation.
+**Step 1: The Short End (Deposits)**
 
----
+We convert rates to discount factors directly:
 
-### 7) Locality
+$$P(0.25) = \frac{1}{1 + 0.05 \times 0.25} = \frac{1}{1.0125} = \mathbf{0.987654}$$
 
-**Formal Definition:**
-Locality refers to how a small change in one market quote affects curve values across maturities. Some methods produce changes concentrated near the bumped maturity ("local"), while others create broad oscillations ("global").
+$$P(0.50) = \frac{1}{1 + 0.055 \times 0.50} = \frac{1}{1.0275} = \mathbf{0.973236}$$
 
-**Intuition:**
-A good curve methodology should not make the whole long end jump violently because a single short-end quote moved.
+$$P(1.00) = \frac{1}{1 + 0.06 \times 1.00} = \frac{1}{1.0600} = \mathbf{0.943396}$$
 
-**Trading / Risk / Portfolio Practice:**
-Risk systems often rely on the mapping "quote bumps $\to$ node changes" (a Jacobian), so the curve method's locality properties directly affect DV01/key-rate/bucket risk stability. Interest Rate Modeling notes that par-point approaches and certain spline constructions can be designed for good locality, while some globally smooth splines can exhibit "ringing" from a local bump.
+**Step 2: The Long End (Swap)**
 
----
+The 2-year swap pays coupons at Year 1 and Year 2. The par rate is 6.50%. We know $P(1)$ from the deposit. We need $P(2)$.
 
-## Math and Derivations
+Using the swap formula:
 
-### 2.1 Pricing Equations as a Linear Inverse Problem in Discount Factors
+$$P(2) = \frac{1 - 0.065 \times P(1)}{1 + 0.065 \times 1} = \frac{1 - 0.065 \times 0.943396}{1.065}$$
 
-**Assumption (this chapter):** Deterministic cash flows and single discount curve $P(T)$.
+Numerator: $1 - 0.061321 = 0.938679$
 
-For instrument $i$ with cash flows $\{c_{i,j}\}$ at payment times $\{t_{i,j}\}$:
+Result: $P(2) = 0.938679 / 1.065 = \mathbf{0.881389}$
 
-$$\boxed{V_i = \sum_{j=1}^{m_i} c_{i,j} P(t_{i,j})} \tag{2.1}$$
+**Verification (The Reprice Test):**
 
-This is exactly the linear-combination representation used for discount-curve construction.
+Does this curve actually price the swap to par?
 
-Collect all distinct cash-flow dates across benchmark instruments into $\{t_1, \ldots, t_M\}$. Define the vector:
-$$\mathbf{P} = (P(t_1), \ldots, P(t_M))^\top$$
+$$\text{PV Fixed Leg} = 0.065 \times P(1) + 1.065 \times P(2)$$
+$$= 0.065 \times 0.943396 + 1.065 \times 0.881389$$
+$$= 0.061321 + 0.938679 = 1.0000 \; \checkmark$$
 
-and instrument PVs $\mathbf{V} = (V_1, \ldots, V_N)^\top$. Then:
-$$\mathbf{V} = \mathbf{C}\mathbf{P}$$
-
-where $\mathbf{C}$ is the cash-flow matrix of coefficients.
-
-**Unit check:**
-- $P(t)$ is dimensionless (price of \$1 paid later in units of \$ today)
-- Cash flows $c_{i,j}$ are in currency units (or "per unit notional")
-- PV $V_i$ is in currency units
-- Matrix multiplication $\mathbf{C}\mathbf{P}$ preserves units: $(\text{cashflow}) \times (\text{dimensionless}) \to (\text{cashflow})$
+The bootstrap is successful. We have solved for the nodes: $(0.25, 0.988), (0.5, 0.973), (1.0, 0.943), (2.0, 0.881)$.
 
 ---
 
-### 2.2 Why It Is an Inverse Problem (Ill-Posedness / Underdetermination)
+## 17.3 The Interpolation Zoo: From Piecewise Linear to Tension Splines
 
-- The unknown "object" $P(\cdot)$ is a function (infinite-dimensional)
-- We have only a finite set of benchmark instrument quotes
-- Even if we restrict to node values $\{P(T_i)\}_{i=1}^K$, the mapping from node parameters to instrument PVs depends on interpolation between nodes
+We found the nodes, but what is $P(1.5)$? This is where interpolation enters. The choice of interpolation method determines the shape of the curve between solved points—and more importantly, the shape of the **forward curve**. Andersen and Piterbarg provide a comprehensive survey of methods, organized by the smoothness (differentiability) of the resulting yield curve.
 
-**This is why curve construction requires a modeling choice.**
+### 17.3.1 $C^0$ Methods: Continuous but Not Smooth
 
-Interest Rate Modeling emphasizes that because we have fewer benchmark instruments than potential cash-flow dates, we must impose additional structure: constrain interpolation, use a root-search bootstrap with interpolation, or choose an "optimal" curve (regularized fit).
+> **Deep Dive: Spline vs. Linear (The Smooth Ride)**
+>
+> *   **Linear Interpolation**: Connects dots with straight lines. Easy, but the ride is jerky. The "speed" (Forward Rate) jumps instantly at every node.
+> *   **Spline Interpolation (Cubic)**: Connects dots with flexible metal strips. The ride is buttery smooth. The "speed" changes gradually.
+> *   **Tradeoff**: Splines look better but can "wobble" (Ring) if you hit a bump. Linear is ugly but stable. Pro desks use **Tension Splines** (stiff splines) to get the best of both.
 
----
+These methods produce a yield curve that is continuous but has kinks (discontinuous first derivative) at the knot points. The resulting forward curve is discontinuous.
 
-### 2.3 Bootstrapping as Sequential Inversion (Node-by-Node Solve)
+#### Piecewise Linear Yields
 
-A common approach is to choose a node grid $0 < T_1 < T_2 < \cdots < T_K$ aligned with benchmark maturities and solve iteratively.
+The most common bootstrap algorithm assumes that the continuously compounded yield $y(T)$ is a piecewise linear function:
 
-**Bootstrapping logic (per Interest Rate Modeling, paraphrased):** When we have already solved the discount factors up to $T_{i-1}$, we solve for $P(T_i)$ by:
-1. Guessing $P(T_i)$
-2. Interpolating the curve between $T_{i-1}$ and $T_i$
-3. Repricing the $i$-th benchmark instrument
-4. Adjusting the guess until the instrument PV matches its market price
+$$y(T) = y(T_i) \frac{T_{i+1} - T}{T_{i+1} - T_i} + y(T_{i+1}) \frac{T - T_i}{T_{i+1} - T_i}, \quad T \in [T_i, T_{i+1}]$$
 
-**Concretely, for instrument $i$ maturing at $T_i$:**
-1. Assume $P(t)$ is known for all $t \leq T_{i-1}$
-2. Guess a value for $P(T_i)$
-3. Use the chosen interpolation rule to get $P(t)$ for $T_{i-1} < t \leq T_i$
-4. Compute the model PV $V_i$ of instrument $i$
-5. Adjust the guess for $P(T_i)$ until $V_i$ matches the market price
-6. Proceed to the next maturity $T_{i+1}$
+with $P(T) = e^{-y(T)T}$.
 
-**Key point:** Even in "bootstrapping," you are not just solving for a single DF—your interpolation choice is part of the model because it determines all intermediate discount factors used to price the instrument.
+Andersen and Piterbarg observe that "the discontinuous 'saw-tooth' shape of the forward curve is characteristic for bootstrapped yield curves with piecewise linear yield." We derive this mathematically in Section 17.4.
 
----
+#### Piecewise Flat (Log-Linear) Forwards
 
-### 2.4 Closed-Form Bootstrapping for Common Toy Cases
+An alternative assumes the instantaneous forward rate is piecewise flat:
 
-#### 2.4.1 Deposit / Bill-Style Instrument (Simple Money-Market Rate)
+$$f(T) = f(T_i), \quad T \in [T_{i}, T_{i+1})$$
 
-From the simple forward-rate definition:
-$$1 + \tau L(0,T,T+\tau) = \frac{1}{P(0,T,T+\tau)}, \quad \text{where } P(0,T,T+\tau) = \frac{P(T+\tau)}{P(T)} \tag{2.2}$$
+This corresponds to log-linear interpolation on discount factors:
 
-If $T=0$, then $P(0,0,\tau) = P(\tau)$ (since $P(0) = 1$), so:
-$$\boxed{1 + \tau L(0,0,\tau) = \frac{1}{P(\tau)} \Rightarrow P(\tau) = \frac{1}{1 + \tau L(0,0,\tau)}} \tag{2.3}$$
+$$\ln P(T) = (1-w) \ln P(T_i) + w \ln P(T_{i+1})$$
 
-**Unit check:** $L$ has units "per year," $\tau$ is years; $\tau L$ is dimensionless; $P(\tau)$ is dimensionless.
+where $w = (T - T_i)/(T_{i+1} - T_i)$.
 
-#### 2.4.2 Par Fixed-for-Floating Swap (Single-Curve Discounting)
+**Implications:** The forward curve is a "staircase"—constant between nodes, then jumping at each maturity date. The yield curve remains continuous but becomes nonlinear between nodes:
 
-In Interest Rate Modeling, the PV of a fixed-for-floating swap (in their setup) can be written as:
-$$V_{\text{swap}} = 1 - P(t_n) - \sum_{j=1}^{n} c\tau P(j\tau) \tag{2.4}$$
+$$y(T) = \frac{1}{T}\left(T_i y(T_i) \frac{T_{i+1}-T}{T_{i+1}-T_i} + T_{i+1} y(T_{i+1}) \frac{T-T_i}{T_{i+1}-T_i}\right)$$
 
-for fixed rate $c$ and payment interval $\tau$ (specializing to $t=0$ and equally spaced payments).
+### 17.3.2 $C^1$ Methods: Hermite Splines
 
-A par swap satisfies $V_{\text{swap}} = 0$, so:
-$$\boxed{1 = P(T_n) + c\sum_{j=1}^{n} \tau_j P(t_j)} \tag{2.5}$$
+To produce a continuous forward curve, we need a yield curve that is at least once differentiable. Andersen and Piterbarg recommend **Hermite cubic splines**, specifically the **Catmull-Rom** variant, where derivatives at knot points are estimated from finite differences.
 
-If only the last DF is unknown (typical in bootstrap when earlier nodes already known), this becomes a one-equation solve for $P(T_n)$.
+For $T \in [T_i, T_{i+1}]$, the Catmull-Rom spline writes:
 
-**Example with annual fixed payments** $\tau_1 = \tau_2 = 1$ and maturity $T_2 = 2$:
-$$0 = 1 - P(2) - c(P(1) + P(2)) \Rightarrow \boxed{P(2) = \frac{1 - cP(1)}{1 + c}} \tag{2.6}$$
+$$y(T) = \mathbf{D}_i(T)^\top \mathbf{A}_i \begin{pmatrix} y_{i-1} \\ y_i \\ y_{i+1} \\ y_{i+2} \end{pmatrix}$$
 
----
+where $\mathbf{D}_i(T)$ is a vector of powers of the normalized distance $d_i = (T - T_i)/h_i$, and $\mathbf{A}_i$ is a matrix encoding the Catmull-Rom coefficients.
 
-### 2.5 Interpolation Variables and Their Consequences
+**Key properties:**
+- The yield curve is continuous and has a continuous first derivative.
+- The forward curve is continuous but not differentiable at knot points.
+- Good **locality**: the price of security $i$ depends only on $y_1, \ldots, y_{i+1}$.
+- Requires iteration (not pure sequential bootstrap) since $V_i = F_i(y_1, \ldots, y_{i+1})$, but the iteration converges quickly.
 
-A key message in Interest Rate Modeling and Tuckman is that different interpolation choices have different implications for the smoothness (and realism) of the implied forward curve.
+### 17.3.3 $C^2$ Methods: Natural Cubic Splines
 
-#### (i) Interpolating the Yield Curve $y(T)$
+For a smooth (differentiable) forward curve, we need a yield curve that is twice differentiable. The **natural cubic spline** satisfies $y''(T_1) = y''(T_N) = 0$ at the boundaries and achieves $C^2$ continuity everywhere.
 
-If we represent the curve by yields $y(T)$, then $P(T) = e^{-y(T)T}$.
+The spline representation is:
 
-**Piecewise linear yields:**
-$$y(T) = y_i + (y_{i+1} - y_i)\frac{T - T_i}{T_{i+1} - T_i}, \quad T \in [T_i, T_{i+1}] \tag{2.7}$$
+$$y(T) = \frac{(T_{i+1}-T)^3}{6h_i}y''_i + \frac{(T-T_i)^3}{6h_i}y''_{i+1} + (T_{i+1}-T)\left(\frac{y_i}{h_i} - \frac{h_i}{6}y''_i\right) + (T-T_i)\left(\frac{y_{i+1}}{h_i} - \frac{h_i}{6}y''_{i+1}\right)$$
 
-as given in Interest Rate Modeling.
+where the second derivatives $y''_i$ are determined by solving a tridiagonal linear system that enforces $C^2$ continuity across all knots.
 
-**Consequence:** The instantaneous forward rate $f(T) = y(T) + Ty'(T)$ can become discontinuous and "saw-tooth."
+**The Ringing Problem:** Andersen and Piterbarg warn that $C^2$ cubic splines are "often subject to oscillatory behavior, spurious inflection points, poor extrapolatory behavior, and non-local behavior when prices in the benchmark set are perturbed." Perturbation of a single benchmark price can cause a slow-decaying "ringing" effect, spreading into the entire yield curve. This occurs because interpolation on $[T_i, T_{i+1}]$ depends on *all* values $y_1, \ldots, y_N$ through the full $(N-2) \times (N-2)$ matrix system.
 
-Tuckman similarly notes that linear yield interpolation creates kinks that induce sudden jumps in the implied forward curve.
+### 17.3.4 Tension Splines: The Best of Both Worlds
 
-#### (ii) Interpolating the Forward Curve $f(T)$ / Piecewise-Constant Forward
+To retain $C^2$ smoothness while controlling locality and stiffness, Andersen and Piterbarg advocate **exponential tension splines**. The key modification replaces the pure cubic with a hyperbolic form:
 
-Interest Rate Modeling gives piecewise-flat forward rates:
-$$\boxed{P(T) = P(T_i)\exp(-f(T_i)(T - T_i)), \quad T \in [T_i, T_{i+1}]} \tag{2.8}$$
+$$y(T) = \left(\frac{\sinh(\sigma(T_{i+1}-T))}{\sinh(\sigma h_i)} - \frac{T_{i+1}-T}{h_i}\right)\frac{y''_i}{\sigma^2} + \left(\frac{\sinh(\sigma(T-T_i))}{\sinh(\sigma h_i)} - \frac{T-T_i}{h_i}\right)\frac{y''_{i+1}}{\sigma^2} + y_i \frac{T_{i+1}-T}{h_i} + y_{i+1} \frac{T-T_i}{h_i}$$
 
-which implies $\ln P(T)$ is linear in $T$ on each interval.
+where $\sigma \geq 0$ is the **tension factor**.
 
-**Consequence:** Forward rates are constant within an interval but generally discontinuous at nodes; bootstrapped curves often have discontinuous forward curves, and this can distort derivative prices and hedges in models sensitive to the forward curve.
+**Critical insight from Andersen and Piterbarg:**
+- Setting $\sigma = 0$ recovers the ordinary $C^2$ cubic spline.
+- As $\sigma \to \infty$, the tension spline uniformly approaches a linear spline.
+- A tension spline is thus "a twice differentiable hybrid between a cubic spline and a linear spline."
 
-#### (iii) Interpolating Discount Factors Directly $P(T)$
+Regarding the choice of $\sigma$, they state: "We have no definitive answers to this question... Instead, we normally treat $\sigma$ as an 'extra knob' that allows users to balance curve smoothness, shape preservation, and perturbation locality to their particular tastes. Inevitably some element of experimentation is required here."
 
-Direct interpolation on $P(T)$ is conceptually simple, but Interest Rate Modeling notes it is often easier to devise interpolation on yields rather than on bond prices/discount function, and points to pitfalls in interpolators that work directly on the discount function $P(T)$.
+### 17.3.5 Comparison Table
 
-**Practical implication:** "Linear in DF" is easy, but you must check the induced forward curve for realism.
+| Method | Yield Curve | Forward Curve | Locality | Comments |
+|--------|-------------|---------------|----------|----------|
+| Piecewise Linear $y$ | $C^0$ (kinked) | Discontinuous (saw-tooth) | Excellent | Fast, but poor forwards |
+| Log-Linear (Flat $f$) | $C^0$ (curved) | Piecewise flat (staircase) | Excellent | Simple baseline |
+| Hermite $C^1$ | $C^1$ (smooth) | Continuous, non-smooth | Good (4 neighbors) | Catmull-Rom common |
+| Cubic $C^2$ | $C^2$ (smooth) | Smooth | Poor (global matrix) | Risk of ringing |
+| Tension $C^2$ | $C^2$ (smooth) | Smooth | Tunable via $\sigma$ | Best compromise |
 
 ---
 
-### 2.6 Exact Fit vs Best Fit as Optimization/Regularization (Conceptual)
+## 17.4 The Mathematics of Forward Rate Artifacts
 
-When quotes are noisy or inconsistent, Interest Rate Modeling presents a constrained optimization view: minimize a curve "roughness" norm $\|y\|$ subject to bounding RMS pricing error (scaled by tolerances $D_i$, which can be interpreted as bid/ask widths or quote uncertainties).
+Why do different interpolation methods produce such different forward rate curves? The answer lies in the relationship between yields and instantaneous forwards.
 
-This is the conceptual bridge to "smoothing": you intentionally do not force exact repricing of every instrument, to avoid implausible wiggles and unstable sensitivities.
+### 17.4.1 The Fundamental Relationship
 
----
+Recall that the discount factor, zero rate, and instantaneous forward rate are related by:
 
-## Measurement & Risk
+$$P(T) = e^{-y(T)T} = \exp\left(-\int_0^T f(u)\, du\right)$$
 
-### 3.1 Inverse Problem Framing (Finite Quotes $\to$ Continuous Curve)
+Differentiating the first equality:
 
-- **Observed data:** A finite set of quotes (prices, par swap rates, money-market rates)
-- **Unknown curve object:** A function $P(T)$ (or equivalently $y(T)$, $f(T)$)
-- **Why ill-posed:** Many curves can fit the same finite quotes unless you impose additional structure (node choice + interpolation, or regularization)
+$$\boxed{f(T) = y(T) + T y'(T)}$$
 
-This is explicitly highlighted by the "finite set of benchmark securities $\to$ uncover the whole discount curve" problem.
+This is the key equation. The forward rate equals the zero rate plus a term proportional to the *slope* of the zero rate curve times the maturity.
 
-### 3.2 Bootstrapping as Sequential Inversion
+### 17.4.2 The Saw-Tooth Pattern
 
-Bootstrapping transforms the inverse problem into a series of low-dimensional solves:
-- At step $i$, you solve for a single new degree of freedom (e.g., $P(T_i)$ or $y(T_i)$) while earlier parts are frozen
-- **But:** The method is only defined once you choose an interpolation scheme for intermediate maturities (needed to price the instrument)
+When yields are piecewise linear, $y(T)$ has constant slope within each interval:
 
-### 3.3 Interpolation Choice and Locality (Local vs Global Behavior)
+$$y'(T) = \frac{y(T_{i+1}) - y(T_i)}{T_{i+1} - T_i} = \text{const} \quad \text{for } T \in [T_i, T_{i+1}]$$
 
-Two distinct notions of "locality" matter on a desk:
+Substituting into the forward rate formula:
 
-**Calibration locality (bootstrapping structure):**
-In a strict sequential bootstrap, earlier nodes are typically unchanged by later instruments, but earlier nodes can affect later nodes because later PV equations depend on earlier discount factors (e.g., swap PV depends on earlier fixed-leg discounting).
+$$f(T) = y(T_i) \frac{T_{i+1}-T}{T_{i+1}-T_i} + y(T_{i+1}) \frac{T-T_i}{T_{i+1}-T_i} + T \cdot \frac{y(T_{i+1}) - y(T_i)}{T_{i+1}-T_i}$$
 
-**Interpolation locality (shape choice):**
-The interpolation/smoothing rule determines whether a local bump in one quote causes:
-- A local shift in nearby forwards/discount factors, or
-- An oscillatory global ripple
+This is a **linear function of $T$** within each interval. But at the boundary $T = T_{i+1}$, the slope changes abruptly. The forward rate jumps, creating the characteristic "saw-tooth" pattern.
 
-Interest Rate Modeling discusses "par-point" and spline approaches with good locality and contrasts them with globally smooth $C^2$ spline approaches that can exhibit "ringing" in the forward curve after a local bump; tension can reduce the noise.
+> **Visual: The Sawtooth**
+>
+> If you plot the Forward Rate using linear zero-rate interpolation, it looks like the teeth of a saw.
+> *   Rate rises... Jump down!
+> *   Rate rises... Jump down!
+> *   It's mathematically correct but financially nonsensical. (Why would rates jump exactly on Dec 15th?).
+> *   This is why pros don't use simple linear interpolation for pricing options (which depend on forward volatility).
 
-Tuckman's bucket-exposure example also embodies locality: bumping one forward bucket changes the implied spot curve/discount factors and the PV of a swap.
+**Worked example:** Using our earlier nodes with $y(1) = 6.0\%$ and $y(2) = 6.35\%$ (implied by $P(1) = 0.9434$, $P(2) = 0.8814$):
 
-### 3.4 Jacobian / Sensitivity Map Preview (Conceptual)
+At $T = 1.5$ (middle of interval):
+$$f(1.5) = y(1.5) + 1.5 \times \frac{0.0635 - 0.0600}{1} = 6.175\% + 1.5 \times 0.35\% = 6.70\%$$
 
-Let $\mathbf{q} \in \mathbb{R}^N$ denote the vector of market quotes used to build the curve, and $\mathbf{x} \in \mathbb{R}^K$ the vector of curve parameters/nodes (e.g., $\mathbf{x} = (P(T_1), \ldots, P(T_K))$).
+At $T$ just before 2.0:
+$$f(2^-) = 6.35\% + 2.0 \times 0.35\% = 7.05\%$$
 
-A first-order risk approximation is:
-$$\boxed{\Delta\mathbf{x} \approx \mathbf{J}\Delta\mathbf{q}, \quad \mathbf{J} = \frac{\partial\mathbf{x}}{\partial\mathbf{q}}} \tag{3.1}$$
+At $T$ just after 2.0 (if the next segment has different slope):
+$$f(2^+) = \text{different value}$$
 
-In a bootstrap, $\mathbf{J}$ often has a near-triangular structure: short-end quotes mostly affect short-end nodes, and effects propagate forward in maturity through the sequential dependence.
+The jump at $T = 2$ is the "tooth" of the saw.
 
-(We compute a tiny finite-difference Jacobian in Example I.)
+### 17.4.3 The Staircase Pattern
 
-### 3.5 Exact Fit vs Smoothing in Practice
+With log-linear interpolation (piecewise flat forwards):
 
-- **Exact fit:** Reprices all calibration instruments essentially to zero error (a "reprice test")
-- **Best fit / smoothing:** Allow small residuals (within bid/ask or tolerances), while minimizing roughness. This is consistent with constrained formulations described in Interest Rate Modeling
+$$\ln P(T) = \ln P(T_i) - f_i (T - T_i)$$
 
-Tuckman explains why the fit objective matters: minimizing price errors can overweight long bonds relative to short bonds because long-bond prices are more sensitive to yield changes; minimizing yield errors can be preferable for producing a realistic rate function across maturities.
+where $f_i$ is the constant forward rate on $[T_i, T_{i+1})$. By definition, $f(T) = -\frac{d}{dT}\ln P(T) = f_i$, which is constant on each interval.
 
-### 3.6 Brief Preview: Multi-Curve (Not Implemented Here)
-
-Both Interest Rate Modeling and Hull describe the post-crisis shift away from a single-curve framework:
-
-- Interest Rate Modeling notes the "pre-crisis era" single curve and the "post-crisis era" with multiple curves and separation of discounting vs forwarding
-- Hull notes that after 2007, multiple yield curves are needed: the discount curve comes from OIS, while payoffs depend on another curve (e.g., 3M/6M)
-
-We will not build a multi-curve system in this chapter; we only flag that the inverse-problem + interpolation framework generalizes naturally.
+At each node, the forward rate jumps to a new constant level, creating a staircase. While unrealistic, this method has the advantage of being extremely stable and local.
 
 ---
 
-## Worked Examples
+## 17.5 Locality, Perturbation, and Ringing
 
-### Common Conventions for Examples A–I
+When you choose an interpolation method, you aren't just picking a shape; you are picking a **risk profile**. A critical property is **locality**: does a change in the 2-year swap rate affect the 30-year part of the curve?
 
-- Notional $= 1$
-- Time in years; accrual fractions equal to year intervals shown
-- Deposits/bills quoted as simple money-market rates $L(0,0,T)$ so $P(T) = \frac{1}{1 + TL}$
-- Swap fixed leg: annual payments, accrual $\tau = 1$, and par swap condition from $V_{\text{swap}} = 1 - P(T_n) - \sum c\tau P(t_j)$
-- For "zero rate" outputs, we report the simple spot rate:
-$$z_{\text{simple}}(T) \equiv \frac{1/P(T) - 1}{T}$$
+### 17.5.1 The Par-Point Approach
 
----
+The standard approach to computing interest rate deltas involves bumping each benchmark price $V_i$ by a small amount (typically 1 basis point on the yield), reconstructing the curve, and repricing the portfolio. Andersen and Piterbarg call this the **par-point approach**.
 
-### Example A: Bootstrap DFs from Deposit/Bill-Style Rates
+"For the approach to work properly, it is important that the yield curve construction algorithm is fast and produces clean, local perturbations of the yield curve when benchmark prices are shifted. For instance, perturbing a short-dated FRA price should not cause noticeable movements in long-term yields, lest we reach the erroneous conclusion... that we can perfectly hedge a 20 year swap with a 1 month FRA."
 
-**Inputs (toy deposit quotes):**
-- $T = 0.25$: $L(0,0,0.25) = 5.00\% = 0.0500$
-- $T = 0.50$: $L(0,0,0.50) = 5.50\% = 0.0550$
-- $T = 1.00$: $L(0,0,1.00) = 6.00\% = 0.0600$
+### 17.5.2 Ringing in $C^2$ Splines
 
-**Formula:**
-$$P(T) = \frac{1}{1 + T \cdot L(0,0,T)} \tag{A.1}$$
+Andersen and Piterbarg provide a striking illustration. When the 2-year swap yield is bumped by 1 basis point while other yields remain fixed:
 
-**Compute discount factors:**
+- **Bootstrap/Linear:** The forward curve shifts cleanly in the 1–3 year region, with minimal effect elsewhere.
+- **Hermite $C^1$:** Similar locality, affecting only 4 neighboring points.
+- **Cubic $C^2$:** The move causes a "noisy, ringing perturbation... spreading into short- and long-dated parts of the forward curve."
 
-$$P(0.25) = \frac{1}{1 + 0.25 \cdot 0.05} = \frac{1}{1.0125} = 0.9876543210$$
+The ringing occurs because the $C^2$ spline solves a global matrix system, so changing one input propagates through the entire solution.
 
-$$P(0.50) = \frac{1}{1 + 0.50 \cdot 0.055} = \frac{1}{1.0275} = 0.9732360097$$
+### 17.5.3 Tension Dampens Ringing
 
-$$P(1.00) = \frac{1}{1 + 1.00 \cdot 0.06} = \frac{1}{1.06} = 0.9433962264$$
+Adding tension to the $C^2$ spline progressively suppresses oscillations. Andersen and Piterbarg show that as $\sigma$ increases, the perturbation response becomes more local, approaching the clean behavior of bootstrapping. "The usage of a tension factor can have a beneficial impact on risk reports produced by the par-point approach."
 
-**Sanity checks:**
-- DFs are positive and decreasing: $1 = P(0) > P(0.25) > P(0.5) > P(1)$ ✓
-- Units: $TL$ dimensionless, so $P(T)$ dimensionless ✓
+### 17.5.4 Why Locality Matters for P&L
+
+Traders hate ringing because it creates **false explanatory power**. If you hedge a 30-year bond using 30-year swaps, you expect your P&L to be stable when short-term rates move. If your curve construction has poor locality, a move in the Fed Funds rate might imply a spurious P&L change in your 30-year book, purely because your spline "wiggled."
+
+Andersen and Piterbarg note a practical workaround: "building two different curves. One—smooth—is then used for pricing and the other—bootstrapped and with good locality—used for risk computations." However, this "tends to suffer from poor P&L predict, in the sense that changes in valuations... are not well explained by first-order sensitivities."
 
 ---
 
-### Example B: Add One Swap and Bootstrap Longer DF
+## 17.6 Exact Fit vs. Smoothing
 
-**New input:**
-- 2-year par swap fixed rate $c_{2y} = 6.50\% = 0.0650$
-- Annual fixed payments at $t=1$ and $t=2$ with $\tau = 1$
+So far, we have assumed the curve must hit every market price exactly. This is the **exact fit** approach. But market data is noisy.
 
-**Swap par condition:**
-$$0 = 1 - P(2) - c(P(1) + P(2)) \tag{B.1}$$
+### 17.6.1 Sources of Noise
 
-**Solve for $P(2)$:**
-$$1 = P(2) + cP(1) + cP(2) \Rightarrow P(2)(1+c) = 1 - cP(1) \Rightarrow P(2) = \frac{1 - cP(1)}{1 + c} \tag{B.2}$$
+- **Bid-ask spreads:** The "mid" price is itself an interpolation.
+- **Stale quotes:** Some prices may be hours old.
+- **Data entry errors:** Typos happen.
+- **Illiquid instruments:** Prices may not reflect executable levels.
 
-**Plug numbers:**
-- $P(1) = 0.9433962264$
-- Numerator: $1 - cP(1) = 1 - 0.065 \cdot 0.9433962264 = 1 - 0.0613207547 = 0.9386792453$
-- Denominator: $1 + c = 1.065$
+If you force a curve to pass exactly through a "bad" quote (e.g., a typo where 2.15% is entered as 2.51%), the curve will dip violently to hit that point and then rip back up to the next valid point. This creates wild forward rates and massive, incorrect hedge ratios.
 
-$$P(2) = \frac{0.9386792453}{1.065} = 0.8813889627$$
+### 17.6.2 The Penalized Least-Squares Approach
 
-**Output curve nodes so far:**
-| $T$ | $P(T)$ |
-|-----|--------|
-| 0.25 | 0.9876543 |
-| 0.50 | 0.9732360 |
-| 1.00 | 0.9433962 |
-| 2.00 | 0.8813890 |
+Andersen and Piterbarg formulate the curve fitting problem as an optimization:
 
----
+$$\hat{y} = \underset{y \in \mathcal{A}}{\text{argmin}} \; \mathcal{I}(y)$$
 
-### Example C: Repricing Check (Mandatory Reprice Test)
+where
 
-#### C1. Deposits Reprice
+$$\mathcal{I}(y) = \frac{1}{N}(\mathbf{V} - \mathbf{C}\mathbf{P}(y))^\top \mathbf{W}^2 (\mathbf{V} - \mathbf{C}\mathbf{P}(y)) + \lambda \int_{t_1}^{t_M} \left[y''(t)^2 + \sigma^2 y'(t)^2\right] dt$$
 
-For a deposit with maturity $T$ and simple rate $L$, the par condition is:
-$$1 = P(T)(1 + TL) \tag{C.1}$$
+The norm consists of:
 
-Using $P(T) = \frac{1}{1 + TL}$, the RHS equals 1 exactly (up to rounding).
+1. **Pricing error penalty:** How far the model price is from the market quote, weighted by $\mathbf{W}$.
+2. **Smoothness penalty:** $\lambda \int y''(t)^2 \, dt$ penalizes high curvature.
+3. **Curve-length penalty:** $\lambda \sigma^2 \int y'(t)^2 \, dt$ penalizes oscillations.
 
-For instance at $T = 0.5$:
-$$P(0.5)(1 + 0.5 \cdot 0.055) = 0.9732360097 \cdot 1.0275 = 1.0000000000 \checkmark$$
+The parameter $\lambda$ controls the tradeoff between fitting prices and smoothness.
 
-#### C2. Swap Reprice
+### 17.6.3 A Key Result
 
-Compute swap PV using:
-$$V_{\text{swap}} = 1 - P(2) - c(P(1) + P(2)) \tag{C.2}$$
+Andersen and Piterbarg prove:
 
-Plugging our bootstrapped values:
-- $P(1) = 0.9433962264$, $P(2) = 0.8813889627$, $c = 0.065$
+> **Proposition:** The curve $\hat{y}$ that minimizes the penalized norm is a natural exponential tension spline with tension factor $\sigma$ and knots at all cash flow dates.
 
-$$V_{\text{swap}} = 1 - 0.8813889627 - 0.065(0.9433962264 + 0.8813889627) \approx 0 \text{ (within rounding)} \checkmark$$
+This provides theoretical justification for tension splines: they are not just ad-hoc—they are the optimal curves in a well-defined variational sense.
 
-**Conclusion:** The curve reprices all input instruments (as required for bootstrap).
+### 17.6.4 Choosing $\lambda$
+
+If $\lambda$ is high, you get a smooth curve that might miss prices by a fraction of a basis point. If $\lambda$ is low, you get a curve that hits every price but may wiggle unreasonably.
+
+A practical approach replaces the unconstrained problem with a constrained one:
+
+$$\min_{y} \int \left[y''(t)^2 + \sigma^2 y'(t)^2\right] dt \quad \text{subject to} \quad \text{RMSE} = \gamma$$
+
+where $\gamma$ is the allowed root-mean-square pricing error (e.g., 0.1 basis points based on observed bid-offer spreads).
+
+Tuckman emphasizes the art involved: "A RMSE of 3 basis points means that ±3 basis points correspond to a 1-standard deviation error of the fit... choosing the parameters to minimize the RMSE... is one way to fit the spot rate function."
 
 ---
 
-### Example D: Interpolation Necessity — Two Schemes Compared
+## 17.7 The Forward Rate Approach and Jacobian Method
 
-We need a discount factor at $T = 1.5$ years even though we only solved nodes at 1y and 2y.
+Rather than bumping benchmark prices, some practitioners apply perturbations directly to the forward curve itself.
 
-**Setup:**
-- $T_1 = 1$, $P_1 = P(1) = 0.9433962264$
-- $T_2 = 2$, $P_2 = P(2) = 0.8813889627$
-- $T = 1.5$, so $w = \frac{T - T_1}{T_2 - T_1} = 0.5$
+### 17.7.1 Forward Rate Deltas
 
-#### Scheme 1: Linear in Discount Factor $P(T)$
+Define functional shifts $\mu_k(t)$ to the forward curve $f(t)$:
 
-$$P^{\text{linDF}}(T) = (1-w)P_1 + wP_2 \tag{D.1}$$
+$$f(t) \mapsto f(t) + \varepsilon \mu_k(t)$$
 
-$$P^{\text{linDF}}(1.5) = 0.5(0.9433962264) + 0.5(0.8813889627) = 0.9123925946$$
+Common choices include:
+- **Piecewise flat:** $\mu_k(t) = \mathbf{1}_{\{t \in [t_k, t_{k+1})\}}$
+- **Triangular:** Rises linearly to a peak at $t_k$, then falls linearly.
 
-#### Scheme 2: Linear in $\log P(T)$ (Geometric Interpolation)
+The functional derivatives $\partial_k V_0 = \frac{d V_0(f + \varepsilon \mu_k)}{d\varepsilon}\big|_{\varepsilon=0}$ are called **forward rate deltas**.
 
-"Linear in $\log P$" means:
-$$\log P(T) = (1-w)\log P_1 + w\log P_2 \Rightarrow P^{\log}(T) = P_1^{1-w} P_2^w \tag{D.2}$$
+### 17.7.2 The Jacobian Method
 
-At $w = 0.5$:
-$$P^{\log}(1.5) = \sqrt{P_1 P_2} = \sqrt{0.9433962264 \cdot 0.8813889627} = 0.9118656817$$
+To translate forward rate deltas into hedge positions, define the Jacobian matrix $\partial \mathbf{H}$ with columns $(\partial_1 H_1, \ldots, \partial_K H_L)^\top$, where $H_l$ is the value of the $l$-th hedging instrument.
 
-#### Compare Implied Simple Spot "Zero" Rates at $T = 1.5$
+The optimal hedge weights $\mathbf{p}$ solve:
 
-$$z_{\text{simple}}(T) = \frac{1/P(T) - 1}{T} \tag{D.3}$$
+$$\hat{\mathbf{p}} = \underset{\mathbf{p}}{\text{argmin}} \left(\sum_{k=1}^K W_k^2 (\partial_k H_0(\mathbf{p}) - \partial_k V_0)^2 + \sum_{l=1}^L U_l^2 p_l^2\right)$$
 
-**For linear DF:**
-$$z_{\text{simple}}^{\text{linDF}}(1.5) = \frac{1/0.9123925946 - 1}{1.5} = 0.0640126 = 6.4013\%$$
+The solution is:
 
-**For log DF:**
-$$z_{\text{simple}}^{\log}(1.5) = \frac{1/0.9118656817 - 1}{1.5} = 0.0644352 = 6.4435\%$$
+$$(\partial \mathbf{H} \mathbf{W}^2 \partial \mathbf{H}^\top + \mathbf{U}^2) \hat{\mathbf{p}} = \partial \mathbf{H} \mathbf{W}^2 \partial \mathbf{V}_0$$
 
-**Observation:** Two plausible interpolation choices give different intermediate discount factors and rates, even with the same endpoints.
+Andersen and Piterbarg note that "the Jacobian method serves to decouple risk calculations from curve construction. This, potentially, allows for combining smooth curves with localized risk, a feat that is difficult to achieve by other methods."
 
 ---
 
-### Example E: Forward-Rate "Wiggles" Under Two Schemes
+## Summary
 
-We compute simple forwards over sub-periods $[1, 1.5]$ and $[1.5, 2]$.
+Curve construction is the bedrock of fixed income quantitative modeling. It is an inverse problem that requires inferring a continuous reality from sparse, finite observations.
 
-From the simple forward-rate identity:
-$$L(0, T_1, T_2) = \frac{P(T_1)/P(T_2) - 1}{T_2 - T_1} \tag{E.1}$$
+1. **Underdetermination is fundamental:** There is no "true" curve, only a model that fits the prices. Every curve embeds interpolation assumptions.
 
-#### Under Linear-DF Interpolation
+2. **Bootstrapping is the workhorse:** The standard iterative technique solves the curve node-by-node, with excellent locality.
 
-- $P(1) = 0.9433962264$
-- $P(1.5) = P^{\text{linDF}}(1.5) = 0.9123925946$
-- $P(2) = 0.8813889627$
+3. **Interpolation method matters profoundly:** Simpler methods (linear yield) create saw-tooth forward artifacts. Log-linear produces staircases. Cubic splines smooth the curve but risk ringing.
 
-**Forward over $[1, 1.5]$ (length 0.5):**
-$$L^{\text{linDF}}(0, 1, 1.5) = \frac{0.9433962264/0.9123925946 - 1}{0.5} = 0.0679611 = 6.7961\%$$
+4. **Tension splines offer a tunable compromise:** They retain $C^2$ smoothness while allowing control over locality. The tension parameter $\sigma$ balances smoothness against stiffness.
 
-**Forward over $[1.5, 2]$:**
-$$L^{\text{linDF}}(0, 1.5, 2) = \frac{0.9123925946/0.8813889627 - 1}{0.5} = 0.0703520 = 7.0352\%$$
+5. **Locality is key for risk management:** A robust method ensures that shocks to short-term rates don't destabilize long-term valuations.
 
-**Forward jump:** $7.0352\% - 6.7961\% \approx 0.2391\%$ ($\approx 24$ bps) between adjacent half-year periods.
-
-#### Under Log-DF Interpolation
-
-- $P(1.5) = P^{\log}(1.5) = 0.9118656817$
-
-**Forward over $[1, 1.5]$:**
-$$L^{\log}(0, 1, 1.5) = \frac{0.9433962264/0.9118656817 - 1}{0.5} = 0.0691561 = 6.9156\%$$
-
-**Forward over $[1.5, 2]$:**
-$$L^{\log}(0, 1.5, 2) = \frac{0.9118656817/0.8813889627 - 1}{0.5} = 0.0691561 = 6.9156\%$$
-
-**Observation:** Log-DF interpolation produces a flatter forward profile here, while linear-DF interpolation produces a local forward-rate "kink/jump."
-
-**Why this matters (desk intuition):** Forward curve behavior matters for pricing and hedging instruments sensitive to forwards (caps/floors, swaptions, etc.). Both Interest Rate Modeling and Tuckman emphasize that common interpolation schemes can induce discontinuities or artifacts in the forward curve.
+6. **Smoothing vs. exact fit:** Sometimes it is better to miss a quote by 0.1 bps than to wreck the curve's shape to fit a bad data point.
 
 ---
 
-### Example F: Locality Experiment — Quote Bump
+## Key Concepts Summary
 
-We bump the 1Y deposit quote by $+1$ bp:
-- Original $L(0,0,1) = 6.00\%$
-- Bumped $L'(0,0,1) = 6.01\% = 0.0601$
-- All other quotes unchanged (3M, 6M deposits and the 2Y swap rate)
-
-#### Step 1: Recompute $P(1)$
-
-$$P'(1) = \frac{1}{1 + 1 \cdot 0.0601} = \frac{1}{1.0601} = 0.9433072352$$
-
-#### Step 2: Recompute $P(2)$ from the 2Y Swap Par Condition
-
-Using $P(2) = \frac{1 - cP(1)}{1 + c}$ with $c = 0.065$:
-
-$$P'(2) = \frac{1 - 0.065 \cdot P'(1)}{1.065} = \frac{1 - 0.065 \cdot 0.9433072352}{1.065} = 0.8813943941$$
-
-#### Before/After Table at Curve Nodes
-
-| Node $T$ | Quote used | $P(T)$ (before) | $P'(T)$ (after) | Change $\Delta P$ |
-|----------|------------|-----------------|-----------------|-------------------|
-| 0.25 | 3M deposit | 0.9876543210 | 0.9876543210 | 0 |
-| 0.50 | 6M deposit | 0.9732360097 | 0.9732360097 | 0 |
-| 1.00 | 1Y deposit | 0.9433962264 | 0.9433072352 | $-8.8991 \times 10^{-5}$ |
-| 2.00 | 2Y swap | 0.8813889627 | 0.8813943941 | $+5.4314 \times 10^{-6}$ |
-
-#### Discussion (Locality vs Propagation)
-
-- The bump affects its own node $P(1)$ strongly (expected)
-- The bump also affects later nodes (here $P(2)$) because later instrument PV equations depend on earlier discount factors (the fixed leg discounts include $P(1)$). This is "propagation through calibration equations"
-- Under different representations (e.g., global splines), a local quote bump can cause broader oscillations ("ringing") in forwards/spot rates; Interest Rate Modeling shows this phenomenon and discusses tension to reduce noise
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **Discount Factor $P(T)$** | Value today of 1 unit payable at time $T$ | The universal currency of valuation |
+| **Bootstrapping** | Sequential method to solve curve nodes | Most common, robust, excellent locality |
+| **Interpolation** | Rule for filling gaps between solved nodes | Determines forward curve shape |
+| **Inverse Problem** | Inferring the function ($P$) from outputs ($V$) | Highlights that the curve is a model |
+| **Saw-Tooth** | Forward artifact from linear yield interpolation | Unrealistic jumps in forwards |
+| **Staircase** | Forward artifact from log-linear interpolation | Constant forwards between nodes |
+| **Ringing** | Oscillations from global $C^2$ splines | Creates false risk sensitivities |
+| **Locality** | Input changes affect only nearby outputs | Essential for stable hedging |
+| **Tension Spline** | $C^2$ spline with adjustable stiffness | Balances smoothness and locality |
+| **Penalized Least-Squares** | Optimization allowing controlled pricing errors | Handles noisy benchmark sets |
 
 ---
 
-### Example G: Locality and Instrument Choice
+## Notation for This Chapter
 
-We compare two curves built from the same short-end deposits but different 2Y instruments.
-
-#### Curve 1 (Baseline): 2Y Par Swap as in Examples A–C
-
-From Example B:
-$$P_{\text{swap}}(2) = 0.8813889627$$
-
-#### Curve 2 (Alternative): Replace 2Y Swap with a "2Y Deposit Proxy"
-
-Assume instead we observe a (toy) 2-year deposit/bill quote:
-$$L(0,0,2) = 6.20\% = 0.0620 \text{ (simple, with } T = 2 \text{)}$$
-
-Then:
-$$P_{\text{dep}}(2) = \frac{1}{1 + 2 \cdot 0.062} = \frac{1}{1.124} = 0.8896797153$$
-
-#### Compare the Two 2Y Discount Factors
-
-- Swap-implied: $0.8813890$
-- Deposit-proxy-implied: $0.8896797$
-- Difference: $0.0082908$ (almost 0.83 "DF points"), which is large
-
-#### Interpret in Terms of Implied Swap Rate
-
-If we used the deposit-proxy curve to compute the par swap rate (annual pay at 1 and 2), then from:
-$$0 = 1 - P(2) - c(P(1) + P(2)) \Rightarrow c = \frac{1 - P(2)}{P(1) + P(2)} \tag{G.1}$$
-
-we obtain:
-$$c_{\text{implied}} = \frac{1 - 0.8896797153}{0.9433962264 + 0.8896797153} = 0.0601834 = 6.0183\%$$
-
-But the market swap quote we used in Curve 1 was $6.50\%$. **So Curve 2 would misprice that swap.**
-
-#### Desk Interpretation (Model Risk)
-
-Curve construction depends on instrument set selection. Tuckman stresses that curve-fitting choices depend on context and are "part art," including which instruments/bonds to include.
-
-Different instrument sets can produce different discount factors and therefore different valuations for off-curve trades (asset swaps, illiquid maturities, relative value).
+| Symbol | Definition |
+|--------|------------|
+| $P(T)$, $P(0,T)$ | Discount factor for maturity $T$ |
+| $y(T)$ | Continuously compounded zero rate |
+| $f(T)$ | Instantaneous forward rate |
+| $T_i$ | Maturity of $i$-th benchmark instrument |
+| $h_i = T_{i+1} - T_i$ | Interval length |
+| $\sigma$ | Tension parameter for splines |
+| $\lambda$ | Smoothing parameter in optimization |
+| $\mathbf{C}$ | Cash flow coefficient matrix |
+| $\mathbf{V}$ | Vector of market prices |
 
 ---
 
-### Example H: Smoothing vs Exact Fit — Toy Inconsistent Quotes
-
-We create a deliberately inconsistent quote set to show the need for quote cleaning / constraints / best-fit.
-
-- Keep deposits as in Example A so $P(1) = 0.9433962264$
-- Now suppose a (nonsensical) 2Y par swap quote is: $c_{2y} = 120\% = 1.20$
-
-From the par-swap bootstrap formula:
-$$P(2) = \frac{1 - cP(1)}{1 + c} \tag{H.1}$$
-
-**Compute numerator:**
-$$1 - cP(1) = 1 - 1.20 \cdot 0.9433962264 = 1 - 1.1320754717 = -0.1320754717$$
-
-**Denominator:** $1 + c = 2.20$
-
-Thus:
-$$P(2) = \frac{-0.1320754717}{2.20} = -0.0609433962$$
-
-#### Why This Is an Arbitrage Red Flag
-
-A discount factor is the PV of a strictly positive payoff of 1 at maturity; a negative PV is not economically meaningful in this deterministic-cashflow setting and violates basic pricing logic.
-
-#### What Practitioners Do (Conceptual, Source-Backed)
-
-**Quote cleaning / selection:** Tuckman notes that curve fitting requires experimentation and careful choice of instruments; poor fits can "wiggle too much to be believable," reflecting over/under-fitting and poor instrument selection.
-
-**Smoothing / best fit rather than exact fit:** Interest Rate Modeling describes choosing an "optimal" yield curve by minimizing a regularity norm subject to limiting the RMS fit error—consistent with using bid/ask to allow small misfits rather than enforcing an impossible exact fit.
-
-#### A Minimal Constrained Fix (No Detailed Algorithm)
-
-- **Constraint:** Enforce $P(T) > 0$ for all maturities, and (under the book's monotone assumption) enforce non-increasing $P$
-- **Action:** Reject the inconsistent quote, widen tolerances, or fit a curve that stays in the admissible set and accepts a pricing residual on the bad instrument
-
-**I'm not sure** which exact smoothing algorithm your desk uses; we would need: (i) the exact instrument set (OIS vs LIBOR swaps vs Treasuries), (ii) the interpolation variable, (iii) the error metric (price vs yield vs weighted), and (iv) constraints (positivity, monotonicity, convexity) to specify it fully.
-
----
-
-### Example I: Sensitivity/Jacobian Preview — Finite-Difference Jacobian
-
-We build a tiny system with:
-- **Quotes** $\mathbf{q} = (L_{0.5}, L_{1.0}, c_{2y})$
-- **Nodes** $\mathbf{x} = (P(0.5), P(1), P(2))$
-
-**Baseline quotes:**
-- $L_{0.5} = 5.50\% = 0.0550$
-- $L_{1.0} = 6.00\% = 0.0600$
-- $c_{2y} = 6.50\% = 0.0650$
-
-**Baseline nodes (from Examples A–B):**
-- $P(0.5) = 0.9732360097$
-- $P(1) = 0.9433962264$
-- $P(2) = 0.8813889627$
-
-#### Step 1: Bump Each Quote by +1 bp and Rebuild
-
-A "finite-difference Jacobian" uses:
-$$J_{k,j} \approx \frac{x_k(\mathbf{q} + \Delta q_j \mathbf{e}_j) - x_k(\mathbf{q})}{\Delta q_j}, \quad \Delta q_j = 0.0001 \tag{I.1}$$
-
-**Bump 1:** $L_{0.5} \to 0.0551$
-$$P'(0.5) = \frac{1}{1 + 0.5 \cdot 0.0551} = 0.9731886526$$
-Other nodes unchanged.
-
-Changes:
-- $\Delta P(0.5) = -4.7357 \times 10^{-5}$
-- $\Delta P(1) = 0$
-- $\Delta P(2) = 0$
-
-**Bump 2:** $L_{1.0} \to 0.0601$ (this is Example F)
-- $P'(1) = 0.9433072352$
-- $P'(2) = 0.8813943941$
-
-Changes:
-- $\Delta P(0.5) = 0$
-- $\Delta P(1) = -8.8991 \times 10^{-5}$
-- $\Delta P(2) = +5.4314 \times 10^{-6}$
-
-**Bump 3:** $c_{2y} \to 0.0651$
-$$P'(2) = \frac{1 - 0.0651 \cdot P(1)}{1.0651} = 0.8812176375$$
-
-Changes:
-- $\Delta P(0.5) = 0$
-- $\Delta P(1) = 0$
-- $\Delta P(2) = -1.7133 \times 10^{-4}$
-
-#### Step 2: Present the (1 bp) Bump-to-Node Map
-
-It is often useful to present $\mathbf{J}$ in "per 1 bp" form: entries are $\Delta P$ from a +1 bp bump.
-
-| Node change from +1bp bump | $L_{0.5}$ | $L_{1.0}$ | $c_{2y}$ |
-|----------------------------|-----------|-----------|----------|
-| $\Delta P(0.5)$ | $-4.7357 \times 10^{-5}$ | $0$ | $0$ |
-| $\Delta P(1.0)$ | $0$ | $-8.8991 \times 10^{-5}$ | $0$ |
-| $\Delta P(2.0)$ | $0$ | $+5.4314 \times 10^{-6}$ | $-1.7133 \times 10^{-4}$ |
-
-#### Interpretation
-
-- This small Jacobian is mostly lower-triangular (short-end quotes affect short nodes; effects propagate forward mainly through the calibration equations)
-- In more realistic curves (many swap cash-flow dates, interpolation, global splines), the Jacobian can become less local, consistent with the "ringing" phenomenon discussed in Interest Rate Modeling
-
----
-
-## Practical Notes
-
-### 5.1 Common Interpolation Choices (Defined Precisely)
-
-Below, assume nodes $(T_i, P_i)$ and $(T_{i+1}, P_{i+1})$, and define the weight:
-$$w = \frac{T - T_i}{T_{i+1} - T_i} \in [0, 1]$$
-
-#### (a) Linear in Discount Factor $P(T)$
-
-$$P(T) = (1-w)P_i + wP_{i+1}$$
-
-**Status vs sources:** The books discuss interpolation choices and caution that interpolating directly on the discount function can have pitfalls; the linear-in-$P$ formula itself is a straightforward definition, but the cautions about direct $P$-interpolation are explicitly noted.
-
-#### (b) Linear in Log Discount Factor $\log P(T)$
-
-$$\log P(T) = (1-w)\log P_i + w\log P_{i+1} \Rightarrow P(T) = P_i^{1-w} P_{i+1}^w$$
-
-**Connection to piecewise-constant forwards:** If you assume piecewise-flat forwards, Interest Rate Modeling shows:
-$$P(T) = P(T_i)\exp(-f(T_i)(T - T_i))$$
-implying $\log P$ linear in $T$ on each interval.
-
-#### (c) Linear in Zero Rate $y(T)$ (Continuous Comp)
-
-Let $y(T)$ satisfy $P(T) = e^{-y(T)T}$. Then "linear in $y$" means:
-$$y(T) = (1-w)y_i + wy_{i+1}, \quad P(T) = \exp(-y(T)T)$$
-
-Hull explicitly notes that a "zero curve can be assumed to be linear between maturities" in the context of constructing an OIS zero curve.
-
-#### (d) Linear in Forward Rate / Piecewise-Constant Forward
-
-**Piecewise-constant instantaneous forward:** Set $f(T) = f_i$ for $T \in [T_i, T_{i+1})$.
-
-Then $P$ follows (as above) $P(T) = P(T_i)\exp(-f_i(T - T_i))$.
-
-**Implication:** Forward is constant in each bucket but may jump at nodes; derivative pricing can be sensitive to such discontinuities.
-
-#### (e) Spline Methods (Only Where Source-Supported)
-
-**Piecewise cubic spline (Tuckman):** Represent the curve (e.g., spot rates) as piecewise cubic polynomials joined at knot points.
-
-Tuckman emphasizes that knot placement/number and bond selection materially affect realism; overfitting can create implausible wiggles in spot/forward curves.
-
-Interest Rate Modeling discusses cubic Hermite splines and par-point approaches, and highlights locality differences between methods (e.g., natural $C^2$ vs tensioned vs par-point constructions).
-
----
-
-### 5.2 No-Arbitrage / Sanity Constraints and What to Check
-
-**Minimum checks (desk-robust):**
-
-1. **Discount factors positive:** $P(T) > 0$ (Basic PV logic; also consistent with discount-bond interpretation)
-
-2. **Shape check:** The book's discount curve definition assumes $P(T)$ is monotonically decreasing
-
-3. **Careful note (reasoned from definitions):** Since $f(T) = -\frac{d}{dT}\ln P(T)$, if forward rates are negative over an interval then $P(T)$ can increase there. This does not automatically imply arbitrage, but it may violate the monotone assumption used in some curve setups
-
-4. **Reprice errors near zero** for calibration instruments (bootstrap exact fit) or within tolerance (best fit)
-
-5. **Forward-rate reasonableness:** Avoid huge oscillations/jumps introduced by interpolation; both sources warn about artifacts and discontinuities in forward curves under some interpolation choices
-
----
-
-### 5.3 Implementation Pitfalls
-
-- **Date generation and accrual:** Stubs, business-day adjustments, and accrual factors can change PVs materially
-- **Day-count mismatches:** Deposits, swaps, futures can use different day-counts; mixing inconsistently shifts implied DFs
-- **Compounding basis mismatches:** Ensure conversions between quoted rates and discount factors match each instrument's market convention
-- **Curve-building order dependence:** Bootstrapping is sequential by maturity (assume known up to $T_{i-1}$, solve at $T_i$)
-- **Interpolation-induced pathologies:** Direct interpolation on discount factors can have pitfalls; check induced forwards
-
----
-
-### 5.4 Verification Tests (Practical Checklist)
-
-- [ ] Reprice test for every calibration instrument (Example C)
-- [ ] Small bump stability test: bump one quote by 1 bp, rebuild, and ensure curve changes are sensible (Example F)
-- [ ] Locality sanity: a quote should primarily affect nearby maturities unless the instrument's PV structurally depends on distant cash flows
-- [ ] Regression test: identical inputs $\to$ identical curve nodes and repricing errors
-
----
-
-## Summary & Recall
-
-### 10-Bullet Executive Summary
-
-1. **Curve construction is an inverse problem:** Infer a continuous curve $P(T)$ from a finite set of instrument quotes
-
-2. **Discounting a fixed cash-flow instrument is linear in discount factors:** $V_i = \sum_j c_{i,j} P(t_j)$
-
-3. **In matrix form, $\mathbf{V} = \mathbf{C}\mathbf{P}$:** Without further structure the problem is underdetermined
-
-4. **Bootstrapping solves curve nodes sequentially:** Guess $P(T_i)$, interpolate, reprice, and iterate until match
-
-5. **The bootstrap is only fully defined once you choose an interpolation variable and scheme**
-
-6. **Different interpolation schemes can generate very different forward curves** (kinks, saw-teeth, discontinuities)
-
-7. **Locality matters:** Some curve methods propagate a local quote change globally ("ringing"); tension/par-point approaches can improve locality
-
-8. **Exact-fit bootstraps are fragile to inconsistent/noisy quotes;** best-fit approaches use smoothing/regularization with tolerances
-
-9. **Instrument selection is part of model risk:** Different instrument sets can imply different curves and valuations
-
-10. **The same inverse-problem logic extends to multi-curve discounting/forwarding setups,** but this chapter stays single-curve
-
----
-
-### Cheat Sheet
-
-#### Bootstrap (Node-by-Node)
-
-1. Choose node maturities $T_1 < \cdots < T_K$ (typically aligned with benchmark maturities)
-2. For each $i$:
-   - Assume $P(t)$ known for $t \leq T_{i-1}$
-   - Guess $P(T_i)$
-   - Interpolate $P(t)$ on $(T_{i-1}, T_i]$
-   - Compute PV of instrument $i$
-   - Root-search until model PV matches quote
-
-#### Common Interpolation Choices
-
-| Method | Formula |
-|--------|---------|
-| Linear in DF | $P(T) = (1-w)P_i + wP_{i+1}$ |
-| Linear in log DF | $P(T) = P_i^{1-w} P_{i+1}^w$ |
-| Linear in zero rate $y(T)$ | $y(T) = (1-w)y_i + wy_{i+1}$, $P(T) = e^{-y(T)T}$ |
-| Piecewise-constant forward | $P(T) = P(T_i)e^{-f_i(T-T_i)}$ |
-| Cubic spline families | See Tuckman, Interest Rate Modeling; check for overfitting/oscillations |
-
-#### Sanity Checklist
-
-- [ ] $P(T) > 0$
-- [ ] Monotone decreasing under the book's setup; if negative rates are possible, interpret carefully
-- [ ] Reprice errors: zero (bootstrap) or within tolerance (fit)
-- [ ] Forwards not wildly oscillatory; beware artifacts from interpolation
-
----
-
-### Flashcards (30)
-
-1. **Q:** What is the discount factor $P(0,T)$?
-   **A:** The time-0 price of a zero-coupon bond paying 1 at $T$.
-
-2. **Q:** How is the continuously compounded yield $y(T)$ defined from $P(T)$?
-   **A:** $P(T) = e^{-y(T)T}$.
-
-3. **Q:** Define the instantaneous forward rate $f(T)$.
-   **A:** $f(T) = -\frac{d}{dT}\ln P(T)$.
-
-4. **Q:** What is the relationship between $f(T)$ and $y(T)$ in continuous compounding?
-   **A:** $f(T) = y(T) + Ty'(T)$.
-
-5. **Q:** What is the simple forward-rate identity connecting $L(0,T,T+\tau)$ and discount factors?
-   **A:** $1 + \tau L(0,T,T+\tau) = \frac{P(T)}{P(T+\tau)}$.
-
-6. **Q:** In the special case $T=0$, how do you get $P(\tau)$ from a simple deposit rate?
-   **A:** $P(\tau) = \frac{1}{1 + \tau L(0,0,\tau)}$.
-
-7. **Q:** Why is curve construction an inverse problem?
-   **A:** You infer a continuous curve from finitely many instrument quotes.
-
-8. **Q:** What makes the inverse problem underdetermined?
-   **A:** A finite instrument set cannot uniquely determine a function without extra structure (interpolation/regularization).
-
-9. **Q:** What is "bootstrapping" in curve construction?
-   **A:** Sequentially solving for curve nodes so each benchmark instrument is repriced (exactly in bootstrap).
-
-10. **Q:** What is the key hidden modeling choice inside a bootstrap?
-    **A:** The interpolation rule used between nodes.
-
-11. **Q:** Write the generic linear cash-flow PV representation.
-    **A:** $V_i = \sum_j c_{i,j} P(t_j)$.
-
-12. **Q:** What does the cash-flow matrix formulation look like?
-    **A:** $\mathbf{V} = \mathbf{C}\mathbf{P}$.
-
-13. **Q:** Give the swap PV expression used for curve construction in Interest Rate Modeling.
-    **A:** $V_{\text{swap}} = 1 - P(t_n) - \sum_{j=1}^{n} c\tau P(j\tau)$.
-
-14. **Q:** What defines a par swap?
-    **A:** Fixed rate $c$ such that $V_{\text{swap}} = 0$.
-
-15. **Q:** What is linear interpolation in discount factor?
-    **A:** $P(T) = (1-w)P_i + wP_{i+1}$.
-
-16. **Q:** What is linear interpolation in log discount factor?
-    **A:** $P(T) = P_i^{1-w} P_{i+1}^w$.
-
-17. **Q:** Which interpolation corresponds to piecewise-constant instantaneous forwards?
-    **A:** Log-discount-factor linear (since $\log P$ is linear when $P(T) = P(T_i)e^{-f_i(T-T_i)}$).
-
-18. **Q:** Why can linear yield interpolation be problematic?
-    **A:** It creates kinks and can cause jumps/artifacts in implied forward rates.
-
-19. **Q:** What forward-curve pathology can piecewise linear yields create?
-    **A:** Discontinuous "saw-tooth" instantaneous forwards.
-
-20. **Q:** What is meant by "locality" in curve construction?
-    **A:** How concentrated the curve response is to a local quote change.
-
-21. **Q:** What is "ringing" in curve construction?
-    **A:** Global oscillations in the curve from a local perturbation (e.g., in globally smooth splines).
-
-22. **Q:** What is a practical test for curve implementation correctness?
-    **A:** Reprice every calibration instrument to its market quote (reprice test).
-
-23. **Q:** What is a "bump stability" test?
-    **A:** Bump one quote by 1 bp and ensure curve nodes/forwards move sensibly (no wild oscillations).
-
-24. **Q:** Why might minimizing yield errors be preferable to minimizing price errors in fitting?
-    **A:** Equal price error weights can underweight yield errors of short bonds relative to long bonds.
-
-25. **Q:** What does "best fit" mean in curve fitting?
-    **A:** Allow small mispricing to achieve smoother/regular curve shape.
-
-26. **Q:** Give an example of a smoothing formulation described in Interest Rate Modeling.
-    **A:** Minimize a regularity norm of the yield curve subject to an RMS error constraint.
-
-27. **Q:** What is one key source of curve model risk besides interpolation?
-    **A:** Instrument set choice (which quotes are used as "truth").
-
-28. **Q:** What is the post-2007 multi-curve idea in one sentence?
-    **A:** Discounting uses an OIS curve while forward projections depend on another curve (e.g., 3M/6M).
-
-29. **Q:** In Hull's OIS curve construction, what simple interpolation assumption is sometimes used?
-    **A:** The zero curve is assumed linear between maturities.
-
-30. **Q:** What is the conceptual role of the Jacobian in curve risk?
-    **A:** It maps small quote changes into node/parameter changes for risk attribution.
+## Flashcards
+
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is the fundamental unknown in curve construction? | The continuous discount factor function $P(T)$. |
+| 2 | Why is the curve problem "underdetermined"? | We have $N$ finite quotes but need a continuous function ($\infty$ points). |
+| 3 | What is bootstrapping? | Sequential algorithm that solves for discount factors short-to-long. |
+| 4 | What formula gives $P(\tau)$ from a simple deposit rate $L$? | $P(\tau) = 1/(1 + L\tau)$ |
+| 5 | What formula gives $P(t_n)$ from a par swap rate $c$? | $P(t_n) = (1 - c \sum_{j=1}^{n-1} \tau_j P(t_j))/(1 + c\tau_n)$ |
+| 6 | What forward artifact does linear yield interpolation produce? | Saw-tooth pattern (discontinuous forward jumps). |
+| 7 | What forward artifact does log-linear interpolation produce? | Staircase pattern (piecewise constant forwards). |
+| 8 | What is the relationship $f(T) = y(T) + Ty'(T)$ called? | The link between zero rates and instantaneous forwards. |
+| 9 | What is curve "ringing"? | Spurious oscillations from non-local spline perturbations. |
+| 10 | Which spline type risks ringing? | Natural cubic ($C^2$) splines without tension. |
+| 11 | What does the tension parameter $\sigma$ control? | The tradeoff between $C^2$ cubic smoothness and linear-spline locality. |
+| 12 | What happens as $\sigma \to 0$ in a tension spline? | Recovers the ordinary $C^2$ cubic spline. |
+| 13 | What happens as $\sigma \to \infty$ in a tension spline? | Approaches a piecewise linear (bootstrap) spline. |
+| 14 | What is the "par-point approach"? | Bumping each benchmark yield and measuring portfolio sensitivity. |
+| 15 | Why might a desk prefer smoothing over exact fit? | To avoid destabilizing the curve due to noisy or erroneous data. |
+| 16 | What does the penalized least-squares norm include? | Pricing error + smoothness penalty + curve-length penalty. |
+| 17 | What type of spline is optimal in the variational sense? | Natural exponential tension spline with knots at cash flow dates. |
+| 18 | What is "locality" in curve construction? | A bump to quote at time $T$ should only affect values near $T$. |
+| 19 | What is the Jacobian method? | Using forward rate deltas to compute optimal hedging portfolios. |
+| 20 | Why is poor locality problematic for P&L? | Short-rate moves create spurious P&L in long-dated positions. |
 
 ---
 
 ## Mini Problem Set
 
-### Problems
+### Problem 1: Deposit Bootstrap
+A 6-month deposit rate is 4.00% (simple, ACT/360, assume 180 days).
+Calculate the discount factor $P(0.5)$.
 
-1. Using the simple-rate relation, compute $P(0.25)$ from a 3M deposit quote of 4.80% (simple).
+### Problem 2: Swap Bootstrap
+You know $P(1) = 0.96$. A 2-year annual par swap has a rate of 5.00%.
+Calculate $P(2)$.
 
-2. Given $P(1) = 0.95$, compute the simple spot rate $z_{\text{simple}}(1)$.
+### Problem 3: Log-Linear Interpolation
+Given $P(1) = 0.95$ and $P(2) = 0.90$.
+Calculate $P(1.5)$ using log-linear (geometric mean) interpolation.
 
-3. Derive the par swap rate formula for a 2Y annual-pay fixed leg in terms of $P(1)$ and $P(2)$.
+### Problem 4: Forward Rate Calculation
+Using your $P(1.5)$ from Problem 3, calculate the annualized forward rate from 1.0 to 1.5 years. Verify it equals the forward rate from 1.5 to 2.0 years.
 
-4. Suppose you have $P(1) = 0.94$ and a 2Y par swap rate $c = 7\%$. Solve for $P(2)$.
+### Problem 5: Saw-Tooth Derivation
+Suppose $y(1) = 5\%$ and $y(2) = 6\%$ with piecewise linear interpolation.
+Write the formula for $f(T)$ on $[1, 2]$ and calculate $f(1.5)$.
 
-5. Between nodes $(1, P_1)$ and $(2, P_2)$, write the formula for $P(1.25)$ under (i) linear DF and (ii) linear log DF.
+### Problem 6: Tension Spline Intuition
+Explain qualitatively what happens to the forward curve as the tension parameter $\sigma$ increases from 0 to $\infty$.
 
-6. Using $P(1) = 0.94$ and $P(2) = 0.88$, compute the simple forward rate over $[1, 2]$.
+### Problem 7: Ringing Identification
+A colleague proposes using a 15-knot natural cubic spline to fit 15 swap rates perfectly. What issue would you warn them about?
 
-7. Show that under log-DF interpolation, the simple forward rates over two equal sub-intervals $[1, 1.5]$ and $[1.5, 2]$ are equal (midpoint case).
-
-8. Explain why bootstrapping requires an interpolation rule even if each new instrument adds only one new node.
-
-9. Construct a toy set of quotes that would force $P(2) < 0$ when bootstrapping from a 1Y deposit and a 2Y swap. What does this indicate?
-
-10. In a curve built by bootstrapping yields at nodes, what does it mean for the mapping from quotes to yields to be "nonlinear"?
-
-11. Describe the difference between local and global interpolation methods in terms of how a quote bump affects the forward curve.
-
-12. Why might minimizing price errors in a term-structure fit overweight long maturities?
-
-13. What is a "reprice test" and why is it necessary but not sufficient for a good curve?
-
-14. Consider two curves that both exactly reprice benchmark instruments but differ in intermediate forwards. Give two desk consequences.
-
-15. Define a finite-difference Jacobian for curve nodes with respect to quotes and describe how it is used in risk.
-
-16. Briefly explain how the inverse-problem framing extends from single-curve to multi-curve.
+### Problem 8: Smoothing Tradeoff
+If your benchmark set includes a clearly erroneous 5-year quote (50 bps away from adjacent maturities), should you use exact fit or smoothing? Why?
 
 ---
 
-### Solution Sketches (Problems 1–8)
+## Solution Sketches
 
-**1.** $P(0.25) = \frac{1}{1 + 0.25 \times 0.048} = \frac{1}{1.012} = 0.98814$.
+**1.** $P(0.5) = 1/(1 + 0.04 \times 0.5) = 1/1.02 = 0.9804$
 
-**2.** $z_{\text{simple}}(1) = \frac{1/P(1) - 1}{1} = \frac{1/0.95 - 1}{1} = \frac{0.0526}{1} = 5.26\%$.
+**2.** From $1 = 0.05 \times P(1) + 1.05 \times P(2)$:
+$1 - 0.05 \times 0.96 = 1.05 \times P(2)$
+$0.952 = 1.05 \times P(2)$
+$P(2) = 0.9067$
 
-**3.** Par swap condition: $0 = 1 - P(2) - c(P(1) + P(2))$. Solving: $c = \frac{1 - P(2)}{P(1) + P(2)}$.
+**3.** $P(1.5) = \sqrt{P(1) \times P(2)} = \sqrt{0.95 \times 0.90} = 0.9247$
 
-**4.** $P(2) = \frac{1 - cP(1)}{1 + c} = \frac{1 - 0.07 \times 0.94}{1.07} = \frac{0.9342}{1.07} = 0.8730$.
+**4.** $F_{1.0 \to 1.5} = (1/0.5) \times (0.95/0.9247 - 1) = 2 \times 0.0274 = 5.48\%$
+$F_{1.5 \to 2.0} = (1/0.5) \times (0.9247/0.90 - 1) = 2 \times 0.0274 = 5.48\%$ ✓ (constant, as expected)
 
-**5.** With $w = 0.25$:
-   - (i) Linear DF: $P(1.25) = 0.75 P_1 + 0.25 P_2$
-   - (ii) Linear log DF: $P(1.25) = P_1^{0.75} P_2^{0.25}$
+**5.** $f(T) = y(T) + T \times y'(T) = [0.05 + (0.06-0.05)(T-1)] + T \times 0.01$
+At $T=1.5$: $y(1.5) = 5.5\%$, so $f(1.5) = 0.055 + 1.5 \times 0.01 = 7.0\%$
 
-**6.** $L(0, 1, 2) = \frac{P(1)/P(2) - 1}{1} = \frac{0.94/0.88 - 1}{1} = 0.06818 = 6.82\%$.
+**6.** At $\sigma = 0$, you get a smooth $C^2$ cubic with potential ringing. As $\sigma$ increases, the curve becomes "stiffer," oscillations are dampened, and locality improves. As $\sigma \to \infty$, the curve approaches piecewise linear, with saw-tooth forwards but excellent locality.
 
-**7.** Under log-DF, $P(1.5) = \sqrt{P(1)P(2)}$. The forward over $[1, 1.5]$ is $\frac{P(1)/P(1.5) - 1}{0.5} = \frac{\sqrt{P(1)/P(2)} - 1}{0.5}$. The forward over $[1.5, 2]$ is $\frac{P(1.5)/P(2) - 1}{0.5} = \frac{\sqrt{P(1)/P(2)} - 1}{0.5}$. These are identical, proving the result.
+**7.** Ringing: a single-point perturbation (or error) will propagate as decaying oscillations throughout the entire curve, creating spurious risk sensitivities at distant maturities.
 
-**8.** Even though each instrument adds one unknown ($P(T_i)$), the instrument's PV depends on discount factors at intermediate dates (e.g., coupon dates before $T_i$). Without an interpolation rule, these intermediate DFs are undefined, making the pricing equation incomplete.
+**8.** Use smoothing. Forcing exact fit would create wild forward rates around the 5-year point, distorting risk measures for all instruments in that region. A small pricing error (controlled by $\lambda$) is preferable to curve instability.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Specific Sources
+### (A) Verified Facts (Source-Backed)
 
 | Fact | Source |
 |------|--------|
-| Discount curve definition $P(T)$ monotone decreasing | Interest Rate Modeling Vol 1 |
-| Bootstrap methodology (sequential solve with interpolation) | Interest Rate Modeling Vol 1 Ch 4-6 |
-| Swap PV formula $V_{\text{swap}} = 1 - P(t_n) - \sum c\tau P(j\tau)$ | Interest Rate Modeling |
-| Simple forward rate identity | Interest Rate Modeling, Hull Ch 4 |
-| Piecewise linear yield interpolation formula | Interest Rate Modeling |
-| Forward-rate artifacts from linear yield interpolation | Tuckman, Interest Rate Modeling |
-| Piecewise-flat forward formula | Interest Rate Modeling |
-| Smoothing as constrained optimization | Interest Rate Modeling |
-| Post-2007 multi-curve framework | Interest Rate Modeling, Hull Ch 4 |
-| Cubic spline curve fitting and locality | Tuckman, Interest Rate Modeling |
-| OIS curve linear interpolation assumption | Hull Ch 4 |
-| Curve fitting as "part art" | Tuckman |
-| "Ringing" in global splines and tension methods | Interest Rate Modeling |
+| "Curve construction boils down to supplementing with assumptions to determine $P(T)$" | Andersen & Piterbarg Vol 1, Ch 6 |
+| Bootstrap algorithm steps | Andersen & Piterbarg Vol 1, §6.2.1 |
+| "Saw-tooth shape characteristic for piecewise linear yield" | Andersen & Piterbarg Vol 1, §6.2.1.1 |
+| Piecewise flat forward formula $f(T) = f(T_i)$ | Andersen & Piterbarg Vol 1, §6.2.1.2 |
+| Catmull-Rom Hermite spline for $C^1$ curves | Andersen & Piterbarg Vol 1, §6.2.2 |
+| Cubic splines "subject to oscillatory behavior, ringing" | Andersen & Piterbarg Vol 1, §6.2.3 |
+| Tension spline formula with $\sinh$ terms | Andersen & Piterbarg Vol 1, §6.2.4 |
+| "$\sigma = 0$ recovers cubic, $\sigma \to \infty$ approaches linear" | Andersen & Piterbarg Vol 1, §6.2.4 |
+| Tension as "extra knob" for balancing smoothness and locality | Andersen & Piterbarg Vol 1, §6.2.4 |
+| Penalized least-squares norm formulation | Andersen & Piterbarg Vol 1, §6.3.1 |
+| Optimal curve is a tension spline (Proposition 6.3.1) | Andersen & Piterbarg Vol 1, §6.3.1 |
+| Par-point approach for risk sensitivities | Andersen & Piterbarg Vol 1, §6.4.1 |
+| Ringing perturbation illustration (Fig 6.7) | Andersen & Piterbarg Vol 1, §6.4.1 |
+| Jacobian method for hedging | Andersen & Piterbarg Vol 1, §6.4.3 |
+| Bootstrap "used daily by trading desks" | Hull, Ch 4 (§4.7) |
+| Linear yield interpolation produces kinks in forwards | Tuckman, Ch 4 |
+| "Shortcomings least noticeable in DF, most in forwards" | Tuckman, Ch 4 |
+| RMSE as fitting criterion | Tuckman, Ch 4 |
 
-### (B) Reasoned Inference — Derivation Logic
+### (B) Reasoned Inference (Derived from A)
 
-| Inference | Derivation |
-|-----------|------------|
-| Log-DF interpolation gives equal forwards at midpoint | Geometric mean property: $P(1.5) = \sqrt{P(1)P(2)}$ implies symmetric forward structure |
-| Jacobian is near-triangular in sequential bootstrap | Sequential dependence: later nodes depend on earlier DFs through fixed-leg discounting |
-| Unit checks on all formulas | Dimensional analysis applied to each expression |
+- The formula $f(T) = y(T) + Ty'(T)$ follows from differentiating $P(T) = e^{-y(T)T}$.
+- The saw-tooth pattern is derived by substituting piecewise-constant $y'(T)$ into the forward formula.
+- Locality differences between methods follow from the structure of their matrix systems (diagonal for bootstrap, full for cubic $C^2$).
 
-### (C) Speculation — Flagged Uncertainties
+### (C) Flagged Uncertainties
 
-| Topic | Uncertainty |
-|-------|-------------|
-| Specific smoothing algorithm for production desks | I'm not sure which exact algorithm (spline class, error metric, constraints) applies without knowing the specific desk/instrument set |
-| Exact fails-charge and penalty mechanics | Not covered in detail in sources used for this chapter |
+- **Specific desk choices:** Different institutions may use proprietary spline variants (monotone convex, Hagan-West, etc.). The tension spline is presented as one well-documented choice.
+- **Default tension values:** No universally agreed $\sigma$ exists; it depends on the benchmark set and practitioner judgment.
+- **Jacobian implementation details:** The full numerical implementation involves choices about hedging instrument weights $\mathbf{W}$, $\mathbf{U}$ that vary by institution.
 
 ---
 
-*Last Updated: January 2026*
+*Chapter 17 verified against: Andersen & Piterbarg (Vol 1, Ch 6), Tuckman (Ch 4), Hull (Ch 4, §4.7).*

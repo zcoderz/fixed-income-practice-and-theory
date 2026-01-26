@@ -2,578 +2,758 @@
 
 ---
 
-## Conventions & Notation
+## Introduction
 
-### (A) Verified Facts
+Black formulas work. Cap dealers quote caplet volatilities; swaption desks quote swaption volatilities. The market speaks Black. What if your interest rate model *guaranteed* that these quotes translated directly into model prices—no approximations, no residual basis, no awkward calibration gymnastics?
 
-The following statements are directly supported by the provided references:
+This is the central promise of **market models**. Rather than specifying some abstract short rate $r_t$ and hoping the resulting forward and swap rate distributions happen to look vaguely lognormal, market models *start* with forward rates or swap rates as the modeled quantities and *engineer* their dynamics so that the relevant options are exactly Black-compatible under an appropriate measure. The LIBOR Market Model (LMM, also called BGM after Brace-Gatarek-Musiela) models discrete forward rates; the Swap Market Model (LSM, for Lognormal Swap Model) models swap rates directly.
 
-**Tenor / accrual structure:** We work on a discrete tenor grid $\{T_0 < T_1 < \cdots < T_n\}$ with accrual fractions $\delta_i = \tau(T_i, T_{i+1})$ (day-count year-fraction). A "LIBOR-style" simply-compounded forward rate over $[T_i, T_{i+1}]$ is defined from bond prices via
+The price of this convenience is complexity elsewhere. When you simulate all forwards jointly under a common measure, you discover that no-arbitrage imposes **coupled drifts**—each forward's drift depends on the current levels of other forwards. Calibration becomes a high-dimensional optimization balancing caplet fits, swaption fits, correlation structure, and numerical stability. And the original LIBOR-based formulation must adapt to the post-crisis world of SOFR and other risk-free rates.
 
-$$F_i(t) \equiv F(t; T_i, T_{i+1}) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right), \quad \Longleftrightarrow \quad P(t, T_{i+1}) = \frac{P(t, T_i)}{1 + \delta_i F_i(t)}.$$
+This appendix provides the complete framework:
 
-**Money-market numeraire and discount factor:** With short rate $r_t$, the money-market account is $B(t) = B_0 \exp\left(\int_0^t r_s \, ds\right)$, and the stochastic discount factor over $[t, T]$ can be written as
+- **Section A4.1** establishes conventions and notation for tenor grids, discount factors, and measures
+- **Section A4.2** develops the LMM: forward rate dynamics, the crucial coupled-drift structure, and caplet pricing
+- **Section A4.3** covers the Swap Market Model: swap rate dynamics, coterminal swaptions, and the LMM-LSM relationship
+- **Section A4.4** connects market models to the HJM framework and explains drift restrictions
+- **Section A4.5** details calibration methodology: Rebonato's swaption volatility approximation, terminal correlation, correlation parameterizations, objective functions, regularization, and global vs local approaches
+- **Section A4.6** addresses simulation, pricing, the two-curve framework, and adaptation to SOFR/RFR
+- **Section A4.7** provides full mathematical derivations including the Girsanov-based drift coupling proof
+- **Section A4.8** presents 13 worked examples with complete numeric detail
 
-$$D(t, T) = \frac{B(t)}{B(T)} = \exp\left(-\int_t^T r_s \, ds\right).$$
-
-**Forward measure pricing:** For a payoff $H_T$ at time $T$, pricing under the $T$-forward measure (numeraire $P(t, T)$) is
-
-$$\Pi_t = P(t, T) \, \mathbb{E}^T\left[H_T \mid \mathcal{F}_t\right].$$
-
-**Black(-style) building block:** The references define a Black "$\mathrm{Bl}$" function and use it to express Black cap and swaption prices. In particular, for "call/put sign" $\omega \in \{+1, -1\}$,
-
-$$\mathrm{Bl}(K, F, v, \omega) = \omega\left(F \, \Phi(\omega d_1) - K \, \Phi(\omega d_2)\right), \quad d_1 = \frac{\ln(F/K) + \frac{1}{2}v^2}{v}, \quad d_2 = d_1 - v,$$
-
-and cap pricing under Black is expressed as a sum of these $\mathrm{Bl}$ terms.
-
-**Black swaption formula (annuity times Black call on swap rate):** A payer swaption price at $t = 0$ is given as
-
-$$PS^{\mathrm{Black}}(0, T_\alpha, T, \tau, N, K, \sigma_{\alpha,\beta}) = N \left(\sum_{i=\alpha+1}^{\beta} \tau_i P(0, T_i)\right) \mathrm{Bl}\left(K, S_{\alpha,\beta}(0), \sigma_{\alpha,\beta}\sqrt{T_\alpha}, +1\right).$$
-
-**LMM (LFM) "market model" dynamics under its natural forward measure:** Under the $T_k$-forward(-adjusted) measure $\mathbb{Q}^k$, the forward rate $F_k(t)$ is modeled (in the scalar version shown) as driftless lognormal:
-
-$$dF_k(t) = \sigma_k(t) \, F_k(t) \, dZ_k^k(t).$$
-
-**Coupled drift under other measures:** Under a different $T_i$-forward measure $\mathbb{Q}^i$ (with $k < i$), the drift of $F_k$ picks up a sum over later forwards:
-
-$$dF_k(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{i} \frac{\tau_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \tau_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^i(t),$$
-
-and a risk-neutral drift expression (under the money-market measure) is also given with additional terms.
-
-**Swap rate and swap annuity:** For $\alpha < \beta$, the forward swap rate and swap annuity are
-
-$$S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{\sum_{i=\alpha+1}^{\beta} \tau_i P(t, T_i)}, \qquad C_{\alpha,\beta}(t) = \sum_{i=\alpha+1}^{\beta} \tau_i P(t, T_i).$$
-
-**Swap measure / annuity numeraire:** The annuity $A_{n,m}(t) = \sum_{i=n+1}^{m} \delta_i P(t, T_i)$ qualifies as a numeraire and the corresponding forward swap rate $S_{n,m}(t)$ is a martingale under the annuity measure.
-
-**Swap market model (LSM) motivation and payoff representation:** A payer swaption payoff at $T_\alpha$ can be written as
-
-$$\mathrm{Payoff}_{T_\alpha} = (S_{\alpha,\beta}(T_\alpha) - K)^+ \, C_{\alpha,\beta}(T_\alpha),$$
-
-and the "lognormal forward-swap model" assumes lognormal swap-rate dynamics under the swap measure.
-
-**Calibration practice themes:**
-- Calibration is treated as an optimization problem; e.g., minimizing a sum of squared differences between model prices and market prices is explicitly suggested in the swaption-grid context.
-- Practical calibration often trades off precision vs regularity/smoothness and can use regularization terms; "ringing" in calibrated volatilities is explicitly discussed.
-- Joint caps+swaptions calibration and weighting between them is discussed as a practical question.
-- Correlation structures include full-rank and reduced-rank parameterizations, with examples like exponential correlation and Rebonato-style parametric forms.
-
-**Multi-curve (OIS discounting vs projection curve):** Multiple yield curves and OIS discounting are discussed in the derivatives text and in the interest-rate modeling text.
-
-### (B) Reasoned Inference
-
-The appendix focuses on market models in the sense emphasized by the sources: choose a tradable market rate (a forward rate or a swap rate) and specify its volatility so that, under an appropriate numeraire measure, the rate has a tractable (often lognormal) form. No-arbitrage then fixes (or constrains) drifts under other measures, creating the "coupled drift" feature seen in the LMM formulas.
-
-"Black compatibility" is a design constraint: match the model's canonical measure/dynamics to how the market quotes caplet and swaption vols, so that calibration can be expressed as "invert Black" and/or minimize errors in Black-implied vol/price.
-
-### (C) Speculation (Clearly Labeled)
-
-I will use the term "LIBOR-style forward" to mean the simply-compounded forward rate on a discrete tenor, even though post-crisis markets may use different reference rates. This is terminology alignment rather than a claim about any specific benchmark.
-
-I will present a concrete calibration workflow that resembles common desk practice (objective + regularization + stability checks). Where the references do not specify a particular algorithm (e.g., LM vs gradient methods), I will explicitly label that as "I'm not sure."
+By the end, you will understand why market models became the industry standard for interest rate exotics, how to calibrate them to liquid instruments, and what practical challenges remain.
 
 ---
 
-## 0. Setup
+## A4.1 Conventions and Notation
 
-### Conventions Used in This Appendix
+### A4.1.1 Tenor Grid and Accrual Fractions
 
-- Time $t \geq 0$, filtered probability space $(\Omega, \mathcal{F}, (\mathcal{F}_t), \mathbb{P})$.
-- Rates are simply compounded on a discrete tenor grid $\{T_0 < T_1 < \cdots < T_n\}$.
-- Accrual fractions: $\delta_i = \tau(T_i, T_{i+1})$ (year fraction for $[T_i, T_{i+1}]$).
-- $P(t, T)$: time-$t$ price of a default-free zero-coupon bond maturing at $T$.
-- Money-market account: $B(t) = B_0 \exp\left(\int_0^t r_s \, ds\right)$.
+We work on a discrete tenor grid $\{T_0 < T_1 < \cdots < T_n\}$ with accrual fractions $\delta_i = \tau(T_i, T_{i+1})$ representing the day-count year-fraction for period $[T_i, T_{i+1}]$. As Andersen and Piterbarg emphasize, these are the standard coupon/reset/payment times for money-market FRAs and swap legs.
 
-**Measures / numeraires:**
-- Risk-neutral (money-market) measure $\mathbb{Q}$ with numeraire $B(t)$.
-- $T$-forward measure $\mathbb{Q}^T$ with numeraire $P(t, T)$. Pricing: $\Pi_t = P(t, T) \mathbb{E}^T[H_T \mid \mathcal{F}_t]$.
-- Discrete $T_i$-forward measure $\mathbb{Q}^i$ (shorthand for $\mathbb{Q}^{T_i}$).
-- Swap (annuity) measure $\mathbb{Q}^{\alpha,\beta}$ with numeraire $C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$.
+A "LIBOR-style" simply-compounded forward rate over $[T_i, T_{i+1}]$ is defined from bond prices via:
 
-### Notation Glossary
+$$F_i(t) \equiv F(t; T_i, T_{i+1}) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right)$$
+
+Equivalently:
+
+$$P(t, T_{i+1}) = \frac{P(t, T_i)}{1 + \delta_i F_i(t)}$$
+
+### A4.1.2 Money-Market Account and Discount Factors
+
+With short rate $r_t$, the money-market account is:
+
+$$B(t) = B_0 \exp\left(\int_0^t r_s \, ds\right)$$
+
+The stochastic discount factor over $[t, T]$ can be written as:
+
+$$D(t, T) = \frac{B(t)}{B(T)} = \exp\left(-\int_t^T r_s \, ds\right)$$
+
+### A4.1.3 Measures and Numeraires
+
+**Risk-neutral (money-market) measure $\mathbb{Q}$:** Numeraire $B(t)$. Under this measure, discounted tradable prices are martingales.
+
+**$T$-forward measure $\mathbb{Q}^T$:** Numeraire $P(t, T)$. Pricing formula:
+
+$$\Pi_t = P(t, T) \, \mathbb{E}^T\left[H_T \mid \mathcal{F}_t\right]$$
+
+**Discrete $T_i$-forward measure $\mathbb{Q}^i$:** Shorthand for $\mathbb{Q}^{T_i}$, with numeraire $P(t, T_i)$.
+
+**Swap (annuity) measure $\mathbb{Q}^{\alpha,\beta}$:** Numeraire is the swap annuity:
+
+$$C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$$
+
+Under this measure, the forward swap rate is a martingale.
+
+**Terminal measure $\mathbb{Q}^n$:** Uses $P(t, T_n)$ as numeraire. Convenient for simulation because the terminal bond serves as a universal deflator.
+
+**Spot measure $\mathbb{Q}^d$:** Uses a discretely-compounded bank account:
+
+$$B_d(t) = \frac{P(0, T_{\beta(t)})}{P(t, T_{\beta(t)})} \prod_{j=0}^{\beta(t)-1}(1 + \delta_j F_j(T_j))$$
+
+where $\beta(t)$ is the index of the first tenor date after $t$.
+
+### A4.1.4 Black Building Block
+
+Following Andersen and Piterbarg, we define the Black function for call/put sign $\omega \in \{+1, -1\}$:
+
+$$\boxed{\mathrm{Bl}(K, F, v, \omega) = \omega\left(F \, \Phi(\omega d_1) - K \, \Phi(\omega d_2)\right)}$$
+
+where:
+
+$$d_1 = \frac{\ln(F/K) + \frac{1}{2}v^2}{v}, \qquad d_2 = d_1 - v$$
+
+and $\Phi(\cdot)$ is the standard normal CDF.
+
+### A4.1.5 Notation Glossary
 
 | Category | Symbol | Definition |
 |----------|--------|------------|
 | **Tenor** | $T_i$ | Tenor dates |
 | | $\delta_i$ | Accrual fraction for $[T_i, T_{i+1}]$ |
-| **Bonds and discounting** | $P(t, T)$ | Zero-coupon bond price |
+| **Bonds/Discounting** | $P(t, T)$ | Zero-coupon bond price |
 | | $r_t$ | Short rate |
 | | $B(t)$ | Money-market account |
-| | $D(t, T)$ | Discount factor: $\exp\left(-\int_t^T r_s \, ds\right) = B(t)/B(T)$ |
-| **Forward rates** | $F_i(t)$ | $F(t; T_i, T_{i+1}) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right)$ |
-| **Swap rates** | $C_{\alpha,\beta}(t)$ | Swap annuity: $\sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$ |
-| | $S_{\alpha,\beta}(t)$ | Forward swap rate: $\frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}$ |
-| **Black building block** | $\Phi(\cdot)$ | Standard normal CDF |
-| | $\mathrm{Bl}(K, F, v, \omega)$ | $\omega(F\Phi(\omega d_1) - K\Phi(\omega d_2))$ |
-| | $d_1, d_2$ | $d_1 = \frac{\ln(F/K) + \frac{1}{2}v^2}{v}$, $d_2 = d_1 - v$ |
-| **Volatilities** | $\sigma_i(t)$ | Instantaneous vol of forward rate $F_i$ |
-| | $\sigma_{\alpha,\beta}$ | Swaption Black implied vol for swap rate $S_{\alpha,\beta}$ |
-| **Correlation** | $\rho_{i,j}$ | Instantaneous correlation between Brownians for $F_i$ and $F_j$ |
+| | $D(t, T)$ | Discount factor: $\exp\left(-\int_t^T r_s \, ds\right)$ |
+| **Forward rates** | $F_i(t)$ | Forward rate over $[T_i, T_{i+1}]$ |
+| **Swap rates** | $C_{\alpha,\beta}(t)$ | Swap annuity |
+| | $S_{\alpha,\beta}(t)$ | Forward swap rate |
+| **Black function** | $\Phi(\cdot)$ | Standard normal CDF |
+| | $\mathrm{Bl}(K, F, v, \omega)$ | Black building block |
+| **Volatilities** | $\sigma_i(t)$ | Instantaneous vol of $F_i$ |
+| | $\sigma_{\alpha,\beta}$ | Swaption Black implied vol |
+| **Correlation** | $\rho_{i,j}$ | Instantaneous correlation between $F_i$ and $F_j$ |
 
 ---
 
-## 1. Core Concepts (Definitions First)
+## A4.2 LMM (BGM) Essentials: Modeling Forward Rates
 
-### 1.1 Tenor Dates $\{T_0 < T_1 < \cdots < T_n\}$ and Accruals $\delta_i$
+### A4.2.1 Modeling Target and Design Philosophy
 
-**Formal definition:** A discrete set of dates $\{T_i\}$ with associated accrual fractions $\delta_i = \tau(T_i, T_{i+1})$.
+The LMM models the set of forward rates $\{F_i(t)\}_{i=0}^{n-1}$ defined on a discrete tenor grid. As Brigo and Mercurio explain, the key insight is to specify dynamics for tradable rates (forwards) rather than an abstract short rate, ensuring that caplet pricing aligns directly with market quoting conventions.
 
-**Intuition:** These are the standard coupon/reset/payment times for money-market FRAs and swap legs.
+**Design choice:** Under the $T_{i+1}$-forward measure $\mathbb{Q}^{i+1}$ (numeraire $P(t, T_{i+1})$), the forward $F_i(t)$ is a martingale. In the lognormal-forward model (LFM), it is postulated to follow driftless lognormal dynamics:
 
-**Trading/risk practice:** Most quoted caplets/swaptions reference such a grid (e.g., semiannual fixed legs, quarterly floating legs). The tenor determines which forwards/swaps you model and hedge.
+$$\boxed{dF_i(t) = \sigma_i(t) F_i(t) \, dZ_i^{i+1}(t)}$$
 
-### 1.2 Zero-Coupon Bonds $P(t, T)$
+This is *not* a theorem about how rates actually behave—it is a modeling choice that guarantees Black caplet pricing.
 
-**Formal definition:** $P(t, T)$ is the time-$t$ price of \$1 paid at maturity $T$.
+### A4.2.2 Why Lognormal $F_i$ Implies Black Caplet Pricing
 
-**Intuition:** Bonds are the primitives from which forwards and swaps are built.
+Consider a caplet on period $[T_i, T_{i+1}]$, set at $T_i$ and paid at $T_{i+1}$. The payoff is $\delta_i(F_i(T_i) - K)^+$ paid at $T_{i+1}$.
 
-**Trading/risk practice:** Curves are built to produce $P(0, T)$. A "market model" typically assumes the initial curve is given and focuses on the volatility of rates.
+Using the $T_{i+1}$-forward measure:
 
-### 1.3 Forward Rate / "LIBOR-Style" Simply-Compounded Forward $F_i(t)$
+$$\mathrm{Cpl}_0 = P(0, T_{i+1}) \, \mathbb{E}^{i+1}\left[\delta_i(F_i(T_i) - K)^+\right]$$
 
-**Formal definition:**
+Since $F_i$ is lognormal under $\mathbb{Q}^{i+1}$:
 
-$$F_i(t) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right), \quad \text{so} \quad 1 + \delta_i F_i(t) = \frac{P(t, T_i)}{P(t, T_{i+1})}.$$
+$$\ln F_i(T_i) = \ln F_i(0) - \frac{1}{2}\int_0^{T_i} \sigma_i^2(s) ds + \int_0^{T_i} \sigma_i(s) dZ_i^{i+1}(s)$$
 
-**Intuition:** $F_i(t)$ is the fair (no-arbitrage) simple rate for borrowing/lending over $[T_i, T_{i+1}]$, as implied by bonds.
+The expectation is exactly a Black call on a lognormal forward:
 
-**Trading/risk practice:**
-- Caps/floors are portfolios of options on these forwards (caplets/floorlets).
-- In LMM, these $F_i$ are the modeled state variables, so caplet pricing is designed to line up with Black quoting.
+$$\boxed{\mathrm{Cpl}_0 = P(0, T_{i+1}) \cdot \delta_i \cdot \mathrm{Bl}\left(K, F_i(0), v_i, +1\right)}$$
 
-### 1.4 Numeraires and Measures (Money-Market, $T$-Forward, Swap Measure)
+where $v_i = \sqrt{\int_0^{T_i} \sigma_i^2(s) ds}$ is the integrated volatility (for constant $\sigma$, simply $v_i = \sigma_i \sqrt{T_i}$).
 
-**Formal definitions:**
-- **Money-market numeraire** $B(t) = B_0 e^{\int_0^t r_s \, ds}$.
-- **$T$-bond numeraire** $P(t, T)$: induces the $T$-forward measure $\mathbb{Q}^T$ and pricing formula
+### A4.2.3 Coupled Drift Under Other Measures: Step-by-Step Derivation
 
-$$\Pi_t = P(t, T) \, \mathbb{E}^T[H_T \mid \mathcal{F}_t].$$
+This is the heart of LMM complexity. When simulating all forwards under a common measure, no-arbitrage forces state-dependent drifts.
 
-- **Swap annuity numeraire** $C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$ induces the swap/annuity measure $\mathbb{Q}^{\alpha,\beta}$, under which the swap rate is a martingale.
+#### Under the Terminal Measure $\mathbb{Q}^n$
 
-**Intuition:** A numeraire is "the unit of account" for measuring value. Under the measure associated to a chosen numeraire, any tradable price divided by the numeraire is a martingale.
+Andersen and Piterbarg (Lemma 14.2.2) derive the dynamics of $F_k$ under the terminal measure. The key steps:
 
-**Trading/risk practice:** Picking the right measure is the heart of market models:
-- Caplets are naturally priced under the relevant bond-forward measure.
-- Swaptions are naturally priced under the relevant swap (annuity) measure.
+**Step 1: Start with the bond ratio representation.**
 
-### 1.5 Caplet, Cap, Swaption Payoffs; Black(-Style) Compatibility
+Since $F_k(t) = \frac{1}{\delta_k}\left(\frac{P(t,T_k)}{P(t,T_{k+1})} - 1\right)$, we can write:
 
-#### Caplet
+$$1 + \delta_k F_k(t) = \frac{P(t, T_k)}{P(t, T_{k+1})}$$
 
-**Formal payoff (payer caplet):** set at $T_i$ and paid at $T_{i+1}$ (equivalently set at $T_{i-1}$ and paid at $T_i$ depending on indexing). In the references' caplet convention: payoff set at $T_{i-1}$ and paid at $T_i$, and the time-0 price is expressed under the $T_i$-forward measure as
+**Step 2: Apply Itô's lemma to the bond ratio.**
 
-$$\mathrm{Cpl}(0, T_{i-1}, T_i, \tau_i, K) = P(0, T_i) \tau_i \, \mathbb{E}^i\left[(F_i(T_{i-1}) - K)^+\right].$$
+Under any equivalent martingale measure, bond ratios follow diffusions. The drift depends on which numeraire we choose.
 
-(cap price shown as sum; caplet decomposition uses this structure in the text)
+**Step 3: Change from $\mathbb{Q}^{k+1}$ to $\mathbb{Q}^n$.**
 
-#### Cap
+Under $\mathbb{Q}^{k+1}$, $F_k$ is driftless. To change to $\mathbb{Q}^n$, we apply Girsanov's theorem with Radon-Nikodym derivative:
 
-**Formal definition:** a cap is a sum of caplets across payment dates (strip decomposition).
+$$\frac{d\mathbb{Q}^{k+1}}{d\mathbb{Q}^n}\bigg|_{\mathcal{F}_t} = \frac{P(t, T_{k+1})/P(0, T_{k+1})}{P(t, T_n)/P(0, T_n)} = \frac{P(t, T_{k+1}) P(0, T_n)}{P(t, T_n) P(0, T_{k+1})}$$
 
-#### Swaption
+**Step 4: Express the bond ratio as a product.**
 
-**Formal payoff (payer swaption)** at expiry $T_\alpha$:
+$$\frac{P(t, T_{k+1})}{P(t, T_n)} = \prod_{j=k+1}^{n-1} \frac{P(t, T_j)}{P(t, T_{j+1})} = \prod_{j=k+1}^{n-1} (1 + \delta_j F_j(t))$$
 
-$$\mathrm{Payoff}_{T_\alpha} = (S_{\alpha,\beta}(T_\alpha) - K)^+ \, C_{\alpha,\beta}(T_\alpha).$$
+**Step 5: Apply Itô to the product.**
 
-#### Black Compatibility
+Taking the log differential and using the dynamics of each $F_j$:
 
-**Formal meaning (within this appendix):** choose a model so that the payoff expectation reduces to the Black function $\mathrm{Bl}$ with lognormal-underlying assumptions under an appropriate measure.
+$$d\ln\left(\prod_{j=k+1}^{n-1}(1+\delta_j F_j)\right) = \sum_{j=k+1}^{n-1} \frac{\delta_j dF_j}{1+\delta_j F_j} - \frac{1}{2}\sum_{j=k+1}^{n-1}\frac{\delta_j^2 \langle dF_j \rangle}{(1+\delta_j F_j)^2}$$
 
-**Why traders care:** caps and swaptions are commonly quoted in terms of Black implied volatilities, so calibration is naturally framed as "match Black vols/prices."
+**Step 6: Extract the drift shift.**
 
-### 1.6 What is a "Market Model"?
+The Girsanov drift shift adds:
 
-**Formal definition (in spirit of the sources):** a model that directly specifies the stochastic dynamics of market-quoted rates (forward rates or swap rates) on a discrete tenor, using no-arbitrage via measure/numeraire consistency to imply drifts under other measures.
+$$\mu_k^{(n)}(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{n-1} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)}$$
 
-**Intuition:** Instead of modeling a short rate and deriving forwards/swaps, we model the forwards/swaps directly—because that's what the option market quotes.
+**Result (Terminal Measure $\mathbb{Q}^n$):**
 
-**Trading/risk practice:**
-- Enables direct calibration to caplet and/or swaption vol surfaces.
-- Facilitates "vega bucket" risk reporting aligned with market quotes.
+$$\boxed{dF_k(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{n-1} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^n(t)}$$
 
----
+#### Under the Spot Measure $\mathbb{Q}^d$
 
-## 2. LMM (BGM) Essentials: Modeling Forward Rates
+Andersen and Piterbarg (Lemma 14.2.3) show that under the spot measure, earlier forwards pick up *positive* drift:
 
-### 2.1 Modeling Target: Forward Rates $F_i(t)$ on a Discrete Tenor
+$$\boxed{dF_k(t) = \sigma_k(t) F_k(t) \sum_{j=\beta(t)}^{k} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^d(t)}$$
 
-We model the set $\{F_i(t)\}_{i=0}^{n-1}$ defined from bond prices.
+where $\beta(t)$ is the index of the first tenor date after $t$.
 
-### 2.2 Key No-Arbitrage Idea: Choose the Measure Where a Forward is Simplest
+**Key observation:** The sign of the drift differs between terminal and spot measures. Under the terminal measure, forwards drift *downward* (negative drift correction). Under the spot measure, forwards drift *upward*.
 
-Under the $T_{i+1}$-forward measure $\mathbb{Q}^{i+1}$ (numeraire $P(t, T_{i+1})$), the forward $F_i(t)$ is a martingale. In the lognormal-forward model, it is postulated to be lognormal with driftless dynamics (in scalar form):
+#### Under an Arbitrary Forward Measure $\mathbb{Q}^i$
 
-$$dF_i(t) = \sigma_i(t) F_i(t) \, dZ_i^{i+1}(t).$$
+For $k < i$:
 
-**Why this produces Black caplet pricing:** if $F_i$ is lognormal under its forward measure, then $\mathbb{E}^{i+1}[(F_i(T_i) - K)^+]$ is exactly a Black expectation (see Section 7 derivation).
+$$dF_k(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{i} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^i(t)$$
 
-### 2.3 SDE Form Under Its Natural Forward Measure (What is Lognormal)
+For $k > i$:
 
-**Scalar (one-factor) form** shown in the text:
+$$dF_k(t) = \sigma_k(t) F_k(t) \sum_{j=i+1}^{k} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^i(t)$$
 
-$$dF_i(t) = \sigma_i(t) \, F_i(t) \, dZ_i^{i+1}(t) \quad \Rightarrow \quad \ln F_i(t) \text{ is normal under } \mathbb{Q}^{i+1}.$$
+### A4.2.4 Multifactor Extension
 
-**What is not claimed:**
-- This does not mean all $F_j$ are simultaneously lognormal under a single common measure.
-- Under $\mathbb{Q}$ (money-market measure), each $F_i$ has a non-zero, state-dependent drift (coupled drift).
+In practice, we model forward rate dynamics with a vector volatility:
 
-### 2.4 Drift Under Other Measures (Coupled Drift Feature)
+$$dF_i(t) = \mu_i(t) dt + F_i(t) \boldsymbol{\sigma}_i(t)^\top d\mathbf{Z}(t)$$
 
-#### 2.4.1 Drift Under Another Forward Measure $\mathbb{Q}^i$
+where $\boldsymbol{\sigma}_i(t) \in \mathbb{R}^d$ is a $d$-dimensional volatility vector and $\mathbf{Z}(t)$ is a $d$-dimensional Brownian motion. The instantaneous correlation structure is:
 
-The sources derive a general drift adjustment when changing from $\mathbb{Q}^k$ to $\mathbb{Q}^i$ (with $k < i$). The resulting dynamics (scalar notation) are:
+$$\rho_{i,j} = \frac{\boldsymbol{\sigma}_i(t)^\top \boldsymbol{\sigma}_j(t)}{|\boldsymbol{\sigma}_i(t)| \cdot |\boldsymbol{\sigma}_j(t)|}$$
 
-$$\boxed{dF_k(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{i} \frac{\tau_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \tau_j F_j(t)} \, dt + \sigma_k(t) F_k(t) \, dZ_k^i(t).}$$
-
-**Interpretation:** under $\mathbb{Q}^i$, the drift of an earlier forward $F_k$ depends on the later forwards $\{F_{k+1}, \ldots, F_i\}$. This is the classic "triangular/coupled drift" structure of LMM.
-
-#### 2.4.2 Drift Under the Risk-Neutral (Money-Market) Measure $\mathbb{Q}$
-
-The risk-neutral drift expression in the source includes:
-- a sum similar in spirit to the above coupling term, plus
-- an additional term involving the instantaneous forward rate $f(t, T_{\beta(t)})$ over the current accrual interval.
-
-I'm not sure how much of the risk-neutral drift expression you want to emphasize in this appendix, because it depends on the exact definition of $\beta(t)$ (the index locating $t$ inside the tenor) and on the discrete-money-market construction used in the source. To be certain, we would need to lock down:
-- whether we are using the continuous money-market account $B(t)$ or the discretely compounded "spot LIBOR" bank account $B_d(t)$,
-- the precise definition of $\beta(t)$ and the interpolation conventions used between tenor dates (the text discusses such details elsewhere).
+The number of factors $d$ controls the richness of correlation structure that can be captured.
 
 ---
 
-## 3. Swap Market Model Essentials: Modeling Swap Rates
+## A4.3 Swap Market Model Essentials
 
-### 3.1 Modeling Target: Swap Rate $S_{\alpha,\beta}(t)$ for a Swap Spanning $[T_\alpha, T_\beta]$
+### A4.3.1 Swap Rate and Annuity
 
-**Definition (source-backed):**
+For a swap spanning $[T_\alpha, T_\beta]$ with payments at $\{T_{\alpha+1}, \ldots, T_\beta\}$:
 
-$$S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}, \qquad C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \tau_k P(t, T_k).$$
+**Swap annuity (PVBP):**
 
-**Intuition:**
-- $C_{\alpha,\beta}(t)$ is the PV of a unit fixed leg (PVBP / swap annuity).
-- The numerator $P(t, T_\alpha) - P(t, T_\beta)$ is the PV of the floating leg of a forward-starting par swap.
+$$C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$$
 
-### 3.2 Key Motivation: Swap Measure Lognormality $\Rightarrow$ Black Swaption Pricing
+**Forward swap rate:**
 
-The swaption payoff at $T_\alpha$ can be written as
+$$\boxed{S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}}$$
 
-$$\mathrm{Payoff}_{T_\alpha} = (S_{\alpha,\beta}(T_\alpha) - K)^+ \, C_{\alpha,\beta}(T_\alpha).$$
+The numerator represents the PV of the floating leg (for a forward-starting par swap), and the denominator is the PV of a unit fixed annuity.
 
-Under the swap (annuity) measure associated with numeraire $C_{\alpha,\beta}$, the forward swap rate is a martingale (and the annuity is a valid numeraire).
+### A4.3.2 Swap Measure and Swaption Pricing
 
-The **lognormal forward-swap model** assumes $S_{\alpha,\beta}$ follows a lognormal diffusion under $\mathbb{Q}^{\alpha,\beta}$ (the text states this as a "lognormal dynamics" assumption).
+The payer swaption payoff at expiry $T_\alpha$ is:
 
-Then the Black payer swaption formula applies:
+$$\mathrm{Payoff}_{T_\alpha} = (S_{\alpha,\beta}(T_\alpha) - K)^+ \cdot C_{\alpha,\beta}(T_\alpha)$$
 
-$$\boxed{PS^{\mathrm{Black}}(0, \ldots) = N \left(\sum_{i=\alpha+1}^{\beta} \tau_i P(0, T_i)\right) \mathrm{Bl}\left(K, S_{\alpha,\beta}(0), \sigma_{\alpha,\beta}\sqrt{T_\alpha}, +1\right).}$$
+Under the swap (annuity) measure $\mathbb{Q}^{\alpha,\beta}$ with numeraire $C_{\alpha,\beta}(t)$:
 
-### 3.3 Why is the Swap Annuity a Numeraire?
+1. The annuity qualifies as a numeraire (it's strictly positive and tradable)
+2. The forward swap rate $S_{\alpha,\beta}(t)$ is a martingale
 
-**Source-backed statement:** $A_{n,m}(t) = \sum_{i=n+1}^{m} \delta_i P(t, T_i)$ qualifies as a numeraire, and the corresponding forward swap rate is a martingale under the associated annuity measure.
+If we assume $S_{\alpha,\beta}$ follows lognormal dynamics under $\mathbb{Q}^{\alpha,\beta}$:
 
-**Interpretation (inference):** since $A_{n,m}(t)$ is a strictly positive tradable value process (portfolio of bonds with positive weights), it can serve as a numeraire.
+$$dS_{\alpha,\beta}(t) = \sigma_{\alpha,\beta}(t) S_{\alpha,\beta}(t) dZ^{\alpha,\beta}(t)$$
 
-### 3.4 Practical Comparison with LMM
+Then the swaption price is:
 
-#### Natural Calibration Fit
+$$\boxed{PS^{\mathrm{Black}}_0 = C_{\alpha,\beta}(0) \cdot \mathrm{Bl}\left(K, S_{\alpha,\beta}(0), \sigma_{\alpha,\beta}\sqrt{T_\alpha}, +1\right)}$$
 
-| Model | Natural Fit |
-|-------|-------------|
-| **LMM/LFM** | Caplets are directly Black(-lognormal) under each $T_{i+1}$-forward measure because $F_i$ is modeled as driftless lognormal under that measure |
-| **Swap market model/LSM** | Swaptions are directly Black(-lognormal) under each swap measure because $S_{\alpha,\beta}$ is modeled as lognormal under that measure |
+### A4.3.3 LMM vs Swap Market Model: Natural Fit
 
-#### Consistency Across the Full Vol Surface
+| Model | Natural Fit | Challenge |
+|-------|-------------|-----------|
+| **LMM** | Caplets are exactly Black under each $T_{i+1}$-forward measure | Swap rates are *not* exactly lognormal; swaption pricing requires approximation or Monte Carlo |
+| **Swap Market Model** | Swaptions are exactly Black under each swap measure | Forward rates are *not* exactly lognormal; cap pricing requires approximation |
 
-The sources emphasize an **incompatibility:** swap rates are not exactly lognormal under the LMM, and forward rates are not exactly lognormal under the LSM. However, the text also notes that the practical difference can be small in many cases (swap-rate distribution under LMM can be close to lognormal under the swap measure).
+**Incompatibility theorem:** Brigo and Mercurio prove that forward rates cannot all be lognormal while swap rates are also lognormal. The two models are mutually exclusive in the strict sense. However, the practical difference is often small—the swap rate distribution under LMM is typically close to lognormal.
+
+### A4.3.4 Coterminal Swaptions and Bermudan Pricing
+
+**Coterminal swaptions** are swaptions with the same end date but different start dates. For example, 1Y×4Y, 2Y×3Y, 3Y×2Y, 4Y×1Y are all coterminal (ending at year 5).
+
+Andersen and Piterbarg emphasize that **coterminal swaption calibration is critical for Bermudan swaption pricing**. A Bermudan swaption allows exercise at multiple dates, and the optimal exercise decision depends on comparing continuation value against immediate exercise value—which is a coterminal swaption payoff.
+
+**Calibration strategy for Bermudans:**
+
+1. Identify the exercise dates $\{T_{\alpha_1}, T_{\alpha_2}, \ldots\}$
+2. For each exercise date, the immediate exercise value involves a coterminal swaption
+3. Calibrate the LMM to the corresponding coterminal swaption volatilities
+4. This ensures the model correctly prices the boundary conditions
+
+**Coterminal swap rate formula:** For a swap from $T_\alpha$ to $T_n$ (fixed terminal date):
+
+$$S_{\alpha,n}(t) = \frac{P(t, T_\alpha) - P(t, T_n)}{C_{\alpha,n}(t)} = \frac{P(t, T_\alpha) - P(t, T_n)}{\sum_{k=\alpha+1}^{n} \delta_k P(t, T_k)}$$
+
+### A4.3.5 Relationship Between LMM and LSM
+
+The swap rate is a weighted average of forward rates. Specifically:
+
+$$S_{\alpha,\beta}(t) = \sum_{i=\alpha}^{\beta-1} w_i(t) F_i(t)$$
+
+where the weights $w_i(t)$ are time-dependent and depend on the current term structure:
+
+$$w_i(t) = \frac{\delta_i P(t, T_{i+1})}{C_{\alpha,\beta}(t)}$$
+
+**Implication for volatility:** The swap rate volatility is approximately:
+
+$$\sigma_{S}^2 \approx \sum_{i,j} w_i w_j \rho_{i,j} \sigma_i \sigma_j$$
+
+This weighted-covariance formula explains why correlation structure in LMM affects swaption prices and why calibration to swaptions constrains correlation parameters.
 
 ---
 
-## 4. Connection to HJM and Drift Restrictions (Bridge Section)
+## A4.4 Connection to HJM and Drift Restrictions
 
-### 4.1 HJM Drift Restriction (Continuous-Tenor Baseline)
+### A4.4.1 HJM Drift Restriction Review
 
-In HJM, instantaneous forward rates $f(t, T)$ have dynamics under the $T$-forward measure:
+In the HJM framework, instantaneous forward rates $f(t, T)$ satisfy under the risk-neutral measure:
 
-$$df(t, T) = \sigma_f(t, T)^\top \, dW^T(t),$$
+$$df(t, T) = \sigma_f(t, T)^\top \left(\int_t^T \sigma_f(t, u) \, du\right) dt + \sigma_f(t, T)^\top dW(t)$$
 
-and under the risk-neutral measure:
+Under the $T$-forward measure, the drift vanishes:
 
-$$df(t, T) = \sigma_f(t, T)^\top \left(\int_t^T \sigma_f(t, u) \, du\right) dt + \sigma_f(t, T)^\top dW(t).$$
+$$df(t, T) = \sigma_f(t, T)^\top dW^T(t)$$
+
+**Key insight:** Once you choose the volatility structure $\sigma_f(t, T)$, no-arbitrage completely determines the drift.
+
+### A4.4.2 LMM as Discrete HJM
+
+The LMM can be viewed as a discrete-tenor specialization of HJM:
+
+| HJM (Continuous) | LMM (Discrete) |
+|------------------|----------------|
+| Continuous maturity $T$ | Discrete tenor $T_i$ |
+| Instantaneous forward $f(t, T)$ | Simply-compounded forward $F_i(t)$ |
+| Volatility $\sigma_f(t, T)$ | Volatility $\sigma_i(t)$ |
+| Drift from HJM condition | Drift from measure change (coupled drift) |
+
+The coupled drift formulas in LMM are the discrete-tenor analog of the HJM drift restriction. Both enforce no-arbitrage given a volatility specification.
+
+### A4.4.3 Design Message
+
+Market models represent a specific philosophy:
+
+1. **Choose which rate should be "nice"** (driftless lognormal)
+2. **Select the appropriate measure** for that rate
+3. **Accept complexity elsewhere**—drift coupling under other measures
+
+This tradeoff is explicit and intentional, unlike short-rate models where the relationship between $r_t$ dynamics and forward/swap rate distributions is indirect.
+
+---
+
+## A4.5 Calibration Methodology
+
+### A4.5.1 Calibration Instruments
+
+#### Caps/Floors → Forward Rate Volatility
+
+Caps are commonly quoted via Black implied volatilities. Since LMM makes caplets exactly Black under forward measures, calibration proceeds:
+
+1. **Bootstrap caplet volatilities** from cap quotes
+2. **Fit instantaneous volatility** $\sigma_i(t)$ so that integrated variance matches implied variance:
+
+   $$\int_0^{T_i} \sigma_i^2(s) ds = (\sigma_i^{\text{impl}})^2 T_i$$
+
+#### Swaptions → Swap Rate Volatility and Correlation
+
+Swaption implied volatilities constrain the correlation structure because swap rates are weighted averages of forwards. Calibrating to swaptions involves:
+
+1. Choosing a correlation parameterization
+2. Solving for parameters that minimize swaption pricing errors
+
+### A4.5.2 Volatility Parameterizations
+
+**General Piecewise Constant (GPC):** Define $\sigma_i(t)$ as piecewise constant between tenor dates. This is flexible but can have many parameters.
+
+**Parametric Form (Rebonato-style):**
+
+$$\sigma_i(t) = \Phi_i \left[(a(T_{i-1} - t) + d) e^{-b(T_{i-1} - t)} + c\right]$$
+
+Parameters:
+- $a, b, c, d$: shape parameters controlling time-to-maturity effects
+- $\Phi_i$: scaling factors that can be pinned to caplet volatilities
+
+This gives a parsimonious representation with interpretable behavior:
+- The term $(T_{i-1} - t)$ measures time-to-fixing
+- The exponential decay $e^{-b(T_{i-1}-t)}$ captures the "hump" shape often observed in volatility term structures
+
+### A4.5.3 Correlation Parameterizations
+
+**Exponential form:**
+
+$$\rho_{i,j} = \exp(-\beta |T_i - T_j|), \qquad \beta > 0$$
+
+Higher $\beta$ means less correlation between distant forwards.
+
+**Rebonato 3-parameter form:**
+
+$$\rho_{i,j} = \rho_\infty + (1 - \rho_\infty) \exp\left(-\beta |T_i - T_j|^\gamma\right)$$
+
+This allows control over:
+- Long-range correlation floor ($\rho_\infty$)
+- Decay rate ($\beta$)
+- Decay curvature ($\gamma$)
+
+**Reduced-rank formulations:** Express volatility vectors in terms of $d$ factors where $d < n$. This reduces computational burden in simulation and ensures the correlation matrix remains positive semi-definite.
+
+**Eigenvalue zeroing algorithm** (Brigo & Mercurio, Section 6.9):
+1. Start with full correlation matrix $\rho$ (size $n \times n$)
+2. Compute eigenvalue decomposition: $\rho = V \Lambda V^T$ where $\Lambda = \text{diag}(\lambda_1, \ldots, \lambda_n)$
+3. Zero out the smallest $n - d$ eigenvalues: $\tilde{\Lambda} = \text{diag}(\lambda_1, \ldots, \lambda_d, 0, \ldots, 0)$
+4. Reconstruct: $\tilde{\rho} = V \tilde{\Lambda} V^T$
+5. Rescale diagonal to 1 if needed
+
+This produces a rank-$d$ correlation matrix that is automatically positive semi-definite (since all remaining eigenvalues are positive).
+
+**Rebonato's angle parameterization:** An alternative that guarantees valid correlations by construction. Define factor loadings via angles $\theta_{i,k}$:
+$$b_{i,1} = \cos\theta_{i,1}, \quad b_{i,k} = \sin\theta_{i,1}\cdots\sin\theta_{i,k-1}\cos\theta_{i,k}$$
+
+Then $\rho_{i,j} = \sum_{k=1}^{p} b_{i,k} b_{j,k}$, which is automatically a valid correlation entry.
+
+### A4.5.4 Rebonato's Swaption Volatility Approximation
+
+A critical formula for calibration is **Rebonato's approximation** for swaption volatility in terms of forward volatilities and correlations. This bridges the LMM (which models forwards) to swaption prices (which the market quotes).
+
+**Setup:** Consider a swap over periods $[\alpha+1, \beta]$ with forward rates $F_{\alpha+1}, \ldots, F_\beta$ and corresponding volatilities $\sigma_i(t)$. Define swap rate weights:
+
+$$w_i(t) = \frac{\delta_i P(t, T_i)}{C_{\alpha,\beta}(t)}$$
+
+Note that $\sum_{i=\alpha+1}^{\beta} w_i(t) = 1$ (the weights sum to one).
+
+**Rebonato's Approximation (Brigo & Mercurio, Proposition 6.15.1):** The Black implied volatility for a swaption expiring at $T_\alpha$ is approximately:
+
+$$\boxed{\left(v_{\alpha, \beta}^{LMM}\right)^{2} \approx \sum_{i,j=\alpha+1}^{\beta} \frac{w_i(0) w_j(0) F_i(0) F_j(0) \rho_{i,j}}{S_{\alpha,\beta}(0)^2} \int_0^{T_\alpha} \sigma_i(t) \sigma_j(t) dt}$$
+
+where $S_{\alpha,\beta}(0)$ is the initial swap rate.
 
 **Interpretation:**
-- Choose the volatility structure $\sigma_f(t, T)$, then no-arbitrage fixes the drift (risk-neutral drift is determined by volatility).
-- Under the $T$-forward measure, the drift disappears (a martingale property).
+- The double sum runs over all pairs of forward rates in the swap
+- Each pair contributes proportionally to their weights, forward levels, and correlation
+- The integral captures the cumulative volatility effect over the option lifetime
+- The formula is exact when forward volatilities are deterministic (frozen at initial values)
 
-### 4.2 How LMM Connects to HJM (Conceptual Map)
+**Simplified form with constant volatilities:** If $\sigma_i(t) = \sigma_i$ (constant), then:
 
-**Conceptual linkage (inference consistent with the above):**
-- LMM replaces the continuum of maturities with a discrete tenor and replaces $f(t, T)$ with simply-compounded forwards $F_i(t)$.
-- Instead of specifying $\sigma_f(t, T)$, LMM specifies $\sigma_i(t)$ for each $F_i$ (plus correlation across $i$).
-- The drift under non-canonical measures becomes implied and coupled, analogous to HJM drift restriction. This is explicit in the LMM drift formulas under measure changes.
+$$\left(v_{\alpha, \beta}^{LMM}\right)^{2} \approx \sum_{i,j=\alpha+1}^{\beta} \frac{w_i(0) w_j(0) F_i(0) F_j(0) \rho_{i,j} \sigma_i \sigma_j T_\alpha}{S_{\alpha,\beta}(0)^2}$$
 
-If you want a fully explicit "mapping" from a particular HJM volatility $\sigma_f(t, T)$ to an LMM $\sigma_i(t)$, I'm not sure the exact mapping is uniquely defined in the provided excerpts (it depends on how you discretize and how you translate instantaneous to simply-compounded forwards). To be certain, we would need the specific sections that define the discretization scheme and interpolation rule between tenor dates (the table of contents indicates related sections on drift interpolation/bridging).
+**Calibration use:** Given market swaption volatilities, this formula provides an analytical link from LMM parameters to swaption prices. During calibration:
+- Forward volatilities $\{\sigma_i\}$ primarily pin caplet prices (exactly, by construction)
+- Correlations $\{\rho_{i,j}\}$ are adjusted to match swaption volatilities via this approximation
 
-### 4.3 Tradeoff Emphasized by Market Models
+### A4.5.5 Terminal Correlation
 
-**Design choice:** Pick which tradable rate is "nice" (lognormal) under a convenient measure:
-- **LMM:** $F_i$ is nice under $\mathbb{Q}^{i+1}$.
-- **Swap market model:** $S_{\alpha,\beta}$ is nice under $\mathbb{Q}^{\alpha,\beta}$.
+When calibrating to swaptions, it is useful to understand **terminal correlation**—the correlation of forward rates at option expiry, as opposed to their instantaneous correlation.
 
-**No-arbitrage implication:** Once you specify vol/correlation, the drift under other measures is determined (and generally complicated).
+**Rebonato's terminal correlation approximation:**
 
----
+$$\text{Corr}_0^{LMM}(F_i(T), F_j(T)) \approx \frac{\int_0^T \sigma_i(t) \sigma_j(t) \rho_{i,j}(t) dt}{\sqrt{\int_0^T \sigma_i(t)^2 dt} \sqrt{\int_0^T \sigma_j(t)^2 dt}}$$
 
-## 5. Calibration Logic (The Centerpiece)
+**Exact formula (Brigo & Mercurio, formula 6.71):**
 
-This section is intentionally practitioner-oriented: what you fit, why you fit it, and how the measure choice makes calibration feasible.
+$$\text{Corr}_0^{LMM}(F_i(T), F_j(T)) = \frac{e^{\int_0^T \sigma_i(t) \sigma_j(t) \rho_{i,j}(t) dt} - 1}{\sqrt{(e^{\int_0^T \sigma_i^2(t) dt} - 1)(e^{\int_0^T \sigma_j^2(t) dt} - 1)}}$$
 
-### A) What is Calibrated to What (Market Instruments)
+**Intuition:** Even with constant instantaneous correlation $\rho_{i,j}$, the terminal correlation can differ due to:
+- Time-varying volatilities $\sigma_i(t)$ (weighted differently over $[0, T]$)
+- The nonlinear transformation in the exact formula
 
-#### A.1 Caps/Floors (Caplets) → Forward-Rate Vol
+For typical parameter values, the approximation is accurate to within a few percent.
 
-**Market quotes:** caps/floors are commonly quoted via Black implied volatilities (cap vol surface). Black cap price is represented as a sum over coupon periods using the $\mathrm{Bl}$ function.
+### A4.5.6 Calibration Objective Functions
 
-**LMM calibration idea:**
-- Because each $F_i$ is lognormal under its own forward measure, caplets are "directly Black."
-- Practically, you can infer caplet volatilities from cap quotes (bootstrapping) and then fit $\sigma_i(t)$ (or integrated variances) so model caplet prices match those implied caplet vols.
+**Basic objective:** Minimize squared pricing errors:
 
-#### A.2 Swaptions → Swap-Rate Vol (and Correlation/Structure)
+$$\min_{\theta} \sum_{\text{instruments } k} w_k \left(V_k^{\text{model}}(\theta) - V_k^{\text{market}}\right)^2$$
 
-**Market quotes:** swaptions are quoted by Black implied volatilities; a swaption price is "annuity × Black call on swap rate."
+where $\theta$ represents all calibration parameters (volatilities, correlations).
 
-**Swap market model calibration idea:** Since swap rates are assumed lognormal under swap measures, swaptions can be fit "directly."
+**In implied volatility space:** Often more stable:
 
-#### A.3 Reconciling Caps and Swaptions (Joint Calibration)
+$$\min_{\theta} \sum_k w_k \left(\sigma_k^{\text{impl,model}}(\theta) - \sigma_k^{\text{impl,market}}\right)^2$$
 
-The references explicitly raise the question of calibrating to caps and swaptions simultaneously, noting that practitioners sometimes argue there is a persistent "basis" between the two markets and advocate calibrating to one set based on whether the target product is cap-like or swaption-like. The text then recommends considering both markets with a tunable weighting mechanism.
+### A4.5.7 Regularization and Ringing Control
 
-**Practical takeaway:** your calibration set is both a pricing and hedging choice.
+**The ringing problem:** Andersen and Piterbarg explicitly warn that local/bootstrap-style calibration can produce unstable oscillating ("ringing") volatility surfaces. Small changes in input quotes cause large swings in calibrated parameters.
 
-### B) Parameterizations (Only What Sources Cover)
+**Regularization:** Add penalty terms to the objective:
 
-#### B.1 Volatility Parameterizations
+$$\min_{\theta} \left[\sum_k w_k (\text{error}_k)^2 + \lambda \cdot R(\theta)\right]$$
 
-The sources describe:
+Common regularization terms $R(\theta)$:
 
-- **General piecewise constant (GPC)** instantaneous-volatility structures (used in Monte Carlo tests and calibration discussions).
+1. **Smoothness penalty:** $\sum_i (\sigma_{i+1} - \sigma_i)^2$ penalizes rough volatility surfaces
+2. **Tikhonov regularization:** $\|\theta - \theta_0\|^2$ pulls toward prior/reference values
+3. **Second-derivative penalty:** $\sum_i (\sigma_{i+1} - 2\sigma_i + \sigma_{i-1})^2$ penalizes curvature
 
-- **Parametric instantaneous volatility structure** example ("Formulation 7"):
+The regularization weight $\lambda$ balances fit quality against stability.
 
-$$\sigma_i(t) = \Phi_i \left([a(T_{i-1} - t) + d] e^{-b(T_{i-1} - t)} + c\right),$$
+### A4.5.8 Global vs Local Calibration
 
-with parameters $a, b, c, d$ and scaling factors $\Phi_i$.
+**Local (row-by-row) calibration:**
+- Calibrate to caplet $i$ by fitting $\sigma_i$
+- Simple and fast
+- Can cause ringing; doesn't ensure consistency across instruments
 
-**Interpretation (inference):**
-- $\Phi_i$ typically ties the structure to caplet vol levels (the source notes $\Phi$'s being determined through caplet volatilities via a referenced equation).
-- $(a, b, c, d)$ shape the term structure of instantaneous vol in maturity.
+**Global calibration:**
+- Solve for all parameters simultaneously
+- Minimizes total objective with regularization
+- More stable; better for hedging
+- Computationally heavier
 
-**Smile extensions:** The sources list several ways to extend beyond flat-smile lognormal market models, including displaced diffusion, CEV-like dynamics, local volatility, stochastic volatility, and SABR-style approaches.
+Andersen and Piterbarg recommend global calibration with regularization for production use.
 
-#### B.2 Correlation Structure Across Tenor/Factors
+### A4.5.9 Joint Caps and Swaptions Calibration
 
-The sources discuss:
+The key insight is that:
+- Caplets pin volatility levels directly
+- Swaptions pin correlations (since swaption vol depends on forward-forward correlation)
 
-- **Full-rank parameterizations,** e.g. constant correlation, and an exponential form $\rho_{ij} = \exp(-\beta |T_i - T_j|)$ with $\beta > 0$.
+A typical workflow:
+1. Fit volatility $\{\sigma_i\}$ to caplets (or cap strip)
+2. Fit correlation parameters $\{\rho_{i,j}\}$ to swaption matrix
+3. Iterate if necessary, with weights reflecting relative importance
 
-- **Reduced-rank formulations** (Rebonato's angles, eigenvalue zeroing) for factor reduction and simulation efficiency.
+**Weighting choice:** If pricing cap-like products, weight caplets heavily. For swaption-like products (Bermudans), weight swaptions. For a general book, balance based on hedge instrument liquidity.
 
-- A **Rebonato-like 3-parameter form:** $\rho_{i,j} = \rho_\infty + (1 - \rho_\infty) \exp(-\beta |T_i - T_j|^\gamma)$ is also listed.
+### A4.5.10 Calibration Workflow Summary
 
-**Interpretation (inference):** calibration to swaptions often informs correlation/factor structure, because swap rates are weighted combinations of many forwards.
+```
+1. BUILD INITIAL CURVE
+   └─→ Bootstrap P(0,T) from deposits/futures/swaps
+   └─→ Compute initial forwards F_i(0)
 
-### C) Calibration Workflow Steps (Concrete)
+2. CHOOSE MODEL FAMILY
+   └─→ LMM for cap-heavy books
+   └─→ Consider coterminal focus for Bermudans
 
-Below is a concrete workflow consistent with the sources' discussion. Where an exact algorithmic detail is not pinned down, I label it.
+3. CHOOSE PARAMETERIZATION
+   └─→ Volatility: GPC or parametric
+   └─→ Correlation: exponential, Rebonato, or reduced-rank
 
-1. **Fix the initial curve** $\{P(0, T_i)\}$ and implied forwards $\{F_i(0)\}$
-   - Treat curve construction as "given" (bootstrapped from deposits/futures/swaps, etc.) and compute forwards from bond ratios.
+4. SET UP OBJECTIVE
+   └─→ Include caps, swaptions, or both
+   └─→ Add regularization terms
+   └─→ Weight instruments by importance
 
-2. **Choose model family**
-   - Caps-first: LMM/LFM (BGM).
-   - Swaptions-first: swap market model / LSM.
+5. OPTIMIZE
+   └─→ Use gradient-based or Levenberg-Marquardt
+   └─→ Multiple starting points for robustness
 
-3. **Choose parameterization for vol/correlation**
-   - For LMM:
-     - Choose $\sigma_i(t)$ either piecewise constant (GPC) or parametric (e.g., Formulation 7).
-     - Choose a correlation structure $\rho_{ij}$ (full-rank exponential, or reduced-rank).
-   - For swap market model:
-     - Choose swap-rate vol parameterization across expiries/tenors; often directly implied from swaption vol surface (Black vols).
-
-4. **Fit to market vol quotes** (objective function + constraints/regularization)
-   - **Objective function example** (explicit in source): minimize sum of squared differences between model and market swaption prices (tables).
-   - **Regularization / smoothness:** The sources emphasize adding regularity terms to avoid unstable "ringing" patterns in calibrated vol surfaces.
-   - **Weighting caps vs swaptions:** The sources recommend considering both markets but allow unequal weights in the calibration objective.
-   - **Algorithm choice:** The sources discuss row-by-row calibration and "full-blown" calibration, plus mention bootstrap/cascade ideas and their pitfalls. I'm not sure which numerical optimizer (LM, SQP, gradient-based) you want assumed; the sources focus more on problem structure (splitting, regularization, robustness) than on one canonical optimizer in the excerpted lines.
-
-5. **Validate**
-   - **Repricing checks:** reprice the caps and swaptions used in calibration and confirm errors are within tolerance.
-   - **Stability checks:** bump a few market vols and see if calibrated $\sigma_i(t)$ moves smoothly (ringing control). This is directly motivated by the "ringing" discussion.
-   - **Market sanity checks:** the sources warn about swaption matrix misalignment (stale quotes) which can cause unstable/impossible implied parameters.
-
-### D) Why Black(-Style) Compatibility Matters
-
-**In LMM, caplets are "built to be Black":**
-- Under the $T_{i+1}$-forward measure, $F_i$ is modeled driftless lognormal.
-- Hence caplet prices are Black expectations under that measure (Section 7 derivation), aligning directly with caplet implied vol quotes.
-
-**In the swap market model, swaptions are "built to be Black":**
-- Under the swap annuity measure, swap rate is modeled lognormal and swaption payoff is annuity times option on swap rate.
-
-**Design message:** This is not a theorem about real-world dynamics; it is a quoting-compatibility and calibration-efficiency choice.
+6. VALIDATE
+   └─→ Reprice calibration instruments
+   └─→ Check for ringing
+   └─→ Stress test: bump quotes and recalibrate
+```
 
 ---
 
-## 6. Simulation and Pricing Map (Implementation-Level but No Code Requirement)
+## A4.6 Simulation, Pricing, and SOFR Adaptation
 
-### 6.1 How to Simulate LMM (Measure Choice and Drift Complexity)
+### A4.6.1 Simulation Under a Common Measure
 
-The sources discuss simulation/pricing under a spot-LIBOR measure $\mathbb{Q}^d$ with a discrete bank account numeraire $B_d(t)$, and express swaption pricing as an expectation under $\mathbb{Q}^d$:
+For Monte Carlo pricing, choose one measure for all forwards. Common choices:
 
-$$V_0 = B_d(0) \, \mathbb{E}^d\left[\frac{C_{\alpha,\beta}(T_\alpha) \, (S_{\alpha,\beta}(T_\alpha) - K)^+}{B_d(T_\alpha)}\right].$$
+**Terminal measure $\mathbb{Q}^n$:**
+- All forwards have negative drift corrections (except $F_{n-1}$ which is driftless)
+- Natural deflator: $P(t, T_n)$
 
-**Consequences:**
-- A single common measure for joint simulation (e.g., $\mathbb{Q}^d$ or a terminal forward measure) avoids changing measure instrument-by-instrument, but introduces coupled drifts (need to recompute drift each step from current forward rates). The coupled drift phenomenon is explicit in the measure-change formulas.
+**Spot measure $\mathbb{Q}^d$:**
+- Positive drift corrections
+- Natural for pricing products with cashflows at multiple dates
 
-**Discretization:**
-- Discretize time on a grid; evolve all forwards $\{F_i\}$ forward using an Euler/log-Euler scheme. The text notes the need for discretized LMM dynamics and discusses Euler-type approximations and alternative schemes.
+### A4.6.2 Discretization Schemes
 
-I'm not sure which measure your desk prefers for LMM simulation (terminal vs spot) because the excerpted lines explicitly show $\mathbb{Q}^d$ and discuss "$T_\gamma$-forward-adjusted" measures in the drift-change derivations, but choosing the default simulation measure is an implementation convention.
+**Log-Euler scheme:** For forward $F_k$ under terminal measure:
 
-### 6.2 How to Price with the Models
+$$\ln F_k(t + \Delta t) = \ln F_k(t) + \mu_k^{(n)}(t)\Delta t - \frac{1}{2}\sigma_k^2(t)\Delta t + \sigma_k(t)\sqrt{\Delta t}\, Z$$
 
-**Caps/caplets:**
-- Under LMM, caplets are Black(-lognormal) under their forward measures by construction; caps are sums of caplets.
+where the drift uses current forward values:
 
-**Swaptions:**
-- Under the swap market model, swaptions are priced directly by Black with annuity numeraire.
-- Under LMM, swaptions can be priced by:
-  - Monte Carlo simulation (explicitly discussed), or
-  - analytical approximations (the sources mention Rebonato/Hull-White formulas in the calibration discussion).
+$$\mu_k^{(n)}(t) = -\sigma_k(t) \sum_{j=k+1}^{n-1} \frac{\delta_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \delta_j F_j(t)}$$
 
-**More complex payoffs:**
-- Use Monte Carlo under a common simulation measure; discount with the chosen numeraire; validate with plain-vanilla repricing.
+**Predictor-corrector scheme:** Improves accuracy by evaluating drift at both endpoints:
 
-### 6.3 Risk Outputs (Preview)
+1. **Predict:** Compute $\tilde{F}_k(t+\Delta t)$ using drift at time $t$
+2. **Correct:** Recompute drift using average of $F_k(t)$ and $\tilde{F}_k(t+\Delta t)$
+3. **Final step:** Use corrected drift
 
-**Vega buckets:**
-- Caplet vegas map to the caplet vol surface (or to the instantaneous vol parameters $\sigma_i(t)$).
-- Swaption vegas map to swaption vol matrix.
+### A4.6.3 Pricing Various Products
 
-**Correlation sensitivity:**
-- In LMM, correlation parameterization influences swaption/exotic prices and hedge ratios; the sources discuss correlation parameterizations and calibration considerations.
+**Caps/Caplets:** Under LMM, caplets are Black by construction. Caps are sums:
 
----
+$$\text{Cap}_0 = \sum_i \text{Caplet}_i = \sum_i P(0, T_{i+1}) \delta_i \, \mathrm{Bl}(K, F_i(0), v_i, +1)$$
 
-## 7. Math and Derivations (Step-by-Step)
+**Swaptions:** Either:
+- Use Monte Carlo under a common measure
+- Apply analytical approximations (Rebonato's formula approximates swaption vol from forward vols and correlations)
 
-### 7.1 Forward Rate from Bond Prices on a Tenor Grid
+**Bermudans:** Monte Carlo with American option techniques (LSM regression, policy iteration).
 
-Start from the no-arbitrage relationship between discount factors over $[T_i, T_{i+1}]$ and a simply-compounded forward rate $F_i(t)$:
+**Exotics (CMS, etc.):** Full Monte Carlo simulation, potentially with convexity adjustment analytics for simpler cases.
 
-$$1 + \delta_i F_i(t) = \frac{P(t, T_i)}{P(t, T_{i+1})}.$$
+### A4.6.4 SOFR/RFR Adaptation
 
-Solve for $F_i(t)$:
+The original LMM was built around forward-looking LIBOR rates. Post-transition, rates like SOFR are **backward-looking** and compounded in arrears.
 
-$$\boxed{F_i(t) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right).}$$
+**Key differences:**
 
-**Unit check:** $P(\cdot, \cdot)$ is dimensionless "price per \$1", so $P(t, T_i)/P(t, T_{i+1}) - 1$ is dimensionless; dividing by $\delta_i$ (years) gives rate units (1/year).
+| LIBOR-style | SOFR-style |
+|-------------|------------|
+| Known at period start | Known at period end |
+| Simple rate over $[T_i, T_{i+1}]$ | Compounded overnight rates |
+| $F_i(T_i)$ is fixing | $F_i(T_{i+1})$ is effective fixing |
 
-### 7.2 Under $T$-Forward Measure: Why Lognormal $F_i$ $\Rightarrow$ Black Caplet Formula
+**Adaptation approaches:**
 
-Consider a caplet whose payoff is fixed at $T_i$ and paid at $T_{i+1}$. Using a $T_{i+1}$-forward measure (numeraire $P(t, T_{i+1})$) is natural because the payoff is at $T_{i+1}$.
+1. **Backward-looking forward rate:** Define:
+   $$F_i^{\text{SOFR}}(t) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right)$$
+   Same formula, but the economic interpretation is the expected compounded overnight rate.
 
-**Pricing under a bond numeraire:** for a payoff $H_{T_{i+1}}$,
+2. **Timing adjustment:** For in-arrears products, the rate is observed at $T_{i+1}$, not $T_i$. This introduces a convexity adjustment:
+   $$\mathbb{E}^{i+1}[F_i(T_{i+1})] \neq F_i(0)$$
 
-$$\Pi_0 = P(0, T_{i+1}) \, \mathbb{E}^{T_{i+1}}[H_{T_{i+1}}].$$
+3. **Simulation timing:** When simulating SOFR-based products, evolve forwards to the *payment* date rather than fixing date.
 
-(general forward-measure pricing)
+**Practical note:** Many desks treat SOFR forwards similarly to LIBOR forwards for most purposes, with adjustments for specific features like lookback periods and payment delays. The LMM framework remains applicable with appropriate reinterpretation.
 
-For a payer caplet, $H_{T_{i+1}} = \delta_i (F_i(T_i) - K)^+$.
+### A4.6.5 Two-Curve Framework
 
-Hence
+In modern markets, the **discount curve** (often OIS/SOFR-based) is distinct from **projection/index curves** (for specific tenors). Andersen and Piterbarg (Section 15.5) describe two approaches to extending LMM for this:
 
-$$\mathrm{Cpl}_0 = P(0, T_{i+1}) \, \delta_i \, \mathbb{E}^{i+1}\left[(F_i(T_i) - K)^+\right].$$
+**Approach 1: HJM Extension**
 
-In LMM, under $\mathbb{Q}^{i+1}$,
+Model the instantaneous forward rates for both curves:
+- Discount curve: $f^D(t, T)$
+- Index curve: $f^I(t, T)$
 
-$$dF_i(t) = \sigma_i(t) F_i(t) dZ_i^{i+1}(t),$$
+The spread $s(t, T) = f^I(t, T) - f^D(t, T)$ evolves with its own volatility structure, correlated with the discount curve. This maintains the HJM drift restriction for each curve.
 
-so $F_i(T_i)$ is lognormal under $\mathbb{Q}^{i+1}$.
+**Approach 2: Two-Curve LMM**
 
-Therefore the expectation is the Black call on a lognormal forward:
+Model discrete forward rates for both curves:
 
-$$\mathbb{E}^{i+1}\left[(F_i(T_i) - K)^+\right] = \mathrm{Bl}\left(K, F_i(0), v_i, +1\right),$$
+$$L_n^I(t) = \frac{1}{\delta_n}\left(\frac{P^I(t, T_n)}{P^I(t, T_{n+1})} - 1\right)$$
 
-where $v_i$ is the total (integrated) volatility over $[0, T_i]$ (for constant $\sigma$, $v_i = \sigma\sqrt{T_i}$). The $\mathrm{Bl}$ function definition is given in the sources.
+$$L_n^D(t) = \frac{1}{\delta_n}\left(\frac{P^D(t, T_n)}{P^D(t, T_{n+1})} - 1\right)$$
 
-**Limiting case check:** If $v_i \to 0$, then the distribution collapses and the option value tends to discounted intrinsic: $P(0, T_{i+1}) \delta_i \max(F_i(0) - K, 0)$ (see Worked Example 10).
+Under appropriate measures, each forward is lognormal with its own volatility. The correlation structure now includes:
+- Intra-curve correlations: $\text{Corr}(L_i^I, L_j^I)$ and $\text{Corr}(L_i^D, L_j^D)$
+- Cross-curve correlations: $\text{Corr}(L_i^I, L_j^D)$
 
-### 7.3 Swap Rate Definition and Swap Annuity
+**Pricing with two curves:** For a swap paying index rate $L^I$ and discounted at $P^D$:
 
-**Swap rate and annuity:**
+$$\text{FloatLeg PV} = \sum_i \delta_i P^D(0, T_{i+1}) \mathbb{E}^{D,i+1}[L_i^I(T_i)]$$
 
-$$\boxed{C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k), \qquad S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}.}$$
+The expectation is under the $T_{i+1}$-forward measure associated with the discount curve, which introduces a convexity adjustment if $L^I$ and $L^D$ are correlated.
 
-**Unit check:** $C_{\alpha,\beta}(t)$ has units of "years" (because it is a sum of $\delta_k \times$ dimensionless bond prices). Thus $K \cdot C$ is dimensionless PV, matching $P(t, T_\alpha) - P(t, T_\beta)$.
-
-### 7.4 Under Swap Measure: Why Lognormal $S_{\alpha,\beta}$ $\Rightarrow$ Black Swaption Formula
-
-**Swaption payoff at $T_\alpha$:**
-
-$$\mathrm{Payoff}_{T_\alpha} = (S_{\alpha,\beta}(T_\alpha) - K)^+ \, C_{\alpha,\beta}(T_\alpha).$$
-
-Use the annuity numeraire $C_{\alpha,\beta}(t)$. The sources state that the annuity qualifies as a numeraire and that the swap rate is a martingale under the associated annuity measure.
-
-Therefore pricing becomes
-
-$$\mathrm{Swpt}_0 = C_{\alpha,\beta}(0) \, \mathbb{E}^{\alpha,\beta}\left[(S_{\alpha,\beta}(T_\alpha) - K)^+\right].$$
-
-If $S_{\alpha,\beta}$ is assumed lognormal under $\mathbb{Q}^{\alpha,\beta}$, then
-
-$$\mathbb{E}^{\alpha,\beta}\left[(S_{\alpha,\beta}(T_\alpha) - K)^+\right] = \mathrm{Bl}\left(K, S_{\alpha,\beta}(0), \sigma_{\alpha,\beta}\sqrt{T_\alpha}, +1\right),$$
-
-yielding the Black swaption formula shown in the sources:
-
-$$\boxed{PS^{\mathrm{Black}} = N \left(\sum_{i=\alpha+1}^{\beta} \tau_i P(0, T_i)\right) \mathrm{Bl}\left(K, S_{\alpha,\beta}(0), \sigma_{\alpha,\beta}\sqrt{T_\alpha}, +1\right).}$$
-
-### 7.5 Drift Coupling Under a Common Measure (As Far As Sources Allow)
-
-Under a different forward measure $\mathbb{Q}^i$, $F_k$ picks up drift that depends on later forwards:
-
-$$\mu_k^{(i)}(t) = -\sigma_k(t) F_k(t) \sum_{j=k+1}^{i} \frac{\tau_j F_j(t) \sigma_j(t) \rho_{k,j}}{1 + \tau_j F_j(t)}.$$
-
-**Intuition:** The change-of-numeraire shifts Brownian motions by terms involving ratios of tradable assets; on a tenor grid, that produces sums over later accrual periods. The source shows this explicitly via the Brownian shift relation and the product form of bond ratios.
-
-**Risk-neutral drift:** The source provides a risk-neutral (money-market) drift formula with additional terms.
-
-I'm not sure whether to reproduce it in full detail here without also reproducing the full discrete bank-account construction and the definition of $\beta(t)$. What you would need to lock this down is: the exact bank-account choice ($B(t)$ vs $B_d(t)$) and interpolation rules between tenor dates.
+**Practical impact:** The two-curve framework is now standard for non-collateralized or foreign-collateralized trades, where basis matters.
 
 ---
 
-## 8. Worked Examples (At Least 10 Numeric Examples; Fully Numeric)
+## A4.7 Mathematical Derivations
 
-**Numerical convention for normal CDF:** In these toy examples, $\Phi(\cdot)$ is evaluated using standard normal table values (rounded). Key values used:
+### A4.7.1 Forward Rate from Bond Prices
 
-| $x$ | $\Phi(x)$ |
-|-----|-----------|
-| 0.1 | 0.5398 |
-| −0.1 | 0.4602 |
-| 0.18 | ≈0.5714 |
-| 0.54 | ≈0.7054 |
-| 0.74 | ≈0.7704 |
-| 0.80 | ≈0.7881 |
-| 1.00 | 0.8413 |
+Starting from the no-arbitrage relationship:
+
+$$1 + \delta_i F_i(t) = \frac{P(t, T_i)}{P(t, T_{i+1})}$$
+
+Solving for $F_i(t)$:
+
+$$\boxed{F_i(t) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right)}$$
+
+**Unit check:** $P(\cdot, \cdot)$ is dimensionless, so $P(t, T_i)/P(t, T_{i+1}) - 1$ is dimensionless. Dividing by $\delta_i$ (years) gives rate units (1/year).
+
+### A4.7.2 Black Caplet Formula Derivation
+
+Under $\mathbb{Q}^{i+1}$, with $F_i$ following:
+
+$$dF_i(t) = \sigma_i F_i(t) dZ^{i+1}(t)$$
+
+The solution is:
+
+$$F_i(T_i) = F_i(0) \exp\left(-\frac{1}{2}\sigma_i^2 T_i + \sigma_i Z^{i+1}(T_i)\right)$$
+
+where $Z^{i+1}(T_i) \sim N(0, T_i)$.
+
+The caplet price:
+
+$$\mathrm{Cpl}_0 = P(0, T_{i+1}) \delta_i \mathbb{E}^{i+1}[(F_i(T_i) - K)^+]$$
+
+Since $\ln F_i(T_i)$ is normal with mean $\ln F_i(0) - \frac{1}{2}\sigma_i^2 T_i$ and variance $\sigma_i^2 T_i$:
+
+$$\mathbb{E}^{i+1}[(F_i(T_i) - K)^+] = F_i(0)\Phi(d_1) - K\Phi(d_2)$$
+
+with:
+
+$$d_1 = \frac{\ln(F_i(0)/K) + \frac{1}{2}\sigma_i^2 T_i}{\sigma_i\sqrt{T_i}}, \qquad d_2 = d_1 - \sigma_i\sqrt{T_i}$$
+
+### A4.7.3 Swap Rate and Annuity Derivation
+
+**Annuity definition:**
+
+$$C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$$
+
+**Swap rate from floating leg PV:**
+
+The floating leg PV of a forward-starting swap is:
+
+$$\text{PV}_{\text{float}} = P(t, T_\alpha) - P(t, T_\beta)$$
+
+(This is a standard result: the floating leg of a par swap at inception equals notional minus discounted notional at maturity.)
+
+The fixed leg PV at rate $K$ is:
+
+$$\text{PV}_{\text{fixed}} = K \cdot C_{\alpha,\beta}(t)$$
+
+Setting $\text{PV}_{\text{float}} = \text{PV}_{\text{fixed}}$ and solving for the par rate:
+
+$$\boxed{S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}}$$
+
+**Unit check:** Numerator is dimensionless (bond price difference). Denominator is $\sum \delta_k P \sim$ years. Ratio is 1/year = rate.
+
+### A4.7.4 Drift Coupling Full Derivation (Terminal Measure)
+
+We derive the terminal measure drift formula following Brigo & Mercurio (Proposition 6.3.1). Under the terminal measure $\mathbb{Q}^n$, the numeraire is $P(t, T_n)$.
+
+**Step 1: Starting Point.** Under $\mathbb{Q}^{k+1}$, $F_k$ is a martingale:
+$$dF_k = \sigma_k F_k dZ_k^{k+1}$$
+
+**Step 2: Radon-Nikodym Derivative.** To change from $\mathbb{Q}^{k+1}$ to $\mathbb{Q}^n$, we compute:
+$$\frac{d\mathbb{Q}^n}{d\mathbb{Q}^{k+1}} = \frac{P(T, T_n)/P(0, T_n)}{P(T, T_{k+1})/P(0, T_{k+1})} = \frac{P(0, T_{k+1})}{P(0, T_n)} \cdot \frac{P(T, T_n)}{P(T, T_{k+1})}$$
+
+**Step 3: Product Formula.** Using the telescoping product:
+$$\frac{P(t, T_n)}{P(t, T_{k+1})} = \prod_{j=k+1}^{n-1}\frac{1}{1 + \delta_j F_j(t)}$$
+
+Inverting:
+$$\frac{P(t, T_{k+1})}{P(t, T_n)} = \prod_{j=k+1}^{n-1}(1 + \delta_j F_j(t))$$
+
+**Step 4: Girsanov Theorem Application.** Let $L_t = \prod_{j=k+1}^{n-1}(1 + \delta_j F_j(t))$ denote the Radon-Nikodym density process (up to constants). By Itô's lemma:
+$$d\ln L_t = \sum_{j=k+1}^{n-1} \frac{\delta_j dF_j}{1+\delta_j F_j} - \frac{1}{2}\sum_{j=k+1}^{n-1}\frac{\delta_j^2 \langle dF_j\rangle}{(1+\delta_j F_j)^2}$$
+
+**Step 5: The Key Sign.** Under Girsanov's theorem, when changing *to* measure $\mathbb{Q}^n$ *from* measure $\mathbb{Q}^{k+1}$, the Brownian motion transforms as:
+$$dZ_k^{k+1} = dZ_k^n - d\langle Z_k, \ln L\rangle_t$$
+
+The covariation term is:
+$$d\langle Z_k, \ln L\rangle_t = \sum_{j=k+1}^{n-1}\frac{\delta_j F_j \sigma_j \rho_{k,j}}{1+\delta_j F_j}dt$$
+
+Note the **negative sign** in the Girsanov shift: we subtract the covariation when going to the new measure.
+
+**Step 6: Substituting.** Replacing $dZ_k^{k+1}$ in the original SDE:
+$$dF_k = \sigma_k F_k dZ_k^{k+1} = \sigma_k F_k \left(dZ_k^n - \sum_{j=k+1}^{n-1}\frac{\delta_j F_j \sigma_j \rho_{k,j}}{1+\delta_j F_j}dt\right)$$
+
+Rearranging:
+
+$$\boxed{dF_k = -\sigma_k F_k \sum_{j=k+1}^{n-1}\frac{\delta_j F_j \sigma_j \rho_{k,j}}{1+\delta_j F_j}dt + \sigma_k F_k dZ_k^n}$$
+
+**Intuition for the Negative Sign:** Under the terminal measure $\mathbb{Q}^n$, the numeraire $P(t, T_n)$ grows faster when later forwards are high. The market prices in this drift, and compensates by making earlier forwards drift downward. Brigo & Mercurio state this as: "The earlier forwards have negative drifts proportional to their covariance with the later forwards."
+
+**Spot Measure (Positive Drift):** For comparison, under the spot measure $\mathbb{Q}^d$, the drift has the opposite sign:
+$$dF_k = +\sigma_k F_k \sum_{j=\beta(t)}^{k}\frac{\delta_j F_j \sigma_j \rho_{k,j}}{1+\delta_j F_j}dt + \sigma_k F_k dZ_k^d$$
+
+Here earlier forwards contribute positive drift to later ones—the opposite direction.
 
 ---
 
-### Example 1: Build a Small Tenor Grid and Compute Forward Rates from Discount Factors
+## A4.8 Worked Examples
 
-**Tenor:** $T_0 = 0$, $T_1 = 0.5$, $T_2 = 1.0$, $T_3 = 1.5$.
+### Example 1: Build Tenor Grid and Compute Forward Rates
 
-**Accruals:** $\delta_0 = \delta_1 = \delta_2 = 0.5$.
+**Tenor:** $T_0 = 0$, $T_1 = 0.5$, $T_2 = 1.0$, $T_3 = 1.5$
 
-**Given discount factors:**
+**Accruals:** $\delta_0 = \delta_1 = \delta_2 = 0.5$
+
+**Discount factors:**
 
 | Maturity | $P(0, T)$ |
 |----------|-----------|
@@ -584,547 +764,443 @@ I'm not sure whether to reproduce it in full detail here without also reproducin
 
 **Forward rates:**
 
-$$F_i(0) = \frac{1}{\delta_i}\left(\frac{P(0, T_i)}{P(0, T_{i+1})} - 1\right).$$
+$$F_0(0) = \frac{1}{0.5}\left(\frac{1.0000}{0.9900} - 1\right) = 2 \times 0.010101 = 0.020202 \approx 2.02\%$$
 
-**$F_0(0)$ over $[0, 0.5]$:**
-$$F_0(0) = \frac{1}{0.5}\left(\frac{1.0000}{0.9900} - 1\right) = 2 \times (1.010101 - 1) = 2 \times 0.010101 = 0.020202 \approx 2.0202\%.$$
+$$F_1(0) = \frac{1}{0.5}\left(\frac{0.9900}{0.9750} - 1\right) = 2 \times 0.015385 = 0.030769 \approx 3.08\%$$
 
-**$F_1(0)$ over $[0.5, 1.0]$:**
-$$F_1(0) = 2\left(\frac{0.9900}{0.9750} - 1\right) = 2 \times (1.0153846 - 1) = 2 \times 0.0153846 = 0.030769 \approx 3.0769\%.$$
+$$F_2(0) = \frac{1}{0.5}\left(\frac{0.9750}{0.9550} - 1\right) = 2 \times 0.020942 = 0.041885 \approx 4.19\%$$
 
-**$F_2(0)$ over $[1.0, 1.5]$:**
-$$F_2(0) = 2\left(\frac{0.9750}{0.9550} - 1\right) = 2 \times (1.0209424 - 1) = 2 \times 0.0209424 = 0.041885 \approx 4.1885\%.$$
+### Example 2: ATM Caplet Pricing
 
----
-
-### Example 2: Caplet Black Pricing (Toy)
-
-We price a caplet on period $[T_1, T_2] = [0.5, 1.0]$, set at $T_1 = 0.5$, paid at $T_2 = 1.0$.
+**Setup:** Caplet on $[T_1, T_2] = [0.5, 1.0]$, paid at $T_2 = 1.0$
 
 **Inputs:**
-- Forward: $F = F_1(0) = 0.030769$.
-- Strike: $K = F$ (ATM for algebraic simplicity).
-- Accrual: $\delta = 0.5$.
-- Pay date discount factor: $P(0, 1.0) = 0.975$.
-- Expiry: $T = 0.5$.
-- Choose $\sigma$ such that $v = \sigma\sqrt{T} = 0.2$. Since $\sqrt{0.5} = 0.7071$, take $\sigma = 0.2/0.7071 \approx 0.28284$.
+- Forward: $F_1(0) = 0.030769$
+- Strike: $K = F_1(0)$ (ATM)
+- Accrual: $\delta_1 = 0.5$
+- Discount factor: $P(0, 1.0) = 0.975$
+- Expiry: $T_1 = 0.5$
+- Volatility: $\sigma_1 = 28.28\%$ (so $v = \sigma\sqrt{T} = 0.2828 \times 0.7071 = 0.20$)
 
-**Black quantities (ATM implies $\ln(F/K) = 0$):**
+**Black quantities (ATM, so $\ln(F/K) = 0$):**
 
-$$d_1 = \frac{0 + \frac{1}{2}v^2}{v} = \frac{0.5 \times 0.04}{0.2} = 0.1, \qquad d_2 = d_1 - v = 0.1 - 0.2 = -0.1.$$
+$$d_1 = \frac{0 + \frac{1}{2}(0.20)^2}{0.20} = \frac{0.02}{0.20} = 0.10$$
 
-$\Phi(d_1) = 0.5398$, $\Phi(d_2) = 0.4602$.
+$$d_2 = 0.10 - 0.20 = -0.10$$
+
+$\Phi(0.10) = 0.5398$, $\Phi(-0.10) = 0.4602$
 
 **Black call on forward:**
 
-$$\mathrm{Bl}(K, F, v, +1) = F\Phi(d_1) - K\Phi(d_2) = F(0.5398) - F(0.4602) = F(0.0796).$$
+$$\mathrm{Bl} = F[\Phi(d_1) - \Phi(d_2)] = 0.030769 \times 0.0796 = 0.002449$$
 
-**Caplet PV:**
+**Caplet price:**
 
-$$\mathrm{Cpl}_0 = P(0, 1.0) \cdot \delta \cdot \mathrm{Bl} = 0.975 \times 0.5 \times (0.030769 \times 0.0796).$$
+$$\mathrm{Cpl}_0 = P(0, 1.0) \times \delta_1 \times \mathrm{Bl} = 0.975 \times 0.5 \times 0.002449 = 0.001194$$
 
-**Compute:**
-- $0.030769 \times 0.0796 \approx 0.00244923$.
-- Multiply by $0.975 \times 0.5 = 0.4875$: $0.00244923 \times 0.4875 \approx 0.0011940$.
+$$\boxed{\mathrm{Cpl}_0 \approx 0.00119 \text{ per unit notional}}$$
 
-$$\boxed{\mathrm{Cpl}_0 \approx 0.001194 \text{ per unit notional.}}$$
+### Example 3: Cap as Sum of Caplets
 
-(Black $\mathrm{Bl}$ definition is source-backed.)
+**Cap on $[0.5, 1.5]$** with strike $K = 3.5\%$ and two caplets.
 
----
+**Caplet A ($[0.5, 1.0]$):** $F_1 = 3.08\% < K$, $v = 0.20$
 
-### Example 3: Show How a Cap is a Sum of Caplets (Numeric Sum of 2 Caplets)
+$$\ln(F/K) = \ln(0.030769/0.035) = -0.1288$$
+$$d_1 = \frac{-0.1288 + 0.02}{0.20} = -0.544, \quad d_2 = -0.744$$
+$$\Phi(-0.544) \approx 0.2946, \quad \Phi(-0.744) \approx 0.2296$$
+$$\mathrm{Bl}_A = 0.030769(0.2946) - 0.035(0.2296) = 0.00102$$
+$$\mathrm{CplA}_0 = 0.975 \times 0.5 \times 0.00102 = 0.00050$$
 
-Consider a cap covering $[0.5, 1.5]$ with strike $K = 0.035$ and two caplets:
-- **Caplet A** on $[0.5, 1.0]$: use $P(0, 1.0) = 0.975$, $\delta = 0.5$, $F_1(0) = 0.030769$, expiry $T = 0.5$, choose $v = 0.2 \Rightarrow \sigma = 0.28284$.
-- **Caplet B** on $[1.0, 1.5]$: use $P(0, 1.5) = 0.955$, $\delta = 0.5$, $F_2(0) = 0.041885$, expiry $T = 1.0$, choose $v = 0.2 \Rightarrow \sigma = 0.2$.
+**Caplet B ($[1.0, 1.5]$):** $F_2 = 4.19\% > K$, $v = 0.20$
 
-Cap price is the sum of caplet prices (strip decomposition).
+$$\ln(F/K) = \ln(1.1967) = 0.1795$$
+$$d_1 = \frac{0.1795 + 0.02}{0.20} = 1.00, \quad d_2 = 0.80$$
+$$\Phi(1.00) = 0.8413, \quad \Phi(0.80) = 0.7881$$
+$$\mathrm{Bl}_B = 0.041885(0.8413) - 0.035(0.7881) = 0.00766$$
+$$\mathrm{CplB}_0 = 0.955 \times 0.5 \times 0.00766 = 0.00366$$
 
-**Caplet A ($F = 0.030769 < K = 0.035$, $v = 0.2$):**
+**Cap price:**
 
-$$\ln(F/K) = \ln(0.030769/0.035) = \ln(0.87912) \approx -0.1288.$$
+$$\boxed{\mathrm{Cap}_0 = 0.00050 + 0.00366 = 0.00416}$$
 
-$$d_1 = \frac{-0.1288 + 0.02}{0.2} = \frac{-0.1088}{0.2} = -0.544.$$
+### Example 4: Swaption Pricing
 
-$$d_2 = d_1 - 0.2 = -0.744.$$
-
-Approx CDFs: $\Phi(-0.544) \approx 1 - \Phi(0.544) \approx 1 - 0.7054 = 0.2946$.
-$\Phi(-0.744) \approx 1 - \Phi(0.744) \approx 1 - 0.7704 = 0.2296$.
-
-Black call:
-$$\mathrm{Bl} \approx 0.030769(0.2946) - 0.035(0.2296) = 0.00906 - 0.00804 \approx 0.00102.$$
-
-PV:
-$$\mathrm{CplA}_0 \approx 0.975 \times 0.5 \times 0.00102 = 0.4875 \times 0.00102 \approx 0.00050.$$
-
-**Caplet B ($F = 0.041885 > K = 0.035$, $v = 0.2$):**
-
-$$\ln(F/K) = \ln(1.1967) \approx 0.1795.$$
-
-$$d_1 = (0.1795 + 0.02)/0.2 = 0.9975 \approx 1.00.$$
-
-$$d_2 = 0.7975 \approx 0.80.$$
-
-$\Phi(d_1) \approx \Phi(1.00) = 0.8413$, $\Phi(d_2) \approx \Phi(0.80) = 0.7881$.
-
-$$\mathrm{Bl} \approx 0.041885(0.8413) - 0.035(0.7881) = 0.03524 - 0.02758 = 0.00766.$$
-
-PV:
-$$\mathrm{CplB}_0 \approx 0.955 \times 0.5 \times 0.00766 = 0.4775 \times 0.00766 \approx 0.00366.$$
-
-**Cap price (sum):**
-
-$$\boxed{\mathrm{Cap}_0 \approx 0.00050 + 0.00366 = 0.00416.}$$
-
----
-
-### Example 4: Swaption Black Pricing (Toy)
-
-Payer swaption expiring at $T_\alpha = 0.5$ into a swap from $0.5$ to $1.5$ with fixed payments at $T_2 = 1.0$, $T_3 = 1.5$.
-
-**Discount factors:** $P(0, 0.5) = 0.99$, $P(0, 1.0) = 0.975$, $P(0, 1.5) = 0.955$.
+**Payer swaption** expiring at $T_1 = 0.5$ into swap $[0.5, 1.5]$
 
 **Annuity:**
-$$A = C_{1,3}(0) = 0.5 \cdot P(0, 1.0) + 0.5 \cdot P(0, 1.5) = 0.5(0.975) + 0.5(0.955) = 0.4875 + 0.4775 = 0.9650.$$
+$$C_{1,3}(0) = 0.5 \times P(0, 1.0) + 0.5 \times P(0, 1.5) = 0.5(0.975 + 0.955) = 0.965$$
 
 **Swap rate:**
-$$S = \frac{P(0, 0.5) - P(0, 1.5)}{A} = \frac{0.99 - 0.955}{0.965} = \frac{0.035}{0.965} \approx 0.036269.$$
+$$S = \frac{P(0, 0.5) - P(0, 1.5)}{C_{1,3}(0)} = \frac{0.990 - 0.955}{0.965} = \frac{0.035}{0.965} = 0.03627$$
 
-**Strike:** $K = S$ (ATM).
+**ATM swaption** ($K = S$), $v = 0.20$:
 
-**Choose** $v = \sigma\sqrt{T_\alpha} = 0.2 \Rightarrow \sigma = 0.28284$ since $\sqrt{0.5} = 0.7071$.
+$$d_1 = 0.10, \quad d_2 = -0.10$$
+$$\mathrm{Bl} = S \times 0.0796 = 0.03627 \times 0.0796 = 0.002887$$
 
-**Black terms (ATM):**
+**Swaption price:**
+$$\boxed{\mathrm{Swpt}_0 = C_{1,3}(0) \times \mathrm{Bl} = 0.965 \times 0.002887 = 0.00279}$$
 
-$$d_1 = 0.1, \quad d_2 = -0.1, \quad \Phi(d_1) - \Phi(d_2) = 0.5398 - 0.4602 = 0.0796.$$
+### Example 5: Par Swap Identity Verification
 
-$$\mathrm{Bl} = S \times 0.0796 \approx 0.036269 \times 0.0796 \approx 0.002887.$$
+Using Example 4 data:
 
-**Swaption PV:**
+**Par swap rate:** $K_{\text{par}} = S = 0.03627$
 
-$$\mathrm{Swpt}_0 = A \times \mathrm{Bl} \approx 0.9650 \times 0.002887 \approx 0.002786.$$
+**Verify PV equality:**
 
-This matches the "annuity times Black call on swap rate" structure in the source formula.
+$$K_{\text{par}} \times C_{1,3}(0) = 0.03627 \times 0.965 = 0.0350$$
 
-$$\boxed{\mathrm{Swpt}_0 \approx 0.002786 \text{ per unit notional.}}$$
+$$P(0, 0.5) - P(0, 1.5) = 0.990 - 0.955 = 0.0350 \checkmark$$
+
+**Units:** $K$ is 1/year, $C$ is years, so $KC$ is dimensionless PV.
+
+### Example 6: Coterminal Swaptions (Bermudan Setup)
+
+Consider swaptions ending at $T_3 = 1.5$:
+
+| Swaption | Expiry | Underlying Swap | Annuity |
+|----------|--------|-----------------|---------|
+| 6M×1Y | 0.5 | [0.5, 1.5] | $C_{1,3} = 0.965$ |
+| 1Y×6M | 1.0 | [1.0, 1.5] | $C_{2,3} = 0.5 \times 0.955 = 0.4775$ |
+
+**Swap rates:**
+
+$$S_{1,3}(0) = \frac{0.990 - 0.955}{0.965} = 3.627\%$$
+
+$$S_{2,3}(0) = \frac{0.975 - 0.955}{0.4775} = \frac{0.020}{0.4775} = 4.188\%$$
+
+**Bermudan interpretation:** A Bermudan with exercise at 0.5 and 1.0 compares:
+- At $T_1 = 0.5$: exercise value is swaption on [0.5, 1.5]
+- At $T_2 = 1.0$: exercise value is swaption on [1.0, 1.5]
+
+Calibrating to both coterminal swaptions ensures correct boundary conditions.
+
+### Example 7: Calibration by Bisection
+
+**Goal:** Find $\sigma$ so ATM caplet price = 0.001194 (from Example 2)
+
+**ATM formula:**
+$$\mathrm{Cpl}_0(\sigma) = P(0, T_2) \cdot \delta \cdot F \cdot [\Phi(d_1) - \Phi(d_2)]$$
+
+where $d_1 = \frac{1}{2}\sigma\sqrt{T}$, $d_2 = -\frac{1}{2}\sigma\sqrt{T}$.
+
+**Bracket:** $\sigma_L = 0.01$ gives price $\approx 0.00004$; $\sigma_H = 1.00$ gives price $\approx 0.00411$
+
+**Iteration 1:** $\sigma_M = 0.505$, $v = 0.357$, price $\approx 0.00214$ (too high) → $\sigma_H = 0.505$
+
+**Iteration 2:** $\sigma_M = 0.2575$, $v = 0.182$, price $\approx 0.00108$ (too low) → $\sigma_L = 0.2575$
+
+**Converged:** $\sigma \in [0.2575, 0.505]$, true value $\approx 0.283$
+
+### Example 8: Correlation Effect on Basket Variance
+
+**Setup:** Two forwards with $\sigma_1 = 1\%$, $\sigma_2 = 1.5\%$, weights $w_1 = 0.6$, $w_2 = 0.4$
+
+**Variance of weighted sum:**
+$$\text{Var}(Y) = w_1^2\sigma_1^2 + w_2^2\sigma_2^2 + 2w_1w_2\rho\sigma_1\sigma_2$$
+
+**Compute fixed terms:**
+- $w_1^2\sigma_1^2 = 0.36 \times 0.0001 = 0.000036$
+- $w_2^2\sigma_2^2 = 0.16 \times 0.000225 = 0.000036$
+- $2w_1w_2\sigma_1\sigma_2 = 2 \times 0.24 \times 0.00015 = 0.000072$
+
+**If $\rho = 0$:** Var = 0.000072, Std = 0.849%
+
+**If $\rho = 0.8$:** Var = 0.000072 + 0.8(0.000072) = 0.0001296, Std = 1.139%
+
+**Takeaway:** Higher correlation increases basket volatility → higher swaption prices.
+
+### Example 9: Zero Volatility Limit
+
+**Caplet B (OTM):** $F = 4.19\%$, $K = 3.5\%$, $\sigma = 0$
+
+$$\mathrm{Cpl}_0(\sigma=0) = P(0, 1.5) \cdot \delta \cdot \max(F - K, 0) = 0.955 \times 0.5 \times 0.00689 = 0.00329$$
+
+Compare to $\sigma > 0$: price was 0.00366. Option value exceeds intrinsic by time value.
+
+**ATM swaption:** $S = K$, intrinsic = 0
+
+$$\mathrm{Swpt}_0(\sigma=0) = 0$$
+
+With $\sigma > 0$: price was 0.00279. The entire value is time value.
+
+### Example 10: Drift Coupling Computation
+
+**Setup:** Simulate $F_0$ under terminal measure $\mathbb{Q}^3$ with:
+- $F_0(0) = 2.02\%$, $F_1(0) = 3.08\%$, $F_2(0) = 4.19\%$
+- $\sigma_0 = \sigma_1 = \sigma_2 = 20\%$
+- $\rho_{01} = \rho_{02} = \rho_{12} = 0.9$
+- $\delta = 0.5$
+
+**Drift of $F_0$ at $t = 0$:**
+
+$$\mu_0^{(3)} = -\sigma_0 F_0 \left[\frac{\delta_1 F_1 \sigma_1 \rho_{01}}{1+\delta_1 F_1} + \frac{\delta_2 F_2 \sigma_2 \rho_{02}}{1+\delta_2 F_2}\right]$$
+
+**Compute each term:**
+
+Term 1: $\frac{0.5 \times 0.0308 \times 0.20 \times 0.9}{1 + 0.5 \times 0.0308} = \frac{0.00277}{1.0154} = 0.00273$
+
+Term 2: $\frac{0.5 \times 0.0419 \times 0.20 \times 0.9}{1 + 0.5 \times 0.0419} = \frac{0.00377}{1.0209} = 0.00369$
+
+**Total drift coefficient:**
+$$\mu_0^{(3)} = -0.20 \times 0.0202 \times (0.00273 + 0.00369) = -0.0040 \times 0.00642 = -0.0000257$$
+
+This is a small negative drift (about -2.6 bp per year), showing how terminal measure simulation pulls early forwards downward.
+
+### Example 11: CMS Convexity Adjustment (Replication Intuition)
+
+A CMS rate is a swap rate paid at a single date, not as a stream. The convexity adjustment arises because:
+
+$$\mathbb{E}^{T_{\text{pay}}}[S_{\alpha,\beta}(T_\alpha)] \neq S_{\alpha,\beta}(0)$$
+
+**Approximate adjustment (from Andersen-Piterbarg):**
+
+For a swap rate with volatility $\sigma_S$ and duration $D$:
+
+$$\text{Convexity adjustment} \approx \frac{\sigma_S^2 T D S}{1 + DS}$$
+
+**Example:** $S = 3.5\%$, $\sigma_S = 15\%$, $T = 1$, $D = 4$ years
+
+$$\text{Adj} \approx \frac{(0.15)^2 \times 1 \times 4 \times 0.035}{1 + 4 \times 0.035} = \frac{0.0225 \times 0.14}{1.14} = \frac{0.00315}{1.14} \approx 0.28\%$$
+
+So the CMS rate expectation is about $3.5\% + 0.28\% = 3.78\%$—higher than the forward swap rate.
+
+### Example 12: Swaption Cube Point via Monte Carlo
+
+**Goal:** Price 1Y×2Y payer swaption at strike 4% using LMM simulation
+
+**Setup:**
+- Tenor grid: 0, 1, 2, 3 years ($\delta = 1$)
+- Initial forwards: $F_0 = 3\%$, $F_1 = 3.5\%$, $F_2 = 4\%$
+- Vols: 20% each
+- Correlation: 0.85 between adjacent, 0.70 otherwise
+
+**Step 1:** Simulate forwards to $T_1 = 1$ under terminal measure $\mathbb{Q}^3$
+
+**Step 2:** At $T_1$, compute:
+- Bond prices: $P(1, T_i) = \prod_{j}(1 + \delta F_j(1))^{-1}$
+- Swap rate: $S_{1,3}(1) = \frac{P(1,1) - P(1,3)}{P(1,2) + P(1,3)}$
+- Annuity: $C_{1,3}(1) = P(1,2) + P(1,3)$
+
+**Step 3:** Payoff = $\max(S_{1,3}(1) - 0.04, 0) \times C_{1,3}(1)$
+
+**Step 4:** Discount: $\text{PV} = P(0, 3) \times \mathbb{E}^3[\text{Payoff}]$
+
+(With 10,000 paths and proper antithetic variance reduction, this converges to analytical approximation within ~1% typically.)
+
+### Example 13: Rebonato Swaption Volatility Approximation
+
+**Goal:** Compute the implied swaption volatility for a 6M×1Y swaption using Rebonato's approximation.
+
+**Setup:** Using data from Example 1 and 4:
+- Swap over $[T_1, T_3] = [0.5, 1.5]$ with two periods
+- Forwards: $F_1(0) = 3.08\%$, $F_2(0) = 4.19\%$
+- Volatilities: $\sigma_1 = \sigma_2 = 20\%$ (constant)
+- Correlation: $\rho_{1,2} = 0.85$
+- Accruals: $\delta_1 = \delta_2 = 0.5$
+- Discount factors: $P(0, 1.0) = 0.975$, $P(0, 1.5) = 0.955$
+- Swap rate: $S_{1,3}(0) = 3.627\%$ (from Example 4)
+- Expiry: $T_1 = 0.5$
+
+**Step 1: Compute annuity and weights**
+
+$$C_{1,3}(0) = 0.5 \times 0.975 + 0.5 \times 0.955 = 0.965$$
+
+$$w_1 = \frac{\delta_1 P(0, T_1)}{C_{1,3}(0)} = \frac{0.5 \times 0.975}{0.965} = 0.505$$
+
+$$w_2 = \frac{\delta_2 P(0, T_2)}{C_{1,3}(0)} = \frac{0.5 \times 0.955}{0.965} = 0.495$$
+
+Check: $w_1 + w_2 = 1.0$ ✓
+
+**Step 2: Compute the double sum**
+
+With constant volatilities, $\int_0^{T_1} \sigma_i \sigma_j dt = \sigma_i \sigma_j T_1 = 0.20 \times 0.20 \times 0.5 = 0.02$ for all pairs.
+
+The variance formula becomes:
+$$\left(v_{1,3}^{LMM}\right)^2 = \frac{T_1}{S_{1,3}(0)^2} \sum_{i,j=1}^{2} w_i w_j F_i(0) F_j(0) \rho_{i,j} \sigma_i \sigma_j$$
+
+Expand the sum:
+- $(i=1, j=1)$: $w_1^2 F_1^2 \rho_{11} \sigma_1^2 = (0.505)^2 (0.0308)^2 (1) (0.04) = 9.67 \times 10^{-6}$
+- $(i=1, j=2)$: $w_1 w_2 F_1 F_2 \rho_{12} \sigma_1 \sigma_2 = (0.505)(0.495)(0.0308)(0.0419)(0.85)(0.04) = 1.10 \times 10^{-5}$
+- $(i=2, j=1)$: Same as $(1,2)$ = $1.10 \times 10^{-5}$
+- $(i=2, j=2)$: $w_2^2 F_2^2 \rho_{22} \sigma_2^2 = (0.495)^2 (0.0419)^2 (1) (0.04) = 1.72 \times 10^{-5}$
+
+Sum = $9.67 \times 10^{-6} + 2 \times 1.10 \times 10^{-5} + 1.72 \times 10^{-5} = 4.89 \times 10^{-5}$
+
+**Step 3: Compute swaption variance and volatility**
+
+$$\left(v_{1,3}^{LMM}\right)^2 = \frac{0.5}{(0.03627)^2} \times 4.89 \times 10^{-5} = \frac{0.5 \times 4.89 \times 10^{-5}}{1.32 \times 10^{-3}} = 0.0186$$
+
+$$v_{1,3}^{LMM} = \sqrt{0.0186} = 0.136$$
+
+This is the total volatility. The annualized implied volatility is:
+
+$$\sigma_{swpt}^{impl} = \frac{v}{\sqrt{T}} = \frac{0.136}{\sqrt{0.5}} = 0.193 = \boxed{19.3\%}$$
+
+**Sanity check:** The swaption implied vol (19.3%) is close to but slightly below the forward vols (20%). The reduction reflects diversification: the swap rate is a weighted average of two forwards, and imperfect correlation ($\rho = 0.85 < 1$) reduces variance.
 
 ---
 
-### Example 5: Compute Swap Annuity and Verify Units (and a Par-Swap Identity)
-
-Using the same swap as Example 4:
-
-**Annuity** $A = 0.9650$ has units of "years" (sum of $\delta P$).
-
-**Check par swap identity:**
-
-$$K_{\mathrm{par}} = \frac{P(0, 0.5) - P(0, 1.5)}{A} \approx 0.036269.$$
-
-**Verify that PV of fixed leg at par equals PV of float leg:**
-
-$$K_{\mathrm{par}} \cdot A \approx 0.036269 \times 0.9650 \approx 0.0350 = P(0, 0.5) - P(0, 1.5) = 0.0350.$$
-
-**Units:** $K$ is 1/year, $A$ is years, so $KA$ is dimensionless PV—consistent with bond-price differences.
-
-(Definitions of $S_{\alpha,\beta}$ and $C_{\alpha,\beta}$ are source-backed.)
-
----
-
-### Example 6: LMM vs Swap Market Model "Natural Fit" Demo (Toy)
-
-Take the two vanilla options priced above:
-
-**Caplet on $[0.5, 1.0]$** is directly Black under LMM because $F_1$ is lognormal under $\mathbb{Q}^2$ by construction.
-- Using Example 2 inputs, we obtained $\mathrm{Cpl}_0 \approx 0.001194$.
-
-**Swaption on $[0.5, 1.5]$** is directly Black under the swap market model because $S_{1,3}$ is modeled lognormal under $\mathbb{Q}^{1,3}$ and the payoff is annuity times $(S - K)^+$.
-- Using Example 4 inputs, $\mathrm{Swpt}_0 \approx 0.002786$.
-
-**Interpretation:** Each model gives you a "one-step" mapping from the quoted implied vol to the option price for the market instrument it is built around (caplets for LMM, swaptions for LSM). For the other instrument, you generally need either approximations or Monte Carlo (as emphasized in the calibration discussion).
-
----
-
-### Example 7: Simple Calibration Step (Toy): Solve for One Caplet $\sigma$ by Bisection (Show Iterations)
-
-**Goal:** find $\sigma$ so that the ATM caplet price equals the target price from Example 2:
-
-$$\text{Target } \mathrm{Cpl}_0^{\mathrm{mkt}} = 0.001194.$$
-
-**ATM formula (when $F = K$):**
-
-$$\mathrm{Cpl}_0(\sigma) = P(0, 1.0) \cdot \delta \cdot F \cdot (\Phi(d_1) - \Phi(d_2)), \quad d_1 = \tfrac{1}{2}\sigma\sqrt{T}, \; d_2 = -\tfrac{1}{2}\sigma\sqrt{T}.$$
-
-**Inputs:** $P(0, 1.0) = 0.975$, $\delta = 0.5$, $F = 0.030769$, $T = 0.5$.
-
-#### Bracket
-
-**Low vol $\sigma_L = 0.01$:** $v_L = \sigma_L\sqrt{0.5} = 0.01(0.7071) = 0.007071$.
-Then $d_1 = 0.003536$, $d_2 = -0.003536$. For small $x$, $\Phi(x) - \Phi(-x)$ is tiny, so price is near 0: $\mathrm{Cpl}_0(\sigma_L) \approx 0.00004$ (very small).
-
-**High vol $\sigma_H = 1.00$:** $v_H = 0.7071$, $d_1 = 0.3536$, $d_2 = -0.3536$.
-$\Phi(0.35) \approx 0.6368 \Rightarrow \Phi(d_1) - \Phi(d_2) \approx 0.2736$.
-Then $\mathrm{Cpl}_0(\sigma_H) \approx 0.975 \times 0.5 \times 0.030769 \times 0.2736 \approx 0.00411$.
-
-So target $0.001194$ lies between.
-
-#### Iteration 1: $\sigma_M = (0.01 + 1.00)/2 = 0.505$.
-
-$v_M = 0.505(0.7071) = 0.3571$.
-$d_1 = 0.1785$, $d_2 = -0.1785$.
-$\Phi(0.18) \approx 0.5714 \Rightarrow \Phi(d_1) - \Phi(d_2) \approx 0.1428$.
-
-Price:
-$$\mathrm{Cpl}_0(\sigma_M) \approx 0.975 \times 0.5 \times 0.030769 \times 0.1428 \approx 0.00214.$$
-
-This is above target, so set $\sigma_H \leftarrow 0.505$.
-
-#### Iteration 2: $\sigma_M = (0.01 + 0.505)/2 = 0.2575$.
-
-$v = 0.2575(0.7071) = 0.1821$.
-$d_1 = 0.0910$, $d_2 = -0.0910$.
-$\Phi(0.09) \approx 0.5359 \Rightarrow \Phi(d_1) - \Phi(d_2) \approx 0.0718$.
-
-Price:
-$$\mathrm{Cpl}_0 \approx 0.975 \times 0.5 \times 0.030769 \times 0.0718 \approx 0.00108.$$
-
-This is below target, so set $\sigma_L \leftarrow 0.2575$.
-
-At this point, $\sigma \in [0.2575, 0.505]$ and we already know the true toy value used in Example 2 was $\sigma \approx 0.28284$.
-
-$$\boxed{\text{Final numeric output (after 2 iterations): bracket } \sigma \in [0.2575, 0.505]}$$
-
-with midpoint $0.38125$ (not yet refined). With more iterations, it converges toward $\approx 0.283$.
-
----
-
-### Example 8: Another Calibration Step (Toy): Solve for One Swaption $\sigma$ by Inversion Logic
-
-**Target:** match the ATM swaption price from Example 4:
-
-$$\mathrm{Swpt}_0^{\mathrm{mkt}} = 0.002786.$$
-
-**ATM swaption Black:**
-
-$$\mathrm{Swpt}_0(\sigma) = A \cdot S \cdot (\Phi(d_1) - \Phi(d_2)), \quad d_1 = \tfrac{1}{2}\sigma\sqrt{T_\alpha}, \; d_2 = -\tfrac{1}{2}\sigma\sqrt{T_\alpha}.$$
-
-**Inputs:** $A = 0.9650$, $S = 0.036269$, $T_\alpha = 0.5$.
-
-**Try $\sigma = 0.20$:** $v = 0.20(0.7071) = 0.1414$, $d_1 = 0.0707$.
-Approx $\Phi(0.07) \approx 0.5279 \Rightarrow \Phi(d_1) - \Phi(d_2) \approx 0.0558$.
-Price $\approx 0.965 \times 0.036269 \times 0.0558 \approx 0.00195$ (below target).
-
-**Try $\sigma = 0.30$:** $v = 0.30(0.7071) = 0.2121$, $d_1 = 0.1061$.
-$\Phi(0.11) \approx 0.5438 \Rightarrow \Phi(d_1) - \Phi(d_2) \approx 0.0876$.
-Price $\approx 0.965 \times 0.036269 \times 0.0876 \approx 0.00306$ (above target).
-
-So $\sigma \in [0.20, 0.30]$. The toy value used in Example 4 was $\sigma \approx 0.28284$ giving $v = 0.2$ and price $0.002786$.
-
-$$\boxed{\text{Final numeric output (simple inversion bracket): } \sigma \in [0.20, 0.30], \text{ with calibrated } \sigma \text{ near } 0.283.}$$
-
----
-
-### Example 9: Correlation Effect Toy (Illustrative Risk Intuition)
-
-I'm not sure this exact "weighted-sum variance" proxy is explicitly presented in the market-model sections of the sources; I'm using it as a generic covariance identity to build intuition for why correlation matters for basket-like objects (swap rates are weighted combinations of forwards).
-
-Let $X_1, X_2$ be random shocks (e.g., normalized log-forward increments) with:
-- $\mathrm{Var}(X_1) = \sigma_1^2$, $\mathrm{Var}(X_2) = \sigma_2^2$, $\mathrm{Corr}(X_1, X_2) = \rho$.
-
-Consider $Y = w_1 X_1 + w_2 X_2$. Then:
-
-$$\mathrm{Var}(Y) = w_1^2 \sigma_1^2 + w_2^2 \sigma_2^2 + 2 w_1 w_2 \rho \sigma_1 \sigma_2.$$
-
-**Choose numbers:**
-- $w_1 = 0.6$, $w_2 = 0.4$
-- $\sigma_1 = 1.0\% \Rightarrow 0.010$, $\sigma_2 = 1.5\% \Rightarrow 0.015$
-
-**Compute:**
-- $w_1^2 \sigma_1^2 = 0.36(0.0001) = 0.000036$
-- $w_2^2 \sigma_2^2 = 0.16(0.000225) = 0.000036$
-- Cross term $2 w_1 w_2 \sigma_1 \sigma_2 = 2(0.24)(0.00015) = 0.000072$
-
-**If $\rho = 0$:** $\mathrm{Var}(Y) = 0.000036 + 0.000036 = 0.000072$.
-Std $\approx \sqrt{0.000072} = 0.008485$ (0.8485%).
-
-**If $\rho = 0.8$:** $\mathrm{Var}(Y) = 0.000072 + 0.8(0.000072) = 0.0001296$.
-Std $\approx \sqrt{0.0001296} = 0.011387$ (1.1387%).
-
-**Takeaway:** raising correlation boosts the variance (and therefore option value) of a basket-like rate.
-
----
-
-### Example 10: Consistency Check: $\sigma = 0$ Collapses to Deterministic Rates and Options Go to Intrinsic/0
-
-**Caplet B from Example 3:** $F = 0.041885$, $K = 0.035$, pay at $1.5$, $P(0, 1.5) = 0.955$, $\delta = 0.5$.
-
-If $\sigma = 0$, then $F(T) \equiv F(0)$ deterministically under any equivalent measure, so
-
-$$\mathrm{Cpl}_0(\sigma = 0) = P(0, 1.5) \cdot \delta \cdot \max(F - K, 0) = 0.955(0.5)(0.006885) = 0.4775(0.006885) \approx 0.003287.$$
-
-Compare to $\sigma > 0$ price from Example 3 ($\approx 0.00366$): the option value is higher when volatility is positive.
-
-**ATM swaption from Example 4:** $S = K$.
-
-Intrinsic at expiry is zero, so with $\sigma = 0$,
-
-$$\mathrm{Swpt}_0(\sigma = 0) = 0.$$
-
-With $\sigma > 0$, we got $\approx 0.002786$.
-
-**Sanity check:** option values are nonnegative and increasing in $\sigma$; and as $\sigma \to 0$ they approach intrinsic.
-
----
-
-## 9. Practical Notes
-
-### 9.1 Common Pitfalls
-
-**Mixing measures (pricing under the wrong measure/numeraire):**
-- Caplets: natural under $T_{i+1}$-forward measure when payoff at $T_{i+1}$.
-- Swaptions: natural under swap annuity measure for that swap's annuity.
-
-**Assuming lognormality in the wrong place:**
-- In LMM, $F_i$ is lognormal under $\mathbb{Q}^{i+1}$, not under $\mathbb{Q}$.
-- In swap market model, $S_{\alpha,\beta}$ is lognormal under $\mathbb{Q}^{\alpha,\beta}$, not necessarily under other measures.
-
-**Discounting curve vs projection curve (multi-curve):**
-- The sources discuss multiple yield curves and OIS discounting. If you price with OIS discounting but still model forwards as "LIBOR-style" projection rates, you must be explicit about which curve generates $P(t, T)$ and which generates $F_i(t)$.
-- I'm not sure how deep you want multi-curve to go in this appendix (it quickly becomes model- and desk-convention dependent).
-
-**Negative-rate environments:**
-- Pure lognormal models keep rates strictly positive. The sources discuss extensions such as displaced diffusion / shifted lognormal / SABR-like approaches as smile/shape remedies.
-- I'm not sure whether the book explicitly frames these as "negative-rate fixes" in the LMM chapter excerpt, but the displaced/shifted family is the natural direction if your desk requires it.
-
-**Overfitting and instability ("ringing"):**
-- The sources explicitly warn that calibration that is too local (row-by-row / bootstrap) can produce ringing and instability, and recommend regularization terms in the calibration norm.
-
-**Bad market data / swaption matrix misalignment:**
-- Swaption matrices can be stale in some entries; misalignment can create weird/unstable implied parameters (even imaginary vols).
-
-### 9.2 Verification Tests
-
-- **Reprice calibration instruments** (caps/caplets, swaptions) exactly.
-- **Stability under small bumps:** bump a few quotes and re-calibrate; confirm parameter surface moves smoothly (ringing control).
-- **Limiting cases:** $\sigma \to 0$: prices $\to$ intrinsic/0 (Example 10).
-- **Arbitrage sanity:**
-  - No negative option prices.
-  - Option prices monotone increasing in vol.
-
----
-
-## 10. Summary & Recall
-
-### 10.1 Ten-Bullet Executive Summary
-
-1. **Market models** target market-quoted rates (forwards or swaps) to align with Black(-style) quoting.
-
-2. **Tenor grid** $\{T_i\}$ and accruals $\delta_i$ define the discrete structure for forwards and swaps.
-
-3. **Forwards** $F_i(t)$ are defined from bonds by $F_i = \frac{1}{\delta_i}(P(t, T_i)/P(t, T_{i+1}) - 1)$.
-
-4. Under $\mathbb{Q}^{i+1}$ (numeraire $P(t, T_{i+1})$), **LMM** models $F_i$ as driftless lognormal, enabling Black caplet pricing.
-
-5. Under other measures, **LMM forward drifts become coupled** and depend on other forwards.
-
-6. **Swap rate** $S_{\alpha,\beta} = (P(t, T_\alpha) - P(t, T_\beta))/C_{\alpha,\beta}(t)$ with annuity $C_{\alpha,\beta}(t) = \sum \delta P(t, T)$.
-
-7. Under **swap annuity measure**, swap rate is a martingale; lognormal swap-rate assumption yields Black swaption pricing.
-
-8. **LMM fits caplets naturally; swap market model fits swaptions naturally**; exact compatibility is not guaranteed but can be close in practice.
-
-9. **Calibration** is an optimization balancing fit vs smoothness; regularization prevents "ringing."
-
-10. **Simulation** uses a common measure (e.g., spot-LIBOR measure) and requires drift recomputation to maintain no-arbitrage.
-
-### 10.2 Cheat Sheet
-
-#### Key Objects
+## A4.9 Summary
+
+### Key Takeaways
+
+1. **Market models** target market-quoted rates to align with Black quoting conventions
+2. **LMM** models forward rates; each $F_i$ is lognormal under $\mathbb{Q}^{i+1}$, making caplets exactly Black
+3. **Swap Market Model** models swap rates; $S_{\alpha,\beta}$ is lognormal under $\mathbb{Q}^{\alpha,\beta}$, making swaptions exactly Black
+4. **Coupled drift** is the price of convenience—under a common measure, drifts depend on all forward levels (negative under terminal measure, positive under spot measure)
+5. **Rebonato's approximation** links LMM forward parameters to swaption volatilities via a weighted covariance formula
+6. **Calibration** balances caplet fit (volatility levels) and swaption fit (correlation structure)
+7. **Regularization** is essential to avoid ringing and ensure hedge stability
+8. **Coterminal swaptions** are critical for Bermudan pricing
+9. **Two-curve framework** (distinct discount and index curves) is now standard for non-collateralized trades
+10. **SOFR adaptation** requires reinterpreting the timing but preserves the framework
+
+### Cheat Sheet
 
 | Object | Definition |
 |--------|------------|
-| $P(t, T)$ | Bond price |
-| $F_i(t)$ | Forward over $[T_i, T_{i+1}]$ |
-| $C_{\alpha,\beta}(t)$ | Swap annuity |
-| $S_{\alpha,\beta}(t)$ | Swap rate |
-| $\mathrm{Bl}(K, F, v, \omega)$ | Black building block |
-
-#### Measures / Numeraires
-
-| Measure | Numeraire |
-|---------|-----------|
-| $\mathbb{Q}$ | $B(t)$ (money-market) |
-| $\mathbb{Q}^i$ | $P(t, T_i)$ (bond forward measure) |
-| $\mathbb{Q}^{\alpha,\beta}$ | $C_{\alpha,\beta}(t)$ (swap annuity measure) |
-
-#### What is Lognormal Under What
-
-| Model | Rate | Measure |
-|-------|------|---------|
-| LMM | $F_i$ lognormal | under $\mathbb{Q}^{i+1}$ (by model choice) |
-| Swap market model | $S_{\alpha,\beta}$ lognormal | under $\mathbb{Q}^{\alpha,\beta}$ (by model choice) |
-
-#### Calibration Workflow (High Level)
-
-1. Build curve $\Rightarrow P(0, T) \Rightarrow F_i(0)$.
-2. Choose model (LMM or swap market).
-3. Choose vol structure + correlation.
-4. Fit to caplet/cap and/or swaption prices/vols with regularization.
-5. Validate and stress bump.
-
-### 10.3 Twenty-Five Flashcards (Q/A)
-
-1. **Q:** What is the simply-compounded forward rate $F_i(t)$ on $[T_i, T_{i+1}]$?
-   **A:** $F_i(t) = \frac{1}{\delta_i}\left(\frac{P(t, T_i)}{P(t, T_{i+1})} - 1\right)$.
-
-2. **Q:** What is the numeraire for the $T$-forward measure?
-   **A:** The zero-coupon bond $P(t, T)$.
-
-3. **Q:** Under which measure is $F_i$ driftless in LMM?
-   **A:** Under $\mathbb{Q}^{i+1}$ (the $T_{i+1}$-forward measure).
-
-4. **Q:** What is the LMM diffusion for $F_i$ under its forward measure (scalar form)?
-   **A:** $dF_i(t) = \sigma_i(t) F_i(t) dZ_i^{i+1}(t)$.
-
-5. **Q:** What is "coupled drift" in LMM?
-   **A:** Under other measures, drift of $F_k$ depends on other forwards via a sum term.
-
-6. **Q:** Define swap annuity $C_{\alpha,\beta}(t)$.
-   **A:** $C_{\alpha,\beta}(t) = \sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$.
-
-7. **Q:** Define swap rate $S_{\alpha,\beta}(t)$.
-   **A:** $S_{\alpha,\beta}(t) = \frac{P(t, T_\alpha) - P(t, T_\beta)}{C_{\alpha,\beta}(t)}$.
-
-8. **Q:** Why is the swap annuity a natural numeraire for swaptions?
-   **A:** It qualifies as a numeraire and makes the swap rate a martingale under the annuity measure.
-
-9. **Q:** What is the payer swaption payoff at expiry in the swap-rate formulation?
-   **A:** $C_{\alpha,\beta}(T_\alpha)(S_{\alpha,\beta}(T_\alpha) - K)^+$.
-
-10. **Q:** What is Black "$\mathrm{Bl}$" in these notes?
-    **A:** $\mathrm{Bl}(K, F, v, \omega) = \omega(F\Phi(\omega d_1) - K\Phi(\omega d_2))$, $d_1 = \frac{\ln(F/K) + \frac{1}{2}v^2}{v}$, $d_2 = d_1 - v$.
-
-11. **Q:** In the swap market model, what is assumed lognormal?
-    **A:** The swap rate under the swap (annuity) measure.
-
-12. **Q:** In LMM, are forwards lognormal under the risk-neutral measure?
-    **A:** Not generally; under other measures their drift becomes state-dependent/coupled.
-
-13. **Q:** What does "Black compatibility" mean in this appendix?
-    **A:** Model is set up so caplets or swaptions reduce to Black pricing under the appropriate measure.
-
-14. **Q:** Why do we add regularization in calibration?
-    **A:** To prevent unstable "ringing" and improve smoothness/hedging behavior.
-
-15. **Q:** What's the practical warning about swaption matrices?
-    **A:** Some entries can be stale/misaligned, causing calibration instability.
-
-16. **Q:** Give an example correlation parameterization.
-    **A:** $\rho_{ij} = \exp(-\beta |T_i - T_j|)$.
-
-17. **Q:** What is reduced-rank correlation used for?
-    **A:** Factor reduction and computational efficiency in simulation/calibration.
-
-18. **Q:** What market instruments most directly pin down LMM vol levels?
-    **A:** Caps/caplets (caplet implied vol surface).
-
-19. **Q:** What market instruments most directly pin down swap market model vols?
-    **A:** Swaptions (swaption vol matrix).
-
-20. **Q:** Under which measure is a bond price divided by itself a martingale?
-    **A:** Under its own bond-numeraire forward measure.
-
-21. **Q:** What is the HJM drift restriction conceptually?
-    **A:** Once vol is chosen, drift is fixed by no-arbitrage.
-
-22. **Q:** Why might one calibrate to both caps and swaptions?
-    **A:** To avoid discarding information; many exotics embed both cap-like and swaption-like features.
-
-23. **Q:** What is a typical calibration tradeoff?
-    **A:** Fit accuracy vs smoothness/regularity and hedging stability.
-
-24. **Q:** What is multi-curve?
-    **A:** Discounting and projection can be on different curves (e.g., OIS discounting).
-
-25. **Q:** Name a smile extension direction mentioned by the sources.
-    **A:** Local volatility, stochastic volatility, displaced diffusion, SABR-like approaches.
+| $F_i(t)$ | $\frac{1}{\delta_i}(P(t,T_i)/P(t,T_{i+1}) - 1)$ |
+| $C_{\alpha,\beta}(t)$ | $\sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$ |
+| $S_{\alpha,\beta}(t)$ | $(P(t,T_\alpha) - P(t,T_\beta))/C_{\alpha,\beta}(t)$ |
+| $w_i(t)$ | $\delta_i P(t, T_i) / C_{\alpha,\beta}(t)$ (swap rate weights) |
+| LMM dynamics | $dF_i = \sigma_i F_i dZ^{i+1}$ under $\mathbb{Q}^{i+1}$ |
+| Terminal drift | $\mu_k^{(n)} = -\sigma_k F_k \sum_{j>k}\frac{\delta_j F_j \sigma_j \rho_{kj}}{1+\delta_j F_j}$ |
+| Spot drift | $\mu_k^{(d)} = +\sigma_k F_k \sum_{j \le k}\frac{\delta_j F_j \sigma_j \rho_{kj}}{1+\delta_j F_j}$ |
+| Rebonato approx | $(v_{\alpha,\beta}^{LMM})^2 \approx \sum_{i,j} \frac{w_i w_j F_i F_j \rho_{ij}}{S^2} \int_0^T \sigma_i \sigma_j dt$ |
 
 ---
 
-## 11. Mini Problem Set (16 Questions)
+## A4.10 Flashcards
 
-*(Provide brief solution sketches for questions 1–8 only)*
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | What is $F_i(t)$? | $\frac{1}{\delta_i}(P(t,T_i)/P(t,T_{i+1}) - 1)$ |
+| 2 | Under which measure is $F_i$ driftless in LMM? | $\mathbb{Q}^{i+1}$ (the $T_{i+1}$-forward measure) |
+| 3 | What is the LMM diffusion for $F_i$ under its forward measure? | $dF_i = \sigma_i F_i dZ^{i+1}$ |
+| 4 | What is "coupled drift"? | Under other measures, drift of $F_k$ depends on other forwards |
+| 5 | Define swap annuity $C_{\alpha,\beta}(t)$ | $\sum_{k=\alpha+1}^{\beta} \delta_k P(t, T_k)$ |
+| 6 | Define swap rate $S_{\alpha,\beta}(t)$ | $(P(t,T_\alpha) - P(t,T_\beta))/C_{\alpha,\beta}(t)$ |
+| 7 | What numeraire gives the swap measure? | The swap annuity $C_{\alpha,\beta}(t)$ |
+| 8 | What is payer swaption payoff at expiry? | $(S_{\alpha,\beta}(T_\alpha) - K)^+ \cdot C_{\alpha,\beta}(T_\alpha)$ |
+| 9 | What is Black "$\mathrm{Bl}$"? | $\omega(F\Phi(\omega d_1) - K\Phi(\omega d_2))$ |
+| 10 | In swap market model, what is lognormal? | The swap rate under the swap measure |
+| 11 | Are forwards lognormal under risk-neutral measure? | No; they have state-dependent coupled drifts |
+| 12 | What does "Black compatibility" mean? | Model produces Black prices under appropriate measure |
+| 13 | Why add regularization in calibration? | To prevent ringing and improve stability |
+| 14 | What's the warning about swaption matrices? | Stale entries cause calibration instability |
+| 15 | Give an exponential correlation form | $\rho_{ij} = \exp(-\beta|T_i - T_j|)$ |
+| 16 | What pins LMM volatility levels? | Caps/caplets |
+| 17 | What pins LMM correlation? | Swaptions |
+| 18 | What are coterminal swaptions? | Swaptions with same end date, different starts |
+| 19 | Why are coterminals important? | Critical for Bermudan pricing |
+| 20 | What is terminal measure $\mathbb{Q}^n$? | Measure with $P(t, T_n)$ as numeraire |
+| 21 | Sign of drift under terminal measure? | Negative for earlier forwards |
+| 22 | Sign of drift under spot measure? | Positive |
+| 23 | What is the HJM drift restriction? | Volatility determines drift via no-arbitrage |
+| 24 | How does LMM relate to HJM? | Discrete-tenor specialization |
+| 25 | How does SOFR differ from LIBOR for LMM? | Backward-looking; known at period end |
+| 26 | What is Rebonato's swaption volatility approximation? | $v^2 \approx \sum_{ij} w_i w_j F_i F_j \rho_{ij} \sigma_i \sigma_j T / S^2$ |
+| 27 | What are swap rate weights $w_i$? | $w_i = \delta_i P(0, T_i) / C_{\alpha,\beta}(0)$; they sum to 1 |
+| 28 | What is terminal correlation? | Correlation of forwards at option expiry, distinct from instantaneous |
+| 29 | How does eigenvalue zeroing work? | Zero smallest eigenvalues, reconstruct matrix; ensures positive semi-definite |
+| 30 | What is the two-curve framework? | Separate discount and index curves with cross-correlations |
 
-1. **Given** $P(0, 0) = 1$, $P(0, 0.5) = 0.99$, $\delta_0 = 0.5$, compute $F_0(0)$.
+---
 
-   **Sketch:** Use $F_0 = \frac{1}{0.5}(1/0.99 - 1) \approx 0.020202$.
+## A4.11 Problem Set
 
-2. **Using Example 1 discount factors,** compute $F_1(0)$ and $F_2(0)$.
+**Problems 1-8 include solution sketches.**
 
-   **Sketch:** $F_1 = 2(0.99/0.975 - 1) \approx 0.030769$; $F_2 = 2(0.975/0.955 - 1) \approx 0.041885$.
+1. **Given** $P(0,0) = 1$, $P(0, 0.5) = 0.99$, $\delta_0 = 0.5$, compute $F_0(0)$.
 
-3. **For a swap from $0.5$ to $1.5$** with semiannual payments, compute the annuity $A$.
+   **Sketch:** $F_0 = \frac{1}{0.5}(1/0.99 - 1) = 2 \times 0.0101 = 2.02\%$
 
-   **Sketch:** $A = 0.5 \cdot P(0, 1.0) + 0.5 \cdot P(0, 1.5) = 0.965$.
+2. **Compute** the annuity and par swap rate for a 1-year swap with semiannual payments, given $P(0, 0.5) = 0.99$, $P(0, 1.0) = 0.975$.
 
-4. **Using the annuity and discount factors,** compute the par swap rate $S$.
+   **Sketch:** $A = 0.5(0.99 + 0.975) = 0.9825$. $S = (1 - 0.975)/0.9825 = 2.54\%$
 
-   **Sketch:** $S = (P(0, 0.5) - P(0, 1.5))/A = 0.035/0.965 \approx 0.036269$.
+3. **For an ATM caplet** with $F = K = 3\%$, $P(0, T) = 0.97$, $\delta = 0.5$, $T = 1$, $\sigma = 20\%$, compute $d_1$, $d_2$, and the caplet price.
 
-5. **For an ATM caplet** with $F = K = 3\%$, $P(0, T) = 0.97$, $\delta = 0.5$, $T = 1$, $\sigma = 0.2$, compute $d_1, d_2$.
+   **Sketch:** $v = 0.20$, $d_1 = 0.10$, $d_2 = -0.10$. Price $= 0.97 \times 0.5 \times 0.03 \times 0.0796 = 0.00116$
 
-   **Sketch:** $v = \sigma\sqrt{T} = 0.2$, so $d_1 = 0.1$, $d_2 = -0.1$.
+4. **Explain** why caplets are "Black-compatible" in LMM.
 
-6. **Explain in one sentence** why caplets are "Black-compatible" in LMM.
+   **Sketch:** Under $\mathbb{Q}^{i+1}$, $F_i$ is driftless lognormal, so caplet expectation is exactly Black.
 
-   **Sketch:** Under $T_{i+1}$-forward measure, the model makes $F_i$ driftless lognormal, so caplet payoff expectation is exactly Black.
+5. **Explain** why swaptions are "Black-compatible" in the swap market model.
 
-7. **Explain in one sentence** why swaptions are "Black-compatible" in the swap market model.
+   **Sketch:** Under swap measure, $S_{\alpha,\beta}$ is lognormal; payoff is annuity times $(S-K)^+$, giving Black formula.
 
-   **Sketch:** Under the annuity measure, swap rate is modeled lognormal and payoff is annuity times $(S - K)^+$, giving Black swaption formula.
+6. **What is "coupled drift"** in LMM and why does it arise?
 
-8. **What is meant by "coupled drift"** in LMM?
+   **Sketch:** Under non-canonical measures, drift of one forward depends on others via measure change (Girsanov). It arises from the product structure of bond ratios.
 
-   **Sketch:** Under a non-canonical measure, drift of one forward depends on other forwards through a sum involving $\frac{\tau_j F_j}{1 + \tau_j F_j}$ terms.
+7. **Describe** the role of coterminal swaptions in Bermudan pricing.
+
+   **Sketch:** Bermudan exercise decisions compare continuation vs immediate exercise. Immediate exercise values are coterminal swaption payoffs, so calibrating to these ensures correct boundaries.
+
+8. **What is regularization** in LMM calibration and why is it needed?
+
+   **Sketch:** Regularization adds penalty terms (smoothness, Tikhonov) to the objective to prevent ringing—oscillating calibrated volatilities from overfitting to noisy quotes.
 
 9. Show that $C_{\alpha,\beta}(t)$ has units of years (PVBP interpretation).
 
-10. In LMM, why is it computationally convenient to use reduced-rank correlation?
+10. Why is reduced-rank correlation computationally advantageous?
 
-11. Describe one reason why joint caps+swaptions calibration can be challenging.
+11. Describe one challenge in joint caps+swaptions calibration.
 
-12. How can stale entries in a swaption matrix distort calibration?
+12. How can stale swaption matrix entries distort calibration?
 
-13. If you increase correlation between forward rates, what qualitative effect do you expect on swaption prices (holding vols fixed)?
+13. If you increase forward-forward correlation, what happens to swaption prices?
 
-14. Describe a regularization term one might add to a calibration objective to reduce ringing. (I'm not sure if a specific form is specified in the excerpt; answer generically.)
+14. Derive the drift of $F_{n-2}$ under the terminal measure $\mathbb{Q}^n$.
 
-15. Explain the conceptual analogy between HJM drift restriction and LMM drift coupling.
+15. Explain conceptually why CMS rates have positive convexity adjustments.
 
-16. Give one reason why lognormal models may be problematic when rates can be negative.
+16. Why might lognormal models be problematic when rates are negative?
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Verified Facts — Source-Backed
 
-- Forward rate definition, bond price relationships, measure definitions: Andersen & Piterbarg Vol 1, Brigo & Mercurio
-- Black function $\mathrm{Bl}$ definition and cap/swaption formulas: Andersen & Piterbarg, Brigo & Mercurio
-- LMM dynamics under forward measure, coupled drift formulas: Andersen & Piterbarg Vol 2, Brigo & Mercurio Ch 6-7
-- Swap annuity as numeraire, swap rate martingale property: Andersen & Piterbarg, Brigo & Mercurio
-- Calibration as optimization, regularization, ringing warnings: Andersen & Piterbarg Vol 2
-- Correlation parameterizations (exponential, Rebonato-style): Andersen & Piterbarg Vol 2, Brigo & Mercurio
+| Fact | Source |
+|------|--------|
+| Forward rate definition from bond prices | Andersen & Piterbarg Vol 1; Brigo & Mercurio |
+| Black function $\mathrm{Bl}$ definition | Andersen & Piterbarg; Brigo & Mercurio |
+| LMM dynamics under forward measure | Andersen & Piterbarg Vol 2 Ch 14; Brigo & Mercurio Ch 6 |
+| Coupled drift formulas (terminal/spot) | Andersen & Piterbarg Vol 2; Brigo & Mercurio Prop 6.3.1 (formulas 6.19, 6.20) |
+| Drift sign explanation (Girsanov direction) | Brigo & Mercurio Ch 6 |
+| Terminal and spot measure definitions | Andersen & Piterbarg Vol 2 |
+| Swap annuity as numeraire | Andersen & Piterbarg; Brigo & Mercurio |
+| Rebonato's swaption volatility approximation | Brigo & Mercurio Prop 6.15.1 (formula 6.67) |
+| Terminal correlation formulas | Brigo & Mercurio formulas 6.70, 6.71 |
+| Eigenvalue zeroing for rank reduction | Brigo & Mercurio Section 6.9 |
+| Rebonato angles parameterization | Brigo & Mercurio Section 6.9 |
+| Coterminal swaption calibration for Bermudans | Andersen & Piterbarg Vol 2 |
+| Calibration as optimization with regularization | Andersen & Piterbarg Vol 2 |
+| Ringing warnings | Andersen & Piterbarg Vol 2 |
+| Tikhonov regularization | Andersen & Piterbarg Vol 2 |
+| Correlation parameterizations | Andersen & Piterbarg Vol 2; Brigo & Mercurio |
+| CMS convexity adjustment via replication | Andersen & Piterbarg Vol 2 |
+| Predictor-corrector schemes | Andersen & Piterbarg Vol 2 |
+| Two-curve framework (HJM/LMM extensions) | Andersen & Piterbarg Vol 2 Section 15.5 |
+| LFM-LSM incompatibility | Brigo & Mercurio Section 6.10 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Reasoned Inference — Derived from (A)
 
-- Connection between LMM and HJM (discrete vs continuous tenor): derived from comparing forward dynamics structure
-- "Black compatibility" as design constraint: inferred from the alignment between model measures and market quoting conventions
-- Calibration workflow structure: synthesized from calibration discussion themes in sources
+- Connection between LMM and HJM: derived from comparing discrete vs continuous tenor structures
+- "Black compatibility" as design constraint: inferred from alignment between model measures and market conventions
+- Swap rate as weighted average of forwards: derived from bond ratio decomposition
+- SOFR adaptation approach: inferred from rate definition equivalence
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
-- Exact numerical optimizer choice for calibration (LM vs gradient methods): not pinned down in excerpts
-- Full risk-neutral drift expression: depends on bank-account construction and $\beta(t)$ definition not fully reproduced
-- Multi-curve depth appropriate for this appendix: desk-convention dependent
-- Negative-rate handling as explicit "fix" in LMM context: natural direction but not explicitly framed this way in excerpts
+- **Exact numerical optimizer choice:** Sources discuss problem structure but don't mandate LM vs SQP vs gradient methods. I'm not sure which specific algorithm your desk prefers.
+- **Full risk-neutral drift expression:** Depends on exact bank-account construction ($B(t)$ vs $B_d(t)$) and $\beta(t)$ definition not fully reproduced here.
+- **Multi-curve depth:** How deep to integrate OIS discounting vs projection curve separation is desk-convention dependent.
+- **SOFR timing adjustments:** Specific treatment of lookback periods and payment delays varies by contract; generic framework described but exact details not pinned.

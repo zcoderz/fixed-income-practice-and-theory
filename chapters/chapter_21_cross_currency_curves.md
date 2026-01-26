@@ -1,1010 +1,746 @@
-# Chapter 21: Cross-Currency Curves — CIP, FX Forwards, and Cross-Currency Basis (as Curve Constraints)
+# Chapter 21: Cross-Currency Curves — CIP, FX Forwards, and Cross-Currency Basis as Curve Constraints
 
 ---
 
-## Fact Classification
+## Introduction
 
-### (A) Verified Facts (Source-Backed)
-- CIP relates spot FX, forward FX, and interest-rate discounting across two currencies (Hull Ch 5)
-- Forward FX rate in discount-factor form: $F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)}$ (Andersen Vol 1)
-- Forward FX rate in continuous-compounded rate form: $F_0 = S_0 e^{(r_d - r_f)T}$ (Hull Ch 5)
-- Multi-curve framework separates discount curve $P(\cdot)$ from index/pseudo-discount curve $P^{(L)}(\cdot)$ (Andersen Vol 1 Ch 6)
-- Cross-currency basis swaps exchange floating LIBOR in two currencies plus/minus a spread, with notional exchanges at inception and maturity at spot FX ratio (Andersen Vol 1)
-- A one-period cross-currency basis swap is identical to an FX forward (Andersen Vol 1)
-- Building curves independently from local swaps can violate cross-currency no-arbitrage constraints (Andersen Vol 1 Ch 6)
-- DV01 is defined as the price change for a 1bp yield change: $\text{DV01} = -\frac{\partial P}{\partial y} \times 0.0001$ (Tuckman Ch 5)
+A trader in London wants to fund a USD position using EUR. She could borrow EUR from her treasury desk, convert to USD at spot, invest the dollars, and hedge the FX exposure with a forward—a textbook covered interest arbitrage. In the pre-2008 world, this transaction would yield exactly the same return as borrowing USD directly, because *covered interest parity* (CIP) held with machine-like precision. The forward FX rate would adjust to eliminate any profit from the round-trip.
 
-### (B) Reasoned Inference (Derived from A)
-- FX-implied foreign discount factor: $P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)$ (algebra from CIP-DF)
-- Cross-currency yield spread formula: $s(t) = -\frac{1}{t} \ln\left(\frac{P^{(L)}(t)}{P(t)}\right)$ (algebra from yield spread definition)
-- The ratio $P_f/P_d$ represents relative growth of foreign and domestic money-market numeraires
-- Basis swap par conditions constrain the relationship between projection and discount curves
+That world ended in August 2007. As the credit crisis unfolded, the CIP relationship—one of the most fundamental no-arbitrage conditions in finance—began to break down. Banks suddenly found that funding USD through FX markets cost more than borrowing USD directly, even after accounting for interest rate differentials. This "cross-currency basis" widened from negligible levels to dozens of basis points, and it has never fully returned to zero. Andersen and Piterbarg document episodes where the cross-currency yield spread reached "around -40 basis points in JPY" during the late 1990s Japanese banking crisis, and "significantly positive (up to +60 basis points)" in early 2008 as hedging demands surged.
 
-### (C) Speculation (Clearly Labeled; Minimal)
-- I'm not sure about exact spot/settlement conventions as they are currency-pair specific (spot lag, holidays, business day rules, fixing conventions)
-- I'm not sure about exact fails-charge formulas — sources discuss fails conceptually but don't specify penalty mechanics
-- I'm not sure about basis swap quoting conventions (which leg gets the spread, sign conventions) as this is market-convention specific
-- I'm not sure about building consistent calendars across currencies — book does not give full operational calendars
+The emergence of persistent CIP deviations has profound implications for curve construction. **If you build USD and JPY discount curves independently from their respective local swap markets—without imposing consistency with FX forwards—you will create arbitrageable inconsistencies.** As Andersen and Piterbarg emphasize, "the market for foreign exchange (FX) forwards and cross-currency basis swaps imposes certain arbitrage constraints that must be considered in the curve construction exercise."
 
----
+> **Analogy: The Teleporter**
+>
+> Imagine you want 100 EUR in one year. You have two ways to get it:
+> 1.  **The Local Path**: Wait in Europe. (Invest EUR today).
+> 2.  **The Teleporter**: Wait in the US, then teleport. (Invest USD today, then swap to EUR).
+>
+> **Covered Interest Parity (CIP)** says these two paths must cost exactly the same. The FX Forward market is the "Teleporter." If the Teleporter is cheaper than the Local Path, everyone will use it, forcing the price back in line.
+>
+> **The Crisis**: In 2008, the Teleporter broke. It became much more expensive to use the Teleporter (swap USD for EUR) than to borrow locally, because banks stopped trusting the "teleportation" mechanism (counterparty risk).
 
-## Conventions & Notation
+This chapter develops the machinery for cross-currency curve construction. We will cover:
 
-| Symbol | Meaning | Units/Notes |
-|--------|---------|-------------|
-| $d$ | Domestic (reporting) currency | — |
-| $f$ | Foreign currency | — |
-| $t$ | Valuation time | years |
-| $T$ | Maturity | years |
-| $\tau$ | Year fraction / accrual factor | years |
-| $P_d(0,T)$ | Domestic discount factor for maturity $T$ | dimensionless |
-| $P_f(0,T)$ | Foreign discount factor for maturity $T$ | dimensionless |
-| $X(0)$ | Spot FX: domestic price of 1 unit foreign | $d/f$ |
-| $F(0,T)$ or $X_T(0)$ | Forward FX rate for delivery at $T$ | $d/f$ (same as spot) |
-| $Y(0,T)$ | Inverse-quoted forward FX: $1/F(0,T)$ | $f/d$ |
-| $r_d, r_f$ | Continuous-compounded zero rates | 1/year |
-| $L(0,T_i,T_{i+1})$ | Simple forward LIBOR over $[T_i, T_{i+1}]$ | 1/year |
-| $P^{(L)}(0,T)$ | Index/pseudo-discount curve for LIBOR | dimensionless |
-| $s(t)$ | Cross-currency (CRX) yield spread | 1/year (often quoted in bp) |
-| $e$ | Cross-currency basis swap spread | 1/year (often quoted in bp) |
+1. **Covered Interest Parity** (Section 21.1): The no-arbitrage relationship linking spot FX, forward FX, and discount factors across currencies—the foundation for everything that follows.
+2. **FX Forwards as Curve Constraints** (Section 21.2): How forward quotes, combined with a domestic curve, pin down the foreign discount curve.
+3. **Cross-Currency Basis** (Section 21.3): What "basis" means at the curve level, why it exists, and how to measure it.
+4. **Cross-Currency Basis Swaps** (Section 21.4): The instruments that provide constraint information beyond the short-dated FX forward market.
+5. **Multi-Currency Curve Construction** (Section 21.5): A practical algorithm for building consistent cross-currency curves.
+6. **Risk Decomposition** (Section 21.6): FX delta, rates PV01, and basis exposure as distinct risk dimensions.
 
-### Defaults Used in Examples
-- **Quote direction**: $X(0)$ is domestic per 1 foreign ($d/f$)
-- **Compounding**: Continuous unless otherwise stated
-- **Rounding**: Values rounded to 6 decimals (rates) or 6–7 significant digits (DFs/FX)
-
-### Important Market Caveats
-- FX markets often quote in the opposite direction (e.g., "units of currency per USD")
-- Formulas must be inverted depending on quote direction
-- Basis swap spread conventions (which leg, sign) vary by market — always confirm with desk
+**Chapter boundaries:** This chapter focuses on the *curve construction implications* of cross-currency markets. Chapter 29 covers FX forward mechanics and pricing in detail; Chapter 30 covers cross-currency swap structures and valuation. Here, we treat these instruments primarily as sources of constraint equations that must be satisfied when building curves. Chapter 20 develops the multi-curve framework for a single currency (tenor basis); this chapter extends that framework to multiple currencies.
 
 ---
 
-## Core Concepts
+## 21.1 Covered Interest Parity (CIP): The Foundation
 
-### 1) Covered Interest Parity (CIP)
+Covered interest parity is the no-arbitrage relationship that links spot FX, forward FX, and interest rates across two currencies. It is "covered" because the FX exposure is hedged with a forward contract, eliminating currency risk from the arbitrage argument. Hull calls this "the well-known interest rate parity relationship from international finance."
 
-**Formal Definition:**
-CIP is the no-arbitrage relationship linking spot FX, forward FX, and interest rate discounting in two currencies, such that a fully FX-hedged (covered) investment yields the same return as a domestic investment. In rate form (continuous compounding):
+### 21.1.1 CIP in Rate Form
 
-$$\boxed{F(0,T) = S_0 \, e^{(r_d - r_f)T}}$$
+Hull presents the currency forward pricing identity under continuous compounding. He explains that "a foreign currency can be regarded as an investment asset paying a known yield," where the yield is the foreign risk-free rate. Following this logic:
 
-where $S_0$ is spot FX quoted as domestic per foreign, $r_d$ and $r_f$ are risk-free rates in domestic and foreign currencies.
+$$\boxed{F_0 = S_0 \, e^{(r_d - r_f)T}}$$
 
-**Intuition:**
-If the forward is "too high" relative to the interest differential, you can:
-1. Borrow one currency, lend the other
-2. Lock in the FX conversion with a forward
+where $S_0$ is the spot exchange rate (domestic currency per unit of foreign), $r_d$ is the domestic risk-free rate, $r_f$ is the foreign risk-free rate, and $T$ is the time to maturity.
 
-and generate an arbitrage profit (until prices move back into parity). Hull explicitly frames the forward formula as "interest rate parity."
+**Replication argument.** Hull presents this elegantly in his textbook. Consider a firm with 1,000 units of domestic currency wanting exposure to foreign currency at time $T$:
 
-**Trading / Risk / Portfolio Practice:**
-- Used to sanity-check quoted FX forwards against the two money-market curves
-- In curve building, CIP becomes an equation constraint tying the foreign discount curve to the domestic discount curve and the FX forward curve
+- **Strategy A**: Buy foreign currency spot, invest at the foreign rate, ending with $1000/S_0 \times e^{r_f T}$ units of foreign currency.
+- **Strategy B**: Invest domestically at $r_d$, convert at time $T$ using a forward at rate $F_0$, ending with $(1000 \times e^{r_d T})/F_0$ units of foreign currency.
 
----
+As Hull states: "In the absence of arbitrage opportunities, the two strategies must give the same result." Hence:
 
-### 2) FX Forward as a No-Arbitrage Instrument
+$$\frac{1000 \times e^{r_f T}}{S_0} = \frac{1000 \times e^{r_d T}}{F_0}$$
 
-**Formal Definition:**
-An FX forward is a contract to exchange currencies at a fixed rate at time $T$. Its fair forward rate makes the contract's initial PV equal to zero (no-arbitrage).
+Rearranging yields the CIP formula.
 
-**Intuition:**
-It is (economically) a package: "own foreign cashflow at $T$" + "short domestic cashflow at $T$" with the exchange rate fixed in advance.
+> **The "Free Lunch" Calculation**
+>
+> Hull provides a concrete example of this "Free Lunch":
+> "Suppose that the 2-year interest rates in Australia and the United States are 3% and 1%, respectively, and the spot exchange rate is 0.7500 USD per AUD."
+>
+> From the CIP formula, the 2-year forward exchange rate should be:
+> $$F_0 = 0.7500 \times e^{(0.01-0.03) \times 2} = 0.7500 \times e^{-0.04} = 0.7206$$
+>
+> **The Glitch**: Suppose the market forward is 0.7000 (too low).
+> 1.  **Borrow**: Borrow 1,000 AUD at 3%. (You owe 1,061.84 AUD in 2 years).
+> 2.  **Convert**: Sell 1,000 AUD for 750 USD.
+> 3.  **Invest**: Invest 750 USD at 1%. (You get 765.15 USD in 2 years).
+> 4.  **Lock**: Enter a Forward to BUY 1,061.84 AUD at 0.7000. This will cost you $743.29 USD.
+> 5.  **Profit**: You have $765.15 USD. You pay $743.29 USD to pay off your loan.
+> 6.  **Result**: You keep **$21.86 USD**. Risk-free. From thin air.
 
-**Trading / Risk / Portfolio Practice:**
-- FX forwards are used to hedge foreign currency cashflows and to synthesize foreign funding
-- A strip of forwards can be treated as market quotes that constrain curve construction (especially short maturities)
+### 21.1.2 CIP in Discount-Factor Form
 
----
+For curve construction, the discount-factor formulation is more useful because it avoids specifying compounding conventions. Andersen and Piterbarg derive the forward FX rate via a replication using zero-coupon bonds.
 
-### 3) Discount-Factor Form of CIP (Forward FX Rate via ZCB Replication)
+Consider a forward contract to receive 1 unit of foreign currency at time $T$ in exchange for $K$ units of domestic currency. They establish the fundamental constraint:
 
-**Formal Definition:**
-In a domestic/foreign setup with spot $X(t)$ and discount factors $P_d(t,T)$, $P_f(t,T)$, the $T$-maturity forward FX rate is:
+$$\boxed{F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)}}$$
 
-$$\boxed{X_T(t) = X(t) \frac{P_f(t,T)}{P_d(t,T)}}$$
+where $X(0)$ is the spot FX rate (domestic per foreign), and $P_d, P_f$ are the domestic and foreign discount factors.
 
-The book motivates this by replicating a forward FX exposure using a foreign ZCB funded by a domestic ZCB.
+**Derivation.** Consider a forward contract to receive 1 unit of foreign currency at time $T$ in exchange for $K$ units of domestic currency. As Andersen and Piterbarg explain, the time-0 present value of each leg is:
 
-**Intuition:**
-The ratio $P_f/P_d$ is the relative growth of the foreign and domestic money-market numeraires over $[t,T]$ (in discount-factor form). Multiply by spot to get the forward.
+- **Foreign leg (receive)**: The domestic PV of 1 foreign at $T$ is $X(0) P_f(0,T)$
+- **Domestic leg (pay)**: The domestic PV of paying $K$ at $T$ is $K P_d(0,T)$
 
-**Trading / Risk / Portfolio Practice:**
-- This is the practical "bridge" between a rates curve object (discount factors) and an FX object (forward curve)
-- Any curve set used on a desk must satisfy this relationship (after applying correct market quoting conventions)
+Setting PV = 0 at inception (the definition of a forward rate):
 
----
+$$X(0) P_f(0,T) - K P_d(0,T) = 0 \quad \Rightarrow \quad K = X(0) \frac{P_f(0,T)}{P_d(0,T)} = F(0,T)$$
 
-### 4) FX-Implied Curve
+Andersen and Piterbarg present this as equation (6.38), noting that the forward FX rate $X_T(t)$ is given by:
 
-**Formal Definition:**
-Given:
-- A domestic discount curve $P_d(0,T)$
-- Spot FX $X(0)$
-- A set of FX forwards $F(0,T)$ (same quote direction as $X(0)$)
+$$X_T(t) = X(t) \frac{P_f(t,T)}{P_d(t,T)}$$
 
-you can infer an implied foreign discount factor:
+and they explain: "The name is motivated by the following arbitrage strategy: Buy one foreign zero-coupon bond, at a cost of $\widetilde{P}_d(t,T)$ in domestic currency. Finance the purchase by selling short domestic zero-coupon bonds... With no outlay at time $t$, the strategy will generate a net cash flow at time $T$ of one unit of foreign currency and $-X_T(t)$ units of domestic currency."
 
-$$\boxed{P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)}$$
+**Unit check.** $P_f/P_d$ is dimensionless (ratio of discount factors). Multiplying by $X(0)$ (domestic/foreign) gives domestic per foreign—matching the forward quote. ✓
 
-(This is algebra from the discount-factor CIP formula.)
+**Sanity check.** If $P_d = P_f$ (equal discounting in both currencies), then $F = X$: the forward equals spot when there is no interest rate differential. ✓
 
-**Intuition:**
-FX forwards "import" the foreign curve into the domestic curve: they tell you how many domestic discount units equal one unit of foreign discounting at $T$.
+### 21.1.3 Reconciling the Two Forms
 
-**Trading / Risk / Portfolio Practice:**
-- Used for valuing and hedging hedged foreign assets
-- Input into multi-currency curve bootstrapping
-
----
-
-### 5) Cross-Currency Basis (Conceptual)
-
-**Formal Definition:**
-The multi-curve view defines a pseudo-discount (index) curve $P^{(L)}$ for LIBOR forwards and a discount curve $P$ for discounting. Their difference can be summarized as a yield spread:
-
-$$\boxed{P^{(L)}(t) = P(t) e^{-s(t) t}}$$
-
-where $s(t)$ is called the cross-currency (CRX) yield spread.
-
-**Intuition:**
-A nonzero $s(t)$ captures that "the curve implied by IBOR-style forwards" is not the same as "the curve used for discounting risk-free cashflows," and that this difference can matter across currencies (funding/credit/liquidity segmentation).
-
-**Trading / Risk / Portfolio Practice:**
-- Traders talk about "basis" when a currency's funding through FX markets is more/less expensive than what naïve CIP using a single curve would suggest
-- Basis can "blow out" in stress (e.g., JPY late 1990s, and large positive basis in early 2008)
-
----
-
-### 6) Cross-Currency Basis Swaps
-
-**Formal Definition:**
-A floating–floating cross-currency basis swap exchanges:
-- Floating LIBOR in one currency
-- For floating LIBOR in another currency
-- Plus or minus a quoted spread
-
-with notional exchanges at inception and maturity, where the notional ratio is normally set to the spot FX at trade inception. A one-period CRX basis swap is identical to an FX forward.
-
-**Intuition:**
-For maturities beyond where FX forwards are liquid (often beyond ~1 year), the basis swap market supplies the longer-dated "cross-currency constraint" information.
-
-**Trading / Risk / Portfolio Practice:**
-- Basis swaps are used to hedge FX funding risk of long-dated foreign cashflows
-- Used to build consistent multi-currency curves
-
----
-
-### 7) "Curve Constraints" Viewpoint
-
-**Formal Definition:**
-Multi-currency curve construction must respect arbitrage constraints coming from FX forwards and cross-currency basis swaps.
-
-**Intuition:**
-If you build USD and JPY curves independently from their local swaps, you may violate the FX forward relationship, creating cross-currency arbitrage opportunities.
-
-**Trading / Risk / Portfolio Practice:**
-- Consistent curve sets reduce "model arbitrage" and prevent systematic mispricing of cross-currency instruments
-
----
-
-## Math and Derivations
-
-### 2.1 Domestic Value of a Foreign Zero-Coupon Bond
-
-From the domestic/foreign setup: a $T$-maturity foreign discount bond is worth $P_f(t,T)$ in foreign currency at time $t$. Its domestic price is spot FX times that amount:
-
-$$\tilde{P}_d(t,T) = X(t) \, P_f(t,T)$$
-
-where $X(t)$ is domestic per foreign.
-
-**Unit check:**
-- $X(t)$: $d/f$
-- $P_f(t,T)$: dimensionless (foreign currency units per unit payoff)
-- $\tilde{P}_d$: $d$ (domestic currency) ✓
-
----
-
-### 2.2 Deriving the Forward FX Rate in Discount-Factor Form (CIP in DF Form)
-
-**Replication idea** (as stated in the text): a forward FX position can be replicated by buying a foreign ZCB and selling a domestic ZCB, leading to the forward FX rate:
-
-$$\boxed{X_T(t) = X(t) \frac{P_f(t,T)}{P_d(t,T)}} \tag{CIP-DF}$$
-
-**Sanity check:** If $P_d = P_f$, then $X_T = X$ (no interest differential $\Rightarrow$ forward equals spot). ✓
-
----
-
-### 2.3 CIP in Rate Form and Link to Discount Factors
-
-Hull gives (with continuous compounding) the currency forward pricing identity:
-
-$$\boxed{F_0 = S_0 e^{(r - r_f)T}} \tag{Hull-CIP}$$
-
-If we define discount factors under continuous compounding $P(0,T) = e^{-rT}$, then:
+The rate and discount-factor forms are equivalent under continuous compounding. If $P_d(0,T) = e^{-r_d T}$ and $P_f(0,T) = e^{-r_f T}$:
 
 $$\frac{P_f(0,T)}{P_d(0,T)} = \frac{e^{-r_f T}}{e^{-r_d T}} = e^{(r_d - r_f)T}$$
 
-Plugging into (CIP-DF) recovers (Hull-CIP) with $S_0 = X(0)$.
-
-**Unit check:** $r$ has units $1/\text{year}$; $rT$ is dimensionless; exponentials are dimensionless. ✓
+Plugging into the DF-form CIP recovers Hull's rate-form formula. The discount-factor form is preferred in practice because it avoids specifying compounding conventions and handles term structures naturally.
 
 ---
 
-### 2.4 Quote-Direction Variants (Spot and Forward)
+## 21.2 FX Forwards as Curve Constraints
 
-The cross-currency curve construction section uses a specific example where:
-- $X(0)$ is quoted in $/¥ terms (domestic per foreign)
-- The FX forward deliverable is described by a rate $Y(T)$ in the inverse direction (foreign per domestic)
+The CIP relationship transforms FX forwards from tradable instruments into *constraint equations* for curve construction. Given knowledge of the domestic discount curve and the spot/forward FX market, we can derive the implied foreign discount curve.
 
-No-arbitrage requires:
+### 21.2.1 The Fundamental Constraint Equation
 
-$$\boxed{P_\$(T) = X(0) \, P_¥(T) \, Y(T) \quad \Rightarrow \quad P_¥(T) = \frac{P_\$(T)}{Y(T) X(0)}} \tag{6.38}$$
+Rearranging the CIP equation, Andersen and Piterbarg (equation 6.38) present the cross-currency arbitrage constraint:
 
-This is the same CIP relationship, but written using the inverse forward quote $Y(T)$.
+$$\boxed{P_d(T) = X(0) P_f(T) Y(T) \quad \Rightarrow \quad P_f(T) = \frac{P_d(T)}{Y(T) X(0)}}$$
 
-**Key practical warning:** FX quote direction varies by market; Hull explicitly notes many spot rates are quoted as "units of currency per USD," which flips the algebra unless you invert the FX quote.
+where $Y(T)$ is the forward FX rate in the *inverse* quote direction (foreign per domestic). In our standard notation (forward as domestic per foreign):
 
----
+$$\boxed{P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)}$$
 
-### 2.5 PV of an FX Forward as PV of Two Cashflows (Two-Currency Decomposition)
+This is the "FX-implied foreign discount factor" formula. It tells us that given an observed FX forward and a domestic discount curve, the foreign discount factor is uniquely determined.
 
-Consider a forward contract that at time $T$:
-- Receives 1 unit of foreign currency $f$
-- Pays $K$ units of domestic currency $d$
+### 21.2.2 What Happens When Curves Are Built Independently
 
-Time-0 domestic PV:
+Andersen and Piterbarg explicitly warn about the consequences of ignoring this constraint. In their own words:
 
-$$V_0 = \underbrace{X(0) P_f(0,T)}_{\text{PV of 1}f\text{ at }T\text{ in }d} - \underbrace{K P_d(0,T)}_{\text{PV of }K d\text{ at }T}$$
+> "Suppose, say, that we have blindly estimated discount curves $P(\cdot)$ and $P_¥(\cdot)$ from the market for USD- and JPY-denominated interest rate swaps, respectively, without paying any attention to FX markets. The discount curves estimated in this fashion will very likely not satisfy [the CIP constraint], implying the existence of cross-currency arbitrages. The degree to which [the constraint] is typically violated is often small, but any such violation can be highly problematic for a firm engaging in trading of significant amounts of both USD- and JPY-denominated assets."
 
-Setting $V_0 = 0$ gives:
+The violation creates the following exploit: a trader could use the three-step conversion illustrated by Andersen and Piterbarg:
 
-$$K = X(0) \frac{P_f(0,T)}{P_d(0,T)} = F(0,T)$$
+1. **Swap fixed USD → USD LIBOR** in a regular USD interest rate swap
+2. **Swap USD LIBOR → JPY LIBOR** in a cross-currency basis swap
+3. **Swap JPY LIBOR → fixed JPY** in a regular JPY interest rate swap
 
-i.e., the CIP-implied forward FX rate (CIP-DF).
+As they explain: "If the JPY discount curve is inconsistent with the basis-swap market, the value computed this way may not equal the value computed by discounting the original USD cash flows at the USD discount curve. Since the swap transactions 1-3 above are costless, this discrepancy will indicate an arbitrage."
 
----
+### 21.2.3 Building an FX-Implied Foreign Curve
 
-### 2.6 FX Forwards as Curve Constraints (Implied Curve Algebra)
+Given a strip of FX forwards and a domestic discount curve, we can construct the implied foreign discount curve point by point.
 
-From (CIP-DF) at $t=0$:
+> **Example 21.2: FX-Implied EUR Curve from USD Curve**
+>
+> **Given:**
+> - Domestic = USD, Foreign = EUR
+> - Spot $X(0) = 1.1000$ USD/EUR
+> - USD discount curve: $P_d(0,0.5) = 0.985112$, $P_d(0,1) = 0.970446$, $P_d(0,2) = 0.941765$
+> - Observed FX forwards: $F(0,0.5) = 1.111055$, $F(0,1) = 1.122221$, $F(0,2) = 1.144892$
+>
+> **Step 1: Implied EUR discount factors**
+>
+> Using $P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)$:
+>
+> | $T$ | $F(0,T)/X(0)$ | $P_d(0,T)$ | $P_f(0,T)$ |
+> |-----|---------------|------------|------------|
+> | 0.5 | 1.010050 | 0.985112 | 0.995012 |
+> | 1.0 | 1.020201 | 0.970446 | 0.990050 |
+> | 2.0 | 1.040811 | 0.941765 | 0.980199 |
+>
+> **Step 2: Implied EUR zero rates** (continuous compounding)
+>
+> $r_f(T) = -\frac{1}{T} \ln P_f(0,T)$
+>
+> | $T$ | $P_f(0,T)$ | $r_f(T)$ |
+> |-----|------------|----------|
+> | 0.5 | 0.9950 | 1.00% |
+> | 1.0 | 0.9901 | 1.00% |
+> | 2.0 | 0.9802 | 1.00% |
+>
+> **Sanity checks:**
+> - Discount factors decreasing with maturity ✓
+> - Implied foreign rate (1%) less than domestic rate (3%), consistent with forward premium ✓
+> - Forward ratio matches rate differential: $e^{0.02 \times 2} = 1.0408 \approx 1.040811$ ✓
 
-$$F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)} \quad \Rightarrow \quad \boxed{P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)}$$
+### 21.2.4 The Triangular Arbitrage Logic
 
-So a market FX forward quote plus domestic DF implies a foreign DF.
+The constraint relationship can be visualized as a *triangle* connecting three objects: domestic curve, foreign curve, and FX forwards. Given any two, the third is determined. Inconsistency means the triangle doesn't close.
 
-**Curve construction point:** This is an equation constraint linking curve objects across currencies. The book stresses FX forwards (and basis swaps) impose arbitrage constraints in multi-currency curve construction.
+```
+          Domestic Curve (P_d)
+                 /\
+                /  \
+               /    \
+              /      \
+             /        \
+    FX Forwards -------- Foreign Curve (P_f)
+         (F)
 
----
+Constraint: F = X · (P_f / P_d)
+```
 
-### 2.7 Why Multi-Curve Matters: Separation of Discount and Index Curves
+> **The Triangle Check**
+>
+> 1.  **Spot Market**: Current Exchange.
+> 2.  **Interest Rates**: Cost of Time (Domestic vs Foreign).
+> 3.  **Forward Market**: Future Exchange.
+>
+> If you know any two, you *must* satisfy the third. If your curve construction uses Independent Domestic Swaps and Independent Foreign Swaps, it will almost certainly fail to match the Forward Market, breaking the triangle.
+```
 
-The cross-currency curve construction discussion points out that traditional swap pricing implicitly treated LIBOR as the discount rate; but LIBOR contains bank credit risk and may not be a suitable proxy for "risk-free" discounting.
-
-To add degrees of freedom needed to satisfy constraints like (6.38), define:
-- A **discount curve** $P$ for discounting cashflows
-- A **pseudo-discount / index curve** $P^{(L)}$ for generating forward LIBOR
-
-The book explicitly states that a single yield curve is not always compatible with no-arbitrage constraints in cross-currency markets and that separating curves helps ensure linear instruments are correctly priced at time 0.
-
----
-
-### 2.8 Cross-Currency (CRX) Yield Spread as a Curve-Level "Basis"
-
-Measure the difference between index and discount curves via:
-
-$$P^{(L)}(t) = P(t) e^{-s(t) t}$$
-
-Solve for $s(t)$:
-
-$$\boxed{s(t) = -\frac{1}{t} \ln\left(\frac{P^{(L)}(t)}{P(t)}\right)}$$
-
-**Units:** $s(t)$ is a yield spread (units $1/\text{year}$, often quoted in bp).
-
-**Interpretation:** Under Assumption 6.5.1, $s(t) = 0$ for USD, usually small for other currencies, but can blow out in stress.
-
----
-
-### 2.9 Cross-Currency Basis Swap Par Condition as a Curve Constraint (Toy but Principled)
-
-**Sources:**
-- CRX basis swaps exchange floating LIBOR payments across currencies plus/minus a spread and exchange notionals at inception and maturity with ratio set to spot FX
-- Standard swap valuation proceeds by projecting floating payments (often using forward rates) and discounting cashflows
-
-We build a toy par condition for a CRX basis swap that is consistent with:
-- Projecting foreign LIBOR using a foreign index curve $P_f^{(L)}$
-- Discounting foreign cashflows using a foreign discount curve $P_f$
-
-Let payment dates be $0 = t_0 < t_1 < \cdots < t_n = T$, accruals $\tau_i = t_{i+1} - t_i$. Define foreign projected forward LIBOR:
-
-$$L_f^{\text{proj}}(0, t_i, t_{i+1}) = \frac{1}{\tau_i} \left( \frac{P_f^{(L)}(0,t_i)}{P_f^{(L)}(0,t_{i+1})} - 1 \right)$$
-
-Consider a basis swap where the foreign leg pays $(L_f^{\text{proj}} + e)$ and the domestic leg is chosen as the "bedrock" with discount/index aligned (Assumption 6.5.1 style simplification).
-
-Then a par condition (PV = 0) can be written (after scaling notionals by spot, per the notional-exchange convention) as:
-
-$$\boxed{1 = \sum_{i=0}^{n-1} (L_f^{\text{proj}}(0,t_i,t_{i+1}) + e) \, \tau_i \, P_f(0,t_{i+1}) + P_f(0,t_n)} \tag{Par-basis-constraint}$$
-
-**Interpretation:** Given $P_f^{(L)}$ (to compute $L_f^{\text{proj}}$) and basis quotes $e$, this equation constrains the discount curve $P_f$.
-
-**Why this creates nonzero basis:** If $P_f^{(L)} \neq P_f$, then the PV of a floating leg is not automatically par; $e$ (and/or $P_f$) must adjust to satisfy par. This is the multi-curve mechanism behind basis.
+In multi-currency trading, all three sides of this triangle are liquid markets. The curve construction problem is to ensure the triangle closes exactly—or, more realistically, to decide which market to treat as the "anchor" and derive the others.
 
 ---
 
-## Measurement & Risk (Only What Belongs in Chapter 21)
+## 21.3 Cross-Currency Basis: What It Is and Why It Exists
 
-### 3.1 CIP and the Spot–Forward–Curves Linkage
+In a frictionless world, the FX-implied foreign curve would exactly match the curve derived from local foreign-currency swaps. In practice, they differ. This difference is the **cross-currency basis**.
 
-| Form | Formula |
-|------|---------|
-| Rate form (continuous) | $F_0 = S_0 e^{(r_d - r_f)T}$ |
-| Discount-factor form | $F(0,T) = X(0) \, P_f(0,T) / P_d(0,T)$ |
-| Inverse-quote form | $P_f(T) = P_d(T) / (X(0) Y(T))$ |
+### 21.3.1 Defining the Basis at the Curve Level
 
-### 3.2 FX Forwards as Curve Constraints: What Do They Constrain?
+Andersen and Piterbarg introduce a *pseudo-discount curve* $P^{(L)}$ for LIBOR projections, separate from the true discount curve $P$. The difference is captured by a yield spread:
 
-Given spot $X(0)$ and two discount curves $P_d, P_f$, the no-arbitrage forward is pinned down. Conversely, given:
-- A domestic discount curve $P_d$
-- Spot $X(0)$
-- Market forwards $F(0,T)$
+$$\boxed{P^{(L)}(t) = P(t) \, e^{-s(t) \cdot t}}$$
 
-you can infer the foreign discount factor $P_f(0,T)$. This is exactly the "cross-currency curve construction" constraint logic emphasized in the text.
+Solving for the spread:
 
-### 3.3 Cross-Currency Basis: Concept and Quoting
+$$s(t) = -\frac{1}{t} \ln\left(\frac{P^{(L)}(t)}{P(t)}\right)$$
 
-The text distinguishes a curve-level basis via the yield spread $s(t)$ between discount and index curves:
+Andersen and Piterbarg call $s(t)$ the "cross-currency (CRX) yield spread."
 
-$$P^{(L)}(t) = P(t) e^{-s(t) t}$$
+The cross-currency basis represents the cost (or benefit) of synthesizing funding in one currency by borrowing in another currency and swapping. When the basis is negative, it costs more to obtain foreign currency funding via the FX market than to borrow directly in that foreign currency. When positive, the opposite is true.
 
-with $s(t)$ typically small but capable of large moves in stress.
+### 21.3.2 Why the Basis Exists: Post-Crisis Reality
 
-**Market quoting:** Cross-currency basis swaps are quoted as a spread $e$ added to one floating leg. The leg that receives/pays the spread and the sign convention are market-dependent (desk must confirm). The key structural fact is: these swaps exchange floating legs across currencies and exchange notionals at spot ratio.
+Before 2007, the basis was negligible—typically a fraction of a basis point. Andersen and Piterbarg note that "the spread between the Fed funds rate and 3 month Libor rate used to be very small—in the order of a few basis points—after September 2007 it went up to as much as 275 basis points."
 
-### 3.4 Basis Swaps as Additional Constraints (When "Pure CIP" Is Not Enough)
+The crisis revealed fundamental market segmentation:
 
-- FX forwards are often liquid only out to ~1 year; to build curves out to long maturities one uses cross-currency basis swaps
-- Failing to fit CRX basis swaps can create arbitrageable inconsistencies (the book sketches a multi-step conversion/hedging scheme linking USD cashflows into JPY cashflows via swaps and a CRX basis swap)
+1. **Credit risk differentiation**: Banks in different countries have different credit quality. A Japanese bank might fund in JPY at JPY LIBOR, but a foreign bank could fund in JPY at rates *below* JPY LIBOR due to superior credit. This creates a wedge between local-market rates and FX-implied rates.
 
-### 3.5 Curve Construction Implications (What Constrains What?)
+2. **Balance sheet constraints**: Post-crisis regulations (Basel III leverage ratios, capital requirements) make it expensive for banks to warehouse FX risk, even for arbitrage. The trade that "should" compress the basis requires balance sheet capacity that banks are unwilling to deploy.
 
-1. **"Domestic curve + FX forwards $\Rightarrow$ foreign curve"**
-   Using (6.38) or (CIP-DF), a forward quote gives a direct equation for $P_f(0,T)$ given $P_d(0,T)$.
+3. **Funding segmentation**: Different investor bases access different markets. U.S. money market funds might demand dollar assets while Japanese institutions seek yen. These preferences create supply-demand imbalances that translate into basis.
 
-2. But if you simultaneously want to fit local IRS markets (often quoting LIBOR-based swaps), you may need separate discount and index curves because swap pricing assumptions may not be consistent with FX forward constraints.
+4. **Hedging demand imbalances**: Andersen and Piterbarg note that in early 2008, "the hedging demands of long-dated FX books increased rapidly on the back of significant strengthening of the Yen versus the US Dollar," driving the CRX basis spread to +60 basis points.
 
-3. Cross-currency basis swaps then provide the extra market constraints (especially at longer maturities) to pin down the multi-curve system.
+### 21.3.3 Historical Episodes
 
-### 3.6 Risk Reporting Preview: FX Delta vs IR PV01 vs Basis Exposure
+Andersen and Piterbarg document two striking examples that illustrate the dramatic moves that can occur:
 
-We preview the three main linear risk buckets for cross-currency instruments (all expressed in the reporting currency):
+**Late 1990s JPY (negative basis):** "The CRX yield spread reached somewhere around -40 basis points in JPY as Japanese banks were perceived as being in economic trouble. During that period of time, foreign banks could generally fund themselves in USD at USD Libor, but in JPY at rates significantly below JPY Libor (due to their superior credit relative to Japanese banks)."
 
-**FX delta:** Sensitivity to spot FX $X(0)$.
-For an FX forward PV $V_0 = X(0) P_f - K P_d$:
+**Early 2008 JPY (positive basis):** "In early 2008 the CRX basis spread became significantly positive (up to +60 basis points) as the hedging demands of long-dated FX books increased rapidly on the back of significant strengthening of the Yen versus the US Dollar."
 
-$$\frac{\partial V_0}{\partial X(0)} = P_f(0,T) \quad \text{(units: domestic per unit change in } d/f\text{)}$$
+**2007-2009 crisis:** "Many other currencies (including EUR) have experienced similar dramatic moves in the CRX basis spreads against USD."
 
-**Interest-rate PV01 / DV01 by currency:** Sensitivity to shifts in discount curves.
-Tuckman defines DV01 as the price change for a 1bp yield change:
+These episodes demonstrate that the basis is not a theoretical curiosity but a material risk factor that can dominate P&L.
+
+### 21.3.4 Why CIP "Arbitrage" Doesn't Eliminate the Basis
+
+In textbook arbitrage, exploiting a mispricing eliminates it. Why doesn't this happen with CIP deviations?
+
+1. **Capital requirements**: The "arbitrage" requires holding positions that consume regulatory capital. The cost of that capital may exceed the arbitrage profit.
+
+2. **Counterparty credit limits**: The trades require counterparty exposure across currencies. Banks may not have sufficient credit lines.
+
+3. **Term funding constraints**: Long-dated CIP deviations require long-dated funding, which may be unavailable or expensive.
+
+4. **Risk limits**: Even "riskless" arbitrage consumes risk limits (VaR, DV01 limits) that banks may not want to use.
+
+The basis represents a *shadow price* of these constraints—the cost of converting funding across currencies. In effect, the limits on arbitrage capacity are themselves priced into the basis.
+
+---
+
+## 21.4 Cross-Currency Basis Swaps: Constraints Beyond FX Forwards
+
+FX forwards are typically liquid only out to about one year. For longer maturities, the constraint information comes from **cross-currency basis swaps**.
+
+### 21.4.1 Structure of a Cross-Currency Basis Swap
+
+Andersen and Piterbarg provide a clear description: "CRX basis swaps are contracts where floating Libor payments in one currency are exchanged for floating Libor payments in another currency, plus or minus a spread. The swaps involve an exchange of notionals at trade inception and at maturity; the ratio between the two notionals is normally set to equal the spot FX exchange rate prevailing at trade inception."
+
+**Key structural features:**
+
+| Feature | Description |
+|---------|-------------|
+| **Floating legs** | Each currency pays its local LIBOR (or successor rate) |
+| **Basis spread** | Added to one leg (convention varies) |
+| **Notional exchange** | At inception and maturity, at spot FX ratio |
+| **Maturities** | Quoted out to 30+ years |
+
+**Critical insight:** Andersen and Piterbarg emphasize that "a one-period CRX basis swap is identical to an FX forward contract." This establishes the continuity between short-dated FX forwards and long-dated basis swaps. In fact, the basis swap generalizes the FX forward to multiple periods with intermediate floating payments.
+
+### 21.4.2 Valuation of a Cross-Currency Basis Swap
+
+For a USD/JPY basis swap where a USD-based corporation receives USD LIBOR flat in exchange for JPY LIBOR plus spread $e_¥$, Andersen and Piterbarg give the valuation formula (equation 6.42):
+
+$$V_{\text{basisswap},\$}(0) = 1 - X(0) \times \left(\sum_{i=0}^{n-1}\left(\frac{P_¥^{(L)}(0,t_i)}{P_¥^{(L)}(0,t_{i+1})} - 1 + e_¥ \tau_i\right) P_¥(0,t_{i+1}) + P_¥(0,t_n)\right)$$
+
+where:
+- The USD floating leg plus notional repayment collapses to par (\$1) under the assumption that USD index = USD discount curve
+- The JPY leg is valued using forward JPY LIBOR rates from $P_¥^{(L)}$ and discounted at $P_¥$
+
+As they explain: "The market quotes par values $e_¥^{par}$—that is, the value of $e_¥$ that will make $V_{\text{basisswap},\$}(0) = 0$—in a wide range of maturities extending out to 30 years or more."
+
+### 21.4.3 Why Basis Swaps Provide Curve Constraints
+
+Failing to fit basis swaps creates the same arbitrage as failing to fit FX forwards. Andersen and Piterbarg illustrate with the three-step conversion:
+
+1. Swap fixed USD → USD LIBOR (regular USD IRS)
+2. Swap USD LIBOR → JPY LIBOR + $e$ (CRX basis swap)
+3. Swap JPY LIBOR + $e$ → fixed JPY (regular JPY IRS)
+
+They conclude: "If the JPY discount curve is inconsistent with the basis-swap market, the value computed this way may not equal the value computed by discounting the original USD cash flows at the USD discount curve. Since the swap transactions 1-3 above are costless, this discrepancy will indicate an arbitrage."
+
+> **Example 21.3: Solving for Par Basis Spread**
+>
+> **Setup:** 2-period toy basis swap (domestic USD, foreign JPY)
+> - Spot $X(0) = 0.0091$ USD/JPY
+> - Payment dates: $t_1 = 0.5$, $t_2 = 1.0$; accrual $\tau = 0.5$
+> - Foreign discount curve: $P_f(0,0.5) = 0.9950$, $P_f(0,1) = 0.9900$
+> - Foreign index curve: $P_f^{(L)}(0,0.5) = 0.9945$, $P_f^{(L)}(0,1) = 0.9885$
+> - USD floating leg = par (simplifying assumption)
+>
+> **Step 1: Compute forward JPY LIBOR rates**
+>
+> $L_0 = \frac{1}{0.5}\left(\frac{1}{0.9945} - 1\right) \approx 1.106\%$
+>
+> $L_1 = \frac{1}{0.5}\left(\frac{0.9945}{0.9885} - 1\right) \approx 1.214\%$
+>
+> **Step 2: Write par condition**
+>
+> $1 = (L_0 + e) \cdot 0.5 \cdot P_{0.5} + (L_1 + e) \cdot 0.5 \cdot P_1 + P_1$
+>
+> **Step 3: Compute "no-basis" floating leg PV**
+>
+> Interest PV: $L_0 \cdot 0.5 \cdot 0.9950 + L_1 \cdot 0.5 \cdot 0.9900 = 0.00550 + 0.00601 = 0.01151$
+>
+> Total (including principal): $0.01151 + 0.9900 = 1.00151$
+>
+> **Step 4: Solve for par spread**
+>
+> Annuity: $A = 0.5 \times 0.9950 + 0.5 \times 0.9900 = 0.9925$
+>
+> $1 = 1.00151 + e \times 0.9925$
+>
+> $e = \frac{1 - 1.00151}{0.9925} \approx -15.2 \text{ bp}$
+>
+> **Interpretation:** The negative spread on the JPY leg compensates for the fact that JPY forward rates (projected from the index curve) exceed the "risk-free equivalent" implied by pure CIP. This is the basis.
+
+---
+
+## 21.5 Multi-Currency Curve Construction: A Practical Algorithm
+
+### 21.5.1 The Degrees of Freedom Problem
+
+With two currencies, we have potentially four curves:
+- $P_d(t)$: domestic discount curve
+- $P_d^{(L)}(t)$: domestic index curve
+- $P_f(t)$: foreign discount curve
+- $P_f^{(L)}(t)$: foreign index curve
+
+But we have only three independent market sources:
+- Domestic swaps (fixing $P_d^{(L)}$)
+- Foreign swaps (fixing $P_f^{(L)}$)
+- FX forwards / basis swaps (linking the currencies)
+
+Andersen and Piterbarg observe: "It should be clear that the introduction of the pseudo-discount curves $P_\$^{(L)}(t)$ and $P_¥^{(L)}(t)$ equips us with enough degrees of freedom to fit both USD-denominated swaps, JPY-denominated swaps, and the market for FX forward contracts. In fact, we have too many degrees of freedom: four curves, but only three separate markets to calibrate to."
+
+**Resolution via "bedrock" assumption:** Andersen and Piterbarg introduce Assumption 6.5.1: "In USD, the Libor pseudo-discount curve coincides with the real discount curve." This anchors the system by setting $P_\$^{(L)} = P_\$$.
+
+Post-crisis, this assumption is replaced by using OIS for discounting, with the Libor-OIS spread determined from domestic basis swaps (see Chapter 20). As Andersen and Piterbarg note: "it is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
+
+### 21.5.2 The Iterative Algorithm
+
+Andersen and Piterbarg outline a modified curve construction procedure:
+
+**Step 1: Build USD curves**
+
+Using standard bootstrapping from:
+- Funding instruments (deposits, OIS)
+- LIBOR-referencing instruments (FRAs, swaps)
+
+This gives $P_\$(t)$ and $P_\$^{(L)}(t)$.
+
+**Step 2: Build foreign index curve $P_f^{(L)}(t)$**
+
+From foreign-currency swaps, bootstrap $P_f^{(L)}(t)$ as if it were a discount curve.
+
+**Step 3: Calibrate foreign discount curve $P_f(t)$ from basis swaps**
+
+Represent $P_f$ as a multiplicative spread to $P_f^{(L)}$:
+
+$$P_f(t) = P_f(T_i) \frac{P_f^{(L)}(t) e^{-\varepsilon_i(t - T_i)}}{P_f^{(L)}(T_i)}, \quad t \in [T_i, T_{i+1})$$
+
+where $\varepsilon_i$ is a piecewise constant spread intensity.
+
+As Andersen and Piterbarg explain: "The instantaneous forward rates generated by $P_¥(t)$ are given by those computed from $P_¥^{(L)}(t)$ plus a piecewise flat function":
+
+$$f_¥(t) = f_¥^{(L)}(t) + \varepsilon(t), \quad \varepsilon(t) = \sum_{i=0}^{N-1} \varepsilon_i \mathbf{1}_{\{t \in [T_i, T_{i+1})\}}$$
+
+The constants $\varepsilon_0, \ldots, \varepsilon_{N-1}$ are calibrated by fitting to par-valued CRX basis swaps maturing at $T_1, \ldots, T_N$.
+
+**Step 4: Iterate if necessary**
+
+The initial bootstrap of $P_f^{(L)}$ treated it as a discount curve. With $P_f$ now calibrated, we can re-price the foreign benchmark instruments using the correct multi-curve valuation. Iterate steps 2-3 until convergence.
+
+Andersen and Piterbarg describe the iteration: "The iteration is initiated... with the estimate $\mathbf{V}^{(L)}(0) = \mathbf{V}$ and runs until the termination criterion is satisfied. As the approximation $\mathbf{V}^{(L)} \approx \mathbf{V}$ is normally very accurate, only a few iterations are needed to reach acceptable precision."
+
+### 21.5.3 Avoiding Circularity
+
+A subtle issue arises: if we use cross-currency basis swaps to infer the discounting basis in USD, we create circular reasoning—we're using non-USD markets to determine USD discounting.
+
+Andersen and Piterbarg's resolution: "To estimate this basis in USD, we need to rely on domestic markets only; doing otherwise will introduce a circularity into our arguments."
+
+In practice, the USD Libor-OIS basis is calibrated from:
+- OIS swaps (overnight index swaps)
+- Fed Funds / LIBOR basis swaps
+
+Then cross-currency instruments translate this basis into other currencies. The key insight is that the USD curve must be self-consistent before extending to other currencies.
+
+---
+
+## 21.6 Risk Decomposition: FX Delta, Rates PV01, and Basis Exposure
+
+Cross-currency instruments have three distinct risk dimensions that must be managed separately. Understanding this decomposition is essential for hedging.
+
+### 21.6.1 FX Delta
+
+The sensitivity to spot FX changes. For an FX forward with PV = $X(0) P_f - K P_d$:
+
+$$\frac{\partial V}{\partial X(0)} = P_f(0,T)$$
+
+This measures how much PV changes (in domestic currency) for a unit change in the spot rate.
+
+### 21.6.2 Interest Rate PV01 / DV01 by Currency
+
+Tuckman defines DV01 as "the change in price for a one-basis-point decline in rates":
 
 $$\text{DV01} = -\frac{\partial P}{\partial y} \times 0.0001$$
 
-For cross-currency portfolios, you compute analogous PV01s with respect to:
-- Domestic curve nodes (domestic PV01)
-- Foreign curve nodes (foreign PV01 converted into domestic using spot)
-- Possibly key-rate PV01s (bucketed exposures)
+For cross-currency portfolios, you compute:
+- **Domestic PV01**: Sensitivity to domestic curve shifts
+- **Foreign PV01**: Sensitivity to foreign curve shifts, converted to domestic at spot
 
-**Cross-currency basis exposure:** Sensitivity to basis parameters (e.g., the spread $e$ in basis swaps or a curve-level $s(t)$).
-This is separate from pure FX delta and pure IR PV01, and is exactly why basis markets exist: they represent a traded dimension not captured by single-curve CIP.
+These are not fungible—you cannot hedge domestic rate risk with foreign instruments (without taking on FX risk).
 
-### 3.7 Collateral Currency Choice and Discounting (Preview Only)
+### 21.6.3 Basis Exposure
 
-The text notes uncollateralized derivatives require CVA etc. (out of scope) and discusses how, if you assume an index–discounting basis in one currency (e.g., USD), you can translate it into other currencies using FX forwards and cross-currency basis swap quotes. It also points out potential conflicts between discount-curve information sources (OIS vs CRX basis swap markets) can be resolved by analyzing collateral mechanisms, but that is outside scope.
+The sensitivity to basis spread changes. For a position with basis $e$ appearing in its valuation:
 
----
+$$\frac{\partial V}{\partial e} = \text{Basis01}$$
 
-## Worked Examples
+This risk is distinct from both FX delta and rates PV01. A portfolio can be FX-hedged and DV01-neutral but still have significant basis exposure.
 
-*Rounding policy: values rounded to 6 decimals (rates) or 6–7 significant digits (DFs/FX) unless otherwise stated.*
+> **Example 21.4: Basis Shock Sensitivity**
+>
+> From Example 21.3, the swap PV per unit notional is:
+>
+> $V = N_d[1 - (B + eA)]$
+>
+> where $B$ is the "no-basis" floating PV and $A$ is the annuity.
+>
+> Sensitivity to basis:
+>
+> $\frac{\partial V}{\partial e} = -N_d A$
+>
+> For $N_d = \$1{,}000{,}000$ and $A = 0.9925$:
+>
+> A +5bp basis widening ($\Delta e = +0.0005$):
+>
+> $\Delta V \approx -1{,}000{,}000 \times 0.9925 \times 0.0005 = -\$496$
+>
+> This is basis risk—separate from FX and rate moves.
 
----
+### 21.6.4 Summary of Risk Decomposition
 
-### Example A — CIP Forward from Two Zero Rates (Continuous Compounding)
-
-**Goal:** Given $S(0)$, domestic and foreign zero rates for maturity $T$, compute CIP-implied forward $F(0,T)$.
-
-**Conventions (this example):**
-- Domestic $d =$ USD, foreign $f =$ EUR
-- Spot quote $S(0) = X(0) = 1.1000$ USD/EUR (USD per 1 EUR)
-- Rates: continuous compounding (Hull's forward FX formula)
-- $r_d = 3.00\% = 0.0300$, $r_f = 1.00\% = 0.0100$
-- Maturity $T = 0.5$ years
-
-**Step 1: Apply CIP (rate form)**
-
-$$F(0,T) = S(0) \, e^{(r_d - r_f)T}$$
-
-Compute exponent:
-$$(r_d - r_f)T = (0.0300 - 0.0100) \cdot 0.5 = 0.0100$$
-
-Compute $e^{0.0100} \approx 1.010050$.
-
-**Step 2: Forward**
-$$F(0, 0.5) = 1.1000 \times 1.010050 \approx 1.111055 \text{ USD/EUR}$$
-
-**Forward points (interpretation):**
-$$\text{Forward points} = F - S = 1.111055 - 1.1000 = 0.011055 \text{ USD/EUR}$$
-
-**Unit check:** $F$ has units USD/EUR (same as spot). ✓
+| Risk Type | What It Measures | Hedge Instruments |
+|-----------|-----------------|-------------------|
+| FX delta | Spot rate sensitivity | FX forwards, spot |
+| Domestic PV01 | Domestic curve sensitivity | Domestic swaps, futures |
+| Foreign PV01 | Foreign curve sensitivity | Foreign swaps, futures |
+| Basis01 | Basis spread sensitivity | Basis swaps |
 
 ---
 
-### Example B — CIP Using Discount Factors (Reconcile with Example A)
+## 21.7 Additional Worked Examples
 
-**Goal:** Use $F(0,T) = S(0) \, P_f(0,T) / P_d(0,T)$ and reconcile with Example A.
-
-**Conventions:** Same as Example A; continuous-compounded DFs.
-
-**Compute discount factors:**
-$$P_d(0,0.5) = e^{-r_d T} = e^{-0.0300 \cdot 0.5} = e^{-0.0150} \approx 0.985112$$
-$$P_f(0,0.5) = e^{-r_f T} = e^{-0.0100 \cdot 0.5} = e^{-0.0050} \approx 0.995012$$
-
-**Apply DF-form CIP (forward FX rate):**
-$$F(0,0.5) = S(0) \frac{P_f(0,0.5)}{P_d(0,0.5)} = 1.1000 \times \frac{0.995012}{0.985112}$$
-
-**Compute ratio:**
-$$\frac{0.995012}{0.985112} \approx 1.010050$$
-
-**So:**
-$$F(0,0.5) \approx 1.1000 \times 1.010050 = 1.111055$$
-
-matching Example A (up to rounding). ✓
-
----
-
-### Example C — Implied Foreign DF from FX Forward + Domestic DF
-
-**Goal:** Given $S(0)$, $F(0,T)$, $P_d(0,T)$, infer $P_f(0,T)$ and an implied foreign zero rate.
-
-**Conventions:** Same as A/B; $T = 0.5$.
+### Example 21.5: CIP Forward from Zero Rates (Continuous Compounding)
 
 **Given:**
-- $S(0) = 1.1000$
-- $F(0, 0.5) = 1.111055$
-- $P_d(0, 0.5) = 0.985112$
-
-**From $F = S \cdot P_f / P_d$:**
-$$P_f(0, 0.5) = \frac{F(0, 0.5)}{S(0)} P_d(0, 0.5)$$
-
-**Compute:**
-$$\frac{F}{S} = \frac{1.111055}{1.1000} \approx 1.010050$$
-
-**Then:**
-$$P_f(0, 0.5) \approx 1.010050 \times 0.985112 = 0.995012$$
-
-**Implied foreign continuous zero rate:**
-$$r_f = -\frac{1}{T} \ln P_f(0,T) = -\frac{1}{0.5} \ln(0.995012)$$
-
-$\ln(0.995012) \approx -0.0050$, so:
-$$r_f \approx -2 \times (-0.0050) = 0.0100 = 1.00\%$$
-
----
-
-### Example D — Multiple Maturities: Bootstrap an "FX-Implied" Foreign Curve
-
-**Goal:** Using a strip of FX forwards plus a domestic discount curve, compute implied foreign DFs and an implied foreign zero curve (toy).
-
-**Conventions:**
-- Domestic USD, foreign EUR
+- Domestic = USD, Foreign = EUR
 - Spot $S(0) = 1.1000$ USD/EUR
-- Domestic discount curve (continuous, flat $r_d = 3\%$):
-  - $P_d(0, 0.5) = e^{-0.015} = 0.985112$
-  - $P_d(0, 1) = e^{-0.03} = 0.970446$
-  - $P_d(0, 2) = e^{-0.06} = 0.941765$
-- Observed FX forwards (toy; assume market quotes $F(0,T)$ in USD/EUR):
-  - $F(0, 0.5) = 1.111055$
-  - $F(0, 1) = 1.122221$
-  - $F(0, 2) = 1.144892$
+- $r_d = 3.00\%$, $r_f = 1.00\%$ (continuous)
+- $T = 0.5$ years
 
-**Step 1: Implied foreign discount factors**
+**Solution:**
 
-Use:
-$$P_f(0,T) = \frac{F(0,T)}{S(0)} P_d(0,T)$$
+$$F(0,T) = S(0) \, e^{(r_d - r_f)T} = 1.1000 \times e^{0.02 \times 0.5} = 1.1000 \times 1.010050 = 1.111055 \text{ USD/EUR}$$
 
-$T = 0.5$:
-$$P_f(0, 0.5) = \frac{1.111055}{1.1000} \cdot 0.985112 = 1.010050 \cdot 0.985112 = 0.995012$$
+**Forward points:** $F - S = 1.111055 - 1.1000 = 0.011055$ USD/EUR
 
-$T = 1$:
-$$P_f(0, 1) = \frac{1.122221}{1.1000} \cdot 0.970446 = 1.020201 \cdot 0.970446 \approx 0.990050$$
+**Interpretation:** Higher domestic rates mean the domestic currency depreciates in the forward (forward > spot in D/F terms).
 
-$T = 2$:
-$$P_f(0, 2) = \frac{1.144892}{1.1000} \cdot 0.941765 = 1.0408108 \cdot 0.941765 \approx 0.980199$$
+### Example 21.6: Reconciling Rate and DF Forms
 
-**Step 2: Implied foreign zero rates (continuous)**
+**Using the same data, verify via discount factors:**
 
-$$r_f(T) = -\frac{1}{T} \ln P_f(0,T)$$
+$$P_d(0,0.5) = e^{-0.03 \times 0.5} = 0.985112$$
+$$P_f(0,0.5) = e^{-0.01 \times 0.5} = 0.995012$$
 
-| Maturity | $P_f$ | $r_f$ |
-|----------|-------|-------|
-| 0.5Y | 0.9950 | ≈1.00% |
-| 1Y | 0.9901 | ≈1.00% |
-| 2Y | 0.9802 | ≈1.00% |
+$$F(0,0.5) = S(0) \times \frac{P_f}{P_d} = 1.1000 \times \frac{0.995012}{0.985112} = 1.1000 \times 1.010050 = 1.111055$$
 
-**Sanity checks:**
-- DFs decreasing with maturity: $0.9950 > 0.9901 > 0.9802$ ✓
-- Rates stable and consistent with the forward strip ✓
+**Match confirmed.** ✓
 
----
+### Example 21.7: Arbitrage-Consistency Check
 
-### Example E — Incorporating Cross-Currency Basis as an Additional Curve Constraint
+**Scenario:** Compare FX-implied EUR curve against independently-built EUR OIS curve.
 
-**Goal:** Given a quoted basis spread $e$ on a foreign floating leg, show how it changes the implied relationship between a foreign projection curve and a foreign discount curve (toy bootstrap).
+**Given:**
+- USD discount: $P_d(0,2) = 0.941765$
+- Spot: $S(0) = 1.1000$
+- Market FX forward: $F_{mkt}(0,2) = 1.1500$ (hypothetical "rich" forward)
+- Independent EUR OIS: $P_f^{OIS}(0,2) = 0.980199$ (implying 1% EUR rate)
 
-**Source-backed starting points:**
-- Use a separate index curve $P^{(L)}$ to generate LIBOR forwards
-- Basis swaps exchange floating legs plus a spread and exchange notionals at spot ratio; a one-period basis swap is an FX forward (conceptual link)
-- Measuring curve difference via a yield spread $s$: $P^{(L)}(t) = P(t) e^{-s(t) t}$
+**FX-implied EUR DF:**
+$$P_f^{FX}(0,2) = \frac{F_{mkt}}{S(0)} P_d(0,2) = \frac{1.1500}{1.1000} \times 0.941765 = 1.04545 \times 0.941765 = 0.984572$$
 
-**Conventions (toy):**
-- Domestic USD is the "bedrock" (assume domestic index = domestic discount for simplicity; Assumption 6.5.1-style)
-- Foreign JPY leg receives a basis spread $e$ added to foreign projected LIBOR. (Many markets quote the spread on one leg; desk must confirm sign/leg.)
-- Payment dates: $t_1 = 0.5$, $t_2 = 1.0$; $\tau_0 = \tau_1 = 0.5$
+**Discrepancy:**
+$$\Delta P = P_f^{FX} - P_f^{OIS} = 0.984572 - 0.980199 = 0.004373$$
 
-**Inputs:**
-- Foreign projection curve (JPY index curve):
-  - $P_f^{(L)}(0, 0.5) = 0.9945$
-  - $P_f^{(L)}(0, 1.0) = 0.9885$
-- Foreign discount factor at 0.5y (assumed known from short-end instruments / FX forwards): $P_f(0, 0.5) = 0.9950$
-- Quoted 1Y basis spread on the foreign leg: $e = -15$ bp $= -0.0015$
+**In yield terms:**
+- FX-implied EUR rate: $-\frac{1}{2}\ln(0.984572) = 0.777\%$
+- OIS EUR rate: $-\frac{1}{2}\ln(0.980199) = 1.000\%$
 
-**Step 1: Compute projected forward LIBORs from $P_f^{(L)}$**
+**Mismatch:** ~22 bp in 2Y rates.
 
-$$L_0 = \frac{1}{0.5} \left( \frac{1}{0.9945} - 1 \right) \approx 0.011064$$
-$$L_1 = \frac{1}{0.5} \left( \frac{0.9945}{0.9885} - 1 \right) \approx 0.012142$$
+**Interpretation:** The curves are inconsistent. Either:
+1. The FX forward is mispriced, or
+2. There is a cross-currency basis of ~22 bp that the OIS curve doesn't capture
 
-**Step 2: Solve for the unknown foreign discount factor $P_f(0,1)$**
+A consistent multi-curve framework would calibrate to *both* the OIS market and the FX forward market, with basis swaps providing the reconciliation.
 
-Using the par condition (Par-basis-constraint) for two periods:
+### Example 21.8: Hedged Foreign Bond Valuation
 
-$$1 = (L_0 + e) \cdot 0.5 \cdot P_f(0, 0.5) + (L_1 + e) \cdot 0.5 \cdot P_f(0, 1) + P_f(0, 1)$$
-
-Rearrange:
-$$1 - (L_0 + e) 0.5 P_f(0, 0.5) = [1 + (L_1 + e) 0.5] P_f(0, 1)$$
-
-**Compute the left side:**
-- $L_0 + e = 0.011064 - 0.0015 = 0.009564$
-- $(L_0 + e) \cdot 0.5 \cdot P_f(0, 0.5) = 0.009564 \cdot 0.5 \cdot 0.9950 \approx 0.004758$
-- Left side $= 1 - 0.004758 = 0.995242$
-
-**Compute the bracket:**
-- $L_1 + e = 0.012142 - 0.0015 = 0.010642$
-- $1 + (L_1 + e) 0.5 = 1 + 0.010642 \cdot 0.5 = 1 + 0.005321 = 1.005321$
-
-**So:**
-$$P_f(0, 1) = \frac{0.995242}{1.005321} \approx 0.98998$$
-
-**Step 3: Interpret as a curve-level basis $s(1)$**
-
-Using $P^{(L)}(1) = P(1) e^{-s(1) \cdot 1}$ gives:
-
-$$s(1) = -\ln\left(\frac{P^{(L)}(0, 1)}{P_f(0, 1)}\right) = -\ln\left(\frac{0.9885}{0.98998}\right) \approx 0.0015 = 15 \text{ bp}$$
-
-This illustrates (toy) how a quoted basis spread leads to a nonzero $s$, i.e., a separation between projection and discount curves.
-
-**Important:** The mapping between market-quoted basis swap spreads $e$ and curve-level spreads $s(t)$ is convention- and calibration-dependent. The above is a simplified illustration of the "constraint logic," not a universal market formula.
-
----
-
-### Example F — Price an FX Forward Under Discounting; PV=0 at No-Arbitrage Forward
-
-**Goal:** Value an FX forward as PV of two cashflows; show PV=0 at CIP forward and PV≠0 when traded forward differs.
-
-**Conventions:**
-- Domestic USD, foreign EUR
-- Spot $X(0) = 1.1000$ USD/EUR
-- Maturity $T = 1$
-- Discount factors:
-  - $P_d(0, 1) = 0.970446$
-  - $P_f(0, 1) = 0.990050$
-- Contract: receive 1 EUR at $T$, pay $K$ USD at $T$
-
-**Step 1: Compute no-arbitrage forward $K^*$**
-
-$$K^* = X(0) \frac{P_f}{P_d} = 1.1000 \times \frac{0.990050}{0.970446} = 1.1000 \times 1.020201 = 1.122221 \text{ USD/EUR}$$
-
-**Step 2: PV formula**
-
-$$V_0 = X(0) P_f - K P_d$$
-
-**At $K = K^*$:**
-- $X(0) P_f = 1.1000 \times 0.990050 = 1.089055$
-- $K^* P_d = 1.122221 \times 0.970446 \approx 1.089055$
-
-So $V_0 \approx 0$. ✓
-
-**Step 3: Mispriced traded forward**
-
-Suppose traded $K_{\text{mkt}} = 1.1250$. Then:
-$$V_0 = 1.089055 - 1.1250 \times 0.970446$$
-
-Compute $1.1250 \times 0.970446 = 1.091751$.
-
-So:
-$$V_0 \approx 1.089055 - 1.091751 = -0.002696 \text{ USD per EUR notional}$$
-
-For 10,000,000 EUR notional: $V_0 \approx -26,960$ USD.
-
----
-
-### Example G — Cross-Currency Basis Swap Par Condition (2 Periods) and Solve for Par Basis
-
-**Goal:** Write PV equation for a toy 2-period CRX basis swap and solve the par basis spread $e$.
-
-**Conventions (toy, but aligned to source structure):**
-- Domestic currency $d =$ USD is reporting currency
-- Foreign currency $f =$ JPY
-- Spot FX $X(0) = 0.0091$ USD/JPY (USD per 1 JPY)
-- Notional: $N_d = 1{,}000{,}000$ USD
-- Foreign notional set by spot ratio (as per CRX basis swap description):
-  $$N_f = N_d / X(0) = 1{,}000{,}000 / 0.0091 \approx 109{,}890{,}110 \text{ JPY}$$
-- Payment dates: $t_1 = 0.5$, $t_2 = 1.0$; $\tau_0 = \tau_1 = 0.5$
-- Domestic discount/index curve coincide (simplifying "bedrock" assumption): PV of domestic floating+principal leg ≈ par
-- Foreign leg pays $(L_f^{\text{proj}} + e)$ where $L_f^{\text{proj}}$ comes from foreign index curve $P_f^{(L)}$
-- Foreign discount curve $P_f$ is used to discount foreign cashflows
-
-**Inputs:**
-- Foreign discount DFs: $P_f(0, 0.5) = 0.9950$, $P_f(0, 1) = 0.9900$
-- Foreign index (projection) DFs: $P_f^{(L)}(0, 0.5) = 0.9945$, $P_f^{(L)}(0, 1) = 0.9885$
-
-**Step 1: Compute foreign forward LIBORs from $P_f^{(L)}$**
-
-$$L_0 = \frac{1}{0.5} \left( \frac{1}{0.9945} - 1 \right) \approx 0.011064$$
-$$L_1 = \frac{1}{0.5} \left( \frac{0.9945}{0.9885} - 1 \right) \approx 0.012142$$
-
-**Step 2: Write PV in USD**
-
-- Domestic USD floating leg PV $\approx N_d$ under the simplification that domestic index=discount. (This is the standard floating-leg telescoping identity when the same curve is used.)
-- Foreign JPY leg PV (in JPY):
-
-$$PV_f^{\text{JPY}} = N_f \left[ (L_0 + e) 0.5 P_f(0, 0.5) + (L_1 + e) 0.5 P_f(0, 1) + P_f(0, 1) \right]$$
-
-Convert to USD using spot: $PV_f^{\text{USD}} = X(0) \, PV_f^{\text{JPY}}$.
-
-Because $X(0) N_f = N_d$ by notional ratio, the USD PV becomes:
-
-$$PV_f^{\text{USD}} = N_d \left[ (L_0 + e) 0.5 P_f(0, 0.5) + (L_1 + e) 0.5 P_f(0, 1) + P_f(0, 1) \right]$$
-
-Thus swap PV (receive USD, pay JPY) is:
-$$PV_{\text{swap}} = N_d - PV_f^{\text{USD}}$$
-
-Par requires $PV_{\text{swap}} = 0$, so:
-$$1 = (L_0 + e) 0.5 P_{0.5} + (L_1 + e) 0.5 P_1 + P_1$$
-
-where $P_{0.5} = 0.9950$, $P_1 = 0.9900$.
-
-**Step 3: Compute the "no-basis" PV term**
-
-Interest PV without basis:
-- Period 1: $L_0 \cdot 0.5 \cdot 0.9950 \approx 0.011064 \cdot 0.4975 \approx 0.005504$
-- Period 2: $L_1 \cdot 0.5 \cdot 0.9900 \approx 0.012142 \cdot 0.4950 \approx 0.006010$
-
-So:
-$$B = 0.005504 + 0.006010 + 0.9900 = 1.001515$$
-
-**Basis annuity:**
-$$A = 0.5 \cdot 0.9950 + 0.5 \cdot 0.9900 = 0.9925$$
-
-**Par condition:**
-$$1 = B + eA \quad \Rightarrow \quad e = \frac{1 - B}{A} = \frac{1 - 1.001515}{0.9925} \approx -0.001526$$
-
-**Final answer:**
-$$\boxed{e_{\text{par}} \approx -0.001526 \approx -15.26 \text{ bp}}$$
-
-**Sanity check:** $e < 0$ because $B > 1$: projected floating leg PV (discounted with $P_f$ but projected with $P_f^{(L)}$) is slightly above par, so the spread must reduce it to par. ✓
-
----
-
-### Example H — Basis Shock Sensitivity (+5bp) on a Basis Swap
-
-**Goal:** Apply a +5bp change in basis, compute PV change, interpret as basis risk.
-
-Use Example G setup and par basis.
-
-From Example G, swap PV per $N_d$ is:
-$$PV = N_d [1 - (B + eA)]$$
-
-So sensitivity to $e$:
-$$\frac{\partial PV}{\partial e} = -N_d A$$
-
-With $N_d = 1{,}000{,}000$, $A = 0.9925$, and $\Delta e = +5$ bp $= +0.0005$:
-
-$$\Delta PV \approx -1{,}000{,}000 \times 0.9925 \times 0.0005 = -496.25 \text{ USD}$$
-
-**Interpretation:** A +5bp widening of the spread on the foreign leg reduces PV by about $496 for a $1mm notional in this toy. That is basis risk distinct from FX spot and IR curve moves.
-
----
-
-### Example I — Hedged Foreign Bond Valuation (Where Basis Can Enter)
-
-**Goal:** Value a foreign-currency bond hedged back into domestic currency using FX forwards; show dependence on curves and forward quotes.
-
-**Conventions:**
-- Domestic USD, foreign JPY
+**Given:**
+- Domestic = USD, Foreign = JPY
 - Spot $X(0) = 0.0091$ USD/JPY
-- Foreign ZCB payoff: $N_f = 100{,}000{,}000$ JPY at $T = 1$
-- Discount factors: $P_f(0, 1) = 0.9900$, $P_d(0, 1) = 0.970446$
-- Hedge: sell JPY forward at $K$ USD/JPY for delivery at $T$
+- JPY ZCB: ¥100,000,000 payoff at $T = 1$
+- Discount factors: $P_f(0,1) = 0.9900$, $P_d(0,1) = 0.970446$
 
-**Unhedged USD PV**
+**Unhedged USD PV:**
+$$PV_{unhedged} = X(0) \times N_f \times P_f(0,1) = 0.0091 \times 100{,}000{,}000 \times 0.9900 = \$900{,}900$$
 
-Foreign bond PV in USD:
-$$PV_{\text{unhedged}} = X(0) \, N_f \, P_f(0, 1)$$
+**CIP-implied forward:**
+$$K^* = X(0) \times \frac{P_f}{P_d} = 0.0091 \times \frac{0.9900}{0.970446} = 0.009284 \text{ USD/JPY}$$
 
-Compute:
-- $X(0) N_f = 0.0091 \times 100{,}000{,}000 = 910{,}000$ USD
-- Multiply by $P_f = 0.9900$:
+**Hedged PV (sell JPY forward at $K^*$):**
+$$PV_{hedged} = K^* \times N_f \times P_d(0,1) = 0.009284 \times 100{,}000{,}000 \times 0.970446 = \$900{,}900$$
 
-$$PV_{\text{unhedged}} = 910{,}000 \times 0.9900 = 900{,}900 \text{ USD}$$
+**Result:** Under CIP, hedged PV = unhedged PV. ✓
 
-**Hedged USD PV using a forward**
+**If basis causes deviation:** Suppose the traded forward is $K_{mkt} = 0.0093$:
+$$PV_{hedged,mkt} = 0.0093 \times 100{,}000{,}000 \times 0.970446 = \$902{,}514$$
 
-At maturity, forward converts $N_f$ JPY into $K N_f$ USD. PV:
-$$PV_{\text{hedged}} = (K N_f) \, P_d(0, 1)$$
+**Basis gain:** $\$902{,}514 - \$900{,}900 = \$1{,}614$
 
-**No-arbitrage forward (CIP)**
-$$K^* = X(0) \frac{P_f(0, 1)}{P_d(0, 1)} = 0.0091 \times \frac{0.9900}{0.970446} \approx 0.0091 \times 1.020201 \approx 0.00928383 \text{ USD/JPY}$$
-
-**Compute hedged PV at $K^*$:**
-- $K^* N_f \approx 0.00928383 \times 100{,}000{,}000 = 928{,}383$ USD at $T$
-- Discount: $928{,}383 \times 0.970446 \approx 900{,}900$ USD
-
-So $PV_{\text{hedged}} = PV_{\text{unhedged}}$ under CIP. ✓
-
-**Where basis enters:**
-
-If the traded forward differs from $K^*$ (e.g., due to cross-currency basis / curve segmentation), then hedged PV changes.
-
-Example: traded $K_{\text{mkt}} = 0.0093000$. Then:
-$$PV_{\text{hedged,mkt}} = 0.0093000 \times 100{,}000{,}000 \times 0.970446 = 930{,}000 \times 0.970446 \approx 902{,}514 \text{ USD}$$
-
-Difference vs CIP PV:
-$$902{,}514 - 900{,}900 = 1{,}614 \text{ USD}$$
-
-This "extra" PV is a direct manifestation of forward/basis deviation from CIP-implied pricing.
+This "extra" PV is the manifestation of cross-currency basis in hedged foreign asset valuation.
 
 ---
 
-### Example J — Arbitrage-Consistency Sanity Check (Forward-Implied Curve vs Independent Curve)
+## 21.8 Practical Notes
 
-**Goal:** Domestic DF + FX forward strip implies foreign DF strip; compare implied foreign DF against an independently built foreign OIS curve; quantify mismatch and interpret.
+### 21.8.1 Quote Direction Conventions
 
-**Conventions:**
-- Domestic USD, foreign EUR
-- Spot $S(0) = 1.1000$ USD/EUR
-- Domestic discount curve: $P_d(0, 2) = 0.941765$ (as in Example D)
-- Observed 2Y forward: suppose market quotes $F_{\text{mkt}}(0, 2) = 1.1500$ USD/EUR (toy)
+Hull notes that "in many major pairs the spot/forward exchange rate is normally quoted as the number of units of the currency that are equivalent to one U.S. dollar." This varies by pair:
 
-**FX-implied foreign DF:**
-$$P_f^{\text{FX}}(0, 2) = \frac{F_{\text{mkt}}(0, 2)}{S(0)} P_d(0, 2)$$
+- EUR/USD: EUR per USD (European terms)
+- USD/JPY: JPY per USD (American terms in Japanese quoting)
+- GBP/USD: USD per GBP (American terms)
 
-**Independently built foreign OIS curve DF (toy):** $P_f^{\text{OIS}}(0, 2) = 0.980199$ (≈1% continuous rate, as in Example D)
+**Impact on formulas:** If your market quote uses the inverse direction, you must invert spot and forward before applying CIP formulas. A common source of errors is misapplying the formula with an inverted quote.
 
-**Step 1: Compute FX-implied DF**
-$$\frac{F}{S} = \frac{1.1500}{1.1000} = 1.045454545$$
+### 21.8.2 Basis Swap Quoting Conventions
 
-So:
-$$P_f^{\text{FX}}(0, 2) = 1.045454545 \times 0.941765 \approx 0.984572$$
+**I'm not sure** about universal conventions for which leg receives the spread. The spread can be quoted on:
+- The non-USD leg (common)
+- The "lower-rate" currency leg
+- Different conventions by dealer/venue
 
-**Step 2: Compare to independent foreign OIS DF**
-$$\Delta P = P_f^{\text{FX}} - P_f^{\text{OIS}} = 0.984572 - 0.980199 = 0.004373$$
+**Always confirm** with the specific market before trading or calibrating.
 
-**Convert to implied 2Y continuous zero rates:**
+### 21.8.3 Settlement and Calendar Issues
 
-FX-implied:
-$$r_f^{\text{FX}}(2) = -\frac{1}{2} \ln(0.984572) \approx 0.00775 = 0.775\%$$
+**I'm not sure** about exact spot/settlement conventions, which are currency-pair specific:
+- Spot date (T+2 vs T+1)
+- Holiday calendars (both currencies' holidays matter)
+- Business day conventions for adjusting flows
 
-OIS:
-$$r_f^{\text{OIS}}(2) = -\frac{1}{2} \ln(0.980199) = 1.00\%$$
+These affect accrual calculations and must be specified precisely for production systems.
 
-**Mismatch in yield terms:** About $-22.5$ bp (FX-implied lower yield / higher DF).
+### 21.8.4 When Collateral Currency Differs
 
-**Interpretation (carefully labeled):**
-- **Source-backed:** The book warns that building curves independently from local swaps will generally violate cross-currency no-arbitrage constraints such as (6.38).
-- **Reasoned inference:** The mismatch between $P_f^{\text{FX}}$ and $P_f^{\text{OIS}}$ can be interpreted as a "basis" or segmentation/collateral effect that must be reconciled by a consistent multi-curve calibration (often involving basis swaps at longer maturities).
+The discussion in this chapter assumes standard collateral practices. Andersen and Piterbarg note that "uncollateralized derivative contracts are subject to credit risk, and a fully consistent pricing approach needs to incorporate the cost of hedging this risk (the so-called credit valuation adjustment or CVA)."
+
+When collateral is posted in a third currency, additional basis adjustments may be needed. This is outside the scope of this chapter but represents an important practical consideration for exotic cross-currency trades.
 
 ---
 
-## Practical Notes
+## Summary
 
-### Quoting Conventions and Common Ambiguity Traps
+1. **CIP is the foundation**: The no-arbitrage relationship $F = S \cdot P_f/P_d$ links spot FX, forward FX, and discount factors across currencies. Hull's rate form $F_0 = S_0 e^{(r_d - r_f)T}$ is equivalent under continuous compounding.
 
-| Issue | Description |
-|-------|-------------|
-| **FX quote direction** | e.g., USD per EUR vs EUR per USD — flips formulas. If your market quote is the inverse direction, you must invert spot/forward before applying the formulas. Hull explicitly notes many spot rates are quoted as "units of currency per USD," which changes how you apply parity formulas. |
-| **Spot date vs forward maturity** | I'm not sure about the exact spot/settlement conventions because they are currency-pair specific (spot lag, holidays, business day rules, fixing conventions). To be certain you must specify the currency pair and market standard (e.g., T+2 vs T+1, deliverable vs NDF, fixing source). |
-| **Day count and compounding mismatches** | LIBOR-style rates are simple and depend on day count (often Actual/360); zero rates may be handled with continuous compounding in analytic formulas. The book also notes an important implementation nuance: the year fractions defining payment accruals can differ slightly from those defining forward LIBOR rates due to date adjustment conventions. |
-| **Collateral currency** | The text highlights that discounting choices (OIS vs other) and collateral mechanisms can matter and can resolve conflicts between different sources of discount-curve information, but treats the full discussion as out of scope. |
-| **Basis swap quoting** | I'm not sure: this is market-convention specific (e.g., whether the spread is added to the USD leg or the non-USD leg, and the sign convention). To be certain, specify the currency pair and quoting convention used by your broker/venue. |
+2. **FX forwards constrain curves**: Given a domestic curve and FX forward quotes, the foreign curve is determined by CIP. Building curves independently creates arbitrage.
 
-### Implementation Pitfalls
+3. **Cross-currency basis is persistent**: Post-2008, the basis between FX-implied curves and local curves is material (often 10-50+ bp in stress) due to funding segmentation, balance sheet constraints, and credit differentiation.
 
-| Pitfall | Notes |
-|---------|-------|
-| **Inconsistent calendars** | I'm not sure (book does not give full operational calendars here). In practice, inconsistent calendars lead to accrual mismatches and hedging noise; you need currency-specific holiday calendars and rolling conventions. |
-| **Interpolation artifacts** | Curve construction requires interpolation; the text discusses interpolation artifacts and how perturbations can introduce noise, motivating careful technique choice. |
-| **Curve dependency graph** | In multi-currency, "domestic curve + FX forwards ⇒ foreign curve" can create circularities if you also use cross-currency basis swaps to infer discounting vs index curve bases across currencies. The book warns about circularity and recommends anchoring the basis in one currency using domestic instruments. |
+4. **Basis swaps extend the constraint horizon**: Beyond ~1 year, cross-currency basis swaps replace FX forwards as the source of constraint information. Andersen and Piterbarg note that "the interbank FX forward market is rarely liquid beyond maturities of one year."
 
-### Verification Tests
+5. **Multi-curve construction is iterative**: Build domestic curves first, then calibrate foreign discount curves to basis swaps using the Andersen-Piterbarg algorithm.
 
-| Test | What to Check |
-|------|---------------|
-| **Dimension/unit checks** | $X$ in $d/f$; $P$ dimensionless; $L$ in 1/year; PV in $d$ |
-| **PV(Forward)=0 at no-arb forward** | Check $V_0 = X(0) P_f - K P_d$ equals 0 at $K = F(0,T)$ |
-| **Monotonicity/positivity** | $0 < P(0,T) \leq 1$; decreasing in $T$ under positive rates |
-| **Small-bump stability** | Bump FX forwards slightly; implied $P_f$ should change smoothly (watch for interpolation-induced kinks) |
+6. **Risk decomposes into three dimensions**: FX delta, rates PV01 (by currency), and basis exposure are distinct and require separate hedges.
 
 ---
 
-## Summary & Recall
+## Key Concepts Summary
 
-### 10-Bullet Executive Summary
-
-1. **CIP links spot FX, forward FX, and interest rates/discount factors** across two currencies.
-
-2. **In discount-factor form**, the forward FX rate satisfies $F(0,T) = X(0) \, P_f(0,T) / P_d(0,T)$.
-
-3. **In rate form** (continuous compounding), $F_0 = S_0 e^{(r_d - r_f)T}$.
-
-4. **FX forwards act as curve constraints**: given $X(0)$ and $P_d$, a forward quote implies $P_f$, and vice versa.
-
-5. **Multi-currency curve building must respect arbitrage constraints** from FX forwards and cross-currency basis swaps.
-
-6. **Building domestic and foreign curves independently** from swaps can violate the FX-forward constraint (e.g., (6.38)), leading to cross-currency arbitrage.
-
-7. **To reconcile constraints**, the book motivates separating discount curves from index (LIBOR) curves.
-
-8. **Cross-currency "basis"** can be expressed at the curve level via $P^{(L)}(t) = P(t) e^{-s(t) t}$, defining a CRX yield spread $s(t)$.
-
-9. **CRX basis swaps** exchange floating legs across currencies plus/minus a spread and exchange notionals at spot ratio; a one-period basis swap is an FX forward.
-
-10. **Risk decomposes** into FX delta, IR PV01 by currency, and basis exposure; DV01/PV01 definitions generalize naturally to multi-currency reporting.
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **Covered Interest Parity (CIP)** | $F = S \cdot P_f/P_d$ | Foundation for cross-currency no-arbitrage |
+| **FX-implied curve** | Foreign DFs derived from domestic curve + FX forwards | Ensures curve consistency across currencies |
+| **Cross-currency basis** | Yield spread between index and discount curves: $P^{(L)} = P e^{-st}$ | Captures funding/credit segmentation |
+| **Basis swap** | Floating-floating xccy swap with spread | Provides constraint info for long maturities |
+| **Bedrock assumption** | USD index = USD discount (or use OIS) | Anchors the multi-curve system |
+| **Forward FX rate** | $X_T(t) = X(t) P_f(t,T)/P_d(t,T)$ | The FX rate locked in today for future delivery |
 
 ---
 
-### Cheat Sheet of Formulas
+## Notation for This Chapter
 
-| Formula | Expression |
-|---------|------------|
-| **CIP (rate form, continuous)** | $F_0 = S_0 e^{(r_d - r_f)T}$ (quote direction matters) |
-| **CIP (discount-factor form)** | $F(0,T) = X(0) \dfrac{P_f(0,T)}{P_d(0,T)}$ |
-| **FX forward PV** | $V_0 = X(0) P_f(0,T) - K P_d(0,T)$ |
-| **Implied foreign DF** | $P_f(0,T) = \dfrac{F(0,T)}{X(0)} P_d(0,T)$ |
-| **Forward LIBOR from index curve** | $L(0, T_i, T_{i+1}) = \dfrac{1}{\tau_i} \left( \dfrac{P^{(L)}(0,T_i)}{P^{(L)}(0,T_{i+1})} - 1 \right)$ |
-| **Cross-currency yield spread** | $P^{(L)}(t) = P(t) e^{-s(t) t}$, so $s(t) = -\dfrac{1}{t} \ln\left(\dfrac{P^{(L)}(t)}{P(t)}\right)$ |
-| **Basis swap par constraint (toy)** | $1 = \sum_i (L_f^{\text{proj}} + e) \tau_i P_f(0, t_{i+1}) + P_f(0,T)$ |
+| Symbol | Definition |
+|--------|------------|
+| $d$, $f$ | Domestic and foreign currencies |
+| $X(0)$ or $S_0$ | Spot FX (domestic per foreign) |
+| $F(0,T)$ or $X_T(0)$ | Forward FX for maturity $T$ |
+| $P_d(0,T)$, $P_f(0,T)$ | Discount factors |
+| $P^{(L)}(0,T)$ | Index/projection curve |
+| $s(t)$ | CRX yield spread |
+| $e$ | Basis swap spread |
+| $\tau$ | Year fraction / accrual |
+| $r_d$, $r_f$ | Domestic and foreign risk-free rates |
 
 ---
 
-### Flashcards (30 Q/A)
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What does CIP relate? | Spot FX, forward FX, and interest-rate discounting across two currencies. |
-| 2 | CIP in DF form (domestic per foreign quote)? | $F(0,T) = X(0) \, P_f(0,T) / P_d(0,T)$ |
-| 3 | CIP in Hull's rate form (continuous compounding)? | $F_0 = S_0 e^{(r_d - r_f)T}$ |
-| 4 | What is $P_d(0,T)$? | Domestic discount factor: value at 0 of 1 unit domestic paid at $T$. |
-| 5 | What is $X(0)$ in this chapter? | Domestic currency per 1 unit foreign ($d/f$). |
-| 6 | What is the domestic price of 1 unit of foreign ZCB paying 1 foreign at $T$? | $X(t) P_f(t,T)$ |
-| 7 | How do FX forwards constrain curves? | Given $X(0)$ and $P_d$, forward quotes imply $P_f$ via CIP. |
-| 8 | What is equation (6.38) expressing? | No-arbitrage constraint linking USD DF, JPY DF, spot FX, and an FX forward quote. |
-| 9 | What is an "FX-implied curve"? | Foreign discount factors derived from domestic discount factors and FX forward quotes. |
-| 10 | Why can building curves independently create arbitrage? | Independently built curves may violate FX-forward parity constraint (6.38). |
-| 11 | Why separate discount and forward/index curves? | To satisfy cross-currency no-arbitrage constraints and because LIBOR may not be risk-free for discounting. |
-| 12 | Define pseudo-discount/index curve $P^{(L)}$. | Curve used so that forward LIBORs satisfy $L = \frac{1}{\tau}\left(\frac{P^{(L)}(T)}{P^{(L)}(T+\tau)} - 1\right)$ |
-| 13 | Define CRX yield spread $s(t)$. | $P^{(L)}(t) = P(t) e^{-s(t) t}$ |
-| 14 | Typical magnitude of $s(t)$ per text? | Usually a few basis points or less, but can blow out. |
-| 15 | What is a cross-currency basis swap? | Floating–floating swap exchanging LIBOR legs in two currencies plus/minus a spread, with notional exchanges at inception/maturity. |
-| 16 | What is special about a one-period CRX basis swap? | It is identical to an FX forward contract. |
-| 17 | Why are basis swaps important for long maturities? | FX forward market is rarely liquid beyond ~1 year. |
-| 18 | FX forward PV decomposition? | PV = PV(foreign receipt) − PV(domestic payment) = $X(0) P_f - K P_d$ |
-| 19 | What does "basis" represent economically (high-level)? | A traded deviation from single-curve CIP due to curve segmentation/credit/liquidity/collateral effects. |
-| 20 | What risk buckets matter for cross-currency instruments? | FX delta, IR PV01 by currency, basis exposure. |
-| 21 | What is DV01 per Tuckman? | Price change for a 1bp yield change: $\text{DV01} = -\partial P/\partial y \times 0.0001$ |
-| 22 | What is key-rate exposure conceptually? | PV sensitivity to changes at specific maturities/forward-rate buckets. |
-| 23 | Why is quote direction crucial in FX formulas? | Inverting the quote inverts the parity relationship (forward points sign flips). |
-| 24 | What can go wrong with accrual fractions? | Payment accrual fractions can differ from those defining forward LIBOR due to date adjustments. |
-| 25 | What does $P^{(L)} \neq P$ imply? | Forward projection differs from discounting; multi-curve valuation needed. |
-| 26 | How do you infer $P_f(0,T)$ from $F(0,T)$ and $P_d(0,T)$? | $P_f = (F/X) P_d$ (when quotes are consistent). |
-| 27 | What is the "bedrock USD" assumption in the text? | Assumption 6.5.1: USD index curve equals USD discount curve (pre-crisis convention). |
-| 28 | Why can circularity arise in discounting basis estimation? | If you use cross-currency instruments to infer USD basis, you can create a circular dependency; text suggests using domestic instruments to anchor. |
-| 29 | What does failing to fit basis swaps risk? | Arbitrageable inconsistencies across currencies. |
-| 30 | What is the core curve-construction "constraint logic" takeaway? | FX forwards and CRX basis swaps supply market equations that link discount/index curves across currencies; curves must be calibrated jointly. |
+| 1 | What does CIP relate? | Spot FX, forward FX, and discount factors across two currencies |
+| 2 | CIP in discount-factor form? | $F(0,T) = X(0) \cdot P_f(0,T)/P_d(0,T)$ |
+| 3 | CIP in Hull's rate form? | $F_0 = S_0 e^{(r_d - r_f)T}$ |
+| 4 | How do you derive $P_f$ from $F$, $X$, and $P_d$? | $P_f = (F/X) \cdot P_d$ |
+| 5 | What is the cross-currency yield spread formula? | $P^{(L)}(t) = P(t) e^{-s(t)t}$, so $s(t) = -\frac{1}{t}\ln(P^{(L)}/P)$ |
+| 6 | Why can independent curve construction create arbitrage? | Curves may violate the CIP constraint (6.38), allowing costless round-trip profit |
+| 7 | What is a cross-currency basis swap? | Swap exchanging floating rates in two currencies + spread, with notional exchanges at spot ratio |
+| 8 | Why are basis swaps needed for long maturities? | FX forwards are "rarely liquid beyond maturities of one year" (Andersen) |
+| 9 | What was the JPY CRX basis in late 1990s? | Around -40 bp due to Japanese bank credit concerns |
+| 10 | What was the JPY CRX basis in early 2008? | Up to +60 bp due to hedging demand from FX book rebalancing |
+| 11 | What is the "bedrock" USD assumption? | $P_\$^{(L)} = P_\$$ (USD index = USD discount) |
+| 12 | Why doesn't arbitrage eliminate the basis? | Capital requirements, counterparty limits, term funding constraints |
+| 13 | What three risks does a xccy position have? | FX delta, rates PV01 (by currency), basis exposure |
+| 14 | What is basis01? | PV sensitivity to a 1bp change in basis spread |
+| 15 | How is the iterative curve construction initiated? | Set $V^{(L)}(0) = V$ (prices as if index = discount) |
+| 16 | Why avoid using xccy instruments to infer USD basis? | Creates circular reasoning; use domestic OIS/basis swaps instead |
+| 17 | What constrains the short end of xccy curves? | FX forwards (liquid to ~1 year) |
+| 18 | What constrains the long end of xccy curves? | Cross-currency basis swaps (quoted to 30+ years) |
+| 19 | One-period basis swap = ? | FX forward contract |
+| 20 | If $P_d = P_f$, what is $F$? | $F = X$ (forward equals spot when rates are equal) |
 
 ---
 
-## Mini Problem Set (16 Questions)
+## Mini Problem Set
 
-*Increasing difficulty. Solution sketches provided for questions 1–8 only.*
+### Problem 1 (Basic)
+Given $S(0) = 1.25$ USD/EUR, $r_d = 4\%$, $r_f = 1.5\%$, $T = 1$ (continuous), compute $F(0,1)$.
 
----
+**Solution:** $F = 1.25 \times e^{0.025} = 1.2817$
 
-**1.** Given $S(0) = 1.25$ USD/EUR, $r_d = 4\%$, $r_f = 1.5\%$, $T = 1$ (continuous), compute $F(0,1)$.
+### Problem 2 (Basic)
+Given $X(0) = 1.10$, $P_d(0,2) = 0.94$, $P_f(0,2) = 0.98$, compute $F(0,2)$.
 
-**Sketch:** Use $F = S e^{(r_d - r_f)T} = 1.25 \times e^{0.025} \approx 1.2817$.
+**Solution:** $F = 1.10 \times 0.98/0.94 = 1.1468$
 
----
+### Problem 3 (Basic)
+Derive $P_f(0,T)$ from $X(0)$, $F(0,T)$, and $P_d(0,T)$.
 
-**2.** Given $X(0) = 1.10$, $P_d(0, 2) = 0.94$, $P_f(0, 2) = 0.98$, compute $F(0, 2)$.
+**Solution:** Rearrange CIP: $P_f = (F/X) \cdot P_d$
 
-**Sketch:** Use $F = X \cdot P_f / P_d = 1.10 \times 0.98 / 0.94 \approx 1.1468$.
+### Problem 4 (Intermediate)
+An FX forward receives 1 EUR at $T$ and pays $K$ USD. Write the PV at time 0 and solve for $K$ that makes PV = 0.
 
----
+**Solution:** $PV = X(0) P_f - K P_d$. Set to zero: $K = X(0) P_f/P_d = F$
 
-**3.** Given $X(0)$, $F(0,T)$, and $P_d(0,T)$, infer $P_f(0,T)$.
+### Problem 5 (Intermediate)
+Using $P^{(L)}(t) = P(t) e^{-s(t)t}$, solve for $s(t)$ given $P^{(L)}(1) = 0.9885$ and $P(1) = 0.9900$.
 
-**Sketch:** Rearrange CIP: $P_f = (F/X) P_d$. (Algebra from CIP-DF.)
+**Solution:** $s(1) = -\ln(0.9885/0.9900) = -\ln(0.99848) = 0.00152 = 15.2$ bp
 
----
+### Problem 6 (Intermediate)
+Explain qualitatively why building USD and EUR curves independently can create arbitrage.
 
-**4.** An FX forward receives 1 foreign at $T$ and pays $K$ domestic. Write PV at time 0 and solve for $K$ that makes PV=0.
+**Solution:** If the curves don't satisfy $P_{EUR} = (F/X) \cdot P_{USD}$, one can convert USD → EUR → USD via three costless swaps (USD IRS, xccy basis, EUR IRS) and end up with a different value than direct USD discounting—a riskless profit.
 
-**Sketch:** PV $= X P_f - K P_d$; set to zero $\Rightarrow K = X P_f / P_d$.
+### Problem 7 (Advanced)
+Build a 3-point FX-implied EUR curve from:
+- USD curve: $P_d(0.5) = 0.99$, $P_d(1) = 0.97$, $P_d(2) = 0.93$
+- Spot: $X = 1.15$
+- Forwards: $F(0.5) = 1.16$, $F(1) = 1.18$, $F(2) = 1.22$
 
----
+Verify discount factors are monotonically decreasing.
 
-**5.** Quote inversion: If the market quotes EUR/USD instead of USD/EUR, how must the CIP formula be adapted?
+**Solution:**
+- $P_f(0.5) = (1.16/1.15) \times 0.99 = 0.9986$
+- $P_f(1) = (1.18/1.15) \times 0.97 = 0.9956$
+- $P_f(2) = (1.22/1.15) \times 0.93 = 0.9866$
 
-**Sketch:** Invert the FX quote first; Hull notes FX quote conventions vary and can be "per USD," requiring inversion.
+Check: $0.9986 > 0.9956 > 0.9866$ ✓
 
----
+### Problem 8 (Advanced)
+In a two-curve setup, show that if projection and discount curves coincide ($P^{(L)} = P$), the PV of a floating leg with principal repayment telescopes to par.
 
-**6.** Using $P^{(L)}(t) = P(t) e^{-s(t) t}$, solve for $s(t)$ given $P^{(L)}(t)$ and $P(t)$.
+**Solution:** Floating leg PV:
+$$\sum_{i=0}^{n-1} L_i \tau_i P(t_{i+1}) + P(t_n)$$
 
-**Sketch:** $s(t) = -(1/t) \ln(P^{(L)}/P)$.
+With $L_i = \frac{1}{\tau_i}\left(\frac{P(t_i)}{P(t_{i+1})} - 1\right)$:
+$$\sum_{i=0}^{n-1} \left(\frac{P(t_i)}{P(t_{i+1})} - 1\right) P(t_{i+1}) + P(t_n) = \sum_{i=0}^{n-1}(P(t_i) - P(t_{i+1})) + P(t_n)$$
 
----
+This telescopes: $(P(0) - P(t_1)) + (P(t_1) - P(t_2)) + \cdots + P(t_n) = P(0) = 1$ ✓
 
-**7.** Compute a forward LIBOR $L(0, T, T+\tau)$ given $P^{(L)}(0,T)$ and $P^{(L)}(0, T+\tau)$.
+### Problem 9 (Advanced)
+Using Hull's AUD/USD example, if 2-year rates are 3% (AUD) and 1% (USD), spot is 0.75 USD/AUD, and the 2-year forward trades at 0.7600 (vs fair value 0.7206), describe the arbitrage strategy.
 
-**Sketch:** Use $L = \frac{1}{\tau}\left(\frac{P^{(L)}(T)}{P^{(L)}(T+\tau)} - 1\right)$.
-
----
-
-**8.** Explain qualitatively why independent curve construction in each currency can create arbitrage.
-
-**Sketch:** The text shows (6.38) is required; independently estimated curves likely violate it, creating cross-currency arbitrage.
-
----
-
-**9.** Build a 3-point FX-implied foreign curve from a domestic curve and a forward strip; check monotonicity of implied foreign DFs.
-
----
-
-**10.** In a two-curve setup, show that if projection and discount curves coincide, the PV of a floating leg with principal repayment telescopes to par.
-
----
-
-**11.** Given a basis swap quote $e$ on the foreign leg and a foreign index curve $P_f^{(L)}$, set up the calibration equation for foreign discount factors $P_f$ at a single maturity.
-
----
-
-**12.** For an FX forward, compute FX delta and domestic PV01 (bump domestic curve by 1bp) for a given notional.
-
----
-
-**13.** Construct a toy scenario where forward-implied foreign DFs conflict with an independently built foreign OIS curve; interpret the discrepancy.
-
----
-
-**14.** Discuss how lack of FX forward liquidity beyond 1 year motivates using basis swaps for long-dated constraints.
-
----
-
-**15.** Identify which market instruments anchor the USD discount vs index curve basis per the text's discussion (OIS, Fed funds/LIBOR basis swaps).
-
----
-
-**16.** Describe a verification checklist for a multi-currency curve build (PV checks, monotonicity, quote-direction checks, bump stability).
+**Solution:**
+1. Borrow 1,000 USD at 1% for 2 years → owe $1000 e^{0.02} = 1020.20$ at maturity
+2. Convert to $1000/0.75 = 1333.33$ AUD, invest at 3% → receive $1333.33 e^{0.06} = 1415.79$ AUD
+3. Sell 1415.79 AUD forward at 0.76 → receive $1415.79 \times 0.76 = 1075.99$ USD
+4. Repay USD loan ($1020.20), keep profit of $55.79
 
 ---
 
@@ -1014,34 +750,45 @@ $$r_f^{\text{OIS}}(2) = -\frac{1}{2} \ln(0.980199) = 1.00\%$$
 
 | Fact | Source |
 |------|--------|
-| CIP rate form: $F_0 = S_0 e^{(r_d - r_f)T}$ | Hull Ch 5 |
-| CIP discount-factor form: $F(0,T) = X(0) P_f / P_d$ | Andersen Vol 1 |
-| FX forward replication via foreign/domestic ZCBs | Andersen Vol 1 |
-| Multi-curve separation: discount vs index curves | Andersen Vol 1 Ch 6 |
-| Cross-currency basis swaps exchange floating + spread with notional exchanges | Andersen Vol 1 |
-| One-period CRX basis swap = FX forward | Andersen Vol 1 |
-| Independent curve construction can violate (6.38) | Andersen Vol 1 Ch 6 |
-| CRX yield spread definition: $P^{(L)}(t) = P(t) e^{-s(t) t}$ | Andersen Vol 1 Ch 6 |
-| DV01 definition | Tuckman Ch 5 |
+| CIP rate form: $F_0 = S_0 e^{(r_d - r_f)T}$ | Hull Ch 5, equation (5.9) |
+| "Interest rate parity relationship from international finance" | Hull Ch 5 |
+| CIP discount-factor form: $F(0,T) = X(0) P_f/P_d$ | Andersen Vol 1 Ch 6 (implicit in eq 6.38) |
+| Forward FX rate definition: $X_T(t) = X(t) P_f(t,T)/P_d(t,T)$ | Andersen Vol 1 Ch 4.3.1 |
+| FX forward replication via foreign/domestic ZCBs | Andersen Vol 1 Ch 4.3.1 |
+| Independent curve construction violates (6.38), creating arbitrage | Andersen Vol 1 Ch 6.5.2.1 |
+| Multi-curve separation: discount vs index curves | Andersen Vol 1 Ch 6.5.2.2 |
+| Cross-currency basis swaps: exchange floating + spread, notional at spot ratio | Andersen Vol 1 Ch 6.5.2.3 |
+| One-period CRX basis swap = FX forward | Andersen Vol 1 Ch 6.5.2.3 |
+| CRX yield spread definition: $P^{(L)}(t) = P(t) e^{-s(t)t}$ | Andersen Vol 1 Ch 6.5.2.2 |
+| JPY basis -40 bp in late 1990s | Andersen Vol 1 Ch 6.5.2.2 |
+| JPY basis +60 bp in early 2008 | Andersen Vol 1 Ch 6.5.2.2 |
+| FX forwards rarely liquid beyond ~1 year | Andersen Vol 1 Ch 6.5.2.3 |
+| DV01 definition | Tuckman Ch 5-6 |
 | FX quote direction warning | Hull Ch 5 |
+| Basis swap valuation equation (6.42) | Andersen Vol 1 Ch 6.5.2.3 |
+| Iterative algorithm for cross-currency curve construction | Andersen Vol 1 Ch 6.5.2.4 |
+| "Bedrock" assumption (Assumption 6.5.1) | Andersen Vol 1 Ch 6.5.2.2 |
+| AUD/USD arbitrage example | Hull Ch 5, Example 5.6 |
+| Fed funds/Libor spread widening post-2007 | Andersen Vol 1 Ch 6.5.3 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Reasoned Inference — Derivation Logic
 
 | Inference | Derivation |
 |-----------|------------|
-| Implied foreign DF formula: $P_f = (F/X) P_d$ | Algebra from CIP-DF |
-| Yield spread formula: $s(t) = -(1/t) \ln(P^{(L)}/P)$ | Algebra from yield spread definition |
-| Par basis swap constraint equation | Constructed from swap valuation principles + multi-curve setup |
+| Implied foreign DF: $P_f = (F/X) P_d$ | Algebra from CIP-DF form |
+| Yield spread formula: $s(t) = -(1/t)\ln(P^{(L)}/P)$ | Algebra from spread definition |
+| Floating leg telescopes to par when $P^{(L)} = P$ | Forward rate substitution and telescoping sum |
 | Basis sensitivity formula | Differentiation of swap PV w.r.t. spread |
+| Forward equals spot when rates equal | Setting $P_d = P_f$ in CIP formula |
 
-### (C) Speculation — Flag Uncertainties
+### (C) Flagged Uncertainties
 
 | Topic | Uncertainty |
 |-------|-------------|
 | Spot/settlement conventions | Currency-pair specific; not fully specified in sources |
 | Basis swap spread conventions (which leg, sign) | Market-convention specific; varies by venue |
-| Cross-currency calendar construction | Book does not provide full operational calendars |
-| Collateral currency discounting details | Flagged as "out of scope" in sources |
+| Calendar construction | Books do not provide full operational calendars |
+| Collateral currency discounting | Flagged as out of scope; additional adjustments needed for third-currency collateral |
 
 ---
 
