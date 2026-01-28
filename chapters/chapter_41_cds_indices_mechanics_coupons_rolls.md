@@ -10,9 +10,9 @@ This is the power of CDS indices—but the simplicity comes with mechanical comp
 
 **Why this matters for practitioners:** The CDS index market is the most liquid corner of credit derivatives, with O'Kane noting that the bid-offer for CDX IG "is roughly equivalent to a bid-offer of 1 cent on a five-year bond with a price of \$100." Indices serve three roles simultaneously: macro credit hedging vehicles, relative value trading instruments, and the underlying reference portfolios for the tranche products covered in Chapters 48–51. Getting the mechanics wrong—confusing spread with price quoting, misunderstanding roll timing, or miscalculating intrinsic value—creates P&L errors that compound across a book of positions.
 
-**Chapter roadmap:** Section 41.1 introduces the major index families and their composition rules. Section 41.2 details the index lifecycle: settlement mechanics, coupon payments, and default handling. Section 41.3 explains the critical relationship between fixed coupons, quoted spreads, and upfront payments—the heart of index pricing. Section 41.4 covers the semi-annual roll process and resulting liquidity dynamics. Section 41.5 develops the intrinsic value calculation and index basis framework. Section 41.6 presents index risk measures. Section 41.7 addresses index options and their roll-driven complications. Section 41.8 discusses the portfolio swap adjustment used to reconcile intrinsic and quoted values.
+**Chapter roadmap:** Section 41.1 introduces the major index families and their composition rules. Section 41.2 details the index lifecycle: settlement mechanics, coupon payments, and default handling. Section 41.3 explains the critical relationship between fixed coupons, quoted spreads, and upfront payments—the heart of index pricing. Section 41.4 covers the semi-annual roll process and resulting liquidity dynamics. Section 41.5 develops the intrinsic value calculation and index basis framework. Section 41.6 presents index risk measures. Section 41.7 addresses index options, including why Black's model fails in its standard form. Section 41.8 details the portfolio swap adjustment algorithm used to reconcile intrinsic and quoted values for tranche pricing. Section 41.9 covers practical notes and P&L attribution. Section 41.10 describes the post-2009 Big Bang/Small Bang market structure and central clearing.
 
-**Relationship to other chapters:** Chapter 38 covers single-name CDS mechanics that underpin index contracts. Chapter 40 explains the auction process used for constituent defaults. Chapter 45 covers index naming conventions and quoting mechanics in operational detail. Chapter 46 develops intrinsic spread and basis trading further. Chapters 48–51 build on index mechanics for tranche products.
+**Relationship to other chapters:** Chapter 38 covers single-name CDS mechanics that underpin index contracts. Chapter 40 explains the auction process used for constituent defaults. Chapter 42 covers survival curve bootstrapping used in intrinsic calculations. Chapter 46 develops intrinsic spread and basis trading further. Chapters 48–51 build on index mechanics for tranche products.
 
 ---
 
@@ -27,11 +27,15 @@ This is the power of CDS indices—but the simplicity comes with mechanical comp
 | $\text{RPV01}_I(t,T)$ | Index risky PV01 under flat curve convention |
 | $S_m(t,T)$ | CDS spread for constituent $m$ |
 | $\text{RPV01}_m(t,T)$ | Risky PV01 for constituent $m$ |
+| $Q_m(t,T)$ | Survival probability for constituent $m$ from $t$ to $T$ |
 | $\tau_m$ | Default time of constituent $m$ |
 | $R_m$ | Recovery rate of constituent $m$ |
 | $\Delta(a,b)$ | Accrual fraction between dates $a$ and $b$ (typically Actual/360) |
 | $N$ | Index trade notional |
 | $d$ | Number of defaults that have occurred |
+| $G(K)$ | Exercise price function for index options struck at $K$ |
+| $H(S)$ | Index value function at spread $S$ |
+| $\alpha(T_n)$ | Portfolio swap adjustment multiplier for maturity $T_n$ |
 
 ---
 
@@ -90,6 +94,18 @@ In the standard index mechanics that O'Kane describes, each name has equal weigh
 Hull illustrates this concretely: "Suppose a trader wants \$800,000 of protection on each company. The total cost is $0.0066 \times 800,000 \times 125$, or \$660,000 per year."
 
 > **Cross-reference:** Chapter 38 covers single-name CDS mechanics. The premium leg, protection leg, and credit event settlement mechanisms for indices follow the same foundational structure, but applied across a portfolio.
+
+### 41.1.5 LCDX: The Loan CDS Index
+
+Beyond the standard corporate CDS indices, O'Kane (Section 10.7.2) describes the **LCDX.NA** index, which references the North American leveraged loan CDS market. LCDX tracks 100 first-lien syndicated secured loans and differs from the standard CDS indices in several important respects:
+
+**Higher expected recovery:** Loans are typically secured by collateral, so expected recovery rates are substantially higher than for unsecured bonds. O'Kane notes that "loan CDS trade at a tighter (lower) credit default spread than standard CDS on the same name. This effect can be ascribed to the generally superior recovery rates of secured loans."
+
+**Cancellation feature:** Loan CDS (LCDS) contracts include a cancellation feature because the underlying loan may be refinanced or prepaid. O'Kane models this with a separate cancellation hazard rate $\lambda_C(t)$, giving the survival-and-not-cancelled probability as $Q(t,T) = Q_D(t,T) \cdot Q_C(t,T)$.
+
+**European variant (LevX):** O'Kane notes the LevX index, which "references the 35 most liquid first-lien credit agreements traded in the European leveraged loan CDS market."
+
+> **Practitioner Note:** LCDX trades less liquidly than CDX IG and requires separate survival curve calibration accounting for both default and cancellation risk. The different recovery dynamics mean that hedging LCDX with standard CDS creates basis risk.
 
 ---
 
@@ -176,7 +192,26 @@ where:
 - When $S_I > C$: Market spread exceeds coupon → protection buyer *receives* upfront (compensated for paying below-market coupon)
 - When $S_I < C$: Market spread below coupon → protection buyer *pays* upfront (compensates seller for receiving above-market coupon)
 
-### 41.3.3 Hull's Price Calculation Method
+### 41.3.3 The Exact Intrinsic Spread Equation
+
+O'Kane (Equation 10.8) provides the *exact* relationship between intrinsic upfront and intrinsic spread. The intrinsic upfront from the constituent sum (Equation 10.5) must equal the index-level upfront:
+
+$$\boxed{U_I(t,T) = \big(S_I(t,T) - C(T)\big) \cdot \text{RPV01}_I(t,T,S_I)}$$
+
+where critically, the RPV01 itself depends on the spread $S_I$ (through the flat-curve survival probability). This creates a circularity: to find $S_I$ from $U_I$, we must solve the equation numerically because RPV01 changes with spread.
+
+O'Kane states this explicitly: "there is no simple linear solution... We therefore have to resort to some one-dimensional root solver."
+
+**Table 41.3: Exact vs. Approximate Intrinsic Spread**
+
+| Index | Maturity | Exact Intrinsic | Approximate RPV01-Weighted |
+|-------|----------|-----------------|---------------------------|
+| CDX NA IG S7 | 5Y | 33.1 bp | 33.1 bp |
+| CDX NA HY S7 | 5Y | 275 bp | 280 bp |
+
+*Source: O'Kane Table 10.4 (modified). For IG indices, the approximation is excellent. For HY, where spreads are high and survival probability materially affects RPV01, the difference matters.*
+
+### 41.3.4 Hull's Price Calculation Method
 
 Hull provides a concrete procedure for calculating index prices:
 
@@ -190,9 +225,7 @@ Hull provides a concrete procedure for calculating index prices:
 
 When the price exceeds 100, the seller of protection pays the buyer upfront. In Hull's example, "the seller of protection would pay the buyer \$1,000,000 × 125 × 0.0027" initially.
 
-**Iteration requirement:** Note that $\text{RPV01}_I$ itself depends on the spread (through survival probabilities), so finding the spread from upfront—or vice versa—requires a root-search algorithm. O'Kane states this explicitly: "there is no simple linear solution... We therefore have to resort to some one-dimensional root solver."
-
-### 41.3.4 Investment Grade vs. High Yield Quoting Conventions
+### 41.3.5 Investment Grade vs. High Yield Quoting Conventions
 
 O'Kane describes different quoting conventions for different credit qualities:
 
@@ -200,7 +233,7 @@ O'Kane describes different quoting conventions for different credit qualities:
 
 **High yield and emerging markets (price quote):** "Other lower credit quality indices such as the EM and HY indices are quoted using the bond price convention... in which the upfront value is computed simply by subtracting 100. This convention has the advantage that it avoids any disagreement about the value of the index PV01 which is required to convert a spread-based quotation into an upfront value."
 
-**Table 41.3: Quoting Conventions by Index Type**
+**Table 41.4: Quoting Conventions by Index Type**
 
 | Index | Quoting Convention | Reason |
 |-------|-------------------|--------|
@@ -211,7 +244,7 @@ O'Kane describes different quoting conventions for different credit qualities:
 
 **Price interpretation:** A bond price of 102.18% means "payment of 2.18% of face value to enter into the index." A price of 99.5% means "a payment to the investor of 0.50% of face value."
 
-### 41.3.5 Accrued Premium Mechanics
+### 41.3.6 Accrued Premium Mechanics
 
 Index valuation follows the same clean vs. full price distinction as bonds. O'Kane's index valuation outputs "compute the accrued interest based on 50 days of accrual using an Actual 360 basis. Since we are long protection, this has a negative sign."
 
@@ -246,11 +279,11 @@ Series N issued                 Series N+1 issued             Series N+2 issued
 
 Hull notes that "on September 20, 2020, the Series 34 iTraxx Europe portfolio and the Series 35 CDX NA IG portfolio were defined. The series numbers indicate that, by the end of September 2020, the iTraxx Europe portfolio had been updated 33 times and the CDX NA IG portfolio had been updated 34 times."
 
-> **Visual: The Roll (Series 30 $\to$ Series 31)**
+> **Visual: The Roll (Series 30 → Series 31)**
 >
 > Every March 20 and Sept 20, the "On-The-Run" (liquid) contract changes.
 >
-> 1.  **Old Series (30)**: Becomes "Off-The-Run." Liquidity vanishes. Bid-Ask widens (1 cent $\to$ 5 cents).
+> 1.  **Old Series (30)**: Becomes "Off-The-Run." Liquidity vanishes. Bid-Ask widens (1 cent → 5 cents).
 > 2.  **New Series (31)**: New constituents (remove defaulters/downgrades). Maturity extends by 6 months.
 > 3.  **The Roll Trade**: Investors sell Series 30 and buy Series 31 to stay liquid. This huge flow creates P&L opportunities.
 
@@ -366,7 +399,7 @@ Hull makes a similar observation: "More precisely, the index is slightly lower t
 
 **Why intrinsic spread is below the average spread:** When spread dispersion exists, names with higher spreads have lower RPV01 (higher default probability reduces the PV of premium payments). This pulls the weighted average below the arithmetic mean. O'Kane reports data showing the difference:
 
-**Table 41.4: Intrinsic vs. Average Spread**
+**Table 41.5: Intrinsic vs. Average Spread**
 
 | Index | 5Y Intrinsic Spread | 5Y Average Spread | Std Dev |
 |-------|---------------------|-------------------|---------|
@@ -397,7 +430,7 @@ The *market-quoted* index spread often differs from the intrinsic spread. O'Kane
 > *   **The Basis**: The Index spread widened *massively* relative to the Single Names (Intrinsic). The Whale couldn't exit because selling the Index would widen spreads further.
 > *   **Result**: $6 Billion Loss. The Index became "cheaper" to buy than the sum of its parts, solely due to flow.
 
-**Table 41.5: Empirical Index Basis Data**
+**Table 41.6: Empirical Index Basis Data**
 
 | Index | Term | Quoted Spread | Intrinsic Spread | Basis |
 |-------|------|---------------|------------------|-------|
@@ -475,17 +508,17 @@ O'Kane warns: "if we hedge an off-the-run index swap position with an on-the-run
 
 ---
 
-## 41.7 Index Options: Roll-Driven Complications
+## 41.7 Index Options: The Knockout Problem and Why Black's Model Fails
 
 ### 41.7.1 What an Index Option References
 
 An index option (portfolio swaption) is an OTC contract to buy or sell protection on a specified index (usually the **5Y on-the-run** at option origination) with underlying maturity $T$, struck at spread $K$, expiring at $t_E$.
 
-O'Kane expresses the index option exercise price as:
+O'Kane (Chapter 11) expresses the index option exercise price as:
 
-$$G(K) = (K - C(T)) \cdot \text{RPV01}_I(t_E, T, K)$$
+$$\boxed{G(K) = (K - C(T)) \cdot \text{RPV01}_I(t_E, T, K)}$$
 
-where $\text{RPV01}_I(t_E, T, K)$ is an index risky PV01 from expiry to maturity priced using a flat curve at $K$.
+where $\text{RPV01}_I(t_E, T, K)$ is an index risky PV01 from expiry to maturity priced using a flat curve at spread $K$.
 
 **Payer option:** The right to buy protection at strike $K$. Valuable when spreads widen beyond $K$.
 
@@ -506,25 +539,155 @@ This creates a complex exercise decision where the effective strike moves with d
 - The remaining index has fewer names, affecting the spread calculation
 - The effective exercise boundary shifts downward for payer options
 
+### 41.7.4 Why Black's Model Fails for Index Options
+
+O'Kane (Section 11.3) demonstrates that Black's model, which works for single-name CDS swaptions, **cannot be directly applied to index options**. The reasons are fundamental:
+
+**Problem 1: The Knockout Boundary Failure**
+
+As O'Kane explains: "This is most easily seen if we consider a payer swaption in the limit of $K \rightarrow \infty$. In this limit, the option to buy protection on the index at a very high strike should tend to zero—we would never exercise an option to pay an infinite spread."
+
+But using the naive Black's model adaptation (adding front-end protection value):
+
+$$V^{\text{Non-KO pay}}(t) = V^{\text{KO pay}} + \text{FEP}(t)$$
+
+where $\text{FEP}(t,t_E) = (1-R)Z(t,t_E)(1-Q(t,t_E))$ is the front-end protection value.
+
+The problem: even as $K \to \infty$, the knockout payer option value goes to zero but the **front-end protection value remains positive**. This means the model gives a positive option price for an option that should be worthless.
+
+**Problem 2: Put-Call Parity Violation**
+
+O'Kane shows that Black's model "does not reprice the underlying correctly." Specifically, a portfolio of long payer and short receiver swaptions should replicate a forward CDS position. Black's model implies:
+
+$$V^{\text{Non-KO pay}}(t) - V^{\text{Rec}}(t) = (S_I(t,t_E,T) - K) \cdot \text{RPV01}_I(t,t_E,T) + \text{FEP}(t,t_E)$$
+
+But this differs from the true forward CDS value because the front-end protection terms don't cancel properly for the index case.
+
+**Problem 3: Flat Curve Inconsistency**
+
+O'Kane notes: "Black's model typically assumes a flat term structure of index spreads for the purpose of calculating the term structure of survival probabilities. This is not necessarily consistent with the spreads of the underlying CDS or the price of shorter maturity CDS indices."
+
+> **The Knockout Catch: An Analogy**
+>
+> Imagine insurance that pays if your house is robbed during a vacation. But if the house *burns down* before the vacation, the policy becomes void (knockouts).
+>
+> For a payer index option at a very high strike, you're buying insurance that pays only if spreads go extremely wide. But the front-end protection component says you still get paid if defaults happen early—even though you'd never exercise the spread option. This is economically nonsensical.
+
+### 41.7.5 The Arbitrage-Free Pricing Framework
+
+O'Kane (Section 11.4) presents the correct approach, following Pedersen (2003) and Andersen (2006a). The key insight is that the **exercise decision must account for all three value components** at expiry:
+
+1. **Spread value:** $(S_I(t_E,T) - K) \cdot \text{RPV01}_I(t_E,T)$ — the gain/loss from entering the CDS at strike vs. market
+2. **Front-end defaults:** Value of defaults already settled between option initiation and expiry
+3. **Index composition:** The fact that the index has fewer names after defaults
+
+Define the value function at expiry:
+
+$$H(t_E, S_I(t_E,T)) = \frac{1}{M}\sum_{m=1}^{M}\big(S_m(t_E,T) - C(T)\big) \cdot \text{RPV01}_m(t_E,T) + H_0$$
+
+where $H_0$ captures the accumulated value from defaults before $t_E$.
+
+The payer option payoff is:
+
+$$\boxed{V^{\text{pay}}(t_E) = \max\big[H(t_E, S_I(t_E,T)) - G(K), 0\big]}$$
+
+This framework correctly handles the exercise boundary—the option is exercised when the *total* value $H$ exceeds the exercise price $G(K)$, not simply when $S > K$.
+
+**Worked Example 41.E: Default Impact on Exercise Decision**
+
+From O'Kane's example: CDX Series 7 payer option with strike $K = 55$ bp, coupon $C = 60$ bp.
+
+*No defaults case:*
+- Exercise when $S(t_E,T) > 55$ bp
+
+*One default case:*
+- The front-end protection is worth approximately $(1-R)/M = 0.6/125 = 0.48\%$ of notional
+- This is equivalent to about 12 bp of spread (dividing by RPV01 ≈ 4)
+- Exercise when $S(t_E,T) > 55 - 12 = 43$ bp approximately
+
+"Each default is worth about 12 bp of spread widening" in terms of effective strike adjustment.
+
+### 41.7.6 How Index Options Are Actually Quoted
+
+> **Practitioner Note (market convention):** Index options are typically quoted in premium (cents per $100 notional) rather than implied volatility. O'Kane notes this is "one reason why the market tends to simply quote in terms of option premium."
+
+The challenge with volatility quoting is that different dealers may use different models (naive Black's vs. full model), making volatility quotes non-comparable. Premium quoting avoids this model dependency, at the cost of requiring the dealer to run their own model to convert to risk measures.
+
 ---
 
-## 41.8 The Portfolio Swap Adjustment
+## 41.8 The Portfolio Swap Adjustment Algorithm
 
 ### 41.8.1 The Calibration Problem
 
-When pricing index tranches, practitioners need the intrinsic value to exactly match the quoted market value. However, as shown in Section 41.5.3, the bottom-up intrinsic spread typically differs from the quoted spread due to the index basis.
+When pricing index tranches (Chapters 48-51), practitioners need the intrinsic value to exactly match the quoted market value. However, as shown in Section 41.5.3, the bottom-up intrinsic spread typically differs from the quoted spread due to the index basis.
 
-This creates a calibration problem: the survival curves implied by single-name CDS do not, in general, produce an intrinsic value that matches the observed index price.
+This creates a calibration problem: the survival curves implied by single-name CDS do not, in general, produce an intrinsic value that matches the observed index price. O'Kane states: "One way to ensure that the index swap spread equals the intrinsic swap spread is to see if there is an adjustment that can be made to the individual issuer curves which can enforce [consistency]."
 
-### 41.8.2 The Adjustment Mechanism
+### 41.8.2 The Mathematical Framework
 
-O'Kane discusses the portfolio swap adjustment in Section 10.6. The approach involves adjusting the single-name survival curves so that the resulting intrinsic value matches the quoted index value.
+O'Kane (Section 10.6.1) formalizes the problem. We need adjusted spreads $S_m^*(t,T_n)$ such that for each index maturity $T_n$:
 
-One common method is to apply a parallel shift to all constituent hazard rates until the intrinsic spread equals the quoted spread. This preserves the relative ordering of credits while ensuring market consistency.
+$$\frac{1}{M}\sum_{m=1}^{M}\big(S_m^*(t,T_n) - C(T_n)\big) \cdot \text{RPV01}_m(t,T_n,S_m^*) = U_I(t,T_n)$$
 
-**Why this matters for tranches:** Tranche pricing depends critically on the portfolio loss distribution, which in turn depends on the individual survival curves. If these curves don't match observed index prices, the tranche valuations will be inconsistent with the liquid index market.
+where $U_I(t,T_n)$ is the observed index upfront at maturity $T_n$.
 
-> **Cross-reference:** Chapter 46 discusses the portfolio swap adjustment in more detail. Chapters 48-50 show how this affects tranche pricing.
+O'Kane's preferred approach is to use a **spread multiplier** $\alpha(T_n)$ applied uniformly to all names:
+
+$$S_m^*(t,T_n) = \alpha(T_n) \cdot S_m(t,T_n)$$
+
+The adjusted spreads satisfy:
+
+$$\boxed{\frac{1}{M}\sum_{m=1}^{M}\big(\alpha(T_n) S_m(t,T_n) - C(T_n)\big) \cdot \text{RPV01}_m(t,T_n,\alpha S_m) = U_I(t,T_n)}$$
+
+### 41.8.3 The Fixed-Point Iteration Algorithm
+
+O'Kane provides an explicit algorithm for finding $\alpha(T_n)$. The key insight is that while there's no closed-form solution (RPV01 depends on the adjusted spread), fixed-point iteration converges quickly:
+
+**Algorithm: Spread Multiplier Portfolio Swap Adjustment**
+
+1. Build all $m = 1, \ldots, M$ survival curves $Q_m(t,T)$ using the standard market CDS maturities.
+2. Calculate the interpolated CDS spreads to the index curve maturities $S_m(t,T_n)$. Then rebuild all of the CDS curves using just these spreads.
+3. Set $n = 1$.
+4. Set $k = 0$, $S_m^{(k)}(t,T_n) = S_m(t,T_n)$, and $\alpha_n(k) = 1.0$.
+5. For all issuers $m = 1, \ldots, M$, adjust the spread: $S_m^{(k+1)}(t,T_n) = \alpha_n(k) \cdot S_m^{(k)}(t,T_n)$.
+6. Build all $M$ survival curves using the adjusted spread curves $S_m^{(k+1)}(t,T_n)$.
+7. Calculate $\alpha_n(k+1)$ using:
+
+$$\boxed{\alpha_n(k+1) = \alpha_n(k) \times \frac{U_I(t,T_n) + C(T_n) \cdot \frac{1}{M}\sum_{m=1}^{M}\text{RPV01}_m(t,T_n,S_m^{(k+1)})}{\frac{1}{M}\sum_{m=1}^{M}S_m^{(k+1)}(t,T_n) \cdot \text{RPV01}_m(t,T_n,S_m^{(k+1)})}}$$
+
+8. If $|\alpha_n(k+1) - 1| \le \epsilon$ where $\epsilon$ is the required tolerance, continue to step (9). Otherwise set $k = k+1$ and return to step (5).
+9. Set $\alpha(T_n) = \alpha_n(k+1)$.
+10. Set $n = n+1$. If $n > N$ then stop. Otherwise return to step (4).
+
+O'Kane notes: "Most of the work of this iteration scheme is done in the first iteration since the dependence of the issuer PV01s on the spread is second order. In most cases we find that the algorithm converges with a tolerance in present value terms of the order of $O(10^{-8})$ within five iteration steps."
+
+### 41.8.4 Faster Alternative: Forward Default Probability Multiplier
+
+O'Kane provides a faster variant that avoids rebuilding survival curves in each iteration by adjusting survival probabilities directly:
+
+$$Q_m^*(t,T_n) = Q_m^*(t,T_{n-1}) \cdot Q_m(T_{n-1},T_n)^{\alpha(n)}$$
+
+This raises the forward survival probability to a power $\alpha(n)$. The same iteration logic applies, but "because we avoid the time-consuming bootstrap of all $M$ curves in each iteration step... this method is about 50 times faster than the first method and typically takes less than a second for a 125-name portfolio using four maturity points."
+
+**Table 41.7: Portfolio Swap Adjustment Example**
+
+| Reference Entity | 3Y Spread Unadj. (bp) | 3Y Spread Adj. (bp) | Ratio | 5Y Spread Unadj. (bp) | 5Y Spread Adj. (bp) | Ratio |
+|-----------------|----------------------|--------------------|----|----------------------|--------------------|----|
+| Index (quoted) | — | — | — | — | — | — |
+| Intrinsic (unadj.) | 16.2 | — | — | 26.9 | — | — |
+| **Ratio** | — | — | **0.741** | — | — | **0.892** |
+| Adecco SA | 23.2 | 17.1 | 0.737 | 38.8 | 34.4 | 0.89 |
+| Bertelsmann AG | 16.9 | 12.5 | 0.737 | 28.8 | 25.7 | 0.89 |
+| DaimlerChrysler AG | 34.4 | 25.4 | 0.737 | 52.9 | 44.6 | 0.84 |
+| Deutsche Telekom AG | 21.2 | 15.6 | 0.737 | 37.0 | 33.5 | 0.91 |
+
+*Source: O'Kane, Table 10.7 (abbreviated). The 3Y adjustment ratio (0.74) differs from the 5Y ratio (0.89) because the basis varies by maturity.*
+
+> **Desk Reality: When Portfolio Swap Adjustment Matters**
+>
+> The adjustment is **essential** when pricing tranches. If you use unadjusted curves, your tranche model will show an arbitrage: the sum of tranche values won't equal the index value. Central to all consistent tranche pricing is first adjusting single-name curves to match the liquid index market.
+>
+> **Common pitfall:** Not updating the adjustment when spreads move significantly. The ratios in Table 41.7 are point-in-time; during market stress, the adjustment can change materially.
 
 ---
 
@@ -540,8 +703,9 @@ Before booking an index trade, verify:
 4. **Day count:** Actual/360, quarterly payments
 5. **Quoting convention:** Spread (IG) vs. price (HY/EM)
 6. **Outstanding notional:** May be reduced by prior defaults
-7. **Settlement convention:** T+3 business days
+7. **Settlement convention:** T+3 business days (note: cleared trades may differ)
 8. **Direction and terminology:** Index "buyer" receives spread (opposite to single-name convention)
+9. **Clearing status:** Mandatory for standard index trades post-Dodd-Frank
 
 ### 41.9.2 Common Pitfalls
 
@@ -552,6 +716,7 @@ Before booking an index trade, verify:
 - **Notional after defaults:** Premium payments scale with *outstanding* notional, not original notional
 - **Roll date mechanics:** Verify IMM dates for your specific series
 - **Quoting convention errors:** IG quotes as spread; HY/EM quote as price—mixing these is expensive
+- **Cleared vs. bilateral:** Different documentation, margin mechanics, and settlement timing
 
 ### 41.9.3 Sanity Checks
 
@@ -560,6 +725,97 @@ Before booking an index trade, verify:
 - **Upfront sign:** When spread > coupon, protection buyer receives upfront
 - **Intrinsic ≤ average:** For dispersed portfolios, RPV01-weighted average is below arithmetic mean
 - **Basis direction:** Positive basis means index quoted wider than intrinsic
+- **Adjustment ratio:** Typically $< 1$ when index trades tight to intrinsic
+
+### 41.9.4 P&L Attribution for Index Positions
+
+> **Practitioner Note:** For middle-office professionals transitioning to front office, understanding how to explain daily P&L is essential. Here's the decomposition framework.
+
+**Daily P&L Components for an Index Position:**
+
+1. **Spread P&L:** $\Delta S_I \times \text{CS01}$ — the first-order impact of index spread changes
+2. **Carry:** Accrued premium earned (if short protection) or paid (if long protection)
+3. **Roll-down:** As time passes, the index "rolls down" the spread curve if curves are upward sloping
+4. **Default P&L:** Settlement value received/paid on any constituent defaults
+5. **Convexity:** Second-order effect from large spread moves (usually small for indices)
+6. **Funding/Collateral:** Margin interest, collateral financing costs
+
+**Worked Example 41.F: P&L Attribution**
+
+Position: \$100mm short protection on CDX IG (receive 50bp coupon)
+RPV01: 4.25 years
+Day: 91 days since last coupon
+
+| Component | Calculation | Amount |
+|-----------|-------------|--------|
+| Spread P&L | Index spread widened 2bp: $-2 \times \$100\text{mm} \times 4.25 \times 0.0001$ | -$85,000 |
+| Carry | $\$100\text{mm} \times 0.0050 \times (1/360)$ | +$1,389 |
+| Default P&L | Name X defaults, FP=35: $-\$100\text{mm}/125 \times (1-0.35)$ | -$520,000 |
+| **Net P&L** | | **-$603,611** |
+
+> **How to explain to risk committee:** "We lost $604k. The default in Name X cost $520k immediately (JTD loss). Spreads also widened 2bp, costing another $85k. Partially offset by one day of carry at $1.4k."
+
+---
+
+## 41.10 Post-2009 Market Structure: Big Bang and Small Bang
+
+> **Practitioner Note (post-2009 market structure):** The following section describes changes implemented after O'Kane's book (2008). This content is marked as (B) Claude-Extended.
+
+### 41.10.1 The Big Bang Protocol (April 2009)
+
+Following the 2008 financial crisis, ISDA implemented the "Big Bang" protocol for North American CDS in April 2009. The key standardization elements were:
+
+**Fixed coupons:** All single-name and index CDS now trade with standardized coupons:
+- 100 bp for investment grade names
+- 500 bp for high yield names (or 100 bp if spread is below ~300 bp)
+
+**Upfront quoting:** All trades now quote in terms of upfront points plus running coupon, eliminating disputes about fair spread at trade execution.
+
+**Standardized accrual:** Premium accrual begins on the previous IMM date (March 20, June 20, September 20, December 20), even for trades executed mid-cycle. This means a trade done on April 15 would show accrued premium since March 20.
+
+**Auction hardwiring:** Credit event settlement via ISDA auction became the default mechanism, replacing physical settlement for most purposes.
+
+### 41.10.2 Small Bang (June 2009)
+
+Europe followed with the "Small Bang" protocol in June 2009, implementing similar standardization with some regional adaptations:
+
+- Fixed coupons of 25 bp, 100 bp, 500 bp, or 1000 bp depending on credit quality
+- Restructuring remains a credit event (unlike North American No-Re)
+- Similar accrual and settlement standardization
+
+### 41.10.3 Central Clearing for Indices
+
+> **Practitioner Note:** Regulatory requirements vary by jurisdiction. The following describes general principles; specific rules require consultation of current regulatory texts.
+
+Following Dodd-Frank (US) and EMIR (Europe), standard CDS index trades are subject to mandatory clearing:
+
+**US clearing (ICE Clear Credit):**
+- Mandatory for CDX.NA.IG and CDX.NA.HY indices
+- Initial margin required (varies with portfolio composition, typically 2-5% for IG)
+- Variation margin exchanged daily
+- Settlement through ICE Clear Credit
+
+**European clearing (LCH.Clearnet, ICE Clear Europe):**
+- Mandatory for iTraxx Europe indices
+- Similar margin framework to US
+
+**Impact on trading:**
+- Reduced counterparty risk (CCP becomes counterparty to all cleared trades)
+- Standardized documentation (no bilateral ISDA negotiation for cleared trades)
+- Margin requirements tie up capital but reduce credit exposure
+- Settlement timing may differ from bilateral trades
+
+**Table 41.8: Pre-Big Bang vs. Post-Big Bang Conventions**
+
+| Aspect | Pre-Big Bang (Pre-2009) | Post-Big Bang (Current) |
+|--------|------------------------|------------------------|
+| **Coupon** | Quoted at-market spread | Fixed 100bp (IG) or 500bp (HY) |
+| **Upfront** | Small or zero at trade | Upfront points = (Spread - Coupon) × RPV01 |
+| **Accrual start** | Trade date | Previous IMM date |
+| **Settlement** | Primarily physical | ISDA auction (hardwired) |
+| **Clearing** | Bilateral | Mandatory for standard indices |
+
+> **I'm not sure** about the exact current initial margin percentages for index trades—these are set by the CCPs and vary with market conditions and portfolio composition. Consult CCP rulebooks for current requirements.
 
 ---
 
@@ -573,7 +829,9 @@ The semi-annual roll process creates on-the-run and off-the-run series with sign
 
 The intrinsic value calculation connects index levels to constituent spreads through RPV01-weighted averaging, though market quotes often differ due to liquidity premia, contract differences, and market dynamics. The portfolio swap adjustment forces intrinsic to match quoted for tranche calibration purposes.
 
-Key mechanical features include: quarterly premium payments on Actual/360; default handling that reduces notional by $1/M$ per event; settlement via physical delivery or auction-determined cash price; and IMM-aligned maturity dates approximately T±3 months from stated tenor.
+Index options cannot be priced with naive Black's model due to the knockout problem and front-end protection issues. The correct framework (Pedersen/Andersen) accounts for the full exercise decision including default settlements.
+
+Post-2009, the Big Bang/Small Bang protocols standardized coupons (100/500 bp), established mandatory upfront quoting, and central clearing became required for standard indices.
 
 ---
 
@@ -590,6 +848,8 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 | **Index basis** | Market spread − intrinsic spread | Reflects liquidity and contract differences |
 | **Notional reduction** | Outstanding falls by 1/M per default | Affects premium payments and risk exposure |
 | **Portfolio swap adjustment** | Calibration to force intrinsic = quoted | Required for consistent tranche pricing |
+| **Front-end protection** | Value of defaults before option expiry | Why Black's model fails for index options |
+| **Big Bang** | 2009 standardization (NA) | Fixed coupons, upfront quoting, clearing |
 
 ---
 
@@ -620,6 +880,13 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 | 21 | What does an index "buyer" do? | Receives spread (sells protection)—opposite of single-name convention |
 | 22 | What is the portfolio swap adjustment? | Calibration tweak to force intrinsic value to match quoted market value |
 | 23 | Why does HY/EM quote by price instead of spread? | Avoids disputes about the correct PV01 for spread-to-upfront conversion |
+| 24 | What is the "knockout problem" in index options? | A payer option struck at infinite spread should be worthless, but naive Black's model gives positive value due to front-end protection |
+| 25 | What is the payer option exercise payoff formula? | $\max[H(t_E, S) - G(K), 0]$ where $H$ is total index value and $G(K)$ is exercise price |
+| 26 | Why can't Black's model be used directly for index options? | (1) Knockout boundary fails, (2) Put-call parity violated, (3) Flat curve assumption inconsistent |
+| 27 | What is the Big Bang (2009)? | ISDA protocol standardizing NA CDS: fixed 100/500 bp coupons, upfront quoting, auction hardwiring |
+| 28 | What is the portfolio swap adjustment algorithm? | Fixed-point iteration: multiply all single-name spreads by $\alpha$ until intrinsic matches quoted |
+| 29 | What happens to index spread when a distressed name defaults? | It typically tightens—the high-spread outlier is removed from the weighted average |
+| 30 | What is the primary US clearing house for credit indices? | ICE Clear Credit |
 
 ---
 
@@ -665,6 +932,16 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 
 16. If the market quotes this index at 48 bp, what is the basis?
 
+**Problems 17-20: Advanced Topics**
+
+17. (Portfolio swap adjustment) If the intrinsic spread is 35 bp but the index trades at 32 bp, what direction of adjustment ratio $\alpha$ is needed?
+
+18. (Index options) Explain why a payer option on an index can be exercised even when the index spread is below the strike.
+
+19. (Big Bang) Under post-Big Bang conventions, a new CDX IG trade is done at 85 bp spread. What coupon will be used, and what is the approximate upfront? (Assume RPV01 = 4.2 years.)
+
+20. (Default impact on spread) A 125-name IG index trades at 50 bp. One name trading at 800 bp defaults. Assuming the remaining 124 names average 44 bp, estimate the post-default intrinsic spread.
+
 ---
 
 ### Solution Sketches
@@ -701,6 +978,14 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 
 16. Basis = Market − Intrinsic = 48 − 49.84 = −1.84 bp (index trades tight to intrinsic)
 
+17. $\alpha < 1$ — we need to multiply all single-name spreads by a factor less than 1 to reduce the intrinsic spread from 35 to 32 bp.
+
+18. Defaults between option initiation and expiry add value to the payer position. Each default is worth approximately $(1-R)/M$ divided by RPV01 in spread terms. If enough defaults occur, the effective strike is reduced.
+
+19. Coupon = 100 bp (standard IG). Upfront ≈ $(85 - 100) \times 4.2 = -63$ bp = protection buyer pays 0.63% upfront.
+
+20. The 800 bp name contributed heavily to the weighted average. After removal, intrinsic spread ≈ 44 bp (approximately, assuming flat RPV01s across remaining names). The exact calculation requires weighting by RPV01.
+
 ---
 
 ## Source Map
@@ -722,25 +1007,41 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 | Roll P&L drivers (composition, maturity) | O'Kane Section 10.2.2 |
 | Liquidity concentration in on-the-run; bid-ask ~1 cent | O'Kane Section 10.2; footnote on bid-offer |
 | Hedging off-the-run with on-the-run creates mismatch | O'Kane Section 10.5.3 |
-| Index option mechanics, expiry limitations | O'Kane Chapter 11 |
-| Portfolio swap adjustment purpose | O'Kane Section 10.6 |
-| Standard tranches based on CDX/iTraxx portfolios | Hull Section 25.8 |
+| Black's model limitations for index options | O'Kane Section 11.3, points 1-3 |
+| Arbitrage-free index option pricing framework | O'Kane Section 11.4, Pedersen (2003), Andersen (2006a) |
+| Front-end protection formula | O'Kane Section 9.3.8, Equation 11.6 |
+| Portfolio swap adjustment algorithm | O'Kane Section 10.6, Equations 10.11 |
+| Fixed-point iteration for adjustment | O'Kane Section 10.6.1-10.6.3, algorithm steps |
+| Adjustment ratio empirical data | O'Kane Table 10.7 |
+| LCDX and LevX indices | O'Kane Sections 10.7.2-10.7.3 |
 | Hull's price calculation example (100.27) | Hull Example 25.1 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| Big Bang/Small Bang protocol details (Section 41.10) | Extends O'Kane's pre-2009 framework with post-crisis standardization |
+| Central clearing mechanics | Post-2009 regulatory requirements (Dodd-Frank, EMIR) |
+| P&L attribution framework (Section 41.9.4) | Standard trading desk practice; extends O'Kane's risk measures |
+| Table 41.8: Pre/Post Big Bang comparison | Synthesized from multiple practitioner sources |
+
+### (C) Reasoned Inference (Derived from A)
 
 - Premium payment formula $N \cdot C \cdot \Delta$ is direct implementation of O'Kane's described mechanics
 - CS01 approximation follows from differentiating the upfront formula
 - Roll P&L worked example applies O'Kane's drivers quantitatively
 - Intrinsic value worked example applies O'Kane's summation formula
 - Default impact on spread follows from removing high-spread name from weighted average
+- Exercise payoff derivation follows O'Kane's framework with explicit formula
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Exact bid-ask spread magnitudes for off-the-run:** O'Kane notes qualitative widening but doesn't quantify the ratio
 - **Business day conventions and holiday calendars:** Require rulebook verification for specific index families
 - **Whether index options "switch" underlying series at roll:** Requires ISDA confirmation language review
 - **Current standard coupons:** Vary by series and evolve with market conditions
+- **Exact CCP initial margin percentages:** Set by CCPs and vary with market conditions—consult current rulebooks
+- **Specific clearing rulebook details:** Require CCP documentation verification
 
 ---
 
@@ -748,7 +1049,7 @@ Key mechanical features include: quarterly premium payments on Actual/360; defau
 
 - **Chapter 38** — CDS Contract Mechanics: Single-name foundation for index premium and protection legs
 - **Chapter 40** — CDS Auction Process: How constituent defaults are settled
-- **Chapter 45** — CDS Index Structure and Quoting: Naming conventions, quoting mechanics, operational details
+- **Chapter 42** — Bootstrapping Survival Curves: Used in intrinsic calculations and portfolio swap adjustment
 - **Chapter 46** — Intrinsic Spread and Index Basis: Detailed treatment of basis calculation and trading
 - **Chapter 47** — Index Hedging: Managing index vs. single-name hedge mismatches
 - **Chapters 48-51** — Tranche Products: How index mechanics feed into structured credit pricing

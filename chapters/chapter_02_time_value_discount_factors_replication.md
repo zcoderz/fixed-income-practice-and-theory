@@ -4,21 +4,21 @@
 
 ## Introduction
 
-How much would you pay today to receive $1,000 one year from now?
+A client asks you to price a 10-year zero-coupon bond. The trade seems simple—no coupons, just a single payment of $100 at maturity. But before you can quote a price, you must answer a question that sits at the heart of every fixed income calculation: *what is future money worth today?*
 
-Tuckman opens his treatment of fixed income with exactly this question, and the answers people give reveal fundamental truths about the time value of money. One person might pay up to $960 because a $960 party today is as enjoyable as waiting a year for a $1,000 party. Another might pay $950 because the immediate enjoyment of a $950 stereo system equals the delayed enjoyment of a $1,000 system. A third might pay only $940 because $940 invested in a business would generate $1,000 in a year anyway. In all cases, people are willing to pay *less* than $1,000 today to receive $1,000 later. This is the core principle of the time value of money: a dollar today is worth more than a dollar tomorrow.
-
-Why does this matter for fixed income? Because every bond, swap, and structured product is nothing more than a collection of future cash flows. Pricing any of these instruments requires answering the same question—*what would we pay today for these future payments?*—and doing so consistently across all payment dates. Get this wrong, and you cannot correctly price a single bond, let alone construct a hedged portfolio or identify relative value.
+This question has consumed economists for centuries, and the answer—the **discount factor**—is the single most fundamental concept in fixed income. Get it right, and you can price any deterministic cash flow stream: bonds, swaps, loans, structured products. Get it wrong, and every valuation you produce becomes suspect. A 1 basis point error in discount factors on a $100 million 10-year position translates to roughly $10,000 of mispricing. Compound that error across a trading book with thousands of positions, and you have the recipe for phantom P&L, failed reconciliations, and risk limits that don't mean what you think they mean.
 
 This chapter establishes the foundational machinery for pricing deterministic cash flows:
 
-1.  **Discount factors**—the fundamental building blocks that convert future dollars into present value
-2.  **The law of one price and replication**—why identical cash flows must have identical prices, and how arbitrage enforces this
-3.  **Treasury STRIPS**—zero-coupon securities that make discount factors directly observable
-4.  **Zero rates and forward rates**—alternative ways to express the time value of money
-5.  **The present value formula**—the "pricing kernel" for all deterministic cash-flow instruments
+1. **Discount factors**—the fundamental building blocks that convert future dollars into present value
+2. **Present value**—the "pricing kernel" that values any stream of known cash flows
+3. **The law of one price and replication**—why identical cash flows must have identical prices, and how arbitrage enforces this
+4. **Treasury STRIPS**—zero-coupon securities that make discount factors directly observable
+5. **Zero rates and forward rates**—alternative expressions of the time value of money
+6. **Modern discounting**—why collateral determines the "risk-free" rate in today's markets
+7. **Limits to arbitrage**—when theory meets the reality of balance sheet constraints
 
-Chapter 1 established the conventions—day counts, compounding, settlement. This chapter uses those conventions to build the valuation framework. Together, they provide the foundation for everything that follows: bond pricing in Chapter 5, duration and convexity in Chapters 11-13, and curve construction in Part IV.
+Chapter 1 established the conventions—day counts, compounding, settlement. This chapter uses those conventions to build the valuation framework. Together, they provide the foundation for everything that follows: bond pricing in Chapter 5, duration and convexity in Chapters 11-13, curve construction in Part IV, and the multi-curve framework in Chapter 19.
 
 ---
 
@@ -26,16 +26,16 @@ Chapter 1 established the conventions—day counts, compounding, settlement. Thi
 
 > **The Rosetta Stone of Rates: A Translation Guide**
 >
-> In fixed income, we often talk about the same physical object using three different languages.
+> In fixed income, we often express the same economic reality using three different languages.
 >
-> 1.  **Discount Factor $P(0,T)$**: The **Price** of a Zero-Coupon Bond.
->     *   *Intuition:* "The Price Tag." ($0.95$)
-> 2.  **Zero Rate $z(T)$**: The **Yield** of a Zero-Coupon Bond.
->     *   *Intuition:* "The Sticker Percentage." ($5\%$)
-> 3.  **Par Rate $y(T)$**: The **Coupon** of a Par Bond.
->     *   *Intuition:* "The Periodic Payment Rate."
+> 1. **Discount Factor $P(0,T)$**: The **Price** of a Zero-Coupon Bond.
+>    - *Intuition:* "The Price Tag." ($0.95$)
+> 2. **Zero Rate $z(T)$**: The **Yield** of a Zero-Coupon Bond.
+>    - *Intuition:* "The Sticker Percentage." ($5\%$)
+> 3. **Par Rate $y(T)$**: The **Coupon** of a Par Bond.
+>    - *Intuition:* "The Periodic Payment Rate."
 >
-> They are mathematically equivalent (you can convert one to another), but they label the item differently. We start with the **Discount Factor** because it is the most fundamental: it is a price.
+> They are mathematically equivalent—you can convert one to another—but they label the same item differently. We start with the **Discount Factor** because it is the most fundamental: it is a price.
 
 ### 2.1.1 Definition
 
@@ -44,6 +44,12 @@ Tuckman defines the discount factor precisely: "The discount factor for a partic
 If $d(0.5) = 0.97557$, then the present value of $1 to be received in six months is 97.557 cents. Equivalently, $d(0.5)$ is the price today of a zero-coupon bond paying $1 in six months.
 
 This simple definition has powerful implications. If we know the discount factor for each future date, we can price any security with deterministic cash flows by multiplying each cash flow by its corresponding discount factor and summing them up.
+
+> **Desk Reality: The "Exchange Rate in Time"**
+>
+> Think of a discount factor as an exchange rate—but instead of converting between currencies, it converts between *times*. Just as the EUR/USD rate tells you how many dollars you get for one euro, the discount factor $P(0,T)$ tells you how many dollars today you get for one dollar at time $T$.
+>
+> When a PM says "I need the 5-year discount factor," they're asking: "What's the exchange rate between today's dollars and 5-year dollars?" The answer might be 0.78—meaning a dollar in 5 years is worth 78 cents today.
 
 ### 2.1.2 Extracting Discount Factors from Bond Prices
 
@@ -89,9 +95,27 @@ The collection of discount factors across all maturities is called the **discoun
 
 Figure 1.2 in Tuckman graphs this relationship, showing that $1 to be received in 30 years is worth only about 19 cents today when rates are around 5%. This dramatic decline illustrates why discounting matters so much for long-dated cash flows.
 
-> **Important caveat:** In negative-rate environments, discount factors can exceed 1 and may *increase* with maturity. The monotonicity property depends on rates being positive.
+### 2.1.5 Discount Factors in Negative Rate Environments
 
-### 2.1.5 Sanity Checks for Discount Factors
+In negative-rate environments (as seen in EUR, CHF, and JPY during the 2010s and 2020s), the mathematics of discounting behaves differently:
+
+**When rates are negative, discount factors exceed 1.** If the one-year rate is -0.5%, then:
+
+$$P(0,1) = e^{-(-0.005) \times 1} = e^{0.005} = 1.00501$$
+
+This means $1 received in one year is worth *more* than $1 today—you must pay $1.005 today to receive $1 in a year. Economically, this reflects the cost of storing money safely: investors accept negative returns to park cash in secure government bonds rather than face storage costs, counterparty risk, or the burden of managing physical currency.
+
+> **Desk Reality: Trading with Negative Rates**
+>
+> Negative rates create operational challenges:
+> - **Bond prices above par value + remaining coupons**: A 1% coupon bond with negative yields can trade above $102 for 100 face
+> - **Duration increases**: As rates fall toward zero, duration sensitivity increases (more in Chapter 11)
+> - **System limits may be breached**: Many risk systems were built assuming $P(0,T) \leq 1$
+> - **P&L attribution breaks**: "Carry" becomes negative—holding a bond costs you money
+>
+> The ECB's deposit facility rate was negative from 2014-2022, reaching -0.5%. Japanese 10-year JGBs traded at negative yields for extended periods. Systems and intuition built for positive rates require adjustment.
+
+### 2.1.6 Sanity Checks for Discount Factors
 
 Before using any discount factor curve, verify:
 
@@ -119,8 +143,8 @@ The formula works because each cash flow $C_i$ at time $T_i$ can be viewed as $C
 > **Analogy: The Grocery Basket Principle**
 >
 > Pricing a bond is exactly like pricing a basket of groceries at the checkout counter.
-> *   **Bond** = 10 Coupons (Apples) + 1 Principal (Steak).
-> *   **Price** = $10 \times \text{Price}(\text{Apple}) + 1 \times \text{Price}(\text{Steak})$.
+> - **Bond** = 10 Coupons (Apples) + 1 Principal (Steak).
+> - **Price** = $10 \times \text{Price}(\text{Apple}) + 1 \times \text{Price}(\text{Steak})$.
 >
 > You don't need a special "Basket Pricing Theory" to know the total. You just sum the value of the parts. That is exactly what the formula $\sum C_i \, P(0, T_i)$ does. It values each cash flow as a separate item using its specific price tag (the discount factor for that date).
 
@@ -157,8 +181,18 @@ The law of one price holds "absent confounding factors." In practice, several fa
 | **Special financing (repo specials)** | Bonds in high demand for shorting may trade rich |
 | **Taxes** | Different tax treatment affects after-tax returns |
 | **Credit risk** | Even for Treasuries, on-the-run vs. off-the-run can differ |
+| **Balance sheet costs** | Holding positions requires capital and funding |
 
 When prices deviate from the law of one price, practitioners describe securities as trading **rich** (price above fair value) or **cheap** (price below fair value). These deviations create relative value opportunities—though exploiting them requires understanding *why* they exist.
+
+> **Desk Reality: Rich and Cheap in Practice**
+>
+> When a trader says "the 10-year is trading 3 basis points cheap to the curve," they mean:
+> 1. The bond's market yield is 3bp higher than what the fitted curve implies
+> 2. The market price is *below* the model price (cheap = low price = high yield)
+> 3. There might be a reason (illiquidity, supply pressure, repo dislocation)
+>
+> Traders don't automatically buy "cheap" bonds. They ask: *why* is it cheap? If it's cheap because of temporary technical factors (auction supply, index rebalancing), they might buy. If it's cheap because it's hard to finance in repo, the "cheapness" might persist indefinitely.
 
 ---
 
@@ -166,7 +200,13 @@ When prices deviate from the law of one price, practitioners describe securities
 
 ### 2.4.1 What Is Arbitrage?
 
-Tuckman defines arbitrage as "a trade that generates or that might generate profits without any risk." The existence of arbitrage opportunities is what enforces the law of one price. If two portfolios with identical cash flows traded at different prices, arbitrageurs would buy the cheap one and sell the expensive one, earning a risk-free profit. This trading pressure would quickly eliminate the price difference.
+Tuckman defines arbitrage as "a trade that generates or that might generate profits without any risk." More formally, an arbitrage opportunity is a trading strategy that:
+
+$$\boxed{\text{Arbitrage: Initial Cost} \leq 0, \; \text{Payoff} \geq 0, \; P[\text{Payoff} > 0] > 0}$$
+
+In words: you pay nothing (or receive cash) upfront, you never lose money, and there's a positive probability of making money. This is a "free lunch"—and in efficient markets, free lunches get eaten quickly.
+
+The existence of arbitrage opportunities is what enforces the law of one price. If two portfolios with identical cash flows traded at different prices, arbitrageurs would buy the cheap one and sell the expensive one, earning a risk-free profit. This trading pressure would quickly eliminate the price difference.
 
 ### 2.4.2 Replication: Constructing Identical Cash Flows
 
@@ -174,13 +214,11 @@ Tuckman defines arbitrage as "a trade that generates or that might generate prof
 
 Tuckman provides a detailed example in his Appendix 1A and Table 1.4. The $10\frac{3}{4}$s of February 15, 2003, with its four remaining cash flows ($5.375$ at each of 0.5, 1.0, 1.5 years, and $105.375$ at 2.0 years), can be replicated by a portfolio of four bonds from Table 1.1.
 
-The key insight of replication is that we can match cash flows at each date by working backward from the final payment. For a bond paying $C_1, C_2, \ldots, C_n$ at times $T_1, T_2, \ldots, T_n$, we construct the replicating portfolio by:
+The key insight of replication is that we can match cash flows at each date by working backward from the final payment.
 
-3. Repeat for successively shorter maturities
-
-> **Replication in Action: Matching the Cashflows**
+> **Replication in Action: Matching the Cash Flows**
 >
-> To replicate the hypothetical bond paying $50 at 0.5y and $1050 at 1.0y, using zeros:
+> To replicate a hypothetical bond paying $50 at 0.5y and $1050 at 1.0y, using zeros:
 >
 > | Maturity | Target Bond CF | Bond A (0.5y Zero) | Bond B (1.0y Zero) | **Portfolio Net CF** |
 > | :--- | :--- | :--- | :--- | :--- |
@@ -216,17 +254,7 @@ An arbitrageur could exploit this by:
 
 Tuckman observes: "Absent any confounding factors, arbitrageurs would do as much of this trade as possible... the price of the $10\frac{3}{4}$s would be driven up and/or the price of the replicating portfolio would be driven down."
 
-### 2.4.5 Why Apparent Arbitrage Persists
-
-In practice, most apparent arbitrage opportunities disappear before they can be exploited, or they persist because of real frictions. The $10\frac{3}{4}$s in Tuckman's example were originally issued as 20-year bonds that had "aged" into short maturities. Tuckman explains why such bonds often trade cheap:
-
-- **Illiquidity**: Aged bonds have smaller outstanding amounts
-- **Financing costs**: Harder to borrow in repo markets
-- **Transaction costs**: Wider bid-ask spreads
-
-The 3.3/32nds cheapness reflected these real costs, not a free lunch.
-
-### 2.4.6 Static vs. Dynamic Replication
+### 2.4.5 Static vs. Dynamic Replication
 
 For deterministic cash flows, replication is **static**: once you construct the replicating portfolio, you hold it to maturity. The portfolio automatically produces the same cash flows as the target.
 
@@ -248,7 +276,7 @@ Tuckman distinguishes two types:
 
 - **C-STRIPS (Coupon strips)**: Created from the coupon payments. Since many bonds have coupons on the same date (e.g., February 15 and August 15), C-STRIPS are fungible—a coupon strip from one bond is interchangeable with a coupon strip of the same maturity date from another bond.
 
-- **P-STRIPS (Principal strips)**: Created from the principal payment. Each P-STRIP is unique to the bond it came from and is not fungible with other P-STRIPS.
+- **P-STRIPS (Principal strips)**: Created from the principal payment. Each P-STRIP is unique to the bond it came from and is not fungible with other P-STRIPS. Tuckman notes: "P-STRIPS are identified with particular bonds: P-STRIPS created from the stripping of a particular bond may be used to reconstitute only that bond. This difference implies that P-STRIPS inherit the cheapness or richness of the bonds from which they are derived."
 
 ### 2.5.3 STRIPS and Discount Factors
 
@@ -276,6 +304,28 @@ Tuckman emphasizes that "any Treasury can be regarded as a portfolio of STRIPS."
 
 This decomposition is the economic foundation of the present value formula.
 
+### 2.5.5 Stripping and Reconstitution: The Arbitrage Mechanism
+
+The Treasury permits both **stripping** (breaking a bond into its component STRIPS) and **reconstitution** (reassembling STRIPS back into a whole bond). This creates an arbitrage mechanism that keeps STRIPS prices consistent with whole bond prices.
+
+**Stripping arbitrage**: If the sum of STRIPS prices exceeds the whole bond price, professionals can:
+1. Buy the whole bond
+2. Strip it into components
+3. Sell the STRIPS at a profit
+
+**Reconstitution arbitrage**: If the whole bond trades above the sum of its STRIPS, professionals can:
+1. Buy the required STRIPS
+2. Reconstitute the whole bond
+3. Sell the bond at a profit
+
+Tuckman observes: "At times these professionals find it profitable to buy coupon bonds, strip them, and then sell the STRIPS. At other times these professionals find it profitable to buy the STRIPS, reconstitute them, and then sell the bonds."
+
+> **Desk Reality: Why Whole Bonds Sometimes Trade Rich**
+>
+> When investors prefer to hold whole bonds rather than STRIPS (perhaps for liquidity, benchmark eligibility, or operational simplicity), the whole bond can trade rich to its theoretical value. This creates "negative stripping value"—it costs more to buy the bond than to synthesize it from STRIPS.
+>
+> The persistence of this richness reflects the *value of convenience*. A bond that's benchmark-eligible, liquid in repo, and easy to settle is worth more than a synthetic equivalent that's operationally burdensome.
+
 ---
 
 ## 2.6 Zero (Spot) Rates: An Alternative Expression
@@ -299,9 +349,9 @@ $$\boxed{z(T) = -\frac{1}{T} \ln P(0,T)}$$
 > A quick way to estimate doubling time or effective rates:
 > $$\text{Rate} \times \text{Years} \approx 72 \implies \text{Doubling}$$
 >
-> *   If the interest rate is 6%, it takes $\approx 12$ years to double your money ($6 \times 12 = 72$).
-> *   In discount factor terms: If $z = 6\%$, then $P(0, 12) \approx 0.50$.
-> *   (Exact check: $e^{-0.06 \times 12} = e^{-0.72} \approx 0.487$. Close enough for mental math!)
+> - If the interest rate is 6%, it takes $\approx 12$ years to double your money ($6 \times 12 = 72$).
+> - In discount factor terms: If $z = 6\%$, then $P(0, 12) \approx 0.50$.
+> - (Exact check: $e^{-0.06 \times 12} = e^{-0.72} \approx 0.487$. Close enough for mental math!)
 
 **Semiannual compounding** (used for U.S. Treasury yields):
 
@@ -388,7 +438,33 @@ where $\tau(T_1, T_2)$ is the year fraction between $T_1$ and $T_2$.
 
 **Intuition:** The ratio $P(0, T_1)/P(0, T_2)$ represents the growth factor from $T_1$ to $T_2$—how much $1$ at $T_1$ grows to by $T_2$, implied by today's discount factors. Subtracting 1 gives the total interest earned over the period, and dividing by $\tau$ annualizes it to a simple rate.
 
-### 2.7.6 Forward Rates and the Spot Rate Curve
+### 2.7.6 Locking In the Forward Rate: A Worked Example
+
+The forward rate is not just an abstract calculation—it can be *locked in* using today's bonds. Here's how:
+
+**Goal:** Lock in a borrowing rate for the period from $T_1 = 0.5$ to $T_2 = 1.0$.
+
+**Strategy:**
+1. **Sell** $P(0, T_1)/P(0, T_2)$ units of the $T_2$-maturity zero
+2. **Buy** 1 unit of the $T_1$-maturity zero
+
+**Cash flows:**
+
+| Time | From $T_1$ Zero | From $T_2$ Zero | Net |
+|------|-----------------|-----------------|-----|
+| $t=0$ | $-P(0,T_1)$ | $+\frac{P(0,T_1)}{P(0,T_2)} \times P(0,T_2) = P(0,T_1)$ | **$0$** |
+| $t=T_1$ | $+1$ | $0$ | **$+1$** |
+| $t=T_2$ | $0$ | $-\frac{P(0,T_1)}{P(0,T_2)}$ | **$-\frac{P(0,T_1)}{P(0,T_2)}$** |
+
+**Interpretation:** You pay nothing today, receive $1$ at $T_1$, and repay $P(0,T_1)/P(0,T_2)$ at $T_2$. This is economically equivalent to borrowing $1$ at $T_1$ and repaying principal plus interest at $T_2$. The implied interest rate is exactly the forward rate.
+
+> **Desk Reality: FRAs and Forward-Starting Swaps**
+>
+> This lock-in mechanism is the theoretical foundation of Forward Rate Agreements (FRAs) and forward-starting swaps. When a corporate treasurer wants to hedge future borrowing costs, they're effectively executing this strategy through a derivatives contract.
+>
+> The forward rate is **not** a prediction of future spot rates—it's an **arbitrage-enforced** price. The market may expect rates to be higher or lower than the forward, but the forward rate is what you can actually lock in today.
+
+### 2.7.7 Forward Rates and the Spot Rate Curve
 
 Tuckman observes an important geometric relationship: "When the forward rate curve is above the spot rate curve, the spot rate curve is rising or sloping upward. But, when the forward rate curve is below the spot rate curve, the spot rate curve slopes downward or is falling."
 
@@ -396,7 +472,137 @@ The intuition is that each spot rate is an average of all forward rates up to th
 
 ---
 
-## 2.8 PV Sensitivity: A First Look at Rate Risk
+## 2.8 Modern Discounting: From LIBOR to OIS
+
+### 2.8.1 The Risk-Free Rate Question
+
+The discount factor framework assumes we know the "risk-free" rate. But what rate is truly risk-free? Before 2008, practitioners used **LIBOR** (the London Interbank Offered Rate) as a proxy for the risk-free rate. Hull explains: "Prior to the 2007-8 credit crisis, LIBOR was used as a proxy for the risk-free rate when valuing derivatives."
+
+The 2008 financial crisis revealed that LIBOR was not risk-free—it embedded significant bank credit risk. When Lehman Brothers failed, the spread between LIBOR and Treasury rates widened dramatically, showing that LIBOR reflected bank credit conditions, not pure time value.
+
+### 2.8.2 OIS: The Collateralized Benchmark
+
+Hull explains the shift: "The OIS rate is increasingly regarded as a better measure of the risk-free rate than LIBOR... The overnight rate underlying the OIS is considered to have very little credit risk."
+
+An **Overnight Index Swap (OIS)** is a swap where one party pays a fixed rate and receives the compounded overnight rate (SOFR in USD, EONIA/€STR in EUR) over the swap's term. The OIS rate is the fixed rate that makes this swap have zero value at inception.
+
+Why is OIS considered more "risk-free"?
+- **Very short tenor**: Overnight lending has minimal credit exposure
+- **Secured by central bank reserves**: Banks can always borrow overnight at the central bank
+- **No term credit premium**: Unlike 3-month LIBOR, overnight rates don't embed multi-month credit risk
+
+### 2.8.3 Collateral and the CSA
+
+Hull provides the economic rationale for OIS discounting: "When a derivative is fully collateralized with variation margin being posted daily, it should be discounted at the OIS rate."
+
+A **Credit Support Annex (CSA)** specifies the collateral arrangements for an OTC derivative:
+- **Variation margin**: Daily cash posted to cover mark-to-market changes
+- **Eligible collateral**: What assets can be posted (cash, government bonds, etc.)
+- **Thresholds**: Minimum amounts before collateral is required
+
+When derivatives are fully collateralized:
+- **The "winner" receives collateral** equal to the derivative's value
+- **The collateral earns interest** (typically at the overnight rate)
+- **Credit exposure is nearly eliminated** (assuming daily margin calls)
+
+Since the collateral earns the overnight rate, **the appropriate discount rate for a collateralized derivative is the overnight rate**—not LIBOR or any other rate. This is the economic foundation of OIS discounting.
+
+> **Desk Reality: Which Curve Are You Using?**
+>
+> One of the most common sources of P&L breaks and reconciliation failures is using the wrong discount curve. Before 2008, everyone used LIBOR for everything. Now the standard is:
+>
+> | Derivative Type | Discount Curve |
+> |-----------------|----------------|
+> | Collateralized (standard CSA) | OIS curve |
+> | Collateralized (non-USD cash) | Cross-currency OIS basis-adjusted |
+> | Uncollateralized | Credit-adjusted (CVA) |
+> | Exchange-traded | OIS (cleared margin) |
+>
+> If your valuation system is still using LIBOR discounting for collateralized swaps, your marks are wrong. The error can be 10-50bp on long-dated swaps—material P&L.
+
+### 2.8.4 Multi-Curve Framework Preview
+
+The shift to OIS discounting created the **multi-curve framework**: we now use *different curves* for discounting and projecting future cash flows.
+
+For a typical USD interest rate swap:
+- **Discount curve**: OIS (SOFR) curve—used to compute present values
+- **Projection curve**: SOFR curve (or legacy Term SOFR)—used to project floating leg cash flows
+
+Before 2008, LIBOR served both roles. Now they're separated. This "dual curve" approach is extended in Chapter 19, where we also handle cross-currency basis and tenor basis.
+
+### 2.8.5 The "Cheapest-to-Deliver" Collateral Option
+
+Hull notes a subtlety: "The party posting collateral will choose the asset that is cheapest to fund." If a CSA allows multiple currencies or asset types as eligible collateral, the poster will choose whatever is cheapest for them to acquire and fund.
+
+This creates optionality: the discount rate depends on which collateral the counterparty will choose. For sophisticated valuation, this "collateral switch option" can have material value, particularly for long-dated cross-currency trades.
+
+---
+
+## 2.9 Limits to Arbitrage: When Theory Meets Reality
+
+### 2.9.1 The Idealized vs. Real Arbitrage
+
+The textbook arbitrage is frictionless: if prices diverge, arbitrageurs instantly exploit the gap, and prices snap back. Reality is messier. Tuckman observes: "The fact that the market price of the $10\frac{3}{4}$s remains below that of the replicating portfolio strongly indicates that some set of confounding factors inhibits arbitrage activity."
+
+Why does apparent mispricing persist? Because **real arbitrage is not free**.
+
+### 2.9.2 Balance Sheet Constraints
+
+Every position consumes balance sheet. Banks face:
+
+- **Leverage ratios**: Basel III requires banks to hold capital against total assets, limiting how much they can hold regardless of risk
+- **Risk-weighted assets (RWA)**: Even "risk-free" Treasuries consume some RWA
+- **Funding costs**: Financing a long position in repo costs money; the repo rate may exceed the expected profit
+- **Capital charges**: Holding inventory ties up capital that could be deployed elsewhere
+
+> **Practitioner Note:** A trader might see 5bp of "cheapness" in an off-the-run Treasury but need to deploy $500 million to capture it. If the capital charge is $2 million annually and the expected profit is $1.5 million, the trade is **negative NPV after capital costs**—even though it looks like arbitrage.
+
+### 2.9.3 Funding and Liquidity Constraints
+
+Arbitrage requires financing. Tuckman mentions "financing costs of this type of arbitrage" as a key impediment. Specific constraints include:
+
+- **Repo haircuts**: To borrow against a bond, you must post more collateral than you receive
+- **Repo rate spreads**: Off-the-run bonds may finance at higher rates than on-the-run
+- **Margin calls**: If markets move against you before converging, you may face margin calls
+- **Liquidity mismatch**: Your position is illiquid but your financing is overnight
+
+### 2.9.4 Counterparty Risk
+
+For OTC derivatives, arbitrage involves counterparty exposure:
+- **Credit risk**: Your counterparty might default before you realize the gain
+- **Netting and collateral**: Does your CSA allow netting? Daily margin?
+- **Wrong-way risk**: Markets often move against you when your counterparty is most likely to default
+
+### 2.9.5 Historical Episodes: When Arbitrage Breaks
+
+**LTCM (1998):** Long-Term Capital Management identified yield curve mispricings and sovereign bond spreads that "should" converge. When Russia defaulted and liquidity evaporated, prices diverged further. Forced to unwind into illiquid markets, LTCM lost approximately $4.6 billion in four months. The arbitrage was "right" eventually—but they ran out of capital first.
+
+**2008 Financial Crisis:** The TED spread (LIBOR minus Treasury bills) blew out to 450bp. LIBOR-OIS spreads exceeded 350bp. These weren't arbitrage opportunities—they reflected genuine credit risk. But basis trades (e.g., cash vs. CDS) that "should" be arbitrage-free showed massive dislocations as funding markets froze.
+
+**March 2020 Treasury Basis:** The cash Treasury vs. Treasury futures basis—normally tight—blew out to unprecedented levels. The arbitrage required funding, and funding was constrained as banks de-risked. Hedge funds running the basis trade faced margin calls. The Fed ultimately had to intervene.
+
+> **Desk Reality: The Arbitrage Desk P&L Problem**
+>
+> Arbitrage desks face a fundamental challenge: their trades are *supposed* to be risk-free, but in practice they have P&L volatility. When a manager asks "why did you lose $5 million this month on arbitrage?" the answer—"because prices diverged further before converging"—is hard to explain.
+>
+> This is why arbitrage desks have position limits, drawdown limits, and VaR constraints. Even "risk-free" trades aren't risk-free when you have limited capital and uncertain horizons.
+
+### 2.9.6 Near-Arbitrage vs. True Arbitrage
+
+In practice, most "arbitrage" opportunities are actually **near-arbitrage**: they involve some residual risks that true arbitrage does not. A useful classification:
+
+| Type | Characteristics |
+|------|-----------------|
+| **True arbitrage** | Zero cost, zero risk, positive expected profit. Essentially nonexistent in liquid markets. |
+| **Statistical arbitrage** | Prices *should* converge based on historical relationships. Residual risk: relationships can break. |
+| **Fundamental arbitrage** | Same cash flows, different prices. Residual risk: funding, counterparty, settlement. |
+| **Relative value** | Securities mispriced relative to each other. Residual risk: model risk, timing, liquidity. |
+
+The line between "arbitrage" and "good trade" is blurry. The key question is always: **what can go wrong, and can I survive it?**
+
+---
+
+## 2.10 PV Sensitivity: A First Look at Rate Risk
 
 How does present value change when rates move?
 
@@ -416,7 +622,7 @@ $$\boxed{\Delta \text{PV}_0 \approx -\sum_i C_i \, T_i \, P(0, T_i) \, \Delta z}
 
 ---
 
-## 2.9 Worked Examples
+## 2.11 Worked Examples
 
 ### Example A: Building Discount Factors from Money-Market Quotes
 
@@ -469,7 +675,7 @@ $$f(0; 0.5, 1.0) = \frac{0.0516 \times 1.0 - 0.0494 \times 0.5}{1.0 - 0.5} = \fr
 **Goal:** Price a 1-year note paying a 6% annual coupon semiannually.
 
 **Cash flows:**
-- Time 0.5: Coupon of $3 (6\%/2 \times 100$)
+- Time 0.5: Coupon of $3 (6%/2 × 100)
 - Time 1.0: Coupon + Principal of $103
 
 **Calculation:**
@@ -499,10 +705,10 @@ Cost of replication = $50 \times P(0, 0.5) + 105 \times P(0, 1.0)$
 $$V_0 = 50 \times 0.97561 + 105 \times 0.94967 = 48.78 + 99.72 = \boxed{148.50}$$
 
 **Arbitrage thought experiment:** If the claim traded at 149.50 while replication costs 148.50, you could:
-1.  Sell the claim at 149.50 (inflow)
-2.  Buy the replicating portfolio at 148.50 (outflow)
-3.  Pocket $1.00$ today
-4.  At $T=0.5$ and $T=1.0$, the portfolio payoffs exactly cover the claim liabilities.
+1. Sell the claim at 149.50 (inflow)
+2. Buy the replicating portfolio at 148.50 (outflow)
+3. Pocket $1.00$ today
+4. At $T=0.5$ and $T=1.0$, the portfolio payoffs exactly cover the claim liabilities.
 
 You have locked in a risk-free profit of $1.00$ with zero net future obligations. Market forces (arbitrageurs executing this trade) would drive the claim price down and/or the component prices up until the gap closes.
 
@@ -525,7 +731,35 @@ In practice, STRIPS often trade slightly rich or cheap due to liquidity and tax 
 
 ---
 
-## 2.10 Practical Notes
+### Example E: Locking in a Forward Rate
+
+**Goal:** Show how to lock in the 6M×12M forward rate using today's bonds.
+
+**Given:** $P(0, 0.5) = 0.97561$, $P(0, 1.0) = 0.94967$
+
+**Forward rate:** $F(0; 0.5, 1.0) = 5.46\%$
+
+**Lock-in strategy:**
+1. Sell $0.97561/0.94967 = 1.0273$ units of the 1-year zero
+2. Buy 1 unit of the 6-month zero
+
+**Cash flow verification:**
+
+| Time | 6M Zero | 1Y Zero | Net |
+|------|---------|---------|-----|
+| Today | $-0.97561$ | $+1.0273 \times 0.94967 = +0.97561$ | **$0$** |
+| 6M | $+1$ | $0$ | **$+1$** |
+| 12M | $0$ | $-1.0273$ | **$-1.0273$** |
+
+**Interpretation:** You pay $0$ today, receive $1$ at 6M, and repay $1.0273$ at 12M. The implied interest rate for the 6-month period is:
+
+$$\frac{1.0273 - 1}{0.5} = 5.46\%$$
+
+This exactly equals the forward rate—confirming the lock-in works.
+
+---
+
+## 2.12 Practical Notes
 
 ### Common Pitfalls
 
@@ -533,9 +767,11 @@ In practice, STRIPS often trade slightly rich or cheap due to liquidity and tax 
 |-------|-------------|
 | **Compounding mismatch** | A "5%" rate means different things under different compounding (e.g., continuous vs. semiannual). Always verify the convention. |
 | **Day count ignored** | Discount factor extraction depends on year fractions $\tau$, which depend on day counts (e.g., ACT/360 vs. 30/360). |
+| **Wrong discount curve** | Using LIBOR discounting for collateralized trades is now incorrect—use OIS. |
 | **Interpolation deferred** | Market quotes don't provide discount factors at every single date; interpolation methods (Chapter 17) fill the gaps. |
 | **Confounding factors ignored** | Rich/cheap analysis requires understanding *why* prices deviate from the model. Is it liquidity? Credit? |
 | **STRIPS vs. synthetic zeros** | STRIPS prices may differ from discount factors implied by coupon bonds due to liquidity and tax differences. |
+| **Ignoring balance sheet costs** | A "profitable" arbitrage may be unprofitable after funding, capital, and operational costs. |
 
 ### Verification Tests
 
@@ -550,33 +786,33 @@ In practice, STRIPS often trade slightly rich or cheap due to liquidity and tax 
 - Reprice calibration instruments using your derived curve: the model PV must match the market price exactly.
 - Two portfolios with identical cash flows must have identical model PVs.
 
-### Modern Discounting Preview
-
-Hull notes that "risk-free reference rates created from overnight rates are the ones used in valuing derivatives." This refers to **OIS (Overnight Index Swap) discounting**, which uses overnight risk-free rates (like SOFR) rather than LIBOR for collateralized derivatives. While we assume a single curve for simplicity here, the multi-curve framework (Chapter 19) is the modern standard.
-
 ---
 
 ## Summary
 
 This chapter established the fundamental pricing framework for deterministic cash flows:
 
-1.  **Discount factors** $P(0, T)$ give the present value of $1 at time $T$. They can be extracted from bond prices or money market rates by solving pricing equations sequentially.
+1. **Discount factors** $P(0, T)$ give the present value of $1 at time $T$. They can be extracted from bond prices or money market rates by solving pricing equations sequentially.
 
-2.  **Present value** is computed as $\text{PV}_0 = \sum_i C_i P(0, T_i)$—multiply each cash flow by its discount factor and sum. This is the "pricing kernel" for fixed cash flows.
+2. **Present value** is computed as $\text{PV}_0 = \sum_i C_i P(0, T_i)$—multiply each cash flow by its discount factor and sum. This is the "pricing kernel" for fixed cash flows.
 
-3.  **The law of one price** states that identical cash flows must have identical prices, absent confounding factors (liquidity, repo specials, taxes, credit).
+3. **The law of one price** states that identical cash flows must have identical prices, absent confounding factors (liquidity, repo specials, taxes, credit, balance sheet).
 
-4.  **Replication** constructs a portfolio with the same cash flows as a target. Under no-arbitrage, the target's price must equal the replication cost.
+4. **Replication** constructs a portfolio with the same cash flows as a target. Under no-arbitrage, the target's price must equal the replication cost.
 
-5.  **Treasury STRIPS** are zero-coupon securities that make discount factors directly observable, though liquidity and tax effects can cause small deviations.
+5. **Treasury STRIPS** are zero-coupon securities that make discount factors directly observable, though liquidity and tax effects can cause small deviations.
 
-6.  **Zero rates** are an alternative expression: $P(0, T) = e^{-z(T) \cdot T}$ under continuous compounding. They summarize the discount factor curve.
+6. **Zero rates** are an alternative expression: $P(0, T) = e^{-z(T) \cdot T}$ under continuous compounding. They summarize the discount factor curve.
 
-7.  **Forward rates** are implied future borrowing costs, consistent with today's spot rates. They link spot rates at adjacent maturities and reflect market expectations (plus risk premiums).
+7. **Forward rates** are implied future borrowing costs that can be locked in using today's bonds. They link spot rates at adjacent maturities.
 
-8.  **Rate sensitivity** reveals that longer-dated cash flows are more sensitive to rate changes—this is the foundation of duration.
+8. **Modern discounting** uses OIS rates for collateralized derivatives. The CSA determines which rate is appropriate—a material distinction post-2008.
 
-The key conceptual insight: **arbitrage and replication turn pricing into a mechanical step**. If you can match a security's cash flows using traded instruments, the law of one price pins down its value.
+9. **Limits to arbitrage** mean that theoretical mispricings can persist due to balance sheet constraints, funding costs, and liquidity gaps. Real arbitrage is never truly "free."
+
+10. **Rate sensitivity** reveals that longer-dated cash flows are more sensitive to rate changes—this is the foundation of duration.
+
+The key conceptual insight: **arbitrage and replication turn pricing into a mechanical step**. If you can match a security's cash flows using traded instruments, the law of one price pins down its value. But the real world adds friction—and understanding those frictions separates textbook pricing from desk-level reality.
 
 ---
 
@@ -590,7 +826,10 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 | Replication | Portfolio matching target's cash flows | Provides the proof for the no-arbitrage price. |
 | STRIPS | Zero-coupon securities from stripped Treasuries | Make discount factors directly observable. |
 | Zero rate $z(T)$ | Rate such that $P(0,T) = e^{-z(T)T}$ | A convenient summary of the discount curve. |
-| Forward rate | Implied future borrowing rate | Expresses curve slope; used for forecasting and FRAs. |
+| Forward rate | Implied future borrowing rate | Expresses curve slope; can be locked in today. |
+| OIS discounting | Using overnight rates for collateralized PV | The post-2008 standard for derivatives. |
+| CSA | Credit Support Annex specifying collateral terms | Determines which discount curve to use. |
+| Limits to arbitrage | Constraints preventing perfect price enforcement | Balance sheet, funding, liquidity, counterparty. |
 
 ---
 
@@ -612,10 +851,10 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is $d(T)$? | The present value today of $1 received at time $T$. |
+| 1 | What is $d(T)$ or $P(0,T)$? | The present value today of $1 received at time $T$. |
 | 2 | How do you price deterministic cash flows $\{(T_i, C_i)\}$? | $\sum_i C_i P(0, T_i)$ |
 | 3 | What is the law of one price? | Identical cash flows imply identical prices, absent confounding factors. |
-| 4 | What are examples of confounding factors? | Liquidity, special financing (repo specials), taxes, credit risk. |
+| 4 | What are examples of confounding factors? | Liquidity, special financing (repo specials), taxes, credit risk, balance sheet costs. |
 | 5 | What is $P(0,T)$ economically? | The price of a zero-coupon bond paying $1 at $T$. |
 | 6 | Under continuous compounding, what is the PV of $A$ at $T$ discounted at rate $R$? | $A e^{-RT}$ |
 | 7 | Define the continuously compounded zero rate $z(T)$. | The rate such that $P(0,T) = e^{-z(T)T}$. |
@@ -632,6 +871,11 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 | 18 | How do STRIPS prices relate to discount factors? | $P(0,T) = \text{STRIPS Price}/100$ |
 | 19 | Why might STRIPS trade differently from implied zeros? | Liquidity differences, tax treatment (phantom income), reconstitution option. |
 | 20 | What does it mean for a bond to trade "cheap"? | Its market price is below its theoretical value (replication cost). |
+| 21 | What is OIS discounting? | Using overnight index swap rates to discount collateralized derivatives. |
+| 22 | Why did the market shift from LIBOR to OIS discounting? | LIBOR embedded bank credit risk; OIS better approximates the risk-free rate. |
+| 23 | What is a CSA? | Credit Support Annex—specifies collateral arrangements for OTC derivatives. |
+| 24 | What are limits to arbitrage? | Balance sheet, funding, liquidity, and counterparty constraints that prevent perfect price enforcement. |
+| 25 | How can you lock in a forward rate? | Sell units of the longer-dated zero and buy the shorter-dated zero, resulting in a forward loan. |
 
 ---
 
@@ -639,49 +883,57 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 ### Questions
 
-1.  **Discount factor basics.** If $P(0,1) = 0.95$, what is the PV of $200 paid at $T = 1$?
+1. **Discount factor basics.** If $P(0,1) = 0.95$, what is the PV of $200 paid at $T = 1$?
 
-2.  **Zero rate extraction.** Using $P(0,2) = 0.90$, compute the continuously compounded 2-year zero rate $z(2)$.
+2. **Zero rate extraction.** Using $P(0,2) = 0.90$, compute the continuously compounded 2-year zero rate $z(2)$.
 
-3.  **Forward rate (FRA-style).** If $P(0, 0.5) = 0.98$ and $P(0, 1.0) = 0.95$, compute the simply compounded forward rate $F(0; 0.5, 1.0)$ with $\tau = 0.5$.
+3. **Forward rate (FRA-style).** If $P(0, 0.5) = 0.98$ and $P(0, 1.0) = 0.95$, compute the simply compounded forward rate $F(0; 0.5, 1.0)$ with $\tau = 0.5$.
 
-4.  **Replication.** A claim pays 10 at $T = 1$ and 110 at $T = 2$. Express its price in terms of $P(0,1)$ and $P(0,2)$.
+4. **Replication.** A claim pays 10 at $T = 1$ and 110 at $T = 2$. Express its price in terms of $P(0,1)$ and $P(0,2)$.
 
-5.  **Curve shock intuition.** Given cash flows at $T = 1, 3, 5$ years, which contributes most to PV sensitivity under a parallel rate increase? Why?
+5. **Curve shock intuition.** Given cash flows at $T = 1, 3, 5$ years, which contributes most to PV sensitivity under a parallel rate increase? Why?
 
-6.  **Law of one price test.** Two portfolios have identical cash flows but trade at different prices. Construct the arbitrage and state time-0 profit.
+6. **Law of one price test.** Two portfolios have identical cash flows but trade at different prices. Construct the arbitrage and state time-0 profit.
 
-7.  **Deposit-to-DF conversion.** A 9-month deposit rate is 6% on Actual/360 with 270 days. Using $\tau = 270/360 = 0.75$, compute $P(0, 0.75)$.
+7. **Deposit-to-DF conversion.** A 9-month deposit rate is 6% on Actual/360 with 270 days. Using $\tau = 270/360 = 0.75$, compute $P(0, 0.75)$.
 
-8.  **Forward from zero rates.** Zero rates (continuous) are $z(1) = 4\%$ and $z(2) = 5\%$. Compute $f(0; 1, 2)$.
+8. **Forward from zero rates.** Zero rates (continuous) are $z(1) = 4\%$ and $z(2) = 5\%$. Compute $f(0; 1, 2)$.
 
-9.  **Compounding conversion.** Convert 8% quarterly compounding to continuous.
+9. **Compounding conversion.** Convert 8% quarterly compounding to continuous.
 
-10. **Interpolation preview.** You have discount factors at 1Y and 2Y but need PV for a cash flow at 1.5Y. Name two interpolation approaches.
+10. **Negative rates.** If the 1-year rate is -0.3% (continuous), what is $P(0,1)$? Interpret economically.
 
-11. **STRIPS arbitrage.** A 1-year C-STRIP trades at 96.00 while the implied discount factor from coupon bonds is $d(1) = 0.952$. Is the STRIP rich or cheap? By how much?
+11. **OIS vs. LIBOR impact.** A 10-year swap has PV = $5,000,000 when discounted at LIBOR and PV = $4,950,000 when discounted at OIS. If the swap is collateralized, which valuation is correct? What is the error from using the wrong curve?
 
-12. **Investor choice.** The 6-month spot rate is 5.5% and the 1-year spot rate is 5.2% (both semiannual). What is the implied 6-month forward rate in 6 months? Would you buy the 1-year zero if you expect the 6-month rate to be 5.0% in six months?
+12. **STRIPS arbitrage.** A 1-year C-STRIP trades at 96.00 while the implied discount factor from coupon bonds is $d(1) = 0.952$. Is the STRIP rich or cheap? By how much?
 
-### Brief Solutions (1–6)
+13. **Investor choice.** The 6-month spot rate is 5.5% and the 1-year spot rate is 5.2% (both semiannual). What is the implied 6-month forward rate in 6 months? Would you buy the 1-year zero if you expect the 6-month rate to be 5.0% in six months?
 
-1.  $\text{PV} = 200 \times 0.95 = 190$
+14. **Limits to arbitrage.** An off-the-run Treasury trades 5bp cheap to the fitted curve. Explain why this "cheapness" might persist despite the apparent arbitrage opportunity.
 
-2.  $z(2) = -\frac{1}{2} \ln(0.90) = -0.5 \times (-0.1054) = 0.0527 = 5.27\%$
+### Brief Solutions (1–8)
 
-3.  $F = \frac{1}{0.5}\left(\frac{0.98}{0.95} - 1\right) = 2 \times (1.0316 - 1) = 6.32\%$
+1. $\text{PV} = 200 \times 0.95 = 190$
 
-4.  $V_0 = 10 \, P(0,1) + 110 \, P(0,2)$
+2. $z(2) = -\frac{1}{2} \ln(0.90) = -0.5 \times (-0.1054) = 0.0527 = 5.27\%$
 
-5.  The $T = 5$ cash flow contributes most because PV sensitivity is proportional to $T_i \cdot C_i \cdot P(0, T_i)$; the longer maturity (multiplier $T_i$) generally dominates.
+3. $F = \frac{1}{0.5}\left(\frac{0.98}{0.95} - 1\right) = 2 \times (1.0316 - 1) = 6.32\%$
 
-6.  Buy the cheap portfolio, sell the expensive one. Profit = (expensive price) − (cheap price). Future cash flows net to zero.
+4. $V_0 = 10 \, P(0,1) + 110 \, P(0,2)$
+
+5. The $T = 5$ cash flow contributes most because PV sensitivity is proportional to $T_i \cdot C_i \cdot P(0, T_i)$; the longer maturity (multiplier $T_i$) generally dominates.
+
+6. Buy the cheap portfolio, sell the expensive one. Profit = (expensive price) − (cheap price). Future cash flows net to zero.
+
+7. $P(0, 0.75) = \frac{1}{1 + 0.06 \times 0.75} = \frac{1}{1.045} = 0.9569$
+
+8. $f(0; 1, 2) = \frac{0.05 \times 2 - 0.04 \times 1}{2 - 1} = \frac{0.10 - 0.04}{1} = 6\%$
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -695,26 +947,41 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 | $10\frac{3}{4}$s trading cheap at 110.938 vs 111.041 | Tuckman Ch 1, Table 1.4 |
 | Treasury STRIPS definition and types | Tuckman Ch 1, p. 10-12 |
 | C-STRIPS fungibility, P-STRIPS uniqueness | Tuckman Ch 1, p. 11 |
+| STRIPS stripping and reconstitution | Tuckman Ch 1, p. 12-13 |
 | Continuous compounding: $A e^{Rn}$ and $e^{-Rn}$ discounting | Hull Ch 4, p. 78-80 |
 | Conversion: $R_c = m \ln(1 + R_m/m)$ | Hull Ch 4, equations (4.3)–(4.4) |
 | Forward loan definition | Tuckman Ch 2, p. 27 |
 | Investor comparison: spot vs forward strategy | Tuckman Ch 2, p. 27-29 |
-| Forward rate from spot rates (semiannual) | Tuckman Ch 2, equations (2.14)–(2.17) |
-| Forward rate from discount factors (FRA-style) | Tuckman Ch 2; standard definition |
-| "Use different zero rate for each cash flow" | Hull Ch 4 |
-| OIS discounting is modern standard | Hull Ch 4 |
+| OIS increasingly regarded as risk-free rate | Hull Ch 9 |
+| Collateralized derivatives should be discounted at OIS | Hull Ch 9 |
+| CSA specifies collateral arrangements | Hull Ch 9 |
+| Financing costs inhibit arbitrage | Tuckman Ch 1, p. 9 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| "Exchange rate in time" desk reality box | Extends Tuckman's discount factor definition with trader intuition |
+| Negative rates: discount factors > 1 | Extends Hull's brief mention with practical implications |
+| ECB/BOJ negative rate history | General market knowledge not in sources |
+| March 2020 Treasury basis episode | Recent market event extending Tuckman's limits-to-arbitrage discussion |
+| Balance sheet constraints as arbitrage limit | Extends Tuckman's "confounding factors" with modern regulatory context |
+| Multi-curve framework preview | Extends Hull's OIS discussion with practical curve usage |
+| "Which curve are you using" desk reality | Practitioner knowledge on common P&L breaks |
+
+### (C) Reasoned Inference
 
 - PV linearity follows from summing discount factor equations (proven in Tuckman Ch 1).
 - First-order PV sensitivity via differentiation of $e^{-zT}$ (standard calculus).
 - Forward rate formula (continuous) derived from spot rate compounding identity (Hull Ch 4).
 - Arbitrage profit = replication cost − market price (standard definition).
 - STRIPS price = discount factor × 100 (by definition of zero-coupon pricing).
+- Forward rate lock-in cash flows derived from no-arbitrage (combines Tuckman Ch 2 concepts).
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Deposit quote conventions** vary by market; we used a simplified simple-interest-over-$\tau$ model for the example.
-- **OIS discounting** is the modern standard for collateralized derivatives; we deferred full treatment to later chapters (Ch 18-22).
-- **Interpolation** is required in practice but deferred to Chapter 17.
+- **LTCM loss figure**: Widely reported as ~$4.6 billion but exact accounting varies by source.
 - **STRIPS liquidity premiums**: I'm not sure about exact magnitudes of STRIPS rich/cheap deviations in current markets—the sources discuss the phenomenon conceptually but don't provide current market data.
+- **Tax arbitrage via STRIPS**: Market-specific and may have changed; marked as practitioner knowledge rather than book-verified.
+- **Cheapest-to-deliver collateral optionality**: Hull mentions the concept but valuation methodology is complex and market-dependent.

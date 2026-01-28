@@ -10,6 +10,8 @@ This seemingly simple question reveals the distinctive feature that makes bond f
 
 Understanding this mechanism is essential for anyone trading, hedging, or pricing with Treasury futures. A hedger who ignores the delivery option dynamics may find their carefully constructed DV01 hedge suddenly misaligned when the cheapest-to-deliver bond switches. A basis trader who focuses only on gross basis without accounting for carry and option value will systematically misprice the trade's expected return. As Hull notes explicitly: "An exact theoretical futures price for the Treasury bond contract is difficult to determine because the short party's options concerned with the timing of delivery and choice of the bond that is delivered cannot easily be valued."
 
+For middle-office professionals transitioning to front office roles, Treasury futures present both opportunity and risk. The P&L reports you already see contain basis P&L, roll P&L, and CTD switch impacts—but understanding what drives those numbers requires mastering the concepts in this chapter. When a hedge ratio jumps by 15% overnight and you need to explain it to the desk head, the answer lies in CTD switching. When the roll spread blows out during quarter-end, the explanation involves squeeze risk and repo specialness.
+
 This chapter covers:
 
 1. **The deliverable basket and conversion factors** — how the contract standardizes delivery across bonds of different coupons and maturities
@@ -19,6 +21,9 @@ This chapter covers:
 5. **Delivery options and their value** — quality, timing, end-of-month, and wild card features
 6. **The repo-futures link** — how financing costs enter through carry and specialness
 7. **Hedging implications** — why futures DV01 depends on CTD and can jump
+8. **Futures rolls and calendar spreads** — how practitioners manage rolling positions
+9. **Squeeze risk** — what happens when the CTD becomes scarce
+10. **Model selection** — when to use simple vs. multi-factor approaches
 
 The mechanics developed here connect directly to Part II's bond pricing (Chapter 5), Part III's risk measures (Chapters 11–16), and Chapter 9's treatment of repo. The carry and forward-pricing relationships from Chapter 9 are essential background; this chapter focuses on what makes futures *different* from forwards.
 
@@ -49,6 +54,10 @@ The short position holder has several embedded options:
 **End-of-month option:** In U.S. contracts, the last trade date typically precedes the last delivery date. After the last trade, the settlement price is fixed, but the short can still choose which day (and which bond) to deliver. If prices move, the short can switch to a more favorable bond. Tuckman notes this feature "gives rise to the end-of-month option."
 
 **Wild card play:** Hull describes this timing feature in Business Snapshot 6.2: "The settlement price in the CME Group's Treasury bond futures contract is the price at 2:00 p.m. Chicago time. However, Treasury bonds continue trading in the spot market beyond this time and a trader with a short position can issue to the clearing house a notice of intention to deliver later in the day." If bond prices fall between 2:00 p.m. and the notice deadline, the short benefits by delivering at the higher (earlier) settlement price while buying bonds cheaper. Hull notes: "As with the other options open to the party with the short position, the wild card play is not free. Its value is reflected in the futures price, which is lower than it would be without the option."
+
+> **Desk Reality: Why These Options Matter for P&L**
+>
+> If you've ever seen a futures position show unexplained P&L when rates barely moved, the delivery options may be the culprit. The embedded optionality means futures don't move 1:1 with their CTD—especially near delivery or when CTD is close to switching. Your risk system may show a clean DV01-neutral hedge, but the P&L says otherwise. The explanation often lies in the convexity effects from these options.
 
 ---
 
@@ -81,6 +90,10 @@ $$4 + \sum_{i=1}^{36} \frac{4}{1.03^{i}} + \frac{100}{1.03^{36}} = \$125.8323$$
 The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\%$. Hence, discounting back to the present gives the bond's value as $125.8323 / 1.014889 = \$123.99$. Subtracting the accrued interest of 2.0 gives $\$121.99$. The conversion factor is therefore **1.2199**.
 
 Tuckman frames the intuition: "The conversion factor of a bond is approximately equal to its price per dollar face amount as of the last delivery date with a yield equal to the notional coupon rate." He adds: "Conversion factors approximately equal the bond's price per $1 face value if yields were at the notional coupon rate; they would adjust prices perfectly if the term structure were flat at that notional rate."
+
+> **Practitioner Note: Historical Context**
+>
+> The notional coupon for U.S. Treasury futures was historically 8% when the contracts were first introduced in the late 1970s. When yields declined substantially, the CME changed the notional coupon to 6%. I'm not sure about the exact timing of this change without additional verification, but the effect was to recalibrate which bonds would typically be CTD under prevailing market conditions. This historical context helps explain why some older references use 8% in their examples.
 
 ### 23.2.3 What Conversion Factors Are NOT
 
@@ -284,6 +297,12 @@ Tuckman interprets: "If the net basis of any bond is near zero, then the quality
 
 Tuckman provides a key insight about net basis behavior for bonds close to CTD: "The net basis of a bond close to CTD behaves like a straddle on rates or prices." Rate moves in either direction push the bond away from CTD and increase its net basis. This straddle-like characteristic reflects the optionality embedded in the CTD mechanism.
 
+> **Desk Reality: Reading Net Basis**
+>
+> When you see net basis near zero for a bond, it's telling you that bond is CTD and the quality option is nearly worthless—the futures is trading close to its theoretical floor. When net basis widens, it means the quality option has value: either CTD might switch, or the bond has moved away from CTD.
+>
+> For basis traders, net basis is the economic measure. Gross basis can be misleading because it ignores carry—a bond might look cheap on gross basis but expensive after accounting for financing costs.
+
 ### 23.6.4 Basis Trade P&L
 
 Tuckman shows (equation 20.15) that a long basis trade (buy bond, finance in repo, short futures with proper tailing) has P&L proportional to the change in net basis:
@@ -357,11 +376,27 @@ When all bonds have similar net bases, the quality option is worth little (none 
 
 **Optionality behavior:** For a bond close to CTD, Tuckman notes that "the net basis of a bond close to CTD behaves like a straddle on rates or prices." Rate moves in either direction push it away from CTD and increase its net basis.
 
-### 23.9.3 Timing Option
+### 23.9.3 Timing Option: Early vs. Late Delivery
 
 Tuckman describes the trade-off governing the timing option: "Under the early delivery strategy, the trader pays carry on the CTD and sacrifices any value left in the quality option. Under the late delivery strategy, the trader pays no carry and can switch bonds if the CTD changes."
 
 The conclusion: "Clearly, if carry is positive, it is optimal to delay delivery. If carry is negative, however, then the carry advantage of delivering early must be weighed against the sacrifice of the quality option."
+
+**Decision framework for delivery timing:**
+
+| Carry | Quality Option Value | Optimal Strategy |
+|-------|---------------------|------------------|
+| Positive | Any | Delay delivery (capture carry) |
+| Negative | High | Delay delivery (preserve option) |
+| Negative | Low | Consider early delivery (avoid negative carry) |
+
+> **Analogy: Rental Car Return**
+>
+> Think of the timing option like returning a rental car:
+> - **Return early:** You pay the early return fee (give up remaining option value), but you stop paying the daily rental (negative carry stops accruing)
+> - **Return late:** You keep the car until the last minute, preserving flexibility to use it if needed, but you keep paying the daily rate
+>
+> The optimal choice depends on how much the car is costing you (carry) versus how much the flexibility is worth (option value).
 
 ### 23.9.4 End-of-Month Option
 
@@ -444,15 +479,216 @@ Hull explicitly warns: "If, subsequently, the interest rate environment changes 
 
 Practitioners must monitor CTD status and recognize that futures hedges have embedded optionality.
 
-### 23.10.5 Multi-Factor Considerations
+### 23.10.5 Multi-Factor Considerations and Model Selection
 
 Tuckman notes that a one-factor approach to futures hedging has limitations: "Hedging a futures contract with cash bonds alone is, at least in part, a hedge of repo rates with bonds in the delivery basket, for example, a hedge of a three-month rate with 10-year bonds."
 
 For more sophisticated risk management, Tuckman suggests computing "both the change in futures price for a parallel shift in spot yields and the change in futures price for a parallel shift in repo rates" and hedging each exposure separately.
 
+**The model selection problem:**
+
+| Approach | Advantages | Disadvantages | When to Use |
+|----------|------------|---------------|-------------|
+| **One-factor (parallel shift)** | Simple, closed-form | Ignores repo risk, curve shape | Quick hedge ratios, stable CTD |
+| **Two-factor (level + slope)** | Captures curve risk | More complex, requires calibration | CTD near switching, curve trades |
+| **Basket-level model** | Full richness of each bond | Computationally intensive | Detailed basis trading, options pricing |
+| **One-factor + repo sensitivity** | Separates spot/repo exposures | Requires two hedge instruments | Financed positions, carry trades |
+
+Tuckman observes: "The discussion in the previous paragraph suggests that there is a family of one-factor measures of price sensitivity for futures contracts. It may be assumed that for every one-basis point move in the spot yield the repo rate moves by $.25, .5$, or some other fraction of a basis point. Once again, the correct choice is an empirical question."
+
+> **Desk Reality: Choosing Your Model**
+>
+> For most day-to-day hedging with stable CTD, the one-factor DV01 approach is sufficient. But when CTD is close to switching—typically when multiple bonds have similar net bases—you need to think about:
+> 1. What happens if CTD switches (recalculate hedge ratio under alternative CTD)
+> 2. Whether your position is long or short the embedded quality option
+> 3. Whether repo moves differently than spot yields (especially in stressed markets)
+>
+> The warning sign that you need a more sophisticated approach: unexplained P&L when the curve moved but your hedge "should have" worked.
+
 ---
 
-## 23.11 Worked Examples
+## 23.11 Futures Rolls and Calendar Spreads
+
+### 23.11.1 What Is a Roll?
+
+A **calendar spread** (or **roll**) is the price difference between two futures contracts on the same underlying with different expiration months—typically the front month and the next (deferred) month.
+
+$$\text{Roll} = F_{\text{front}} - F_{\text{deferred}}$$
+
+The roll is also called the **calendar spread** because it represents the cost of extending a futures position from one delivery month to the next.
+
+> **Practitioner Note:** Roll mechanics are not covered in detail by Tuckman or Hull, but they derive directly from the basis and carry concepts developed above. The roll is essential for practitioners because most hedgers do not intend to take delivery—they must roll their positions forward as contracts approach delivery.
+
+### 23.11.2 Why the Roll Exists: Carry Differentials
+
+The roll reflects the **difference in carry** between the two delivery periods. Consider:
+
+- **Front-month futures** prices based on carry to front delivery date
+- **Deferred futures** prices based on carry to back delivery date
+
+If carry is positive (coupon income exceeds financing cost), the deferred contract will be lower in price than the front, so the roll is positive (front > deferred). If carry is negative, the roll inverts.
+
+More precisely, the roll approximates:
+
+$$\boxed{\text{Roll} \approx \frac{\text{Carry from front to back delivery}}{cf^{\text{CTD}}}}$$
+
+This relationship holds when CTD is the same across both contracts. If CTD differs, the roll also reflects the relative pricing of the two CTD bonds.
+
+### 23.11.3 Rolling the Hedge
+
+Hedgers with positions extending beyond the front delivery month must **roll** their futures hedge. This involves:
+
+1. **Close the front-month position** (buy back if short, sell if long)
+2. **Open the deferred-month position** (sell if hedging, buy if originally short)
+
+The net cost of rolling equals the roll spread at execution. If roll = 0.50 (front above deferred) and you're rolling a short hedge:
+- You buy back front at 108.00
+- You sell back at 107.50
+- Cost per contract: $0.50 × 1000 = $500
+
+> **Desk Reality: Roll Mechanics**
+>
+> **When do rolls trade?** The most liquid roll window is typically 2-3 weeks before first delivery date. Liquidity in the roll market is usually better than trading the two legs outright.
+>
+> **Roll bid-ask:** The roll market often has tighter spreads than the sum of the two outright markets because market makers can offset risk across the two contracts.
+>
+> **P&L attribution:** When your hedged position shows P&L during roll periods, some of it may be roll slippage—the difference between where you expected to roll and where you actually executed. This is real P&L, not noise.
+
+### 23.11.4 When Rolls "Blow Out"
+
+Rolls can deviate significantly from theoretical levels when:
+
+1. **CTD differs between contracts:** If the front contract has a different CTD than the back (due to basket composition or yield changes), the roll includes both carry differential and relative value between the two CTD bonds.
+
+2. **Squeeze in front month:** If the front-month CTD becomes extremely special or scarce (see Section 23.12), the front contract may trade rich, widening the roll.
+
+3. **Quarter-end effects:** Balance sheet constraints on dealers can distort repo rates and roll pricing near quarter-ends.
+
+4. **Delivery uncertainty:** Near delivery, if there's uncertainty about CTD, the front contract may trade with additional premium or discount.
+
+### 23.11.5 Roll P&L Attribution
+
+For a hedged position that rolls, total P&L decomposes into:
+
+$$\text{Total P\&L} = \text{Cash P\&L} + \text{Futures MTM} + \text{Roll Slippage}$$
+
+where:
+- **Cash P&L:** Change in bond value plus carry earned
+- **Futures MTM:** Change in futures positions (mark-to-market)
+- **Roll Slippage:** Difference between theoretical and executed roll
+
+Understanding this decomposition helps explain why a "hedged" position still shows P&L.
+
+---
+
+## 23.12 Squeeze Risk and Extreme Specialness
+
+### 23.12.1 What Is a Squeeze?
+
+A **squeeze** occurs when the CTD bond becomes scarce—either because it's been accumulated by investors who won't lend it, or because total deliverable supply is small relative to open interest. In a squeeze:
+
+1. **The CTD goes extremely special** in repo (financing cost drops dramatically)
+2. **Shorts scramble to locate the bond** for delivery
+3. **Basis blows out** as the cash bond trades rich to futures
+4. **Roll spreads distort** as the pressure concentrates in the near-delivery contract
+
+Tuckman explains why the delivery basket exists: to prevent squeezes. A single deliverable would allow a trader to "profit by simultaneously purchasing a large fraction of that bond issue and a large number of contracts," forcing shorts to pay distorted prices.
+
+### 23.12.2 Mechanics of Squeeze P&L
+
+When the CTD goes from normal repo to extremely special:
+
+1. **Carry improves dramatically** (lower financing cost)
+2. **Forward price drops** (lower repo → lower forward price)
+3. **Net basis may collapse toward zero** or even go negative
+4. **Basis traders who are long basis get squeezed** (their hedge underperforms)
+
+The squeeze benefits:
+- **Holders of the physical CTD** (they earn special repo spread)
+- **Longs in the futures** (futures catch up toward the rich cash price)
+
+The squeeze hurts:
+- **Shorts who need to deliver** (they pay up for the bond)
+- **Basis traders long the basis** (if they're financing at GC while the CTD goes special)
+
+### 23.12.3 Warning Signs of Developing Squeeze
+
+| Indicator | What to Watch |
+|-----------|---------------|
+| **Declining float** | CTD issue outstanding minus Fed holdings minus long-term holders |
+| **Rising special spread** | CTD financing rate well below GC |
+| **Fails increasing** | Fails to deliver the CTD rising |
+| **Open interest vs. deliverable** | OI approaching or exceeding deliverable supply |
+| **Net basis collapsing** | CTD net basis approaching zero from above |
+
+> **Practitioner Note:** Historical squeeze episodes include various Treasury issues that went on extreme special during deliveries. In such cases, the CTD could trade 100+ bp special, making the basis trade economics dramatically different from normal carry-adjusted expectations. I'm not sure about specific recent squeeze episodes without current market data, but the mechanics described here apply to any such event.
+
+### 23.12.4 Operational Responses to Squeeze Risk
+
+1. **Monitor deliverable supply** relative to open interest
+2. **Consider alternative deliverables** if near-CTD bonds are available
+3. **Adjust hedge ratios** if CTD switch becomes likely
+4. **Use fails market** as last resort (delivering fails may be cheaper than paying up)
+5. **Consider rolling early** to avoid squeeze premium in delivery month
+
+---
+
+## 23.13 Trading Case Study: The TYM0 Basis Trade
+
+Tuckman provides an excellent case study of the November '08 basis trade into the June 2000 ten-year note futures contract (TYM0). This case illustrates how basis trades work, what can go wrong, and how option protection can mitigate losses.
+
+### 23.13.1 Trade Setup (February 28, 2000)
+
+On February 28, 2000, TYM0 appeared cheap in most dealer models. The 4.75s of November 15, 2008, had a net basis of 7.5 ticks. Traders sold the November '08 net basis—meaning they bought the bond, financed it in repo, and sold futures (with proper tailing).
+
+Per Tuckman's Table 20.6, the deliverable basket had four bonds with maturities spanning 2007-2010. The CTD at trade initiation was the 4.75s of November 2008.
+
+### 23.13.2 The Trade Rationale
+
+The trade made sense if the futures was truly cheap relative to cash. The scenario analysis (Tuckman Table 20.7) showed:
+
+- **If yields rose 40-80bp:** Net basis would fall toward 0.9 ticks. P&L from basis position: +$200k on $100mm face.
+- **If yields fell 60-80bp:** Net basis would rise to 7-13 ticks. P&L from basis position: -$180k.
+
+The asymmetry worried traders: unlimited losses in a rally, capped gains in a sell-off (once CTD switched, basis P&L stabilized).
+
+### 23.13.3 Option Protection
+
+Many traders bought call options on futures to hedge the rally scenario. Per Tuckman, buying 47 contracts of 95-strike calls cost 1.516 per contract (1-16.5 in ticks). This option protection:
+
+- **Limited losses** in a rally (options gain value, offsetting basis losses)
+- **Reduced gains** in a sell-off (option premium is lost)
+- **Created a more symmetric P&L profile**
+
+### 23.13.4 What Actually Happened
+
+From February to April 2000:
+- Yields rallied 47bp (April 3)
+- CTD shifted toward shorter bonds (August '07, February '08)
+- November '08 net basis rose to 11.06 ticks
+- Basis position lost $112,813; options gained $87,391; net loss only $25,422
+
+Then the trade reversed:
+- By May 19, yields had backed up (returned close to starting levels)
+- November '08 returned to near-CTD status with net basis at 3.51 ticks
+- Final P&L on basis: +$123,125; options expired near worthless (-$57,281)
+- **Total profit: $65,844**
+
+### 23.13.5 Key Lessons from the Case
+
+1. **Basis trades can work even with intermediate mark-to-market losses** — patience and proper hedge sizing matter
+2. **Option protection has value** — the cost of options may be worth the reduced volatility
+3. **CTD switches create P&L swings** — the trade was underwater when CTD shifted away from November '08
+4. **Model-driven trades require conviction** — holding through April required belief in the model's assessment that futures was cheap
+5. **Tail management matters** — Tuckman notes the proper tailing of the futures position is critical to realizing the P&L
+
+> **Desk Reality: Basis Trading Today**
+>
+> The TYM0 case study illustrates mechanics that still apply. The specific numbers are dated, but the principles are timeless: basis trades are essentially bets on option value converging to zero while earning carry. When CTD is stable, you earn carry-adjusted net basis. When CTD switches, you're long or short the quality option, which can dominate the P&L.
+
+---
+
+## 23.14 Worked Examples
 
 ### Conventions for Examples
 
@@ -591,9 +827,27 @@ $$n' = \frac{42{,}500}{112.83} \approx 377 \text{ contracts}$$
 
 The hedge ratio changes by **74 contracts** purely from CTD switching.
 
+### Example H: Roll Calculation
+
+**Inputs:**
+- Front-month futures (Mar): $F_{\text{Mar}} = 112.50$
+- Back-month futures (Jun): $F_{\text{Jun}} = 112.15$
+- CTD same for both contracts
+
+**Roll:**
+$$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
+
+**Cost of rolling 100 contracts (short hedge):**
+- Buy back Mar at 112.50
+- Sell Jun at 112.15
+- Net cost per contract: $0.35 \times 1000 = \$350$
+- Total roll cost: $100 \times \$350 = \$35,000$
+
+**Sanity check:** The roll should approximate carry from Mar to Jun delivery. If carry is approximately $\$0.35$ per $100 over 3 months, this is consistent.
+
 ---
 
-## 23.12 Practical Notes
+## 23.15 Practical Notes
 
 ### Contract-Specific Checklist
 
@@ -605,7 +859,17 @@ The hedge ratio changes by **74 contracts** purely from CTD switching.
 | Invoice rounding | Minimum tick, accrued interest conventions |
 | Settlement timing | Mark-to-market timing, delivery notice cutoffs |
 
-*I'm not sure about the exact current specifications for specific contracts (2Y/5Y/10Y/Ultra) without the exchange rulebook version.*
+### Key Contract Parameters (Approximate)
+
+| Contract | Maturity Range | Typical CTD Duration | Tick Size |
+|----------|---------------|---------------------|-----------|
+| 2-Year (TU) | 1.75 - 2 years | ~1.8 years | 1/128 |
+| 5-Year (FV) | 4.2 - 5.25 years | ~4.5 years | 1/128 |
+| 10-Year (TY) | 6.5 - 10 years | ~7-8 years | 1/64 |
+| T-Bond (US) | 15+ years | ~15-20 years | 1/32 |
+| Ultra T-Bond (UB) | 25+ years | ~25 years | 1/32 |
+
+*I'm not sure about the exact current specifications without the CME rulebook. Specifications evolve, so verify current rules before trading.*
 
 ### Common Pitfalls
 
@@ -614,12 +878,14 @@ The hedge ratio changes by **74 contracts** purely from CTD switching.
 3. **Ignoring repo specialness:** GC vs special materially affects carry and CTD economics
 4. **Confusing gross vs net basis:** Net basis (carry-adjusted) is economically relevant for basis trades
 5. **Assuming CTD is constant:** Changes in yield level or curve shape can shift CTD, requiring hedge adjustment
+6. **Forgetting the roll:** Hedges must be rolled before delivery; roll slippage is real P&L
 
 ### Sanity Checks
 
 - **CTD reproducibility:** Compute $P - cf \times F$ for all deliverables; CTD must be the minimum
 - **Implied repo vs market:** Extreme implied repo (very high or negative) suggests checking accrued/coupon assumptions
 - **Hedge ratio stability:** Monitor CTD status; rebalance when CTD is close to switching
+- **Roll reasonableness:** Roll should approximately equal carry between delivery months
 
 ---
 
@@ -645,7 +911,13 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 8. **Futures DV01 ≈ CTD DV01 / cf** but jumps when CTD switches—hedge ratios are not stable
 
-9. Hull warns: exact pricing is "difficult" because the short's delivery options "cannot easily be valued"
+9. **Rolls** are the cost of extending a futures position and derive from carry differentials between delivery months
+
+10. **Squeeze risk** materializes when CTD becomes scarce, causing basis to blow out
+
+11. **Model selection** depends on CTD stability: one-factor for stable CTD, multi-factor when CTD is near switching or for detailed basis trading
+
+12. Hull warns: exact pricing is "difficult" because the short's delivery options "cannot easily be valued"
 
 ---
 
@@ -662,6 +934,8 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 | Quality option | Short's right to choose delivery bond | Creates negative convexity in futures |
 | Timing option | Short's right to choose delivery date | Additional optionality for short |
 | Negative convexity | Duration falls as yields fall due to CTD switching | Futures don't behave like simple bonds |
+| Calendar spread (roll) | Front minus deferred futures price | Cost of extending futures position |
+| Squeeze | Scarcity of CTD causing basis blow-out | Extreme risk scenario for basis traders |
 
 ---
 
@@ -718,7 +992,12 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 | 27 | What is CTD switching risk? | Risk that CTD changes, causing hedge ratio to jump |
 | 28 | What is Hull's duration-based hedge ratio formula? | $N^* = (P \times D_P) / (V_F \times D_F)$ |
 | 29 | What must a hedger estimate when using Treasury futures per Hull? | Which bond is likely to be cheapest to deliver |
-| 30 | What is the key practitioner message? | Treasury futures = delivery optionality + financing (repo) |
+| 30 | What is a calendar spread (roll)? | Price difference between front and deferred futures |
+| 31 | What drives roll pricing? | Carry differential between delivery months |
+| 32 | What is a squeeze in Treasury futures? | Scarcity of CTD causing extreme specialness and basis blow-out |
+| 33 | Why does the delivery basket exist? | To prevent squeezes and maintain contract liquidity |
+| 34 | When should you use a multi-factor model for futures? | When CTD is close to switching or for detailed basis trading |
+| 35 | What is the key practitioner message? | Treasury futures = delivery optionality + financing (repo) |
 
 ---
 
@@ -758,7 +1037,7 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 *Sketch:* Futures DV01 per contract $= 1000 \times 0.072/0.85 = \$84.71$/bp. Hedge $= 30{,}000/84.71 \approx 354$ contracts.
 
-### Questions 9–16 (No Solutions Provided)
+### Questions 9–18 (No Solutions Provided)
 
 **9.** Explain qualitatively why the futures price is not a pure cost-of-carry forward price.
 
@@ -774,13 +1053,17 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 **15.** Explain net basis as quality option value using Tuckman's interpretation.
 
-**16.** Design a daily monitoring checklist for a live Treasury futures hedge.
+**16.** The roll spread for Mar/Jun widens from 0.35 to 0.60. List three possible causes.
+
+**17.** Design a daily monitoring checklist for a live Treasury futures hedge.
+
+**18.** A squeeze develops in the front-month CTD. Describe the impact on (a) basis trades, (b) roll spreads, (c) hedgers with delivery approaching.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Concept | Source |
 |---------|--------|
@@ -809,8 +1092,25 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 | Negative convexity of futures | Tuckman Ch 20 ("the contract is negatively convex") |
 | Exact pricing is "difficult" due to delivery options | Hull Ch 6 |
 | CTD switch requires hedge adjustment | Hull Ch 6 |
+| Timing option: early vs late delivery trade-off | Tuckman Ch 20 |
+| TYM0 case study data and narrative | Tuckman Ch 20 Tables 20.6-20.10 |
+| Multi-factor model considerations | Tuckman Ch 20 |
+| Basket rationale (prevent squeezes) | Tuckman Ch 20 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| Roll mechanics section | Extends Tuckman's carry/basis concepts to calendar spreads |
+| Roll P&L attribution | Logical extension of basis trade P&L framework |
+| Squeeze risk detailed mechanics | Extends Tuckman's brief mention with practical implications |
+| Historical notional coupon context | General fixed income knowledge (timing flagged as uncertain) |
+| Model selection decision framework table | Synthesizes Tuckman's model discussion into practical guidance |
+| Contract specifications table | General market knowledge (flagged as requiring verification) |
+| "Desk Reality" boxes | Practical insights extending book material |
+| Timing option decision framework | Structured presentation of Tuckman's discussion |
+
+### (C) Reasoned Inference (Derived from A and B)
 
 | Derived Result | Derivation Chain |
 |----------------|------------------|
@@ -819,8 +1119,9 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 | Futures DV01 $\approx \text{DV01}_{\text{CTD}}/cf$ | Differentiation of $F \approx P/cf$ with respect to yield |
 | Accrued cancels in cost of delivery | Algebraic: $(P + AI) - (cf \times F + AI) = P - cf \times F$ |
 | Net basis behaves like straddle near CTD | Tuckman's observation that rate moves in either direction increase net basis |
+| Roll derives from carry differential | Logical extension: roll is difference in two net bases, which depends on carry differential |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Item | Uncertainty |
 |------|-------------|
@@ -830,6 +1131,7 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 | Operational specialness bounds | Tuckman discusses conceptually but precise bounds are contract/market specific |
 | Current standard contract specs (2Y/5Y/10Y/Ultra) | Exchange rules evolve; I'm not sure without current rulebook |
 | Historical notional coupon (was 8%, now 6%) | I'm not sure exactly when the change occurred without additional verification |
+| Specific recent squeeze episodes | Would need current market data to identify recent examples |
 
 ---
 

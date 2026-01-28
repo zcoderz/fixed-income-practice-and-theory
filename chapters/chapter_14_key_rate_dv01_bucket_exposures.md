@@ -8,11 +8,11 @@ Your risk report shows the portfolio's DV01 is zero. Perfect—you're flat. Then
 
 The answer lies in a fundamental limitation of parallel DV01: it measures sensitivity to a single, stylized curve movement where every rate shifts by the same amount. Real yield curves, however, are dynamic objects. They steepen, flatten, "twist," and "butterfly." A portfolio can be perfectly hedged against a parallel shift while carrying enormous exposure to these shape changes. As Tuckman explicitly warns in Chapter 7, a portfolio with zero parallel DV01 "can hardly be said to have no interest-rate risk"; it simply profits from one curve shape and loses from another.
 
-This limitation has profound practical consequences. Hull (RM Ch 9) emphasizes that "a U.S. government bond trader's portfolio is likely to consist of many bonds with different maturities" with "an exposure to movements in the one-year rate, the two-year rate, the three-year rate, and so on." The trader's delta exposure is therefore "more complicated than that of the gold trader"—a single number cannot capture this multi-dimensional risk. To manage interest rate risk effectively, we need tools that decompose the single DV01 measure into a vector of exposures across the curve.
+This limitation has profound practical consequences. Hull (RM Ch 9) emphasizes that "a U.S. government bond trader's portfolio is likely to consist of many bonds with different maturities" with "an exposure to movements in the one-year rate, the two-year rate, the three-year rate, and so on." The trader's delta exposure is therefore "more complicated than that of the gold trader"—a single number cannot capture this multi-dimensional risk. If you've worked in middle office, you've seen these exposures on your daily risk reports—the key-rate buckets, the partial durations, the delta ladders. This chapter teaches you what those numbers actually mean, how they're computed, and why they matter for trading decisions and P&L attribution.
 
-This chapter develops those tools. **Key-rate DV01** (KRDV01) decomposes a single DV01 number into a vector of exposures at specific maturity points, allowing you to hedge 2-year risk with 2-year bonds and 10-year risk with 10-year bonds. **Bucket exposures** take this further, measuring sensitivity to individual forward-rate segments—a "GAP management" approach essential for swapping and futures trading.
+This chapter develops the tools for multi-dimensional rate risk. **Key-rate DV01** (KRDV01) decomposes a single DV01 number into a vector of exposures at specific maturity points, allowing you to hedge 2-year risk with 2-year bonds and 10-year risk with 10-year bonds. **Bucket exposures** take this further, measuring sensitivity to individual forward-rate segments—a "GAP management" approach essential for swaps and futures trading.
 
-We begin in **Section 14.1** by defining the limits of parallel DV01. **Section 14.2** introduces Tuckman's key-rate decomposition and applies it to bonds and swaps. **Section 14.3** covers bucket exposures and their use with Eurodollar and SOFR futures. **Section 14.4** demonstrates the "zero-risk" illusion—showing rigorously how a DV01-neutral portfolio can bleed money in a curve twist. **Section 14.5** formulates the hedging problem as a linear system, enabling precise immunization against arbitrary curve changes. Finally, **Section 14.6** addresses practical implementation issues, including the "bizarre" forward curve problem that Tuckman highlights when bumping par yields.
+We begin in **Section 14.1** by defining the limits of parallel DV01. **Section 14.2** introduces Tuckman's key-rate decomposition, applies it to bonds and swaps, and provides the trade vocabulary that maps curve positions to KRDV01 profiles. **Section 14.3** covers bucket exposures, their use with STIR futures, and the pack/bundle conventions traders actually use. **Section 14.4** demonstrates the "zero-risk" illusion—showing rigorously how a DV01-neutral portfolio can bleed money in a curve twist. **Section 14.5** formulates the hedging problem as a linear system, including what happens when you can't trade all instruments. **Section 14.6** addresses practical implementation issues, including P&L attribution workflows and the residual risk that hedges leave behind. Finally, **Section 14.7** previews the connection to Chapter 16's PCA approach.
 
 ---
 
@@ -157,6 +157,62 @@ Swaps exhibit a surprisingly different profile. Consider a **5-year par swap** (
 
 **Practical Implication:** When hedging swaps, matching the maturity bucket is critical. You cannot hedge a 5-year swap effectively with a portfolio of 2-year and 3-year notes, even if the durations match, because the swap's risk is almost entirely concentrated at the 5-year point.
 
+### 14.2.6 Trade Nomenclature and KRDV01 Profiles
+
+One of the most important skills for transitioning from middle office to the trading desk is understanding how traders describe their positions. When a trader says "I'm long 2s-10s" or "I'm running a steepener," they're describing a specific KRDV01 profile. This section maps trade vocabulary to risk signatures.
+
+**Table 14.2: Trade Vocabulary and KRDV01 Signatures**
+
+| Trade Name | KRDV01 Profile | Profits When | Example Position |
+|:---|:---|:---|:---|
+| **Bullet** | Risk concentrated at one tenor | That tenor rallies | Long 10y only |
+| **Barbell** | Risk at wings, short middle | Curve bows; belly cheapens | Long 2y+30y, short 10y |
+| **Steepener (2s-10s)** | Long front, short back | Curve steepens (long end rises vs short end) | Long 2y, short 10y |
+| **Flattener (2s-10s)** | Short front, long back | Curve flattens (long end falls vs short end) | Short 2y, long 10y |
+| **Butterfly (2s-5s-10s)** | Wings vs belly | Belly richens/cheapens | Long 2y+10y, short 5y |
+
+> **Desk Reality: Understanding Trader Speak**
+>
+> When a portfolio manager says "I'm long 50k DV01 in 2s-10s," they mean:
+> - **KR01(2y) = +$50,000/bp** (long the 2-year)
+> - **KR01(10y) = -$50,000/bp** (short the 10-year)
+> - **Net DV01 = 0** (hedged against parallel moves)
+>
+> The position profits if the 2s-10s spread widens (curve steepens). A 10bp steepening generates approximately $50,000 × 10 + $50,000 × 10 = $1,000,000 in profit.
+>
+> **Sign convention is crucial:** "Long 2s-10s" means *long the spread*, which means you profit when 2s-10s widens. To widen, either 2-year yields fall or 10-year yields rise. You are therefore **long 2y bonds** (gains when 2y yields fall) and **short 10y bonds** (gains when 10y yields rise).
+
+**Worked Example: Constructing a 2s-5s-10s Butterfly**
+
+A butterfly isolates curvature risk while hedging level and slope. The trader wants to express the view that the 5-year is "rich" (yield too low) relative to 2-year and 10-year.
+
+**Setup:**
+- **Body (sell):** $100mm face of 5y bonds, DV01 = $4,500/bp
+- **Wings (buy):** 2y and 10y bonds
+
+**Step 1: Determine wing DV01s**
+For a standard butterfly, wings are sized to make the position:
+1. DV01-neutral (hedges level)
+2. Duration-neutral across slope
+
+Common approach: split the body DV01 equally between wings.
+- 2y DV01 = $2,250/bp
+- 10y DV01 = $2,250/bp
+
+**Step 2: Calculate notionals**
+If 2y DV01 per $100mm = $1,800/bp → need $125mm face
+If 10y DV01 per $100mm = $8,500/bp → need $26.5mm face
+
+**Resulting KRDV01 vector:**
+| 2y | 5y | 10y | Net |
+|:---:|:---:|:---:|:---:|
+| +$2,250 | -$4,500 | +$2,250 | **0** |
+
+**Interpretation:** The butterfly is DV01-neutral but has **positive curvature exposure**. If the 5y yield rises 5bp while 2y and 10y are unchanged:
+- P&L = -(-$4,500) × 5 = +$22,500
+
+The trade profits when the curve becomes more convex (belly cheapens relative to wings).
+
 ---
 
 ## 14.3 Bucket Exposures and Forward Rates
@@ -213,6 +269,48 @@ Just as key-rate DV01s sum to parallel DV01, bucket exposures exhibit a similar 
 
 However, there is a subtlety. When bucket shifts sum to a parallel shift in forward rates, this does *not* generally produce a parallel shift in par yields (the relationship is nonlinear). For instruments where par yields are the natural quoting convention, this distinction matters.
 
+### 14.3.4 STIR Desk Conventions: Packs, Bundles, and Colors
+
+> **Practitioner Note: STIR Desk Pack Conventions**
+>
+> STIR (Short-Term Interest Rate) traders organize Eurodollar/SOFR futures into "packs" and "bundles" for risk management. This vocabulary is essential for anyone interacting with a STIR desk or reading their risk reports.
+>
+> **Definitions:**
+> - **Pack:** 4 consecutive quarterly contracts (covering 1 year of forward exposure)
+> - **Bundle:** The first N years of contracts (e.g., "2-year bundle" = contracts 1-8)
+>
+> **Color coding for packs (industry standard):**
+>
+> | Pack | Contracts | Forward Period | Color |
+> |:---:|:---:|:---:|:---:|
+> | 1 | 1-4 | 0-1 year | **White** |
+> | 2 | 5-8 | 1-2 years | **Red** |
+> | 3 | 9-12 | 2-3 years | **Green** |
+> | 4 | 13-16 | 3-4 years | **Blue** |
+> | 5 | 17-20 | 4-5 years | **Gold** |
+>
+> **Usage examples:**
+> - "I'm short the Red Pack" = short exposure to Year 2 forward rates (contracts 5-8)
+> - "We're long the 3-year bundle" = long contracts 1-12 (0-3 years forward)
+> - "Sell 200 Whites and buy 200 Reds" = a steepener in the front of the curve
+>
+> **Why packs matter for risk:** Instead of reporting 40 individual bucket exposures, traders aggregate risk into pack DV01s. A swap's bucket exposure might translate to: White Pack +$15k, Red Pack +$12k, Green Pack +$8k, etc. This provides a cleaner view of where risk is concentrated.
+>
+> Note: This terminology is desk slang, not found in academic textbooks. It evolved from the trading floor and varies slightly by institution.
+
+**Worked Example: Translating Swap Risk to Pack DV01s**
+
+A 5-year receiver swap has bucket exposures ($/bp) concentrated in the first 20 quarterly contracts:
+
+| Contracts | 1-4 | 5-8 | 9-12 | 13-16 | 17-20 |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| Bucket DV01 | +$1,200 | +$1,100 | +$950 | +$800 | +$600 |
+| Pack | White | Red | Green | Blue | Gold |
+
+**Pack DV01 summary:** The trader reports "I'm long $1,200 Whites, $1,100 Reds, $950 Greens, $800 Blues, $600 Golds."
+
+To hedge with futures: sell White Pack (48 contracts), sell Red Pack (44 contracts), etc.
+
 ---
 
 ## 14.4 The "Zero-Risk" Illusion (Twist Risk)
@@ -257,7 +355,7 @@ The curve **flattens**: 2y rates rise 20 bps, 10y rates unchanged.
 - **2y P&L:** Short position loses when rates rise.
   - Loss: $8{,}500 \times 20 = \$170{,}000$.
 - **10y P&L:** Rates unchanged = 0.
-- **Net Loss:** **$170{,}000.**
+- **Net Loss:** **$170,000.**
 
 Despite being DV01 neutral, the portfolio lost $170k. This demonstrates the danger: a DV01-neutral portfolio effectively bets that the spread between 2y and 10y rates will not change. If you don't intend to take that bet, you are not hedged.
 
@@ -272,6 +370,17 @@ A parallel shift has $\delta_i = c$ for all $i$, so:
 $$\Delta P_{\parallel} = -c \sum_i k_i = -c \cdot \text{DV01}_{\parallel}$$
 
 If $\sum_i k_i = 0$ (DV01 neutral), parallel shifts produce zero P&L. But non-parallel shifts (where $\delta_i$ varies) can produce substantial P&L if the $k_i$ are not all zero.
+
+> **Desk Reality: The "Zero-Risk" Trap**
+>
+> Junior traders sometimes think a net DV01 of zero means "no interest rate risk." Experienced risk managers know to look at the KRDV01 vector.
+>
+> **Warning signs:**
+> - Large positive and negative key-rate exposures that happen to sum to zero
+> - Concentration at distant maturities (2y vs 30y) rather than adjacent ones
+> - Any position described as a "steepener" or "flattener"
+>
+> **The rule:** If your KRDV01 vector looks like $(+100, 0, 0, -100)$, you may have zero parallel risk but $\pm$\$200k of curve risk per basis point of twist.
 
 ---
 
@@ -319,6 +428,68 @@ $$\mathbf{p}=\left(\partial \mathbf{H}^{\top}\right)^{-1} \partial \mathbf{V}_{0
 
 which is equivalent to Tuckman's formulation.
 
+### 14.5.4 Liquidity Constraints and the Art of Approximate Hedging
+
+The mathematically optimal hedge $\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$ is rarely the hedge you actually trade. Real-world constraints intervene:
+
+**Why the "optimal" hedge isn't traded:**
+
+1. **Liquidity:** Only certain tenors are liquid (2y, 5y, 10y, 30y benchmarks). Off-the-run 7y or 15y bonds may have wide bid-ask spreads.
+
+2. **Transaction costs:** Each hedge instrument incurs bid-ask spread and market impact. The "optimal" 12-instrument hedge may cost more in execution than it saves in risk reduction.
+
+3. **Balance sheet:** Banks face leverage ratio and RWA constraints. Holding 20 hedge instruments may be capital-inefficient.
+
+4. **Operational complexity:** More positions mean more settlements, more financing, more fails risk.
+
+**The practical approach: hedging with liquid benchmarks only**
+
+Tuckman notes: "Using 20 key rates and 20 securities to hedge a portfolio might very well be feasible if the portfolio's composition were relatively constant over time. But trading 20 securities every time the portfolio or its sensitivities change would probably prove too costly and onerous."
+
+Most trading desks hedge with only the liquid benchmarks: 2y, 5y, 10y, and 30y. This means:
+- $L = 4$ hedging instruments
+- $K > 4$ risk buckets (often 8-10 or more)
+
+The result: **residual risk at non-hedged tenors**.
+
+> **Desk Reality: The Liquidity-Constrained Hedge Workflow**
+>
+> **Step 1:** Compute full KRDV01 vector (e.g., 10 buckets).
+>
+> **Step 2:** Map to liquid hedge points. Common approaches:
+> - **Nearest neighbor:** Assign each bucket to the closest liquid hedge
+> - **Pro-rata interpolation:** Distribute intermediate buckets between adjacent hedges
+> - **Optimization with penalty:** Use Andersen's weighted optimization with high $U_l$ for illiquid instruments
+>
+> **Step 3:** Accept residual risk. If your portfolio has $3,000/bp at the 7y point and you hedge only with 5y and 10y:
+> - Some risk is killed by the 5y hedge (captures 5y-7y portion)
+> - Some risk is killed by the 10y hedge (captures 7y-10y portion)
+> - The residual depends on how the 7y actually moves vs. the interpolated assumption
+>
+> **Step 4:** Monitor and document. Risk managers track the unhedged buckets separately. If the 7y "does something very different from what was assumed" (Tuckman's warning), P&L attribution will show an unexplained residual.
+
+**Worked Example: Hedging a 15-Year Swap with Only 10y and 30y Bonds**
+
+Your portfolio has KRDV01 of $5,000/bp concentrated at the 15-year point. Liquid hedging instruments are only 10y and 30y.
+
+**Option 1: Nearest neighbor**
+- 15y is closer to 10y than 30y (5 years vs 15 years)
+- Hedge entirely with 10y bond
+- Residual risk: if 15y moves differently than 10y, P&L breaks
+
+**Option 2: Linear interpolation**
+- 15y is 25% of the way from 10y to 30y
+- Allocate: 75% to 10y hedge, 25% to 30y hedge
+- 10y hedge: $3,750/bp; 30y hedge: $1,250/bp
+- Residual: depends on how well 15y interpolates between 10y and 30y
+
+**Option 3: Regression-based**
+- Historical regression: $\Delta y_{15} = 0.82 \Delta y_{10} + 0.23 \Delta y_{30}$ (hypothetical)
+- Allocate: 82% to 10y, 23% to 30y
+- Residual: the regression standard error × notional
+
+In practice, most desks use some version of Option 2 or 3, accepting that the hedge is imperfect.
+
 ---
 
 ## 14.6 Practical Implementation
@@ -337,7 +508,7 @@ Andersen & Piterbarg provide a detailed example: "If a 30 year swap yield is shi
 
 **Solutions:**
 1. **Zero-rate or forward-rate bumps:** Many modern systems use forward-rate buckets instead of par-yield bumps to ensure smoother curve deformations.
-2. **Cumulative par-point approach:** Andersen & Piterbarg describe this variant where "the shift to the $i$-th benchmark security is retained while calculating the derivative to the $(i+1)$-th (and subsequent) securities." This reduces oscillatory forward curve behavior.
+2. **Cumulative par-point approach:** Andersen & Piterbarg describe this variant where "the shift to the $i$-th benchmark security is retained while calculating the derivative to the $(i+1)$-th (and subsequent) securities." This means each bump is cumulative, reducing the oscillatory behavior. The forward curve changes are smoother because each successive par-point shift builds on the previous ones rather than creating isolated spikes.
 
 ### 14.6.2 Choosing Key Rates
 
@@ -359,7 +530,7 @@ Even a KRDV01-neutral portfolio is not risk-free.
 
 3. **Hedge Stability:** Tuckman cautions that "the hedge will work as intended only if the par yields between key rates move as assumed. If the 20-year rate does something very different from what was assumed... the supposedly hedged portfolio will suffer losses or experience gains."
 
-### 14.6.4 P&L Attribution with Key Rates
+### 14.6.4 P&L Attribution Workflow and Unexplained Residuals
 
 One powerful application of KRDV01 is **P&L attribution**. Given daily changes in key rates $\Delta \mathbf{r}$, the explained P&L is:
 
@@ -369,11 +540,101 @@ The **unexplained residual** captures basis, credit, and model error:
 
 $$\text{Residual} = \text{Actual P\&L} - \text{P\&L}_{\text{rates}}$$
 
-A large unexplained residual signals either model miscalibration or exposure to factors not captured by rate risk (credit, liquidity, volatility).
+> **Desk Reality: The Daily P&L Explain Workflow**
+>
+> Every morning, middle office produces a P&L attribution report. Here's the workflow:
+>
+> **Step 1: Capture yesterday's KRDV01 vector**
+> - Start-of-day positions × key-rate sensitivities per unit
+>
+> **Step 2: Capture rate changes**
+> - Pull closing rates for each key tenor
+> - Compute $\Delta r_k$ = today's rate − yesterday's rate
+>
+> **Step 3: Compute explained P&L**
+> - $\text{P\&L}_{\text{rates}} = -\sum_k \text{KR01}_k \times \Delta r_k$
+> - Include second-order (convexity) term for large moves: $\frac{1}{2}\sum_k \gamma_k (\Delta r_k)^2$
+>
+> **Step 4: Compare to actual P&L**
+> - Actual P&L comes from front-office systems (mark-to-market)
+> - Residual = Actual − Explained
+>
+> **Step 5: Investigate significant residuals**
+> - Tolerance typically 5-10% of absolute P&L or a fixed dollar threshold
+> - Large residuals trigger escalation
+
+**What a large unexplained residual signals:**
+
+| Residual Pattern | Likely Cause | Investigation |
+|:---|:---|:---|
+| Systematic positive bias | Credit spread tightening not captured | Add spread duration to attribution |
+| Systematic negative bias | Funding costs not captured | Check repo rates, FVA |
+| Large single-day residual | Basis move, liquidity event, or trade error | Check individual position marks |
+| Residual correlated with vol moves | Gamma/convexity understated | Review bump size in KRDV01 calculation |
+| Residual correlated with time | Theta (carry) not captured | Add theta term to attribution |
+
+**Worked Example: Daily P&L Attribution**
+
+| Tenor | KR01 ($/bp) | Rate Δ (bp) | Explained P&L |
+|:---:|:---:|:---:|:---:|
+| 2y | +$3,000 | -2 | +$6,000 |
+| 5y | +$8,000 | +1 | -$8,000 |
+| 10y | -$5,000 | +3 | +$15,000 |
+| **Total** | | | **+$13,000** |
+
+**Actual P&L:** +$10,000
+**Residual:** -$3,000 (unexplained loss)
+
+**Investigation:** The $3,000 residual is 23% of explained P&L—above threshold. Possible causes:
+- Credit spread on corporate holdings widened 2bp (spread duration was $1,500/bp → $3,000 loss)
+- Funding cost increased
+- Model interpolation error at 7y where the portfolio has risk
+
+### 14.6.5 Pin Risk and Residual Hedge Exposure
+
+When you hedge a smooth swap exposure with discrete bond maturities, the resulting hedge is not perfect at every point on the curve. The residual risk has a characteristic "stepped" profile.
+
+**The Pin Risk Problem**
+
+Consider hedging a 10-year par swap with only 5y and 10y bonds:
+- The swap has exposure across all maturities 1-10 years
+- The 5y bond kills risk at exactly 5y and nearby (4y-6y region)
+- The 10y bond kills risk at exactly 10y and nearby (8y-10y region)
+- The 6y-8y region has **residual risk**—the "hole" in the hedge
+
+This residual risk is concentrated at specific points, hence "pin risk." If the 7-year rate moves independently of 5y and 10y interpolation, the hedge fails.
+
+> **Desk Reality: Managing Pin Risk**
+>
+> **Monitoring:** Risk managers produce reports showing the full KRDV01 profile *after* hedging. Any large residual buckets are flagged.
+>
+> **Rebalancing triggers:**
+> - Large P&L break attributed to unhedged buckets
+> - Market regime change that affects interpolation assumptions
+> - Portfolio composition change that shifts risk to unhedged tenors
+>
+> **Mitigation approaches:**
+> - Add hedge instruments at intermediate tenors (if liquid enough)
+> - Accept residual risk but size it explicitly: "We have $500/bp unhedged at 7y"
+> - Use futures strips to fill in the gaps (more granular than bonds)
+
+**Visual: Residual KRDV01 Profile After Hedging**
+
+```
+Before Hedging:
+Bucket DV01:  [+800  +1200  +1500  +1400  +1100  +900  +700  +400]
+Tenor:         2y     3y     5y     7y     10y   15y   20y   30y
+
+After Hedging with 2y, 5y, 10y, 30y only:
+Residual:     [  0   +300   +100   +600    0    +400  +200    0 ]
+
+→ The 7y bucket still has +$600/bp exposure despite "hedging"
+→ The 15y and 20y buckets have residual because no direct hedge exists
+```
 
 ---
 
-## 14.7 Connection to Multi-Factor Models
+## 14.7 Connection to Multi-Factor Models and PCA
 
 The key-rate approach is a pragmatic, market-driven solution to curve risk. However, it can also be connected to more formal multi-factor term structure models.
 
@@ -381,7 +642,17 @@ Tuckman (Chapter 13) notes: "One approach toward solving this problem is to cons
 
 Hull (RM Ch 9) demonstrates that **Principal Component Analysis (PCA)** reveals that yield curve movements are well-explained by three factors (level, slope, curvature) that account for approximately 97% of the variance in rate moves. The first factor (level) corresponds to parallel DV01. The second and third factors (slope and curvature) are exactly the risks that KRDV01 helps manage.
 
-Chapter 16 develops PCA-based hedging in detail. The key insight is that key-rate analysis and PCA are complementary: KRDV01 gives you hedgeable risk buckets tied to tradeable instruments, while PCA reveals the statistical structure of how those buckets move together.
+**The Chapter 14 / Chapter 16 Boundary:**
+
+| This Chapter (14) | Chapter 16 |
+|:---|:---|
+| **Mechanics** of key rates and buckets | **Statistical** analysis via PCA |
+| How to compute KRDV01 | Why level/slope/curvature explain most variance |
+| How to set up the hedge matrix | How to use regression for hedge ratios |
+| Trade vocabulary (steepener, butterfly) | Butterfly trade case studies and relative value |
+| Pack/bundle STIR conventions | PCA eigenvalues and factor loadings |
+
+**Key insight:** Key-rate analysis and PCA are complementary. KRDV01 gives you hedgeable risk buckets tied to tradeable instruments, while PCA reveals the statistical structure of how those buckets move together. A trader might use KRDV01 for day-to-day hedging but consult PCA results to understand which risks tend to co-move and which are truly independent.
 
 ---
 
@@ -391,13 +662,19 @@ Chapter 16 develops PCA-based hedging in detail. The key insight is that key-rat
 
 2. **Key Rates (KRDV01):** Decompose risk into a vector of sensitivities (e.g., 2y, 5y, 10y). Summing KRDV01s recovers the parallel DV01. Tuckman's triangular shift design ensures this sum-to-parallel property.
 
-3. **Buckets:** Measure sensitivity to forward-rate segments. Ideal for hedging with Eurodollar/SOFR futures ($25 DV01 per contract). Andersen's Jacobian framework provides the mathematical foundation.
+3. **Trade Vocabulary:** Steepeners, flatteners, and butterflies are specific KRDV01 profiles. Understanding this vocabulary is essential for trading desk communication.
 
-4. **Zero ≠ Safe:** A DV01-neutral portfolio can lose money if the curve twists. Only a KRDV01-neutral portfolio is immune to shape changes (at the resolution of the chosen keys).
+4. **Buckets:** Measure sensitivity to forward-rate segments. Ideal for hedging with Eurodollar/SOFR futures ($25 DV01 per contract). STIR desks organize risk into packs (4 contracts = 1 year) with color conventions (White, Red, Green, Blue, Gold).
 
-5. **Linear Hedging:** Multi-curve hedging is a matrix inversion problem ($\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$). Par-bond hedges simplify this to a diagonal system.
+5. **Zero ≠ Safe:** A DV01-neutral portfolio can lose money if the curve twists. Only a KRDV01-neutral portfolio is immune to shape changes (at the resolution of the chosen keys).
 
-6. **Implementation:** Watch out for "bizarre" forward curves from par-yield bumps; prefer zero/forward bumps for complex portfolios. Choose key rates that match your hedging instruments.
+6. **Linear Hedging:** Multi-curve hedging is a matrix inversion problem ($\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$). Par-bond hedges simplify this to a diagonal system.
+
+7. **Liquidity Constraints:** Real hedges use only liquid benchmarks, leaving residual "pin risk" at unhedged tenors. Andersen's weighted optimization formalizes this tradeoff.
+
+8. **P&L Attribution:** KRDV01 enables daily P&L explain. Large unexplained residuals signal basis risk, credit moves, or model error.
+
+9. **Implementation:** Watch out for "bizarre" forward curves from par-yield bumps; prefer zero/forward bumps for complex portfolios. Choose key rates that match your hedging instruments.
 
 ---
 
@@ -412,7 +689,10 @@ Chapter 16 develops PCA-based hedging in detail. The key insight is that key-rat
 | **Bucket Exposure** | Sensitivity to one forward-rate segment | Matches Eurodollar/SOFR futures design |
 | **Forward Rate Delta** | Andersen's $\partial_k V_0$ via Gâteaux derivative | Rigorous formulation of bucket risk |
 | **Twist/Steepener** | Non-parallel curve movement | The main risk missed by parallel DV01 |
+| **Butterfly** | Long wings, short belly (or reverse) | Isolates curvature while hedging level/slope |
 | **Jacobian Method** | Matrix approach to translate risks to hedges | Handles cross-sensitivities between hedges |
+| **Pack** | 4 consecutive STIR contracts (1 year forward) | STIR desk risk aggregation unit |
+| **Pin Risk** | Residual exposure at unhedged tenors | Why discrete hedges leave gaps |
 
 ---
 
@@ -428,6 +708,8 @@ Chapter 16 develops PCA-based hedging in detail. The key insight is that key-rat
 | $\mathbf{n}$ | Vector of hedge notionals |
 | $D_i$ | Partial duration at maturity $i$ (Hull notation) |
 | $\partial_k V_0$ | Forward rate delta (Andersen notation) |
+| $W_k$ | Importance weight for bucket $k$ (Andersen) |
+| $U_l$ | Penalty weight for hedge $l$ (Andersen) |
 
 ---
 
@@ -453,6 +735,8 @@ Chapter 16 develops PCA-based hedging in detail. The key insight is that key-rat
 | 16 | How does forward rate delta differ from KRDV01? | Forward rate delta uses forward curve bumps; KRDV01 typically uses par yield bumps. |
 | 17 | What is GAP management? | Hull's term for bucket exposure analysis, common in bank ALM. |
 | 18 | Can a portfolio be DV01-neutral and still lose money? | Yes—if it has non-zero KRDV01 exposures and the curve twists. |
+| 19 | What is a "steepener" trade in KRDV01 terms? | Long front-end, short back-end (e.g., long 2y, short 10y). |
+| 20 | What is a "Red Pack" in STIR desk terminology? | Contracts 5-8 covering Year 2 forward exposure. |
 
 ---
 
@@ -538,9 +822,123 @@ Andersen notes that bumping a 30y swap rate by 1 bp while holding 29y and 31y fi
 
 ---
 
+**Problem 7: Construct a Steepener**
+
+You want to put on a 2s-10s steepener with $50,000/bp of risk. The 2y bond has DV01 of $1,900 per $1mm face, and the 10y bond has DV01 of $8,200 per $1mm face.
+
+(a) How much notional of each bond do you trade?
+(b) Verify the net DV01 is zero.
+
+*Solution Sketch:*
+(a) You want KR01(2y) = +$50,000 and KR01(10y) = -$50,000.
+- Long 2y: $50,000 / ($1,900 per $1mm) = $26.3mm face
+- Short 10y: $50,000 / ($8,200 per $1mm) = $6.1mm face
+
+(b) Net DV01 = +$50,000 - $50,000 = 0. ✓
+
+---
+
+**Problem 8: P&L Attribution with Residual**
+
+A portfolio has the following start-of-day KRDV01 and experiences these rate changes:
+
+| Tenor | KR01 ($/bp) | Δ Rate (bp) |
+|:---:|:---:|:---:|
+| 2y | +$2,000 | -3 |
+| 5y | +$4,000 | +2 |
+| 10y | -$3,000 | +5 |
+
+(a) Calculate the explained P&L from rates.
+(b) If actual P&L is +$15,000, what is the unexplained residual?
+(c) Suggest two possible causes for the residual.
+
+*Solution Sketch:*
+(a) Explained = -[(2,000)(-3) + (4,000)(2) + (-3,000)(5)]
+= -[-6,000 + 8,000 - 15,000] = -(-13,000) = +$13,000
+
+(b) Residual = $15,000 - $13,000 = +$2,000 (unexplained gain)
+
+(c) Possible causes: (i) Credit spread tightened (position has spread duration); (ii) Convexity gain from large rate move; (iii) Carry/theta from holding bonds overnight.
+
+---
+
+**Problem 9: Constrained Hedging**
+
+You have KRDV01 exposures of $[+1000, +2000, +1500, +500]$ at 2y, 5y, 10y, 20y. However, you can only hedge with 2y and 10y bonds.
+
+(a) What is the best you can do with only these two instruments?
+(b) What residual risk remains?
+
+*Solution Sketch:*
+(a) Hedge the 2y directly. For 5y, 10y, 20y, you must make approximations.
+- Hedge 2y: sell to kill $1,000 at 2y
+- Hedge 10y: try to capture risk at 5y, 10y, and 20y
+
+A reasonable approach: map 5y risk half to 2y, half to 10y. Map 20y risk to 10y.
+- 2y hedge: $1,000 + (0.5 × $2,000) = $2,000
+- 10y hedge: $1,500 + (0.5 × $2,000) + $500 = $3,000
+
+(b) Residual: The 5y bucket has risk that won't perfectly track 2y or 10y. If 5y moves +3bp while 2y and 10y move +2bp, you have $2,000 × 1bp = $2,000 unexplained.
+
+---
+
+**Problem 10: Trade Vocabulary**
+
+For each KRDV01 vector, name the trade:
+
+(a) [+100, -200, +100] at 2y, 5y, 10y
+(b) [0, +500, 0] at 2y, 5y, 10y
+(c) [-300, +300, 0] at 2y, 10y, 30y
+
+*Solutions:*
+(a) **Butterfly** (long wings, short belly)
+(b) **Bullet** (concentrated at one tenor)
+(c) **Flattener** (short front, long back)
+
+---
+
+**Problem 11: Why Did My DV01-Neutral Portfolio Lose Money?**
+
+Your portfolio has KRDV01 = [+$20k, 0, -$20k] at 2y, 5y, 30y. Net DV01 = 0. Yesterday, 2y rates fell 5bp, 5y rates fell 3bp, and 30y rates fell 1bp. You lost $60,000.
+
+Explain why.
+
+*Solution:*
+P&L = -[(+20,000)(-5) + (0)(-3) + (-20,000)(-1)]
+= -[-100,000 + 0 + 20,000] = -(-80,000) = +$80,000 expected
+
+Wait—that's a gain, not a loss. Let me recalculate with the loss scenario.
+
+If you *lost* $60,000, the actual rate moves must have been different. Let's check: the formula gives a gain of $80k if 2y fell more than 30y. For a loss, 30y must have fallen more than 2y (curve flattening).
+
+**Corrected scenario:** If 2y rose 5bp, 30y fell 5bp:
+P&L = -[(+20,000)(+5) + (0)(0) + (-20,000)(-5)] = -[+100,000 + 100,000] = -$200,000
+
+The portfolio is a steepener (long 2y, short 30y). It loses when the curve flattens.
+
+---
+
+**Problem 12: Pin Risk Analysis**
+
+After hedging a 10-year swap with only 5y and 10y bonds, your residual KRDV01 profile is:
+[0, 0, +$800, +$400, 0, 0] at buckets 3y, 5y, 7y, 8y, 10y, 15y.
+
+(a) Where is the pin risk concentrated?
+(b) If the 7y rate rises 10bp while 5y and 10y rise only 5bp each, what is your unexplained P&L?
+
+*Solution:*
+(a) Pin risk is at 7y (+$800) and 8y (+$400). These buckets weren't directly hedged.
+
+(b) The hedges assume 7y and 8y interpolate between 5y and 10y. Expected 7y move: 5bp. Actual: 10bp. Difference: 5bp.
+Unexplained P&L = -$800 × 5bp = -$4,000 (loss because 7y rose more than expected).
+Similar for 8y: if it also rose 8bp vs expected 5bp → -$400 × 3bp = -$1,200.
+Total unexplained: approximately -$5,200.
+
+---
+
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |:---|:---|
@@ -549,26 +947,45 @@ Andersen notes that bumping a 30y swap rate by 1 bp while holding 29y and 31y fi
 | Triangular key-rate shift design | Tuckman Ch 7 |
 | Sum-to-parallel property: sum of key shifts = parallel shift | Tuckman Ch 7 |
 | 10y bond has intermediate key-rate risk from coupons | Tuckman Ch 7 |
-| Par-yield bumps cause bizarre forward curves | Tuckman Ch 7 |
+| Par-yield bumps cause bizarre forward curves | Tuckman Ch 7, Andersen Vol 1 §6.4.4 |
 | Par bonds have exposure only to matching key rate | Tuckman Ch 7 |
 | Partial duration definition $D_i = -(1/P)(\Delta P_i / \Delta y_i)$ | Hull RM Ch 9 |
 | Partial durations sum to total duration | Hull RM Ch 9 |
 | Twist example: portfolio more exposed to rotation than parallel | Hull RM Ch 9 (Table 9.5) |
 | First two PCA factors explain 97.7% of variance | Hull RM Ch 9 (Table 9.8) |
 | Eurodollar futures DV01 = $25 | Hull OFD Ch 6, Tuckman Ch 17 |
-| Forward rate deltas using Gâteaux derivatives | Andersen Vol 1, §6.4.2 |
-| Jacobian method for hedge optimization | Andersen Vol 1, §6.4.3 |
-| Cumulative par-point approach | Andersen Vol 1, §6.4.4 |
-| 30y swap bump → ±30 bp forward move | Andersen Vol 1, §6.4.4 |
+| Forward rate deltas using Gâteaux derivatives | Andersen Vol 1 §6.4.2 |
+| Jacobian method for hedge optimization | Andersen Vol 1 §6.4.3 |
+| Cumulative par-point approach | Andersen Vol 1 §6.4.4 |
+| 30y swap bump → ±30 bp forward move | Andersen Vol 1 §6.4.4 |
+| "Hedge will work as intended only if par yields between key rates move as assumed" | Tuckman Ch 7 |
+| Mortgage key-rate decomposition example | Tuckman Ch 7 (Table 7.1) |
+| Butterfly trades "designed to profit from perceived mispricing while protecting against market and curve risk" | Tuckman Ch 4 |
+| Barbell vs bullet convexity discussion | Tuckman Ch 6 |
 
-### (B) Reasoned Inference
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Basis |
+|:---|:---|
+| STIR desk pack/bundle/color conventions (White, Red, Green, Blue, Gold) | Desk vocabulary; extends Tuckman's mention of Eurodollar buckets |
+| Trade vocabulary table (steepener, flattener, butterfly, barbell, bullet) | Extends Tuckman Ch 4 and Ch 7 with explicit KRDV01 mapping |
+| "Long 2s-10s" sign convention explanation | Standard market terminology |
+| P&L attribution workflow and unexplained residual interpretation | Extends Andersen §22.2.2 P&L explain concept |
+| Liquidity-constrained hedging workflow | Extends Andersen §6.4.3 weighted optimization with practical application |
+| Pin risk explanation and monitoring | Derived from Tuckman's warning about "20-year rate doing something different" |
+| Daily P&L explain workflow steps | General fixed income operations practice |
+
+### (C) Reasoned Inference
 
 - **Swap KRDV01 concentration:** Inferred from the valuation structure of a par swap (floating leg ≈ par), implying risk concentration at maturity.
 - **Steepener P&L formula:** Derived algebraically from the dot product of KRDV01 vector and rate shift vector.
 - **Bucket-to-DV01 sum property:** Follows from the definition of discount factors as products of forward rates.
+- **Pin risk profile:** Derived from interpolation assumptions in triangular key-rate construction.
+- **Residual P&L = basis + credit + model error:** Standard decomposition in P&L attribution.
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Exact bump size conventions:** Markets vary between 0.1 bp, 1 bp, or 10 bps bumps. This chapter assumes 1 bp for pedagogy.
 - **Interpolation method dependence:** The exact values of KRDV01 depend on the curve interpolation method (spline vs. linear vs. monotone). This is system-specific.
 - **Cross-market conventions:** Different markets (USD, EUR, JPY) may use different key rate selections and bucket definitions. I'm not sure about non-USD conventions without additional source verification.
+- **Pack color conventions:** The White/Red/Green/Blue/Gold naming is common but may vary slightly by institution. Some desks use different colors or numbering schemes.

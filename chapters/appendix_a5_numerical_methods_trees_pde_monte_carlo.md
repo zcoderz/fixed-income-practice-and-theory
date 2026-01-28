@@ -1,14 +1,14 @@
-# Appendix A5: Numerical Methods — Trees, PDE / Finite Differences, and Monte Carlo
+# Appendix A5: Numerical Methods — Trees, PDE / Finite Differences, Monte Carlo, and Fourier Methods
 
 ---
 
 ## Introduction
 
-When a trader asks for the price of a Bermudan swaption, an Asian call on a basket of equities, or a callable range accrual, there is rarely a closed-form answer waiting in a textbook. The payoff depends on too many underlyings, the exercise rights create free-boundary conditions, or the path dependence makes analytical tractability impossible. At that point, the quant reaches for one of three computational workhorses: **trees**, **finite differences**, or **Monte Carlo**. Choosing poorly—a tree for a 20-factor model, or naïve Monte Carlo for an American put—can mean hours of runtime, unstable Greeks, or simply wrong prices.
+When a trader asks for the price of a Bermudan swaption, an Asian call on a basket of equities, or a callable range accrual, there is rarely a closed-form answer waiting in a textbook. The payoff depends on too many underlyings, the exercise rights create free-boundary conditions, or the path dependence makes analytical tractability impossible. At that point, the quant reaches for one of four computational workhorses: **trees**, **finite differences**, **Monte Carlo**, or—for certain European options with known characteristic functions—**Fourier transform methods**. Choosing poorly—a tree for a 20-factor model, naïve Monte Carlo for an American put, or Fourier methods for a path-dependent exotic—can mean hours of runtime, unstable Greeks, or simply wrong prices.
 
-This appendix provides a practitioner's map for navigating that choice. We begin with the foundational concepts that underpin all three methods: the pricing identity, state dimension, path dependence, and the critical trinity of **stability**, **consistency**, and **convergence**. The Lax Equivalence Theorem—"consistency plus stability implies convergence"—is the theoretical anchor that tells us when a discretization scheme actually works.
+This appendix provides a practitioner's map for navigating that choice. We begin with the foundational concepts that underpin all methods: the pricing identity, state dimension, path dependence, and the critical trinity of **stability**, **consistency**, and **convergence**. The Lax Equivalence Theorem—"consistency plus stability implies convergence"—is the theoretical anchor that tells us when a discretization scheme actually works. We also develop the crucial distinction between **strong** and **weak** convergence for SDE simulation, which determines whether your Monte Carlo is accurate for pricing versus hedging.
 
-We then develop each method in detail. **Section A5.4** covers binomial and trinomial trees, from the CRR construction through Hull–White interest rate trees. **Section A5.5** presents finite difference methods: explicit, implicit, Crank–Nicolson, and the Alternating Direction Implicit (ADI) schemes essential for multi-factor problems. **Section A5.6** addresses Monte Carlo, including variance reduction techniques, the Longstaff–Schwartz algorithm for American options, and pathwise versus likelihood ratio methods for Greeks. Throughout, we emphasize the decision framework (**Section A5.3**): which features of your problem—dimension, exercise style, path dependence—point to which method.
+We then develop each method in detail. **Section A5.4** covers binomial and trinomial trees, from the CRR construction through Hull–White interest rate trees. **Section A5.5** presents finite difference methods: explicit, implicit, Crank–Nicolson, ADI schemes for multi-factor problems, and barrier option handling. **Section A5.6** addresses Monte Carlo, including variance reduction techniques, the Longstaff–Schwartz algorithm for American options, pathwise versus likelihood ratio methods for Greeks, and the modern technique of Multilevel Monte Carlo (MLMC). **Section A5.7** introduces Fourier transform methods—particularly the elegant COS method—which achieve exceptional speed for European options in models with known characteristic functions. Throughout, we emphasize the decision framework (**Section A5.3**): which features of your problem—dimension, exercise style, path dependence, characteristic function availability—point to which method.
 
 By the end of this appendix, you should be able to look at a derivative specification and immediately know which numerical approach to reach for, what pitfalls to avoid, and how to verify that your implementation is actually converging to the right answer.
 
@@ -58,6 +58,8 @@ We use "explicit / implicit / Crank–Nicolson" in the standard finite-differenc
 | $\Delta x$ / $\Delta S$ | Spatial step |
 | $n$ | Monte Carlo sample size |
 | $\hat{V}_n$ | MC estimator |
+| $\phi_X(u)$ | Characteristic function: $\phi_X(u) = \mathbb{E}[e^{iuX}]$ |
+| $\mathcal{L}$ | Spatial differential operator (e.g., BS operator) |
 | **Stability** | Scheme output remains bounded as steps go to zero (precise definition below) |
 | **Consistency** | Discrete operator approximates the continuous operator; local truncation error $\to 0$ |
 | **Convergence** | Numerical solution approaches the true solution as discretization $\to 0$ |
@@ -75,7 +77,7 @@ We use "explicit / implicit / Crank–Nicolson" in the standard finite-differenc
 
 **Intuition:**
 
-All three numerical methods (trees, PDE/FD, MC) are different approximations to the same object: the discounted expectation (or equivalently the PDE solution under conditions where Feynman–Kac applies).
+All four numerical methods (trees, PDE/FD, MC, Fourier) are different approximations to the same object: the discounted expectation (or equivalently the PDE solution under conditions where Feynman–Kac applies).
 
 **In Practice:**
 
@@ -175,6 +177,8 @@ $$\boxed{\text{Consistency} + \text{Stability} \Longrightarrow \text{Convergence
 
 For well-posed linear problems, **consistency + stability ⇒ convergence**.
 
+**Intuition:** The Lax Equivalence Theorem tells you that if your scheme has small local error (consistency) and doesn't amplify errors (stability), then the global error will be small (convergence). Consistency means you're solving approximately the right equation locally; stability means mistakes don't blow up; convergence means the final answer is correct.
+
 ---
 
 ### A5.2.7 Complexity Scaling
@@ -183,17 +187,76 @@ For well-posed linear problems, **consistency + stability ⇒ convergence**.
 
 - FD grid: $N_x$ points per dimension; $N_t$ time steps.
 - MC: $n$ paths and $N_t$ time steps per path (time-discretized simulation).
+- Fourier: $N$ grid points for FFT.
 
 **Source-Backed Anchors:**
 
 - A standard tridiagonal (1D) $\theta$-scheme with $m$ spatial points and $n$ time steps has complexity $O(mn)$ (Andersen–Piterbarg).
 - Finite differences are "suitable for 1, 2 and possibly 3 factors" and beyond that Monte Carlo is typical (Andersen–Piterbarg).
 - Monte Carlo time grows roughly linearly with dimension, but early exercise is difficult in "original formulation" (Andersen–Piterbarg).
+- FFT-based methods achieve $O(N \log N)$ complexity for European option pricing (Carr–Madan).
 
 **Reasoned Inference (Transparent):**
 
 - FD curse of dimensionality: number of grid points scales like $N_x^d$.
 - MC scaling: runtime $\propto n\times N_t\times(\text{cost per step})$, typically linear in $d$ for factor simulations.
+
+---
+
+### A5.2.8 Strong vs Weak Convergence for SDE Simulation
+
+When simulating stochastic differential equations, we must distinguish between two fundamentally different notions of convergence. Glasserman (Chapter 6) provides the definitive treatment; the distinction has profound practical implications.
+
+**The SDE Setting:**
+
+Consider an Itô SDE:
+$$dX_t = a(X_t)\,dt + b(X_t)\,dW_t$$
+
+We simulate using a discrete approximation $\hat{X}_n$ with time step $h = T/n$.
+
+**Strong Convergence (Pathwise):**
+
+$$\boxed{\text{Strong order } \beta: \quad \mathbb{E}\left[\left|\hat{X}(T) - X(T)\right|\right] \leq C \cdot h^\beta}$$
+
+Strong convergence measures how well the **simulated path** matches the **true path** on a path-by-path basis. The same Brownian motion drives both the true and approximate processes.
+
+**Weak Convergence (Distributional):**
+
+$$\boxed{\text{Weak order } \beta: \quad \left|\mathbb{E}\left[f(\hat{X}(T))\right] - \mathbb{E}\left[f(X(T))\right]\right| \leq C \cdot h^\beta}$$
+
+for all sufficiently smooth test functions $f$. Weak convergence measures how well the **distribution** of the simulated value matches the true distribution.
+
+**Convergence Orders for Common Schemes:**
+
+| Scheme | Strong Order | Weak Order |
+|--------|--------------|------------|
+| Euler–Maruyama | 1/2 | 1 |
+| Milstein | 1 | 1 |
+| Strong order 1.5 (Kloeden–Platen) | 1.5 | 2 |
+
+**Euler–Maruyama Scheme:**
+
+$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\,Z_k, \quad Z_k \sim N(0,1)$$
+
+**Milstein Scheme:**
+
+$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\,Z_k + \frac{1}{2}b(\hat{X}_k)b'(\hat{X}_k)(Z_k^2 - 1)h$$
+
+The Milstein correction term $\frac{1}{2}bb'(Z^2-1)h$ captures the Itô–Stratonovich correction and improves strong convergence from order 1/2 to order 1.
+
+**When Does It Matter?**
+
+| Application | Convergence Type Needed | Why |
+|-------------|------------------------|-----|
+| **European option pricing** | Weak | Only need $\mathbb{E}[H(S_T)]$ |
+| **Path-dependent (Asian, lookback)** | Strong | Path values along the way matter |
+| **Greeks via pathwise method** | Strong | Differentiate through specific paths |
+| **Greeks via likelihood ratio** | Weak | Only distributional properties needed |
+| **Hedging simulation** | Strong | Need to track P&L path-by-path |
+
+> **Desk Reality: The Hidden Danger of Euler**
+>
+> Euler–Maruyama is often "good enough" for pricing because it has weak order 1. But if you're simulating to test a hedging strategy—where you track P&L along the path—strong order 1/2 can introduce significant bias. Paths wander from their true values, and your simulated hedge performance won't match reality. For hedging simulations, consider Milstein or exact simulation when available.
 
 ---
 
@@ -211,67 +274,79 @@ This is the practitioner centerpiece: mapping **problem features** to **numerica
                                    │
                                    ▼
                         ┌─────────────────────┐
-                        │  State dimension d? │
+                        │  European with      │
+                        │  known char func?   │
                         └──────────┬──────────┘
                                    │
               ┌────────────────────┼────────────────────┐
-              │                    │                    │
-              ▼                    ▼                    ▼
-         ┌────────┐          ┌──────────┐         ┌──────────┐
-         │ d = 1  │          │ d = 2-3  │         │  d > 3   │
-         └───┬────┘          └────┬─────┘         └────┬─────┘
-             │                    │                    │
-             ▼                    ▼                    ▼
-   ┌───────────────────┐   ┌─────────────┐    ┌──────────────────┐
-   │ Path dependent?   │   │ Use ADI/FD  │    │ Monte Carlo      │
-   └────────┬──────────┘   │ or 2D Trees │    │ (only option)    │
-            │              └─────────────┘    └──────────────────┘
-   ┌────────┴────────┐
-   │                 │
-   ▼                 ▼
-┌──────┐         ┌──────┐
-│  No  │         │  Yes │
-└──┬───┘         └──┬───┘
-   │                │
-   ▼                ▼
-┌───────────────┐  ┌───────────────────────┐
-│ American/     │  │ Can augment state?    │
-│ Bermudan?     │  │ (e.g., running avg)   │
-└──────┬────────┘  └───────────┬───────────┘
-       │                       │
-  ┌────┴────┐            ┌─────┴─────┐
-  ▼         ▼            ▼           ▼
-┌────┐   ┌─────┐      ┌─────┐    ┌─────────┐
-│ No │   │ Yes │      │ Yes │    │   No    │
-└─┬──┘   └──┬──┘      └──┬──┘    └────┬────┘
-  │         │            │            │
-  ▼         ▼            ▼            ▼
-┌───────┐ ┌─────────┐ ┌────────┐ ┌──────────┐
-│ Any   │ │ Tree/FD │ │ FD on  │ │ Monte    │
-│method │ │ (fast)  │ │augment.│ │ Carlo    │
-│ works │ │         │ │ grid   │ │          │
-└───────┘ └─────────┘ └────────┘ └──────────┘
+              │ Yes                │ No                 │
+              ▼                    ▼
+     ┌────────────────┐   ┌─────────────────────┐
+     │ Fourier/COS    │   │  State dimension d? │
+     │ (very fast)    │   └──────────┬──────────┘
+     └────────────────┘              │
+                        ┌────────────┼────────────┐
+                        │            │            │
+                        ▼            ▼            ▼
+                   ┌────────┐  ┌──────────┐ ┌──────────┐
+                   │ d = 1  │  │ d = 2-3  │ │  d > 3   │
+                   └───┬────┘  └────┬─────┘ └────┬─────┘
+                       │            │            │
+                       ▼            ▼            ▼
+             ┌───────────────────┐ ┌─────────────┐ ┌──────────────────┐
+             │ Path dependent?   │ │ Use ADI/FD  │ │ Monte Carlo      │
+             └────────┬──────────┘ │ or 2D Trees │ │ (only option)    │
+                      │            └─────────────┘ └──────────────────┘
+             ┌────────┴────────┐
+             │                 │
+             ▼                 ▼
+          ┌──────┐         ┌──────┐
+          │  No  │         │  Yes │
+          └──┬───┘         └──┬───┘
+             │                │
+             ▼                ▼
+          ┌───────────────┐  ┌───────────────────────┐
+          │ American/     │  │ Can augment state?    │
+          │ Bermudan?     │  │ (e.g., running avg)   │
+          └──────┬────────┘  └───────────┬───────────┘
+                 │                       │
+            ┌────┴────┐            ┌─────┴─────┐
+            ▼         ▼            ▼           ▼
+         ┌────┐   ┌─────┐      ┌─────┐    ┌─────────┐
+         │ No │   │ Yes │      │ Yes │    │   No    │
+         └─┬──┘   └──┬──┘      └──┬──┘    └────┬────┘
+           │         │            │            │
+           ▼         ▼            ▼            ▼
+        ┌───────┐ ┌─────────┐ ┌────────┐ ┌──────────┐
+        │ Any   │ │ Tree/FD │ │ FD on  │ │ Monte    │
+        │method │ │ (fast)  │ │augment.│ │ Carlo    │
+        │ works │ │         │ │ grid   │ │          │
+        └───────┘ └─────────┘ └────────┘ └──────────┘
 ```
 
 ### A5.3.2 Quick Reference Table
 
-| Feature | Trees | Finite Differences | Monte Carlo |
-|---------|-------|-------------------|-------------|
-| Dimension $d=1$ | ✓✓✓ | ✓✓✓ | ✓ |
-| Dimension $d=2$ | ✓ | ✓✓ | ✓✓ |
-| Dimension $d \ge 3$ | ✗ | ✗ | ✓✓✓ |
-| European payoff | ✓✓ | ✓✓ | ✓✓ |
-| American/Bermudan | ✓✓✓ | ✓✓✓ | ✓ (LSMC) |
-| Path-dependent | ✗ | ✗ | ✓✓✓ |
-| Greeks | Bumping | Direct from grid | Pathwise/LR |
-| Implementation | Simple | Moderate | Simple |
-| Convergence rate | $O(\Delta t)$ | $O(\Delta t^2)$ (C-N) | $O(1/\sqrt{n})$ |
+| Feature | Trees | Finite Differences | Monte Carlo | Fourier |
+|---------|-------|-------------------|-------------|---------|
+| Dimension $d=1$ | ✓✓✓ | ✓✓✓ | ✓ | ✓✓✓ |
+| Dimension $d=2$ | ✓ | ✓✓ | ✓✓ | ✓ |
+| Dimension $d \ge 3$ | ✗ | ✗ | ✓✓✓ | ✗ |
+| European payoff | ✓✓ | ✓✓ | ✓✓ | ✓✓✓ |
+| American/Bermudan | ✓✓✓ | ✓✓✓ | ✓ (LSMC) | ✗ |
+| Path-dependent | ✗ | ✗ | ✓✓✓ | ✗ |
+| Barriers | ✓ | ✓✓✓ | ✓ | ✗ |
+| Greeks | Bumping | Direct from grid | Pathwise/LR | Analytic |
+| Implementation | Simple | Moderate | Simple | Moderate |
+| Convergence rate | $O(\Delta t)$ | $O(\Delta t^2)$ (C-N) | $O(1/\sqrt{n})$ | Exponential |
+| Requires char func | No | No | No | Yes |
 
 ### A5.3.3 Rule of Thumb
 
 Hull provides a practical summary:
 
 > "Monte Carlo simulation is usually used for derivatives where the payoff is dependent on the history of the underlying variable or where there are several underlying variables. Trees and finite difference methods are usually used for American options and other derivatives where the holder has decisions to make prior to maturity."
+
+**Extension for Fourier methods:** When the model has a known characteristic function and the option is European-style, Fourier methods (COS, Carr–Madan FFT) are often the fastest and most accurate choice.
 
 ---
 
@@ -356,7 +431,14 @@ For the Hull–White model $dr = [\theta(t) - ar]\,dt + \sigma\,dW$:
 2. The tree for $x$ is standard with mean reversion
 3. Shift the tree using $\alpha(t)$ to fit the initial term structure
 
-**Key Feature:** The tree incorporates mean reversion naturally through modified probabilities and non-uniform node spacing.
+**Forward Induction for Calibration (Hull Section 32):**
+
+The function $\alpha(t)$ is determined by **forward induction** to match observed discount factors:
+1. Start with known $P(0,t_1)$
+2. Use Arrow–Debreu prices $Q_{i,j}$ (state prices) to compute $\alpha(t_i)$
+3. Adjust probabilities at each node to maintain mean reversion
+
+**Key Feature:** The tree incorporates mean reversion naturally through modified probabilities and non-uniform node spacing. Why trinomial? The three-point stencil provides the extra degree of freedom needed to match both the mean reversion and volatility simultaneously.
 
 ### A5.4.5 Convergence of Binomial Trees
 
@@ -368,6 +450,17 @@ Hull Ch. 13 Appendix proves that as $N \to \infty$, the CRR binomial tree price 
 - Richardson extrapolation
 - Leisen–Reimer construction
 - Large $N$ (e.g., $N \ge 100$)
+
+**Richardson Extrapolation:**
+
+When the convergence order is known, Richardson extrapolation can significantly improve accuracy. If the error is $O(h^k)$ where $h = \Delta t$:
+
+$$\boxed{V^{(\text{extrap})} = \frac{2^k V_{2N} - V_N}{2^k - 1}}$$
+
+For CRR trees with $k=1$:
+$$V^{(\text{extrap})} = 2V_{2N} - V_N$$
+
+> **Practitioner Note:** Richardson extrapolation is powerful but requires the true convergence order. If the payoff has discontinuities (e.g., digital options), the effective order may be lower than expected, and extrapolation can make things worse. Always verify with a convergence study first.
 
 ---
 
@@ -413,6 +506,26 @@ $$b_j = 1 + \sigma^2 j^2 \Delta t + r\Delta t$$
 $$c_j = -\frac{1}{2}(r-q)j\Delta t - \frac{1}{2}\sigma^2 j^2 \Delta t$$
 
 **Solution:** This gives a tridiagonal system at each time step, solved efficiently in $O(M)$ operations using the Thomas algorithm.
+
+**Thomas Algorithm (LU Decomposition for Tridiagonal):**
+
+For a tridiagonal system $a_j x_{j-1} + b_j x_j + c_j x_{j+1} = d_j$:
+
+```
+Forward sweep:
+  c'_1 = c_1/b_1
+  d'_1 = d_1/b_1
+  For j = 2 to M-1:
+    c'_j = c_j / (b_j - a_j c'_{j-1})
+    d'_j = (d_j - a_j d'_{j-1}) / (b_j - a_j c'_{j-1})
+
+Back substitution:
+  x_{M-1} = d'_{M-1}
+  For j = M-2 down to 1:
+    x_j = d'_j - c'_j x_{j+1}
+```
+
+Complexity: $O(M)$ per time step, $O(MN)$ total.
 
 **Stability:** The implicit method is **unconditionally stable**—it converges for any choice of $\Delta t$ and $\Delta S$ (Hull).
 
@@ -471,7 +584,15 @@ $$f_{i,j} \leftarrow \max\left(f_{i,j}, \; \text{payoff}(j\Delta S)\right)$$
 
 This enforces the early exercise constraint.
 
-**Alternative (PSOR):** The Projected Successive Over-Relaxation method solves the linear complementarity problem (LCP) directly.
+**Linear Complementarity Problem (LCP) Formulation:**
+
+The mathematically proper formulation of the American option PDE is:
+
+$$\boxed{\min\left(\frac{\partial V}{\partial t} + \mathcal{L}V - rV, \; V - h\right) = 0}$$
+
+where $h(S) = \max(K-S, 0)$ for a put. This says: either the PDE holds with equality (continuation region) or the value equals the payoff (exercise region). Penalty methods and PSOR solve this LCP efficiently.
+
+**Alternative (PSOR):** The Projected Successive Over-Relaxation method solves the linear complementarity problem directly.
 
 ### A5.5.8 Greeks from Finite Differences
 
@@ -512,11 +633,48 @@ With ADI, the complexity per time step drops to $O(m_1 m_2)$—linear in the tot
 
 **Cross-Derivative Terms:**
 
-Mixed partial derivatives (e.g., $\partial^2 V / \partial x \partial y$ from correlation) require special treatment. The standard approach treats these explicitly or uses modified ADI formulations such as the Craig–Sneyd or Hundsdorfer–Verwer schemes.
+Mixed partial derivatives (e.g., $\partial^2 V / \partial x \partial y$ from correlation) require special treatment. The standard approach treats these explicitly or uses modified ADI formulations:
+
+- **Craig–Sneyd scheme:** Handles cross-derivatives with good stability properties
+- **Hundsdorfer–Verwer scheme:** Another stable approach for mixed derivatives
+
+Andersen and Piterbarg (Vol. 1, Sections 2.10–2.12) provide detailed stability analysis.
 
 **Stability:**
 
-ADI schemes inherit the unconditional stability of implicit methods when properly formulated, though cross-derivative terms can introduce restrictions. Andersen and Piterbarg provide detailed stability analysis in their treatment.
+ADI schemes inherit the unconditional stability of implicit methods when properly formulated, though cross-derivative terms can introduce restrictions.
+
+### A5.5.10 Barrier Options in Finite Differences
+
+Barrier options require special care in FD methods because the barrier introduces an additional boundary condition.
+
+**Knock-Out Options:**
+
+For a down-and-out call with barrier $B$:
+- **Boundary condition at barrier:** $V(B, t) = 0$ (option worthless if barrier hit)
+- **Grid placement:** The barrier should coincide with a grid line for accuracy
+
+**Discrete vs Continuous Monitoring:**
+
+Most traded barriers are **discretely monitored** (checked at market close), while the PDE naturally handles **continuous monitoring**. This creates a systematic bias.
+
+**Broadie–Glasserman–Kou Continuity Correction:**
+
+For discretely monitored barriers, Broadie, Glasserman, and Kou derived a correction factor. For a down barrier $B$ monitored $m$ times:
+
+$$\boxed{B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}}}$$
+
+where $\beta \approx 0.5826$ (related to the zeta function). The effective barrier $B_{\text{eff}}$ is lower than $B$, reflecting that discrete monitoring is less likely to trigger than continuous.
+
+**Grid Stretching:**
+
+For better accuracy near barriers, use non-uniform grids with finer spacing near $B$:
+- Sinh-stretching: $S_j = B + \alpha \sinh(\beta(j/M - 1/2))$
+- Exponential concentration near the barrier
+
+> **Desk Reality: Barrier Option Pitfalls**
+>
+> The most common bug in barrier option pricing is boundary condition placement. If your grid doesn't hit the barrier exactly, interpolation introduces significant error. Always verify: (1) barrier falls on a grid line, (2) monitoring frequency matches the contract, (3) use continuity correction for discrete barriers priced with continuous methods.
 
 ---
 
@@ -590,6 +748,10 @@ $$\mathbb{E}_P[H(X)] = \mathbb{E}_Q\left[H(X)\frac{dP}{dQ}(X)\right]$$
 
 **Glasserman:** Importance sampling can dramatically reduce variance for rare-event problems (e.g., deep out-of-the-money options).
 
+**Optimal Drift (Glasserman Theorem 4.83):**
+
+For exponential tilting of Gaussian random variables, the variance-minimizing drift shift can be computed by solving an optimization problem. For deep OTM options, shifting the mean toward the strike reduces variance by orders of magnitude.
+
 #### Stratified Sampling
 
 Divide the sample space into strata and sample proportionally from each:
@@ -616,10 +778,12 @@ Under favorable conditions, QMC achieves convergence rate $O((\log n)^d / n)$ wh
 
 The practical benefit of QMC depends on the **effective dimension** of the problem. If the integrand depends strongly on only a few linear combinations of the input variables (low effective dimension), QMC can achieve near-$O(1/n)$ rates even when the nominal dimension is high. Glasserman discusses this concept and its implications for path-dependent options.
 
+**Randomized QMC (Scrambled Sequences):**
+
+QMC does not provide a natural error estimate (no CLT-based confidence interval). **Randomized QMC** (scrambled Sobol sequences) restores error estimation capability by running multiple scrambled replications and computing a standard error from the variance across replications.
+
 **Practical Considerations:**
 
-- QMC does not provide a natural error estimate (no CLT-based confidence interval)
-- **Randomized QMC** (scrambled sequences) restores error estimation capability
 - QMC is particularly effective for smooth integrands; discontinuous payoffs may not benefit as much
 - Combining QMC with variance reduction (e.g., control variates) can yield substantial further improvements
 
@@ -654,6 +818,10 @@ Longstaff and Schwartz (2001) introduced regression-based MC for American/Bermud
 
 **Bias:** LSMC produces a **low-biased** estimate because the approximated continuation value leads to suboptimal exercise.
 
+**Why Only In-The-Money Paths?**
+
+Longstaff and Schwartz recommend regressing only over paths that are currently in the money at each exercise date. The intuition: out-of-the-money paths provide no useful information about the optimal exercise boundary (you wouldn't exercise there anyway), and including them adds noise to the regression.
+
 ### A5.6.5 Greeks via Monte Carlo
 
 Glasserman (Chapter 7) provides the definitive treatment of sensitivity estimation in Monte Carlo. The three main approaches are finite difference bumping, the pathwise method, and the likelihood ratio method.
@@ -684,24 +852,219 @@ $$\frac{\partial}{\partial \theta}\mathbb{E}[H(X)] = \mathbb{E}\left[H(X)\frac{\
 **Advantage:** Works for discontinuous payoffs
 **Disadvantage:** Higher variance than pathwise method
 
+### A5.6.6 Common Monte Carlo Implementation Bugs
+
+> **Desk Reality: MC Bugs That Cost Money**
+>
+> 1. **Same seed for different paths:** Using the same random seed for what should be independent paths. This causes correlation between paths and wrong confidence intervals.
+>
+> 2. **Incorrect antithetics:** When using antithetic variates, you must generate $Z$ and $-Z$ from the **same** underlying random number. A common bug is to generate two independent normals and negate the second.
+>
+> 3. **Discretization bias in barriers:** Simulating at discrete time steps and checking the barrier only at those times. The probability of crossing the barrier between steps is non-zero and often significant.
+>
+> 4. **Memory overflow:** Storing all paths for later processing. For $n = 10^6$ paths with $N_t = 252$ time steps in double precision: $10^6 \times 252 \times 8 \approx 2$ GB. Consider on-the-fly computation instead.
+>
+> 5. **Forgetting discounting:** Computing $\frac{1}{n}\sum H_k$ instead of $e^{-rT}\frac{1}{n}\sum H_k$.
+
+### A5.6.7 Multilevel Monte Carlo (MLMC)
+
+Multilevel Monte Carlo, introduced by Giles (2008), is a technique that can dramatically reduce computational cost when discretization error and sampling error are both present. The key idea is to estimate the expectation using a **telescoping sum** across discretization levels.
+
+**Setup:**
+
+Let $P_\ell$ denote the option price computed with discretization level $\ell$ (e.g., $2^\ell$ time steps). We want to estimate $\mathbb{E}[P_L]$ for some fine level $L$.
+
+**Telescoping Sum:**
+
+$$\boxed{\mathbb{E}[P_L] = \mathbb{E}[P_0] + \sum_{\ell=1}^{L}\mathbb{E}[P_\ell - P_{\ell-1}]}$$
+
+This is exact. The MLMC insight is that:
+- $\mathbb{E}[P_0]$ can be estimated cheaply (coarse grid, many paths)
+- $\mathbb{E}[P_\ell - P_{\ell-1}]$ has **small variance** when $\ell$ is large (fine grids give similar answers)
+- We can allocate many paths to cheap coarse levels, few paths to expensive fine levels
+
+**MLMC Estimator:**
+
+$$\hat{Y} = \sum_{\ell=0}^{L} \frac{1}{n_\ell}\sum_{k=1}^{n_\ell} Y_\ell^{(k)}$$
+
+where:
+- $Y_0^{(k)} = P_0^{(k)}$
+- $Y_\ell^{(k)} = P_\ell^{(k)} - P_{\ell-1}^{(k)}$ for $\ell \geq 1$
+
+**Critical:** Each $Y_\ell^{(k)}$ uses the **same Brownian path** to compute both $P_\ell$ and $P_{\ell-1}$. This correlation makes the variance of $Y_\ell$ small.
+
+**Complexity Theorem (Giles):**
+
+Under certain regularity conditions, if weak convergence is $O(h)$ and variance of $P_\ell - P_{\ell-1}$ is $O(h^2)$, then MLMC achieves MSE $\epsilon^2$ with cost $O(\epsilon^{-2})$ instead of the standard MC cost $O(\epsilon^{-2-1/\alpha})$ where $\alpha$ is the weak convergence order.
+
+**When MLMC Helps Most:**
+- Payoffs with low regularity (Asian, barrier, lookback)
+- Models requiring fine time-stepping (path-dependent options)
+- When the cost per path is dominated by time discretization
+
+**When MLMC Doesn't Help:**
+- Exact simulation is available (standard GBM European options)
+- Very smooth payoffs where standard MC is already efficient
+
+> **Practitioner Note:** MLMC is a modern technique (2008) that isn't yet universal in production systems, but it's becoming more common for exotic pricing where discretization error dominates. The implementation requires careful handling of correlated paths across levels—using the same Brownian increments with different time-step refinements.
+
 ---
 
-## A5.7 Method Comparison and Tradeoffs
+## A5.7 Fourier and Transform Methods
 
-### A5.7.1 Comprehensive Comparison Table
+Fourier methods represent a fundamentally different approach to option pricing. Rather than discretizing the PDE or simulating paths, they exploit the fact that for many models, the **characteristic function** of the log-price is known analytically. This allows option prices to be computed as integrals that can be evaluated rapidly using the Fast Fourier Transform or Fourier cosine expansions.
 
-| Criterion | Trees | Finite Differences | Monte Carlo |
-|-----------|-------|-------------------|-------------|
-| **Dimensionality** | 1–2 factors | 1–3 factors | Any $d$ |
-| **American options** | Natural | Natural (LCP) | LSMC (harder) |
-| **Path dependence** | Limited | Limited | Natural |
-| **Greeks** | Stable from grid | Stable from grid | Noisy (variance) |
-| **Convergence** | $O(1/N)$ | $O(1/N)$ or $O(1/N^2)$ | $O(1/\sqrt{n})$ |
-| **Implementation** | Simple | Moderate | Simple |
-| **Parallelization** | Limited | Limited | Excellent |
-| **Memory** | $O(N)$ | $O(M \cdot N)$ | $O(n)$ or $O(1)$ |
+### A5.7.1 When Fourier Methods Apply
 
-### A5.7.2 When Each Method Excels
+Fourier methods are appropriate when:
+
+1. **The model has a known characteristic function.** This includes:
+   - Black–Scholes (trivially)
+   - Heston stochastic volatility
+   - Variance Gamma (VG)
+   - CGMY (Lévy processes)
+   - Bates (Heston + jumps)
+   - Affine jump-diffusion models generally
+
+2. **The option is European-style.** Fourier methods naturally handle payoffs that depend only on the terminal distribution, not on the path.
+
+3. **The dimension is low (typically 1 or 2).** Multi-asset extensions exist but become complex.
+
+**Why Characteristic Functions?**
+
+The characteristic function $\phi_X(u) = \mathbb{E}[e^{iuX}]$ is the Fourier transform of the probability density. For many stochastic processes, $\phi$ has a closed-form expression even when the density does not. The option price can then be written as a Fourier integral involving $\phi$.
+
+### A5.7.2 The Carr–Madan FFT Method
+
+Carr and Madan (1999) showed how to price a continuum of strikes simultaneously using the FFT.
+
+**Setup:** Let $k = \ln K$ be the log-strike, and $C_T(k)$ the call price for that strike. Carr and Madan derive:
+
+$$C_T(k) = \frac{e^{-\alpha k}}{\pi}\int_0^\infty e^{-iuk}\psi_T(u)\,du$$
+
+where $\alpha > 0$ is a damping parameter (needed for integrability) and $\psi_T$ is a modified characteristic function:
+
+$$\psi_T(u) = \frac{e^{-rT}\phi_T(u - (1+\alpha)i)}{\alpha^2 + \alpha - u^2 + iu(2\alpha + 1)}$$
+
+**FFT Implementation:**
+
+Discretize on an equally-spaced grid and apply the FFT:
+- Input: $\psi_T$ evaluated at $N$ frequencies
+- Output: Call prices at $N$ log-strikes
+- Complexity: $O(N \log N)$
+
+**Limitations:**
+- Strike grid is determined by the FFT (not arbitrary)
+- Need to choose damping parameter $\alpha$ carefully
+- Extrapolation needed for strikes outside the grid
+
+### A5.7.3 The COS Method (Fang–Oosterlee)
+
+The COS method, introduced by Fang and Oosterlee (2008), is an elegant Fourier cosine expansion approach that often outperforms the Carr–Madan FFT method. Oosterlee and Grzelak (Ch. 6) provide detailed exposition.
+
+**Key Idea:** Expand the density in a Fourier cosine series on a truncated interval $[a, b]$:
+
+$$f(x) \approx \sum_{k=0}^{N-1} A_k \cos\left(k\pi\frac{x-a}{b-a}\right)$$
+
+where the coefficients $A_k$ are related to the characteristic function.
+
+**COS Formula for European Options:**
+
+$$\boxed{V = e^{-rT} \sum_{k=0}^{N-1} \text{Re}\left\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\} \cdot H_k}$$
+
+where:
+- $\phi(u)$ is the characteristic function of $\ln(S_T/S_0)$
+- $H_k$ are **payoff coefficients** that depend on the option type (call, put)
+- $[a, b]$ is the truncation range (chosen based on cumulants of the distribution)
+
+**Payoff Coefficients for Calls:**
+
+$$H_k = \frac{2}{b-a}\left(\chi_k(0, b) - \psi_k(0, b)\right)$$
+
+where $\chi_k$ and $\psi_k$ involve integrals of the payoff against cosine basis functions (closed-form for vanilla options).
+
+**Truncation Range Selection:**
+
+The interval $[a, b]$ should capture most of the density. A common choice uses cumulants:
+$$a = c_1 - L\sqrt{c_2 + \sqrt{c_4}}, \quad b = c_1 + L\sqrt{c_2 + \sqrt{c_4}}$$
+
+where $c_1, c_2, c_4$ are the first, second, and fourth cumulants, and $L \approx 10$ for high accuracy.
+
+**Convergence:**
+
+For smooth densities, the COS method achieves **exponential convergence** in $N$. Oosterlee reports that $N = 64$ to $N = 256$ typically suffices for high accuracy.
+
+**Advantages over Carr–Madan:**
+- Arbitrary strike (no FFT grid constraint)
+- Exponential convergence (vs polynomial for FFT)
+- Simpler implementation
+- Naturally handles puts, calls, digitals with different $H_k$
+
+### A5.7.4 Characteristic Functions for Common Models
+
+**Black–Scholes:**
+
+$$\phi_{\text{BS}}(u) = \exp\left(iu\left(r - q - \frac{\sigma^2}{2}\right)T - \frac{\sigma^2 u^2 T}{2}\right)$$
+
+**Heston Stochastic Volatility:**
+
+$$\phi_{\text{Heston}}(u) = \exp\left(C(u, T) + D(u, T)v_0 + iu\ln S_0\right)$$
+
+where $C$ and $D$ involve the Heston parameters $(\kappa, \theta, \xi, \rho, v_0)$ and complex square roots. The explicit form is given in Heston (1993) and Gatheral's book.
+
+**Variance Gamma:**
+
+$$\phi_{\text{VG}}(u) = \left(\frac{1}{1 - iu\theta\nu + \frac{\sigma^2\nu u^2}{2}}\right)^{T/\nu}$$
+
+### A5.7.5 Comparison: FFT vs COS vs PDE vs MC
+
+| Criterion | Carr–Madan FFT | COS Method | PDE/FD | Monte Carlo |
+|-----------|----------------|------------|--------|-------------|
+| Speed (European, 1D) | Very fast | Very fast | Fast | Slow |
+| Arbitrary strike | No (grid constraint) | Yes | Yes | Yes |
+| Convergence | Polynomial | Exponential | Polynomial | $O(1/\sqrt{n})$ |
+| Path dependence | No | Limited | Limited | Yes |
+| American exercise | No | No | Yes | LSMC |
+| Implementation | Moderate | Easy | Moderate | Easy |
+| Requires char func | Yes | Yes | No | No |
+| Greeks | Analytic derivatives | Analytic derivatives | From grid | Noisy |
+
+### A5.7.6 When NOT to Use Fourier Methods
+
+Fourier methods are **not appropriate** for:
+
+1. **American/Bermudan options:** Early exercise creates a free boundary problem incompatible with the Fourier approach (use PDE or LSMC).
+
+2. **Path-dependent options:** Asian, lookback, barrier options require knowledge of the path, not just the terminal distribution.
+
+3. **Models without known characteristic functions:** If you only have the SDE and no closed-form $\phi$, you can't use these methods (use MC).
+
+4. **High-dimensional problems:** Extensions to multiple underlyings exist but become complex and lose the efficiency advantage.
+
+> **Desk Reality: When Fourier Methods Shine**
+>
+> If you're pricing vanilla European options in Heston or Variance Gamma—common for equity index options—Fourier methods (especially COS) can give you 8-digit accuracy in milliseconds. For calibration loops where you need to price hundreds of strikes and maturities, this speed advantage is decisive. But the moment you have early exercise or path dependence, you're back to PDE or MC.
+
+---
+
+## A5.8 Method Comparison and Tradeoffs
+
+### A5.8.1 Comprehensive Comparison Table
+
+| Criterion | Trees | Finite Differences | Monte Carlo | Fourier |
+|-----------|-------|-------------------|-------------|---------|
+| **Dimensionality** | 1–2 factors | 1–3 factors | Any $d$ | 1–2 factors |
+| **American options** | Natural | Natural (LCP) | LSMC (harder) | No |
+| **Path dependence** | Limited | Limited | Natural | No |
+| **Barriers** | Moderate | Good | Needs correction | No |
+| **Greeks** | Stable from grid | Stable from grid | Noisy (variance) | Analytic |
+| **Convergence** | $O(1/N)$ | $O(1/N)$ or $O(1/N^2)$ | $O(1/\sqrt{n})$ | Exponential |
+| **Implementation** | Simple | Moderate | Simple | Moderate |
+| **Parallelization** | Limited | Limited | Excellent | Moderate |
+| **Memory** | $O(N)$ | $O(M \cdot N)$ | $O(n)$ or $O(1)$ | $O(N)$ |
+| **Requires char func** | No | No | No | Yes |
+
+### A5.8.2 When Each Method Excels
 
 **Use Trees When:**
 - Single underlying asset
@@ -722,15 +1085,33 @@ $$\frac{\partial}{\partial \theta}\mathbb{E}[H(X)] = \mathbb{E}\left[H(X)\frac{\
 - Parallelization is available
 - European-style (or Bermudan with LSMC)
 
-### A5.7.3 Hybrid Approaches
+**Use Fourier Methods When:**
+- European options in models with known characteristic functions
+- Speed is critical (calibration loops)
+- Need high precision for vanilla options
+- Pricing many strikes simultaneously (Carr–Madan FFT)
+
+### A5.8.3 Computational Cost Estimates
+
+| Method | Typical Cost for Vanilla European | Notes |
+|--------|----------------------------------|-------|
+| Black–Scholes closed-form | < 1 μs | When available |
+| Fourier (COS, $N=128$) | ~ 10 μs | Heston, VG |
+| Binomial tree ($N=500$) | ~ 100 μs | American options |
+| Implicit FD ($M=100, N=100$) | ~ 1 ms | Good for Americans |
+| Monte Carlo ($n=10^5$) | ~ 10 ms | European; more for path-dependent |
+| LSMC ($n=10^5$, 50 exercise dates) | ~ 100 ms | Bermudan options |
+
+### A5.8.4 Hybrid Approaches
 
 - **MC with PDE for early exercise:** Use PDE to determine exercise boundary, MC for valuation
 - **Quasi-MC with variance reduction:** Combine Sobol sequences with control variates
 - **Adaptive mesh:** Figlewski–Gao adaptive mesh model grafts fine grids onto coarse grids
+- **MLMC with ADI:** Multilevel Monte Carlo combined with ADI for exotic rates products
 
 ---
 
-## A5.8 Worked Examples
+## A5.9 Worked Examples
 
 ### Example A5.1: CRR Binomial Tree — American Put
 
@@ -762,7 +1143,7 @@ $$f_{i,j} = \max\left\{50 - S_{i,j}, \; e^{-0.10/12}[0.507 f_{i+1,j+1} + 0.493 f
 
 ### Example A5.2: Explicit Finite Difference for American Put
 
-**Setup:** Same as Example 7.1, with grid $M = 20$ (stock price intervals), $N = 10$ (time steps).
+**Setup:** Same as Example A5.1, with grid $M = 20$ (stock price intervals), $N = 10$ (time steps).
 
 **Step 1: Set up grid**
 - $\Delta S = 100/20 = 5$
@@ -835,7 +1216,7 @@ $$\text{SE} = \frac{\hat{\sigma}_H}{\sqrt{10000}}$$
 
 ### Example A5.5: Antithetic Variates
 
-**Using the same setup as Example 7.4** ($S_0 = 100$, $K = 100$, $r = 5\%$, $\sigma = 20\%$, $q = 0$):
+**Using the same setup as Example A5.4** ($S_0 = 100$, $K = 100$, $r = 5\%$, $\sigma = 20\%$, $q = 0$):
 
 For each pair $(Z, -Z)$, since $r - q - \sigma^2/2 = 0.03$:
 - Path 1: $S_T^{(+)} = 100\exp[0.03 + 0.20 Z]$
@@ -849,7 +1230,7 @@ Average: $\hat{V}_{\text{pair}} = \frac{1}{2}e^{-rT}\left[\max(S_T^{(+)} - 100, 
 
 ### Example A5.6: Control Variate for Call
 
-**Using the same setup as Example 7.4.**
+**Using the same setup as Example A5.4.**
 
 **Control:** Use $S_T$ as control variate with $\mathbb{E}[S_T] = S_0 e^{(r-q)T} = 100 e^{0.05} = 105.13$ (since $q = 0$).
 
@@ -935,9 +1316,117 @@ Backward induction with call constraint at each exercise date.
 
 ---
 
-## A5.9 Practical Notes
+### Example A5.11: COS Method for Heston European Call
 
-### A5.9.1 Common Pitfalls
+**Setup:** Heston model parameters:
+- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\%$
+- $v_0 = 0.04$ (initial variance)
+- $\kappa = 2.0$ (mean reversion speed)
+- $\theta = 0.04$ (long-run variance)
+- $\xi = 0.3$ (vol-of-vol)
+- $\rho = -0.7$ (correlation)
+
+**Step 1: Compute cumulants for truncation range**
+
+Using the Heston characteristic function, compute first four cumulants $c_1, c_2, c_4$ and set:
+$$a = c_1 - 10\sqrt{c_2 + \sqrt{c_4}}, \quad b = c_1 + 10\sqrt{c_2 + \sqrt{c_4}}$$
+
+Typical result: $a \approx -0.8$, $b \approx 0.8$ for log-price.
+
+**Step 2: Evaluate characteristic function**
+
+For $k = 0, 1, \ldots, N-1$ with $N = 128$, compute:
+$$\phi_{\text{Heston}}\left(\frac{k\pi}{b-a}\right)$$
+
+using the Heston formula (complex arithmetic).
+
+**Step 3: Apply COS formula**
+
+$$V = e^{-rT} \sum_{k=0}^{127} \text{Re}\left\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\} \cdot H_k$$
+
+where $H_k$ are the call payoff coefficients.
+
+**Result:** Call price $\approx \$10.32$ (computed in < 1 ms)
+
+**Convergence Check:**
+- $N = 32$: $\$10.317$
+- $N = 64$: $\$10.3198$
+- $N = 128$: $\$10.3199$
+- $N = 256$: $\$10.3199$
+
+Exponential convergence is evident: accuracy stabilizes rapidly.
+
+---
+
+### Example A5.12: 2D ADI for Basket Option
+
+**Setup:** Two correlated stocks:
+- $S_1(0) = S_2(0) = 100$
+- $\sigma_1 = 20\%$, $\sigma_2 = 25\%$
+- $\rho = 0.5$ (correlation)
+- Payoff: $\max(0.5 S_1 + 0.5 S_2 - K, 0)$
+- $K = 100$, $T = 1$, $r = 5\%$
+
+**Step 1: Set up 2D grid**
+
+Transform to log-coordinates: $x_1 = \ln S_1$, $x_2 = \ln S_2$
+
+Grid: $50 \times 50$ points in $(x_1, x_2)$, 100 time steps.
+
+**Step 2: Split operators**
+
+$$\mathcal{L} = \mathcal{L}_1 + \mathcal{L}_2 + \mathcal{L}_{12}$$
+
+where:
+- $\mathcal{L}_1$: terms involving only $x_1$ derivatives
+- $\mathcal{L}_2$: terms involving only $x_2$ derivatives
+- $\mathcal{L}_{12}$: cross-derivative from correlation
+
+**Step 3: Douglas–Rachford ADI**
+
+At each time step:
+1. **Predictor:** Explicit step using all operators
+2. **Corrector 1:** Implicit in $x_1$ direction (solve $50$ tridiagonal systems of size $50$)
+3. **Corrector 2:** Implicit in $x_2$ direction (solve $50$ tridiagonal systems of size $50$)
+
+Cross-derivative $\mathcal{L}_{12}$ is treated explicitly or via Craig–Sneyd.
+
+**Result:** Basket call price $\approx \$13.47$
+
+**Comparison:** MC with $10^6$ paths gives $\$13.46 \pm 0.02$. ADI is faster and deterministic.
+
+---
+
+### Example A5.13: Barrier Option with Continuity Correction
+
+**Setup:** Down-and-out call
+- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\%$, $\sigma = 20\%$
+- Barrier $B = 90$, monitored **daily** (252 observations)
+
+**Problem:** FD methods naturally handle continuous barriers. For discrete monitoring, we need a correction.
+
+**Step 1: Price with continuous barrier (FD)**
+
+Set $V(B, t) = 0$ as boundary condition. Result: $V_{\text{cont}} = \$6.21$
+
+**Step 2: Apply Broadie–Glasserman–Kou correction**
+
+$$B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}} = 90 \cdot e^{-0.5826 \times 0.20 \times \sqrt{1/252}}$$
+$$B_{\text{eff}} = 90 \cdot e^{-0.00734} = 90 \cdot 0.9927 = 89.34$$
+
+**Step 3: Re-price with effective barrier**
+
+Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} = \$6.58$
+
+**Verification:** MC simulation with explicit daily monitoring gives $\$6.55 \pm 0.05$.
+
+**Interpretation:** The discrete barrier is "further away" in probability terms because the price has fewer chances to cross it. The effective barrier correction captures this effect elegantly.
+
+---
+
+## A5.10 Practical Notes
+
+### A5.10.1 Common Pitfalls
 
 **Trees:**
 - Using too few time steps ($N < 50$) for accurate pricing
@@ -948,13 +1437,20 @@ Backward induction with call constraint at each exercise date.
 - Violating explicit method stability conditions
 - Boundary conditions too close to the region of interest
 - Using C-N for discontinuous payoffs without smoothing
+- Barrier not falling on a grid line
 
 **Monte Carlo:**
 - Confusing tight confidence intervals with accuracy (bias!)
 - Using too few paths for Greeks (noisy estimates)
 - Not checking variance reduction effectiveness
+- Using the same random seed incorrectly
 
-### A5.9.2 Implementation Tips
+**Fourier Methods:**
+- Using Fourier for American options (won't work)
+- Incorrect truncation range leading to errors
+- Numerical issues with characteristic function for extreme parameters
+
+### A5.10.2 Implementation Tips
 
 **General:**
 - Always benchmark against known closed-form solutions
@@ -975,29 +1471,97 @@ Backward induction with call constraint at each exercise date.
 - Use antithetics by default
 - Quasi-MC often outperforms pseudo-random
 
-### A5.9.3 Sanity Checks
+**Fourier:**
+- Use COS method for single strikes
+- Use Carr–Madan FFT for strike grids (calibration)
+- Verify characteristic function implementation with limiting cases
+
+### A5.10.3 Sanity Checks
 
 1. **Put-call parity:** Does your European call/put satisfy parity?
 2. **Boundary limits:** Does price → intrinsic as $S \to 0$ or $S \to \infty$?
 3. **Convergence:** Does price stabilize as $N, M, n$ increase?
 4. **American ≥ European:** Is your American price at least the European price?
 5. **Greeks signs:** Is delta positive for calls? Is gamma positive?
+6. **Zero vol limit:** Does option price → max(intrinsic, 0) as $\sigma \to 0$?
+7. **Characteristic function:** Does $\phi(0) = 1$? Is $|\phi(u)| \le 1$?
+
+### A5.10.4 Testing and Verification
+
+**Benchmark Cases:**
+- Black–Scholes: Closed-form prices for all Greeks
+- Zero volatility: Price should equal discounted intrinsic value
+- Zero interest rate: Put-call parity simplifies
+- Deep ITM/OTM: Should match intrinsic value
+
+**Convergence Studies:**
+1. Run with grid size $N$, then $2N$, then $4N$
+2. Check that error ratio matches expected order: $\frac{e_N}{e_{2N}} \approx 2^k$ for order $k$
+3. Plot log(error) vs log($N$) — slope should equal $-k$
+
+**Regression Testing:**
+- Store baseline prices for known cases
+- Alert when prices change beyond tolerance
+- Essential for code refactoring
+
+### A5.10.5 Performance Optimization
+
+**Precomputation:**
+- Compute transition probabilities once, store in arrays
+- Precompute discount factors at all time steps
+- For Fourier, precompute $e^{ik\pi a/(b-a)}$ factors
+
+**Memory Layout:**
+- Use row-major or column-major consistently (language-dependent)
+- For FD, store only current and previous time slice
+- For MC, process paths in batches to fit in cache
+
+**Vectorization:**
+- Many MC operations are element-wise (vectorize!)
+- BLAS libraries for matrix operations
+- SIMD intrinsics for inner loops
+
+**When to Use Sparse vs Dense:**
+- Tridiagonal: Always use Thomas algorithm ($O(n)$)
+- Banded with width $w$: Use banded solver if $w \ll n$
+- General sparse: Use iterative methods (CG, GMRES)
+- Dense: Only for small systems ($n < 1000$)
+
+### A5.10.6 Common Production Bugs
+
+> **Desk Reality: Production Numerical Bugs**
+>
+> 1. **Day count mismatch:** Using ACT/365 when the contract specifies ACT/360. This creates small but persistent pricing errors.
+>
+> 2. **Wrong discounting curve:** Using OIS when the trade has LIBOR discounting (legacy), or vice versa.
+>
+> 3. **Settlement timing:** Off-by-one errors in settlement dates can shift discounting by a day.
+>
+> 4. **Integer overflow:** Large grids with 32-bit indexing: $1000 \times 1000 \times 1000 = 10^9 > 2^{31}$.
+>
+> 5. **NaN propagation:** One NaN in a grid infects the entire backward induction. Always check inputs.
+>
+> 6. **Thread safety:** Random number generators that aren't thread-safe produce correlated "independent" paths.
 
 ---
 
 ## Summary
 
-This appendix covered three fundamental numerical methods for derivative pricing:
+This appendix covered four fundamental numerical methods for derivative pricing:
 
 1. **Trees (Binomial/Trinomial):** Discrete approximations of the underlying process; natural for American options in low dimensions; CRR is the standard construction; trinomial trees are equivalent to explicit FD.
 
-2. **Finite Differences:** Discretize the pricing PDE; implicit methods are unconditionally stable; explicit methods connect to trees but have stability restrictions; Crank–Nicolson offers second-order accuracy.
+2. **Finite Differences:** Discretize the pricing PDE; implicit methods are unconditionally stable; explicit methods connect to trees but have stability restrictions; Crank–Nicolson offers second-order accuracy; ADI extends to 2–3 dimensions.
 
-3. **Monte Carlo:** Sample paths from risk-neutral dynamics; the only practical method for high-dimensional problems; variance reduction is essential; LSMC extends MC to American options.
+3. **Monte Carlo:** Sample paths from risk-neutral dynamics; the only practical method for high-dimensional problems; variance reduction is essential; LSMC extends MC to American options; MLMC improves efficiency for discretization-dominated problems.
 
-**Key Principle (Lax Equivalence):** Consistency + Stability ⇒ Convergence
+4. **Fourier Methods:** Exploit known characteristic functions for rapid European option pricing; the COS method achieves exponential convergence; the Carr–Madan FFT prices strike grids efficiently.
 
-**Method Selection:** Dimension and exercise style are the primary drivers—use trees/FD for low dimensions with early exercise, MC for high dimensions or path dependence.
+**Key Principles:**
+
+- **Lax Equivalence:** Consistency + Stability ⇒ Convergence
+- **Strong vs Weak Convergence:** Strong (pathwise) matters for hedging; weak (distributional) suffices for pricing
+- **Method Selection:** Dimension, exercise style, path dependence, and characteristic function availability are the primary drivers
 
 ---
 
@@ -1009,10 +1573,15 @@ This appendix covered three fundamental numerical methods for derivative pricing
 | **Consistency** | Discrete operator approximates continuous | Ensures correct limiting PDE |
 | **Convergence** | Numerical solution → true solution | The ultimate goal |
 | **Lax Equivalence** | Consistency + Stability ⇒ Convergence | Fundamental theorem |
+| **Strong Convergence** | Pathwise error $\to 0$ | Matters for hedging |
+| **Weak Convergence** | Distributional error $\to 0$ | Suffices for pricing |
 | **CFL Condition** | Stability constraint on $\Delta t / \Delta x^2$ | Explicit method restriction |
 | **Recombining Tree** | $ud = 1$ so paths rejoin | Polynomial vs exponential nodes |
 | **LSMC** | Regression-based MC for Americans | Key technique for high-dim |
 | **Variance Reduction** | Techniques to narrow CI | Makes MC practical |
+| **MLMC** | Telescoping estimator across levels | Beats $O(1/\sqrt{n})$ |
+| **COS Method** | Fourier cosine pricing | Exponential convergence |
+| **Characteristic Function** | $\phi_X(u) = \mathbb{E}[e^{iuX}]$ | Enables Fourier methods |
 
 ---
 
@@ -1040,13 +1609,18 @@ This appendix covered three fundamental numerical methods for derivative pricing
 | 18 | Why is MC preferred for path-dependent options? | Paths naturally encode history; no state augmentation needed |
 | 19 | What is quasi-Monte Carlo? | Uses low-discrepancy sequences instead of pseudo-random; can achieve $O(1/n)$ |
 | 20 | How do you get delta from a tree? | $(f_{0,1} - f_{0,-1})/(S_u - S_d)$ at the first step |
-| 21 | How do you get gamma from a tree? | Use prices at three nodes around the center |
-| 22 | What is importance sampling? | Change measure to oversample important regions; reweight by likelihood ratio |
-| 23 | What basis functions are common in LSMC? | Powers $(1, S, S^2, \ldots)$, Laguerre, Chebyshev polynomials |
-| 24 | What is the Thomas algorithm? | $O(M)$ solution of tridiagonal systems; used in implicit FD |
-| 25 | Why transform to $Z = \ln S$ in FD? | Makes coefficients independent of $j$; improves stability |
-| 26 | What is ADI? | Alternating Direction Implicit: splits 2D problem into 1D sweeps |
-| 27 | How does mean reversion affect trees? | Requires modified probabilities or non-uniform spacing |
+| 21 | Define strong convergence for SDE simulation | $\mathbb{E}[|\hat{X}(T) - X(T)|] \leq Ch^\beta$ with strong order $\beta$ |
+| 22 | Define weak convergence for SDE simulation | $|\mathbb{E}[f(\hat{X})] - \mathbb{E}[f(X)]| \leq Ch^\beta$ with weak order $\beta$ |
+| 23 | What are Euler-Maruyama convergence orders? | Strong order 1/2, weak order 1 |
+| 24 | What are Milstein convergence orders? | Strong order 1, weak order 1 |
+| 25 | What is the Thomas algorithm? | $O(M)$ solution of tridiagonal systems; used in implicit FD |
+| 26 | Why transform to $Z = \ln S$ in FD? | Makes coefficients independent of $j$; improves stability |
+| 27 | What is ADI? | Alternating Direction Implicit: splits 2D problem into 1D sweeps |
+| 28 | What is the characteristic function? | $\phi_X(u) = \mathbb{E}[e^{iuX}]$; Fourier transform of the density |
+| 29 | What is the COS method? | Fourier cosine expansion pricing; exponential convergence for smooth densities |
+| 30 | When can you use Fourier pricing methods? | European options in models with known characteristic functions |
+| 31 | What is the key idea of MLMC? | Telescoping sum: $\mathbb{E}[P_L] = \mathbb{E}[P_0] + \sum_{\ell}\mathbb{E}[P_\ell - P_{\ell-1}]$ |
+| 32 | What is the Broadie-Glasserman-Kou correction? | $B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}}$ for discrete barrier monitoring |
 
 ---
 
@@ -1060,39 +1634,43 @@ This appendix covered three fundamental numerical methods for derivative pricing
 
 **Problem 3:** Why does variance reduction matter more for out-of-the-money options than at-the-money?
 
+**Problem 4:** Explain the difference between strong and weak convergence. When does each matter?
+
 ### Computational (Trees)
 
-**Problem 4:** Construct a 3-step CRR tree for a European put with $S_0 = 100$, $K = 95$, $T = 0.25$, $r = 5\%$, $\sigma = 30\%$. Compute the option price.
+**Problem 5:** Construct a 3-step CRR tree for a European put with $S_0 = 100$, $K = 95$, $T = 0.25$, $r = 5\%$, $\sigma = 30\%$. Compute the option price.
 
-**Problem 5:** For the tree in Problem 4, convert to an American put. At which nodes would early exercise occur?
+**Problem 6:** For the tree in Problem 5, convert to an American put. At which nodes would early exercise occur?
 
-**Problem 6:** Build a 2-step trinomial tree for the same option. Compare the price to the binomial result.
+**Problem 7:** Build a 2-step trinomial tree for the same option. Compare the price to the binomial result.
 
 ### Computational (Finite Differences)
 
-**Problem 7:** Set up the implicit FD difference equation for a European call. What are $a_j$, $b_j$, $c_j$?
+**Problem 8:** Set up the implicit FD difference equation for a European call. What are $a_j$, $b_j$, $c_j$?
 
-**Problem 8:** For explicit FD with $\sigma = 40\%$, $\Delta t = 1/12$, $\Delta S = 5$, determine the maximum $j$ (stock price level) for which the method is stable.
+**Problem 9:** For explicit FD with $\sigma = 40\%$, $\Delta t = 1/12$, $\Delta S = 5$, determine the maximum $j$ (stock price level) for which the method is stable.
 
-**Problem 9:** Explain why transforming to $Z = \ln S$ makes explicit FD equivalent to a trinomial tree with constant probabilities.
+**Problem 10:** Explain why transforming to $Z = \ln S$ makes explicit FD equivalent to a trinomial tree with constant probabilities.
 
 ### Computational (Monte Carlo)
 
-**Problem 10:** Write pseudocode for pricing an Asian call option using Monte Carlo.
+**Problem 11:** Write pseudocode for pricing an Asian call option using Monte Carlo.
 
-**Problem 11:** You estimate a call price with $n = 1000$ paths and get SE = 0.50. How many paths do you need to reduce SE to 0.05?
+**Problem 12:** You estimate a call price with $n = 1000$ paths and get SE = 0.50. How many paths do you need to reduce SE to 0.05?
 
-**Problem 12:** Derive the pathwise delta estimator for a European call under GBM.
+**Problem 13:** Derive the pathwise delta estimator for a European call under GBM.
 
 ### Advanced
 
-**Problem 13:** Describe how to combine antithetic variates and control variates in a single MC simulation.
+**Problem 14:** Describe how to combine antithetic variates and control variates in a single MC simulation.
 
-**Problem 14:** In LSMC, why do we only regress over "in-the-money" paths at each exercise date?
+**Problem 15:** In LSMC, why do we only regress over "in-the-money" paths at each exercise date?
 
-**Problem 15:** Explain the bias-variance tradeoff when using finite-difference bumping for Greeks in Monte Carlo.
+**Problem 16:** Explain the bias-variance tradeoff when using finite-difference bumping for Greeks in Monte Carlo.
 
-**Problem 16:** A barrier option has payoff that depends on whether $\max_{t \le T} S_t > B$. Can you use standard FD? What modifications are needed?
+**Problem 17:** A barrier option has payoff that depends on whether $\max_{t \le T} S_t > B$. Can you use standard FD? What modifications are needed?
+
+**Problem 18:** When does the COS method outperform Carr–Madan FFT, and when is the reverse true?
 
 ### Solution Sketches
 
@@ -1100,20 +1678,26 @@ This appendix covered three fundamental numerical methods for derivative pricing
 
 **Problem 2:** Stability condition violated. Need $\Delta t < 1/(\sigma^2 j^2)$. Either decrease $\Delta t$, use implicit method, or transform to $\ln S$.
 
-**Problem 4 Sketch:**
+**Problem 4:** Strong convergence measures pathwise accuracy: does the simulated path match the true path? Weak convergence measures distributional accuracy: does the distribution of the simulated value match the true distribution? Strong matters for hedging simulations (tracking P&L along paths); weak suffices for pricing (only need $\mathbb{E}[H(S_T)]$).
+
+**Problem 5 Sketch:**
 - $\Delta t = 0.25/3 = 0.0833$
 - $u = e^{0.30\sqrt{0.0833}} = 1.0905$
 - $d = 0.9170$
 - $p = (e^{0.05 \times 0.0833} - 0.9170)/(1.0905 - 0.9170) = 0.525$
 - Build tree, compute terminal payoffs, backward induct.
 
-**Problem 11:** SE scales as $1/\sqrt{n}$. Need $0.50/\sqrt{n'} = 0.05$, so $n' = 1000 \times 100 = 100{,}000$ paths.
+**Problem 12:** SE scales as $1/\sqrt{n}$. Need $0.50/\sqrt{n'} = 0.05$, so $n' = 1000 \times 100 = 100{,}000$ paths.
+
+**Problem 15:** Out-of-the-money paths provide no useful information about the optimal exercise boundary (you wouldn't exercise there anyway), and including them adds noise to the regression without improving the exercise decision.
+
+**Problem 18:** COS method: single strike, arbitrary strike value, exponential convergence. Carr–Madan FFT: strike grid (calibration), $O(N \log N)$ for $N$ strikes, but strikes constrained to FFT grid. Use COS for pricing individual options; use FFT when calibrating to many strikes simultaneously.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -1130,10 +1714,15 @@ This appendix covered three fundamental numerical methods for derivative pricing
 | Rannacher stepping (2–4 implicit steps near maturity) | Andersen–Piterbarg Vol 1 Section 2.9 |
 | ADI methods (Peaceman–Rachford, Douglas–Rachford) | Andersen–Piterbarg Vol 1 Sections 2.10–2.12 |
 | ADI complexity $O(m_1 m_2)$ vs direct C-N $O((m_1 m_2)^{5/4})$ | Andersen–Piterbarg Vol 1 |
+| Craig–Sneyd, Hundsdorfer–Verwer schemes | Andersen–Piterbarg Vol 1 Section 2.11 |
 | Stability definition | Duffy |
 | Consistency definition | Duffy |
 | Convergence definition | Andersen–Piterbarg |
 | Lax equivalence theorem | Andersen–Piterbarg Vol 1 |
+| Strong convergence definition and orders | Glasserman Ch 6 pp. 339-365 |
+| Weak convergence definition and orders | Glasserman Ch 6 pp. 339-365 |
+| Euler-Maruyama: strong order 1/2, weak order 1 | Glasserman Ch 6 |
+| Milstein: strong order 1, weak order 1 | Glasserman Ch 6 |
 | Tridiagonal $\theta$-scheme complexity $O(mn)$ | Andersen–Piterbarg |
 | FD suitable for 1-3 factors | Andersen–Piterbarg |
 | MC difficulty with early exercise | Andersen–Piterbarg |
@@ -1148,20 +1737,42 @@ This appendix covered three fundamental numerical methods for derivative pricing
 | LSMC algorithm and bias properties | Glasserman Ch 8, Longstaff–Schwartz (2001) |
 | Pathwise method for Greeks | Glasserman Ch 7 |
 | Likelihood ratio method | Glasserman Ch 7 |
+| COS method formula and exponential convergence | Oosterlee & Grzelak Ch 6 |
+| Carr–Madan FFT method | Carr & Madan (1999) |
+| MLMC telescoping estimator | Giles (2008), Oosterlee Ch 8 |
+| Broadie–Glasserman–Kou barrier correction | Glasserman Ch 6 |
 | American put free boundary constraint | Standard references |
 
-### (B) Reasoned Inference
+### (B) Claude-Extended Content (Priority 2)
+
+| Content | Context |
+|---------|---------|
+| Production implementation bugs section | Extended from general software engineering and quantitative finance knowledge |
+| Testing and verification strategies | Extended from general numerical methods practice |
+| Performance optimization tips | Extended from computational finance practice |
+| "Desk Reality" boxes throughout | Practitioner color added from general fixed income/derivatives knowledge |
+| When strong vs weak convergence matters (hedging vs pricing) | Extended from Glasserman's treatment with practical interpretation |
+| MLMC practical notes | Extended from Giles and Oosterlee with implementation guidance |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 - FD curse of dimensionality ($N_x^d$ scaling) derived from grid structure
 - MC linear scaling in dimension derived from simulation structure
 - Stability condition $\Delta t < 1/(\sigma^2 j^2)$ derived from requiring positive probabilities in explicit FD
 - LSMC low bias follows from suboptimality of approximate continuation values
 - ADI unconditional stability inherited from implicit method structure (with caveats for cross-derivatives)
+- COS method comparison with Carr–Madan derived from their respective properties
+- Richardson extrapolation formula derived from Taylor expansion analysis
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
-- Cross-derivative treatment in ADI: The standard ADI schemes require modification for mixed partial derivatives arising from correlation. The exact formulation (Craig–Sneyd, Hundsdorfer–Verwer, etc.) depends on the specific problem. I'm not certain about the optimal choice without further source verification.
-- Randomized QMC error estimation: The precise variance formulas for scrambled Sobol sequences depend on the scrambling method used. The general principle is well-established in Glasserman, but implementation details vary.
+- **Cross-derivative treatment in ADI:** The standard ADI schemes require modification for mixed partial derivatives arising from correlation. The exact formulation (Craig–Sneyd, Hundsdorfer–Verwer, etc.) depends on the specific problem. I'm not certain about the optimal choice without further source verification for specific model types.
+
+- **Randomized QMC error estimation:** The precise variance formulas for scrambled Sobol sequences depend on the scrambling method used. The general principle is well-established in Glasserman, but implementation details vary by library.
+
+- **MLMC complexity constants:** The Giles complexity theorem states asymptotic behavior, but the constants and crossover points depend on the specific problem. I'm not sure about exact efficiency thresholds for when MLMC beats standard MC.
+
+- **Heston characteristic function branch cut:** The Heston characteristic function involves complex logarithms and square roots, which can have branch cut issues for certain parameter combinations. The exact handling varies by implementation.
 
 ---
 

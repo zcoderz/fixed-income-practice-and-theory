@@ -19,8 +19,11 @@ This chapter covers:
 3. **The Bootstrap Algorithm** (Section 42.3): Sequential solving from short to long maturities
 4. **Interpolation Methods** (Section 42.4): Piecewise-constant hazard and its alternatives
 5. **Consistency and Arbitrage Detection** (Section 42.5): When curves fail and what to do about it
-6. **Risk-Neutral vs. Physical Probabilities** (Section 42.6): Why the bootstrapped curve is *not* a forecast
-7. **Practical Implementation** (Section 42.7): Data sources, frequency, and common pitfalls
+6. **Sensitivity Propagation and Locality** (Section 42.6): The Jacobian structure that makes hedging simple
+7. **Recovery Sensitivity and Rec01** (Section 42.7): How recovery assumptions affect implied hazards
+8. **Risk-Neutral vs. Physical Probabilities** (Section 42.8): Why the bootstrapped curve is *not* a forecast
+9. **The ISDA Standard Model** (Section 42.9): Industry standardization and its implications
+10. **Practical Implementation** (Section 42.10): Data sources, troubleshooting, and common pitfalls
 
 This chapter builds directly on Chapter 36 (which defined survival probabilities and hazard rates) and Chapter 41 (which derived the CDS pricing formulas). If you understand those foundations, the bootstrapping algorithm becomes a natural extension. The survival curve we construct here is the input for CDS risk measures (Chapter 43) and credit relative value analysis (Chapter 44).
 
@@ -263,13 +266,201 @@ Production systems should:
 2. **Report** the problematic quotes and the implied arbitrage
 3. **Allow user decision**: relax bounds (accepting model arbitrage) or fix inputs (re-mark spreads, adjust recovery)
 
+### 42.5.5 Production Troubleshooting: When Curves Fail to Build
+
+> **Desk Reality: The Curve That Won't Build**
+>
+> It's 6:30 PM and the batch that marks 3,000 issuer curves is failing on 47 names. Your quant has gone home. What do you do?
+>
+> **Diagnostic workflow:**
+>
+> 1. **Identify the failure mode**: Is the root solver returning "no root in interval"? That's an arbitrage violation. Is it timing out? That's a convergence issue.
+>
+> 2. **Check quote staleness**: Pull quote timestamps. If the 1Y quote is from yesterday and the 5Y updated today, the combination may be inconsistent. Filter by time-of-last-trade.
+>
+> 3. **Check for crossed markets**: Sometimes bid/ask confusion leads to inverted spreads that don't make economic sense.
+>
+> 4. **Try recovery adjustment**: If the name is distressed, the market recovery may differ from your system's 40% default. Try 30% or 25%—this widens the arbitrage boundary.
+>
+> 5. **Document and escalate**: If you can't fix it cleanly, mark the name as "curve build failed" with a documented reason. This flags it for trader review in the morning.
+
+**Resolution options in practice:**
+
+| Option | When to Use | Risk |
+|--------|-------------|------|
+| **Re-mark the quote** | Quote is clearly stale or erroneous | Requires judgment; audit trail needed |
+| **Adjust recovery** | Distressed name; market recovery likely different | Changes all implied hazards; affects other names if systematic |
+| **Filter by trade time** | Mix of fresh and stale quotes | May leave gaps in the curve |
+| **Accept model arbitrage** | Name is genuinely stressed; need *some* curve | Documents limitation; requires risk sign-off |
+| **Fall back to single-point curve** | Only one liquid tenor | Loses term structure; extrapolation-heavy |
+
 ---
 
-## 42.6 Risk-Neutral vs. Physical Default Probabilities
+## 42.6 Sensitivity Propagation and Locality: The Jacobian Structure
+
+Understanding *why* the bootstrap produces local sensitivities requires examining the sensitivity matrix—the Jacobian that relates quote bumps to curve changes. This structure has profound implications for hedging.
+
+### 42.6.1 The Sensitivity Matrix
+
+When hedging a CDS book, we need to know how bumping each market quote affects each position. O'Kane develops this framework in his Chapter 8.5. Consider hedging a CDS position $V$ using on-market CDS at standard tenors $\{S_{1Y}, S_{3Y}, S_{5Y}, S_{7Y}, S_{10Y}\}$.
+
+The hedge notionals $\{N_i\}$ satisfy the system of linear equations:
+
+$$-\frac{\partial V}{\partial S_i} = \sum_{j=1}^{M} N_j \frac{\partial V_j}{\partial S_i} \quad \text{for } i = 1, \ldots, M$$
+
+The key insight is in the structure of the matrix $\frac{\partial V_j}{\partial S_i}$—the sensitivity of the $j$-th hedging instrument to a bump in the $i$-th market quote.
+
+### 42.6.2 The Diagonal Structure
+
+O'Kane demonstrates that for on-market CDS, this matrix is **diagonal**:
+
+$$\boxed{\frac{\partial V_j}{\partial S_i} = 0 \quad \text{for } i \neq j}$$
+
+**Why?** Consider bumping the 10Y CDS spread while holding the 1Y, 3Y, 5Y, and 7Y spreads fixed. The 1Y on-market CDS has a spread equal to the market 1Y quote by definition. Since that quote is unchanged, the 1Y CDS still has zero mark-to-market—its sensitivity to the 10Y bump is zero.
+
+O'Kane explains: "Since the spread of the 1Y on-market contract is held constant as we bump the 10Y spread, its mark-to-market must remain equal to zero and so this sensitivity must also be zero."
+
+For the diagonal elements, O'Kane shows:
+
+$$\boxed{\frac{\partial V_i}{\partial S_i} = -\text{RPV01}(t, T_i)}$$
+
+This is simply the negative of the risky PV01—the same object we use for CS01 calculation in Chapter 43.
+
+### 42.6.3 Example: The 5×5 Sensitivity Matrix
+
+Using O'Kane's Table 8.5, here is the sensitivity matrix for on-market CDS:
+
+| Hedge | 1Y Bump | 3Y Bump | 5Y Bump | 7Y Bump | 10Y Bump |
+|-------|---------|---------|---------|---------|----------|
+| CDS 1Y | -0.979 | 0 | 0 | 0 | 0 |
+| CDS 3Y | 0 | -2.775 | 0 | 0 | 0 |
+| CDS 5Y | 0 | 0 | -4.353 | 0 | 0 |
+| CDS 7Y | 0 | 0 | 0 | -5.738 | 0 |
+| CDS 10Y | 0 | 0 | 0 | 0 | -7.463 |
+
+The diagonal values are the risky PV01s at each maturity. The zeros confirm locality.
+
+### 42.6.4 Implications for Hedging
+
+The diagonal structure makes hedge computation trivial. Instead of inverting a full matrix, each hedge notional is simply:
+
+$$N_i = \frac{-\partial V / \partial S_i}{\text{RPV01}(t, T_i)}$$
+
+This is the "CDS equivalent notional"—how much of the $T_i$-maturity on-market CDS you need to neutralize your exposure to that spread bucket.
+
+> **Desk Reality: Why Locality Matters for P&L Attribution**
+>
+> When you run a credit book, you need to explain daily P&L. If bumping the 5Y spread affected the entire curve, your P&L attribution would show cross-exposures everywhere. You'd tell your manager: "I lost \$50k because 5Y widened, but also because that affected my 10Y positions through the curve..."
+>
+> With a local bootstrap, the story is simple: "5Y widened 10bp. My 5Y CS01 is \$5k/bp. I lost \$50k." Clean, auditable, explainable.
+>
+> Non-local curves create "unexplained" P&L that makes risk management harder and auditors nervous.
+
+### 42.6.5 Why Off-Market Contracts Have Non-Zero Off-Diagonal Sensitivities
+
+The diagonal structure holds perfectly only for on-market CDS. For a CDS with contractual spread different from the market spread, O'Kane shows there are small off-diagonal sensitivities.
+
+The reason: when you bump the 3Y spread while holding the 5Y spread fixed, the bootstrap must adjust the forward hazard rate between years 3-5 to maintain the 5Y calibration. This changes the risky PV01 of the 5Y position slightly—the premium leg value depends on survival probabilities in years 1-3, which have changed.
+
+O'Kane's Table 8.6 shows these effects are small but non-negligible for positions with large spread differentials from market.
+
+---
+
+## 42.7 Recovery Sensitivity and Rec01
+
+The survival curve depends critically on the assumed recovery rate $R$. Understanding this sensitivity—both for curve construction and for risk management—is essential for credit practitioners.
+
+### 42.7.1 The Credit Triangle: How Recovery Affects Implied Hazard
+
+The relationship between spread, hazard rate, and recovery follows from the CDS pricing equations. For continuous premiums and constant hazard rate, the par spread approximation gives:
+
+$$\boxed{S \approx \lambda (1 - R)}$$
+
+This is the "credit triangle." Given an observed spread, the implied hazard rate depends on the recovery assumption:
+
+$$\lambda \approx \frac{S}{1 - R}$$
+
+**Higher recovery → Higher implied hazard.** If recovery is 40%, a 200 bp spread implies $\lambda = 200/(1-0.4) = 333$ bp/year hazard. If recovery is 60%, the same 200 bp spread implies $\lambda = 200/(1-0.6) = 500$ bp/year hazard.
+
+**Why?** Higher recovery means lower loss-given-default. To explain the same protection cost, the model requires more frequent defaults. The spread reflects expected loss; if each loss is smaller, defaults must be more frequent.
+
+### 42.7.2 O'Kane's Analytic Formula for Recovery Sensitivity
+
+O'Kane derives an explicit formula for the recovery rate sensitivity of a CDS mark-to-market in Chapter 8.3.6. For a short protection position:
+
+$$\boxed{\frac{\partial V(t)}{\partial R} = \frac{S_t(S_0 - S_t)\Delta}{(1-R)^2} \sum_{n=1}^{N} \tau_n \exp\left(-(r + S_t(1-R)^{-1})\tau_n\right)}$$
+
+where $S_0$ is the contractual spread, $S_t$ is the current market spread, $\Delta$ is the accrual factor, and $\tau_n$ are the remaining times to premium dates.
+
+**Key observations from O'Kane:**
+
+1. **Sensitivity is zero when $S_t = S_0$**: An on-market CDS has zero MTM, so changing recovery doesn't change the mark (it's still zero).
+
+2. **Sign depends on $(S_0 - S_t)$**: If you sold protection at 100 bp and spreads widened to 200 bp, you have negative MTM. Lowering recovery makes that worse (higher implied hazard means more discounting of your negative future cash flows).
+
+3. **Sensitivity is quadratic in spread level**: This is the critical insight for distressed credits.
+
+### 42.7.3 Rec01: The Recovery Rate DV01
+
+Practitioners define **Rec01** (or "Recovery Rate DV01") as the change in mark-to-market for a 1% change in the recovery assumption:
+
+$$\boxed{\text{Rec01} = \frac{\partial V}{\partial R} \times 0.01}$$
+
+O'Kane provides a worked example. Consider a \$10 million short protection position:
+- Contractual spread: 100 bp
+- Current market spread: 120 bp
+- Maturity: 5 years
+- Recovery assumption: 40%
+
+At these parameters, the recovery rate sensitivity is 0.000704. For a 5% recovery change (40% → 35%):
+
+$$\Delta V = 0.000704 \times 5\% \times \$10\text{mm} = -\$352$$
+
+**Now consider the same position when spreads have blown out to 500 bp:**
+
+The recovery rate sensitivity jumps to 0.0473—roughly 67 times larger! For the same 5% recovery change:
+
+$$\Delta V = 0.0473 \times 5\% \times \$10\text{mm} = -\$23,670$$
+
+### 42.7.4 Why Rec01 Is Quadratic in Spread
+
+The dramatic increase in recovery sensitivity at wider spreads follows from the formula structure. The sensitivity contains the term $(S_0 - S_t)/(1-R)^2$, which grows with the square of the spread level.
+
+| Spread Level | Rec01 (per 1% recovery) | Interpretation |
+|--------------|-------------------------|----------------|
+| 50 bp | Negligible | Recovery assumption barely matters |
+| 120 bp | Small | Minor impact, usually ignored |
+| 300 bp | Moderate | Worth monitoring |
+| 500 bp | Large | Recovery is a material risk factor |
+| 1000+ bp | Dominant | Recovery uncertainty may exceed spread risk |
+
+> **Desk Reality: The Distressed Name Problem**
+>
+> For investment-grade credits trading at 80-150 bp, recovery sensitivity is tiny. You can use 40% for everything and not worry.
+>
+> For distressed names at 500+ bp, recovery is a first-order risk. Different dealers may use different recovery assumptions—30%, 35%, 40%, or even issuer-specific estimates. This creates "model basis" in MTM calculations.
+>
+> **Before trading a distressed CDS:** Ask your counterparty what recovery they're using. A 10% recovery difference on a \$50mm position at 800 bp spreads can be hundreds of thousands of dollars of "model P&L" that will never converge.
+
+### 42.7.5 Recovery Sensitivity in Curve Construction
+
+When you bootstrap a survival curve, changing the recovery assumption affects all implied hazard rates. The table below shows hazard rates for the same spread curve under different recovery assumptions:
+
+| Recovery $R$ | $h_1$ (0-1Y) | $h_2$ (1-3Y) | $h_3$ (3-5Y) |
+|--------------|--------------|--------------|--------------|
+| 20% | 1.49% | 2.25% | 3.30% |
+| 40% | 1.99% | 3.00% | 4.40% |
+| 60% | 2.98% | 4.50% | 6.78% |
+
+**Production implication:** All systems feeding off the survival curve—risk, valuation, collateral—must use consistent recovery assumptions. A mismatch creates phantom P&L and reconciliation breaks.
+
+---
+
+## 42.8 Risk-Neutral vs. Physical Default Probabilities
 
 The survival curve bootstrapped from CDS spreads is a **risk-neutral** object. This distinction, often overlooked by newcomers to credit derivatives, has profound implications for interpretation and risk management.
 
-### 42.6.1 The Two Probability Measures
+### 42.8.1 The Two Probability Measures
 
 McNeil's *Quantitative Risk Management* provides the conceptual foundation: "We begin with a discussion of the relationship between the real-world or physical measure, which models the actual probability of default, and an equivalent martingale measure or risk-neutral measure."
 
@@ -281,7 +472,29 @@ The two measures serve fundamentally different purposes:
 
 Hull states this distinction clearly: "The default probabilities or hazard rates implied from credit spreads are risk-neutral estimates. They can be used to calculate expected cash flows in a risk-neutral world when there is credit risk." For valuation purposes, the risk-neutral probabilities are correct—they incorporate how the market prices default risk, not just the actuarial likelihood of default.
 
-### 42.6.2 Why They Differ: The Credit Spread Puzzle
+### 42.8.2 Quantifying the Difference: McNeil's Empirical Evidence
+
+McNeil provides empirical analysis of the relationship between risk-neutral and physical default probabilities using CDS spreads and rating agency Expected Default Frequencies (EDFs).
+
+The regression relationship found by Berndt et al. (2004), reported in McNeil, is:
+
+$$\boxed{x_i^* = 52.26 + 1.627 \cdot \text{EDF}_i}$$
+
+where $x_i^*$ is the CDS spread in basis points and $\text{EDF}_i$ is the physical default probability in basis points.
+
+**Interpretation:** For every 10 bp increase in physical default probability, the risk-neutral probability (reflected in spreads) increases by about 16 bp. The intercept of 52 bp represents the "risk premium" even for credits with minimal physical default probability.
+
+From this regression, McNeil derives the ratio of risk-neutral to physical hazard rates:
+
+$$\frac{\gamma^Q}{\gamma^P} \approx \frac{x_i^* / \delta}{\text{EDF}_i} \approx \frac{1}{0.75} \times 1.6 = 2.13$$
+
+Using a more conservative loss-given-default estimate ($\delta = 0.5$):
+
+$$\frac{\gamma^Q}{\gamma^P} \approx \frac{1}{0.5} \times 1.6 = 3.2$$
+
+McNeil notes: "The ratio of risk-neutral to actual default probability gets even higher" for lower-rated credits.
+
+### 42.8.3 The Credit Spread Puzzle and Risk Premium Decomposition
 
 O'Kane explains: "If we compare the risk-neutral default probability implied by credit spreads against the default probabilities implied by historical data, we find that the risk-neutral probability is almost always much larger."
 
@@ -291,29 +504,27 @@ $$\text{Market Spread} = \text{Expected Loss} + \text{Risk Premium} + \text{Liqu
 
 The bootstrapped hazard rate captures all three components, not just expected loss. This is why using CDS-implied survival curves to forecast actual defaults systematically overestimates default frequency.
 
-> **Deep Dive: The Paranoia Premium (Risk-Neutral vs. Physical)**
+> **The Paranoia Premium: Risk-Neutral vs. Physical**
 >
-> Your bootstrapped curve might imply a 20% probability of default over 5 years. Historical data says it's only 2%. Why the difference?
+> Your bootstrapped curve might imply a 20% probability of default over 5 years. Historical data says it's only 2%. Why the 10x difference?
 >
 > *   **Physical Probability (2%)**: The actuary's view. "Based on history, 2 out of 100 companies fail."
 > *   **Risk-Neutral Probability (20%)**: The insurer's price. "I know only 2 might fail, but I'm terrified of being the one holding the bag. I charge you as if 20 will fail."
-> *   **The Spread**: The difference isn't error; it's the **Risk Premium** (compensation for fear and uncertainty). *Never use the bootstrapped curve to predict the future; use it to price the risk.*
+> *   **The Spread**: The difference isn't error; it's the **Risk Premium**—compensation for fear and uncertainty.
+>
+> **Critical insight:** *Never use the bootstrapped curve to predict the future; use it to price the risk.*
 
 Hull illustrates this with concrete numbers. For a Baa/BBB-rated credit, the historical 7-year cumulative default probability from rating agency data might be approximately 2.33%. But the hazard rate implied from bond yields at a typical spread of 180 bp with 40% recovery would be $0.018/(1-0.4) = 0.03$, or 3% per year—roughly nine times the historical estimate. Hull notes: "Why do we see such big differences between real-world and risk-neutral default probabilities? This is the same as asking why corporate bond traders earn more than the risk-free rate on average."
 
-### 42.6.3 Quantifying the Difference
+### 42.8.4 Time Variation in the Risk Premium
 
-McNeil provides empirical analysis of the ratio between risk-neutral and physical default probabilities. Using CDS spreads and rating agency expected default frequencies (EDFs), the study finds:
+McNeil's Figure 9.6 shows that the ratio of risk-neutral to physical default probabilities varies substantially over time for individual credits—ranging from 1x to 6x or higher for some names. This variation reflects:
 
-$$\frac{\gamma^Q}{\gamma^P} \approx \frac{\bar{q}}{\bar{p}} \approx 2 \text{ to } 3$$
+- **Credit cycle effects**: Risk premiums spike during stress periods
+- **Liquidity conditions**: Illiquidity widens the wedge
+- **Idiosyncratic news**: Company-specific events affect market pricing faster than rating agency assessments
 
-where $\gamma^Q$ is the risk-neutral hazard rate and $\gamma^P$ is the physical hazard rate. McNeil reports that "the ratio of risk-neutral to actual default probability gets even higher" for lower-rated credits, reflecting investors demanding greater compensation for bearing default uncertainty of riskier names.
-
-Hull similarly documents that for investment-grade bonds, the spread required to compensate for historical default rates is far less than the observed market spread. The difference—the "expected excess return"—represents the risk premium investors demand for holding credit-risky assets.
-
-This wedge has important implications. As Hull notes: "Real-world probabilities should be used for scenario analysis and the calculation of credit VaR. Risk-neutral probabilities should be used for valuing credit-sensitive instruments."
-
-### 42.6.4 Practical Implications
+### 42.8.5 Practical Implications
 
 The distinction matters for different applications:
 
@@ -327,13 +538,63 @@ The distinction matters for different applications:
 
 **What can go wrong:** If you use the bootstrapped survival curve to predict actual defaults, you will systematically overestimate default frequency. A credit trading at 200 bp may have a CDS-implied 5-year cumulative default probability of 15%, but the historical default rate for similar credits might be only 5%. The difference is risk premium—what investors demand for bearing the uncertainty, not a forecast of what will happen.
 
-When building survival curves for pricing and hedging, use the risk-neutral (CDS-implied) curve. When estimating actual default likelihood for reserve calculations or credit decisions, recognize the embedded risk premium and adjust accordingly.
+---
+
+## 42.9 The ISDA Standard Model
+
+> **Practitioner Note (not sourced from books/):** The content in this section describes post-2009 industry standardization that occurred after most reference books were published. This represents established market practice but is not verified against the books/ directory.
+
+### 42.9.1 Why Industry Standardized
+
+Before 2009, every major dealer had its own CDS valuation library. These libraries used slightly different conventions for day counts, interpolation methods, accrued-at-default handling, and numerical precision. When two counterparties calculated the same CDS's mark-to-market, they often disagreed by small but meaningful amounts.
+
+**What went wrong:**
+
+1. **Collateral disputes**: If you calculate MTM of \$1.2 million and your counterparty calculates \$1.15 million, who posts the extra \$50,000?
+
+2. **Unwind disagreements**: When terminating a trade, the two sides couldn't agree on the settlement amount.
+
+3. **Basis in "identical" trades**: The market quoted a spread, but the present value of that spread differed by dealer, creating arbitrage-like situations that weren't really arbitrage—just model differences.
+
+### 42.9.2 What the ISDA Standard Model Standardizes
+
+The ISDA CDS Standard Model (sometimes called the "JPMorgan model" after its origin) is an open-source C++ library that defines exactly:
+
+- **Day count**: Actual/360 for premium accruals
+- **Premium dates**: IMM quarterly cycle
+- **Interpolation**: Piecewise-constant hazard (as described in Section 42.4)
+- **Accrued at default**: Included using the trapezoidal approximation
+- **Upfront conversion**: Standardized formula for converting running spreads to upfront payments
+- **Numerical precision**: Consistent root-finding tolerances
+
+### 42.9.3 The "Law" Status in Practice
+
+> **Desk Reality: The Court-Appointed Ruler**
+>
+> Think of the ISDA Standard Model as a court-appointed ruler. You might believe your ruler is more accurate. Your counterparty might prefer theirs. But when there's a dispute, the court says: "We're using this ruler."
+>
+> In practice, this means:
+> - **Collateral calls** are computed using ISDA Standard Model MTM
+> - **Unwinds** settle at ISDA Standard Model PV
+> - **If you disagree with the number**, you still post collateral based on it
+>
+> You can use your own model internally for risk management or trading decisions. But for anything that involves your counterparty or a central clearinghouse, the ISDA Standard Model is "the law."
+
+### 42.9.4 Practical Implications
+
+1. **Don't reinvent the wheel**: For production systems, use the standard library or a validated port. The numerical edge cases have already been debugged.
+
+2. **Understand the conventions**: Even if you use a different internal model, you need to know what the standard model does so you can reconcile.
+
+3. **"Model P&L" exists**: Your internal model may value a trade at \$1.25mm while the ISDA model says \$1.20mm. The difference is "model P&L"—real for your risk, but unrealized unless you unwind.
+
+4. **Recovery still varies**: The ISDA model takes recovery as an input. Different dealers may still disagree on recovery assumptions for specific names.
 
 ---
 
-## 42.7 Practical Implementation
+## 42.10 Practical Implementation
 
-### 42.7.1 Data Sources
+### 42.10.1 Data Sources
 
 CDS quotes are available from:
 
@@ -343,7 +604,7 @@ CDS quotes are available from:
 
 The standard tenors are 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y, and 10Y, though not all tenors may be liquid for all credits. Investment-grade names typically have liquid quotes at most tenors; high-yield or distressed names may only have reliable quotes at 5Y.
 
-### 42.7.2 Curve Rebuild Frequency
+### 42.10.2 Curve Rebuild Frequency
 
 In production systems:
 
@@ -353,7 +614,7 @@ In production systems:
 
 The bootstrap algorithm's speed (O'Kane emphasizes this requirement) enables frequent rebuilds across thousands of issuer curves.
 
-### 42.7.3 Common Data Issues
+### 42.10.3 Common Data Issues
 
 | Issue | Impact | Mitigation |
 |-------|--------|------------|
@@ -363,7 +624,7 @@ The bootstrap algorithm's speed (O'Kane emphasizes this requirement) enables fre
 | **Inverted curves (distressed)** | May violate no-arbitrage; negative hazards | Check arbitrage bounds; adjust recovery or accept limitation |
 | **Recovery mismatch** | Different recovery assumptions yield different hazards | Document recovery convention; reconcile across systems |
 
-### 42.7.4 Day Count and Schedule Conventions
+### 42.10.4 Day Count and Schedule Conventions
 
 CDS premium payments follow specific conventions that must be exactly matched:
 
@@ -378,11 +639,11 @@ O'Kane warns: "Do not confuse the quotation of accrued interest with the CDS pay
 
 ---
 
-## 42.8 Worked Examples
+## 42.11 Worked Examples
 
 The following examples use a toy discount curve and simplified annual premium schedule to illustrate the mechanics. Real implementations would use quarterly schedules with actual day counts.
 
-### 42.8.1 Setup: Discount Curve and Market Quotes
+### 42.11.1 Setup: Discount Curve and Market Quotes
 
 **Discount curve** (toy: linear decline):
 
@@ -403,7 +664,7 @@ The following examples use a toy discount curve and simplified annual premium sc
 | 3Y | 160 | 0.0160 |
 | 5Y | 200 | 0.0200 |
 
-### 42.8.2 Example A: First Bootstrap Step (1Y)
+### 42.11.2 Example A: First Bootstrap Step (1Y)
 
 We solve for $Q(1)$ such that the 1Y CDS has zero mark-to-market.
 
@@ -430,7 +691,7 @@ $$Q_1 = \frac{1 - 0.02 \times 0.985/1.985}{1 + 0.02 \times 0.985/1.985} = \frac{
 
 $$h_1 = -\ln Q_1 = -\ln(0.98033) \approx 0.01987 \text{ (1.987%/year)}$$
 
-### 42.8.3 Example B: Second Bootstrap Step (3Y)
+### 42.11.3 Example B: Second Bootstrap Step (3Y)
 
 With $Q(1) = 0.98033$ fixed, we solve for $h_2$ on $(1, 3]$ to match the 3Y quote of 160 bp.
 
@@ -444,7 +705,7 @@ Trial values:
 
 **Result:** $h_2 \approx 0.0300$ (3.00%/year)
 
-### 42.8.4 Example C: Third Bootstrap Step (5Y)
+### 42.11.4 Example C: Third Bootstrap Step (5Y)
 
 With $Q(3) = 0.92283$ fixed, solve for $h_3$ on $(3, 5]$ to match 200 bp.
 
@@ -452,17 +713,17 @@ Target: $x = 0.020/0.60 = 0.03333$.
 
 Trial values converge to $h_3 \approx 0.0440$ (4.40%/year), giving $Q(5) \approx 0.84527$.
 
-### 42.8.5 Example D: Verification (Repricing Test)
+### 42.11.5 Example D: Verification (Repricing Test)
 
 Using the bootstrapped hazards, we verify all quotes reprice:
 
 | Maturity | Market Spread | Model Spread |
 |----------|---------------|--------------|
-| 1Y | 120 bp | 120 bp ✓ |
-| 3Y | 160 bp | 160 bp ✓ |
-| 5Y | 200 bp | 200 bp ✓ |
+| 1Y | 120 bp | 120 bp |
+| 3Y | 160 bp | 160 bp |
+| 5Y | 200 bp | 200 bp |
 
-### 42.8.6 Example E: Distressed Credit (Inverted Curve)
+### 42.11.6 Example E: Distressed Credit (Inverted Curve)
 
 Consider a distressed name with spreads:
 
@@ -483,7 +744,7 @@ Consider a distressed name with spreads:
 2. Use a higher recovery assumption (reducing implied hazard)
 3. Accept model arbitrage and document limitation
 
-### 42.8.7 Example F: Recovery Rate Sensitivity
+### 42.11.7 Example F: Recovery Rate Sensitivity
 
 Same quotes, different recovery assumptions:
 
@@ -495,7 +756,23 @@ Same quotes, different recovery assumptions:
 
 **Interpretation:** Higher recovery means lower loss-given-default. To explain the same spread, the model requires higher default intensity. This is the "credit triangle" relationship: $S \approx \lambda(1-R)$.
 
-### 42.8.8 Example G: Wrong Day Count Impact
+### 42.11.8 Example G: Rec01 Calculation
+
+Using O'Kane's example from Section 8.3.6:
+
+**Position:** \$10mm short protection, contractual spread 100 bp, 5Y maturity
+
+**Scenario 1: Market spread = 120 bp, R = 40%**
+- Recovery sensitivity: 0.000704
+- Rec01 = 0.000704 × 1% × \$10mm = \$70.40 per 1% recovery change
+
+**Scenario 2: Market spread = 500 bp, R = 40%**
+- Recovery sensitivity: 0.0473
+- Rec01 = 0.0473 × 1% × \$10mm = \$4,730 per 1% recovery change
+
+**The quadratic effect:** At 500 bp, Rec01 is 67x larger than at 120 bp. Recovery assumptions matter far more for distressed names.
+
+### 42.11.9 Example H: Wrong Day Count Impact
 
 Suppose we incorrectly use 30/360 (year fraction = 0.25 per quarter) instead of Actual/360 (year fraction varies by actual days).
 
@@ -507,7 +784,7 @@ This 1% difference in year fraction flows through to the RPV01 calculation, chan
 
 **Lesson:** Matching the exact market convention for day count is essential for correct calibration.
 
-### 42.8.9 Example H: Monotonicity Check
+### 42.11.10 Example I: Monotonicity Check
 
 We compute the full survival curve on quarterly nodes using the piecewise-constant hazards:
 
@@ -529,7 +806,7 @@ We compute the full survival curve on quarterly nodes using the piecewise-consta
 
 **Verification:** Each entry is $\leq$ the previous entry. The curve is strictly decreasing, confirming $h(t) > 0$ everywhere.
 
-### 42.8.10 Example I: Locality Test (5Y Bump)
+### 42.11.11 Example J: Locality Test (5Y Bump)
 
 Keep 1Y=120 bp and 3Y=160 bp, but bump 5Y from 200 bp to 201 bp.
 
@@ -545,9 +822,9 @@ Because the bootstrap is sequential, only the final segment $h_3$ changes:
 
 ---
 
-## 42.9 Verification and Quality Checks
+## 42.12 Verification and Quality Checks
 
-### 42.9.1 Mandatory Consistency Checks
+### 42.12.1 Mandatory Consistency Checks
 
 Every bootstrapped curve should pass these tests:
 
@@ -559,7 +836,7 @@ Every bootstrapped curve should pass these tests:
 | $h(t) \geq 0$ | Always | Equivalent to above |
 | Repricing error | $< 0.01$ bp | Calibration tolerance too loose |
 
-### 42.9.2 Stability and Locality Tests
+### 42.12.2 Stability and Locality Tests
 
 When bumping a single quote:
 
@@ -567,7 +844,7 @@ When bumping a single quote:
 - **Stability:** Small quote bumps should produce small curve changes
 - **No sign flips:** Hazard rates should not become negative from small perturbations
 
-### 42.9.3 Regression Testing
+### 42.12.3 Regression Testing
 
 For production systems:
 - Same inputs must produce identical outputs (deterministic build)
@@ -576,7 +853,7 @@ For production systems:
 
 ---
 
-## 42.10 Connection to Interest Rate Curve Construction
+## 42.13 Connection to Interest Rate Curve Construction
 
 The parallels between CDS survival curve bootstrapping and interest rate curve bootstrapping (Chapter 17) are instructive:
 
@@ -613,6 +890,11 @@ The resulting curve is a **risk-neutral** object—it reflects market prices, no
 - Robust handling of stale or inconsistent quotes
 - Efficient computation for large numbers of issuer curves
 
+**Key risk concepts:**
+- **Locality**: Quote bumps affect only nearby maturities, making hedges predictable
+- **Recovery sensitivity**: Quadratic in spread level; critical for distressed names
+- **Risk-neutral vs physical**: CDS-implied probabilities overstate actual defaults by 2-3x
+
 The survival curve is the foundation for CDS mark-to-market, risk measures (Chapter 43), and credit relative value analysis (Chapter 44).
 
 ---
@@ -626,8 +908,10 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 | **Bootstrap algorithm** | Sequential solve from short to long maturity | Fast, local, exact repricing |
 | **No-arbitrage bound** | $0 < Q(T_m) \leq Q(T_{m-1})$ | Ensures non-negative hazard rates |
 | **Arbitrage boundary** | $S_m \gtrsim S_{m-1}(T_{m-1}/T_m)$ | Detects impossible quote combinations |
+| **Diagonal Jacobian** | $\partial V_j/\partial S_i = 0$ for $i \neq j$ | Locality; simple hedge computation |
+| **Rec01** | MTM change per 1% recovery shift | Critical for distressed names |
 | **Risk-neutral vs. physical** | Bootstrapped curve embeds risk premium | Not a default forecast |
-| **Locality** | Quote bumps affect nearby maturities only | Predictable hedge behavior |
+| **ISDA Standard Model** | Industry-standardized valuation library | Eliminates MTM disputes |
 
 ---
 
@@ -642,6 +926,7 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 | $S_m$ | Market CDS spread at maturity $T_m$ |
 | RPV01 | Risky PV01 (premium leg value per unit spread) |
 | $\Delta_n$ | Accrual year fraction for period $n$ |
+| Rec01 | MTM sensitivity to 1% recovery change |
 
 ---
 
@@ -667,11 +952,13 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 | 16 | What extrapolation assumption does O'Kane recommend? | Flat forward default rate beyond the last quoted maturity |
 | 17 | Why does using wrong day count cause problems? | Changes year fractions in RPV01, producing incorrect implied hazards |
 | 18 | What is the "credit triangle" relationship? | $S \approx \lambda(1-R)$ for continuous premiums and constant hazard |
-| 19 | What market convention is typical for CDS premium payments? | Quarterly on IMM dates, with accrued paid at default |
-| 20 | What is RPV01 and why does it include accrued at default? | Risky PV01 = value of premium stream; must include contingent payment if default occurs mid-period |
-| 21 | By what factor do risk-neutral default probabilities typically exceed physical probabilities? | Approximately 2-3x for IG credits, sometimes higher for lower-rated names |
-| 22 | For derivatives pricing, should you use risk-neutral or physical default probabilities? | Risk-neutral—they ensure consistency with market prices |
-| 23 | Why do CDS-implied hazard rates overstate actual default frequency? | They embed risk premium and liquidity premium in addition to expected loss |
+| 19 | What is Rec01? | Change in MTM for a 1% change in recovery rate |
+| 20 | Why is Rec01 quadratic in spread level? | The sensitivity formula contains $(S_0-S_t)/(1-R)^2$, growing with spread squared |
+| 21 | What does the diagonal Jacobian structure imply for hedging? | Hedge notionals are simple: $N_i = (-\partial V/\partial S_i)/\text{RPV01}(T_i)$ |
+| 22 | What is the ISDA Standard Model? | Industry-standardized C++ library for CDS valuation; "the law" for collateral |
+| 23 | By what factor do risk-neutral default probabilities typically exceed physical? | Approximately 2-3x for IG credits; higher for lower-rated names |
+| 24 | For derivatives pricing, should you use risk-neutral or physical default probabilities? | Risk-neutral—they ensure consistency with market prices |
+| 25 | Why do CDS-implied hazard rates overstate actual default frequency? | They embed risk premium and liquidity premium in addition to expected loss |
 
 ---
 
@@ -731,55 +1018,63 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 ---
 
-**10.** Explain why linear interpolation of $z(t) = -(1/t)\ln Q(t)$ can create jumps in the forward rate.
+**10. (Rec01)** A \$20mm short protection position has contractual spread 150 bp, market spread 600 bp, and recovery sensitivity 0.05. Compute Rec01.
+
+**Solution sketch:** Rec01 = 0.05 × 1% × \$20mm = \$10,000 per 1% recovery change
+
+---
+
+**11.** Explain why linear interpolation of $z(t) = -(1/t)\ln Q(t)$ can create jumps in the forward rate.
 
 **Solution sketch:** The forward rate is $h(t) = z(t) + t \cdot \partial z/\partial t$. When $z(t)$ is piecewise linear, its derivative is piecewise constant but discontinuous at knot points. This causes $h(t)$ to jump at each knot.
 
 ---
 
-**11.** For a distressed credit with 6M spread of 1000 bp, estimate the approximate lower bound for the 1Y spread.
+**12.** For a distressed credit with 6M spread of 1000 bp, estimate the approximate lower bound for the 1Y spread.
 
 **Solution sketch:** Using $S_m \gtrsim S_{m-1}(T_{m-1}/T_m)$: $S_{1Y} \gtrsim 1000 \times (0.5/1.0) = 500$ bp (approximate). The exact bound would be slightly higher (~525-550 bp) due to RPV01 ratio effects.
 
 ---
 
-**12.** Derive the relationship between RPV01 and the par spread formula.
+**13.** Derive the relationship between RPV01 and the par spread formula.
 
 **Solution sketch:** At par, Protection PV = Premium PV. Premium PV $= S \times \text{RPV01}$. So $S_{\text{par}} = \text{Protection PV} / \text{RPV01}$.
 
 ---
 
-**13.** Explain why the bootstrapped curve is unsuitable for forecasting actual defaults.
+**14.** Explain why the bootstrapped curve is unsuitable for forecasting actual defaults.
 
 **Solution sketch:** The bootstrapped curve is risk-neutral—it embeds a risk premium (2-3x factor) on top of expected loss. Using it to predict defaults systematically overstates default frequency. Physical probabilities from rating agency data or structural models should be used for forecasting.
 
 ---
 
-**14.** Compare the computational requirements for interest rate vs. credit curve bootstrapping.
+**15.** Why does the sensitivity matrix $\partial V_j/\partial S_i$ have diagonal structure for on-market CDS?
 
-**Solution sketch:** Interest rate curves: few curves (perhaps 4-5 major currencies), many instruments, sophisticated interpolation acceptable. Credit curves: $O(10^3)$ issuer curves, fewer instruments per issuer, strong locality preference, speed critical. Credit requires simpler but faster algorithms.
-
----
-
-**15.** What happens to the 5Y implied hazard if you accidentally use the wrong discount curve?
+**Solution sketch:** An on-market CDS has spread equal to the market quote. Bumping a different tenor's quote doesn't change this CDS's spread (by construction), so its MTM stays at zero. Hence $\partial V_j/\partial S_i = 0$ for $i \neq j$.
 
 ---
 
 **16.** Design a verification test for locality in a production bootstrap system.
 
+**Solution sketch:** Build curve with quotes $\{S_1, S_3, S_5, S_7, S_{10}\}$. Bump $S_5$ by 1bp. Rebuild. Verify that hazard rates for intervals before 5Y are unchanged (within numerical tolerance). Verify that hazard rates change only for intervals including or after 5Y.
+
 ---
 
 **17.** Given two dealers with different recovery assumptions, explain why their survival curves differ.
+
+**Solution sketch:** Dealer A uses R=40%, Dealer B uses R=30%. For the same quoted spread S, Dealer B infers higher hazard (since $\lambda \approx S/(1-R)$ and $1-0.3 > 1-0.4$). Actually, $\lambda_B = S/0.7 < \lambda_A = S/0.6$—wait, let me recalculate. $\lambda_A = S/0.6$, $\lambda_B = S/0.7$. Since $0.6 < 0.7$, we have $\lambda_A > \lambda_B$. So Dealer A (higher recovery) implies higher hazard.
 
 ---
 
 **18.** Explain how to handle missing intermediate tenors (e.g., no 2Y quote when 1Y and 3Y exist).
 
+**Solution sketch:** Bootstrap 1Y normally. For 3Y, the piecewise-constant hazard assumption fills in years 1-3 with a single constant hazard rate. The 2Y point is interpolated automatically—no special handling needed. The curve simply has no "knot" at 2Y, so the 1-3Y hazard is one flat segment.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Source-Backed
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -790,16 +1085,28 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 | Desirable curve properties (exact fit, locality, speed, smoothness trade-off) | O'Kane Ch 7.2 |
 | Arbitrage detection and boundary computation | O'Kane Ch 7.7 |
 | Arbitrage boundary table (Table 7.3) | O'Kane Ch 7.7 |
+| Recovery sensitivity formula and Rec01 definition | O'Kane Ch 8.3.6 |
+| Rec01 quadratic dependence on spread level | O'Kane Ch 8.3.6 |
+| Sensitivity matrix diagonal structure | O'Kane Ch 8.5 (Equations 8.5-8.6, Table 8.5) |
 | Risk-neutral vs. physical default probabilities | McNeil QRM Ch 9.3, Hull OFD Ch 24.5 |
+| Regression equation for RN vs physical | McNeil Ch 9.3 (Equation 9.12) |
 | Ratio of RN to physical probabilities (~2-3x or higher) | McNeil Ch 9.3, Hull Ch 24.5 |
-| "Hazard rates implied from credit spreads are risk-neutral estimates" | Hull Ch 24, p. 15783 verbatim |
-| Parallel between IR and credit curve construction | O'Kane Ch 7.3 (Table 7.1), Andersen Vol 1 |
+| "Hazard rates implied from credit spreads are risk-neutral estimates" | Hull Ch 24 |
+| Parallel between IR and credit curve construction | O'Kane Ch 7.3 (Table 7.1) |
 | Day count conventions (Actual/360 for CDS) | Hull OFD Ch 4, 6; O'Kane Ch 6 |
-| Quotation vs. accrued cashflow distinction | O'Kane Ch 6 |
 | Recovery rate consensus (40% for IG senior unsecured) | O'Kane Ch 7.7.1 |
 | Root-finding methods (bisection, Newton-Raphson, Brent) | O'Kane Ch 7.5 |
 
-### (B) Reasoned Inference — Derivation Logic
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| ISDA Standard Model section (42.9) | Extends O'Kane's methodology to post-2009 standardization practice |
+| "Desk Reality" troubleshooting workflow | Extends O'Kane's calibration failure discussion with operational practice |
+| "Court-appointed ruler" analogy for ISDA model | Pedagogical extension to explain standardization |
+| Time variation in risk premium (1x-6x range) | Extends McNeil's Figure 9.6 discussion |
+
+### (C) Reasoned Inference
 
 | Inference | Derivation |
 |-----------|------------|
@@ -807,13 +1114,18 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 | Locality follows from sequential structure | Earlier curve segments fixed in later steps |
 | Higher recovery requires higher hazard | From credit triangle $S = \lambda(1-R)$ |
 | Arbitrage boundary approximation | Protection leg = RPV01 × spread at boundary (O'Kane Eq 7.5) |
-| RN-to-physical ratio interpretation | From McNeil regression analysis + Hull Baa example |
+| Diagonal Jacobian implies simple hedge computation | Matrix inversion becomes trivial |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Uncertainty | Note |
 |-------------|------|
+| ISDA Standard Model details | Post-2009 standardization not covered in reference books; marked as Practitioner Note |
 | OIS vs. Libor discounting in modern practice | Modern practice uses OIS for collateralized CDS; sources written in Libor era |
 | Exact ISDA standardization details | Depends on ISDA definitions vintage (2003 vs 2014) and currency |
-| Smoothing/constrained fitting procedures | Beyond basic bootstrap not covered in depth in sources |
 | Specific liquidity premium magnitude | Sources discuss conceptually but don't quantify |
+| Current market recovery conventions by sector | May vary from the 40% standard discussed in sources |
+
+---
+
+*Last Updated: January 26, 2026*

@@ -1,4 +1,16 @@
-# Chapter 37: Cash Credit — Risky Bonds, Credit Spreads, and Credit DV01 (CS01 / Spread Duration)
+# Chapter 37: Cash Credit — Risky Bonds, Credit Spreads, and CS01
+
+---
+
+## Introduction
+
+A portfolio manager calls with a simple question: "I'm down $2 million on my corporate bond book today—is it rates or credit?" On the surface, this seems straightforward, but the answer requires separating two distinct sources of risk: the general level of interest rates (which affects all bonds) and the credit spread specific to the issuer (which reflects default risk, liquidity, and risk premia). Getting this decomposition wrong means misattributing P&L, mishedging positions, and misunderstanding the portfolio's true exposures.
+
+**Why this matters for desk practice:** Middle-office professionals often see spread numbers in risk reports—Z-spread, asset swap spread, CS01—without fully understanding how these measures are constructed, what assumptions they embed, and why they sometimes diverge from CDS spreads on the same issuer. When spreads "blow out" during a credit event or market stress, understanding the mechanics becomes critical: a rates-hedged position can still hemorrhage money through credit spread widening.
+
+This chapter develops the complete framework for cash credit analytics: pricing risky bonds using survival probabilities and recovery assumptions (building on Chapter 36), defining spread measures that isolate credit risk from rate risk, computing credit sensitivities (CS01/spread duration) that drive P&L attribution, and understanding the relationship between cash bonds and the CDS market through the lens of the cash-CDS basis. We also cover floating rate notes and asset swaps—instruments central to how bank desks view credit exposure.
+
+**Roadmap:** We begin with conventions and notation (Section 0), then develop core definitions including FRN pricing and asset swaps (Section 1). Section 2 derives the mathematical framework for risky bond pricing. Section 3 covers measurement and risk analytics, including spread duration, CS01, credit risk premium decomposition, distressed debt dynamics, and the comprehensive treatment of cash-CDS basis drivers. The chapter concludes with worked examples, practical notes, and a substantial problem set.
 
 ---
 
@@ -90,6 +102,8 @@ We use **RFV** for numeric examples unless otherwise stated, because it maps dir
 | $D_s$ | Spread duration (spread sensitivity) |
 | $DV01$ | Rate DV01 (dollars per 1 bp in the chosen rate measure) |
 | $CS01$ | Credit spread DV01 / credit DV01 (dollars per 1 bp in the chosen spread measure) |
+| $F(t)$ | Par floater spread at time $t$ |
+| $F(0)$ | Quoted margin (original spread at issuance) |
 
 ---
 
@@ -220,27 +234,87 @@ Used widely in cash credit to compare bonds across maturities and coupons (but s
 
 ---
 
-### 1.7 Asset Swap Spread (Optional, Cash-Credit Practice)
+### 1.7 Asset Swap Spread
 
 **Formal Definition:**
 
-An asset swap spread is a spread on a swap-like structure that makes the bond's value consistent with floating cashflows + spread, and it is often computed in practice as a discount-margin-type quantity; a common approximation is:
+An asset swap is a package that transforms a fixed-rate bond into a synthetic floating-rate exposure. O'Kane defines two variants:
 
-$$\text{asset swap spread} \approx \text{(bond yield spread)} - \text{(swap spread)}$$
+**Par Asset Swap:** The investor buys the bond at par (100), and the difference from market price is settled upfront. The asset swap spread $A$ is the spread over Libor that makes the PV of floating payments equal the PV of bond coupons:
 
-Tuckman defines the asset swap spread as the spread $A$ that makes the fixed payments (bond coupon) equal the PV of floating + $A$ payments in an asset swap structure.
+$$\boxed{A(0) = \frac{P_{\text{Libor}} - P}{RPV01}}$$
+
+where $P$ is the bond dirty price, $P_{\text{Libor}}$ is the Libor-discounted PV of bond cashflows, and $RPV01$ is the risky PV01 of the swap (annuity factor).
+
+**Market Asset Swap:** The investor buys the bond at market price (not par). The structure is slightly different—the investor pays the clean bond price upfront and receives floating + spread on the notional.
 
 **Intuition:**
 
-"Bond spread measured on a swap floating leg basis."
+"Bond spread measured on a swap floating leg basis." The asset swap spread answers: "If I swap the bond's fixed coupons for floating + spread, what spread do I receive?"
+
+O'Kane explains that the par asset swap spread "corresponds to the amortization of any premium or discount over the life of the asset swap." A bond trading at a discount (below par) will have a higher asset swap spread than its Z-spread, because the discount is amortized over the swap life.
 
 **Practice:**
 
-Often preferred on swap desks; but requires careful curve consistency (swap vs OIS vs gov).
+Asset swaps are preferred by bank desks because they isolate credit risk from rate risk. The structure involves three components:
+1. **Bond position:** Long the corporate bond
+2. **Interest rate swap:** Receive fixed (matching bond coupon), pay Libor + spread
+3. **Financing:** Fund the bond purchase in repo
+
+> **Desk Reality: Why Asset Swaps?**
+>
+> Bank trading desks prefer asset swap spreads because:
+> - They strip out interest rate risk (the swap hedges duration)
+> - The spread is quoted over Libor, matching funding cost
+> - Mark-to-market is cleaner for capital treatment
+>
+> **The catch:** If the bond defaults, the swap continues—the investor loses the bond but still owes swap payments. This "default contingent" risk is why asset swap spreads don't perfectly match CDS spreads.
 
 ---
 
-### 1.8 Spread Duration and CS01 (Credit DV01)
+### 1.8 Floating Rate Notes (FRN) and Par Floater Spread
+
+**Formal Definition:**
+
+A floating rate note pays coupons equal to a reference rate (e.g., Libor) plus a fixed spread called the **quoted margin** $F(0)$:
+
+$$\text{Coupon}_i = (\text{Libor}_i + F(0)) \times \alpha_i \times \text{Notional}$$
+
+where $\alpha_i$ is the accrual factor for period $i$.
+
+**Par Floater Spread:** The spread $F(t)$ that would make a new FRN trade at par today. O'Kane shows that for a defaultable FRN:
+
+$$\boxed{F(t) = \frac{1 - P_{\text{risky}}(t,T)}{RPV01(t,T)}}$$
+
+where $P_{\text{risky}}(t,T)$ is the risky discount factor and $RPV01$ is the risky annuity.
+
+**Intuition:**
+
+The par floater spread measures **current credit quality** versus the credit quality at issuance. If credit has deteriorated since issuance, $F(t) > F(0)$ and the FRN trades below par. If credit has improved, $F(t) < F(0)$ and the FRN trades above par.
+
+O'Kane emphasizes that the par floater spread is a cleaner credit measure than the asset swap spread because "the FRN is naturally a floating rate instrument" without the need for a swap overlay.
+
+**FRN Price:**
+
+Given a quoted margin $F(0)$ and current par floater spread $F(t)$, the FRN price is approximately:
+
+$$P_{\text{FRN}} \approx 100 - (F(t) - F(0)) \times RPV01$$
+
+**Credit DV01 for FRN:**
+
+O'Kane calculates that a 5-year FRN has credit DV01 of approximately $430 per $10 million notional per bp—comparable to a fixed-rate bond of the same maturity, despite the FRN having near-zero interest rate duration.
+
+**Practice:**
+
+> **Desk Reality: FRN Credit Duration**
+>
+> A common misconception is that FRNs have low "duration" and therefore low risk. This confuses **interest rate duration** (which is indeed low—the floating rate resets eliminate rate sensitivity) with **credit duration** (which is NOT low—you still have years of credit exposure).
+>
+> An FRN maturing in 5 years has 5 years of credit risk. If the issuer's spread widens by 100 bp, the FRN price drops by approximately $RPV01 \times 100 \text{ bp} \approx 4\%$—similar to a fixed-rate bond.
+
+---
+
+### 1.9 Spread Duration and CS01 (Credit DV01)
 
 **Formal Definition:**
 
@@ -253,6 +327,14 @@ in a decomposition where yield $y = y_T + s$.
 Analogously, **credit DV01 / CS01** is the PV change per 1 bp move in the specified spread measure; O'Kane defines "credit DV01" for a spread $F$ with a negative sign so the measure is positive for a typical long-credit position:
 
 $$\text{credit DV01} = -\bigl(P(F + 1\text{ bp}) - P(F)\bigr)$$
+
+**The Key Insight: Spread Duration = Interest Rate Duration**
+
+O'Kane emphasizes: "For a fixed rate bond, the interest rate duration and the spread duration are exactly the same." This follows directly from the yield decomposition $y = y_T + s$: bumping $y_T$ by 1 bp or bumping $s$ by 1 bp has the identical effect on the yield $y$ and therefore on the bond price.
+
+$$\boxed{D_s = D_{y_T} \quad \text{(for fixed-rate bonds)}}$$
+
+**Implication:** "A fixed rate corporate bond is therefore as much an interest rate play as it is a credit play." A trader who is long a 10-year corporate bond has 10-year duration exposure to BOTH rates AND spreads.
 
 **Intuition:**
 
@@ -293,6 +375,18 @@ and under independence of interest rates and default, this separates as:
 $$\boxed{\hat{Z}(0,T) = Z(0,T) \, Q(0,T)}$$
 
 **Sanity check:** If $Q(0,T) = 1$ (no default risk), then $\hat{Z}(0,T) = Z(0,T)$.
+
+#### The Correlation Correction
+
+The independence assumption is convenient but not always exact. O'Kane shows that when interest rates and hazard rates follow correlated processes, the risky zero-coupon bond price takes the form:
+
+$$\hat{Z}(0, T) = Z(0, T) \cdot Q(0, T) \cdot \Theta(0, T, \rho)$$
+
+where $\Theta$ is a multiplicative correction. For Gaussian dynamics with correlation $\rho$ between rates and hazards:
+
+$$\Theta(0, T, \rho) = \exp\left(\frac{\rho \sigma_r \sigma_\lambda T^3}{3}\right)$$
+
+O'Kane provides numerical examples showing this effect is typically small: "We can see that even for long maturities, the maximum correction to the risky zero coupon bond price is within a few tens of basis points." For a 10-year bond with 50% correlation and typical volatilities, $\Theta \approx 1.007$ (a 0.7% correction). This justifies the market-standard independence assumption for most pricing purposes, though it can matter for long-dated or high-correlation scenarios.
 
 ---
 
@@ -386,7 +480,7 @@ This mirrors the DV01 relation in Tuckman: $DV01 = \frac{PD}{10{,}000}$.
 
 ## 3. Measurement & Risk (Cash-Credit Analytics)
 
-### A) Pricing Risky Cashflows (Cash Credit Viewpoint)
+### 3.A) Pricing Risky Cashflows (Cash Credit Viewpoint)
 
 1. **Start from deterministic PV:** $PV_{\text{rf}} = \sum CF_i \, Z(0, t_i)$
 
@@ -409,7 +503,7 @@ Survival PV + recovery PV (RFV) as in Section 2.4.
 
 ---
 
-### B) Credit Spread Measures for Cash Bonds (Cash-Credit Emphasis)
+### 3.B) Credit Spread Measures for Cash Bonds (Cash-Credit Emphasis)
 
 **Spread Measures Used in THIS Chapter:**
 
@@ -417,7 +511,8 @@ Survival PV + recovery PV (RFV) as in Section 2.4.
 |---------|------------|
 | **Yield spread** $s$ | $y = y_T + s$ |
 | **Z-spread** $z$ (ZVS) | Constant spread to the base curve that matches price |
-| **Asset swap spread** (optional) | Swap-based spread consistent with floating + spread structure |
+| **Asset swap spread** | Swap-based spread consistent with floating + spread structure |
+| **Par floater spread** | Spread that makes an FRN trade at par today |
 
 **"Spread as Quoting Statistic" vs "Spread as Default Intensity + Premia":**
 
@@ -439,14 +534,157 @@ But O'Kane also emphasizes that observed spreads can include multiple premia; he
 > Which spread should I use?
 >
 > 1.  **G-Spread (Govt)**: Yield - Treasury Yield. (Quick & Dirty).
-> 2.  **I-Spread (Interploated)**: Yield - Interpolated Swap Rate. (Better).
+> 2.  **I-Spread (Interpolated)**: Yield - Interpolated Swap Rate. (Better).
 > 3.  **Z-Spread (Zero-Vol)**: Constant shift to the zero curve. (Standard for pricing).
 > 4.  **OAS (Option-Adjusted)**: Z-Spread minus the value of call options. (Essential for Callable Bonds).
 > 5.  **ASW (Asset Swap)**: What you pay to swap the bond into floating rate cashflows. (Used by Banks/Hedge Funds).
+> 6.  **Par Floater Spread**: What spread an FRN would pay if issued today. (Cleanest credit measure).
 
 ---
 
-### C) Credit DV01 / Spread Duration / CS01
+### 3.B.1) What Credit Spread Contains: The Risk Premium Decomposition
+
+O'Kane presents a framework for decomposing credit spreads into their economic components. The **market spread** exceeds the **actuarial spread** (expected loss) by a margin that reflects risk compensation.
+
+**Actuarial Spread:**
+
+The actuarial spread is the spread that would compensate exactly for expected loss under risk-neutral probabilities. Using the credit triangle:
+
+$$S_{\text{actuarial}} = \lambda_{\text{actual}}(1-R)$$
+
+where $\lambda_{\text{actual}}$ is the historical (not risk-neutral) default intensity.
+
+**Credit Risk Premium Decomposition:**
+
+O'Kane decomposes the excess of market spread over actuarial spread into three components:
+
+$$\boxed{S_{\text{market}} = S_{\text{actuarial}} + \underbrace{\Pi_{\text{default}} + \Pi_{\text{volatility}} + \Pi_{\text{liquidity}}}_{\text{Credit Risk Premium}}}$$
+
+| Component | Description |
+|-----------|-------------|
+| **Default Risk Premium** $\Pi_{\text{default}}$ | Compensation for bearing the systematic component of default risk that cannot be diversified away |
+| **Volatility Risk Premium** $\Pi_{\text{volatility}}$ | Compensation for uncertainty in the timing and amount of defaults |
+| **Liquidity Risk Premium** $\Pi_{\text{liquidity}}$ | Compensation for illiquidity—difficulty selling in stressed markets |
+
+**Coverage Ratio:**
+
+O'Kane defines the **coverage ratio** as the ratio of market spread to actuarial spread:
+
+$$\boxed{\text{Coverage Ratio} = \frac{S_{\text{market}}}{S_{\text{actuarial}}}}$$
+
+This tells you "how many times over" the market charges for expected loss. O'Kane provides empirical evidence using 2002 CDS data:
+
+| Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
+|--------|-------------------|----------------------|----------------|---------------------|
+| AA | 28 | 9 | 3.12 | 19 |
+| A | 61 | 13 | 4.67 | 48 |
+| BBB | 164 | 30 | 5.54 | 134 |
+| BB | 463 | 145 | 3.19 | 318 |
+
+O'Kane observes: "We see that the coverage ratio tends to remain fairly constant as a function of rating... The spread premium increases as we descend the rating spectrum."
+
+This means that inferring hazard rates directly from spreads (via $\lambda = s/(1-R)$) yields **risk-neutral** default intensities that exceed historical rates. Hull reinforces this: "The default probabilities or hazard rates implied from credit spreads are risk-neutral estimates."
+
+Hull's Table 24.3 shows the expected excess return on bonds, further illustrating the wedge between market spreads and historical default experience:
+
+| Rating | Bond Yield Spread (bp) | Spread for Historical Defaults (bp) | Excess Return (bp) |
+|--------|----------------------|--------------------------------------|---------------------|
+| Aaa | 40 | 2 | 38 |
+| A | 77 | 8 | 69 |
+| Baa | 143 | 28 | 115 |
+| Ba | 304 | 144 | 160 |
+
+**Practical implication:** When calibrating survival curves to bond or CDS spreads, you are obtaining $\mathbb{Q}$-measure (pricing) hazards, not $\mathbb{P}$-measure (forecasting) hazards. These are appropriate for pricing and hedging but not for predicting actual default rates.
+
+**Interpreting Coverage Ratios:**
+
+O'Kane's data shows that coverage ratios for investment grade (AA through BBB) range from about 3× to 5.5×, while high-yield (BB) drops to about 3×. For investment-grade credits, the expected loss is small but spreads remain material—the risk premium is relatively large because:
+1. Defaults are rare but catastrophic when they occur (jump-to-default risk)
+2. IG defaults tend to cluster in recessions (systematic risk)
+3. IG bonds are held by investors who value liquidity highly
+
+For high-yield credits, expected loss is larger and the premium shrinks as a multiple—though the absolute spread premium (318 bp for BB) exceeds that of IG names.
+
+> **Desk Reality: What You're Really Buying**
+>
+> When a portfolio manager says "I'm picking up 200 bp in BBB credit," they're not just picking up 200 bp of expected loss. With a coverage ratio of ~4x, perhaps 50 bp compensates for expected defaults and 150 bp is risk premium.
+>
+> **Why this matters:** In a recession when defaults spike, the expected loss component may turn out to have been underestimated. But the risk premium component is your compensation for bearing exactly that scenario.
+
+### 3.B.2) The Merton Model Perspective
+
+O'Kane discusses Merton's structural model, which provides economic intuition for credit spreads. Under Merton's framework:
+
+- The firm's assets follow geometric Brownian motion
+- Debt is a zero-coupon obligation with face value $F$ maturing at time $T$
+- Default occurs only at maturity if assets fall below $F$
+
+The resulting credit spread depends on leverage and asset volatility. O'Kane presents the term structure of Merton spreads with specific examples using $\sigma_A = 20\%$ and $r = 5\%$:
+
+> "When $A(t) = \$120$, we have $A(t) > F$ and so a bond maturing immediately can be repaid in full. As a result, the spread tends to zero as $T - t \to 0$. With increasing maturity, the risk of the asset value falling below $F$ increases and so the credit spread rises."
+
+This generates upward-sloping credit spread curves for typical investment-grade issuers. However, for distressed credits where $A(t) < F$:
+
+> "When $A(t) = \$99$ and $F = \$100$, we have $A(t) < F$. In this scenario, it would not be possible to redeem the bond if it matured immediately. As a result, the credit spread as $T - t \to 0$ tends to infinity. However, for longer maturities, there is a finite probability that the asset value will grow to exceed the face value and the bond becomes more likely to be repaid. As a result, the credit spread falls with increasing time to maturity."
+
+**Limitations of Merton's model:** O'Kane notes several reasons why structural models are not widely used for credit derivatives pricing:
+
+1. "The credit spread for firms for which $A(t) > F$ always tends to zero as $T - t \to 0$. This is not consistent with the credit markets in which even corporates with very high credit ratings have a finite spread at very short maturities."
+2. The highly simplified capital structure is unrealistic
+3. The model only allows default at a single time $T$
+4. Limited transparency regarding firm asset values
+
+O'Kane concludes: "Structural models perform best as a tool for augmenting the traditional balance sheet analysis methods of credit analysts... However, for the reasons listed above, structural models are not widely used in credit derivatives pricing."
+
+Reduced-form models (intensity-based) better fit short-dated spread behavior and dominate in the credit derivatives market. This is why the reduced-form framework developed in Sections 2.1–2.4 above is the standard tool for cash credit analytics.
+
+---
+
+### 3.B.3) Distressed Credits and Upfront Trading
+
+**When Does the Market Switch to Upfront?**
+
+For highly distressed credits (typically spreads above 1000 bp), the market switches from **running spread** (periodic premium payments) to **upfront** format. O'Kane explains this occurs because:
+
+1. **Protection seller preference:** At wide spreads, the seller prefers a certain upfront payment now rather than a risky stream of premiums that stops at default
+2. **Payment timing:** The risk of default before receiving much premium is high
+3. **Market convention:** CDS on distressed names trade with a standardized "standard coupon" (typically 500 bp) plus upfront
+
+**Upfront Valuation:**
+
+O'Kane provides the formula relating upfront payment $U$ to running spread $S$:
+
+$$\boxed{U = (S - S_{\text{std}}) \times RPV01}$$
+
+where $S_{\text{std}}$ is the standard coupon (e.g., 500 bp) and $RPV01$ is the risky PV01.
+
+**Inverted Credit Curves:**
+
+Distressed credits often exhibit **inverted credit curves**—short-term spreads higher than long-term spreads. This seems counterintuitive (shouldn't more time mean more default risk?), but reflects the market's view that:
+- Near-term default probability is high
+- If the issuer survives the near term, it may recover and be less risky
+
+O'Kane shows examples where 1-year CDS spreads exceed 5-year spreads for distressed names.
+
+**Equity-Like Convexity:**
+
+Distressed bonds exhibit **positive convexity** in a way that resembles equity:
+- If the issuer defaults, bondholders lose (but are capped at losing face minus recovery)
+- If the issuer recovers, the bond can rally dramatically—potentially from $30 back toward par
+
+This asymmetric payoff makes distressed bond analysis resemble equity analysis more than investment-grade credit analysis.
+
+> **Practitioner Note: Pull-to-Par vs. Pull-to-Recovery**
+>
+> Normal bonds "pull to par" as they approach maturity—premium bonds decline and discount bonds rise.
+>
+> Distressed bonds "pull toward recovery"—if the market expects default, the bond price gravitates toward the expected recovery value (often 30-50 cents on the dollar), not par.
+>
+> This creates a very different carry dynamic. A distressed bond trading at $40 with expected recovery of $35 may have **negative carry**—it drifts down toward recovery even as coupons are paid.
+
+---
+
+### 3.C) Credit DV01 / Spread Duration / CS01
 
 **Definitions (Precise and Bump-Specific):**
 
@@ -484,14 +722,188 @@ Hence, under a common bump definition, **portfolio DV01** and **portfolio CS01**
 
 ---
 
-### D) Hedging Mindset (Preview-Level, Not a CDS Chapter)
+### 3.D) Pull-to-Par in Credit Context
+
+**Normal Pull-to-Par:**
+
+For risk-free bonds, Tuckman explains that a bond trading above par (premium bond) will drift down toward par as it ages, while a bond trading below par (discount bond) will drift up. This is pure time value—as the bond approaches maturity, the price converges to the redemption amount (par).
+
+**Credit Pull-to-Par Dynamics:**
+
+For credit bonds, the same mechanics apply BUT are modified by credit risk:
+
+1. **Surviving bonds still pull to par:** If the issuer survives to maturity, the bond pays par. So conditional on survival, pull-to-par works normally.
+
+2. **Survival probability declines:** As each day passes without default, the remaining survival probability for the next period is reassessed. For stable credits, this has minimal effect.
+
+3. **Spread roll-down:** If the credit curve is upward-sloping (normal), a 5-year bond "rolling" to 4-year maturity experiences spread compression, adding to returns (see Chapter 7 on carry and rolldown).
+
+**Credit Carry:**
+
+The "carry" trade in credit involves:
+- Collecting spread income (coupon above risk-free rate)
+- Hoping for no default or rating downgrade
+- Benefiting from spread roll-down if curves are upward-sloping
+
+> **Desk Reality: The Carry Trade**
+>
+> A classic trade in high-yield is simply owning the bonds and collecting spread. The math: if you buy a BB bond at +350 bp and hold it for a year with no default and unchanged spreads, you earn roughly 3.5% excess return.
+>
+> **The risk:** If defaults spike or spreads widen, you lose more than a year's carry in a day. The 2008 crisis saw high-yield spreads widen from ~300 bp to ~2000 bp in months—wiping out years of accumulated carry.
+
+---
+
+### 3.E) The Cash-CDS Basis: Comprehensive Treatment
+
+The **cash-CDS basis** measures the difference between credit risk pricing in the cash bond market versus the CDS market. O'Kane defines:
+
+$$\boxed{\text{CDS Basis} = S_{\text{CDS}} - S_{\text{Bond,Libor}}}$$
+
+where $S_{\text{Bond,Libor}}$ is the bond's spread measured on a Libor basis (typically the par floater spread or asset swap spread).
+
+**Why Should They Be Equal (In Theory)?**
+
+Under idealized conditions, buying a risky bond and buying CDS protection should create a risk-free position. If so, the bond spread and CDS spread should match (after adjusting for funding at Libor). But in practice, many factors cause the basis to deviate from zero.
+
+#### 3.E.1) Fundamental Factors Affecting the Basis
+
+O'Kane identifies six **fundamental factors** that create structural differences between bond and CDS pricing:
+
+**1. Funding (Unfunded vs. Funded)**
+
+| Product | Funding |
+|---------|---------|
+| Bond | **Funded**: You must pay the bond price upfront |
+| CDS | **Unfunded**: No initial investment (except margin) |
+
+A bond investor must finance the purchase, typically in repo. If funding costs exceed Libor, bond spreads should be higher than CDS spreads (negative basis). If funding is below Libor (e.g., for a strong bank), bond spreads can be lower (positive basis).
+
+**2. Delivery Option in CDS**
+
+CDS protection buyers have a delivery option: they can deliver the **cheapest-to-deliver** bond from a basket of deliverable obligations. This option has value, especially when:
+- Multiple bonds with different prices exist
+- Some bonds trade cheaper due to liquidity
+- Restructuring events allow broader deliverables
+
+The delivery option makes CDS protection more valuable, pushing CDS spreads higher relative to bonds (positive basis contribution).
+
+**3. Technical Default (Broader Credit Events)**
+
+CDS credit events can be triggered by events that don't necessarily trigger bond default:
+- **Restructuring:** CDS may pay out on restructuring even if bonds continue to pay
+- **Failure to pay:** May trigger CDS before formal bankruptcy
+
+This makes CDS protection more comprehensive, pushing CDS spreads higher (positive basis contribution).
+
+**4. Loss on Default (Par vs. Off-Par Bonds)**
+
+CDS protection pays $(1 - R) \times \text{Notional}$, assuming you bought protection on par notional. But:
+- A bond trading at $80 loses $(1-R) \times 80$ at default
+- A bond trading at $120 loses $(1-R) \times 120$ at default
+
+For discount bonds (price < 100), CDS provides **more** protection than needed—positive basis contribution.
+For premium bonds (price > 100), CDS provides **less** protection than needed—negative basis contribution.
+
+**5. Premium Accrued at Default**
+
+When a CDS default occurs between premium payment dates:
+- **CDS:** Protection buyer must pay accrued premium
+- **Bond:** Holder loses accrued coupon (if the issuer stops paying)
+
+The accrued premium payment slightly reduces CDS value—minor negative basis contribution.
+
+**6. CDS Spreads Cannot Be Negative**
+
+Bond spreads can be negative (e.g., supranational bonds trading through Libor), but CDS spreads have a zero floor. This creates asymmetry for very high-quality issuers.
+
+#### 3.E.2) Market Factors Affecting the Basis
+
+O'Kane identifies six **market factors** that cause the basis to vary over time:
+
+**1. Relative Liquidity**
+
+Whichever market is more liquid tends to be "fairer" priced. In normal times, the CDS market for large issuers is often more liquid than cash bonds, making CDS spreads the "true" credit measure. The less liquid market trades wider.
+
+**2. Synthetic CDO Technicals**
+
+Structured products like synthetic CDOs require large amounts of CDS protection. Dealers who create CDOs need to buy protection, pushing CDS spreads wider (positive basis). This was significant in 2005-2007.
+
+**3. New Issuance / Loan Hedging**
+
+When companies issue new bonds or loans, underwriters often hedge by buying CDS protection. This temporarily widens CDS spreads (positive basis).
+
+**4. Convertible Bond Issuance**
+
+Convertible bond arbitrage strategies involve:
+- Long convertible bond (for the equity option)
+- Hedge credit risk by buying CDS protection
+
+Large convertible issuance creates CDS protection demand, widening CDS spreads (positive basis).
+
+**5. Demand for Protection (Short Positioning)**
+
+CDS is the easiest way to go short credit. When the market is bearish:
+- Investors buy CDS protection to short credit
+- Cash bond shorting is harder (need to borrow bonds)
+
+One-sided protection demand widens CDS spreads (positive basis).
+
+**6. Funding Risk (CDS Locks in Libor Flat)**
+
+CDS premium payments are fixed; the contract doesn't change if funding costs change. Bonds require ongoing financing that may become expensive in stress. This makes CDS more attractive to protection sellers in volatile times.
+
+#### 3.E.3) Basis Regimes: Positive vs. Negative
+
+| Regime | When | Why |
+|--------|------|-----|
+| **Positive Basis** (CDS > Bond) | Pre-2007 "normal" times | Synthetic CDO demand, delivery option, short demand via CDS |
+| **Negative Basis** (Bond > CDS) | 2008-2009 crisis | Funding stress, forced bond selling, cash market dislocation |
+
+Hull RM provides historical context: "Prior to the market turmoil starting in 2007, the basis tended to be positive. For example, De Witt estimates that the average CDS-bond basis in 2004 and 2005 was 16 basis points." During the 2008 crisis, the basis became severely negative as bond prices collapsed while CDS protection became expensive. Hull RM explains: "It was difficult for financial institutions to arbitrage between bonds and CDSs because of a shortage of liquidity and other considerations." Since the crisis, Hull notes that "the magnitude of the CDS-bond basis (sometimes positive and sometimes negative) has become much smaller."
+
+> **Desk Reality: The "Free Money" Illusion**
+>
+> A negative basis looks like free money: buy the bond, buy CDS protection, earn the basis. But:
+>
+> 1. **Funding cost:** The trade requires financing the bond position. During the 2008 crisis, repo rates spiked and financing became unavailable at any price.
+>
+> 2. **Counterparty risk:** If your CDS counterparty defaults, you lose your protection just when you need it most.
+>
+> 3. **Margin calls:** Both bond repo and CDS require margin. If spreads widen, you face margin calls before the trade converges.
+>
+> 4. **Term mismatch:** Bond repo is typically short-term; CDS is 5-year. If repo markets freeze, you're forced to sell the bond at distressed prices.
+>
+> Many "negative basis" trades lost money in 2008-2009 despite the theoretical arbitrage.
+
+#### 3.E.4) Basis Driver Summary Table
+
+| Factor | Direction | Mechanism |
+|--------|-----------|-----------|
+| **Fundamental Factors** | | |
+| Funding cost > Libor | Negative basis | Bonds require funding |
+| Delivery option value | Positive basis | CDS buyer can deliver CTD |
+| Technical default (restructuring) | Positive basis | CDS credit events broader |
+| Discount bonds | Positive basis | CDS overprotects |
+| Premium bonds | Negative basis | CDS underprotects |
+| Accrued premium at default | Negative basis | CDS buyer pays accrued |
+| **Market Factors** | | |
+| CDO protection demand | Positive basis | Technical CDS buying |
+| New issuance hedging | Positive basis | Underwriters buy CDS |
+| Convertible arb activity | Positive basis | Arbs buy CDS |
+| One-sided short demand | Positive basis | CDS easier to short |
+| Funding market stress | Negative basis | Cash bonds dislocate |
+| Relative liquidity | Varies | Less liquid market trades wider |
+
+---
+
+### 3.F) Hedging Mindset (Preview-Level, Not a CDS Chapter)
 
 **Conceptual Hedges for Cash Credit Spread Risk:**
 
 - **With other bonds:** relative value hedges (long one bond, short another) to isolate curve/spread shape.
 - **With indices or CDS (preview only):** hedge spread risk using CDS indices or single-name CDS; detailed CDS valuation comes later.
 
-**Basis Risk (Preview):**
+**Basis Risk:**
 
 RMFI notes a common relationship: bond yield spread is expected to be approximately equal to the CDS spread (under simplifying assumptions), and discusses CDS-bond basis concepts.
 
@@ -499,7 +911,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 
 ---
 
-## 4. Worked Examples (10 Numeric Examples)
+## 4. Worked Examples (15 Numeric Examples)
 
 ### Common Conventions Across Examples A–F (Unless Stated)
 
@@ -771,6 +1183,8 @@ Even if the numerical sensitivities are similar in this toy Z-spread setup, they
 - **DV01** hedged with swaps/Treasuries (rates instruments),
 - **CS01** hedged with credit instruments (other cash bonds, CDS/indices), and basis risk can remain.
 
+This illustrates O'Kane's point: for a fixed-rate corporate bond, spread duration equals interest rate duration. The bond is "as much an interest rate play as it is a credit play."
+
 ---
 
 ### Example G: Recovery Sensitivity
@@ -920,9 +1334,210 @@ From Example D: $z_{\text{mkt}} \approx 84.5$ bp.
 
 $$z_{\text{mkt}} - S_{\text{EL}} \approx 4.5\text{ bp}$$
 
+**Coverage Ratio:**
+
+$$\text{Coverage Ratio} = \frac{z_{\text{mkt}}}{S_{\text{EL}}} = \frac{84.5}{80.0} = 1.056$$
+
+This is low compared to typical IG coverage ratios (4-5x), suggesting either the actuarial spread calculation is overstated or this is a relatively risky credit where expected loss dominates.
+
 **Interpretation (Explicitly Labeled):** O'Kane conceptualizes the difference between market spread and actuarial spread as arising from additional premia (default risk premium, volatility risk premium, liquidity risk premium).
 
 Do not treat this as an identity; it is a useful way to frame why "spread ≠ expected loss."
+
+---
+
+### Example K: FRN Pricing and Par Floater Spread
+
+**Task:** Price a floating rate note and compute the par floater spread.
+
+**FRN Characteristics:**
+
+| Parameter | Value |
+|-----------|-------|
+| Maturity | 5 years |
+| Coupon | 3M Libor + 150 bp (quoted margin) |
+| Face | 100 |
+| Current 3M Libor | 3.00% |
+
+**Assume:**
+- Flat Libor curve at 3.00%
+- Credit spread has widened since issuance; current par floater spread is 200 bp
+
+**FRN Price Approximation:**
+
+$$P_{\text{FRN}} \approx 100 - (F(t) - F(0)) \times RPV01$$
+
+For a 5-year FRN with Libor discounting, $RPV01 \approx 4.5$ years.
+
+$$P_{\text{FRN}} \approx 100 - (200 - 150) \times 0.045 = 100 - 2.25 = 97.75$$
+
+**Interpretation:** The FRN trades at a discount because credit has deteriorated—the market now requires 200 bp over Libor, but this FRN only pays 150 bp.
+
+**Credit DV01 (CS01):**
+
+$$CS01 \approx RPV01 = 4.5 \times 100 / 10{,}000 = 0.045 \text{ per 100 per bp}$$
+
+Per \$10mm notional: $CS01 \approx \$4{,}500$ per bp.
+
+**Comparison to Fixed-Rate Bond:**
+
+A 5-year fixed-rate bond with 7-year duration might have:
+- Rate DV01: $\approx 0.07$ per 100 per bp
+- CS01: $\approx 0.07$ per 100 per bp (spread duration = rate duration)
+
+The FRN has:
+- Rate DV01: $\approx 0$ (floating rate resets)
+- CS01: $\approx 0.045$ per 100 per bp
+
+**Key insight:** FRNs have credit duration comparable to their maturity, even though rate duration is near zero.
+
+---
+
+### Example L: Par Asset Swap Spread Calculation
+
+**Task:** Compute the par asset swap spread for a corporate bond.
+
+**Bond Characteristics:**
+
+| Parameter | Value |
+|-----------|-------|
+| Maturity | 7 years |
+| Coupon | 7.25% (annual) |
+| Price (dirty) | 94.38 |
+| Yield | 8.25% |
+
+**Swap Rates:**
+- 7-year swap rate: 6.00%
+- Libor: flat at 5.00%
+
+**Step 1: Compute Libor-discounted PV of bond cashflows**
+
+Using Libor discounting at 5.00%:
+
+$$P_{\text{Libor}} = \sum_{t=1}^{6} \frac{7.25}{1.05^t} + \frac{107.25}{1.05^7} \approx 113.15$$
+
+**Step 2: Compute RPV01**
+
+$$RPV01 = \sum_{t=1}^{7} \frac{1}{1.05^t} \approx 5.786$$
+
+**Step 3: Compute Par Asset Swap Spread**
+
+$$A = \frac{P_{\text{Libor}} - P_{\text{bond}}}{RPV01} = \frac{113.15 - 94.38}{5.786} = \frac{18.77}{5.786} = 3.24\% = 324 \text{ bp}$$
+
+**Interpretation:**
+
+The par asset swap spread (324 bp) exceeds the simple yield spread because the bond trades at a discount. The discount (100 - 94.38 = 5.62 points) is amortized over the swap life, adding to the spread.
+
+If the bond traded at par, the asset swap spread would be closer to the yield spread over swaps.
+
+---
+
+### Example M: Negative Basis Trade Construction
+
+**Task:** Construct and analyze a negative basis trade where bond spread exceeds CDS spread.
+
+**Setup:**
+
+| Measure | Value |
+|---------|-------|
+| Bond asset swap spread | 200 bp |
+| 5-year CDS spread | 150 bp |
+| **Basis** | -50 bp (negative) |
+
+**Trade Construction:**
+
+1. **Buy bond:** $10mm face, price 95, cash outlay = $9.5mm
+2. **Buy CDS protection:** $10mm notional, pay 150 bp annually
+3. **Finance bond in repo:** Assume repo rate = Libor + 50 bp
+
+**Annual Cashflows (Assuming No Default):**
+
+| Component | Annual Cashflow |
+|-----------|----------------|
+| Bond coupon (6%) | +$600,000 |
+| Swap payment (receive Libor + 200 bp, pay fixed) | ~ +$200,000 net spread |
+| CDS premium | -$150,000 |
+| Repo financing ($9.5mm × Libor + 50bp) | ~ -$500,000 (at 5.5% total) |
+
+**Net Expected Profit:**
+
+Theoretical basis capture: $50 \text{ bp} \times 10\text{mm} \times 5 \text{ yr duration} \approx \$250{,}000$ over life.
+
+**But Wait—Risks:**
+
+1. **Funding cost:** Repo at Libor + 50 bp consumes 50 bp of the 50 bp basis!
+2. **Term mismatch:** Repo is overnight/short-term; trade is 5-year
+3. **Margin calls:** Both CDS and repo require margin that increases in stress
+4. **Counterparty risk:** CDS counterparty could fail
+
+> **Practitioner Note:** This example illustrates why "obvious" basis arbitrage often fails. The 50 bp negative basis may be entirely consumed by funding costs and risks. In the 2008 crisis, many negative basis trades lost money because:
+> - Funding costs spiked (repo spreads widened dramatically)
+> - Repo availability collapsed (couldn't roll financing)
+> - Margin calls forced liquidation at worst prices
+
+---
+
+### Example N: Distressed Credit—Upfront vs. Running
+
+**Task:** Compare running spread format to upfront format for a distressed credit.
+
+**Distressed Credit:**
+- Running CDS spread: 1500 bp (15%)
+- Standard coupon: 500 bp (market convention for distressed)
+- Maturity: 5 years
+
+**Risky PV01 Calculation:**
+
+For a distressed credit with 1500 bp spread, survival is low. Approximate $RPV01$:
+
+Using flat hazard $\lambda = 1500/(1-40\%) = 2500$ bp = 25%/year:
+
+$$Q(5) = e^{-0.25 \times 5} = e^{-1.25} \approx 0.287$$
+
+$$RPV01 \approx \sum_{t=1}^{5} e^{-0.05t} \cdot e^{-0.25t} \approx 2.18 \text{ years}$$
+
+**Upfront Payment:**
+
+$$U = (S - S_{\text{std}}) \times RPV01 = (1500 - 500) \times 2.18 / 100 = 21.8\%$$
+
+**Interpretation:**
+
+The protection buyer pays 21.8% upfront plus 500 bp running. Equivalently:
+- Pay $2.18mm now on $10mm notional
+- Pay $500,000 annually until default or maturity
+
+**Why Protection Sellers Prefer Upfront:**
+
+If default occurs in year 1, the seller has received:
+- **Running format:** 1500 bp × 1 year × $10mm = $1.5mm
+- **Upfront format:** 2180k upfront + 500k running = $2.68mm
+
+The upfront format front-loads payment, protecting the seller from early default.
+
+---
+
+### Example O: Coverage Ratio by Rating
+
+**Task:** Verify the coverage ratio framework using O'Kane's empirical data.
+
+From Section 3.B.1, O'Kane's 2002 CDS data shows:
+
+| Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
+|--------|-------------------|----------------------|----------------|---------------------|
+| AA | 28 | 9 | 3.12 | 19 |
+| A | 61 | 13 | 4.67 | 48 |
+| BBB | 164 | 30 | 5.54 | 134 |
+| BB | 463 | 145 | 3.19 | 318 |
+
+**Verify BBB:** Coverage = 164 / 30 = 5.47 ≈ 5.54 ✓ (small rounding). Premium = 164 − 30 = 134 bp ✓.
+
+**Observations:**
+
+1. **Coverage ratios cluster around 3–5.5× for these ratings**, rather than diverging dramatically
+2. **Absolute spread premium increases with risk:** BB premium (318 bp) >> BBB premium (134 bp)
+3. **Coverage ratio is non-monotonic:** BBB has the highest ratio (5.54×), not the highest-quality AA
+
+Hull's Table 24.3 reinforces this pattern: Aaa bonds earn 38 bp excess over historical defaults, while Ba bonds earn 160 bp—both reflecting substantial risk premia beyond expected loss.
 
 ---
 
@@ -943,6 +1558,7 @@ This chapter:
 | Yield spread $s$ | To Treasuries |
 | Z-spread $z$ | To a base curve |
 | Asset swap spread | To swaps |
+| Par floater spread | Current credit quality measure |
 | OAS | For option-embedded bonds |
 
 O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
@@ -960,6 +1576,10 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 4. **Confusing hazard bumps** (change $\lambda$ or $Q$) **with spread bumps** (change $z$); they coincide only under strong simplifications (credit triangle).
 
 5. **Ignoring recovery sensitivity** when mapping spreads to hazard (Example G).
+
+6. **Assuming negative basis is free money** without accounting for funding costs, term mismatch, and counterparty risk.
+
+7. **Treating FRN as "low duration"** without distinguishing interest rate duration (low) from credit duration (material).
 
 ### Implementation Pitfalls
 
@@ -987,11 +1607,13 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
    - **Zero hazard:** risky PV reduces to risk-free PV.
    - **Recovery extremes:** $R \to 0$ reduces recovery PV; $R \to 1$ increases recovery PV under RFV but may be unrealistic.
 
+5. **Spread Duration = Rate Duration:** For fixed-rate bonds, verify these are equal (Example F).
+
 ---
 
 ## 6. Summary & Recall
 
-### 10-Bullet Executive Summary
+### 12-Bullet Executive Summary
 
 1. Cash credit analytics separates risk-free discounting $Z(0,t)$ from credit risk via survival $Q(0,t)$ and recovery $R$.
 
@@ -1007,11 +1629,15 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 
 7. Z-spread (ZVS) is the constant spread to the base curve that reprices the bond.
 
-8. Market spreads can exceed actuarial spreads due to risk premia/liquidity premia (conceptually).
+8. Market spreads exceed actuarial spreads due to risk premia (default, volatility, liquidity); coverage ratio quantifies this multiple.
 
-9. Spread duration comes from $dP/P \approx -D_s \, ds$.
+9. Spread duration equals interest rate duration for fixed-rate bonds—corporate bonds are "as much an interest rate play as a credit play."
 
 10. CS01 is the PV change per 1 bp spread move; define precisely what spread is bumped and state sign convention.
+
+11. FRNs have low rate duration but material credit duration; par floater spread measures current vs. issuance credit quality.
+
+12. Cash-CDS basis reflects 12+ fundamental and market factors; negative basis "arbitrage" often fails due to funding and execution risks.
 
 ---
 
@@ -1032,8 +1658,20 @@ $$D(0,T) = -\int_0^T Z(0,s) \, dQ(0,s)$$
 **Z-Spread (ZVS) Pricing Equation:**
 $$P_{\text{mkt}} = \sum_i CF_i \cdot DF\bigl(r(0, t_i) + z;\, t_i\bigr)$$
 
+**Par Floater Spread:**
+$$F(t) = \frac{1 - P_{\text{risky}}(t,T)}{RPV01(t,T)}$$
+
+**Asset Swap Spread (Par):**
+$$A(0) = \frac{P_{\text{Libor}} - P}{RPV01}$$
+
+**CDS Basis:**
+$$\text{Basis} = S_{\text{CDS}} - S_{\text{Bond,Libor}}$$
+
 **Spread Duration:**
 $$\frac{dP}{P} \approx -D_s \, ds$$
+
+**Key Identity (Fixed-Rate Bonds):**
+$$D_s = D_{y_T}$$
 
 **CS01 Sign Convention (Chapter Default):**
 $$CS01 \equiv -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)$$
@@ -1041,9 +1679,15 @@ $$CS01 \equiv -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)$$
 **DV01 Scaling (Analogy):**
 $$DV01 = \frac{PD}{10{,}000}$$
 
+**Coverage Ratio:**
+$$\text{Coverage} = \frac{S_{\text{market}}}{S_{\text{actuarial}}}$$
+
+**Upfront CDS:**
+$$U = (S - S_{\text{std}}) \times RPV01$$
+
 ---
 
-### 35 Flashcards (Q/A)
+### 46 Flashcards (Q/A)
 
 **Q1:** What is the difference between clean and dirty price?
 **A:** Dirty $P$ includes accrued interest; clean excludes it: $P = P_{\text{clean}} + AI$.
@@ -1150,17 +1794,50 @@ $$DV01 = \frac{PD}{10{,}000}$$
 **Q35:** What must be stated to make CS01 interpretable?
 **A:** The spread definition (Z/OAS/ASW/yield spread), the base curve, compounding, and recovery convention.
 
+**Q36:** What is the cash-CDS basis?
+**A:** CDS spread minus bond Libor spread (e.g., par floater spread or asset swap spread).
+
+**Q37:** What is a positive basis? A negative basis?
+**A:** Positive: CDS spread > bond spread. Negative: bond spread > CDS spread.
+
+**Q38:** Name three fundamental factors driving CDS basis.
+**A:** Funding differences, delivery option in CDS, technical default (broader credit events).
+
+**Q39:** Name three market factors driving CDS basis.
+**A:** Synthetic CDO technicals, new issuance hedging, relative liquidity differences.
+
+**Q40:** What is par floater spread?
+**A:** The spread that would make a new FRN trade at par today; measures current credit quality.
+
+**Q41:** What is the quoted margin on an FRN?
+**A:** The fixed spread over Libor that the FRN pays, set at issuance.
+
+**Q42:** What is the par asset swap spread formula?
+**A:** $A = (P_{\text{Libor}} - P) / RPV01$.
+
+**Q43:** Why is spread duration equal to interest rate duration for fixed-rate bonds?
+**A:** Because yield = Treasury yield + spread, so bumping either has identical effect on price.
+
+**Q44:** What is coverage ratio?
+**A:** Market spread divided by actuarial spread; measures how many times expected loss the market charges.
+
+**Q45:** When does the market switch to upfront format for CDS?
+**A:** For distressed credits, typically when spreads exceed 1000 bp.
+
+**Q46:** Why do negative basis trades often lose money?
+**A:** Funding costs consume the basis; term mismatch causes forced liquidation; margin calls in stress.
+
 ---
 
-## 7. Mini Problem Set (18 Questions)
+## 7. Mini Problem Set (24 Questions)
 
-*Provide brief solution sketches for questions 1–9 only.*
+*Provide brief solution sketches for questions 1–12 only.*
 
 ---
 
 **1. Risk-Free PV:** A 2y bond with annual coupons has cashflows $5, 5, 105$. Given discount factors $Z(1) = 0.98$, $Z(2) = 0.95$, compute PV.
 
-**Sketch:** $PV = 5 \cdot Z(1) + 105 \cdot Z(2) = 5(0.98) + 105(0.95)$.
+**Sketch:** $PV = 5 \cdot Z(1) + 105 \cdot Z(2) = 5(0.98) + 105(0.95) = 4.90 + 99.75 = 104.65$.
 
 ---
 
@@ -1172,37 +1849,37 @@ $$DV01 = \frac{PD}{10{,}000}$$
 
 **3. Survival-Weighted PV:** A single cashflow 100 at $T = 3$, $Z(3) = 0.90$, $Q(3) = 0.95$. Compute survival PV.
 
-**Sketch:** $100 \cdot Z(3) \cdot Q(3) = 100(0.90)(0.95)$.
+**Sketch:** $100 \cdot Z(3) \cdot Q(3) = 100(0.90)(0.95) = 85.50$.
 
 ---
 
 **4. Payment at Default (Discrete Approximation):** Given $Z(1) = 0.98$, $Z(2) = 0.95$, $Q(0) = 1$, $Q(1) = 0.99$, $Q(2) = 0.97$, approximate $D(0,2) \approx \sum Z(t_i)(Q(t_{i-1}) - Q(t_i))$.
 
-**Sketch:** $D \approx 0.98(1 - 0.99) + 0.95(0.99 - 0.97)$. Tie to $D(0,T) = -\int Z \, dQ$.
+**Sketch:** $D \approx 0.98(1 - 0.99) + 0.95(0.99 - 0.97) = 0.98(0.01) + 0.95(0.02) = 0.0098 + 0.019 = 0.0288$.
 
 ---
 
 **5. Credit Triangle Hazard:** If $S = 150$ bp and $R = 40\%$, estimate $\lambda$.
 
-**Sketch:** $\lambda \approx S/(1-R) = 0.015/0.60 = 0.025$.
+**Sketch:** $\lambda \approx S/(1-R) = 0.015/0.60 = 0.025 = 2.5\%$/year.
 
 ---
 
 **6. CS01 Sign:** If $P(z) = 102.00$ and $P(z + 1\text{ bp}) = 101.97$, compute CS01 under chapter convention.
 
-**Sketch:** $CS01 = P(z) - P(z + 1\text{ bp}) = 0.03$.
+**Sketch:** $CS01 = P(z) - P(z + 1\text{ bp}) = 0.03$ per 100.
 
 ---
 
 **7. Spread Duration from CS01:** If $P = 100$ and CS01 (per 100) is 0.04, estimate spread duration.
 
-**Sketch:** $D_s \approx 10{,}000 \cdot CS01 / P = 10{,}000 \cdot 0.04 / 100 = 4$.
+**Sketch:** $D_s \approx 10{,}000 \cdot CS01 / P = 10{,}000 \cdot 0.04 / 100 = 4$ years.
 
 ---
 
 **8. DV01 Scaling:** A bond has price 98 and modified duration 5.2. Compute DV01 (per 100).
 
-**Sketch:** $DV01 = PD/10{,}000 = 98 \cdot 5.2/10{,}000$.
+**Sketch:** $DV01 = PD/10{,}000 = 98 \cdot 5.2/10{,}000 = 0.05096$ per 100.
 
 ---
 
@@ -1212,39 +1889,69 @@ $$DV01 = \frac{PD}{10{,}000}$$
 
 ---
 
-**10. Curve Dependence:** Explain why changing the base curve (OIS vs swaps) can change the solved Z-spread even if price is unchanged.
+**10. Coverage Ratio:** Market spread is 180 bp, historical default rate is 1%, recovery is 40%. Compute actuarial spread and coverage ratio.
+
+**Sketch:** $S_{\text{actuarial}} = 0.01 \times 0.60 = 60$ bp. Coverage $= 180/60 = 3.0$.
 
 ---
 
-**11. Clean/Dirty Pitfall:** Describe what happens if you solve Z-spread on clean price but then reprice using dirty price.
+**11. FRN Price:** An FRN has quoted margin 100 bp, par floater spread is now 150 bp, RPV01 = 4.0. What is the approximate price?
+
+**Sketch:** $P \approx 100 - (150 - 100) \times 0.04 = 100 - 2.0 = 98.00$.
 
 ---
 
-**12. Recovery Convention:** Compare RFV vs RT in words and state which bond analytics outputs would change.
+**12. CDS Basis:** Bond asset swap spread is 200 bp, CDS spread is 175 bp. What is the basis? Is it positive or negative?
+
+**Sketch:** Basis $= 175 - 200 = -25$ bp. Negative basis (bond trades wider than CDS).
 
 ---
 
-**13. Hazard Bump vs Spread Bump:** Give an example where bumping hazard by +10% and bumping Z-spread by +10 bp produce different PV changes.
+**13. Curve Dependence:** Explain why changing the base curve (OIS vs swaps) can change the solved Z-spread even if price is unchanged.
 
 ---
 
-**14. Portfolio CS01:** Two corporate bonds have CS01s \$200/bp and \$350/bp per \$1mm. You are long \$2mm of the first and short \$1mm of the second. Compute portfolio CS01.
+**14. Clean/Dirty Pitfall:** Describe what happens if you solve Z-spread on clean price but then reprice using dirty price.
 
 ---
 
-**15. Spread Curve Trade:** Design a cash bond steepener/flattener and describe which spread move scenario profits.
+**15. Recovery Convention:** Compare RFV vs RT in words and state which bond analytics outputs would change.
 
 ---
 
-**16. Interpretation:** Explain why market Z-spread might exceed actuarial spread even if expected loss is small.
+**16. Hazard Bump vs Spread Bump:** Give an example where bumping hazard by +10% and bumping Z-spread by +10 bp produce different PV changes.
 
 ---
 
-**17. Verification Tests:** List three numerical tests to validate a CS01 implementation.
+**17. Portfolio CS01:** Two corporate bonds have CS01s \$200/bp and \$350/bp per \$1mm. You are long \$2mm of the first and short \$1mm of the second. Compute portfolio CS01.
 
 ---
 
-**18. Stress Scenario:** A rates-hedged portfolio has DV01 ≈ 0 but CS01 = \$10,000/bp. What happens under +50 bp credit widening? Compute approximate P&L.
+**18. Spread Curve Trade:** Design a cash bond steepener/flattener and describe which spread move scenario profits.
+
+---
+
+**19. Basis Trade P&L:** You enter a negative basis trade with 30 bp theoretical pickup. Repo spreads widen 40 bp during the trade. Analyze P&L.
+
+---
+
+**20. Basis Driver Analysis:** A company announces large bond issuance. Which direction should the basis move and why?
+
+---
+
+**21. FRN vs Fixed Credit Duration:** A 5-year FRN and a 5-year fixed-rate bond have the same issuer. Compare their rate durations and credit durations.
+
+---
+
+**22. Upfront Calculation:** CDS running spread is 1200 bp, standard coupon is 500 bp, RPV01 is 2.5. What is the upfront payment?
+
+---
+
+**23. Distressed Curve Shape:** Explain why distressed credits often have inverted credit curves (short-term spreads higher than long-term).
+
+---
+
+**24. Spread Duration = Rate Duration:** Prove that for a fixed-rate bond where $y = y_T + s$, the spread duration equals the rate duration.
 
 ---
 
@@ -1252,22 +1959,58 @@ $$DV01 = \frac{PD}{10{,}000}$$
 
 ### (A) Verified Facts — Cite Specific Sources
 
-- Risky ZCB factorization $\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$ under independence (O'Kane)
-- Payment-at-default PV $D(0,T) = -\int_0^T Z \, dQ$ (O'Kane)
-- Z-spread (ZVS) definition (O'Kane Ch 4-5)
-- Credit triangle $S = \lambda(1-R)$ (O'Kane)
-- Spread duration expansion $dP/P \approx -D_s \, ds$ (O'Kane)
-- Credit DV01 sign convention (O'Kane)
-- DV01 scaling $DV01 = PD/10{,}000$ (Tuckman)
+- Risky ZCB factorization $\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$ under independence (O'Kane Ch 3)
+- Payment-at-default PV $D(0,T) = -\int_0^T Z \, dQ$ (O'Kane Ch 3)
+- Z-spread (ZVS) definition (O'Kane Ch 4.2.9)
+- Credit triangle $S = \lambda(1-R)$ (O'Kane Ch 3.6)
+- Spread duration expansion $dP/P \approx -D_s \, ds$ (O'Kane Ch 4.2.7)
+- Spread duration = interest rate duration for fixed-rate bonds (O'Kane Ch 4.2.7)
+- Credit DV01 sign convention (O'Kane Ch 4.2.7)
+- DV01 scaling $DV01 = PD/10{,}000$ (Tuckman Ch 5)
 - Recovery conventions RT/RFV/RMV (QRM)
 - Clean/dirty price relationship (Tuckman Ch 1-4)
+- Par floater spread definition (O'Kane Ch 4.3)
+- FRN pricing mechanics (O'Kane Ch 4.3)
+- Par asset swap spread formula (O'Kane Ch 4.4, Equation 4.37)
+- Market asset swap (O'Kane Ch 4.5)
+- CDS basis definition: CDS spread - Bond Libor spread (O'Kane Ch 5.6)
+- Six fundamental basis factors (O'Kane Ch 5.6.1): funding, delivery option, technical default, loss on default, premium accrued, spread floor
+- Six market basis factors (O'Kane Ch 5.6.2): liquidity, synthetic CDO, new issuance, convertible issuance, protection demand, funding risk
+- Credit risk premium decomposition (O'Kane Ch 3.11)
+- Coverage ratio = market spread / actuarial spread (O'Kane Ch 3.11)
+- Upfront CDS format for distressed credits (O'Kane Ch 6.7)
+- Inverted credit curves for distressed names (O'Kane Ch 7.4)
+- Correlation correction $\Theta$ for rates-hazard dependence (O'Kane Ch 3.8.1)
+- Merton model spread term structure and limitations (O'Kane Ch 3.4, Figure 3.4)
+- Coverage ratio/spread premium empirical data (O'Kane Ch 3.11 Table 3.4)
+- Risk-neutral vs historical hazards (Hull OFD Ch 24.5, O'Kane Ch 3.11)
+- Risk-neutral excess return table (Hull OFD Ch 24.5 Table 24.3)
+- CDS-bond basis definition and historical behavior (Hull RM Ch 19.5)
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Claude-Extended Content
+
+- "Desk Reality" boxes providing practitioner perspective on:
+  - Why asset swaps are used (isolating credit from rates)
+  - FRN credit duration misconceptions
+  - Negative basis trade failures in 2008-2009
+  - Carry trade dynamics in high-yield
+  - Pull-to-par vs. pull-to-recovery
+- Coverage ratio interpretation by rating
+- Examples M-O constructed from principles using O'Kane framework
+- Basis driver summary table synthesizing O'Kane's taxonomy
+
+### (C) Reasoned Inference — Note Derivation Logic
 
 - Bond PV decomposition into survival PV + recovery PV derived from building blocks
 - CS01 ≈ $PD_s/10{,}000$ follows from spread duration definition and DV01 analogy
 - Portfolio additivity of CS01 follows from PV additivity
+- FRN price approximation from par floater spread formula
+- Upfront payment calculation from O'Kane formula
 
-### (C) Speculation — Flag Uncertainties
+### (D) Flagged Uncertainties
 
-- None in this chapter. All content traces to source material or is explicitly flagged as "I'm not sure."
+- Specific funding cost levels during 2008-2009 crisis — O'Kane written before crisis fully resolved; marked as practitioner note
+- Current basis levels and trends — books data is dated; not included as fact
+- Coverage ratio data sourced from O'Kane Table 3.4 (2002 CDS data); current market levels may differ
+- Correlation correction $\Theta$ calibration is desk-specific; O'Kane provides formula but I'm not sure about current market practice
+

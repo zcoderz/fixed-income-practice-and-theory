@@ -8,15 +8,21 @@ Every yield curve begins somewhere. Before you can bootstrap to 30-year swap rat
 
 The money-market segment of the curve looks deceptively simple. Instruments mature in weeks or months, not years. The math involves little more than present value with simple interest. Yet this is precisely where **day-count conventions matter most**: a one-day difference in accrual fraction can be as significant as a basis point difference in rate. At the short end, the plumbing cannot be approximate—it must be exact.
 
+**Why this matters for middle-office readers:** When your desk's daily P&L shows "funding cost" or "carry," it reflects these money-market rates. When risk reports show overnight exposure or short-term rate sensitivity, they're measuring exposure to the instruments covered here. Understanding money markets is the foundation for understanding how the trading desk actually makes (or loses) money on funding.
+
 This chapter covers:
 
 1. **Core concepts**: Discount factors, accrual factors, simple rates, and the forward-rate identity that ties them together
-2. **Instrument mechanics**: What deposits, bills, and FRAs actually quote and how each pins down a curve point
-3. **Mathematical derivations**: Step-by-step with unit checks and sanity tests
-4. **Bootstrapping**: How to build the short end from market quotes
-5. **Worked examples**: Eight detailed numeric calculations
+2. **The credit hierarchy**: Why Fed Funds, T-bills, repo, and unsecured rates differ—and what the LIBOR-to-SOFR transition changed permanently
+3. **Rate determination**: The critical distinction between rates fixed "in advance" (LIBOR) versus "in arrears" (SOFR)
+4. **Instrument mechanics**: What deposits, bills, FRAs, and Fed Funds futures actually quote and how each pins down a curve point
+5. **Fed probability extraction**: How traders calculate implied rate hike probabilities from Fed Funds futures
+6. **Year-end dynamics**: Why funding rates spike at quarter-end and how traders position for the "turn"
+7. **Mathematical derivations**: Step-by-step with unit checks and sanity tests
+8. **Bootstrapping**: How to build the short end from market quotes
+9. **Worked examples**: Ten detailed numeric calculations
 
-We work primarily in a **single-curve setting** for pedagogy. The multi-curve reality of post-crisis practice—separate discounting and forwarding curves—is previewed but deferred to later chapters.
+We work primarily in a **single-curve setting** for pedagogy. The multi-curve reality of post-crisis practice—separate discounting and forwarding curves—is previewed but deferred to Part IV (Chapters 17-22).
 
 > **Connection to prior chapters:** Chapter 1 established day counts and compounding as the "unit system" of interest rates. Chapter 2 defined discount factors as the primitive pricing object. Chapter 3 introduced the zero-forward-par triangle. This chapter shows how actual market instruments—deposits, bills, FRAs—generate those first discount factors and forward rates.
 
@@ -36,9 +42,31 @@ Before diving into the math, it helps to understand the "Credit Hierarchy" of th
 > *   **Tier 4 (Unsecured Banks)**: **Eurodollar / Term LIBOR / CP**. "I promise to pay you back." Trust-based.
 > *   **Tier 5 (Corporate)**: **Commercial Paper**. Unsecured corporate debt.
 >
-> **The Lesson of 2008:** In normal times, these rates move together. In a crisis, trust evaporates. The "Pyramid" pulled apart: Tier 4/5 rates spiked (Libor soared) while Tier 1/2 rates plummeted (Flight to Quality).
+> **The Lesson of 2008:** In normal times, these rates move together. In a crisis, trust evaporates. The "Pyramid" pulled apart: Tier 4/5 rates spiked (LIBOR soared) while Tier 1/2 rates plummeted (Flight to Quality).
 
-### 4.1.1 The Discount Factor $P(0,T)$
+### 4.1.1 Credit-Sensitive vs Risk-Free Reference Rates: The Post-LIBOR Reality
+
+The 2008 crisis and subsequent LIBOR transition revealed a fundamental truth about money market rates: **not all "short-term rates" are the same**. The distinction between credit-sensitive and risk-free rates now shapes how curves are built, swaps are priced, and corporate hedging programs are designed.
+
+Hull explains the core difference: "The new overnight reference rates are considered to be risk-free (or nearly risk-free), whereas LIBOR incorporates a time-varying credit spread reflecting the credit risk of large banks."
+
+**The old world (LIBOR-based):** LIBOR was an unsecured interbank rate that embedded bank credit risk. When a corporate borrower hedged floating-rate debt with a LIBOR swap, both the borrowing cost and the hedge referenced the same credit-sensitive index. The hedge worked well because corporate borrowing costs and LIBOR moved together.
+
+**The new world (SOFR-based):** SOFR is a secured overnight rate collateralized by Treasury repo. It contains essentially no credit spread. Hull notes: "When banks lend to their customers at a floating rate determined by SOFR, they usually add a credit spread to SOFR. If credit spreads rise, the banks can raise the spread they add."
+
+> **Desk Reality: The Hedging Gap**
+>
+> Consider a regional bank that borrows at Fed Funds + 50bp and hedges with SOFR swaps. In normal times, this works fine—SOFR and Fed Funds move together.
+>
+> But when credit spreads widen (as in March 2020), the bank's borrowing cost rises while SOFR stays anchored to Treasury repo rates. The "hedge" provides no protection against the credit spread component.
+>
+> **This is why:** Some corporates initially resisted the SOFR transition. They faced basis risk between their credit-sensitive borrowing costs and risk-free hedges. Hull notes there was "desire on the part of banks to augment the new reference rates with a measure of the level of credit spreads."
+>
+> **What happened:** Credit-sensitive alternatives like BSBY (Bloomberg Short-Term Bank Yield Index) and Ameribor emerged but achieved limited adoption. The market largely settled on SOFR plus a fixed credit spread adjustment (CSA) for legacy LIBOR transition.
+
+**What happened to Tier 4?** The "Eurodollar/LIBOR" layer of the credit pyramid largely disappeared as a traded market. Term LIBOR ceased publication in June 2023 for USD. The interbank unsecured lending market—already moribund after 2008—effectively ended. Modern money markets are dominated by the secured (repo) and central bank layers.
+
+### 4.1.2 The Discount Factor $P(0,T)$
 
 The discount factor $P(0,T)$ is the time-0 value of receiving one unit of currency at time $T$. It is the fundamental building block of fixed-income pricing.
 
@@ -48,7 +76,7 @@ The discount factor $P(0,T)$ is the time-0 value of receiving one unit of curren
 
 **Practice:** Front-end discount factors are the first "curve nodes" that anchor PVs of very short cashflows and the earliest forward rates used in floating-rate products.
 
-### 4.1.2 The Accrual Factor $\alpha(T,S)$ and Day Count
+### 4.1.3 The Accrual Factor $\alpha(T,S)$ and Day Count
 
 Hull provides a clean definition: "The day count defines the way in which interest accrues over time." The accrual factor $\alpha(T,S)$ converts an annualized rate into an interest amount over the period $[T,S]$:
 
@@ -60,7 +88,7 @@ $$\text{Interest} = \text{Rate} \times \alpha(T,S) \times \text{Notional}$$
 
 In the U.S., money-market instruments (including SOFR and Fed Funds) commonly use **Actual/360**: interest accrued over $d$ days is $(d/360) \times \text{rate}$.
 
-### 4.1.3 Simple (Money-Market) Rates
+### 4.1.4 Simple (Money-Market) Rates
 
 Money-market instruments quote **simple rates** over their term—compounding frequency equals the instrument's maturity. A deposit of size 1 over $[T, T+\tau]$ returns $1 + \tau L(T; T, T+\tau)$ at maturity. Tuckman explains that "lending \$1 for $d$ days at a rate of $r$ will earn the lender an interest payment of $rd/360$ dollars at the end of the $d$ days" under the actual/360 convention.
 
@@ -70,7 +98,7 @@ $$\boxed{P(0,T) = \frac{1}{1 + r \cdot \alpha(0,T)}}$$
 
 This formula captures the essence of short-end curve construction: a deposit quote is "directly a discount factor" once you apply the correct day-count convention.
 
-### 4.1.4 The Forward Rate Identity
+### 4.1.5 The Forward Rate Identity
 
 For any future period $[T,S]$, the simply-compounded forward rate $L(t;T,S)$ satisfies:
 
@@ -84,7 +112,7 @@ Andersen defines this identity as the foundation for all forward-rate instrument
 
 $$\boxed{F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\alpha(T_1,T_2)}}$$
 
-### 4.1.5 What "Par" Means and How It Pins Down a Curve Point
+### 4.1.6 What "Par" Means and How It Pins Down a Curve Point
 
 An instrument is **at par** if its present value equals zero (for a derivative) or equals the notional invested (for a deposit or bill purchase at its quoted price).
 
@@ -96,9 +124,68 @@ This equation is the key to bootstrapping: each par quote lets you solve for one
 
 ---
 
-## 4.2 Instruments at the Short End: What Is Quoted and What It Pins Down
+## 4.2 Rate Determination: "In Advance" vs "In Arrears"
 
-### 4.2.1 Deposits and Money-Market Instruments
+The LIBOR-to-SOFR transition introduced a fundamental change in how floating rates are determined. Understanding this distinction is essential for pricing, hedging, and operational cash management.
+
+### 4.2.1 Rates Fixed "In Advance" (The LIBOR World)
+
+Under the traditional LIBOR convention, the floating rate for an accrual period was **known at the start of that period**.
+
+Hull explains: "LIBOR rates are forward looking and published at the beginning of periods to which they apply."
+
+**Timeline example (3-month LIBOR):**
+- **January 1**: 3M LIBOR fixes at 5.00%
+- **January 1 – March 31**: Accrual period (rate is known = 5.00%)
+- **March 31**: Payment calculated and made based on the 5.00% rate
+
+**Operational advantage:** Cash managers knew exactly what payment was due well in advance. Funding could be arranged and hedging was straightforward.
+
+### 4.2.2 Rates Fixed "In Arrears" (The SOFR World)
+
+Under SOFR and other overnight risk-free rates, the floating rate is determined by **compounding daily observations over the accrual period**. The rate is not known until the period ends.
+
+Hull explains: "The new overnight reference rates are backward looking and determined at the end of the periods to which they apply. This is because the rate for a period is calculated from the overnight rates that are observed during the period."
+
+**Timeline example (3-month compounded SOFR):**
+- **January 1**: Accrual period begins. Rate is **unknown**.
+- **January 1 – March 31**: Daily SOFR rates are observed and compounded
+- **~March 29**: Rate finally known (with 2 business day lookback)
+- **March 31**: Payment calculated and made
+
+**The compounding formula:** Hull provides the formula for computing the compounded rate over $n$ business days:
+
+$$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}\left(1 + r_i \cdot \frac{d_i}{360}\right) - 1\right] \times \frac{360}{D}}$$
+
+where $r_i$ is the overnight rate on day $i$, $d_i$ is the number of calendar days that rate applies (typically 1, but 3 over weekends), and $D$ is the total calendar days in the period.
+
+> **Desk Reality: Operational Challenges of "In Arrears"**
+>
+> **The cash management problem:** Under LIBOR, a corporate treasurer knew on January 1 that the March 31 payment would be exactly $X. Under SOFR, they won't know until approximately March 29.
+>
+> **Industry solutions:** To provide some advance notice, the market developed conventions:
+> - **Lookback (without observation shift):** Use SOFR rates from 5 business days earlier. Payment is still calculated correctly, but the final rate is known ~5 days before payment.
+> - **Lockout:** Freeze the SOFR rate for the last few days of the period. Simpler but introduces small basis.
+>
+> **Why middle-office cares:** If you're reconciling swap payments, you need to understand which convention your trade uses. Payment amount disputes often arise from lookback/lockout mismatches.
+
+### 4.2.3 Geometric vs Arithmetic Averaging
+
+A subtle but important distinction exists in how overnight rates are combined:
+
+**Geometric (compounded) averaging:** Used for term SOFR calculations and most SOFR-linked products. Each day's rate is compounded: $(1 + r_1)(1 + r_2)...(1 + r_n) - 1$. This is economically correct—it reflects actual reinvestment.
+
+**Arithmetic averaging:** Used for Fed Funds futures settlement. The contract settles based on the simple arithmetic average of daily effective Fed Funds rates over the month.
+
+Hull notes: "an average overnight rate for a three-month period is the geometric average of the overnight rates that are observed over the three months."
+
+This distinction matters for basis calculations between Fed Funds futures and compounded SOFR.
+
+---
+
+## 4.3 Instruments at the Short End: What Is Quoted and What It Pins Down
+
+### 4.3.1 Deposits and Money-Market Instruments
 
 #### The Simple Interest Deposit Quote
 
@@ -124,7 +211,7 @@ Several operational conventions affect how deposit quotes translate to discount 
 
 For pedagogical examples in this chapter, we ignore spot lags and assume year fractions are given directly.
 
-### 4.2.2 Treasury Bills: Discount Instruments
+### 4.3.2 Treasury Bills: Discount Instruments
 
 > **Repo 101: The Plumbing of Wall Street**
 >
@@ -133,7 +220,7 @@ For pedagogical examples in this chapter, we ignore spot lags and assume year fr
 > *   **Leg 2**: I agree to buy it back tomorrow for $100.01.
 > *   **Economics**: I borrowed $100 from you overnight at a 1bp interest rate, using the bond as collateral.
 >
-> Repo rates (like SOFR) form the bedrock of the modern "Tier 3" secured funding market.
+> Repo rates (like SOFR) form the bedrock of the modern "Tier 3" secured funding market. Full coverage of repo mechanics is in Chapter 9.
 
 #### Bill Price Quoting vs. Discount Yield Quoting
 
@@ -190,7 +277,7 @@ Note the differences:
 
 The banker's discount yield is a convenient quoting convention, **not** an internal rate of return.
 
-### 4.2.3 Forward Rate Agreements (FRAs)
+### 4.3.3 Forward Rate Agreements (FRAs)
 
 #### FRA as a Forward-Starting Deposit
 
@@ -237,7 +324,81 @@ $$\boxed{V_{\text{FRA}}(T) = \frac{\tau \cdot (L(T;T,T+\tau) - K)}{1 + \tau \cdo
 
 The denominator discounts the payment from $T+\tau$ back to $T$. Hull notes in a footnote: "In practice, because LIBOR is determined in advance of a period, the payment would be made at time $T$ and equal to the present value of the cash flow discounted for the period at the observed rate."
 
-### 4.2.4 STIR Futures: Forward-Rate Instruments (Preview Only)
+> **Desk Reality: Why You Rarely See FRAs Anymore**
+>
+> **The old world:** FRAs were the standard instrument for hedging or speculating on short-term LIBOR forwards. Banks traded billions in 3x6, 6x9, and other FRA tenors.
+>
+> **What changed:** When LIBOR ceased, the underlying reference rate disappeared. The FRA market largely died with it.
+>
+> **The replacement:** For SOFR-based curves, single-period OIS (Overnight Index Swaps) serve a similar economic function—they exchange fixed for compounded overnight rates over a specific period.
+>
+> **Why this matters:** You may still encounter legacy FRA documentation, and understanding FRA mechanics helps you understand the forward rate identity. But in practice, most new short-term rate hedging uses OIS or futures.
+
+### 4.3.4 Fed Funds Futures: Contract Structure
+
+Tuckman describes the Fed Funds futures contract: "The underlying for each fed funds futures contract is a $5,000,000 30-day deposit at the average overnight fed funds rate over a particular month. The final settlement price of a given month's contract is 100 minus 100 times that month's realized average overnight fed funds rate."
+
+**Key contract features:**
+- **Notional:** $5,000,000
+- **Settlement:** Cash-settled based on the arithmetic average of daily effective Fed Funds rates during the contract month
+- **Quote:** $100 - \text{(average rate in percent)}$
+- **Tick size:** 0.005 (half a basis point) = $20.835 per contract
+
+**Averaging convention:** Unlike SOFR (geometric compounding), Fed Funds futures use **arithmetic averaging**:
+
+$$\text{Average Rate} = \frac{1}{N}\sum_{i=1}^{N} r_i$$
+
+where $N$ is the number of calendar days in the month and $r_i$ is the effective Fed Funds rate on day $i$.
+
+### 4.3.5 The "Staircase" Curve: Fed Funds at FOMC Meetings
+
+The Federal Open Market Committee (FOMC) meets approximately eight times per year to set the target Fed Funds rate. Between meetings, the effective Fed Funds rate typically stays close to the target (within the target range corridor).
+
+This creates a **staircase pattern** in expected Fed Funds rates:
+- Rates are approximately constant between FOMC meetings
+- Rates "step" up or down at each FOMC meeting date (if a change is expected)
+
+Tuckman notes this pattern directly: because the Fed typically adjusts rates only at scheduled meetings, "the curve of expected fed funds rates is a step function, constant between meetings and jumping at meetings."
+
+### 4.3.6 Fed Probability Extraction from Futures Prices
+
+One of the most practical applications of Fed Funds futures is extracting the market-implied probability of Fed rate changes. Tuckman provides a detailed methodology.
+
+**The setup:**
+- An FOMC meeting occurs during the futures contract month
+- Before the meeting: rate is $r_0$ (current target)
+- After the meeting: rate is either $r_0$ (no change) or $r_1$ (new target)
+- Meeting occurs on day $m$ of month with $N$ total days
+
+**The futures price reflects the weighted average:**
+
+$$\text{Implied Average} = \frac{m-1}{N} \times r_0 + \frac{N-m+1}{N} \times r_{\text{expected post-meeting}}$$
+
+**Solving for the expected post-meeting rate:**
+
+$$r_{\text{expected}} = \frac{N \times r_{\text{implied}} - (m-1) \times r_0}{N - m + 1}$$
+
+**Extracting probability:** If the only two outcomes are "no change" (rate stays at $r_0$) or "change to $r_1$":
+
+$$\boxed{p = \frac{r_{\text{expected}} - r_0}{r_1 - r_0}}$$
+
+where $p$ is the probability of a rate change.
+
+> **Desk Reality: "The Market is Pricing 3 Cuts This Year"**
+>
+> When you hear traders or CNBC say "the market expects 75bp of cuts in 2024," they're using exactly this methodology—applied sequentially across multiple FOMC meetings.
+>
+> **The calculation chain:**
+> 1. Use near-month futures to extract probability of next meeting's action
+> 2. Use further months to extract conditional probabilities of subsequent meetings
+> 3. Sum expected rate changes across all meetings
+>
+> **Limitations:**
+> - Futures prices also embed risk premia (not pure expectations)
+> - The probability extraction assumes only two outcomes; reality may include 50bp moves
+> - Meeting date placement within the month affects precision
+
+### 4.3.7 STIR Futures: Forward-Rate Instruments (Preview Only)
 
 #### Quote Convention
 
@@ -249,6 +410,8 @@ $$Q(t;T) = 100 \times (1 - \text{futures rate})$$
 
 For example, a quote of 94.67 implies a futures rate of 5.33%.
 
+**SOFR futures distinction:** Unlike legacy Eurodollar futures (which referenced a single 3M LIBOR fixing), SOFR futures reference the compounded overnight rate over the contract period. This is an average of daily rates, not a single term rate fixing.
+
 #### Futures vs. Forwards: The Convexity Adjustment
 
 Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Andersen explains the intuition directly:
@@ -257,15 +420,67 @@ Because futures are marked to market daily while FRAs settle at maturity, the fu
 
 The mechanism is as follows: under rising interest rates, the futures holder must make margin payments at precisely the moment when borrowing costs are highest. Conversely, when rates fall, received margin is reinvested at lower rates. This systematic disadvantage means futures rates must exceed forward rates to compensate.
 
-Hull similarly notes that daily settlement creates correlation between rate moves and funding costs that requires a **convexity adjustment** to convert futures rates to forward rates.
+Hull provides additional intuition: "To compensate for this, the forward quote should be more attractive to the party in the same position as Trader B [the futures holder]. This means that the forward quote should be lower than the futures quote."
 
-This chapter does not derive the convexity adjustment—it is deferred to Part V on futures.
+**Magnitude:** Hull notes that the convexity adjustment "increases as the life of the contract increases." For short-dated contracts (under 2 years), the adjustment is typically small—a fraction of a basis point. For longer-dated contracts (5-10 years), the adjustment can be 10-20bp or more.
+
+The full convexity adjustment derivation is covered in Chapter 24.
 
 ---
 
-## 4.3 Mathematical Derivations
+## 4.4 Seasonal Funding Dynamics: The Year-End "Turn"
 
-### 4.3.1 Deposit Quote → Discount Factor
+### 4.4.1 Why Funding Rates Spike at Year-End
+
+Every December, short-term funding rates exhibit predictable spikes, particularly for the overnight rate spanning December 31. This phenomenon is called **the "turn"** and represents a major trading theme in money markets.
+
+Tuckman notes that significant rate dislocations can occur during periods of market stress, citing "the Y2K scare and September 11" as examples where "liquidity concerns over certain days or weeks" drove temporary rate spikes.
+
+> **Practitioner Note: The Mechanics of Year-End Stress**
+>
+> Several factors combine to create year-end funding pressure:
+>
+> **1. G-SIB Score Optimization:** Global Systemically Important Banks face capital surcharges based on their "G-SIB score"—a measure of systemic importance calculated using year-end balance sheet data. Banks actively shrink their balance sheets in late December to reduce their scores.
+>
+> **2. Window Dressing:** Banks and money market funds adjust portfolios before year-end reporting dates, reducing available lending.
+>
+> **3. Regulatory Reserve Requirements:** Various regulatory metrics are calculated using year-end snapshots, creating incentives to minimize balance sheet exposure.
+>
+> **The result:** Reduced supply of overnight funding + normal demand = spike in overnight rates for the specific days spanning year-end.
+
+### 4.4.2 Pricing the Turn
+
+The "turn" appears as a visible hump in the OIS curve. If you plot overnight forward rates, the rate for December 31 (and sometimes the few surrounding days) will be significantly elevated above the surrounding rates.
+
+**Extracting the turn premium:** If you have discount factors $P(0, \text{Dec 30})$ and $P(0, \text{Jan 2})$, you can extract the implied overnight rate spanning the turn:
+
+$$r_{\text{turn}} = \frac{P(0, \text{Dec 30})}{P(0, \text{Jan 2})} - 1 \times \frac{360}{d}$$
+
+where $d$ is the number of calendar days (typically 3 for a weekend).
+
+**Trading the turn:**
+- **Long turn:** Buy financing before year-end, lend over the turn at elevated rates
+- **Short turn:** If you expect the squeeze to be less severe than priced, sell turn-dated funding
+
+### 4.4.3 Quarter-End Effects
+
+Similar but smaller effects occur at quarter-ends (March 31, June 30, September 30) due to regulatory reporting cycles. These are sometimes called "window dressing" effects.
+
+> **Desk Reality: The Turn Trade**
+>
+> Many money market desks actively position for the turn:
+>
+> 1. **September setup:** Begin accumulating long positions in T-bills maturing just after year-end
+> 2. **Late November:** Lock in repo financing through year-end at rates lower than the expected spike
+> 3. **Late December:** Lend cash over the turn at elevated rates
+>
+> The trade profits from the predictable seasonal pattern—but if the turn is smaller than priced, the trade loses.
+
+---
+
+## 4.5 Mathematical Derivations
+
+### 4.5.1 Deposit Quote → Discount Factor
 
 **Setup:**
 - Simple interest over $[0,T]$
@@ -288,7 +503,7 @@ $$\boxed{P(0,T) = \frac{1}{1 + r \cdot \alpha(0,T)}}$$
 - If $r$ increases, the denominator increases, so $P(0,T)$ decreases. ✓
 - As $T \to 0$, $\alpha(0,T) \to 0$, so $P(0,T) \to 1$. ✓
 
-### 4.3.2 Forward Rate from Discount Factors
+### 4.5.2 Forward Rate from Discount Factors
 
 From the forward-rate identity:
 
@@ -302,7 +517,7 @@ $$\boxed{F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\alpha(T_1,T_2)}}$$
 
 **Sanity check:** If $P(0,T_2)$ is smaller (more discounting to $T_2$), the forward rate is larger. ✓
 
-### 4.3.3 FRA Par Rate Equals the Forward Rate
+### 4.5.3 FRA Par Rate Equals the Forward Rate
 
 From the FRA value expression:
 
@@ -324,7 +539,7 @@ Therefore:
 
 $$\boxed{K^* = L(t;T,T+\tau) = F(t;T,T+\tau)}$$
 
-### 4.3.4 FRA Time-0 Present Value
+### 4.5.4 FRA Time-0 Present Value
 
 For notional $N$ and fixed rate $K$:
 
@@ -338,9 +553,9 @@ where $F = L(0;T,T+\tau)$ is the forward rate.
 
 ---
 
-## 4.4 Bootstrapping the Short End
+## 4.6 Bootstrapping the Short End
 
-### 4.4.1 The Sequential Logic
+### 4.6.1 The Sequential Logic
 
 Curve construction is an inverse problem: given prices of traded instruments, recover the discount factors. As Andersen notes, "only a finite set of traded instruments is observable; discount bonds for all maturities are not directly observable"—hence the need for both bootstrapping and interpolation.
 
@@ -362,19 +577,21 @@ This follows directly from the forward-rate identity.
 
 **Step 4: Interpolate between nodes.** Between instrument maturities, choose an interpolation scheme (on zero rates, log discount factors, or forward rates). This is a modeling choice with implications for smoothness and locality of perturbations.
 
-### 4.4.2 Single-Curve vs. Multi-Curve (Preview)
+### 4.6.2 Single-Curve vs. Multi-Curve (Preview)
 
 Andersen's curve construction discussion notes that pre-2007 practice commonly used a single LIBOR curve; after the crisis, a single curve was no longer adequate. As Andersen explains: "post-crisis a nontrivial basis between index and discounting curves has emerged in the US. For simplicity of exposition we proceed in this section with [the single-curve assumption], but the index-discounting basis in the US could be easily incorporated into the algorithm."
 
-In modern practice, "the Fed funds rate, the overnight rate used for balances of bank deposits with the Federal reserve, is often considered the closest proxy to the risk-free rate in the US." OIS curves provide discounting, while separate projection curves estimate future LIBOR/SOFR fixings.
+**The economic source of the basis:** Credit risk differences between overnight secured rates (SOFR/OIS) and term unsecured rates (historical LIBOR) create a spread. Even after LIBOR cessation, different tenors of SOFR-based rates can exhibit basis due to term premium and liquidity effects.
 
-This chapter remains single-curve to explain the mechanics. Multi-curve bootstrapping—where OIS provides the discounting curve and term rates provide projection curves—is covered in Part IV.
+In modern practice, "the Fed funds rate, the overnight rate used for balances of bank deposits with the Federal reserve, is often considered the closest proxy to the risk-free rate in the US." OIS curves provide discounting, while separate projection curves estimate future SOFR fixings.
+
+This chapter remains single-curve to explain the mechanics. **Full multi-curve construction methodology is covered in Part IV, particularly Chapters 18-20.**
 
 ---
 
-## 4.5 Rate Sensitivity at the Short End
+## 4.7 Rate Sensitivity at the Short End
 
-### 4.5.1 Sensitivity of Discount Factor to Rate
+### 4.7.1 Sensitivity of Discount Factor to Rate
 
 For a deposit-implied discount factor:
 
@@ -386,7 +603,7 @@ $$\frac{\partial P}{\partial r} = -\frac{\alpha}{(1 + r \cdot \alpha)^2}$$
 
 **Interpretation:** The short-end discount factor is most sensitive to (i) larger accrual fractions and (ii) lower rate levels. Even small $\alpha$ matters because front-end PVs are dominated by short-dated cashflows.
 
-### 4.5.2 Locality of Short-End Perturbations
+### 4.7.2 Locality of Short-End Perturbations
 
 A key property of sequential bootstrapping: changing a short-dated quote primarily affects the nearest nodes and the forwards that depend on them. Andersen describes "bucket exposure" analysis where bumping a specific forward-rate segment reveals the locality of curve shocks.
 
@@ -394,9 +611,9 @@ This locality intuition underlies key-rate DV01 analysis, covered in Chapter 14.
 
 ---
 
-## 4.6 Worked Examples
+## 4.8 Worked Examples
 
-### Numerical Conventions (Examples 1–8)
+### Numerical Conventions (Examples 1–10)
 
 - **Day count:** Actual/360
 - **Calendar simplification:** 1M = 30 days, 3M = 90 days, 6M = 180 days, 12M = 360 days
@@ -586,9 +803,84 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 
 ---
 
-## 4.7 Practical Notes
+### Example 9: Fed Funds Futures — Probability Extraction
 
-### 4.7.1 Quoting Conventions to Watch
+**Scenario:** It is December 1. The FOMC meets on December 14. We want to extract the probability of a 25bp rate cut.
+
+**Given:**
+- Current Fed Funds target: 5.25%
+- December Fed Funds futures price: 94.85 (implying average rate = 5.15%)
+- December has 31 days
+- Meeting on day 14
+
+**Step 1:** Calculate implied post-meeting average rate
+
+The December average of 5.15% reflects:
+- Days 1-13 (13 days) at the current rate: 5.25%
+- Days 14-31 (18 days) at the post-meeting rate: unknown
+
+$$5.15\% = \frac{13}{31} \times 5.25\% + \frac{18}{31} \times r_{\text{post}}$$
+
+Solving for $r_{\text{post}}$:
+$$r_{\text{post}} = \frac{31 \times 5.15\% - 13 \times 5.25\%}{18} = \frac{159.65\% - 68.25\%}{18} = \frac{91.40\%}{18} = 5.078\%$$
+
+**Step 2:** Calculate probability of 25bp cut
+
+If the only outcomes are:
+- No cut: rate stays at 5.25%
+- 25bp cut: rate goes to 5.00%
+
+$$p_{\text{cut}} = \frac{5.25\% - 5.078\%}{5.25\% - 5.00\%} = \frac{0.172\%}{0.25\%} = 68.8\%$$
+
+$$\boxed{p_{\text{cut}} \approx 69\%}$$
+
+**Interpretation:** The market is pricing approximately 69% probability of a 25bp cut at the December FOMC meeting.
+
+---
+
+### Example 10: Compounded SOFR Rate Calculation
+
+**Given:** Five consecutive business days of SOFR fixings:
+
+| Day | Date | SOFR Rate | Days Applied |
+|-----|------|-----------|--------------|
+| 1 | Mon | 5.30% | 1 |
+| 2 | Tue | 5.31% | 1 |
+| 3 | Wed | 5.32% | 1 |
+| 4 | Thu | 5.31% | 1 |
+| 5 | Fri | 5.30% | 3 (covers weekend) |
+
+**Total calendar days:** 7
+
+**Step 1:** Apply compounding formula
+
+$$\text{Compounded} = \prod_{i=1}^{5}\left(1 + r_i \cdot \frac{d_i}{360}\right) - 1$$
+
+Calculate each factor:
+- Day 1: $1 + 0.0530 \times \frac{1}{360} = 1.000147222$
+- Day 2: $1 + 0.0531 \times \frac{1}{360} = 1.000147500$
+- Day 3: $1 + 0.0532 \times \frac{1}{360} = 1.000147778$
+- Day 4: $1 + 0.0531 \times \frac{1}{360} = 1.000147500$
+- Day 5: $1 + 0.0530 \times \frac{3}{360} = 1.000441667$
+
+**Step 2:** Multiply factors
+
+$$\text{Product} = 1.000147222 \times 1.000147500 \times 1.000147778 \times 1.000147500 \times 1.000441667$$
+$$= 1.001031890$$
+
+**Step 3:** Annualize
+
+$$\text{Compounded Rate} = (1.001031890 - 1) \times \frac{360}{7} = 0.001031890 \times 51.4286$$
+
+$$\boxed{\text{Compounded SOFR} = 5.307\%}$$
+
+**Note:** The compounded rate (5.307%) is very close to the simple average (5.308%) for such a short period. The difference grows for longer periods.
+
+---
+
+## 4.9 Practical Notes
+
+### 4.9.1 Quoting Conventions to Watch
 
 **Simple vs. compounded:** Money-market rates are simple; mixing them with continuously compounded rates without conversion causes errors.
 
@@ -598,7 +890,7 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 
 **Basis points vs. decimals:** $1\text{ bp} = 0.0001$ in decimal. Many front-end pricing errors are unit mistakes.
 
-### 4.7.2 Common Implementation Pitfalls
+### 4.9.2 Common Implementation Pitfalls
 
 | Pitfall | Consequence |
 |---------|-------------|
@@ -607,8 +899,10 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 | Ignoring spot lags | Wrong settlement dates |
 | Bootstrap ordering errors | Solving for wrong unknowns |
 | Unit confusion (bp vs %) | Order-of-magnitude errors |
+| Arithmetic vs geometric avg | Small but systematic bias |
+| In-advance vs in-arrears mismatch | Payment timing errors |
 
-### 4.7.3 Verification Tests
+### 4.9.3 Verification Tests
 
 **Repricing test for deposits:** Verify $P(0,T) \cdot (1 + r \cdot \alpha) = 1$.
 
@@ -636,11 +930,17 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 
 7. **Bill discount yields** are quoting conventions, not return measures. Convert to price first, then to discount factor.
 
-8. **STIR futures quotes** map to implied rates; daily settlement creates a convexity adjustment (preview).
+8. **STIR futures quotes** map to implied rates; daily settlement creates a convexity adjustment (full treatment in Chapter 24).
 
 9. **Bootstrapping** is sequential: use each instrument to solve for one new unknown.
 
-10. **Post-crisis practice** uses multiple curves; single-curve is pedagogical scaffolding.
+10. **Post-crisis practice** uses multiple curves (OIS for discounting, term rates for projection). Full treatment in Part IV.
+
+11. **SOFR vs LIBOR:** SOFR is a secured, risk-free overnight rate determined in arrears. LIBOR was an unsecured term rate determined in advance. This distinction affects hedging and operational cash management.
+
+12. **Fed Funds futures** allow extraction of market-implied probabilities of Fed rate changes—a core rates desk skill.
+
+13. **Year-end turn:** Funding rates spike at year-end due to G-SIB scores and balance sheet window dressing. This is a tradeable seasonal pattern.
 
 ---
 
@@ -655,6 +955,10 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 | Par condition | PV = notional at inception | Enables bootstrapping |
 | Banker's discount yield | $(F - P)/F \times 360/d$ | Bill quoting convention (not IRR) |
 | FRA | Forward-starting deposit, net-settled | Direct constraint on forward curve |
+| In advance | Rate known at period start (LIBOR) | Predictable cash flows |
+| In arrears | Rate known at period end (SOFR) | Operational complexity |
+| Fed probability | $(r_{expected} - r_0)/(r_1 - r_0)$ | Extract Fed action odds |
+| Year-end turn | Overnight rate spike at Dec 31 | Seasonal trading opportunity |
 
 ---
 
@@ -669,6 +973,8 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 | $K$ | FRA fixed rate |
 | $\tau$ | Accrual period length |
 | $N$ | Notional principal |
+| $r_i$ | Daily overnight rate on day $i$ |
+| $d_i$ | Days that rate $r_i$ applies |
 
 ---
 
@@ -696,6 +1002,11 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 | 18 | What does a STIR futures quote represent? | $Q = 100 \times (1 - \text{futures rate})$ |
 | 19 | Why do futures rates differ from forward rates? | Daily settlement creates funding cost correlation; convexity adjustment needed. |
 | 20 | What changed post-2007 in curve practice? | Single curve → multiple curves (separate discounting and forwarding). |
+| 21 | What is "rate fixing in advance"? | Rate known at the start of the accrual period (LIBOR convention). |
+| 22 | What is "rate fixing in arrears"? | Rate determined by compounding daily observations over the period; known only at period end (SOFR convention). |
+| 23 | How do you extract implied Fed rate change probability from Fed Funds futures? | Calculate expected post-meeting rate from futures price, then $p = (r_{expected} - r_{no change})/(r_{change} - r_{no change})$. |
+| 24 | Why doesn't SOFR capture corporate credit spread risk? | SOFR is a secured overnight rate (Treasury repo) with essentially no credit spread; corporate borrowing costs include credit premiums that SOFR doesn't hedge. |
+| 25 | What is the year-end "turn" and why do rates spike? | The overnight rate spanning Dec 31; spikes due to G-SIB score optimization and balance sheet window dressing at year-end. |
 
 ---
 
@@ -725,9 +1036,15 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 
 12. Describe how curve construction changes from single-curve to multi-curve.
 
+13. **Fed probability extraction:** January Fed Funds futures price is 94.60 (implying 5.40% average). The FOMC meets January 29 (assume January has 31 days). Current target is 5.50%. What is the implied probability of a 25bp cut? Assume only two outcomes: no change or 25bp cut.
+
+14. **SOFR compounding:** Given three daily SOFR fixings: Day 1 = 5.00% (1 day), Day 2 = 5.02% (1 day), Day 3 = 5.01% (3 days, weekend). Compute the 5-day compounded rate.
+
+15. **Year-end turn:** An OIS curve shows $P(0, \text{Dec 30}) = 0.99750$ and $P(0, \text{Jan 3}) = 0.99690$. The period spans 4 calendar days (including 2 weekend days). What is the implied overnight rate for this period? If the "normal" overnight rate is 5.00%, what is the turn premium?
+
 ---
 
-### Solution Sketches (Questions 1–6)
+### Solution Sketches (Questions 1–8)
 
 1. $\alpha = 31/360 = 0.08611$. $P = 1/(1 + 0.048 \times 0.08611) = 0.99588$.
 
@@ -741,11 +1058,28 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 
 6. $V = 50M \times 0.25 \times 0.9750 \times (0.0500 - 0.0485) = 50M \times 0.25 \times 0.9750 \times 0.0015 = \$18,281$.
 
+7. Follow Example 6 methodology with given quotes.
+
+8. If $r_{3M}$ increases by 1bp, $P(0,3M)$ decreases slightly. Forward from 3M to 6M increases (3M discount factor smaller → ratio larger → forward larger).
+
+### Solution Sketches (Questions 13–15)
+
+13. Implied average = 5.40%. Days before meeting (1-28): 28 days at 5.50%. Days after (29-31): 3 days at unknown rate.
+$5.40\% = (28/31) \times 5.50\% + (3/31) \times r_{post}$
+$r_{post} = (31 \times 5.40\% - 28 \times 5.50\%)/3 = (167.4\% - 154\%)/3 = 4.47\%$
+$p_{cut} = (5.50\% - 4.47\%)/(5.50\% - 5.25\%) = 1.03\%/0.25\% > 100\%$
+This implies more than one cut is expected, or the example needs adjustment. (In practice, check assumptions about outcomes.)
+
+14. Day 1: $1 + 0.0500/360 = 1.000138889$; Day 2: $1 + 0.0502/360 = 1.000139444$; Day 3: $1 + 0.0501 \times 3/360 = 1.000417500$.
+Product: $1.000695903$. Rate = $(0.000695903) \times 360/5 = 5.01\%$.
+
+15. Forward factor: $0.99750/0.99690 = 1.000602$. Implied rate: $(1.000602 - 1) \times 360/4 = 5.42\%$. Turn premium: $5.42\% - 5.00\% = 42$ bp.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -759,26 +1093,51 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 | Hull's bill formula $P = (360/n)(100 - Y)$ | Hull Ch 6 |
 | Eurodollar/SOFR futures quote convention $100(1-\text{rate})$ | Andersen Vol 1 Ch 4 |
 | Daily settlement creates convexity adjustment | Andersen Vol 1 Ch 4, Hull Ch 6 |
-| Futures rate exceeds forward rate | Andersen Vol 1 Ch 4 |
+| Futures rate exceeds forward rate | Andersen Vol 1 Ch 4, Hull Ch 6 |
 | Post-crisis: multi-curve required | Andersen Vol 1 Ch 6 |
 | Day count conventions vary by country | Hull Ch 6 |
 | FRA settlement discounts payment to fixing date | Hull Ch 4 (footnote) |
 | BEY uses price in denominator, 365-day annualization | Hull Ch 6 |
+| LIBOR incorporates credit spread; SOFR is risk-free | Hull Ch 4 (lines 674-677, 2542-2549) |
+| LIBOR is forward looking; SOFR is backward looking | Hull Ch 4 (lines 2542-2543, 4700) |
+| Overnight rates use geometric averaging | Hull Ch 4 (line 2536) |
+| Fed Funds futures = $5M 30-day deposit at average rate | Tuckman Ch 17 (lines 7440-7450) |
+| Fed Funds futures settle on arithmetic average | Tuckman Ch 17 |
+| Fed probability extraction methodology | Tuckman Ch 17 (lines 7496-7540) |
+| Expected Fed Funds curve is step function at meetings | Tuckman Ch 17 |
+| Y2K and Sep 11 caused liquidity-driven rate spikes | Tuckman Ch 17 (line 7438) |
+| Convexity adjustment increases with contract maturity | Hull Ch 6 (line 4505) |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Context |
+|---------|---------|
+| G-SIB score optimization drives year-end funding stress | Extended from Tuckman's liquidity event discussion |
+| Window dressing and balance sheet management at quarter-end | Standard desk knowledge; not explicitly in sources |
+| Corporate "hedging gap" under SOFR vs LIBOR | Extended from Hull's credit spread discussion |
+| BSBY/Ameribor as credit-sensitive alternatives | Industry development post-Hull publication |
+| Lookback and lockout conventions for SOFR payments | Industry conventions; Hull mentions averaging but not specific conventions |
+| FRA market decline post-LIBOR | Industry evolution; not in sources |
+| OIS single-period swaps as FRA replacement | Industry evolution |
+| Turn trade mechanics | Standard money market trading strategy |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 - Bootstrap sequence follows from par conditions: each par instrument pins down one unknown DF.
 - Sensitivity $\partial P/\partial r = -\alpha/(1+r\alpha)^2$ is algebraic differentiation of the deposit formula.
 - Locality of curve shocks follows from sequential bootstrap structure.
-- Futures rate > forward rate follows from Andersen's funding cost argument.
+- Futures rate > forward rate follows from Andersen's and Hull's funding cost arguments.
+- Fed probability formula follows algebraically from the weighted average structure of monthly futures.
+- Year-end turn premium calculation follows from forward rate extraction over the specific dates.
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
-- **Exact settlement conventions:** FRA payment timing, spot lags, and business-day conventions vary by market and contract. Hull notes payment at $T$ with discounting; others may pay at $T+\tau$.
-- **Day-count variations:** LIBOR conventions differ by currency (Hull Ch 6); specific jurisdictions may vary.
-- **Convexity adjustment magnitude:** This chapter previews the concept but does not derive or quantify it.
-- **Post-LIBOR conventions:** As markets transition to SOFR/SONIA, specific FRA and futures conventions continue to evolve.
+- **Exact lookback/lockout conventions:** These vary by contract and jurisdiction. The specific day counts (5 business days, 2 business days) mentioned are representative but not universal.
+- **G-SIB score mechanics:** The description of balance sheet optimization is simplified; actual G-SIB scoring is complex and the specific trading behavior varies by institution.
+- **Credit-sensitive rate adoption:** The status of BSBY, Ameribor, and other alternatives continues to evolve; BSBY was discontinued in late 2024.
+- **FRA market activity:** While greatly reduced, some FRA activity may persist in certain markets or for legacy contracts.
+- **Turn premium magnitude:** The 20-50bp range mentioned is typical but varies significantly year to year based on regulatory and market conditions.
 
 ---
 
-*This chapter establishes the building blocks for short-end curve construction. The discount factors derived here—from deposits, bills, and FRAs—form the foundation for all subsequent pricing and risk analysis. Multi-curve extensions and convexity adjustments are covered in later chapters.*
+*This chapter establishes the building blocks for short-end curve construction. The discount factors derived here—from deposits, bills, FRAs, and Fed Funds futures—form the foundation for all subsequent pricing and risk analysis. Multi-curve extensions are covered in Part IV (Chapters 17-22), and the full convexity adjustment derivation appears in Chapter 24.*

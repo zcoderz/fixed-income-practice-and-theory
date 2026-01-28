@@ -358,10 +358,61 @@ $$\mathbb{E}[r(t) \mid r(s)] = r(s) e^{-a(t-s)} + b(1 - e^{-a(t-s)})$$
 
 $$\text{Var}[r(t) \mid r(s)] = r(s) \frac{\sigma^2}{a}(e^{-a(t-s)} - e^{-2a(t-s)}) + \frac{b\sigma^2}{2a}(1 - e^{-a(t-s)})^2$$
 
-**Simulation Note:** To simulate CIR paths, one can either:
-1. Use the exact non-central chi-squared distribution (via inverse CDF)
-2. Use Euler discretization with reflection at zero (less accurate but simpler)
-3. Use the Alfonsi or QE schemes for better accuracy near zero
+### 3.3.1 Simulating CIR Paths: Methods and Pitfalls
+
+Monte Carlo simulation of CIR is essential for PFE calculations, XVA, and risk management. However, naive discretization fails near zero. This subsection covers the three main approaches.
+
+**Method 1: Exact Simulation via Non-Central Chi-Squared**
+
+The most accurate approach uses the exact transition density. Given $r(t_i)$, sample $r(t_{i+1})$ as:
+
+$$r(t_{i+1}) = c \cdot \chi^2_\nu(\lambda)$$
+
+where $c = \frac{\sigma^2(1 - e^{-a\Delta t})}{4a}$, $\nu = \frac{4ab}{\sigma^2}$, and $\lambda = \frac{4ae^{-a\Delta t}}{\sigma^2(1 - e^{-a\Delta t})} r(t_i)$.
+
+**Implementation:** Use the inverse CDF of the non-central chi-squared distribution (available in most statistical libraries).
+
+**Drawback:** Non-central chi-squared inversion is computationally expensive, especially when the non-centrality parameter $\lambda$ is large.
+
+**Method 2: Euler Discretization with Reflection**
+
+The simplest approach discretizes the SDE directly:
+
+$$r(t_{i+1}) = r(t_i) + a(b - r(t_i))\Delta t + \sigma\sqrt{r(t_i)}\sqrt{\Delta t} \, Z_i$$
+
+where $Z_i \sim N(0,1)$.
+
+**Problem:** This can produce $r(t_{i+1}) < 0$, which breaks the $\sqrt{r}$ term at the next step.
+
+**Fix (Reflection):** Replace negative values with their absolute value: $r(t_{i+1}) \leftarrow |r(t_{i+1})|$.
+
+**Warning:** Reflection introduces bias, especially when the Feller condition is violated ($\nu < 2$). The bias can be significant for long simulation horizons or near-zero rate environments.
+
+**Method 3: Quadratic-Exponential (QE) Scheme (Andersen)**
+
+The QE scheme, developed by Andersen (2008), achieves near-exact accuracy with computational efficiency close to Euler. It uses moment-matching with different sampling distributions depending on the current rate level.
+
+**Key Idea:** The scheme switches between two sampling methods based on $\psi = \frac{s^2}{m^2}$ where $m = \mathbb{E}[r(t_{i+1}) | r(t_i)]$ and $s^2 = \text{Var}[r(t_{i+1}) | r(t_i)]$.
+
+**Case 1 ($\psi \leq \psi^*$, typically $\psi^* = 1.5$):** Use a quadratic form:
+
+$$r(t_{i+1}) = a(b + \sqrt{Z_V})^2$$
+
+where $b$ and $a$ are chosen to match the first two moments.
+
+**Case 2 ($\psi > \psi^*$):** Use an exponential approximation:
+
+$$r(t_{i+1}) = \begin{cases} 0 & \text{if } U \leq p \\ \beta^{-1}\ln\left(\frac{1-p}{1-U}\right) & \text{if } U > p \end{cases}$$
+
+where $U \sim \text{Uniform}(0,1)$, and $p$, $\beta$ are chosen to match moments.
+
+> **Desk Reality: Simulation Method Selection**
+>
+> In production systems for PFE and XVA, the QE scheme is the standard choice. It combines the accuracy of exact simulation with computational speed close to Euler. Always verify the Feller condition before choosing your method:
+> - **$\nu \geq 2$ (Feller satisfied):** Any method works well; QE preferred for speed
+> - **$\nu < 2$ (Feller violated):** Avoid Euler with reflection; use QE or exact simulation
+>
+> For quick prototyping, Euler with reflection is acceptable but should be replaced for production use.
 
 ### 3.4 Bond Pricing: Affine Form and $A(t,T)$, $B(t,T)$
 
@@ -637,6 +688,170 @@ CIR++ is valuable when:
 - You can accept more complex option pricing (no simple Black-like formula)
 
 For most practical purposes in a low-but-positive rate environment, Hull-White remains the workhorse due to its full analytical tractability.
+
+---
+
+### 4.6 The Black-Karasinski Model: Lognormal Short Rates with Mean Reversion
+
+The Black-Karasinski (1991) model addresses the negative-rate problem through a different mechanism than CIR: it models the *logarithm* of the short rate as a Gaussian process, ensuring the short rate itself is always positive. This model is the "lognormal counterpart" to Hull-White and remains popular among practitioners who require strict rate positivity.
+
+**4.6.1 Model SDE**
+
+Black and Karasinski assumed that the logarithm of the instantaneous short rate evolves under the risk-neutral measure as:
+
+$$\boxed{d\ln r(t) = [\theta(t) - a\ln r(t)] \, dt + \sigma \, dW(t)}$$
+
+where $\theta(t)$ is a deterministic function chosen to fit the initial term structure, $a > 0$ is the mean-reversion speed, and $\sigma > 0$ is the volatility of the log-rate. As Brigo and Mercurio note: "Black and Karasinski assumed that the instantaneous short rate process evolves as the exponential of an Ornstein-Uhlenbeck process."
+
+**Equivalent Form via Itô's Lemma:**
+
+Applying Itô's lemma to $r(t) = \exp(\ln r(t))$:
+
+$$dr(t) = r(t)\left[\theta(t) + \frac{\sigma^2}{2} - a\ln r(t)\right] dt + \sigma r(t) \, dW(t)$$
+
+**Key Property:** The diffusion coefficient is $\sigma r(t)$, meaning volatility is proportional to the rate level (similar to CIR, but with a different functional form).
+
+**4.6.2 Distribution and Positivity**
+
+**Conditional Distribution:** Given $r(s)$, the conditional distribution of $r(t)$ for $t > s$ is:
+
+$$r(t) = \exp\left\{\ln r(s) \, e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u) \, du + \sigma\int_s^t e^{-a(t-u)} \, dW(u)\right\}$$
+
+The stochastic integral is Gaussian, so $\ln r(t) | \mathcal{F}_s$ is normally distributed. Therefore:
+
+$$\boxed{r(t) | \mathcal{F}_s \text{ is lognormally distributed}}$$
+
+**Strict Positivity:** Since the exponential of any real number is positive, $r(t) > 0$ always. Unlike CIR, there is no Feller-type condition—positivity is automatic.
+
+**4.6.3 The Analytical Tractability Trade-off**
+
+The Black-Karasinski model has a critical limitation: **no closed-form bond prices**.
+
+Brigo and Mercurio explain: "The Black-Karasinski (1991) model is not analytically tractable. This renders the model calibration to market data more burdensome than in the Hull and White (1990) Gaussian model, since no analytical formulas for bonds are available."
+
+**Consequences for Pricing:**
+- **ZCB pricing:** Requires a tree or PDE solver at each evaluation point
+- **Bond options:** Must be priced numerically (no Jamshidian decomposition shortcut)
+- **Simulation:** To simulate forward rates, one must build a tree for each simulated path
+
+As Brigo and Mercurio note: "When we have simulated $r(1y)$, we need to compute $P(1y, 5y)$ numerically for each simulated realization of $r$. In practice, we need to use a tree for each simulated $r$."
+
+**4.6.4 Tree Construction**
+
+Since analytical formulas are unavailable, Black-Karasinski is implemented via trinomial trees. The approach mirrors Hull-White tree construction (Section 6), with one modification:
+
+$$r(t) = e^{\alpha(t) + x(t)}$$
+
+where $x(t)$ follows the zero-mean OU process used in the Hull-White tree, and $\alpha(t)$ is the deterministic shift that fits the initial curve.
+
+**Procedure:**
+1. Build a trinomial tree for the $x$ process (as in Hull-White Stage 1)
+2. At each node $(i,j)$, the short rate is $r_{i,j} = \exp(\alpha_i + x_{i,j})$
+3. Determine $\alpha_i$ iteratively to match market discount factors
+
+**4.6.5 Infinite Expectation Problem**
+
+A theoretical concern with lognormal short-rate models: the expected value of the money-market account is infinite for any maturity. This arises because the lognormal distribution has a fat right tail.
+
+Brigo and Mercurio note: "The expected value of the money-market account is infinite no matter which maturity is considered, as a consequence of the lognormal distribution of $r$. As a consequence, the price of a Eurodollar future is infinite, too."
+
+**Practical Mitigation:** When using trees, one deals with a finite number of states, so expectations are finite. This is not a major issue in practice.
+
+**4.6.6 Comparison: Hull-White vs Black-Karasinski**
+
+| Feature | Hull-White | Black-Karasinski |
+|---------|-----------|------------------|
+| Short rate distribution | Normal (Gaussian) | Lognormal |
+| Rate positivity | No (can be negative) | Yes (always positive) |
+| ZCB pricing | Closed-form | Numerical (tree/PDE) |
+| Bond option pricing | Closed-form (Jamshidian) | Numerical |
+| Calibration speed | Fast (analytical) | Slow (tree for each bond) |
+| Volatility structure | Constant absolute vol | Constant percentage vol |
+| Typical use | General-purpose, fast calibration | When positivity required and numerical cost acceptable |
+
+> **Desk Reality: When to Use Black-Karasinski**
+>
+> Black-Karasinski is chosen when:
+> - **Rate positivity is a hard requirement** (e.g., some risk systems reject negative rates)
+> - **Calibration to swaption volatilities is important** (BK often fits the swaption surface well due to its flexibility)
+> - **Computational cost is acceptable** (you have time for tree-based pricing)
+>
+> In practice, many desks have moved away from BK due to:
+> - The negative rate environment (where positivity isn't always desirable)
+> - The computational burden for XVA and PFE calculations
+> - The availability of CIR++ as an alternative positive-rate model with partial tractability
+>
+> That said, BK remains popular for Bermudan swaption pricing where its good fit to the swaption surface outweighs the computational cost.
+
+---
+
+### 4.7 Preview: Two-Factor Extensions (G2++)
+
+One-factor models, by construction, imply perfect correlation between rates of all maturities. This is a significant limitation for products whose value depends on the relative movement of different points on the curve (e.g., spread options, CMS spread caps). Two-factor models address this by introducing a second source of randomness.
+
+**4.7.1 The G2++ Model (Brigo-Mercurio)**
+
+The G2++ model extends the one-factor Hull-White framework by writing the short rate as the sum of two correlated Gaussian factors plus a deterministic shift:
+
+$$\boxed{r(t) = x(t) + y(t) + \varphi(t)}$$
+
+where:
+
+$$dx(t) = -a \, x(t) \, dt + \sigma \, dW_1(t), \quad x(0) = 0$$
+$$dy(t) = -b \, y(t) \, dt + \eta \, dW_2(t), \quad y(0) = 0$$
+
+with $dW_1(t) \, dW_2(t) = \rho \, dt$ (instantaneous correlation).
+
+**Parameters:**
+- $a, b > 0$: mean-reversion speeds for each factor
+- $\sigma, \eta > 0$: volatilities of each factor
+- $\rho \in [-1, 1]$: correlation between factors
+- $\varphi(t)$: deterministic shift to fit the initial curve
+
+**4.7.2 Key Properties**
+
+**Curve Fitting:** The deterministic function $\varphi(t)$ is chosen to fit the initial term structure exactly:
+
+$$\varphi(T) = f^M(0,T) + \frac{\sigma^2}{2a^2}(1-e^{-aT})^2 + \frac{\eta^2}{2b^2}(1-e^{-bT})^2 + \rho\frac{\sigma\eta}{ab}(1-e^{-aT})(1-e^{-bT})$$
+
+**Closed-Form Bond Prices:** Despite having two factors, G2++ retains analytical tractability:
+
+$$P(t,T) = \frac{P^M(0,T)}{P^M(0,t)} \exp\left\{\mathcal{A}(t,T) - \frac{1-e^{-a(T-t)}}{a}x(t) - \frac{1-e^{-b(T-t)}}{b}y(t)\right\}$$
+
+**Imperfect Correlation:** The key advantage—rates at different maturities are not perfectly correlated. The correlation structure is determined by the parameters $(a, b, \sigma, \eta, \rho)$.
+
+**4.7.3 Why Two Factors Matter**
+
+| Product | One-Factor Limitation | Two-Factor Advantage |
+|---------|----------------------|---------------------|
+| CMS spread options | Cannot capture spread dynamics | Spread driven by factor correlation |
+| Curve steepeners/flatteners | All points move together | Short and long ends can diverge |
+| Swaption cube calibration | One-factor can't fit full cube | Five parameters enable better fit |
+| Bermudan swaptions | May misprice exercise boundary | More realistic curve dynamics |
+
+Brigo and Mercurio note: "Another consequence of the presence of two factors is that the actual variability of market rates is described in a better way: Among other improvements, a non-perfect correlation between rates of different maturities is introduced."
+
+**4.7.4 When to Use Two-Factor Models**
+
+| Use Case | One-Factor OK? | Two-Factor Needed? |
+|----------|---------------|-------------------|
+| Vanilla caps/floors | Yes | No |
+| European swaptions (ATM) | Usually | Sometimes |
+| Bermudan swaptions | Often | Preferred |
+| CMS products | No | Yes |
+| Spread options | No | Yes |
+| PFE/XVA | Often | Preferred for accuracy |
+
+> **Desk Reality: The One-Factor vs Two-Factor Decision**
+>
+> Most rates desks use one-factor Hull-White as their workhorse due to speed and simplicity. Two-factor models (G2++ or equivalently the Hull-White two-factor model) are deployed selectively for:
+> - Products with explicit curve-shape dependence
+> - High-value Bermudan swaption books where calibration accuracy justifies the cost
+> - XVA calculations where curve dynamics materially affect PFE
+>
+> The computational cost of two-factor models is roughly 2-3x that of one-factor for tree-based pricing, and the calibration is more complex (5 parameters vs 2). This is manageable for pricing individual trades but can become expensive for portfolio-level calculations.
+
+**Note:** Full treatment of two-factor models and the connection to HJM is provided in Appendix A3.
 
 ---
 
@@ -917,6 +1132,105 @@ Using forward induction, solve for $\alpha_1 = 0.05205$, giving:
 
 ---
 
+### 7.1 Model Selection Decision Tree
+
+Choosing the right short-rate model is a critical decision that balances tractability, calibration quality, and computational cost. This section provides systematic guidance for practitioners.
+
+**7.1.1 The Core Trade-offs**
+
+Every short-rate model makes trade-offs across three dimensions:
+
+| Dimension | What You're Trading Off |
+|-----------|------------------------|
+| **Tractability** | Closed-form prices vs numerical methods |
+| **Realism** | Rate positivity, volatility structure, curve dynamics |
+| **Calibration** | Fit to initial curve, caps, swaptions, or all three |
+
+No model excels at all three. The choice depends on your product and constraints.
+
+**7.1.2 Decision Flowchart**
+
+```
+START: What product are you pricing?
+│
+├─► Vanilla caps/floors
+│   └─► Do you need closed-form prices for speed?
+│       ├─► YES: Hull-White (or Black-Karasinski if positivity required)
+│       └─► NO: Any model works; Hull-White simplest
+│
+├─► European swaptions
+│   └─► Is swaption cube fit critical?
+│       ├─► YES: Consider LMM (Appendix A4) or two-factor G2++
+│       └─► NO: Hull-White via Jamshidian decomposition
+│
+├─► Bermudan swaptions
+│   └─► Hull-White tree is the standard
+│       └─► For better cube fit: Two-factor G2++ or BK
+│
+├─► Exotic (CMS, spread options, etc.)
+│   └─► Does payoff depend on curve shape?
+│       ├─► YES: Two-factor model required (G2++)
+│       └─► NO: Hull-White often sufficient
+│
+├─► PFE / XVA simulation
+│   └─► Is positivity a hard constraint?
+│       ├─► YES: CIR++ or Black-Karasinski
+│       └─► NO: Hull-White (most common) or G2++ for accuracy
+│
+└─► General risk management
+    └─► Hull-White is the industry standard
+```
+
+**7.1.3 Model Selection by Product**
+
+| Product | Recommended Model | Rationale |
+|---------|------------------|-----------|
+| **ATM caps/floors** | Hull-White | Closed-form, fast calibration |
+| **OTM caps/floors** | Hull-White or BK | HW for speed; BK if smile matters |
+| **European swaptions (ATM)** | Hull-White | Jamshidian decomposition |
+| **European swaptions (full cube)** | G2++ or LMM | One-factor can't fit the cube |
+| **Bermudan swaptions** | Hull-White tree | Industry standard; BK or G2++ for better fit |
+| **CMS products** | G2++ or LMM | Curve dynamics critical |
+| **Callable bonds** | Hull-White tree | Simple, effective |
+| **PFE/XVA** | Hull-White | Speed for Monte Carlo; G2++ for accuracy |
+| **Emerging market (high rates)** | CIR or CIR++ | Level-dependent volatility |
+| **Negative rate environment** | Hull-White | Allows negative rates naturally |
+| **Strict positivity required** | CIR++ or BK | Guaranteed positive rates |
+
+**7.1.4 Model Selection by Constraint**
+
+| Constraint | Best Choice | Avoid |
+|------------|-------------|-------|
+| **Must be fast** | Hull-White | Black-Karasinski |
+| **Must fit initial curve exactly** | Hull-White, CIR++, BK | Basic Vasicek, CIR |
+| **Must have positive rates** | CIR++, BK | Hull-White, Vasicek |
+| **Must fit swaption cube** | G2++, LMM | One-factor models |
+| **Must be simple to implement** | Hull-White | Two-factor, BK |
+| **Must capture curve dynamics** | G2++ | One-factor models |
+
+**7.1.5 Common Mistakes in Model Selection**
+
+1. **Using Hull-White when positivity matters:** In certain risk systems, negative rates cause failures. Use CIR++ or BK instead.
+
+2. **Using one-factor for spread products:** CMS spread options, curve steepeners, and similar products require two-factor dynamics.
+
+3. **Using Black-Karasinski when speed matters:** BK's lack of closed-form prices makes calibration slow. If you don't need strict positivity, use Hull-White.
+
+4. **Calibrating one-factor to the full swaption cube:** This is mathematically impossible—one-factor models have only 2 degrees of freedom after curve fitting. Choose a subset (co-terminal or diagonal) and accept misfit elsewhere.
+
+5. **Using basic Vasicek/CIR for derivatives:** These cannot fit the initial curve, causing immediate P&L breaks. Always use extended versions (Hull-White, CIR++).
+
+> **Desk Reality: The Pragmatic Choice**
+>
+> In practice, most rates desks use Hull-White as their default model:
+> - **For vanilla products:** Hull-White with cap/floor calibration
+> - **For Bermudan swaptions:** Hull-White tree with co-terminal swaption calibration
+> - **For XVA:** Hull-White Monte Carlo (sometimes G2++ for important counterparties)
+>
+> Two-factor models and Black-Karasinski are deployed selectively when their advantages justify the additional complexity. The key is understanding what you're giving up—every model is a compromise.
+
+---
+
 ## 8. Calibration and Implementation Map (Practitioner-Facing)
 
 ### 8.1 Concrete Workflow (One-Desk, One-Currency Short-Rate Framework)
@@ -994,6 +1308,81 @@ Hull and White note that making $a(t)$ or $\sigma(t)$ time-dependent can improve
 - **Non-physical dynamics:** Forward volatility can become negative or exhibit unrealistic behavior
 
 **Recommendation:** Keep $a$ and $\sigma$ constant unless there is strong economic justification. Use the deterministic drift $\theta(t)$ to fit the curve; accept that one-factor models have limited ability to match the full volatility surface.
+
+### 8.5 Calibration Fit Quality and Model Limitations
+
+A critical aspect of model risk management is understanding what fit quality to expect and what limitations are inherent in the model structure.
+
+**8.5.1 What One-Factor Models Cannot Do**
+
+One-factor Hull-White has exactly two free parameters ($a$, $\sigma$) after fitting the initial curve. This means:
+
+$$\boxed{\text{One-factor models cannot simultaneously fit caps AND swaptions}}$$
+
+The swaption market has $N_{\text{expiry}} \times N_{\text{tenor}}$ points (e.g., a 10×10 cube has 100 swaptions). With only 2 parameters, exact fit is impossible.
+
+**Why This Happens:** In a one-factor model, all forward rates are perfectly correlated. The swaption volatility depends on the covariance structure of forward rates, which is fully determined by a single volatility function. Different swaption strikes/tenors require different covariance structures that a single parameter set cannot simultaneously produce.
+
+Brigo and Mercurio note: "Finally, one can try a joint calibration to caps and swaptions data. Results are usually not completely satisfactory. This may be due both to misalignments between the two markets and to the low number of parameters in the model."
+
+**8.5.2 Typical Calibration Strategies**
+
+Given the impossibility of fitting everything, practitioners choose calibration targets strategically:
+
+| Strategy | What You Calibrate To | Best For |
+|----------|----------------------|----------|
+| **Cap calibration** | ATM cap volatilities across maturities | Cap/floor pricing, rate exposure |
+| **Co-terminal swaption** | Swaptions with same end date (e.g., 1Yx9Y, 2Yx8Y, ... for 10Y) | Bermudan swaptions exercisable into that swap |
+| **Diagonal swaption** | Same expiry+tenor sum (e.g., 1Yx1Y, 2Yx2Y, 5Yx5Y) | General swaption exposure |
+| **Single expiry row** | All tenors for one expiry (e.g., 1Y×1Y, 1Y×2Y, 1Y×5Y, ...) | Options expiring at that date |
+
+**8.5.3 Expected Fit Quality**
+
+Based on Brigo and Mercurio's calibration studies, typical fit quality for Hull-White:
+
+| Calibration Target | Expected Fit | Misfit Elsewhere |
+|-------------------|--------------|------------------|
+| ATM caps | Very good (< 5% vol error) | Swaptions: 10-30% vol error |
+| Co-terminal swaptions | Good (< 10% vol error) | Other swaptions: 15-40% vol error |
+| Mixed (caps + some swaptions) | Moderate (compromise) | Systematic biases |
+
+Brigo and Mercurio observe regarding model fitting: "A model fitting quality can be deeply affected by the specific market conditions one is trying to reproduce... However, the 'usual' situation illustrated in Figure 3.16 represents what we have been commonly witnessing in the Euro market in the last years."
+
+**8.5.4 Diagnostic Checks**
+
+After calibration, verify:
+
+1. **Curve repricing:** Model $P(0,T)$ matches market $P^M(0,T)$ to numerical tolerance
+2. **Calibration instrument fit:** Check model vs market prices for all calibration instruments
+3. **Out-of-sample test:** Price instruments NOT in calibration set; monitor error patterns
+4. **Parameter stability:** Small changes in market data should not cause large parameter swings
+5. **Implied volatility term structure:** Does the model's implied vol structure look reasonable?
+
+**Warning Signs:**
+- Parameters at boundary (e.g., $a \to 0$ or $a \to \infty$)
+- Wild variation in fit across similar instruments
+- Calibration not converging or multiple local minima
+
+**8.5.5 Model Risk Implications**
+
+The calibration limitations create model risk:
+
+| Risk | Manifestation | Mitigation |
+|------|---------------|------------|
+| **Interpolation risk** | Prices for non-calibrated strikes/tenors may be wrong | Include more calibration instruments |
+| **Extrapolation risk** | Long-dated products beyond calibration range | Use conservative assumptions |
+| **Correlation risk** | Perfect correlation assumption fails for curve trades | Use two-factor model |
+| **Smile risk** | ATM calibration misses OTM prices | Consider stochastic vol or local vol extension |
+
+> **Desk Reality: Living with Imperfect Calibration**
+>
+> Every desk accepts some level of misfit. The practical approach:
+>
+> 1. **Choose calibration targets aligned with your book:** If you trade Bermudans, calibrate to co-terminal swaptions
+> 2. **Document the calibration strategy:** Regulators and risk managers need to understand what you're fitting
+> 3. **Reserve for model risk:** The difference between model and market for out-of-sample instruments is an indicator of model uncertainty
+> 4. **Monitor calibration drift:** Re-calibrate regularly; investigate large parameter changes
+> 5. **Know when to upgrade:** If misfit is consistently large, consider a more sophisticated model (G2++, LMM)
 
 **Produce Outputs**
 
@@ -1165,6 +1554,54 @@ This is the clean way to see how the initial curve is "inserted" via $A(t,T)$.
 **Connection to Deterministic Shifts (General Exogenous Term Structure Idea)**
 
 The short-rate chapter also presents a general deterministic shift construction $r_t = x_t + \varphi(t)$ leading to bond prices that factor into a deterministic shift term times a base-model bond price, which is another way to view "fitting $P^M(0,T)$ by construction."
+
+### 9.6 Connection to the HJM Framework
+
+The Hull-White model can be understood as a special case of the Heath-Jarrow-Morton (HJM) framework, which models the entire forward rate curve rather than just the short rate. This connection provides deeper insight into when short-rate models are appropriate.
+
+**The HJM Framework (Preview)**
+
+In HJM, the instantaneous forward rate $f(t,T)$ evolves under the risk-neutral measure as:
+
+$$df(t,T) = \mu_f(t,T) \, dt + \sigma_f(t,T) \, dW(t)$$
+
+where the drift $\mu_f$ is determined by no-arbitrage conditions (the HJM drift restriction—see Appendix A3).
+
+**The Separable Volatility Condition**
+
+A key result (Andersen & Piterbarg, Proposition 10.1.7): if the forward rate volatility has the "separable" form:
+
+$$\boxed{\sigma_f(t,T) = \sigma(t) \cdot g(T)}$$
+
+then the resulting forward rate dynamics are **Markovian in a finite-dimensional state**—meaning they can be represented as a short-rate model.
+
+**Hull-White as Separable HJM**
+
+In the Hull-White model, the forward rate volatility is:
+
+$$\sigma_f(t,T) = \sigma \cdot e^{-a(T-t)}$$
+
+This is separable with $\sigma(t) = \sigma$ (constant) and $g(T) = e^{aT}$ up to normalization. The exponentially decaying structure ensures that:
+1. Short-maturity forwards are more volatile than long-maturity forwards
+2. The entire curve can be reconstructed from the single state variable $r(t)$
+
+**Why This Matters**
+
+The HJM connection explains:
+
+| Observation | HJM Explanation |
+|-------------|-----------------|
+| Hull-White has closed-form bond prices | Separable HJM reduces to affine short-rate |
+| Perfect correlation across maturities | Single Brownian motion drives all forwards |
+| Volatility decays with maturity | Exponential structure of $\sigma_f(t,T) = \sigma e^{-a(T-t)}$ |
+| Two-factor models break correlation | Two Brownian motions → non-separable |
+
+**Practical Implication:** If you need non-exponentially-decaying forward volatility (e.g., humped volatility structures observed in the market), you must either:
+1. Make volatility time-dependent (with the instability warnings noted in Section 8.4)
+2. Use a two-factor model (G2++)
+3. Move to a full HJM or market model framework (Appendix A3-A4)
+
+> **Note:** Full treatment of HJM, including the drift restriction derivation and general volatility structures, is provided in Appendix A3.
 
 ---
 
@@ -1740,10 +2177,22 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 | 48 | When might CIR++ produce negative rates? | If $\varphi(t)$ is sufficiently negative (deeply inverted/negative market curve), $r(t) = x(t) + \varphi(t)$ can go negative despite $x(t) > 0$ |
 | 49 | Vasicek real-world vs risk-neutral drift. | Real-world: $dr = [k\theta - (k+\lambda\sigma)r]dt + \sigma dW^0$; Risk-neutral: $dr = a(b-r)dt + \sigma dW^Q$ |
 | 50 | Why distinguish physical and risk-neutral parameters? | Physical (estimated from data) used for simulation/risk; risk-neutral (implied from prices) used for pricing |
+| 51 | Black-Karasinski SDE. | $d\ln r(t) = [\theta(t) - a\ln r(t)]dt + \sigma dW(t)$ |
+| 52 | Why is Black-Karasinski always positive? | $\ln r$ is Gaussian, so $r = e^{\ln r} > 0$ always (exponential of any real number is positive) |
+| 53 | Key limitation of Black-Karasinski. | No closed-form bond prices; must use tree or PDE for all pricing |
+| 54 | Trade-off: Hull-White vs Black-Karasinski. | HW: analytically tractable but allows negative rates; BK: guarantees positivity but requires numerical methods |
+| 55 | G2++ model short rate formula. | $r(t) = x(t) + y(t) + \varphi(t)$ where $x$, $y$ are correlated OU processes |
+| 56 | Why use two-factor models? | One-factor implies perfect correlation across maturities; two-factor allows imperfect correlation for spread products |
+| 57 | Why does Euler discretization fail for CIR? | Near zero, Euler can produce negative values, breaking the $\sqrt{r}$ diffusion term |
+| 58 | What is the QE scheme for? | Accurate CIR simulation; combines quadratic and exponential sampling to handle near-zero rates efficiently |
+| 59 | Can one-factor models fit the full swaption cube? | No; one-factor has only 2 free parameters after curve fitting, insufficient for the full cube |
+| 60 | What is "co-terminal" swaption calibration? | Calibrating to swaptions with same end date (e.g., 1Yx9Y, 2Yx8Y, ... all ending at year 10); used for Bermudan pricing |
+| 61 | Connection between Hull-White and HJM. | Hull-White is separable HJM with $\sigma_f(t,T) = \sigma e^{-a(T-t)}$; exponential decay makes dynamics Markovian in short rate |
+| 62 | When to use Hull-White vs CIR++. | HW: when negative rates acceptable, speed important; CIR++: when positivity required, partial tractability acceptable |
 
 ---
 
-## 13. Mini Problem Set (20 Questions)
+## 13. Mini Problem Set (24 Questions)
 
 *Brief solution sketches for questions 1–8 only.*
 
@@ -1853,6 +2302,43 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
+**21. (Model Selection) A desk needs to price a 5-year Bermudan swaption exercisable annually into a 10-year swap. They also need to compute PFE for XVA. Recommend models for each use case and justify.**
+
+*Sketch:*
+- **Bermudan pricing:** Hull-White trinomial tree, calibrated to co-terminal swaptions (1Yx14Y, 2Yx13Y, ... 5Yx10Y all ending at year 15). One-factor sufficient for single Bermudan; two-factor (G2++) if better cube fit needed.
+- **PFE:** Hull-White Monte Carlo for speed (thousands of paths needed). If counterparty is important and curve dynamics matter, consider G2++.
+
+---
+
+**22. (CIR Simulation) Given CIR parameters $a = 0.5$, $b = 0.02$, $\sigma = 0.15$, $r_0 = 0.01$:**
+**(a)** Verify the Feller condition.
+**(b)** What simulation method should you use and why?
+**(c)** If you use Euler with reflection, what bias do you expect?
+
+*Sketch:*
+- (a) $2ab = 0.02$, $\sigma^2 = 0.0225$. Since $0.02 < 0.0225$, Feller is violated ($\nu < 2$).
+- (b) Use QE scheme or exact simulation. Euler with reflection will introduce significant bias since the process can touch zero.
+- (c) Reflection artificially increases the process near zero, biasing paths upward. The bias is most severe when starting near zero (as here, $r_0 = 0.01$).
+
+---
+
+**23. (Calibration Limitations) Explain why a one-factor Hull-White model cannot simultaneously fit ATM cap volatilities and the full swaption volatility surface. What is the mathematical reason?**
+
+*Sketch:* After fitting the initial curve with $\theta(t)$, Hull-White has only 2 free parameters ($a$, $\sigma$). The swaption surface has many more degrees of freedom (e.g., 100 points for a 10×10 cube). Mathematically, one-factor models imply perfect correlation between all forward rates, but different swaption expiry/tenor combinations require different correlation structures. With perfect correlation, all swaption volatilities are determined by the single parameter $\sigma$ and mean-reversion $a$, which cannot match the rich structure observed in markets.
+
+---
+
+**24. (Black-Karasinski) Show that if $\ln r(t)$ follows the OU process $d\ln r = [\theta(t) - a\ln r]dt + \sigma dW$, then $r(t)$ conditional on $r(s)$ is lognormally distributed. What is the conditional mean of $\ln r(t)$?**
+
+*Sketch:* The OU process for $\ln r$ has explicit solution:
+$$\ln r(t) = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du + \sigma\int_s^t e^{-a(t-u)}dW(u)$$
+
+The stochastic integral is Gaussian (Itô integral of deterministic function), so $\ln r(t) | \mathcal{F}_s$ is Gaussian. Therefore $r(t) = e^{\ln r(t)}$ is lognormal.
+
+Conditional mean: $\mathbb{E}[\ln r(t) | r(s)] = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du$.
+
+---
+
 ## Source Map
 
 ### (A) Verified Facts — Source-Backed
@@ -1877,6 +2363,16 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 - CIR++ model construction $r(t) = x(t) + \varphi(t)$ and shift function: **Brigo & Mercurio, Section 3.9**
 - CIR++ forward rate formula $f^{CIR}(0,t;\alpha)$: **Brigo & Mercurio, eq. 3.77**
 - Trinomial tree probability derivation (moment-matching): **Brigo & Mercurio, Section 3.3.3, eq. 3.50**
+- Black-Karasinski model SDE $d\ln r = [\theta(t) - a\ln r]dt + \sigma dW$: **Brigo & Mercurio, Section 3.5; Tuckman, Ch 12**
+- Black-Karasinski lognormal distribution and tree construction: **Black & Karasinski (1991); Brigo & Mercurio**
+- G2++ two-factor model dynamics and bond pricing formula: **Brigo & Mercurio, Chapter 4.2, eq. 4.12-4.17**
+- G2++ correlation structure and factor interpretation: **Brigo & Mercurio, Section 4.2.2**
+- QE (Quadratic-Exponential) scheme for CIR simulation: **Andersen (2008); Andersen & Piterbarg, Ch 10**
+- CIR exact simulation via non-central chi-squared: **Glasserman, *Monte Carlo Methods in Financial Engineering***
+- Euler scheme with reflection for CIR: **Brigo & Mercurio; Glasserman**
+- One-factor model calibration limitations (swaption cube): **Brigo & Mercurio, Section 3.14**
+- Hull-White as separable HJM special case: **Andersen & Piterbarg, Proposition 10.1.7**
+- Co-terminal vs diagonal swaption calibration strategies: **Brigo & Mercurio, Section 6.15**
 
 ### (B) Reasoned Inference — Derived from (A)
 
@@ -1885,8 +2381,14 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 - Worked examples: numeric calculations using sourced formulas
 - Branching probability formulas: derived from moment-matching conditions on the discretized SDE
 - Connection between Feller condition and chi-squared degrees of freedom: algebraic relationship $\nu = 4ab/\sigma^2$
+- Model selection decision tree: derived from sourced trade-offs and practitioner guidance in Brigo & Mercurio
+- QE scheme $\psi_c$ threshold choice ($\psi_c \approx 1.5$): derived from moment-matching accuracy vs stability analysis
+- G2++ interpretation as "level + slope" factors: derived from correlation structure and principal component analogy
 
 ### (C) Specification Notes
 
 - Multi-curve treatment: single-curve formulas apply directly when discount = projection; guidance provided for OIS-discounted multi-curve setup (see Chapter 19 for full treatment)
 - Calibration workflow: representative procedure based on Hull's descriptions; specific numerical tolerances and solver choices vary by implementation
+- Model selection guidance: general recommendations based on product type; specific choices depend on desk requirements, computational budget, and product mix
+- Calibration quality diagnostics: suggested residual thresholds (1-2bp) are representative industry standards; actual tolerances vary by application and risk appetite
+- Black-Karasinski vs Hull-White choice: guidance based on qualitative trade-offs; optimal choice depends on rate environment and product portfolio

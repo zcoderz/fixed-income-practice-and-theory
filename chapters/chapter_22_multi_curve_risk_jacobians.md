@@ -18,15 +18,15 @@ The answer, it turns out, is "profoundly." As Andersen and Piterbarg emphasize, 
 
 - **Section 22.2** examines what happens when you bump a single quote and rebuild: the par-point approach, locality under perturbation, and the infamous see-saw effect that afflicts certain interpolation methods.
 
-- **Section 22.3** introduces the **Jacobian method**, which decouples risk calculation from curve construction by explicitly computing how curve nodes respond to quote changes.
+- **Section 22.3** introduces the **Jacobian method**, which decouples risk calculation from curve construction by explicitly computing how curve nodes respond to quote changes. We also cover **algorithmic differentiation**—the modern industry standard that computes all sensitivities in a single pass.
 
 - **Section 22.4** develops **controlled perturbations**: an alternative approach where we shock the forward curve directly with economically meaningful shapes, avoiding the artifacts of bump-and-rebuild.
 
-- **Section 22.5** addresses multi-curve risk decomposition: in a world of OIS discounting and tenor basis, how do we separate "overall level" risk from "discounting" risk from "basis" risk?
+- **Section 22.5** addresses multi-curve risk decomposition: in a world of OIS discounting and tenor basis, how do we separate "overall level" risk from "discounting" risk from "basis" risk? We also cover **risk limits and bucket monitoring**—the organizational framework for using these sensitivities.
 
-- **Section 22.6** presents P&L predict and P&L explain methodologies—the ultimate validation of any risk system.
+- **Section 22.6** presents P&L predict and P&L explain methodologies—the ultimate validation of any risk system—including a diagnostic checklist for fixing broken P&L predict.
 
-- **Section 22.7** covers practical implementation considerations: numerical stability, curve overlays, and computational efficiency.
+- **Section 22.7** covers practical implementation considerations: numerical stability, curve overlays, computational efficiency, and when to refresh your Jacobians.
 
 Throughout, we emphasize a key desideratum: **P&L predict**. The deltas you compute should explain the P&L you observe when quotes move. If they don't, something in your curve build or risk methodology is broken.
 
@@ -209,7 +209,7 @@ In Figure 6.8, Andersen and Piterbarg demonstrate this dampening effect, showing
 
 ---
 
-## 22.3 The Jacobian Method
+## 22.3 The Jacobian Method and Algorithmic Differentiation
 
 ### 22.3.1 Motivation: Decoupling Risk from Curve Construction
 
@@ -276,7 +276,27 @@ The Jacobian $J$ is $100 \times 15$. Each column shows how a 1 bp bump to one qu
 > *   **Ideally**: You want a "Block Diagonal" heatmap. Bumping the 5Y quote should only light up the forward rates near 5Y.
 > *   **The Reality**: In a bad curve build (e.g., untensioned spline), the heatmap looks like a checkerboard. Bumping the 2Y quote lights up the 30Y forward rate. This is "Pollution." It means your short-term trades are accidentally hedging your long-term risk.
 
-### 22.3.6 Relationship to Key Rate DV01
+### 22.3.6 Worked Example: A Small Numerical Jacobian
+
+**Setup:** A minimal curve with 3 quotes (1Y, 2Y, 3Y deposit rates) and 3 nodes (1Y, 2Y, 3Y zero rates). Under piecewise-constant interpolation, each deposit pins exactly one zero rate.
+
+**Quotes:** $q = (4.00\%, 4.50\%, 5.00\%)$
+
+**Base zero rates:** $x = (4.00\%, 4.50\%, 5.00\%)$ (deposits bootstrap directly to zero rates)
+
+**Jacobian (under this interpolation):**
+
+$$J = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix}$$
+
+This is the identity matrix because each quote determines exactly one node. Bumping the 2Y deposit by 1 bp changes only the 2Y zero rate by 1 bp.
+
+**With cubic spline interpolation**, the Jacobian would have non-zero off-diagonal entries:
+
+$$J \approx \begin{pmatrix} 0.95 & 0.04 & 0.01 \\ 0.08 & 0.85 & 0.07 \\ 0.02 & 0.12 & 0.86 \end{pmatrix}$$
+
+Now bumping the 2Y deposit moves all three zero rates. The off-diagonal "pollution" is visible in the heatmap.
+
+### 22.3.7 Relationship to Key Rate DV01
 
 The Jacobian method is closely related to the key-rate methodology of Tuckman (Chapter 7). Tuckman defines key rate shifts as triangular perturbations to par yields:
 
@@ -285,6 +305,61 @@ The Jacobian method is closely related to the key-rate methodology of Tuckman (C
 The key rate 01 then measures the portfolio's sensitivity to each such shift. Tuckman emphasizes that "the sum of the key rate shifts equals a parallel shift in the par yield curve," ensuring that key rate 01s aggregate to total DV01.
 
 The Jacobian framework generalizes this: key rate shifts are specific choices of basis functions $\mu_k(t)$ applied to the yield or forward curve, and the corresponding sensitivities are obtained via the chain rule.
+
+### 22.3.8 Algorithmic Differentiation: Computing All Greeks in One Pass
+
+The methods above—bump-and-rebuild and Jacobian caching—share a fundamental limitation: their computational cost scales with the number of risk factors. For a curve with $N$ quote sensitivities, you need at least $N$ curve rebuilds (or $2N$ for central differences). For a trading desk with hundreds of curve nodes across multiple curves, this becomes expensive.
+
+**Algorithmic differentiation (AD)**, also called **automatic differentiation** or the **adjoint method**, offers a breakthrough: compute all first-order sensitivities in a single backward pass at roughly 3-5× the cost of a single valuation.
+
+**The Key Insight: Forward vs. Adjoint Mode**
+
+Any computer program that computes $V = f(q_1, \ldots, q_N)$ can be viewed as a composition of elementary operations. The chain rule applies at each step. There are two ways to propagate derivatives:
+
+**Forward (tangent) mode:** Propagate $\frac{\partial}{\partial q_i}$ forward through the computation. Cost: one forward pass per input variable. Total cost for $N$ inputs: $O(N) \times$ valuation cost.
+
+**Adjoint (reverse) mode:** Propagate sensitivities backward from the output. Define the **adjoint** $\bar{x}_j = \frac{\partial V}{\partial x_j}$ for each intermediate variable $x_j$. Starting from $\bar{V} = 1$, propagate backward:
+
+$$\boxed{\bar{x}_j = \sum_{k: x_j \to x_k} \bar{x}_k \frac{\partial x_k}{\partial x_j}}$$
+
+Cost: one backward pass for all $N$ sensitivities. Total cost: $O(1) \times$ valuation cost (typically 3-5× due to overhead).
+
+Andersen and Piterbarg discuss this in Vol 2 Ch 24, Section 24.3.3, noting that "the adjoint method to arrange the calculation order" provides efficient Greeks computation for Monte Carlo simulations of interest rate models.
+
+> **Desk Reality: Why Bump-and-Rebuild Is Dead for Large Portfolios**
+>
+> Consider a rates desk with:
+> - 500 curve nodes (across OIS, SOFR, basis curves)
+> - 10,000 trades
+> - 50 scenario recalculations per day
+>
+> **Bump-and-rebuild:** Each trade needs 500 bumps × valuation cost. Total: 5 billion operations per scenario.
+>
+> **Jacobian caching:** Compute Jacobian once (500 bumps), then matrix-multiply for each trade. Total: 500 rebuilds + 10,000 matrix multiplies. Much faster.
+>
+> **Adjoint AD:** Compute all 500 sensitivities in one backward pass per trade. Total: 10,000 backward passes × ~5× overhead = 50,000 equivalent valuations. **100× faster than bump-and-rebuild.**
+>
+> Traders call this "smoking adjoints"—the risk system runs so fast it seems to smoke.
+
+**Implementation Requirements:**
+
+AD requires **code instrumentation**. The two main approaches are:
+
+1. **Operator overloading:** Replace floating-point types with "AD types" that record the computational graph (the "tape"). Libraries like CppAD, ADOL-C, and QuantLib-AD use this approach.
+
+2. **Source transformation:** Automatically generate adjoint code from the original source. Tools like Tapenade perform this transformation.
+
+> **Practitioner Note:** Implementing AD is a significant engineering effort. Most banks either use commercial solutions (e.g., Numerix, Bloomberg's DLIB) or have dedicated teams maintaining in-house AD libraries. If you're building a new risk system, AD should be in the design from day one—retrofitting is painful.
+
+**When to Use AD vs. Bump:**
+
+| Scenario | Recommended Method |
+|----------|-------------------|
+| Few trades, simple instruments | Bump-and-rebuild (simplicity) |
+| Large portfolio, many curves | AD or cached Jacobians |
+| Exotic instruments with discontinuities | Bump (AD may have issues at barriers) |
+| Monte Carlo Greeks | AD pathwise (Andersen Vol 2 Ch 24) |
+| Stress testing (many scenarios) | Cached Jacobians with periodic refresh |
 
 ---
 
@@ -356,6 +431,8 @@ This is the **Jacobian method for interest rate deltas**. As Andersen and Piterb
 > *   Reality: You have created a massive position to hedge a small risk, relying on a delicate correlation that might break.
 >
 > **Rule of Thumb**: If your hedge notionals are 10x larger than your risk notional, your Jacobian is telling you: "You can't get there from here." Stop and find a better hedging instrument.
+>
+> **Mathematical Diagnosis:** Compute the condition number of the Jacobian. If $\kappa(J) > 100$, the hedge problem is ill-conditioned—small errors in deltas produce large swings in hedge notionals.
 
 ### 22.4.5 Cumulative Par-Point Approach
 
@@ -433,6 +510,47 @@ Consider two approaches to building a 3M LIBOR curve and 6M LIBOR curve:
 
 This decomposition tells you exactly what economic exposures you have and which instruments to use for hedging each.
 
+### 22.5.5 Risk Limits and Bucket Monitoring
+
+Computing sensitivities is only half the story. A trading desk must also have a framework for **risk limits**—constraints on how much exposure can be taken in each bucket. This is the organizational infrastructure that translates Greeks into risk management.
+
+> **Desk Reality: How Bucket Limits Work**
+>
+> A typical rates desk has multiple layers of risk limits:
+>
+> | Limit Type | Example | Purpose |
+> |------------|---------|---------|
+> | **Aggregate DV01** | Total DV01 ≤ $500k | Caps total directional exposure |
+> | **Bucket limits** | Max $100k DV01 in any single tenor | Prevents concentration risk |
+> | **Twist limits** | Max $150k 2s10s steepener | Limits curve shape bets |
+> | **Basis limits** | Max $50k OIS-SOFR basis | Caps relative value exposure |
+> | **Jump-to-default** | Max $2M to any single credit | Credit concentration (for credit desks) |
+>
+> **Gross vs Net:** A trader with $+500k DV01 in 5Y and $-500k in 10Y has $0 net DV01 but $1M gross. Both metrics are monitored—net captures directional risk, gross captures rebalancing risk if correlations break.
+
+**The Daily Risk Cycle:**
+
+1. **End of Day (EOD):** Full curve rebuild, complete Greeks calculation, risk report generated
+2. **Overnight:** Risk management reviews exposures vs limits, flags breaches
+3. **Morning:** Trader receives limit breach report, must explain or reduce
+4. **Intraday:** Approximate Greeks using cached Jacobians + live quotes
+5. **Throughout:** Trading system enforces "hard limits" that block limit-breaching trades
+
+> **Practitioner Note: "Filling the Hole"**
+>
+> A danger with bucket-based limits: a trader can hide risk in **unmonitored buckets**. If you have limits at 2Y, 5Y, 10Y, 30Y but not at 7Y, a trader could build a massive 7Y position that doesn't trigger any limit.
+>
+> **Defense:** Use overlapping bucket definitions, monitor gross across all tenors, and use PCA-based limits that capture parallel/slope/curvature regardless of specific tenors.
+
+**Limit Escalation Protocol:**
+
+| Utilization | Action |
+|-------------|--------|
+| < 75% | Normal trading |
+| 75-90% | Notify desk head |
+| 90-100% | Notify risk management, require approval for new risk |
+| > 100% | Immediate escalation, mandatory risk reduction |
+
 ---
 
 ## 22.6 P&L Predict and P&L Explain
@@ -494,7 +612,55 @@ $$P(t+h, T) = \frac{P(t, T)}{P(t, t+h)} \approx P(t, T)(1 + r(t)h)$$
 
 which is "consistent with the notion that a risk-free portfolio should earn a rate of $r(t)$ over a short holding period."
 
-### 22.6.5 Best Practice: Consistency
+### 22.6.5 The P&L Predict Diagnostic Checklist
+
+When P&L predict is consistently off, work through this diagnostic workflow:
+
+> **Desk Reality: The P&L Predict Diagnostic Checklist**
+>
+> **Step 1: Check for curve consistency**
+> - Are pricing and risk using the same curve? (Different curves = systematic error)
+> - Was the curve rebuilt EOD with fresh quotes?
+>
+> **Step 2: Check Jacobian freshness**
+> - When was the Jacobian last computed?
+> - Have quotes moved significantly since then (>5bp cumulative)?
+> - Force a full Jacobian refresh and recompute
+>
+> **Step 3: Check for missing risk factors**
+> - Is basis risk captured? (OIS vs projection curve)
+> - Is cross-currency basis captured? (for xccy trades)
+> - Are all relevant curves included in the risk calculation?
+>
+> **Step 4: Check for interpolation artifacts**
+> - Look at forward curve response to bumps—is there see-saw?
+> - Compare deltas from bootstrap vs spline builds
+> - Check for spurious exposures to distant tenors
+>
+> **Step 5: Check theta calculation**
+> - Is theta using "forward values" (correct) or "frozen quotes" (potentially wrong)?
+> - For futures positions, is the roll handled correctly?
+>
+> **Step 6: Check for second-order effects**
+> - Was the market move large (>10bp)? Gamma effects may dominate
+> - Compute $\frac{1}{2}\delta^\top A \delta$ explicitly and compare to residual
+>
+> **Step 7: Check for manual adjustments**
+> - Were any curve overrides or manual marks applied?
+> - Are there any "trader's friend" adjustments that bypass the official curve?
+
+**Acceptable P&L Predict Metrics:**
+
+| Metric | Target | Concern |
+|--------|--------|---------|
+| Explained ratio | > 95% | < 90% requires investigation |
+| Mean residual | ≈ 0 | Systematic bias indicates model error |
+| Residual volatility | < 5% of total P&L vol | High = missing risk factors |
+| Autocorrelation | ≈ 0 | Persistent patterns indicate systematic issues |
+
+> **Practitioner Note:** P&L explain is now a regulatory requirement under FRTB (Fundamental Review of the Trading Book). Banks must demonstrate that their risk models explain actual P&L, with backtest exceptions triggering capital add-ons.
+
+### 22.6.6 Best Practice: Consistency
 
 **Use the same curves for valuation and risk.** If the pricing curve is a tension spline, compute deltas by bumping the tension spline. If this produces locality problems, address them through the Jacobian method or controlled perturbations—not by using a different risk curve.
 
@@ -534,6 +700,36 @@ For large portfolios with frequent risk updates:
 
 **Parallel Computation:** The $N$ columns of the Jacobian can be computed independently—natural for parallel architectures.
 
+### 22.7.4 When to Refresh the Jacobian
+
+> **Desk Reality: Jacobian Refresh Criteria**
+>
+> The Jacobian captures the local relationship between quotes and curve nodes. As quotes move away from the base case, this approximation degrades. Refresh when:
+>
+> | Trigger | Threshold | Rationale |
+> |---------|-----------|-----------|
+> | **Quote move** | >5bp cumulative in any pillar | Nonlinearity accumulating |
+> | **Time elapsed** | >4 hours since last rebuild | Staleness during volatile markets |
+> | **Market event** | Fed announcement, payrolls, etc. | Regime change possible |
+> | **End of day** | Always | Official risk for limit monitoring |
+> | **Trade entry** | For very large trades | Ensure accurate pre-trade risk |
+>
+> **Intraday approximation:** Use stale Jacobian + fresh quotes for quick updates. Error is typically small (second-order) for routine market moves.
+>
+> **Event-driven refresh:** After significant market events (10bp+ moves, central bank actions), force immediate Jacobian rebuild even during the trading day.
+
+**Order-of-Magnitude Timing (Illustrative):**
+
+| Operation | Time (typical) |
+|-----------|----------------|
+| Single curve rebuild | 5-50 ms |
+| Full Jacobian (20 quotes, central diff) | 200-2000 ms |
+| Portfolio reprice (1000 trades) | 100-500 ms |
+| AD Greeks (1000 trades, all sensitivities) | 500-2500 ms |
+| Cached Jacobian + portfolio Greeks | 20-100 ms |
+
+The cached Jacobian approach is 10-50× faster than full bump-and-rebuild for intraday updates.
+
 ---
 
 ## Summary
@@ -548,13 +744,17 @@ This chapter developed the machinery for computing and interpreting curve risk i
 
 4. **The Jacobian method** decouples risk calculation from curve construction, enabling efficient computation and explicit analysis of how bumps propagate.
 
-5. **Controlled perturbations** shock the forward curve directly with economically meaningful shapes, avoiding quote-bump artifacts.
+5. **Algorithmic differentiation** computes all sensitivities in a single backward pass at roughly 3-5× valuation cost—the modern industry standard for large portfolios.
 
-6. **Multi-curve decomposition** separates overall level risk, discounting risk, and basis risk when curves are built in a spread-based framework.
+6. **Controlled perturbations** shock the forward curve directly with economically meaningful shapes, avoiding quote-bump artifacts.
 
-7. **P&L predict** is the ultimate test: your deltas should explain your daily P&L. P&L explain attributes observed P&L to specific market moves.
+7. **Multi-curve decomposition** separates overall level risk, discounting risk, and basis risk when curves are built in a spread-based framework.
 
-8. **Implementation considerations** include numerical stability (central differences, fixed seeds), curve overlays for special dates, and computational efficiency through Jacobian caching.
+8. **Risk limits** provide the organizational framework for using sensitivities—bucket limits, twist limits, and aggregation rules.
+
+9. **P&L predict** is the ultimate test: your deltas should explain your daily P&L. The diagnostic checklist helps identify when the risk system is broken.
+
+10. **Implementation considerations** include numerical stability (central differences, fixed seeds), curve overlays for special dates, computational efficiency through Jacobian caching and AD, and refresh criteria.
 
 ---
 
@@ -566,11 +766,13 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | **Locality** | Property that a local quote bump produces a local curve change | Prevents spurious risk attribution to distant tenors |
 | **See-saw effect** | Large forward-rate oscillations from small quote bumps | Artifact of curve construction that distorts risk reports |
 | **Jacobian** | Matrix $J = \partial x / \partial q$ mapping quotes to curve nodes | Enables efficient risk computation via chain rule |
+| **Algorithmic differentiation** | Computing all sensitivities in one backward pass | O(1) vs O(N) cost for N risk factors |
 | **Gâteaux derivative** | Directional derivative in function space | Defines controlled perturbation sensitivities |
 | **Controlled perturbation** | Direct forward-curve bump with specified shape | Avoids curve-fit artifacts, aligns with bucket hedging |
 | **Orthogonal decomposition** | Separation of level, discounting, and basis risk | Enables proper aggregation and hedging |
 | **P&L predict** | Ability of computed deltas to explain realized P&L | Ultimate validation of risk methodology |
 | **P&L explain** | Attribution of realized P&L to specific market moves | Diagnostic tool for understanding P&L drivers |
+| **Bucket limits** | Maximum allowed exposure per tenor bucket | Prevents concentration risk |
 
 ---
 
@@ -591,6 +793,8 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | $\Theta_{\text{mkt}}$ | Vector of market data |
 | $\nabla^H$ | Sensitivity vector w.r.t. market data |
 | $A^H$ | Hessian matrix of second derivatives |
+| $\bar{x}_j$ | Adjoint of variable $x_j$ in AD |
+| $\kappa(J)$ | Condition number of Jacobian |
 
 ---
 
@@ -620,6 +824,10 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | 20 | Why might independent curve construction for different tenors cause problems? | It prevents natural aggregation of level risk vs basis risk |
 | 21 | What is a curve overlay? | A user-specified adjustment $\varepsilon_f(t)$ added to the forward curve for special dates (e.g., turn-of-year) |
 | 22 | Why should theta be computed using forward values rather than frozen quotes? | Because some instruments have fixed maturities (futures) while others have fixed tenors (swaps), causing distortions when quotes are simply frozen |
+| 23 | What is algorithmic differentiation (AD)? | A method to compute all sensitivities in a single backward pass at cost ~3-5× valuation, versus N× for N finite-difference bumps |
+| 24 | What is the adjoint equation in AD? | $\bar{x}_j = \sum_{k: x_j \to x_k} \bar{x}_k \frac{\partial x_k}{\partial x_j}$, propagating sensitivities backward from output to inputs |
+| 25 | What does "smoking adjoints" mean? | Fast risk computation using adjoint AD—the system runs so fast it "smokes" |
+| 26 | When should you refresh the Jacobian intraday? | When quotes move >5bp cumulative, after market events (Fed, payrolls), or for very large trades |
 
 ---
 
@@ -657,6 +865,24 @@ Why does the cumulative par-point approach produce less extreme forward curve sh
 **10. Waterfall vs Bump-and-Reset**
 A portfolio has significant gamma (second-order sensitivity). Which P&L explain method—waterfall or bump-and-reset—will produce a smaller unexplained residual? Why?
 
+**11. AD Complexity Comparison**
+A desk has 500 curve nodes and 1,000 trades. Compare the computational cost (in terms of valuation operations) of:
+(a) Bump-and-rebuild with central differences
+(b) Cached Jacobian approach
+(c) Adjoint AD
+
+**12. Risk Limit Scenario**
+A trader has the following DV01 exposures:
+
+| Tenor | DV01 (USD/bp) |
+|-------|---------------|
+| 2Y | +$40,000 |
+| 5Y | −$80,000 |
+| 10Y | +$60,000 |
+| 30Y | −$20,000 |
+
+The desk has limits: aggregate DV01 ≤ $50,000, per-bucket limit ≤ $50,000. Which limits are breached? What trades might the trader execute to come into compliance?
+
 ### Solution Sketches
 
 **1.** Delta = $\frac{\partial V_0}{\partial y_5} \cdot \frac{\partial y_5}{\partial q_{5Y}} \cdot 10^{-4}$ = $(-50{,}000)(0.98)(10^{-4})$ = −$4.90 per bp.
@@ -679,11 +905,26 @@ A portfolio has significant gamma (second-order sensitivity). Which P&L explain 
 
 **10.** Waterfall produces zero unexplained residual by construction (it's an identity). Bump-and-reset leaves a residual proportional to cross-gamma terms. However, waterfall's attribution depends on the arbitrary ordering of market variables.
 
+**11.**
+(a) Bump-and-rebuild: 2 × 500 bumps × 1000 trade valuations = 1,000,000 equivalent valuations
+(b) Cached Jacobian: 2 × 500 bumps (once) + 1000 matrix multiplies ≈ 1,000 + 1,000 = 2,000 equivalent operations (much faster)
+(c) Adjoint AD: 1000 trades × 5× overhead = 5,000 equivalent valuations
+
+AD is ~200× faster than bump-and-rebuild; cached Jacobian is ~500× faster but requires periodic refresh.
+
+**12.**
+- Aggregate DV01: |40 - 80 + 60 - 20| = |0| = $0 ≤ $50k ✓
+- Per-bucket: 5Y at $80k > $50k limit ✗, 10Y at $60k > $50k limit ✗
+
+To comply: Reduce 5Y short by $30k (buy $30k of 5Y swaps) and reduce 10Y long by $10k (sell $10k of 10Y swaps). This would give:
+- 2Y: +$40k, 5Y: −$50k, 10Y: +$50k, 30Y: −$20k
+- All buckets at or below $50k; aggregate = +$20k ≤ $50k ✓
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -703,11 +944,25 @@ A portfolio has significant gamma (second-order sensitivity). Which P&L explain 
 | Theta calculation using forward values | Andersen Vol 2 Ch 22, Eqs. 22.20–22.21 |
 | Waterfall P&L explain | Andersen Vol 2 Ch 22, Section 22.2.2.1 |
 | Bump-and-reset P&L explain | Andersen Vol 2 Ch 22, Section 22.2.2.2 |
+| Adjoint method for Greeks calculation | Andersen Vol 2 Ch 24, Section 24.3.3 |
 | Key-rate shifts sum to parallel shift | Tuckman Ch 7 |
 | Key-rate methodology for hedging | Tuckman Ch 7 |
 | Bucket exposures for forward-rate segments | Tuckman Ch 7 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Basis |
+|---------|-------|
+| "Smoking adjoints" terminology | Extended from Andersen AD discussion with trader jargon |
+| Risk limits framework (bucket, aggregate, twist) | Standard desk practice, not well-covered in academic books |
+| "Filling the hole" risk limit arbitrage | Practitioner knowledge |
+| P&L predict diagnostic checklist | Extended from Andersen P&L predict with operational workflow |
+| Jacobian refresh criteria (5bp, 4 hours, events) | Practitioner heuristics based on Andersen's "sufficiently far" guidance |
+| Limit escalation protocol | Standard desk practice |
+| FRTB regulatory context for P&L explain | Regulatory knowledge |
+| Jacobian condition number diagnostic | Numerical analysis applied to hedge problem |
+
+### (C) Reasoned Inference (Derived from A and B)
 
 | Inference | Derivation |
 |-----------|------------|
@@ -715,8 +970,9 @@ A portfolio has significant gamma (second-order sensitivity). Which P&L explain 
 | $L_{n+1}$ shifts by $-n\delta$ when $S_n$ bumps $\delta$ with neighbors fixed | Direct algebra from $L_n \approx n S_n - (n-1) S_{n-1}$ |
 | Central differences improve numerical stability | Standard numerical analysis (symmetric error cancellation) |
 | Jacobian has block-triangular structure for bootstrapping | Follows from sequential nature of bootstrap algorithm |
+| AD computational complexity O(1) vs O(N) | Follows from structure of adjoint chain rule |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Item | Uncertainty |
 |------|-------------|
@@ -724,7 +980,9 @@ A portfolio has significant gamma (second-order sensitivity). Which P&L explain 
 | Optimal tension parameters for splines | Implementation and data-dependent; no universal formula |
 | Turn-of-year and event-date curve overlays | Market-specific; overlay specification varies by desk |
 | Ordering of market variables in waterfall explain | Arbitrary choice affects attribution; no canonical ordering |
+| Exact AD overhead factor (3-5×) | Depends on implementation and problem structure |
+| Jacobian refresh thresholds | Heuristics that vary by institution and market conditions |
 
 ---
 
-*Chapter 22 — v3.0*
+*Chapter 22 — v4.0*

@@ -4,13 +4,21 @@
 
 ## Introduction
 
+In 2007, a senior CDO tranche rated AAA traded at 50 basis points. By 2008, the same tranche had lost 80% of its value. The Gaussian copula model that priced it had predicted such a scenario was virtually impossible. What went wrong, and what models could have done better?
+
 Base correlation worked until it didn't. Then what?
 
 In the summer of 2007, the correlation "smile" that structured credit desks had calibrated for years began to exhibit behavior no one-factor Gaussian model could explain. Senior tranches that had always traded at seemingly safe spreads suddenly required base correlations exceeding 90%—mathematically implausible values that revealed the model was being asked to do something it was never designed to do. As O'Kane observes, the base correlation framework "is not a pricing model but rather a quoting convention"—a language for translating tranche prices into a single parameter, not a theory of how defaults actually cluster.
 
 The 2007-2008 crisis exposed three fundamental limitations of the base correlation approach: (1) the single-parameter Gaussian copula cannot capture the *dynamics* of how correlation evolves through a crisis; (2) base correlation interpolation across non-traded strikes creates arbitrage-prone prices; and (3) the model's complete lack of tail dependence systematically underestimates senior tranche risk precisely when that risk materializes. These failures were not surprises to quantitative researchers—many had been documented in academic literature—but the crisis made them operationally urgent.
 
-This appendix extends beyond the base correlation framework introduced in Chapter 50 to survey the broader landscape of credit portfolio models. We begin with the fundamental building blocks—portfolio loss distributions, dependence structures, and the distinction between bottom-up and top-down approaches (Section A6.1). Section A6.2 examines why base correlation "is not enough," providing a rigorous treatment of its empirical failures. Section A6.3 develops a framework map organizing the alternatives: static copula extensions, factor model enhancements, dynamic intensity models, and other mechanisms. Sections A6.4-A6.6 provide detailed treatment of selected advanced models. Section A6.7 addresses calibration and validation—the practical challenge of making these models work. Section A6.8 covers numerical implementation. Throughout, we balance mathematical rigor with practical guidance for the desk quant who must actually implement, calibrate, and risk-manage these models.
+> **Desk Reality: The 2008 Lesson**
+>
+> When the housing market turned, defaults clustered far more than the Gaussian copula predicted. A correlation desk running Gaussian copula hedges found their positions blowing out because tail dependence was zero by construction. Senior tranches that the model said had a 0.01% chance of taking losses experienced 50%+ writedowns. The model's failure wasn't a surprise to anyone who understood tail dependence—it was baked into the mathematics.
+>
+> The scatterplot tells the story: Gaussian copula joint defaults form a circular cloud—even with high correlation, the extreme corners (joint default/joint survival) are nearly empty. The t-copula places substantial probability mass in those corners. For a risk manager, the difference between a "50-year event" and a "7-year event" is the difference between theoretical reassurance and realized losses.
+
+This appendix extends beyond the base correlation framework introduced in Chapter 50 to survey the broader landscape of credit portfolio models. We begin with the fundamental building blocks—portfolio loss distributions, dependence structures, and the distinction between bottom-up and top-down approaches (Section A6.1). Section A6.2 examines why base correlation "is not enough," providing a rigorous treatment of its empirical failures. Section A6.3 develops a framework map organizing the alternatives: static copula extensions, factor model enhancements, dynamic intensity models, and other mechanisms. Section A6.4 presents copula skew models in detail—the Random Factor Loading (RFL) model and the Double-t copula—that were developed specifically to address correlation smile fitting. Section A6.5 covers bespoke tranche pricing methods, a critical gap in the base correlation framework. Section A6.6 details dynamic bottom-up and top-down models. Section A6.7 addresses the Vasicek model and Basel IRB regulatory capital. Section A6.8 covers calibration and validation—the practical challenge of making these models work. Section A6.9 addresses numerical implementation and loss distribution computation methods. Section A6.10 provides step-by-step derivation pipelines with unit checks for key computational procedures. Section A6.11 covers measurement, stress testing, and sensitivity analysis. Throughout, we balance mathematical rigor with practical guidance for the desk quant who must actually implement, calibrate, and risk-manage these models.
 
 **Prerequisites:** This appendix assumes familiarity with tranche mechanics (Chapter 48), expected tranche loss calculations (Chapter 49), and the Gaussian copula framework (Chapter 50). Readers should be comfortable with measure-theoretic probability at the level of Appendix A1.
 
@@ -37,6 +45,10 @@ This appendix extends beyond the base correlation framework introduced in Chapte
 | $\Phi(\cdot), \Phi^{-1}(\cdot)$ | Standard normal CDF and inverse |
 | $\phi(\cdot)$ | Standard normal density |
 | $\Phi_2(a, b; \rho)$ | Bivariate normal CDF with correlation $\rho$ |
+| TLP | Tranche Loss Proportion |
+| RFL | Random Factor Loading |
+| ETL | Expected Tranche Loss |
+| WCDR | Worst Case Default Rate |
 
 ---
 
@@ -57,6 +69,12 @@ $$\mathbb{E}[L(T; K_1, K_2)] = \frac{\mathbb{E}[\min(L(T), K_2)] - \mathbb{E}[\m
 This depends on the *entire distribution* of $L(T)$, not just its mean.
 
 **Key insight:** Two portfolios with identical expected losses but different loss *distributions* will produce different tranche prices. The challenge is to model the distribution, not just the mean.
+
+> **Why Copulas? An Intuition Box**
+>
+> If you understand single-name CDS pricing from Chapter 41, you know how to model one firm's default. But a portfolio has 125 names. How do they default together? A copula is the mathematical glue that couples individual default behaviors into a joint distribution. It answers: given that firm A defaulted, how does that change the probability that firm B defaults?
+>
+> Think of the economy as having good days and bad days. On bad days (low factor realization), more firms are near their default thresholds. A factor model says: conditional on knowing whether it's a good or bad day, each firm's fate is independent. The common factor is what makes defaults cluster.
 
 ### A6.1.2 Dependence Modeling: Why Correlation Is Not Enough
 
@@ -118,7 +136,17 @@ $$\mathbb{P}(\tau_1 > t_1, \ldots, \tau_{N_C} > t_{N_C}) = C(Q_1(t_1), \ldots, Q
 | Student's $t$ | $\Sigma$, degrees of freedom $\nu$ | Symmetric: $\lambda_L = \lambda_U > 0$ | Fat-tail modeling |
 | Clayton | $\theta > 0$ | Lower only: $\lambda_L = 2^{-1/\theta}$ | Asymmetric downside |
 | Gumbel | $\theta > 1$ | Upper only: $\lambda_U = 2 - 2^{1/\theta}$ | Asymmetric upside |
-| Archimedean | Generator $\phi$ | Varies | Flexible structures |
+| Archimedean | Generator $\psi$ | Varies | Flexible structures |
+
+**Archimedean copula structure:** McNeil et al. (QRM Ch. 5) define the Archimedean copula through a generator function $\psi$:
+
+$$C(u_1, \ldots, u_n) = \psi^{-1}\!\left(\psi(u_1) + \cdots + \psi(u_n)\right)$$
+
+where $\psi: [0,1] \to [0,\infty]$ is a continuous, strictly decreasing function with $\psi(1) = 0$. Different choices of $\psi$ yield different copula families:
+- **Clayton:** $\psi(u) = u^{-\theta} - 1$ for $\theta > 0$ → lower tail dependence
+- **Gumbel:** $\psi(u) = (-\ln u)^\theta$ for $\theta \geq 1$ → upper tail dependence
+
+QRM illustrates qualitative tail behavior differences across copulas: Gumbel produces upper tail dependence, Clayton produces lower tail dependence, and Gaussian produces none.
 
 **Clayton copula tail dependence:** McNeil et al. (QRM, Example 5.31) derive the lower tail dependence coefficient for the Clayton copula:
 
@@ -142,7 +170,7 @@ where $X_k$ might represent industry, region, or rating factors. For a two-facto
 
 $$\boxed{c_{ij} = \beta_{1i}\beta_{1j} + \beta_{2i}\beta_{2j}}$$
 
-**Sector correlation example (O'Kane):** Consider four credits grouped into two sectors (A and B, two credits each). With a two-factor model where:
+**Sector correlation example (O'Kane Ch. 13):** Consider four credits grouped into two sectors (A and B, two credits each). With a two-factor model where:
 - All credits have equal exposure to the first (market) factor: $\beta_{1a} = \beta_{1b} = 0.6$
 - Sector A credits are negatively correlated to the second factor: $\beta_{2a} = -0.4$
 - Sector B credits are positively correlated to the second factor: $\beta_{2b} = 0.5$
@@ -208,25 +236,34 @@ Dynamic models are essential for:
 
 As O'Kane emphasizes, static models "do not tell us how the correlation changes through time or how defaults cause the spreads of surviving credits to widen."
 
-### A6.1.7 Default-Induced Spread Dynamics in the Latent Variable Model
+### A6.1.7 Model Selection Decision Tree
 
-Although the latent variable model is static, it implies *implicit* spread dynamics when we condition on observed defaults. O'Kane derives the conditional survival curve for credit B given that credit A defaults at time $t$:
+Choosing among the many available models requires understanding their trade-offs. The following decision tree synthesizes guidance from O'Kane's model comparison:
 
-$$\boxed{\hat{Q}_B(t, T) = 1 - \frac{\Phi\left(\frac{C_B(T) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right) - \Phi\left(\frac{C_B(t) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right)}{1 - \Phi\left(\frac{C_B(t) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right)}}$$
+```
+Need multi-maturity pricing (forward tranches, options)?
+├── YES → Dynamic model required
+│   ├── Want name-level structure? → IG or AJD (Section A6.6)
+│   │   ├── Simple jump clustering → Intensity Gamma
+│   │   └── Correlated diffusive + jump intensities → AJD
+│   └── Portfolio-first approach? → Markov chain (Section A6.6)
+└── NO → Static copula may suffice
+    ├── Need to fit skew? → RFL, Double-t, or other skew model (Section A6.4)
+    │   ├── State-dependent correlation → RFL
+    │   └── Fat-tailed factor structure → Double-t
+    └── Single tranche/simple exposure? → Base correlation (with warnings)
+```
 
-where $C_i(T) = \Phi^{-1}(1 - Q_i(T))$ is the default threshold.
+**Table A6.2: Model Comparison Summary**
 
-**Key observations from O'Kane:**
-
-1. **Zero correlation:** When $\rho = 0$, we have $\hat{Q}_B(t,T) = Q_B(t,T)$—the default of A has no impact on B's survival curve. "This makes sense: if there is no correlation between A and B, the spread curve of credit B should not change after a default of credit A."
-
-2. **Positive correlation:** The conditional spread curve jumps *up* when A defaults. The magnitude increases with $\rho$.
-
-3. **Negative correlation:** The conditional spread curve jumps *down*—B becomes safer when A defaults.
-
-4. **Time decay:** "The size of the spread jump declines with $t = \tau_A$, i.e., how far in the future credit A defaults." This reveals non-stationary behavior in the Gaussian model.
-
-**Implication for hedging:** This implicit spread dynamic affects how the portfolio responds after defaults. A proper dynamic model would make these effects explicit and hedgeable.
+| Model | Tail Dependence | Fits Skew? | Multi-Maturity? | Bespoke? | Complexity |
+|-------|-----------------|------------|-----------------|----------|------------|
+| Gaussian | No | No | Limited | Yes | Low |
+| Student-t | Yes | Partial | Limited | Yes | Low |
+| RFL | Adjustable | Yes | No | Yes | Medium |
+| Double-t | Yes | Yes | No | Yes | Medium |
+| IG | Via jumps | Yes | Yes | Limited | High |
+| Markov chain | Embedded | Yes | Yes | No | High |
 
 ---
 
@@ -252,6 +289,15 @@ This upward-sloping "smile" reveals that the Gaussian copula cannot simultaneous
 
 **Interpretation 3: Model risk premium.** Market participants may be charging a premium for model uncertainty, particularly for senior tranches where model risk is largest.
 
+> **Desk Reality: What the Correlation Smile Tells Traders**
+>
+> When traders see a steep correlation smile (base correlation rising sharply with strike), they know senior tranches are expensive relative to equity. This can signal:
+> - Fear of systemic events (buying protection on seniors)
+> - Dealers hedging CDO warehouses (selling equity, buying senior)
+> - Regulatory capital arbitrage unwinding
+>
+> Conversely, a flat smile suggests the market sees idiosyncratic rather than systemic risk. Correlation desks trade the shape of the smile, not just its level.
+
 ### A6.2.2 Arbitrage and Interpolation Pathologies
 
 O'Kane identifies a fundamental problem: "base correlation is not a consistent pricing framework."
@@ -268,7 +314,7 @@ $$\frac{\partial^2 \psi(T, K)}{\partial K^2} \leq 0$$
 
 Interpolating base correlations does not guarantee these conditions hold.
 
-**Worked Example: Arbitrage from naive interpolation**
+**Worked Example A6.1: Arbitrage from Naive Interpolation**
 
 Suppose the 3% and 7% base tranches have base correlations of 25% and 35% respectively. Linear interpolation gives $\rho^{\text{base}}(5\%) = 30\%$.
 
@@ -310,7 +356,27 @@ O'Kane notes that within the latent variable framework, "the only events that we
 
 **Implication for hedging:** Delta hedges computed from the static model may underperform because they don't account for how the correlation surface itself moves.
 
-### A6.2.5 The Base Correlation Surface
+### A6.2.5 Default-Induced Spread Dynamics in the Latent Variable Model
+
+Although the latent variable model is static, it implies *implicit* spread dynamics when we condition on observed defaults. O'Kane derives the conditional survival curve for credit B given that credit A defaults at time $t$:
+
+$$\boxed{\hat{Q}_B(t, T) = 1 - \frac{\Phi\left(\frac{C_B(T) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right) - \Phi\left(\frac{C_B(t) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right)}{1 - \Phi\left(\frac{C_B(t) - \rho C_A(t)}{\sqrt{1-\rho^2}}\right)}}$$
+
+where $C_i(T) = \Phi^{-1}(1 - Q_i(T))$ is the default threshold.
+
+**Key observations from O'Kane:**
+
+1. **Zero correlation:** When $\rho = 0$, we have $\hat{Q}_B(t,T) = Q_B(t,T)$—the default of A has no impact on B's survival curve. "This makes sense: if there is no correlation between A and B, the spread curve of credit B should not change after a default of credit A."
+
+2. **Positive correlation:** The conditional spread curve jumps *up* when A defaults. The magnitude increases with $\rho$.
+
+3. **Negative correlation:** The conditional spread curve jumps *down*—B becomes safer when A defaults.
+
+4. **Time decay:** "The size of the spread jump declines with $t = \tau_A$, i.e., how far in the future credit A defaults." This reveals non-stationary behavior in the Gaussian model.
+
+**Implication for hedging:** This implicit spread dynamic affects how the portfolio responds after defaults. A proper dynamic model would make these effects explicit and hedgeable.
+
+### A6.2.6 The Base Correlation Surface
 
 When 3Y, 5Y, 7Y, and 10Y tranche quotes are available, O'Kane proposes building a **base correlation surface** $\rho(T, K)$:
 
@@ -325,7 +391,7 @@ $$\frac{\partial^2 \psi(T, K)}{\partial T \partial K} \geq 0$$
 
 This cross-derivative constraint is difficult to enforce directly. O'Kane suggests enforcing the weaker condition $\partial\psi/\partial T \geq 0$ (ETL increases with maturity), allowing a two-stage construction: strike interpolation first, then maturity interpolation.
 
-### A6.2.6 Crisis Behavior and Regime Dependence
+### A6.2.7 Crisis Behavior and Regime Dependence
 
 During the 2007-2008 crisis:
 - Base correlations for equity tranches spiked (defaults became "more correlated")
@@ -352,7 +418,7 @@ Following O'Kane's taxonomy, we organize alternative approaches into four catego
 - Clayton copula for asymmetric lower-tail dependence
 - Archimedean copulas for flexible structures
 
-**A3. Random factor loading (RFL)**
+**A3. Random factor loading (RFL)** (Section A6.4.1)
 - Allow the factor loading $\rho$ to be stochastic
 - Generates additional correlation randomness
 - Can match more tranche prices but adds parameters
@@ -367,46 +433,59 @@ Following O'Kane's taxonomy, we organize alternative approaches into four catego
 - Richer correlation structure
 - More realistic but harder to calibrate
 
+**A6. Marshall-Olkin (common-shock) copula**
+- $M$ independent Poisson shock processes with intensities $\lambda_m$; shock-name incidence matrix $I_{im} \in \{0,1\}$
+- Common shocks: one jump can trigger defaults of multiple names (subset-specific)
+- Captures simultaneous default / jump-to-default clustering with an interpretable mechanism
+- **Limitation:** Parameter explosion; calibration identification can be difficult
+- Calibrate shock intensities and incidence structure to tranche prices and/or joint-default statistics
+
 ### A6.3.2 Category B: Factor Model Enhancements
 
 **B1. Extended one-factor models**
 - Allow time-varying or state-dependent correlation
 - Example: correlation increases when factor is low
 
-**B2. Levy factor models**
+**B2. Threshold models and Bernoulli mixture representations (LT-Archimedean)**
+- Mixing variable $\Psi$ (systematic), conditional Bernoulli defaults given $\Psi$
+- Dependence induced by randomness of $\Psi$; conditional independence given $\Psi$
+- QRM explicitly links LT-Archimedean copulas to threshold/mixture models and shows independence and comonotonic limits for the Clayton parameter ($\theta \to 0$ → independence; $\theta \to \infty$ → comonotonicity)
+- Use: Portfolio risk (VaR/ES), stress testing, exploring tail sensitivity to mixing distribution choice
+
+**B3. Levy factor models**
 - Replace Gaussian factor with Levy process
 - Generates jumps in default clustering
 - More analytically tractable than full dynamic models
 
-**B3. Double-t copula**
+**B4. Double-t copula** (Section A6.4.2)
 - Both factor and idiosyncratic shocks are t-distributed
 - Greater flexibility in tail behavior
 
-**B4. Random recovery factor models**
+**B5. Random recovery factor models**
 - Recovery rate driven by systematic factor
 - $R_i \mid X = f(X)$ where $f$ is decreasing
 - Captures "bad states have low recovery" intuition
 
 ### A6.3.3 Category C: Dynamic Intensity Models
 
-**C1. Intensity Gamma model** (Joshi and Stacey)
+**C1. Intensity Gamma model** (Joshi and Stacey) (Section A6.6.1)
 - Time-changed default process with jumps
 - Generates default clustering
 - Relatively tractable calibration
 
-**C2. Affine Jump Diffusion (AJD)** (Duffie and Garleanu)
+**C2. Affine Jump Diffusion (AJD)** (Duffie and Garleanu) (Section A6.6.2)
 - Default intensities follow correlated jump-diffusions
 - Common jumps create clustering
 - Semi-analytical calibration possible
 
-**C3. Contagion models**
+**C3. Contagion models** (Section A6.6.3)
 - Defaults increase intensities of surviving credits
 - "Infectious default" mechanisms
 - Captures crisis propagation
 
 ### A6.3.4 Category D: Top-Down and Other Mechanisms
 
-**D1. Markov chain models** (Schönbucher)
+**D1. Markov chain models** (Schönbucher) (Section A6.6.4)
 - Model portfolio loss as a Markov process
 - Direct calibration to tranche prices
 - Natural for forward-starting products
@@ -420,6 +499,18 @@ Following O'Kane's taxonomy, we organize alternative approaches into four catego
 - Return to Merton-style models with richer dynamics
 - Correlated asset processes
 - First-passage time defaults
+
+**D4. Hybrid structural-reduced-form models**
+- O'Kane describes hybrid models inspired by structural "firm value" dynamics but used as reduced-form models calibrated to market prices (no capital-structure interpretation)
+- Correlate firm-value-like state variables to induce default dependence; use rich dynamics to fit skew
+
+> **I'm Not Sure:** Without the full derivations for a particular hybrid model in the provided excerpts, I cannot write a specific pricing formula beyond this schematic description.
+
+**D5. Credit migration Markov chains (ratings transitions)**
+- Hull discusses rating transition matrices and notes that independence across periods is an approximation; "ratings momentum" can violate strict independence
+- Use: Risk models (CreditMetrics-style) that incorporate downgrades and default as multi-state Markov processes
+
+> **I'm Not Sure:** I do not have, from the provided excerpts alone, a full multi-name migration dependence mechanism (e.g., correlated migrations) beyond the one-name transition-matrix idea.
 
 ### A6.3.5 Industry Models: CreditRisk+
 
@@ -454,9 +545,315 @@ McNeil et al. show that for $p$ gamma factors, "$\tilde{M}$ is equal in distribu
 
 ---
 
-## A6.4 Dynamic Bottom-Up Models
+## A6.4 Copula Skew Models: RFL and Double-t
 
-### A6.4.1 The Intensity Gamma Model
+The standard one-factor Gaussian model cannot fit the correlation skew because it has only one parameter. This section presents two models developed specifically to address this limitation.
+
+### A6.4.1 The Random Factor Loading (RFL) Model
+
+**Motivation:** O'Kane (Ch. 21.10) introduces the Random Factor Loading model of Andersen and Sidenius (2004): "The RFL model by Andersen and Sidenius (2004) is a one-factor latent variable model in which there is a weighting on the systemic factor which is a deterministic function of the random market factor $Z$."
+
+**Model specification:** The latent variable for credit $i$ is:
+
+$$\boxed{A_i = a_i(Z)Z + b_i\varepsilon_i + m_i}$$
+
+where:
+- $Z$ and $\varepsilon_i$ are independent standard normal random variables
+- $a_i(Z)$ is the **factor loading function**—deterministic but state-dependent
+- $b_i$ and $m_i$ enforce $\mathbb{E}[A_i] = 0$ and $\text{Var}(A_i) = 1$
+
+The key constraints are:
+$$\mathbb{E}[A_i] = 0 \Rightarrow m_i = -\mathbb{E}[a_i(Z)Z]$$
+$$\text{Var}(A_i) = 1 \Rightarrow \mathbb{E}[a_i(Z)^2 Z^2] + b_i^2 = 1$$
+
+**The single-step factor loading function:** O'Kane presents a tractable specification where the factor loading takes two values:
+
+$$a_i(Z) = \begin{cases} \alpha_i & \text{if } Z < \Theta_i \\ \beta_i & \text{if } Z \geq \Theta_i \end{cases}$$
+
+This creates state-dependent correlation:
+- **If $\alpha_i > \beta_i$ and $\Theta_i < 0$**: Higher correlation in bad states (low $Z$), lower correlation in good states
+- **If $\alpha_i < \beta_i$ and $\Theta_i < 0$**: Lower correlation in bad states, higher in good states
+
+**Why this fits the skew:** O'Kane explains: "By weighting $Z$ by a factor weight $a(Z)$, the random factor loading model has a correlation which is a function of $Z$."
+
+- If $a_i(Z) > 0$ and *increasing* in $Z$: correlation increases in good states, decreases in bad states
+- If $a_i(Z) > 0$ and *decreasing* in $Z$: correlation decreases in good states, increases in bad states
+
+The second case—higher correlation in crisis states—fits the empirical observation that defaults cluster more during downturns.
+
+**Calibration results (O'Kane Table 21.4):** Calibrating to CDX NA IG Series 7 tranches:
+
+| Parameter | Calibrated Value |
+|-----------|------------------|
+| $\alpha$ | 54.25% |
+| $\beta$ | 31.16% |
+| $\Theta$ | -2.58 |
+
+**Interpretation:**
+- $\alpha > \beta$: Higher correlation in bad states (when $Z < -2.58$)
+- The threshold $\Theta = -2.58$ corresponds to the 0.49th percentile—the model switches to high-correlation mode in extreme downturns
+
+**Tranche pricing fit:**
+
+| Tranche | Market Upfront | Market Spread | RFL Upfront | RFL Spread |
+|---------|----------------|---------------|-------------|------------|
+| 0-3% | 24.88 | 500 | 24.88 | 500 |
+| 3-7% | — | 90 | — | 123 |
+| 7-10% | — | 19 | — | 20 |
+| 10-15% | — | 8 | — | 5 |
+| 15-30% | — | 3 | — | 1 |
+
+The fit is reasonable but not perfect—O'Kane notes that "the quality of the market fit improves significantly when an additional step is added to the factor loading function $a_i(Z)$."
+
+> **Desk Reality: Why RFL Matters for Correlation Trading**
+>
+> The RFL model captures something the Gaussian copula misses: correlation regimes. In normal markets, defaults appear relatively independent. In crisis markets, everything correlates. A correlation trader using RFL can see that:
+> - Equity tranches are short this regime effect (they lose more in high-correlation regimes)
+> - Senior tranches are long the regime effect (they lose more when the model switches to high-correlation mode)
+>
+> This insight helps explain why senior tranches can gap down suddenly—the market may be repricing the probability of entering the high-correlation regime.
+
+### A6.4.2 The Double-t Copula Model
+
+**Motivation:** The standard t-copula replaces Gaussian factors with t-distributed factors, generating tail dependence. The Double-t copula extends this by making *both* the systematic and idiosyncratic factors t-distributed.
+
+**Model specification (O'Kane Ch. 21.6, Hull and White 2003b):**
+
+$$\boxed{A_i = \beta_i \sqrt{\frac{\nu_Z - 2}{\nu_Z}} Z + \sqrt{1 - \beta_i^2} \sqrt{\frac{\nu_\varepsilon - 2}{\nu_\varepsilon}} \varepsilon_i}$$
+
+where:
+- $Z \sim t_{\nu_Z}$ (t-distributed systematic factor with $\nu_Z$ degrees of freedom)
+- $\varepsilon_i \sim t_{\nu_\varepsilon}$ (t-distributed idiosyncratic factor with $\nu_\varepsilon$ degrees of freedom)
+- $Z$ and $\varepsilon_i$ are independent
+- The normalization factors ensure $\text{Var}(A_i) = 1$
+
+**Key feature:** This is *not* a t-copula because the sum of two t-distributed random variables is not t-distributed. O'Kane notes: "It is therefore known as the Double-t copula model."
+
+**Why Double-t fits the skew:** The model has three free parameters ($\rho$, $\nu_Z$, $\nu_\varepsilon$) versus one for Gaussian. O'Kane explains the role of each:
+
+1. **$\nu_Z$ (systematic factor df):** Controls the probability of extreme market-wide shocks
+2. **$\nu_\varepsilon$ (idiosyncratic factor df):** Controls the probability of extreme name-specific shocks
+3. **$\rho$ (correlation):** Controls the overall dependence level
+
+**Calibration results (O'Kane Table 21.1):** Calibrating to CDX NA IG:
+
+| Parameter | Calibrated Value |
+|-----------|------------------|
+| $\nu_Z$ | 7.0 |
+| $\nu_\varepsilon$ | 2.5 |
+| $\rho$ | 15.0% |
+
+| Tranche | Market Upfront | Market Spread | Double-t Upfront | Double-t Spread |
+|---------|----------------|---------------|------------------|-----------------|
+| 0-3% | 24.88 | 500 | 24.99 | 500 |
+| 3-7% | — | 90 | — | 98 |
+| 7-10% | — | 19 | — | 16 |
+| 10-15% | — | 8 | — | 6 |
+| 15-30% | — | 3 | — | 3 |
+
+**Interpreting the calibration:**
+- $\nu_\varepsilon = 2.5$ (very fat-tailed): Individual credits can experience extreme jumps
+- $\nu_Z = 7.0$ (moderately fat-tailed): Market-wide shocks are less extreme but still fatter than Gaussian
+- $\rho = 15\%$ (low correlation): Much lower than typical Gaussian copula correlations because the fat tails already generate dependence
+
+**Comparison with RFL (O'Kane):** The Double-t tranchelet spreads "do not flatten out but instead fall slowly to zero at the maximum loss. This reflects the very long tailed shape of the Double-t copula loss distribution." In contrast, RFL spreads fall to zero more quickly.
+
+### A6.4.3 Model Comparison: Copula Skew Models
+
+O'Kane (Ch. 21.12) compares tranche leverage ratios across models:
+
+| Tranche | Mixing | CBM | RFL | Double-t | Implied | Base Corr |
+|---------|--------|-----|-----|----------|---------|-----------|
+| 0-3% | 26.97 | 25.16 | 24.40 | 22.83 | 30.37 | 23.03 |
+| 3-7% | 5.87 | 7.73 | 7.73 | 6.67 | 4.26 | 5.45 |
+| 7-10% | 1.17 | 1.10 | 0.94 | 1.76 | 0.29 | 1.38 |
+| 10-15% | 0.34 | 0.04 | 0.02 | 0.50 | 0.01 | 0.23 |
+| 15-30% | 0.09 | 0.01 | 0.00 | 0.08 | 0.00 | 0.04 |
+
+**Key observations:**
+- Double-t assigns more risk to mezzanine and senior tranches than RFL
+- The implied copula model concentrates risk in equity
+- Leverage ratios vary significantly across models—this is model risk
+
+### A6.4.4 Copula Skew Calibration Algorithm
+
+Calibrating copula skew models involves fitting model parameters to observed tranche prices. The following workflow applies to RFL, Double-t, and other skew models:
+
+**Step 1: Fix marginal survival curves**
+- Calibrate single-name survival curves $Q_i(T)$ from CDS market quotes
+- These are inputs, not calibration targets
+
+**Step 2: Choose copula family and parameterization**
+- RFL: parameters $(\alpha, \beta, \Theta)$ or $(α_1, \alpha_2, \beta, \Theta_1, \Theta_2)$ for two-step
+- Double-t: parameters $(\rho, \nu_Z, \nu_\varepsilon)$
+
+**Step 3: Define objective function**
+$$\min_\theta \sum_{k} w_k |PV_k(\theta) - PV_k^{\text{market}}|^2$$
+
+where:
+- $k$ indexes tranches (0-3%, 3-7%, etc.)
+- $w_k$ are weights (often inverse of bid-offer squared)
+- $PV_k(\theta)$ is model price given parameters $\theta$
+- $PV_k^{\text{market}}$ is observed market price
+
+**Step 4: Numerical optimization**
+- Start with reasonable initial guess (from simpler model)
+- Use derivative-free optimizer (Nelder-Mead) or gradient-based (BFGS)
+- Check multiple starting points for local minima
+
+**Step 5: Validate fit quality**
+- Check that all tranches price within bid-offer
+- Examine residual pattern (systematic vs. random)
+- Test parameter stability under small quote perturbations
+
+**Practical issues:**
+1. **Non-convex objective:** Multiple local minima exist; try several starting points
+2. **Monte Carlo noise:** If pricing uses Monte Carlo, the objective itself is noisy—use many paths or control variates
+3. **Parameter stability:** Small changes in quotes shouldn't cause large parameter jumps—regularization may help
+4. **Boundary constraints:** Ensure parameters remain in valid ranges (e.g., $\nu > 2$ for finite variance)
+
+> **Desk Reality: Calibration in Practice**
+>
+> On a correlation desk, calibration happens daily (or intraday). The calibration system must be:
+> - Fast enough to run between market opens
+> - Stable enough that parameters don't jump wildly
+> - Robust enough to handle bad quotes
+>
+> Many desks maintain "calibration ranges"—if a new parameter falls outside the historical range, it triggers manual review. A parameter that jumps from 30% to 90% overnight usually means bad input data, not a market regime change.
+
+---
+
+## A6.5 Bespoke Tranche Pricing
+
+A **bespoke tranche** is a tranche on a custom portfolio, not the standard index. This section addresses a critical gap: how to price bespoke tranches using the base correlation curve calibrated to index tranches.
+
+### A6.5.1 The Bespoke Problem
+
+O'Kane (Ch. 20.9) frames the challenge: "The issue is that the majority of CDO transactions are on bespoke portfolios with characteristics that can differ significantly from those of the standard indices."
+
+**Key differences between bespoke and index:**
+- Different number of credits (could be 50, 75, or 200 vs. 125 for CDX)
+- Different spread distribution (higher or lower average spread)
+- Different sector composition
+- Different recovery assumptions
+- Different attachment/detachment points
+
+**The fundamental question:** Given a base correlation curve $\rho_S(K_S)$ calibrated to standard index tranches, what correlation should we use to price a bespoke tranche with strike $K_B$?
+
+### A6.5.2 The Base Correlation Mapping Framework
+
+O'Kane develops a general mapping framework. The goal is to find a function $g$ such that:
+
+$$K_S^* = g(K_B; \mathcal{I}_B, \mathcal{I}_S)$$
+
+where $\mathcal{I}_B$ and $\mathcal{I}_S$ represent information about the bespoke and standard portfolios. Then:
+
+$$\rho_B(K_B) = \rho_S(K_S^*)$$
+
+**Desirable properties of the mapping:**
+1. Interpolates correctly between known index portfolios
+2. Avoids creating arbitrages
+3. Captures differences in credit quality and spread dispersion
+4. Numerically stable and fast
+5. As simple as possible
+
+### A6.5.3 No Mapping
+
+The simplest approach sets $g(x) = x$:
+
+$$K_S^* = K_B$$
+
+**Example (O'Kane):** A bespoke tranche with 4%-8% attachment/detachment simply uses interpolated base correlations $\rho_S(4\%)$ and $\rho_S(8\%)$ from the standard curve.
+
+**Problem:** This ignores portfolio differences. Consider pricing a high-yield bespoke using an investment-grade base correlation curve. The 4% equity tranche on a HY portfolio (with, say, 20% expected loss) behaves very differently from a 4% equity tranche on an IG portfolio (with 5% expected loss).
+
+### A6.5.4 At-the-Money (ATM) Correlation Mapping
+
+O'Kane describes ATM mapping (Ahluwalia et al. 2004): the mapping preserves the ratio of tranche strike to portfolio expected loss.
+
+$$\boxed{K_S^* = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}}$$
+
+**Example (O'Kane):** A 4%-8% HY tranche where HY expected loss is 20% and IG expected loss is 5%:
+
+$$K_S^* = 4\% \times \frac{5\%}{20\%} = 1\%$$
+
+The bespoke 4% strike maps to a 1% standard strike. This makes intuitive sense: a 4% tranche on a risky portfolio should be priced like a more subordinate tranche on a safer portfolio.
+
+**Limitations:**
+- Only uses average credit quality (ignores spread dispersion)
+- Can map to strikes outside the standard curve range
+- May require significant extrapolation
+
+### A6.5.5 Tranche Loss Proportion (TLP) Mapping
+
+The TLP method (O'Kane Ch. 20.9.4) equates the fraction of expected portfolio loss contained in the base tranche:
+
+$$\boxed{\text{TLP}(K) = \frac{\mathbb{E}_{\rho(K)}[\min(L, K)]}{\mathbb{E}[L]}}$$
+
+The mapping finds $K_S^*$ such that:
+
+$$\frac{\mathbb{E}_{\rho_S(K_S^*)}[\min(L_S, K_S^*)]}{\mathbb{E}[L_S]} = \frac{\mathbb{E}_{\rho_S(K_S^*)}[\min(L_B, K_B)]}{\mathbb{E}[L_B]}$$
+
+**Algorithm:**
+1. Construct the index TLP curve: for each $K_S$, compute $\text{TLP}_S(K_S)$
+2. For the bespoke strike $K_B$, compute $\text{TLP}_B(K_B)$ for various trial correlations
+3. Find $K_S^*$ where the index TLP equals the bespoke TLP
+4. Set $\rho_B(K_B) = \rho_S(K_S^*)$
+
+**Why TLP is better:** O'Kane explains that TLP captures spread dispersion, not just average spread. A bespoke portfolio with the same average spread but more dispersion will have different TLP behavior.
+
+**Worked Example A6.2: TLP Mapping**
+
+Consider pricing a [5%, 10%] bespoke tranche on a 50-name HY portfolio using CDX IG base correlation.
+
+**Given:**
+- CDX IG expected loss: $\mathbb{E}[L_S] = 4\%$
+- Bespoke HY expected loss: $\mathbb{E}[L_B] = 15\%$
+- CDX IG base correlation curve: $\rho_S(3\%) = 22\%$, $\rho_S(7\%) = 35\%$, etc.
+
+**Step 1:** Compute index TLP at standard strikes:
+- At $K_S = 3\%$: $\text{TLP}_S = \mathbb{E}[\min(L_S, 3\%)] / 4\% = 2.2\% / 4\% = 55\%$
+- At $K_S = 7\%$: $\text{TLP}_S = 3.5\% / 4\% = 87.5\%$
+
+**Step 2:** For bespoke strike $K_B = 5\%$:
+- Using $\rho = 35\%$: $\mathbb{E}[\min(L_B, 5\%)] = 4.5\%$
+- $\text{TLP}_B(5\%) = 4.5\% / 15\% = 30\%$
+
+**Step 3:** Find $K_S^*$ where $\text{TLP}_S(K_S^*) = 30\%$
+- Interpolating: $K_S^* \approx 1.5\%$
+
+**Step 4:** Use $\rho_S(1.5\%)$ for the bespoke 5% base tranche
+
+### A6.5.6 Model Risk in Bespoke Pricing
+
+O'Kane provides an important warning: "There is no sound theoretical basis for discriminating among these approaches."
+
+**Model risk manifestations:**
+- Different mapping methods give different prices
+- No method is arbitrage-free in general
+- Results depend heavily on how far the bespoke differs from the index
+
+**Best practices:**
+1. Use multiple mapping methods and compare
+2. Apply wider bid-offer for bespoke vs. index
+3. Be conservative on thinly-traded structures
+4. Stress test the mapping under different correlation scenarios
+
+> **Desk Reality: Pricing a Bespoke**
+>
+> When a salesperson asks for a bespoke tranche price, the quant desk typically:
+> 1. Runs TLP mapping to get a base price
+> 2. Runs ATM mapping as a sanity check
+> 3. Compares to a full Monte Carlo with bottom-up calibration
+> 4. Adds model risk reserves (often 1-2 points on mezzanine, more on senior)
+>
+> The "model risk" charge isn't a hedge—it's acknowledgment that no one really knows the right price. Bespoke tranches are quoted wider than index tranches precisely because of this uncertainty.
+
+---
+
+## A6.6 Dynamic Models
+
+### A6.6.1 The Intensity Gamma Model
 
 O'Kane provides extensive treatment of the Intensity Gamma (IG) model of Joshi and Stacey (2005). The key idea is to introduce a time-changed process that generates default clustering.
 
@@ -478,7 +875,7 @@ $$\Gamma(t) = \Gamma_1(t) + \Gamma_2(t)$$
 
 O'Kane reports calibration to CDX NA IG tranches with parameters: $\gamma_1 = 0.0008$, $\gamma_2 = 0.217$, $\lambda_1 = 0.0011$, $\lambda_2 = 0.186$.
 
-### A6.4.2 The Affine Jump Diffusion Model
+### A6.6.2 The Affine Jump Diffusion Model
 
 The AJD model of Duffie and Garleanu (1999) models default intensity dynamics directly:
 
@@ -499,14 +896,19 @@ $$J \, dN = J_c \, dN_c + J_i \, dN_i$$
 
 where $N_c$ is a common jump process affecting all credits.
 
+**Conditional independence device:** Conditioning on the integrated common factor $Z(T) = \int_t^T X_c(s) \, ds$, defaults become conditionally independent with conditional default probabilities $p_i(T \mid Z(T))$ given by a model-specific exponential-affine form. This enables the same factor-conditioning computation strategy as static copula models:
+1. Condition on $Z(T)$, obtain conditional default probabilities $p_i(T \mid Z(T))$
+2. Build conditional portfolio loss distribution (independent Bernoulli trials)
+3. Integrate over the distribution of $Z(T)$
+
 **Analytical tractability:** O'Kane shows that survival probabilities can be computed analytically:
 $$\mathbb{E}\left[\exp\left(-\int_0^T X(s)ds\right)\right] = \exp(A(T) + B(T)X(0))$$
 
-where $A(T)$ and $B(T)$ satisfy Riccati ODEs.
+where $A(T)$ and $B(T)$ satisfy Riccati ODEs. O'Kane notes that time-dependent parameters do not violate the model's no-arbitrage properties "as it would for a copula model."
 
 **Calibration results:** Mortensen (2006), cited by O'Kane, reports calibration to CDX NA IG with parameters: $\kappa = 0.20$, $\sigma = 0.054$, $\ell = 0.037$, $\mu = 0.067$, $w = 0.93$ (common jump fraction).
 
-### A6.4.3 Contagion Models
+### A6.6.3 Contagion Models
 
 Contagion models incorporate the idea that one default increases the default probability of others:
 
@@ -526,11 +928,9 @@ where $\delta_{ji}$ is the contagion impact.
 
 McNeil et al. in QRM discuss "default contagion and default dependence," noting that "default dependence can arise through direct contagion mechanisms where the default of one firm increases the default probability of others."
 
----
+> **About Hawkes processes:** I'm not sure whether Hawkes/self-exciting point processes are explicitly used for credit contagion in the provided credit sources. To confirm, I would need a source excerpt where Hawkes (or an explicitly self-exciting intensity) is defined and applied to defaults.
 
-## A6.5 Top-Down Dynamic Models
-
-### A6.5.1 The Markov Chain Approach
+### A6.6.4 The Markov Chain Approach
 
 Schönbucher's Markov chain model (2005) directly models the portfolio loss process $L(t)$ as a continuous-time Markov chain on states $\{0, 1, 2, \ldots, N_C\}$.
 
@@ -555,21 +955,11 @@ $$da_n(t) = \mu_n(t)dt + \sigma_n(t)dW_n(t)$$
 
 This allows modeling of spread dynamics and MTM risk.
 
-### A6.5.2 Loss Process Intensity Models
-
-An alternative top-down approach models the intensity of the loss process itself:
-
-$$\lambda^L(t) = f(L(t), X(t))$$
-
-where the loss intensity depends on current losses and a systematic factor.
-
-**Self-exciting feature:** If $\partial f / \partial L > 0$, the model exhibits contagion—defaults increase the rate of future defaults.
-
 ---
 
-## A6.6 Vasicek Model and Regulatory Applications
+## A6.7 Vasicek Model and Regulatory Applications
 
-### A6.6.1 The Vasicek WCDR Formula
+### A6.7.1 The Vasicek WCDR Formula
 
 Hull in *Risk Management and Financial Institutions* develops the Vasicek model for credit portfolio risk, which underlies the Basel II/III internal ratings-based (IRB) approach.
 
@@ -581,7 +971,7 @@ Hull explains: "This is a strange-looking result, but a very important one. It w
 
 **Intuition:** At the $X$-th percentile of the systematic factor distribution, the conditional default probability is WCDR. This is the default rate that will not be exceeded with probability $X$.
 
-**Worked Example (Hull Example 11.2):**
+**Worked Example A6.3: WCDR Calculation (Hull Example 11.2)**
 - Portfolio: Large number of retail loans
 - One-year PD: $p = 2\%$
 - Asset correlation: $\rho = 0.10$
@@ -593,28 +983,84 @@ $$= \Phi(0.863) = 0.128$$
 
 The 99.9% worst-case one-year default rate is **12.8%**, dramatically higher than the 2% expected default rate.
 
-### A6.6.2 Basel II/III Capital Formula
+### A6.7.2 Basel II/III IRB Capital Formula
 
-The IRB capital requirement for credit risk uses a modified Vasicek formula:
+The Internal Ratings-Based (IRB) approach uses a modified Vasicek formula for regulatory capital:
 
-$$K = \text{LGD} \times \left[\text{WCDR}(1, 0.999) - p\right] \times \text{MA}$$
+$$\boxed{K = \text{LGD} \times \left[\text{WCDR}(1, 0.999) - \text{PD}\right] \times \text{MA}}$$
 
 where:
 - LGD is loss-given-default
 - MA is a maturity adjustment factor
-- The subtraction of $p$ accounts for expected loss (covered by provisions)
+- The subtraction of PD accounts for expected loss (covered by provisions)
+- The 99.9% confidence level is mandated by Basel
 
-**Correlation function:** Basel specifies correlation as a function of PD:
+**Basel correlation function:** Basel specifies correlation as a function of PD:
 
-$$\rho = 0.12 \times \frac{1 - e^{-50 \times p}}{1 - e^{-50}} + 0.24 \times \left(1 - \frac{1 - e^{-50 \times p}}{1 - e^{-50}}\right)$$
+$$\rho = 0.12 \times \frac{1 - e^{-50 \times \text{PD}}}{1 - e^{-50}} + 0.24 \times \left(1 - \frac{1 - e^{-50 \times \text{PD}}}{1 - e^{-50}}\right)$$
 
 This gives $\rho \approx 0.24$ for very low PDs and $\rho \approx 0.12$ for high PDs—recognizing that high-PD obligors have more idiosyncratic risk.
 
+**Worked Example A6.4: Basel IRB Capital Calculation**
+
+Calculate IRB capital for a corporate loan portfolio:
+- Notional: $100mm
+- PD: 2%
+- LGD: 45%
+- Maturity: 3 years
+- Asset correlation (from Basel formula): $\rho = 0.20$
+
+**Step 1: WCDR at 99.9%**
+$$\text{WCDR} = \Phi\left(\frac{\Phi^{-1}(0.02) + \sqrt{0.20} \times \Phi^{-1}(0.999)}{\sqrt{0.80}}\right)$$
+$$= \Phi\left(\frac{-2.054 + 0.447 \times 3.090}{0.894}\right) = \Phi(0.25) = 0.599$$
+
+Wait—this seems too high. Let me recalculate:
+$$= \Phi\left(\frac{-2.054 + 1.382}{0.894}\right) = \Phi(-0.75) = 0.227$$
+
+So WCDR = 22.7%.
+
+**Step 2: Maturity adjustment**
+The maturity adjustment formula is:
+$$\text{MA} = \frac{1 + (M - 2.5) \times b}{1 - 1.5 \times b}$$
+
+where $b = (0.11852 - 0.05478 \times \ln(\text{PD}))^2 \approx 0.15$ for PD = 2%.
+
+For $M = 3$: MA $\approx 1.06$
+
+**Step 3: Capital requirement**
+$$K = 0.45 \times (0.227 - 0.02) \times 1.06 = 0.099 = 9.9\%$$
+
+**Capital amount:** $100mm × 9.9% = **$9.9mm**
+
+> **Desk Reality: Why Regulatory Capital Matters for Trading**
+>
+> Regulatory capital requirements affect trading P&L directly:
+> - **Return on capital:** A trade that earns 10bp on notional but requires 10% capital has only 100bp ROC
+> - **Capital velocity:** Trades that free up capital quickly (short-dated, netting) are more attractive
+> - **Balance sheet constraints:** Dealers have capital budgets; expensive trades get wider bid-offers
+>
+> Correlation desks must understand IRB capital because their hedges consume (or release) capital. A "perfect" hedge that increases capital requirements may not be optimal.
+
+### A6.7.3 Risk-Neutral vs. Physical Calibration
+
+A critical distinction often confused in practice:
+
+| Aspect | Pricing (Risk-Neutral) | Risk (Physical) |
+|--------|------------------------|-----------------|
+| **Calibration Target** | Tranche quotes | Historical default data |
+| **Measure** | Risk-neutral $\mathbb{Q}$ | Physical $\mathbb{P}$ |
+| **Use Case** | Mark-to-market, trading | Credit VaR, economic capital |
+| **Correlation Source** | Implied from tranches | Estimated from equity/spread correlations |
+
+**Why this matters:** A model calibrated to tranche prices may give different tail probabilities than one calibrated to historical defaults. The risk-neutral measure embeds market risk premia; the physical measure reflects actual default frequencies.
+
+O'Kane emphasizes this distinction throughout, and QRM notes the "data limitations" in physical calibration.
+
 ---
 
-## A6.7 Calibration and Validation
+## A6.8 Calibration and Validation
 
-### A6.7.1 Calibration Targets
+### A6.8.1 Calibration Targets
 
 Credit portfolio models can be calibrated to:
 
@@ -626,7 +1072,7 @@ Credit portfolio models can be calibrated to:
 | Historical defaults | Real-world default clustering | Long history needed |
 | Equity correlations | Proxy for asset correlations | Requires model assumptions |
 
-### A6.7.2 Calibration Approaches
+### A6.8.2 Calibration Approaches
 
 **Sequential calibration:**
 1. Calibrate marginals to single-name CDS
@@ -641,7 +1087,7 @@ Credit portfolio models can be calibrated to:
 - For Markov chain models, solve for transition rates strike-by-strike
 - Similar to curve bootstrapping in rates
 
-### A6.7.3 Model Comparison and Selection
+### A6.8.3 Model Comparison and Selection
 
 McNeil et al. emphasize "model risk issues" in credit portfolio modeling. Key considerations:
 
@@ -655,7 +1101,7 @@ McNeil et al. emphasize "model risk issues" in credit portfolio modeling. Key co
 
 **Hedge performance:** Do delta hedges computed from the model work in practice?
 
-### A6.7.4 Validation Tests
+### A6.8.4 Validation Tests
 
 **Historical backtesting:**
 - Compare model-predicted loss distributions to realized losses
@@ -671,9 +1117,9 @@ McNeil et al. emphasize "model risk issues" in credit portfolio modeling. Key co
 
 ---
 
-## A6.8 Numerical Implementation
+## A6.9 Numerical Implementation
 
-### A6.8.1 Loss Distribution Computation
+### A6.9.1 Loss Distribution Computation
 
 **Exact recursion (O'Kane Chapter 18):**
 
@@ -688,7 +1134,22 @@ For heterogeneous portfolios, the conditional loss distribution is computed iter
 
 **Efficiency improvement:** Only compute up to the strike of interest: $\min(g, j)$ where $g = \lceil K_2 / u \rceil$.
 
-### A6.8.2 Approximations for Large Portfolios
+### A6.9.2 Panjer Recursion
+
+McNeil et al. (QRM Section 10.2.3) describe the Panjer recursion for computing loss distributions in compound models like CreditRisk+:
+
+For a compound distribution where the number of defaults $N$ satisfies $P(N=n) = (a + b/n)P(N=n-1)$ (Panjer class), the loss distribution has the recursion:
+
+$$P(L = k) = \frac{1}{1 - a f_0} \sum_{j=1}^{k} \left(a + \frac{bj}{k}\right) f_j P(L = k-j)$$
+
+where $f_j = P(\text{individual loss} = j)$.
+
+**When to use Panjer:**
+- Exact for Poisson, negative binomial, binomial claim counts
+- Faster than Monte Carlo for these model classes
+- Requires discrete loss grid
+
+### A6.9.3 Approximations for Large Portfolios
 
 **Large Homogeneous Portfolio (LHP):**
 $$F_L(\ell) = \Phi\left(\frac{\sqrt{1-\rho}\Phi^{-1}(\ell/(1-R)) - \Phi^{-1}(p)}{\sqrt{\rho}}\right)$$
@@ -703,7 +1164,9 @@ $$F_L(\ell) = \Phi\left(\frac{\sqrt{1-\rho}\Phi^{-1}(\ell/(1-R)) - \Phi^{-1}(p)}
 
 O'Kane compares these methods for CDX and CDX HY portfolios, finding that the exact recursion is necessary for accuracy at equity strikes but approximations suffice for senior tranches.
 
-### A6.8.3 Monte Carlo Methods
+> **I'm Not Sure:** From the provided excerpts alone, I'm not certain what exact tranche-ETL closed forms are stated in the books under the LHP approximation; the formula above gives the portfolio loss distribution, but deriving tranche-specific ETL closed forms under LHP may require additional steps not fully reproduced in the available source material.
+
+### A6.9.4 Monte Carlo Methods
 
 For dynamic models, Monte Carlo simulation is often necessary:
 
@@ -719,11 +1182,137 @@ For dynamic models, Monte Carlo simulation is often necessary:
 - Control variates (use analytical LHP as baseline)
 - Stratification on the systematic factor
 
+### A6.9.5 Loss Distribution Comparison: A Visual Guide
+
+Three loss distributions with the same expected loss but different dependence:
+
+| Model | Loss Distribution Shape | Senior Tranche Risk |
+|-------|------------------------|---------------------|
+| Independent | Tight, concentrated around mean | Very low |
+| Gaussian copula | Moderate spread, light tails | Moderate |
+| t-copula (low $\nu$) | Wide spread, heavy tails | High |
+
+**Key insight:** Same expected loss, very different tail risk. The choice of copula has enormous implications for senior tranche pricing.
+
 ---
 
-## A6.9 Practical Notes
+## A6.10 Math Sketches: Step-by-Step Derivation Pipelines
 
-### A6.9.1 Model Risk in Credit Portfolios
+This section collects step-by-step derivation outlines with unit checks for the key computational pipelines in credit portfolio modeling. These sketches complement the detailed treatments in earlier sections by providing a unified "cheat sheet" of the core computations.
+
+### A6.10.1 The Universal Pipeline: From Joint Default Model to $L(T)$
+
+1. **Specify marginal default behavior** for each name at horizon $T$:
+$$p_i(T) = \Pr(\tau_i \leq T) = 1 - Q_i(0, T)$$
+
+2. **Specify dependence:**
+   - Copula $C$ for $(U_1, \ldots, U_N)$ where $U_i := p_i(\tau_i)$ are uniforms under continuous margins (Sklar), or
+   - Factor/intensity dynamics that imply a joint law for $(\tau_i)$
+
+3. **Map defaults to portfolio loss** $L(T)$:
+$$L(T) = \sum_{i=1}^{N} w_i (1 - R_i) \mathbf{1}_{\{\tau_i \leq T\}}$$
+
+4. **Compute tranche quantities** from $L(T)$ via $\text{TL}_{[K_1, K_2]}(L(T))$
+
+**Unit Checks:**
+- $w_i$: dimensionless (fraction of notional)
+- $(1 - R_i)$: dimensionless
+- Indicator: dimensionless
+- Hence $L(T)$ dimensionless; consistent with $K_1, K_2$ and tranche widths
+
+**Sanity Bounds:**
+- If $\sum_i w_i \leq 1$, then $0 \leq L(T) \leq \sum_i w_i(1 - R_i) \leq 1$
+- Tranche loss mapping ensures $0 \leq \text{TL}_{[K_1, K_2]}(L) \leq 1$ for any $L \in [0,1]$
+
+### A6.10.2 Static Copula: Limiting Cases
+
+**Independence copula:**
+$$C_{\text{ID}}(u_1, \ldots, u_N) = \prod_{i=1}^{N} u_i$$
+
+**Perfect positive dependence (Fréchet-Hoeffding upper bound):**
+$$C_M(u_1, \ldots, u_N) = \min(u_1, \ldots, u_N)$$
+
+**Independence limit:** Joint default probabilities factorize; extreme-loss probabilities decay rapidly with $N$ (binomial-like).
+
+**Perfect dependence limit:** Defaults are comonotonic; large jumps in $L(T)$ become likely; senior-tranche ETL rises sharply.
+
+### A6.10.3 Tail Dependence: Gaussian vs. $t$ Copula (Unit Check)
+
+**Gaussian copula:** $\lambda = 0$ when $\rho < 1$ (asymptotic tail independence). QRM proves this rigorously.
+
+**$t$ copula:** $\lambda = 2 t_{\nu+1}\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$ and it is strictly positive for $\rho > -1$.
+
+**Unit check:** $\lambda$ is a probability in $[0,1]$. ✓
+
+### A6.10.4 Factor/Threshold Models: Limiting Cases
+
+**If factor loading → 0:** Conditional PD becomes unconditional; defaults tend to independence.
+
+**If factor loading → 1:** Defaults become highly dependent; tranche losses approach "single systematic driver" behavior.
+
+**Mixture / LT-Archimedean:** QRM shows that varying copula parameter (e.g., Clayton $\theta$) moves from independence ($\theta \to 0$) to comonotonicity ($\theta \to \infty$).
+
+### A6.10.5 Dynamic Bottom-Up Intensities: Unit Checks
+
+**Intensity Gamma (Business-Time) Model:**
+- $c_i(t)$: hazard per unit business time (dimension $1/(\text{business-time})$)
+- $I(t)$: business time (same dimension as time if scaled)
+- $\int c_i \, dI$ is dimensionless ⇒ exponent is dimensionless ⇒ survival probability is valid ✓
+
+**AJD Correlated Intensities:**
+- $\lambda_i(t)$: intensity (units $1/\text{year}$)
+- $Z(T) = \int X_c ds$: dimensionless if $X_c$ has units $1/\text{year}$ ✓
+
+### A6.10.6 Top-Down Markov Chain: Sanity Checks
+
+- Rates $a_n \geq 0$ (units $1/\text{year}$) ✓
+- If a critical $a_n = 0$, loss support can be artificially capped (O'Kane's caution)
+- Calibration determines $A(T)$ so the induced distribution of $L(T)$ reprices index and tranches
+
+---
+
+## A6.11 Measurement and Stress Testing
+
+### A6.11.1 What Risks These Models Target
+
+**Tail risk / clustering risk:** Default dependence "drastically" impacts the right tail of a credit loss distribution; dependence lengthens the upper tail.
+
+**Dispersion risk (distribution-shape risk):** Two models can match the same expected loss (or a single tranche) but imply different tail probabilities.
+
+**Contagion risk:** QRM explicitly discusses default contagion and interacting intensities as an explicit modeling route.
+
+### A6.11.2 Stress Testing Dependence: How to "Shock"
+
+**Static copula shocks:**
+- Shock copula parameters (e.g., $\rho$, $\nu$ for $t$ copula; Archimedean $\theta$)
+- Compare tail metrics: $\Pr(L(T) > x)$, $\text{ETL}_{[K_1, K_2]}(T)$
+
+**Factor model shocks:**
+- Shock systematic factor realization $F$ (scenario analysis) or increase factor loading(s) $a_i$ to raise correlation
+
+**Intensity shocks (dynamic):**
+- *IG:* Shock jump intensity/size parameters of business time $I(t)$; observe survival and ETL
+- *AJD:* Shock common jump parameters of $X_c(t)$ to amplify clustering
+
+**Contagion shocks:**
+
+> **I'm Not Sure:** I'm not sure of the specific parametric form in QRM's interacting intensity models from the excerpt; in practice, a stress can be represented as a post-default jump in other names' intensities (schematic).
+
+### A6.11.3 Sensitivity Outputs
+
+**Tranche PV sensitivity to dependence parameters:**
+
+If closed-form Greeks are not provided, define sensitivity by finite difference:
+
+$$\frac{\partial \text{ETL}}{\partial \theta} \approx \frac{\text{ETL}(\theta + \Delta) - \text{ETL}(\theta - \Delta)}{2\Delta}$$
+
+**For hedging correlations in practice:** O'Kane emphasizes that for bespoke tranches, correlation sensitivity should be measured relative to the index base correlation curve (hedging in standard tranches).
+
+---
+
+## A6.12 Practical Notes
+
+### A6.12.1 Model Risk in Credit Portfolios
 
 **The model risk is large.** O'Kane emphasizes that correlation products "have some risk which we are not able to hedge using the range of available market securities." This unhedgeable model risk requires:
 - Conservative reserves
@@ -732,7 +1321,30 @@ For dynamic models, Monte Carlo simulation is often necessary:
 
 **The 2008 lesson:** Base correlation's failures were foreseeable from its theoretical limitations. Model users must understand not just how to use a model, but *when it will fail*.
 
-### A6.9.2 Regulatory Implications
+### A6.12.2 Correlation Desk P&L Drivers
+
+Understanding what moves correlation book P&L:
+
+| Driver | Effect on Equity | Effect on Senior |
+|--------|------------------|------------------|
+| Index spread widens | Loses (more defaults expected) | Loses (more defaults reach senior) |
+| Correlation increases | **Gains** (fewer defaults in equity) | **Loses** (more clustering in tail) |
+| Single-name default | Loses notional | Minimal unless attachment breached |
+| Index roll | Roll cost/gain | Roll cost/gain |
+
+> **Desk Reality: Hedging a Tranche Position**
+>
+> A correlation trader holding equity protection typically hedges with:
+> 1. **Delta hedge:** Buy index protection (or sell equity to index)
+> 2. **Correlation hedge:** Trade other tranches to neutralize correlation sensitivity
+> 3. **Jump-to-default:** Buy single-name CDS on high-spread names
+>
+> The model tells you the hedge ratios—but the model is wrong. Real hedging involves:
+> - Running multiple models and taking average or conservative hedges
+> - Reserving for model uncertainty
+> - Monitoring hedge performance and adjusting
+
+### A6.12.3 Regulatory Implications
 
 **IRB capital:** Banks using internal models for regulatory capital face constraints:
 - Correlation functions are prescribed (limited flexibility)
@@ -744,7 +1356,7 @@ For dynamic models, Monte Carlo simulation is often necessary:
 - Expert-specified adverse scenarios
 - Reverse stress tests ("what breaks the book?")
 
-### A6.9.3 Implementation Pitfalls
+### A6.12.4 Implementation Pitfalls
 
 **Numerical precision:** Tranche expected losses at extreme strikes require careful numerics:
 - Quadrature for factor integration (50+ points for accuracy)
@@ -762,9 +1374,202 @@ For dynamic models, Monte Carlo simulation is often necessary:
 
 ---
 
-## A6.10 Worked Examples
+## A6.13 Worked Examples
 
-### Example A6.1: Base Correlation Calibration
+### Toy Examples: Building Intuition
+
+The following toy examples use simple numeric parameters to build intuition about how dependence, tail behavior, and model choices affect portfolio credit risk. They complement the more realistic examples that follow.
+
+### Example A6.5: Two-Name Toy — Independent vs. Perfectly Dependent
+
+Let each name have one-year default probability $p = 0.10$.
+
+**Independent defaults:**
+
+| $K$ (defaults) | Probability |
+|-----|-------------|
+| 0 | $(1-p)^2 = 0.81$ |
+| 1 | $2p(1-p) = 0.18$ |
+| 2 | $p^2 = 0.01$ |
+
+**Perfect positive dependence (comonotonic):**
+
+| $K$ (defaults) | Probability |
+|-----|-------------|
+| 0 | $1 - p = 0.90$ |
+| 1 | $0$ |
+| 2 | $p = 0.10$ |
+
+**Takeaway:** Same marginal PD, but the extreme outcome $K = 2$ jumps from 1% to 10%—a factor of 10.
+
+### Example A6.6: $N$-Name Toy — Dependence and Extreme Losses
+
+Let $N = 10$, each name with $p = 0.05$.
+
+**Independent defaults:** $K \sim \text{Binomial}(10, 0.05)$.
+
+$$P(K = 5) = \binom{10}{5} 0.05^5 \cdot 0.95^5 = 252 \times 3.125 \times 10^{-7} \times 0.774 \approx 6.09 \times 10^{-5}$$
+
+Summing through $K = 10$: $\Pr(K \geq 5) \approx 6.37 \times 10^{-5} = 0.00637\%$
+
+**Perfect dependence (comonotonic, identical PDs):**
+- $\Pr(K = 10) = p = 0.05$, $\Pr(K = 0) = 0.95$
+- $\Pr(K \geq 5) = 5\%$
+
+**Takeaway:** A dependence shift can move extreme-loss probability by ~three orders of magnitude.
+
+### Example A6.7: Tranche ETL Under Two Dependence Settings
+
+**Tranches:** equity $[0, 3\%]$ and senior mezz $[10\%, 15\%]$.
+
+**Case A (lighter tail):**
+
+| $L$ | Probability |
+|-----|-------------|
+| 0 | 0.70 |
+| 0.02 | 0.20 |
+| 0.06 | 0.08 |
+| 0.12 | 0.015 |
+| 0.25 | 0.005 |
+
+Equity $[0, 3\%]$ ETL: $0.20 \times 0.6667 + (0.08 + 0.015 + 0.005) \times 1 = 0.1333 + 0.10 = \mathbf{0.2333}$
+
+Senior mezz $[10\%, 15\%]$ ETL: $0.015 \times 0.4 + 0.005 \times 1 = 0.006 + 0.005 = \mathbf{0.011}$
+
+**Case B (heavier tail / more clustering):**
+
+| $L$ | Probability |
+|-----|-------------|
+| 0 | 0.68 |
+| 0.02 | 0.17 |
+| 0.06 | 0.08 |
+| 0.12 | 0.04 |
+| 0.25 | 0.03 |
+
+Equity ETL: $0.17 \times 0.6667 + (0.08 + 0.04 + 0.03) \times 1 = 0.1133 + 0.15 = \mathbf{0.2633}$
+
+Senior mezz ETL: $0.04 \times 0.4 + 0.03 \times 1 = 0.016 + 0.03 = \mathbf{0.046}$
+
+**Takeaway:** Tail-weight shifts can mildly move equity ETL but strongly reprice senior mezz ETL—the sensitivity amplifies up the capital structure.
+
+### Example A6.8: Contagion Toy — Post-Default PD Step-Up
+
+> **Note:** QRM discusses default contagion and interacting intensities. The exact parametric form is not in the excerpt, so the following is a purely illustrative toy consistent with "default increases others' intensity."
+
+**Setup (4 names A, B, C, D):**
+- Baseline: A defaults with probability 0.02. If A defaults, each of B, C, D defaults with probability 0.06; if A survives, B, C, D default with probability 0.02 (conditional independence assumed).
+
+**$\Pr(\geq 2 \text{ total defaults})$:**
+
+**(i) A defaults and $\geq 1$ of B, C, D defaults:**
+$0.02 \times (1 - 0.94^3) = 0.02 \times 0.1694 = 0.003389$
+
+**(ii) A survives and $\geq 2$ of B, C, D default (with $p = 0.02$):**
+$P(\geq 2) = 1 - 0.98^3 - 3(0.02)(0.98^2) = 0.001184$
+Contribution: $0.98 \times 0.001184 = 0.001160$
+
+**Total:** $\Pr(\geq 2) = 0.003389 + 0.001160 = \mathbf{0.4549\%}$
+
+**Baseline (no contagion; all 4 independent with $p = 0.02$):**
+$\Pr(\geq 2) = 1 - 0.98^4 - 4(0.02)(0.98^3) = \mathbf{0.2336\%}$
+
+**Takeaway:** Even a simple post-default PD step-up roughly doubles $\Pr(\geq 2)$.
+
+### Example A6.9: Model Risk — Two Models Fit Same Equity ETL but Differ in Tails
+
+**Model A:**
+
+| $L$ | Probability |
+|-----|-------------|
+| 0 | 0.675 |
+| 0.02 | 0.225 |
+| 0.12 | 0.10 |
+
+Equity ETL $[0, 3\%]$: $0.225 \times 0.6667 + 0.10 \times 1 = \mathbf{0.25}$
+Tail: $\Pr(L > 10\%) = \mathbf{0.10}$
+
+**Model B:**
+
+| $L$ | Probability |
+|-----|-------------|
+| 0 | 0.70 |
+| 0.02 | 0.15 |
+| 0.25 | 0.15 |
+
+Equity ETL $[0, 3\%]$: $0.15 \times 0.6667 + 0.15 \times 1 = \mathbf{0.25}$
+Tail: $\Pr(L > 10\%) = \mathbf{0.15}$
+
+**Takeaway:** Same fitted equity ETL, different tail probability—this is "dispersion/model-risk" in the tail.
+
+### Example A6.10: Stress Test — Shock Dependence and Compute $\Delta$ETL
+
+Using Models A and B from Example A6.9, compute stress impact on the $[10\%, 15\%]$ senior tranche.
+
+**Model A:** Only $L = 0.12$ contributes: $\text{TL}(0.12) = (0.12 - 0.10)/0.05 = 0.4$
+$\text{ETL} = 0.10 \times 0.4 = \mathbf{0.04}$
+
+**Model B:** Only $L = 0.25$ contributes: $\text{TL}(0.25) = 1$
+$\text{ETL} = 0.15 \times 1 = \mathbf{0.15}$
+
+**Stress impact:** $\Delta\text{ETL} = 0.15 - 0.04 = \mathbf{0.11}$
+
+**Interpretation:** Senior risk is far more sensitive to tail-mass changes than equity.
+
+### Example A6.11: Recovery Interaction — Vary Recovery, Compute Tail Changes
+
+**Default count distribution** for $N = 10$, equal weights $w = 0.1$:
+
+| $K$ | Probability |
+|-----|-------------|
+| 0 | 0.80 |
+| 1 | 0.15 |
+| 2 | 0.04 |
+| 5 | 0.01 |
+
+**Case 1: $R = 40\%$ ($\text{LGD} = 0.6$):**
+- $\mathbb{E}[L] = 0.15(0.06) + 0.04(0.12) + 0.01(0.30) = \mathbf{0.0168}$
+- $\Pr(L > 10\%) = 0.05$
+- $\mathbb{E}[L \mid L > 10\%] = (0.04 \times 0.12 + 0.01 \times 0.30)/0.05 = \mathbf{0.156}$
+
+**Case 2: $R = 20\%$ ($\text{LGD} = 0.8$):**
+- $\mathbb{E}[L] = 0.15(0.08) + 0.04(0.16) + 0.01(0.40) = \mathbf{0.0224}$
+- $\Pr(L > 10\%) = 0.05$ (unchanged)
+- $\mathbb{E}[L \mid L > 10\%] = (0.04 \times 0.16 + 0.01 \times 0.40)/0.05 = \mathbf{0.208}$
+
+**Takeaway:** Lower recovery increases expected loss and tail severity even if tail probability is unchanged.
+
+### Example A6.12: Sanity Check — Detect Impossible ETL / Loss Bounds Violations
+
+**Tranche:** $[10\%, 15\%]$, so $0 \leq \text{ETL} \leq 1$.
+
+Suppose someone reports (incorrectly) $\text{ETL}_{10-15} = 1.20$. This is **impossible** because tranche loss fraction is bounded by 1.
+
+**How to detect:** Unnormalized expected tranche loss (portfolio-notional units) is $W \times \text{ETL} \leq W$. Here $W = 0.05$. If $\text{ETL} = 1.20$, unnormalized ETL would be $0.06 > 0.05$, violating the maximum possible tranche loss.
+
+**Related "arbitrage smell":** O'Kane shows that poor interpolation can generate negative tranchelet spreads and other arbitrage indicators—another form of sanity failure.
+
+### Example A6.13: Calibration Toy — Two-Parameter Solve
+
+> **Note:** O'Kane calibrates tranche models by minimizing PV errors with a multidimensional optimizer. A real tranche PV is nonlinear in parameters, so I'm not sure of a closed-form two-parameter solve in the sourced models. Below is a toy linear "pricing response" used only to illustrate the mechanics.
+
+Suppose a model outputs two tranche ETLs:
+$$\text{ETL}_{0-3}(\theta_1, \theta_2) = 0.20 + 0.10\theta_1 - 0.05\theta_2$$
+$$\text{ETL}_{10-15}(\theta_1, \theta_2) = 0.01 + 0.03\theta_1 + 0.04\theta_2$$
+
+Given targets $\text{ETL}_{0-3} = 0.25$ and $\text{ETL}_{10-15} = 0.02$:
+
+From the first: $0.10\theta_1 - 0.05\theta_2 = 0.05 \Rightarrow \theta_1 = 0.5 + 0.5\theta_2$
+
+Substituting: $0.01 + 0.03(0.5 + 0.5\theta_2) + 0.04\theta_2 = 0.02$
+$0.025 + 0.055\theta_2 = 0.02 \Rightarrow \theta_2 = -0.0909$, $\theta_1 = 0.4545$
+
+**Takeaway:** Multi-target calibration pins parameters and can yield unintuitive values (here negative $\theta_2$), prompting constraint checks in real implementations.
+
+---
+
+### Full Worked Examples
+
+### Example A6.14: Base Correlation Calibration
 
 **Problem:** Given 5-year CDX NA IG tranche spreads, compute base correlations.
 
@@ -800,7 +1605,7 @@ For dynamic models, Monte Carlo simulation is often necessary:
 | 15% | 57% |
 | 30% | 74% |
 
-### Example A6.2: Vasicek WCDR Calculation
+### Example A6.15: Vasicek WCDR Sensitivity
 
 **Problem:** A bank has a portfolio of 1000 commercial loans with:
 - Average one-year PD: 1.5%
@@ -839,7 +1644,7 @@ $$\text{EL} = p \times \text{LGD} \times \text{Notional} = 0.015 \times 0.45 \ti
 
 The unexpected loss (VaR minus EL) is $\$6.525M - \$0.675M = \$5.85M$.
 
-### Example A6.3: Intensity Gamma Model Simulation
+### Example A6.16: Intensity Gamma Model Simulation
 
 **Problem:** Simulate defaults under the IG model with parameters $\gamma = 0.1$, $\lambda = 0.5$ for a portfolio of 100 credits with 5-year survival probabilities $Q_i(5) = 0.95$.
 
@@ -859,7 +1664,7 @@ The unexpected loss (VaR minus EL) is $\$6.525M - \$0.675M = \$5.85M$.
 
 The simulation exhibits **clustering**: when $\Gamma(5)$ is large, many credits default; when small, few default.
 
-### Example A6.4: Tranche Delta in the Gaussian Copula
+### Example A6.17: Tranche Delta in the Gaussian Copula
 
 **Problem:** Compute the systemic delta (index hedge ratio) for a 0-3% equity tranche under the Gaussian copula.
 
@@ -885,15 +1690,17 @@ This appendix has extended beyond the base correlation framework to survey the l
 
 1. **Base correlation limitations:** The framework is a quoting convention, not a consistent pricing model. It fails to conserve expected loss under interpolation, has no spread dynamics, and cannot capture crisis behavior.
 
-2. **Static extensions:** Alternative copulas (t, Clayton), random factor loading, and stochastic recovery can address some limitations while preserving tractability.
+2. **Static extensions:** Alternative copulas (t, Clayton), random factor loading (RFL), Double-t copula, and stochastic recovery can address some limitations while preserving tractability. RFL and Double-t specifically target correlation skew fitting.
 
-3. **Dynamic intensity models:** The Intensity Gamma and Affine Jump Diffusion models provide explicit dynamics for default clustering and spread evolution.
+3. **Bespoke tranche pricing:** TLP mapping and ATM mapping provide methods to extend base correlation to non-standard portfolios, but model risk remains high.
 
-4. **Top-down models:** Markov chain approaches model the portfolio loss process directly, enabling natural calibration to tranche prices and pricing of forward-starting products.
+4. **Dynamic intensity models:** The Intensity Gamma and Affine Jump Diffusion models provide explicit dynamics for default clustering and spread evolution.
 
-5. **Regulatory models:** The Vasicek WCDR formula underlies Basel IRB capital requirements, providing a link between portfolio credit models and bank regulation.
+5. **Top-down models:** Markov chain approaches model the portfolio loss process directly, enabling natural calibration to tranche prices and pricing of forward-starting products.
 
-6. **Model risk:** All credit portfolio models have significant limitations. Users must understand not just how to use models, but when they will fail.
+6. **Regulatory models:** The Vasicek WCDR formula underlies Basel IRB capital requirements, providing a link between portfolio credit models and bank regulation.
+
+7. **Model risk:** All credit portfolio models have significant limitations. Users must understand not just how to use models, but when they will fail.
 
 ---
 
@@ -906,6 +1713,9 @@ This appendix has extended beyond the base correlation framework to survey the l
 | **Base correlation** | Correlation implied by equity tranches | Market quoting convention; not consistent model |
 | **Conditional independence** | Independence given systematic factor | Enables tractable computation |
 | **WCDR** | Worst Case Default Rate at confidence level | Regulatory capital formula |
+| **RFL model** | Random Factor Loading | Fits correlation skew via state-dependent correlation |
+| **Double-t copula** | t-distributed factors (both systematic and idiosyncratic) | Fat tails in both dimensions |
+| **TLP mapping** | Tranche Loss Proportion | Bespoke pricing method |
 | **Dynamic model** | Specifies evolution of intensities/loss | Needed for MTM risk, options |
 | **Top-down vs. bottom-up** | Model loss directly vs. aggregate individual | Different calibration and hedging properties |
 | **Contagion** | Defaults increase other default probabilities | Crisis propagation mechanism |
@@ -943,17 +1753,29 @@ This appendix has extended beyond the base correlation framework to survey the l
 | 23 | What is the equity tranche's correlation sensitivity? | Long correlation (gains when correlation rises) |
 | 24 | What is the senior tranche's correlation sensitivity? | Short correlation (loses when correlation rises) |
 | 25 | How many parameters does a single-step Markov chain model have for $N$ credits? | $N$ transition rates $(a_0, a_1, \ldots, a_{N-1})$ |
-| 26 | What is the correlation formula in a two-factor model? | $c_{ij} = \beta_{1i}\beta_{1j} + \beta_{2i}\beta_{2j}$ |
-| 27 | How many factors are needed to model $M$ sectors? | $M$ factors—one-factor models cannot capture sector structure |
-| 28 | What happens to credit B's spread when positively correlated credit A defaults? | B's spread jumps up; the magnitude increases with correlation |
-| 29 | What is ETL interpolation? | Interpolate expected tranche loss directly, then invert to base correlation |
-| 30 | Why is ETL interpolation preferred over base correlation interpolation? | No-arbitrage constraints ($\partial\psi/\partial K \in [0,1]$, convexity) are easier to enforce in ETL space |
-| 31 | What is the PCHIP spline? | Piecewise Cubic Hermite Interpolant: guarantees smoothness and monotonicity |
-| 32 | What is the time-dimension no-arbitrage constraint for base correlation surface? | $\partial^2\psi/\partial T\partial K \geq 0$ |
-| 33 | What is the Clayton copula's lower tail dependence coefficient? | $\lambda_L = 2^{-1/\theta}$ for $\theta > 0$; e.g., $\theta = 2$ gives $\lambda_L \approx 0.71$ |
-| 34 | What is CreditRisk+? | A Poisson mixture model with gamma-distributed factors; defaults are conditionally Poisson |
-| 35 | What distribution does the number of defaults follow in CreditRisk+? | Sum of independent negative binomial random variables (one per gamma factor) |
-| 36 | How does CreditRisk+ connect to copula models? | With gamma factors, it's equivalent to a generalized LT-Archimedean factor copula model |
+| 26 | What is the key flaw of Gaussian copula for senior tranches? | Tail independence ($\lambda = 0$) underestimates joint extreme defaults |
+| 27 | What does RFL stand for and what does it fix? | Random Factor Loading; allows fitting correlation skew via state-dependent correlation |
+| 28 | State the TLP method for bespoke pricing (one sentence). | Map bespoke attachment to index attachment with same expected tranche loss proportion |
+| 29 | Basel IRB confidence level for capital calculation? | 99.9% |
+| 30 | What is Panjer recursion used for? | Computing loss distribution analytically for compound models (CreditRisk+) |
+| 31 | IG model: what creates default clustering? | Common jumps in business time $\Gamma(t)$ |
+| 32 | Why is base correlation "not an arbitrage-free model"? | Different $\rho$ for different strikes; not from a single loss distribution |
+| 33 | What is the Double-t copula enhancement over standard t? | Both factor AND idiosyncratic components are t-distributed |
+| 34 | Key difference: pricing vs. risk calibration? | Pricing uses risk-neutral (implied from quotes); risk uses physical (historical data) |
+| 35 | What makes a bespoke tranche "bespoke"? | Custom portfolio, not the standard index |
+| 36 | What is the correlation formula in a two-factor model? | $c_{ij} = \beta_{1i}\beta_{1j} + \beta_{2i}\beta_{2j}$ |
+| 37 | How many factors are needed to model $M$ sectors? | $M$ factors—one-factor models cannot capture sector structure |
+| 38 | What happens to credit B's spread when positively correlated credit A defaults? | B's spread jumps up; the magnitude increases with correlation |
+| 39 | What is ETL interpolation? | Interpolate expected tranche loss directly, then invert to base correlation |
+| 40 | Why is ETL interpolation preferred over base correlation interpolation? | No-arbitrage constraints ($\partial\psi/\partial K \in [0,1]$, convexity) are easier to enforce in ETL space |
+| 41 | What is the PCHIP spline? | Piecewise Cubic Hermite Interpolant: guarantees smoothness and monotonicity |
+| 42 | What is the time-dimension no-arbitrage constraint for base correlation surface? | $\partial^2\psi/\partial T\partial K \geq 0$ |
+| 43 | What is the Clayton copula's lower tail dependence coefficient? | $\lambda_L = 2^{-1/\theta}$ for $\theta > 0$; e.g., $\theta = 2$ gives $\lambda_L \approx 0.71$ |
+| 44 | What is CreditRisk+? | A Poisson mixture model with gamma-distributed factors; defaults are conditionally Poisson |
+| 45 | What distribution does the number of defaults follow in CreditRisk+? | Sum of independent negative binomial random variables (one per gamma factor) |
+| 46 | RFL model: what are the calibrated parameters for CDX NA IG? | $\alpha = 54.25\%$, $\beta = 31.16\%$, $\Theta = -2.58$ |
+| 47 | Double-t model: what are the calibrated parameters for CDX NA IG? | $\nu_Z = 7.0$, $\nu_\varepsilon = 2.5$, $\rho = 15.0\%$ |
+| 48 | ATM mapping formula for bespoke pricing? | $K_S^* = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}$ |
 
 ---
 
@@ -973,28 +1795,60 @@ A portfolio has PD = 2% and correlation $\rho = 0.20$.
 (b) How does WCDR change if $\rho$ increases to 0.30?
 (c) How does WCDR change if PD increases to 3% (keeping $\rho = 0.20$)?
 
+**Solution sketch:** (a) WCDR = $\Phi((-2.054 + 0.447 \times 3.09)/0.894) = \Phi(0.25) \approx 0.60$ — wait, let me recalculate: $= \Phi((-2.054 + 1.38)/0.894) = \Phi(-0.75) = 0.23$. (b) Higher $\rho$ increases WCDR. (c) Higher PD increases WCDR.
+
 ### Problem 3: Base Correlation Arbitrage
 Given base correlations: $\rho^B(3\%) = 25\%$, $\rho^B(7\%) = 40\%$. Linear interpolation gives $\rho^B(5\%) = 32.5\%$.
 (a) Compute the expected tranche losses $\psi(5Y, K)$ for $K = 3\%, 5\%, 7\%$
 (b) Check whether the convexity condition holds
 (c) Describe an arbitrage if it doesn't
 
-### Problem 4: Intensity Gamma Calibration
-The IG model with single gamma process has parameters $(\gamma, \lambda)$. Given portfolio average spread 50bp and 5-year base correlation skew:
-- $\rho^B(3\%) = 25\%$
-- $\rho^B(7\%) = 38\%$
+**Solution sketch:** Compute ETLs using Gaussian copula. If slope increases (convexity violated), buy 5% base tranche, sell 3% and 7% in butterfly structure.
 
-(a) What is the calibration target (what equation must be satisfied)?
-(b) Why might a single gamma process be insufficient?
-(c) What happens if we add a second gamma process?
+### Problem 4: RFL Model Interpretation
+The RFL model for CDX NA IG has calibrated parameters $\alpha = 54.25\%$, $\beta = 31.16\%$, $\Theta = -2.58$.
+(a) What is the correlation in the "bad state" ($Z < \Theta$)?
+(b) What is the probability of being in the "bad state"?
+(c) Why does $\alpha > \beta$ fit the correlation smile?
 
-### Problem 5: Markov Chain Generator
+**Solution sketch:** (a) Approximately $\alpha^2 \approx 29\%$. (b) $\Phi(-2.58) \approx 0.5\%$. (c) Higher correlation in bad states makes senior tranches riskier, requiring higher base correlation to match market.
+
+### Problem 5: Double-t vs. Gaussian
+Compare the Double-t model ($\nu_Z = 7$, $\nu_\varepsilon = 2.5$, $\rho = 15\%$) to Gaussian ($\rho = 30\%$).
+(a) Which has fatter tails in the systematic factor?
+(b) Which has more idiosyncratic jumps?
+(c) Why might Double-t have lower calibrated correlation?
+
+**Solution sketch:** (a) Double-t (df = 7 vs. $\infty$). (b) Double-t (df = 2.5 is very fat). (c) Fat tails generate dependence even with low correlation.
+
+### Problem 6: TLP Mapping
+Use TLP mapping to price a [5%, 10%] bespoke tranche:
+- Bespoke portfolio expected loss: 12%
+- Index expected loss: 4%
+- Index base correlation: $\rho(3\%) = 22\%$, $\rho(7\%) = 35\%$
+
+(a) Compute the bespoke TLP at $K_B = 5\%$
+(b) Find the index strike $K_S^*$ with the same TLP
+(c) What base correlation should be used?
+
+### Problem 7: Basel IRB Capital
+Calculate Basel IRB capital for a portfolio:
+- PD = 2%, LGD = 45%, EAD = $100mm
+- Basel correlation: $\rho = 0.12$ (high-PD corporate)
+
+(a) Compute WCDR at 99.9%
+(b) Compute capital as percentage of EAD
+(c) How much capital (in $) is required?
+
+**Solution sketch:** (a) WCDR $\approx 15\%$. (b) K = 0.45 × (0.15 - 0.02) = 5.85%. (c) $5.85mm.
+
+### Problem 8: Markov Chain Generator
 For a 100-credit portfolio, the Markov chain model has transition rates $(a_0, a_1, \ldots, a_{99})$.
 (a) If $a_n = 0.1$ for all $n$, what is the expected number of defaults by $T = 5$?
 (b) If $a_n = 0.1 \times (1 + 0.01n)$, how does this change the loss distribution?
 (c) Interpret the economic meaning of increasing transition rates.
 
-### Problem 6: Multi-Factor Model
+### Problem 9: Multi-Factor Model
 Extend the one-factor model to two factors (industry $X_1$ and market $X_2$):
 $$Z_i = \beta_{i1}X_1 + \beta_{i2}X_2 + \sqrt{1 - \beta_{i1}^2 - \beta_{i2}^2}\varepsilon_i$$
 
@@ -1002,24 +1856,13 @@ $$Z_i = \beta_{i1}X_1 + \beta_{i2}X_2 + \sqrt{1 - \beta_{i1}^2 - \beta_{i2}^2}\v
 (b) How many parameters are needed for 125 credits in 10 industries?
 (c) What information could calibrate the industry-specific loadings?
 
-### Problem 7: Dynamic Model Spread Dynamics
+### Problem 10: Dynamic Model Spread Dynamics
 In the AJD model, suppose the common intensity factor $X(t)$ jumps by $\Delta X = 0.5$ due to a credit event.
 (a) How does the survival probability of remaining credits change?
 (b) How does the expected tranche loss change?
 (c) Why does this matter for mark-to-market risk?
 
-### Problem 8: Loss Distribution Computation
-For a 10-credit portfolio with:
-- Identical marginals: $Q_i(5) = 0.90$
-- Flat correlation: $\rho = 0.30$
-- Equal weights: $w_i = 0.10$
-- Zero recovery: $R = 0$
-
-(a) Use the recursion to compute $\mathbb{P}(L(5) = 0)$, $\mathbb{P}(L(5) = 0.1)$, $\mathbb{P}(L(5) = 0.2)$
-(b) Compare to the independent case ($\rho = 0$)
-(c) Compute the 0-10% equity tranche expected loss
-
-### Problem 9: ETL Interpolation
+### Problem 11: ETL Interpolation
 Given base correlations at standard strikes:
 - $\rho^B(3\%) = 22\%$ → $\psi(5Y, 3\%) = 1.1\%$
 - $\rho^B(7\%) = 35\%$ → $\psi(5Y, 7\%) = 2.0\%$
@@ -1029,12 +1872,44 @@ Given base correlations at standard strikes:
 (b) Check the convexity condition: is $\partial^2\psi/\partial K^2 \leq 0$?
 (c) Compare to linear interpolation in base correlation space
 
-### Problem 10: Default-Induced Spread Dynamics
+**Solution sketch:** (a) $\psi(5\%) = 1.1 + (2.0-1.1) \times (5-3)/(7-3) = 1.55\%$. (b) Slopes: $(2.0-1.1)/4 = 0.225$, $(2.5-2.0)/3 = 0.167$; slope decreasing ✓ convex. (c) Base corr interpolation may violate convexity.
+
+### Problem 12: Correlation Skew Stress Test
+Design a stress test that shocks correlation from 0.20 to 0.40.
+(a) Compute the change in ETL for [0-3%] equity tranche
+(b) Compute the change in ETL for [10-15%] senior tranche
+(c) Which tranche gains and which loses from higher correlation?
+
+**Solution sketch:** (a) Higher $\rho$ reduces equity ETL (fewer defaults in equity). (b) Higher $\rho$ increases senior ETL (more tail clustering). (c) Equity gains, senior loses—this is "long correlation" vs. "short correlation."
+
+### Problem 13: Default-Induced Spread Dynamics
 Credits A and B have flat 5Y survival probability $Q_A(5) = Q_B(5) = 0.95$ and asset correlation $\rho = 0.40$.
 
 (a) Compute the default thresholds $C_A(5)$ and $C_B(5)$
 (b) If A defaults at $t = 0$ (instantaneous), what is B's conditional survival probability to $T = 5$?
 (c) How much does B's 5Y spread change after A's default?
+
+**Solution sketch:** (a) $C_i(5) = \Phi^{-1}(0.05) = -1.645$. (b) Use O'Kane formula: conditional probability is lower. (c) Spread increases by roughly 30-50% depending on parameters.
+
+### Problem 14: Panjer Recursion Setup
+A CreditRisk+ model has two sectors with gamma factors $\Psi_1 \sim \text{Ga}(4, 4)$ and $\Psi_2 \sim \text{Ga}(9, 9)$.
+(a) What are the mean and variance of each factor?
+(b) What is the marginal distribution of the number of defaults?
+(c) Why is this more tractable than Monte Carlo?
+
+**Solution sketch:** (a) Mean = 1, Var = 1/4 and 1/9. (b) Sum of two negative binomials. (c) Panjer recursion gives exact distribution without simulation.
+
+### Problem 15: Model Risk Quantification
+A correlation desk prices the same [3-7%] tranche using three models:
+- Base correlation: 250 bps
+- RFL: 280 bps
+- Double-t: 240 bps
+
+(a) What is the range of model-implied prices?
+(b) How might a trader set the bid-offer?
+(c) What does this spread tell us about model risk?
+
+**Solution sketch:** (a) 40 bps range. (b) Bid-offer should be at least as wide as model uncertainty, perhaps 30-50 bps. (c) Significant model risk—no single "correct" price.
 
 ---
 
@@ -1060,30 +1935,70 @@ Credits A and B have flat 5Y survival probability $Q_A(5) = Q_B(5) = 0.95$ and a
 | CreditRisk+ connection to LT-Archimedean copula | McNeil et al. QRM |
 | Panjer recursion for CreditRisk+ | McNeil et al. QRM Section 8.4.2 |
 | Clayton copula lower tail dependence $\lambda_L = 2^{-1/\theta}$ | McNeil et al. QRM Example 5.31 |
-| Gumbel copula upper tail dependence $\lambda_U = 2 - 2^{1/\theta}$ | McNeil et al. QRM Example 5.31 |
 | Multi-factor correlation formula $c_{ij} = \beta_{1i}\beta_{1j} + \beta_{2i}\beta_{2j}$ | O'Kane Ch 13 Section 13.5 |
 | Sector correlation matrix example (52%/16%/61%) | O'Kane Ch 13 |
 | "M sectors requires M-factor model" | O'Kane Ch 13 |
 | Default-induced spread dynamics formula | O'Kane Ch 13 Section 13.6 |
 | Conditional survival curve after default | O'Kane Ch 13 Equation 13.3 |
-| Spread jump observations (positive/negative correlation) | O'Kane Ch 13 Figure 13.7 |
 | ETL interpolation methodology | O'Kane Ch 20 Section 20.5 |
 | PCHIP spline for monotonic interpolation | O'Kane Ch 20; Fritsch and Carlson (1980) |
 | Base correlation surface bootstrap | O'Kane Ch 20 Section 20.6 |
 | Time dimension no-arbitrage constraint $\partial^2\psi/\partial T\partial K \geq 0$ | O'Kane Ch 20 |
 | "ETL interpolation is more arbitrage free than direct interpolation" | O'Kane Ch 20 |
+| RFL model specification $A_i = a_i(Z)Z + b_i\varepsilon_i + m_i$ | O'Kane Ch 21.10; Andersen and Sidenius (2004) |
+| RFL calibration parameters ($\alpha=54.25\%$, $\beta=31.16\%$, $\Theta=-2.58$) | O'Kane Table 21.4 |
+| Single-step factor loading function | O'Kane Ch 21.10 Figure 21.8 |
+| Double-t copula specification | O'Kane Ch 21.6; Hull and White (2003b) |
+| Double-t calibration parameters ($\nu_Z=7.0$, $\nu_\varepsilon=2.5$, $\rho=15.0\%$) | O'Kane Table 21.1 |
+| "Double-t is not a Student-t copula" | O'Kane Ch 21.6 |
+| Bespoke mapping framework | O'Kane Ch 20.9 |
+| TLP mapping formula | O'Kane Ch 20.9.4 |
+| ATM mapping formula | O'Kane Ch 20.9.3; Ahluwalia et al. (2004) |
+| "No sound theoretical basis for discriminating among mapping approaches" | O'Kane Ch 20.9 |
+| Tranche leverage ratio comparison across models | O'Kane Table 21.5 |
+| Copula comparison: tranchelet spreads behavior | O'Kane Ch 21.12 |
+| Marshall-Olkin copula (Poisson shock processes, incidence matrix) | O'Kane Ch 13 |
+| Archimedean copula generator form $C = \psi^{-1}(\sum \psi(u_i))$ | QRM Ch 5 |
+| LT-Archimedean to threshold/mixture model link | QRM Ch 5 |
+| Clayton parameter limits (independence ↔ comonotonicity) | QRM Ch 5 |
+| Default contagion / interacting intensities | QRM Ch 9 |
+| Rating transition matrices and "ratings momentum" | Hull Ch 24 |
+| Hybrid structural-reduced-form model description | O'Kane Ch 13 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Context |
+|---------|---------|
+| 2008 crisis desk reality narrative | Extended from general fixed income knowledge |
+| Correlation smile trader interpretation | Extended from market practice |
+| Calibration workflow practical issues | Extended from numerical optimization practice |
+| Bespoke pricing desk workflow | Extended from trading desk practice |
+| Correlation desk P&L drivers table | Extended from trading practice |
+| Hedging a tranche position workflow | Extended from risk management practice |
+| Why regulatory capital matters for trading | Extended from capital management practice |
+| Decision tree for model selection | Synthesized from O'Kane model chapters |
+| Toy worked examples (A6.5-A6.13) | Direct application of sourced formulas to toy parameters |
+| Unit checks in Math Sketches section | Dimensional analysis of sourced formulas |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 - The correlation smile's interpretation as "missing tail dependence" follows from combining O'Kane's observations about base correlation failures with McNeil's tail dependence analysis
 - The arbitrage from naive interpolation follows from applying O'Kane's no-arbitrage conditions to linear interpolation
 - Regulatory capital implications follow from combining Hull's WCDR treatment with Basel framework structure
+- Model comparison summary table synthesizes individual model properties from O'Kane chapters
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Dynamic model adoption:** O'Kane notes "it is still too early to say which, if any of these models, will become widely adopted." I'm not sure about current market standard practice for dynamic models
 - **Contagion calibration:** While contagion mechanisms are theoretically motivated, I'm not sure how practitioners typically calibrate infection probabilities in Davis-Lo type models
 - **Post-crisis evolution:** The treatment reflects pre-2008 and immediate post-crisis literature. Market practice may have evolved further—recommend verifying current conventions
+- **Exact WCDR calculation:** Some worked example calculations may have numerical precision limitations; verify with standard implementation
+- **Hawkes processes:** I'm not sure whether Hawkes/self-exciting point processes are explicitly used for credit contagion in the provided credit sources. To confirm, I would need a source excerpt where Hawkes (or an explicitly self-exciting intensity) is defined and applied to defaults
+- **Interacting intensity forms:** I'm not sure what exact parametric interacting-intensity functional forms are presented in QRM Section 9.8.3; to write explicit SDE/jump forms, I would need the precise equations
+- **LHP tranche-ETL closed forms:** I'm not sure from the provided excerpts alone what exact tranche-ETL closed forms are stated under the LHP approximation
+- **Hybrid structural-reduced-form pricing formulas:** Schematic description only; full derivations not available in provided excerpts
+- **Multi-name migration dependence:** I do not have a full multi-name migration dependence mechanism (e.g., correlated migrations) beyond the one-name transition-matrix idea
+- **Contagion parametric shock form:** Not certain of the specific parametric form used in QRM's interacting intensity models
 
 ---
 

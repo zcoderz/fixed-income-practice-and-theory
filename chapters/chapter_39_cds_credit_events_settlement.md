@@ -15,6 +15,8 @@ This chapter examines the mechanics that determine what you actually receive whe
 3. **Physical vs cash settlement** — Two ways to effect the protection payment, with different risk profiles
 4. **The delivery option and cheapest-to-deliver** — Why the buyer's choice of what to deliver creates embedded optionality
 5. **Restructuring clauses** — How the market evolved to limit delivery option value
+6. **Post-2009 standardization** — The Big Bang Protocol, Determinations Committees, and modern CDS mechanics
+7. **CDS-cash basis and settlement risk** — The factors that drive the basis between CDS spreads and bond spreads
 
 Understanding these mechanics is essential because they determine the actual P&L when protection is triggered. A protection buyer who doesn't understand the delivery option may leave money on the table. A protection seller who ignores deliverable scarcity may face larger losses than expected.
 
@@ -66,6 +68,16 @@ After a restructuring, the company survives with modified debt terms. The term s
 >     *   Was it forced (distressed)? $\to$ YES.
 >     *   Is the agreement binding on all holders? $\to$ YES.
 >     *   (If all YES) $\to$ **Review Restructuring Clause (Mod-Re / No-Re)**.
+
+### 39.1.5 Grace Periods and Payment Thresholds
+
+Credit events involving failure to pay typically include safeguards to prevent triggering on minor technical issues. O'Kane notes that failure to pay considers "a grace period"—the issuer has a window (commonly 30 days for bonds, though this varies) to cure a missed payment before it becomes a credit event.
+
+Additionally, most contracts include a **payment requirement threshold**—commonly $1 million for investment-grade names. A missed payment below this threshold does not trigger the CDS.
+
+> **Desk Reality: The Grace Period Gotcha**
+>
+> When a company misses a payment, the clock starts ticking. Traders watch the grace period countdown closely because CDS protection becomes more valuable as the deadline approaches. If you're hedging a bond position with CDS, the grace period creates timing mismatch risk—your bond may be trading at distressed levels while the CDS hasn't technically triggered yet.
 
 ---
 
@@ -186,7 +198,25 @@ The physical settlement payoff with optimal delivery is:
 
 $$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
 
-### 39.4.3 Delivery Option Value: A Worked Example
+### 39.4.3 Formal Delivery Option Framework
+
+The delivery option value can be formally expressed as the difference between what the protection buyer receives with optimal delivery versus delivery of their hedged asset:
+
+$$\boxed{V_{\text{DO}} = N \times \frac{P_{\text{hedged}} - P_{\text{CTD}}}{100}}$$
+
+where:
+- $V_{\text{DO}}$ = delivery option value
+- $P_{\text{hedged}}$ = price of the asset the buyer was originally hedging
+- $P_{\text{CTD}}$ = cheapest-to-deliver price
+
+The delivery option is only valuable when $P_{\text{hedged}} > P_{\text{CTD}}$, which occurs when the deliverable basket contains obligations trading below the hedged asset's price.
+
+**Properties of the delivery option:**
+- **Non-negative:** $V_{\text{DO}} \geq 0$ (buyer can always deliver their hedged asset)
+- **Bounded:** $V_{\text{DO}} \leq N \times P_{\text{hedged}}/100$ (CTD price cannot be negative)
+- **Event-dependent:** Value depends on which credit event triggers settlement
+
+### 39.4.4 Delivery Option Value: A Worked Example
 
 O'Kane provides a concrete illustration:
 
@@ -196,7 +226,7 @@ This $6 (per 100 face) is pure profit from the ability to switch deliverables. T
 
 $$\text{Delivery Option Value} = P_{\text{hedged}} - P_{\text{CTD}} = 43 - 37 = 6$$
 
-### 39.4.4 When the Delivery Option Has Value
+### 39.4.5 When the Delivery Option Has Value
 
 O'Kane explains when the option matters: "This option only has value if different deliverables trade at different prices following a credit event. We would therefore expect price differences to occur only for a soft credit event like restructuring since after a soft credit event, the assets of the reference entity can continue to trade with a term structure."
 
@@ -204,7 +234,7 @@ After a **hard** credit event (bankruptcy), all obligations trade at approximate
 
 After a **soft** credit event (restructuring), short-dated bonds trade higher than long-dated bonds, and high-coupon bonds trade higher than low-coupon bonds. The delivery option can be substantial.
 
-### 39.4.5 Why CTD Matters for Protection Sellers
+### 39.4.6 Why CTD Matters for Protection Sellers
 
 The delivery option is a zero-sum transfer from seller to buyer. The seller receives par for whatever the buyer chooses to deliver—and the buyer will choose the cheapest. From the seller's perspective, they are **short the delivery option**.
 
@@ -276,9 +306,119 @@ This is separate from the protection payout and represents the buyer's obligatio
 
 ---
 
-## 39.7 Settlement Risks
+## 39.7 Post-2009 Market Standardization
 
-### 39.7.1 Final Price Uncertainty (Cash Settlement)
+### 39.7.1 The Big Bang Protocol (April 2009)
+
+The 2008 financial crisis exposed significant operational risks in the CDS market. In response, ISDA implemented the "Big Bang Protocol" in April 2009, which standardized key aspects of CDS contracts:
+
+**Fixed Coupons:** Rather than trading at par with varying spreads, CDS now trade with standardized running coupons—typically **100 bp** for investment-grade names and **500 bp** for high-yield names. The difference between the contractual spread and the fixed coupon is exchanged as an upfront payment at trade inception.
+
+**Hardwired Auction Settlement:** The protocol hardwired auction settlement into standard documentation, making cash settlement via ISDA-organized auction the default mechanism rather than physical settlement.
+
+> **Desk Reality: The Upfront Convention**
+>
+> Before Big Bang, a 5-year CDS on Company X at 200 bp traded "at par"—no money changed hands at inception. After Big Bang, the same protection trades with a 100 bp running coupon plus an upfront payment reflecting the 100 bp difference. The upfront amount is approximately:
+>
+> $$\text{Upfront} \approx (S_{\text{market}} - S_{\text{coupon}}) \times \text{Risky PV01} \times N$$
+>
+> This convention improved standardization and fungibility across contracts.
+
+### 39.7.2 The Determinations Committee
+
+A key innovation was the establishment of **ISDA Credit Derivatives Determinations Committees (DCs)**—regional panels of major dealers and buy-side firms that make binding decisions on:
+
+1. **Credit event occurrence:** Has a credit event occurred for a particular reference entity?
+2. **CDS auction:** Should an auction be held?
+3. **Successor events:** When corporate actions (mergers, spin-offs) occur, who is the successor reference entity?
+4. **Deliverable obligations:** What bonds/loans qualify as deliverables?
+
+The DC structure replaced ad-hoc bilateral negotiations with a standardized, transparent decision process. Decisions are binding on all contracts that incorporate the relevant ISDA definitions.
+
+### 39.7.3 The Lookback Provision
+
+The Big Bang Protocol introduced a **lookback provision** that allows CDS protection to apply retroactively:
+
+- **60-day lookback for credit events:** If a credit event occurred within 60 days before trade date, the protection still applies
+- **90-day lookback for succession events:** Corporate actions within 90 days are considered
+
+The lookback addresses a practical problem: by the time news of a credit event becomes public and is formally determined by the DC, prices have already moved. Without lookback, protection buyers might not be able to buy CDS protection on a name that has just defaulted.
+
+> **Desk Reality: Trading Through the Event**
+>
+> The lookback provision means that CDS can continue to trade even after a credit event occurs, until the DC makes its determination. This creates a "trading through the event" dynamic where CDS prices reflect the expected auction recovery. Traders speak of CDS "trading to recovery" when the spread implies near-certain default.
+
+### 39.7.4 Succession Events
+
+Corporate actions—mergers, acquisitions, spin-offs—can affect who bears the CDS reference entity obligations. The Determinations Committee rules on **succession events** using a framework based on:
+
+1. **Relevant obligations:** Which entity assumes the relevant obligations (bonds, loans)?
+2. **Proportional allocation:** If obligations are split, CDS notional may be allocated proportionally
+3. **Universal successor:** If one entity assumes all obligations, it becomes the successor
+
+> **Practitioner Note:** The succession event framework became particularly important during the post-crisis wave of corporate restructurings. Traders monitor pending M&A activity closely because successor determinations can significantly affect CDS positions—sometimes creating windfall gains or unexpected losses depending on which entity becomes the reference.
+
+### 39.7.5 The Hovnanian Case: Manufactured Defaults
+
+The 2018 Hovnanian case exposed a gray area in credit event definitions. In that case, the homebuilder Hovnanian allegedly cooperated with a hedge fund (Blackstone's GSO Capital) in a complex transaction:
+
+1. GSO bought CDS protection on Hovnanian
+2. Hovnanian agreed to miss an interest payment on a small bond issue
+3. This triggered a credit event, allowing GSO to profit on its CDS
+4. Hovnanian simultaneously issued new debt with favorable terms
+
+The arrangement was controversial because the credit event appeared "manufactured" rather than reflecting genuine financial distress. While the specific transaction was modified before triggering, it highlighted how CDS credit events can be strategically engineered.
+
+> **Desk Reality: Manufactured Default Risk**
+>
+> Post-Hovnanian, protection sellers have become more cautious about names where:
+> - A single large CDS holder might influence management
+> - The company has bonds with small outstanding amounts that could be cheaply defaulted
+> - There are unusual governance arrangements or related-party relationships
+>
+> Some contracts now include "anti-manipulation" language, though the effectiveness remains untested.
+
+---
+
+## 39.8 CDS-Cash Basis and Settlement Risk
+
+### 39.8.1 Defining the Basis
+
+The **CDS-cash basis** is the difference between the CDS spread and the comparable bond spread (typically the asset swap spread):
+
+$$\text{CDS-Bond Basis} = S_{\text{CDS}} - S_{\text{ASW}}$$
+
+In theory, arbitrage should keep this basis near zero. In practice, persistent positive or negative bases exist due to various frictions.
+
+### 39.8.2 Factors Driving the Basis
+
+O'Kane identifies several factors that drive the CDS-cash basis (Section 5.6):
+
+**1. Funding Costs (Favors Positive Basis)**
+
+O'Kane explains: "The funding cost of buying the cash asset to maturity is paid by the investor who does the basis trade. This cost is not incurred by the protection seller in a CDS and so must be factored into the trade."
+
+A cash bond investor must fund the position. If funding costs exceed risk-free rates, the bond becomes less attractive relative to selling CDS protection, pushing the basis positive.
+
+**2. Technical Default Risk (Favors Positive Basis)**
+
+As noted earlier: "The standard credit events may be viewed as being broader than those which constitute default on a bond." CDS protection sellers face the risk that a credit event triggers even when bondholders haven't suffered a loss, justifying higher CDS spreads.
+
+**3. Delivery Option Value (Favors Positive Basis)**
+
+The protection buyer's delivery option—valuable after restructuring events—should be priced into CDS spreads. This effect is larger for contracts that include restructuring.
+
+**4. Loss on Default Timing (Favors Negative Basis)**
+
+O'Kane notes that "following a credit event, a basis trader who is short protection must source the deliverable asset in a short time frame. The price paid for the asset may be more than the recovery price received through the auction."
+
+This sourcing risk for basis traders can push the basis negative—CDS spreads may trade inside bond spreads when the basis trade is crowded.
+
+**5. Premium Accrued at Default (Favors Negative Basis)**
+
+The protection buyer owes accrued premium up to the credit event date. This obligation—typically around half a quarterly coupon in expectation—is a cost to the protection buyer that bonds don't bear directly, supporting a negative basis.
+
+### 39.8.3 Final Price Uncertainty (Cash Settlement)
 
 Under cash settlement, the protection payout is uncertain until the auction or dealer poll determines $P_{\text{final}}$. The payout sensitivity to the final price is:
 
@@ -286,19 +426,20 @@ $$\frac{\partial \Pi_{\text{cash}}}{\partial P_{\text{final}}} = -\frac{N}{100}$
 
 Each point change in the final price changes the payout by 1% of notional. For a $10 million position, a 10-point uncertainty in final price represents $1 million of payout uncertainty.
 
-### 39.7.2 Deliverable Scarcity (Physical Settlement)
+### 39.8.4 Deliverable Scarcity (Physical Settlement)
 
 As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, protection buyers face sourcing risk. The short squeeze dynamic can push up deliverable prices, reducing effective protection.
 
-### 39.7.3 Technical Default and Basis Risk
-
-O'Kane lists "technical default" as a driver of the CDS-cash basis: "The standard credit events may be viewed as being broader than those which constitute default on a bond. As a result, protection sellers in a CDS may demand a higher spread as compensation for the increased risk of the protection being triggered."
-
-This means a CDS may trigger when a bond does not technically default, or vice versa—creating basis risk between CDS and bond positions even when hedging the same credit.
+> **Desk Reality: Monitoring the Basis**
+>
+> Traders watch the CDS-bond basis as a signal of market stress and relative value:
+> - **Positive basis:** CDS spreads > bond spreads; common in normal markets due to funding and delivery option
+> - **Negative basis:** CDS spreads < bond spreads; often indicates distress, forced selling of bonds, or crowded basis trades
+> - **Basis blow-out:** Extreme widening in either direction; occurred during 2008 crisis when funding dried up and basis trades unwound violently
 
 ---
 
-## 39.8 Worked Examples
+## 39.9 Worked Examples
 
 ### Example A: Cash Settlement Payout
 
@@ -366,6 +507,9 @@ $$\Pi_{\text{phys}} = 10{,}000{,}000 \times \left(1 - \frac{35}{100}\right) = 10
 
 If buyer had simply delivered their held asset, they would have received $100 - 43 = 57$. By switching, they capture an additional $6.
 
+**Using the formal framework:**
+$$V_{\text{DO}} = N \times \frac{P_{\text{hedged}} - P_{\text{CTD}}}{100} = 100 \times \frac{43 - 37}{100} = \$6$$
+
 ---
 
 ### Example E: Accrued Premium at Default
@@ -425,6 +569,7 @@ Before modeling settlement outcomes, verify:
 7. **If cash:** how $P_{\text{final}}$ is determined (auction protocol)
 8. **Notional, currency, settlement conventions**
 9. **Accrued premium handling**
+10. **Fixed coupon convention** (post-Big Bang: 100bp or 500bp)
 
 ### Common Pitfalls
 
@@ -438,11 +583,14 @@ Before modeling settlement outcomes, verify:
 
 5. **Ignoring regional documentation differences:** CDX (No-Re) vs iTraxx (includes restructuring) is a meaningful distinction.
 
+6. **Overlooking succession events:** M&A activity can change the reference entity; monitor DC announcements.
+
 ### Verification Tests for Risk Systems
 
 1. **Payout bounds:** $0 \leq \Pi_{\text{cash}} \leq N$ when $0 \leq P_{\text{final}} \leq 100$
 2. **Physical/cash alignment:** If $P_{\text{final}} = P_{\text{CTD}}$, then $\Pi_{\text{cash}} = \Pi_{\text{phys}}$
 3. **CTD logic:** Under physical, buyer delivers lowest-priced eligible deliverable
+4. **Delivery option non-negativity:** $V_{\text{DO}} \geq 0$
 
 ---
 
@@ -462,11 +610,17 @@ Before modeling settlement outcomes, verify:
 
 7. **CDX excludes restructuring** (No-Re), while **iTraxx includes it**—a key regional difference.
 
-8. **Deliverable scarcity** can cause short squeezes under physical settlement; auctions address this by providing cash settlement at a market-determined price.
+8. The **Big Bang Protocol** (2009) standardized CDS with fixed coupons, hardwired auctions, and Determinations Committees.
 
-9. **Accrued premium at default** is owed by the buyer for the partial period—handled as part of the premium leg.
+9. The **lookback provision** (60/90 days) allows CDS to cover events occurring shortly before trade date.
 
-10. Always verify the specific contract documentation; conventions evolve and "I'm not sure" is appropriate when sources don't specify.
+10. The **CDS-cash basis** reflects funding costs, delivery option value, technical default risk, and settlement timing.
+
+11. **Deliverable scarcity** can cause short squeezes under physical settlement; auctions address this by providing cash settlement at a market-determined price.
+
+12. **Accrued premium at default** is owed by the buyer for the partial period—handled as part of the premium leg.
+
+13. Always verify the specific contract documentation; conventions evolve and "I'm not sure" is appropriate when sources don't specify.
 
 ---
 
@@ -482,6 +636,9 @@ Before modeling settlement outcomes, verify:
 | CTD | Lowest-priced eligible deliverable | Maximizes buyer's payout |
 | Restructuring clause | Limits on deliverables after restructuring | Controls delivery option value |
 | Accrued premium | Partial premium for coverage until credit event | Owed by buyer at default |
+| Determinations Committee | ISDA panel deciding credit events and auctions | Standardizes event determination |
+| Lookback provision | 60/90 day retroactive protection window | Allows trading through events |
+| CDS-cash basis | CDS spread minus bond spread | Reflects funding, delivery option, technicals |
 
 ---
 
@@ -495,9 +652,12 @@ Before modeling settlement outcomes, verify:
 | $\mathcal{D}$ | Set of eligible deliverable obligations |
 | $P_i$ | Market price (per 100) of deliverable $i$ |
 | $P_{\text{CTD}} = \min_{i \in \mathcal{D}} P_i$ | Cheapest-to-deliver price |
+| $P_{\text{hedged}}$ | Price of the asset being hedged |
+| $V_{\text{DO}}$ | Delivery option value |
 | $\Pi_{\text{cash}}, \Pi_{\text{phys}}$ | Protection payout under cash/physical settlement |
 | $\alpha$ | Accrual fraction (year fraction) |
 | $s$ | CDS contractual spread (annualized decimal) |
+| $S_{\text{CDS}}, S_{\text{ASW}}$ | CDS spread, asset swap spread |
 
 ---
 
@@ -535,6 +695,11 @@ Before modeling settlement outcomes, verify:
 | 28 | When do physical and cash settlement give the same payout? | When $P_{\text{final}} = P_{\text{CTD}}$. |
 | 29 | How much CDS was outstanding on Lehman vs actual debt? | $400B CDS vs $155B debt. |
 | 30 | Why did cash settlement become standard? | To avoid sourcing problems when CDS notional exceeds deliverable supply. |
+| 31 | What is the Big Bang Protocol? | April 2009 ISDA standardization: fixed coupons, hardwired auctions, lookback provision. |
+| 32 | What are the standard CDS fixed coupons post-Big Bang? | 100 bp (investment grade) and 500 bp (high yield). |
+| 33 | What is the Determinations Committee? | ISDA panel of dealers/buy-side that makes binding decisions on credit events and auctions. |
+| 34 | What is the lookback provision? | 60-day (credit events) / 90-day (succession) retroactive protection window. |
+| 35 | What was notable about the Hovnanian case? | Alleged "manufactured default" where company cooperated with CDS holder to trigger credit event. |
 
 ---
 
@@ -560,6 +725,10 @@ Before modeling settlement outcomes, verify:
 
 10. CTD bond has bid/ask of 25/35 in distressed market. For $N = \$50\text{mm}$, compute the payout range.
 
+11. A CDS trades with 100 bp fixed coupon. Market spread is 350 bp. For $N = \$10\text{mm}$ and Risky PV01 = 4.2, estimate the upfront payment at trade inception. Who pays whom?
+
+12. Following a credit event, the DC determines auction final price = 22. Protection buyer owes 50 days of accrued premium on a 300 bp contract with $N = \$5\text{mm}$. What is the net payment from seller to buyer?
+
 ---
 
 ### Solution Sketches (Selected)
@@ -580,11 +749,15 @@ Before modeling settlement outcomes, verify:
 
 **Q9:** $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$. $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$. If $P_{\text{final}} = P_{\text{CTD}}$, both equal $N(1 - P_{\text{CTD}}/100)$. QED.
 
+**Q11:** Upfront $\approx (0.0350 - 0.0100) \times 4.2 \times 10{,}000{,}000 = 0.0250 \times 4.2 \times 10{,}000{,}000 = \$1{,}050{,}000$. Protection buyer pays upfront (market spread > coupon).
+
+**Q12:** Protection payout: $5{,}000{,}000 \times (1 - 0.22) = \$3{,}900{,}000$. Accrued premium: $5{,}000{,}000 \times 0.03 \times (50/360) = \$20{,}833$. Net: $\$3{,}900{,}000 - \$20{,}833 = \$3{,}879{,}167$ from seller to buyer.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -609,17 +782,35 @@ Before modeling settlement outcomes, verify:
 | Lehman: $400B CDS, $155B debt; auction payout 91.375% (8.625% recovery) | Hull Ch 25 |
 | Accrued premium at default paid by buyer to seller | O'Kane 5.4, Hull Ch 25 |
 | Technical default as CDS-bond basis driver | O'Kane 5.6 |
+| Funding cost as basis driver | O'Kane 5.6.1 |
+| Delivery option as basis driver | O'Kane 5.6.1 |
+| Loss on default timing as basis factor | O'Kane 5.6.2 |
+| Premium accrued at default as basis factor | O'Kane 5.6.2 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content
+
+| Content | Context |
+|---------|---------|
+| Big Bang Protocol details (April 2009, fixed coupons 100/500bp, hardwired auctions) | Extended from general CDS market knowledge; post-dates O'Kane's book |
+| Determinations Committee structure and role | Extended from ISDA market practice |
+| Lookback provision (60/90 day windows) | Extended from standard CDS documentation |
+| Succession event framework | Extended from ISDA definitions |
+| Hovnanian manufactured default case (2018) | Extended from market events post-dating sources |
+| Desk Reality boxes on grace period, upfront convention, basis monitoring | Practitioner perspective extending source material |
+| Formal delivery option framework with boxed formula | Formalized from O'Kane's example |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 - **CTD payoff formula:** $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$ — derived from physical settlement mechanics (buyer delivers cheapest, receives par)
 - **Cash/physical alignment condition:** When $P_{\text{final}} = P_{\text{CTD}}$, both methods yield same payout — follows from payoff formulas
-- **Delivery option value:** $P_{\text{hedged}} - P_{\text{CTD}}$ — explicitly stated by O'Kane
+- **Delivery option value formula:** $V_{\text{DO}} = N \times (P_{\text{hedged}} - P_{\text{CTD}})/100$ — formalized from O'Kane's numerical example
 - **Payout bounds:** $0 \leq \Pi \leq N$ for $0 \leq P \leq 100$ — arithmetic from payoff formula
+- **Delivery option properties (non-negative, bounded)** — derived from formula constraints
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Auction operational details:** I'm not sure about the precise two-stage auction mechanics, bidding rules, timing, and Determinations Committee procedures from the excerpts retrieved. Chapter 40 covers auctions in more detail; for complete protocol, the specific ISDA documentation is required.
 - **Complete deliverability criteria:** I'm not sure of all eligibility criteria beyond "pari passu or senior" without the precise ISDA Definitions and confirmation terms.
 - **Accrual day-count conventions:** I'm not sure of the exact day-count convention for accrued premium at default without specific contract documentation.
 - **Current Determinations Committee rules:** The sources reference ISDA 2003 definitions; current procedures may have evolved.
+- **Anti-manipulation provisions:** I'm not sure about the specific contractual language developed post-Hovnanian or its effectiveness.

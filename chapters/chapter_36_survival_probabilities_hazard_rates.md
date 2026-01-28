@@ -22,6 +22,9 @@ We cover:
 4. **The fundamental relationship** — how survival and hazard connect through an ODE
 5. **Piecewise-constant hazards** — the practitioner's workhorse for curve construction
 6. **The credit triangle** — linking spreads, hazard rates, and recovery
+7. **Term structure shapes** — what curve patterns tell traders about credit quality
+8. **Simulating default times** — Monte Carlo implementation
+9. **Arbitrage constraints** — limits on how inverted curves can get
 
 This framework is the foundation for CDS pricing (Chapters 38–41), survival curve bootstrapping (Chapter 42), and credit risk management (Chapter 43). If you understand this chapter, the mechanics of credit derivatives pricing become much clearer.
 
@@ -31,7 +34,7 @@ This framework is the foundation for CDS pricing (Chapters 38–41), survival cu
 
 Before diving into the mathematics, it helps to understand where reduced-form models fit in the broader credit modeling landscape. This comparison motivates why the derivatives market has overwhelmingly adopted the hazard rate approach.
 
-### Structural Models: Merton's Insight and Its Limitations
+### 36.1.1 Structural Models: Merton's Insight and Its Limitations
 
 **Structural models** (Merton, Black-Cox) model the firm's asset value process directly. O'Kane explains that "Merton's idea was to model default as the event which occurs when the value of the assets of a firm fall below the value of the firm's debt." In this framework, equity is a call option on firm assets, and debt is risk-free debt minus a put option.
 
@@ -43,7 +46,7 @@ This approach is elegant and economically intuitive—it connects default risk t
 
 This last point is particularly damaging for derivatives pricing. Structural models predict that short-dated default probability goes to zero—but market spreads remain positive even for overnight credit exposure. O'Kane concludes that "structural models are not widely used in credit derivatives pricing" despite their theoretical appeal.
 
-### Reduced-Form Models: Default as a Surprise
+### 36.1.2 Reduced-Form Models: Default as a Surprise
 
 **Reduced-form models** take a fundamentally different approach. As O'Kane explains, they are "based on the idea of modelling default as the first arrival time $\tau$ of a Poisson process." Rather than modeling *why* default occurs, we model the *probability* that it occurs.
 
@@ -53,7 +56,7 @@ This "surprise" property is precisely what allows reduced-form models to fit pos
 
 Hull reinforces this interpretation: "The hazard rate multiplied by $dt$ is the probability of a credit defaulting in the time period from $t$ to $t+dt$ conditional on it having survived to time $t$."
 
-### Why Reduced-Form Dominates in Practice
+### 36.1.3 Why Reduced-Form Dominates in Practice
 
 O'Kane lists the requirements for a credit derivatives pricing model:
 
@@ -65,13 +68,19 @@ O'Kane lists the requirements for a credit derivatives pricing model:
 
 Reduced-form models satisfy all five. They calibrate easily to CDS spreads, separate cleanly into discount factors and survival probabilities, and produce tractable pricing formulas. O'Kane notes that "the assumption of independence [between rates and default] is market standard" and that the reduced-form approach "follows the work of Duffie (1998), Hull and White (2000a) and O'Kane and Turnbull (2003)."
 
-The rest of this chapter develops this framework in detail.
+> **Desk Reality: Which Model Does Your System Use?**
+>
+> If you work in credit trading support, you've likely seen both models. Structural models (KMV, Moody's EDF) power credit risk analytics and rating systems—they estimate the *actual* probability of default. Reduced-form models power pricing systems—they ensure CDS quotes are internally consistent.
+>
+> A common confusion: someone sees Moody's EDF showing 0.5% one-year default probability, but the CDS implies 2%. Both are "right" in their own framework. The CDS spread reflects *risk-neutral* probability (including risk premium), while EDF estimates *real-world* probability. Section 36.7 explains this distinction in detail.
+
+The rest of this chapter develops the reduced-form framework in detail.
 
 ---
 
 ## 36.2 The Survival Function $Q(t)$
 
-### Definition and Interpretation
+### 36.2.1 Definition and Interpretation
 
 The survival function is the probability that a credit has not defaulted by time $t$:
 
@@ -92,7 +101,7 @@ $$F(t) = \Pr(\tau \leq t) = 1 - Q(t)$$
 
 This is analogous to mortality tables in actuarial science. The Financial Risk Analytics text notes that "the reduced-form approach to credit risk relies on the concept of survival probability, defined as the probability $\Pr(\tau > t)$ that a random system with lifetime $\tau$ survives at least over $t$ years."
 
-### The Survival Curve as a Credit Discount Factor
+### 36.2.2 The Survival Curve as a Credit Discount Factor
 
 There is a deep analogy between survival probabilities and risk-free discount factors. O'Kane makes this explicit in a comparative table that reveals the parallel structure:
 
@@ -103,7 +112,7 @@ There is a deep analogy between survival probabilities and risk-free discount fa
 | No-arbitrage: $r(s) > 0$ | No-arbitrage: $\lambda(s) > 0$ |
 | $Z(t) = \mathbb{E}[\exp(-\int_0^t r(s) ds)]$ | $Q(t) = \mathbb{E}[\exp(-\int_0^t \lambda(s) ds)]$ |
 
-This parallel is more than aesthetic—it drives the entire approach to credit curve construction. Just as we bootstrap discount factors from interest rate instruments, we bootstrap survival probabilities from CDS spreads. Just as the short rate drives discount factor dynamics, the hazard rate drives survival probability dynamics.
+This parallel is more than aesthetic—it drives the entire approach to credit curve construction. Just as we bootstrap discount factors from interest rate instruments (see Chapter 17), we bootstrap survival probabilities from CDS spreads (see Chapter 42). Just as the short rate drives discount factor dynamics, the hazard rate drives survival probability dynamics.
 
 In practical terms: just as discount factors "discount" future cash flows for time value, survival probabilities "discount" future cash flows for the possibility the credit won't survive to pay them. O'Kane confirms: "As a result we can write the price of the zero recovery zero coupon bond as the product of the risk-free zero coupon bond price and the survival probability":
 
@@ -111,7 +120,13 @@ $$\hat{Z}(0,T) = Z(0,T) \cdot Q(0,T)$$
 
 This factorization—risky discount = riskless discount × survival probability—underlies virtually all credit derivatives pricing under the standard independence assumption.
 
-### Interval Default Probability
+> **On-Ramp: If You Know Discount Factors, You Know Survival Probabilities**
+>
+> You already understand from Chapter 2 that $Z(0,T)$ is "the value today of $1 to be received at time $T$." Think of $Q(0,T)$ the same way: it's "the probability today that the issuer will still be alive at time $T$ to make that payment."
+>
+> When pricing a risky bond, you need both: the time value of money ($Z$) AND the probability of getting paid ($Q$). The product $Z \cdot Q$ is the "credit-adjusted" discount factor.
+
+### 36.2.3 Interval Default Probability
 
 The probability of default occurring in a specific interval is:
 
@@ -123,7 +138,7 @@ This follows directly from probability algebra: the probability of surviving to 
 
 ## 36.3 The Hazard Rate (Default Intensity)
 
-### Definition: Conditional Default Probability per Unit Time
+### 36.3.1 Definition: Conditional Default Probability per Unit Time
 
 The hazard rate, also called the *default intensity*, is the instantaneous conditional probability of default given survival. O'Kane provides the mathematical definition:
 
@@ -135,7 +150,7 @@ Hull gives an equivalent definition: "The hazard rate $\lambda(t)$ at time $t$ i
 
 O'Kane emphasizes this subtle but important interpretation: "The hazard rate multiplied by $dt$ is the probability of a credit defaulting in the time period from $t$ to $t+dt$ conditional on it having survived to time $t$." The conditioning on survival is crucial—it distinguishes the hazard rate from unconditional default probability.
 
-### Economic Interpretation
+### 36.3.2 Economic Interpretation
 
 If $\lambda(t) = 0.02$, what does this mean practically?
 
@@ -153,12 +168,32 @@ The hazard rate is the *per-unit-time* intensity. It tells you how "risky" each 
 > *   **Hazard Rate ($\lambda$)**: This is the **decay rate** (related to half-life). A high $\lambda$ means the block is highly radioactive and atoms are popping off quickly.
 > *   **Survival Probability ($Q$)**: The weight of the uranium block remaining at time $t$.
 > *   **Intensity**: If you put a Geiger counter next to the block, the "clicks" are the defaults. The rate of clicking is $\lambda$.
+>
+> **Half-Life Connection:** For constant hazard $\lambda$, the "half-life" (time for 50% to default) is $t_{1/2} = \ln(2)/\lambda \approx 0.693/\lambda$. A 2% hazard rate implies a half-life of about 35 years.
 
 O'Kane provides a powerful Monte Carlo intuition: we can simulate default using Bernoulli trials where at each time step $dt$, default occurs with probability $\lambda(t) dt$. He notes: "It is clear from this algorithm that at time $t$ we cannot know until we do the test [a Bernoulli draw] whether a default will occur. Also, although the probability of defaulting in time $dt$ tends to zero as $dt \to 0$, the probability of defaulting per unit of time does not."
 
 This "per unit time" interpretation—the hazard rate remains finite even as the time step shrinks—is what makes reduced-form models generate positive short-dated spreads.
 
-### The Fundamental Relationship: Hazard Rate and Survival ODE
+### 36.3.3 Typical Hazard Rate Ranges by Credit Quality
+
+Understanding typical hazard rate magnitudes helps build intuition. Based on Hull's Table 24.2 and market observations:
+
+| Credit Quality | Rating Proxy | Typical Risk-Neutral Hazard Range |
+|---------------|--------------|-----------------------------------|
+| Prime | AAA/AA | 0.05% – 0.3% per year |
+| High Investment Grade | A | 0.3% – 1.0% per year |
+| Lower Investment Grade | BBB | 1.0% – 3.0% per year |
+| High Yield | BB/B | 3.0% – 10% per year |
+| Distressed | CCC or lower | 10% – 50%+ per year |
+
+> **Desk Reality: Why Traders Care About Hazard Rate Ranges**
+>
+> When a credit desk quotes you a 5Y CDS at 150bp with 40% recovery, the implied hazard rate is approximately $0.015 / 0.60 = 2.5\%$ per year (using the credit triangle). That's solidly in BBB territory.
+>
+> If someone tries to sell you that name's CDS at 50bp, you'd immediately suspect a data error—50bp with 40% recovery implies only 0.83% hazard, which would be A-rated territory. Either the spread is wrong, the rating is wrong, or there's news you don't know about.
+
+### 36.3.4 The Fundamental Relationship: Hazard Rate and Survival ODE
 
 Starting from the hazard rate definition, we can derive a differential equation for the survival function. This derivation is fundamental to the entire framework.
 
@@ -186,7 +221,7 @@ This is the **survival ODE**. Hull derives the same equation (using $V(t)$ for s
 
 **Unit check:** The left side $dQ/dt$ has units $1/\text{year}$. The right side $(-\lambda) \times Q$ has $(1/\text{year}) \times (1) = 1/\text{year}$. ✓
 
-### Solving the ODE: Survival in Terms of Cumulative Hazard
+### 36.3.5 Solving the ODE: Survival in Terms of Cumulative Hazard
 
 This is a separable first-order ODE. Separate variables and integrate:
 
@@ -214,13 +249,7 @@ $$Q(t) = \mathbb{E}\left[\exp\left(-\int_0^t \lambda(s) ds\right)\right]$$
 
 The expectation appears when $\lambda(t)$ is itself stochastic (a Cox process). For deterministic hazard rates—the case most commonly used in practice—the expectation disappears and we have the clean exponential form.
 
-> **Deep Dive: Cox Processes (Doubly Stochastic)**
->
-> In simple models, $\lambda(t)$ is a deterministic curve (like a forward rate curve).
-> In advanced models, $\lambda(t)$ is itself random.
-> *   **Example**: When the stock market crashes, the "danger level" ($\lambda$) for *all* companies might jump up simultaneously. Alternatively, $\lambda$ might depend on the company's stock price (lower stock price = higher hazard rate). This is called a **Cox Process**.
-
-### Sanity Checks
+### 36.3.6 Sanity Checks
 
 Before trusting any survival formula, verify these properties:
 
@@ -246,7 +275,7 @@ $$\boxed{f(t) = \lambda(t) Q(t)}$$
 
 This identity is essential for pricing protection legs in CDS contracts, where the protection payment occurs at the moment of default. O'Kane's pricing derivations weight payments by this density function—the probability of default arriving in each infinitesimal interval.
 
-### Verification: Density Integrates to Cumulative Default Probability
+### 36.4.1 Verification: Density Integrates to Cumulative Default Probability
 
 As a sanity check, integrate the density:
 
@@ -266,7 +295,7 @@ $$Q(t) = e^{-\lambda t}$$
 
 This is the **exponential survival** model—the continuous-time analog of geometric default probability. It has several useful properties that make it valuable for building intuition and for quick approximations.
 
-### Mean Default Time
+### 36.5.1 Mean Default Time
 
 O'Kane derives the expected default time for constant hazard. Using the density $f(t) = \lambda e^{-\lambda t}$:
 
@@ -280,7 +309,7 @@ $$\mathbb{E}[\tau] = \frac{1}{0.02} = 50 \text{ years}$$
 
 O'Kane provides perspective: "A credit with a hazard rate of 1% therefore has a default time distribution with a mean of 100 years and a variance equal to 10000 years." He notes this "makes it clear that any simulation of default times for a credit with a very small $\lambda$ requires a large number of paths to ensure an acceptably low standard error."
 
-### The Memoryless Property
+### 36.5.2 The Memoryless Property
 
 The exponential distribution is the only continuous distribution with the memoryless property: given that the credit has survived to time $s$, the remaining survival time has the same distribution as the original survival time.
 
@@ -291,9 +320,20 @@ $$\Pr(\tau > s + t \mid \tau > s) = \frac{Q(s+t)}{Q(s)} = \frac{e^{-\lambda(s+t)
 
 The memoryless property is unrealistic for actual credits—past performance does provide information about future default risk. A company that has been struggling for years is more likely to default than one with a strong track record. However, this simplification makes the constant-hazard model analytically tractable and provides a useful baseline.
 
-### When Constant Hazard Is Appropriate
+### 36.5.3 When Constant Hazard Is Appropriate
 
 O'Kane provides clear guidance on when this simplification is valid: "This assumption only works if the spread curves are flat. However, even when they are not flat, an assumption of a constant hazard rate can serve as a good approximation. At the very least, assuming a constant hazard rate allows us to simplify the pricing equations and so helps us to better understand the dependence on the model parameters."
+
+**Decision Tree: When to Use Constant Hazard**
+
+| Situation | Use Constant Hazard? |
+|-----------|---------------------|
+| CDS curve is flat (or nearly flat) | Yes |
+| Quick back-of-envelope estimate needed | Yes |
+| Understanding parameter sensitivities | Yes |
+| Precise pricing for risk management | No — use piecewise |
+| Valuing forward-starting products | No — term structure matters |
+| Significant curve slope or inversion | No — piecewise required |
 
 The constant hazard case is valuable for:
 - Building intuition about credit derivatives pricing
@@ -309,7 +349,7 @@ For actual pricing with market calibration, practitioners use piecewise-constant
 
 In practice, CDS curves are not flat, and we need a richer model. The **piecewise-constant hazard** model is the workhorse of credit curve construction, balancing flexibility with tractability.
 
-### Setup
+### 36.6.1 Setup
 
 Define a time grid $0 = t_0 < t_1 < t_2 < \cdots < t_n$ and assume:
 
@@ -323,7 +363,7 @@ The hazard rate is constant within each interval but can jump between intervals.
 > *   **Survival Curve ($Q$)**: This creates a **kinked slope**. The log-survival graph is a straight line sloping down. At Year 1, the slope gets steeper (more decay). At Year 2, it gets steeper again.
 > *   **Bootstrapping**: We build this staircase one step at a time. We use the 1Y CDS spread to build the first step. Then we use the 2Y CDS spread (and the first step) to build the second step.
 
-### Forward Survival Formulas
+### 36.6.2 Forward Survival Formulas
 
 The cumulative hazard over interval $i$ is simply the hazard rate times the interval length:
 
@@ -339,7 +379,7 @@ $$\boxed{H(t_i) = H(t_{i-1}) + \lambda_i \Delta t_i}$$
 
 This recursive structure makes bootstrapping efficient: given market prices that imply $Q(t_i)$ at each maturity, we can solve for $\lambda_i$ interval by interval.
 
-### Inverting: Hazard from Survival
+### 36.6.3 Inverting: Hazard from Survival
 
 Given survival probabilities at grid points, we can recover the piecewise hazards by inverting the forward formula:
 
@@ -347,22 +387,33 @@ $$\boxed{\lambda_i = -\frac{1}{\Delta t_i} \ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\ri
 
 This formula is central to survival curve bootstrapping from CDS spreads (Chapter 42). Given a term structure of CDS quotes, we price the shortest maturity CDS to find $Q(t_1)$, extract $\lambda_1$, then use this to price the next maturity and find $Q(t_2)$, and so on.
 
-### Interpolation: Log-Linear in Survival
+### 36.6.4 Interpolation Schemes
 
-O'Kane discusses interpolation between grid points. Linear interpolation in the log of survival probability is the natural choice:
+O'Kane discusses interpolation between grid points in detail. The choice of interpolation scheme affects both pricing accuracy and curve smoothness. Three common approaches:
 
-$$f(t) = -\ln Q(t)$$
+| Scheme | Interpolation Of | Hazard Behavior | Properties |
+|--------|-----------------|-----------------|------------|
+| Linear in $Q$ | Survival probability | Piecewise non-constant | Can produce negative hazards |
+| Linear in $\ln Q$ | Log survival | **Piecewise constant** hazard | Market standard; always positive hazards |
+| Linear in $H$ | Cumulative hazard | Piecewise linear hazard | Smooth, but requires care |
+
+O'Kane confirms: "Linear interpolation of the log of the survival probability is equivalent to assuming a piecewise constant forward default rate $h(t)$." This is the **market standard** interpolation scheme because it ensures:
+
+- Survival probabilities remain between 0 and 1
+- Hazard rates remain positive (no-arbitrage)
+- The curve is continuous in $Q(t)$ but jumps in $\lambda(t)$ at knots
 
 For $t^* \in (t_{n-1}, t_n)$:
 
 $$Q(t^*) = Q(t_{n-1}) \cdot e^{-(t^* - t_{n-1}) \cdot \lambda_{n-1}}$$
 
-O'Kane confirms: "Linear interpolation of the log of the survival probability is equivalent to assuming a piecewise constant forward default rate $h(t)$."
-
-This interpolation scheme ensures that:
-- Survival probabilities remain between 0 and 1
-- Hazard rates remain positive (no-arbitrage)
-- The curve is continuous in $Q(t)$ but jumps in $\lambda(t)$ at knots
+> **Implementation Note: What Happens When Bootstrapping Fails**
+>
+> If your bootstrapping algorithm produces a negative hazard rate $\lambda_i < 0$, you have one of two problems:
+> 1. **Data error**: Check your input spreads. Is the curve inverted beyond arbitrage limits?
+> 2. **Arbitrage opportunity**: If the data is correct, the market is mispriced. See Section 36.10 on arbitrage bounds.
+>
+> Never force a negative hazard to zero—that masks the real problem. Either fix the inputs or investigate the arbitrage.
 
 ---
 
@@ -370,7 +421,7 @@ This interpolation scheme ensures that:
 
 A critical distinction pervades credit modeling: the difference between **risk-neutral** ($\mathbb{Q}$) and **real-world** ($\mathbb{P}$) default probabilities. Confusing these two measures is one of the most common errors in credit risk management.
 
-### Spread-Implied Hazards Are Risk-Neutral
+### 36.7.1 Spread-Implied Hazards Are Risk-Neutral
 
 When we calibrate survival curves to CDS spreads, the resulting hazard rates are risk-neutral—they are the hazard rates that correctly price the CDS under the risk-neutral measure used for derivatives valuation.
 
@@ -381,18 +432,18 @@ Risk-neutral hazard rates are derived from market prices, not from historical de
 - A risk premium for bearing credit exposure
 - A liquidity premium for holding credit-sensitive instruments
 
-### Historical Defaults Are Real-World
+### 36.7.2 Historical Defaults Are Real-World
 
 Default statistics from rating agencies (e.g., Moody's or S&P default studies) give real-world probabilities—the frequency of default observed historically in each rating category.
 
 Hull presents striking evidence of the gap. His Table 24.2 shows "seven-year historical hazard rates" versus "hazard rates from bonds":
 
-| Rating | Historical Hazard Rate | Hazard Rate from Bonds | Ratio |
-|--------|------------------------|------------------------|-------|
-| Aaa | 0.04% | 0.67% | 16.8 |
-| Aa | 0.06% | 0.78% | 13.0 |
-| A | 0.13% | 1.28% | 9.8 |
-| Baa | 0.47% | 2.20% | 4.7 |
+| Rating | Historical Hazard Rate | Hazard Rate from Bonds | Ratio | Difference |
+|--------|------------------------|------------------------|-------|------------|
+| Aaa | 0.04% | 0.67% | 16.8× | 0.63% |
+| Aa | 0.06% | 0.78% | 13.0× | 0.72% |
+| A | 0.13% | 1.28% | 9.8× | 1.15% |
+| Baa | 0.47% | 2.20% | 4.7× | 1.73% |
 
 Risk-neutral hazard rates exceed real-world rates by factors of 5 to 15 or more. Why?
 
@@ -405,7 +456,20 @@ Hull explains the wedge: "A large percentage difference between the two hazard r
 
 O'Kane explicitly decomposes spreads: the observed spread equals the actuarial (real-world) expected loss plus these additional premia.
 
-### Practical Implications
+### 36.7.3 Why the Ratio Is Largest for High-Quality Credits
+
+Notice that the ratio is 16.8× for Aaa but only 4.7× for Baa. This pattern is economically meaningful:
+
+For high-quality credits (Aaa, Aa), the *actual* default probability is tiny. But the *spread* isn't zero—investors still demand compensation for:
+- Liquidity (Treasuries are more liquid than even AAA corporates)
+- Jump-to-default risk (small probability of catastrophic loss)
+- Model uncertainty (what if our "AAA" estimate is wrong?)
+
+The spread on a AAA bond is almost entirely risk premium and liquidity premium, with minimal expected loss component. Hence the huge ratio.
+
+For lower-quality credits (Baa, BB), actual expected losses become meaningful. The spread reflects genuine loss expectations plus a smaller proportional risk premium. Hence the smaller ratio.
+
+### 36.7.4 Practical Implications
 
 This distinction has direct consequences for how you should use each measure:
 
@@ -417,13 +481,32 @@ Hull emphasizes: "Estimates of the probability of default from historical data s
 
 Mixing them up leads to either systematic mispricing (using real-world for pricing) or understated risk measures (using risk-neutral for risk management).
 
+> **Desk Reality: Your CDS Desk Uses Risk-Neutral; Your Credit VaR Uses Real-World**
+>
+> In a typical bank:
+> - **CDS trading desk**: Marks positions using spread-implied hazards (risk-neutral). Their P&L is based on market moves.
+> - **Credit VaR team**: Uses historical default data (real-world) adjusted for economic conditions. They measure "what could we lose?"
+> - **CVA desk**: Uses risk-neutral for pricing adjustments, but may blend with real-world for wrong-way risk.
+>
+> A common error: applying CDS-implied PDs to a loan portfolio's economic capital calculation. This would *overstate* expected losses by 5-15×, leading to excessive capital requirements.
+>
+> The opposite error: using historical PDs to price a CDS. Your hedge would be systematically wrong, and you'd lose money on average.
+
+### 36.7.5 Converting Between Measures
+
+While there's no universal formula to convert between measures (the risk premium varies by name, rating, and market conditions), Hull provides a rough approach for understanding the wedge:
+
+$$\text{Credit spread} \approx (1-R) \times \lambda_{\mathbb{Q}} \approx (1-R) \times \lambda_{\mathbb{P}} + \text{risk premium} + \text{liquidity premium}$$
+
+The "risk premium" in credit is analogous to the equity risk premium—it compensates investors for bearing systematic risk. In credit, this is primarily the risk that defaults cluster in bad economic times (when the marginal utility of wealth is high).
+
 ---
 
 ## 36.8 The Credit Triangle
 
 Under simplifying assumptions, there is a clean relationship between spread, hazard rate, and recovery. O'Kane derives what he calls the **credit triangle**—a fundamental identity that provides powerful intuition for credit derivatives pricing.
 
-### Derivation
+### 36.8.1 Derivation
 
 Consider a stylized CDS-like contract with:
 - Continuous premium payments at rate $S$
@@ -445,19 +528,88 @@ $$\boxed{\lambda = \frac{S}{1-R}}$$
 
 O'Kane explains the interpretation: "We call this relationship the credit triangle because it is a function of three variables and knowledge of any two is sufficient to calculate the third. What it states is that the required continuously paid spread compensation for taking on a credit loss of $(1-R)$ equals the hazard rate times $(1-R)$."
 
-### Example
+### 36.8.2 Back-of-Envelope Rules
 
-Given:
-- CDS spread $S = 120$ bp = 0.012 per year (continuous)
-- Recovery $R = 40\%$, so $1-R = 0.60$
+The credit triangle enables rapid mental math. Memorize these patterns:
 
-Implied hazard rate:
+**Rule of Thumb: 40% Recovery**
 
-$$\lambda = \frac{0.012}{0.60} = 0.02 = 2\%/\text{year}$$
+With standard 40% recovery ($1-R = 0.60$):
 
-This tells us: a 120 bp spread with 40% recovery implies the market is pricing in roughly 2% annual default probability (risk-neutral).
+| Spread | Implied Hazard | Mental Math |
+|--------|----------------|-------------|
+| 60 bp | 1.0%/year | Spread × 1.67 |
+| 120 bp | 2.0%/year | Spread × 1.67 |
+| 300 bp | 5.0%/year | Spread × 1.67 |
+| 600 bp | 10%/year | Spread × 1.67 |
 
-### Caveats and Limitations
+The multiplier is $1/(1-R) = 1/0.6 \approx 1.67$.
+
+**Varying Recovery:**
+
+| Recovery | LGD | Multiplier | 300bp Spread → Hazard |
+|----------|-----|------------|----------------------|
+| 20% | 0.80 | 1.25× | 3.75%/year |
+| 40% | 0.60 | 1.67× | 5.0%/year |
+| 60% | 0.40 | 2.50× | 7.5%/year |
+
+Higher assumed recovery means larger implied hazard rate (more defaults needed to justify the same spread).
+
+### 36.8.3 Worked Examples Across Credit Quality
+
+**Example A: Investment Grade (50bp spread)**
+
+Given: CDS spread $S = 50$ bp = 0.0050, Recovery $R = 40\%$
+
+$$\lambda = \frac{0.0050}{0.60} = 0.0083 = 0.83\%/\text{year}$$
+
+5-year survival (assuming constant hazard):
+$$Q(5) = e^{-0.0083 \times 5} = e^{-0.0417} = 0.959 = 95.9\%$$
+
+5-year default probability: $1 - 0.959 = 4.1\%$
+
+**Example B: High Yield (500bp spread)**
+
+Given: CDS spread $S = 500$ bp = 0.05, Recovery $R = 40\%$
+
+$$\lambda = \frac{0.05}{0.60} = 0.0833 = 8.33\%/\text{year}$$
+
+5-year survival:
+$$Q(5) = e^{-0.0833 \times 5} = e^{-0.417} = 0.659 = 65.9\%$$
+
+5-year default probability: $1 - 0.659 = 34.1\%$
+
+**Example C: Distressed Credit (2000bp spread)**
+
+Given: CDS spread $S = 2000$ bp = 0.20, Recovery $R = 20\%$ (lower for distressed)
+
+$$\lambda = \frac{0.20}{0.80} = 0.25 = 25\%/\text{year}$$
+
+1-year survival:
+$$Q(1) = e^{-0.25} = 0.779 = 77.9\%$$
+
+1-year default probability: $1 - 0.779 = 22.1\%$
+
+> **Desk Reality: The "Survival to Next Quarter" Test**
+>
+> For distressed credits, traders often focus on short-term survival. If $\lambda = 25\%$/year, quarterly survival is:
+> $$Q(0.25) = e^{-0.25 \times 0.25} = e^{-0.0625} = 93.9\%$$
+>
+> That's a 6.1% probability of default *this quarter*. When you see spreads above 2000bp, the market is saying there's real risk of imminent default.
+
+### 36.8.4 Sensitivity to Recovery Assumptions
+
+Holding spread fixed at $S = 200$ bp, vary recovery:
+
+| Recovery $R$ | Loss $(1-R)$ | Implied $\lambda$ | 5Y Default Prob |
+|--------------|--------------|-------------------|-----------------|
+| 20% | 0.80 | 2.50%/year | 11.8% |
+| 40% | 0.60 | 3.33%/year | 15.4% |
+| 60% | 0.40 | 5.00%/year | 22.1% |
+
+**Interpretation:** Higher assumed recovery means smaller loss per default. To justify the same spread, implied hazard rate must be higher (more defaults of smaller severity). This is why recovery assumptions significantly affect survival curve calibration—a topic explored further in Chapter 42.
+
+### 36.8.5 Caveats and When the Triangle Breaks
 
 O'Kane is careful to emphasize the assumptions behind this approximation:
 
@@ -467,6 +619,13 @@ O'Kane is careful to emphasize the assumptions behind this approximation:
 4. **Independence of rates and hazard** — actual correlation is small but exists
 
 O'Kane notes that "this credit triangle is a very useful equation which is commonly used as a quick way to relate spreads, risk-neutral default probabilities and recovery rates." Hull similarly uses it for rough estimates, noting that "it is approximately true that $\bar{\lambda}(T)(1-R) = s(T)$."
+
+**When the triangle approximation is poor:**
+
+- **High spreads**: Accrued premium effect is quadratic in spread; error grows
+- **Long-dated CDS**: Discounting matters more; ignoring it creates error
+- **Steep curve slopes**: Constant hazard assumption fails
+- **Non-standard recovery**: If recovery is uncertain or contract-specific
 
 The credit triangle is valuable for:
 - Building intuition quickly
@@ -478,7 +637,266 @@ But for precise pricing, use the full CDS pricing equations developed in Chapter
 
 ---
 
-## 36.9 Worked Examples
+## 36.9 Term Structure Shapes and Market Interpretation
+
+Understanding what different credit curve shapes *mean* is critical desk knowledge. O'Kane provides explicit discussion with three canonical shapes that every credit practitioner should recognize.
+
+### 36.9.1 Three Canonical Curve Shapes
+
+O'Kane presents three representative CDS term structures in Table 7.2:
+
+| CDS Term | Flat with Step (bp) | Upward Sloping (bp) | Steeply Inverted (bp) |
+|----------|--------------------|--------------------|----------------------|
+| 6M | 50 | 100 | 800 |
+| 1Y | 50 | 115 | 600 |
+| 2Y | 50 | 135 | 450 |
+| 3Y | 50 | 160 | 380 |
+| 4Y | 60 | 180 | 350 |
+| 5Y | 60 | 195 | 350 |
+| 7Y | 60 | 220 | 350 |
+| 10Y | 60 | 220 | 350 |
+
+O'Kane describes: "We have taken three CDS curve shapes: (i) a flat curve with a single step which rises from 50 bp to 60 bp at the four-year maturity, (ii) an upward sloping curve going from 100 bp at the six-month term to 220 bp at 10 years, and (iii) a steeply inverted curve implying a distressed credit."
+
+### 36.9.2 What Each Shape Tells You
+
+**Shape 1: Upward Sloping (Normal)**
+
+- **Typical of:** Investment-grade corporates, sovereigns, financial institutions
+- **Market interpretation:** "Safe today, uncertain in 5-10 years"
+- **Explanation:** Near-term survival is highly probable, but longer horizons introduce uncertainty about business model, management changes, competitive dynamics
+- **Example:** A well-capitalized bank might trade at 50bp for 1Y but 150bp for 10Y—the market sees no near-term stress but acknowledges long-term uncertainties
+
+**Shape 2: Flat**
+
+- **Typical of:** Transitional credits, names with stable but elevated risk
+- **Market interpretation:** "Risk is roughly constant over time"
+- **Explanation:** Neither improving nor deteriorating outlook; hazard rate approximately constant
+- **Example:** A BB-rated company with stable cash flows but permanent leverage might trade flat at 300bp across tenors
+
+**Shape 3: Inverted**
+
+- **Typical of:** Distressed credits, names facing imminent stress
+- **Market interpretation:** "Will they survive the next quarter? If yes, long-term might be okay"
+- **Explanation:** High near-term default risk (debt maturity, liquidity crisis, legal event); if they survive, the business may stabilize
+- **Example:** A company facing a debt maturity wall trades at 800bp for 6M but only 350bp for 5Y—the market prices significant near-term risk but a viable business if restructuring succeeds
+
+> **Desk Reality: Reading Curve Shapes in Practice**
+>
+> When you see an inverted credit curve, ask these questions:
+> 1. **What's the catalyst?** (Debt maturity? Covenant breach? Litigation?)
+> 2. **What's the cliff?** (When does the near-term risk resolve?)
+> 3. **What's the recovery play?** (If they survive, what's the upside?)
+>
+> Inverted curves often signal event-driven trading opportunities. Distressed debt funds specifically look for inverted curves where they believe the market overestimates near-term risk.
+>
+> When you see a *very* steep upward-sloping curve (e.g., 30bp at 1Y but 300bp at 10Y), ask:
+> 1. **Why is short-term so safe?** (Explicit guarantee? Strong cash position?)
+> 2. **What's the long-term uncertainty?** (Business model obsolescence? Regulatory risk?)
+
+### 36.9.3 Forward Hazard Rates and Term Structure
+
+The instantaneous forward hazard rate $h(t)$ is defined analogously to forward interest rates:
+
+$$h(t) = -\frac{d \ln Q(t)}{dt} = \lambda(t)$$
+
+For the three curve shapes above, the forward hazard curves have distinct patterns:
+
+- **Upward sloping spread curve** → upward sloping or stable forward hazard
+- **Flat spread curve** → approximately flat forward hazard
+- **Inverted spread curve** → *declining* forward hazard (high now, lower later)
+
+O'Kane notes: "A sloped curve will cause the breakeven CDS market spread to the maturity of the CDS to change as we roll through time. If the CDS curve is upward sloping, then the fair market spread of the contract will fall as we move through time."
+
+This has important implications for carry and rolldown in credit portfolios—the curve shape determines whether holding a CDS position generates positive or negative theta.
+
+---
+
+## 36.10 Arbitrage Constraints on Inverted Curves
+
+### 36.10.1 Why Inverted Curves Have Limits
+
+Not every inverted curve is valid. If a curve is "too inverted," it violates no-arbitrage constraints.
+
+O'Kane explains: "The no-arbitrage constraint is that the forward default rate $h(t)$ has to be positive. In other words, we require that the survival probabilities have to be flat or monotonically decreasing with horizon time."
+
+Mathematically:
+$$\lambda(t) \geq 0 \quad \Leftrightarrow \quad Q(t) \text{ is non-increasing}$$
+
+If bootstrapping a curve produces $Q(t_{i+1}) > Q(t_i)$ (survival probability *increases* over time), there's either an arbitrage or a data error.
+
+### 36.10.2 The Arbitrage Argument
+
+Consider a curve where the 6M spread is 800bp but the 1Y spread is only 100bp. This is extremely inverted.
+
+**Can this be arbitrage-free?**
+
+The trade to exploit extreme inversion:
+1. **Buy protection** on 1Y CDS (you pay 100bp/year)
+2. **Sell protection** on 6M CDS (you receive 800bp/year, pro-rated)
+
+For the first 6 months:
+- You receive ~400bp from the 6M protection sale
+- You pay ~50bp on the 1Y protection purchase
+- Net: +350bp carry
+
+If no default occurs in 6 months:
+- The 6M contract expires worthless (you keep the premium)
+- You still hold 1Y protection, but now it's a 6M protection (rolling down the curve)
+
+The trade generates riskless profit if the curve is inverted beyond certain bounds.
+
+### 36.10.3 Quantitative Arbitrage Bounds
+
+O'Kane derives approximate and exact arbitrage bounds. For a curve starting at 800bp at 6M:
+
+$$S_{m} \gtrsim S_{m-1} \times \frac{T_{m-1}}{T_m}$$
+
+This approximation says: the spread at maturity $T_m$ must be at least the spread at $T_{m-1}$ times the ratio of maturities.
+
+**Example Arbitrage Limits (from O'Kane Table 7.3):**
+
+| CDS Term | Approximate Lower Bound (bp) | Exact $\ln Q(t)$ Lower Bound (bp) |
+|----------|------------------------------|-----------------------------------|
+| 6M | 800 | 800 |
+| 1Y | 400 | 419 |
+| 2Y | 200 | 219 |
+| 3Y | 133 | 151 |
+| 4Y | 100 | 117 |
+| 5Y | 80 | 96 |
+
+O'Kane states: "Assuming bid-offer spreads of zero, any inverted spread curve that starts with a 6M spread of 800 bp which drops below this curve is arbitrageable."
+
+> **Desk Reality: What to Do When You See Arbitrage**
+>
+> If you observe a curve that violates these bounds:
+>
+> 1. **Check data quality first.** Stale quotes, wrong tenors, or bid/offer confusion are common.
+> 2. **Check liquidity.** The "arbitrage" may exist on screens but not be executable.
+> 3. **Check the name.** Is there a restructuring event, name change, or reference obligation issue?
+> 4. **If real, trade it.** But size appropriately—distressed name liquidity is thin.
+>
+> Extreme inversions that violate bounds are rare in liquid markets but can persist for hours in fast-moving distressed situations.
+
+---
+
+## 36.11 Simulating Default Times
+
+### 36.11.1 The Threshold Simulation Method
+
+For Monte Carlo simulation of credit portfolios, CVA calculations, and stress testing, we need to simulate random default times. McNeil provides a clean algorithm based on the **threshold method**.
+
+**Key Insight:** If $E$ is a standard exponential random variable (rate 1), and we define:
+
+$$\tau = H^{-1}(E)$$
+
+where $H(t) = \int_0^t \lambda(s) ds$ is the cumulative hazard, then $\tau$ has the correct survival distribution.
+
+**Verification:**
+$$\Pr(\tau > t) = \Pr(H^{-1}(E) > t) = \Pr(E > H(t)) = e^{-H(t)} = Q(t) \quad \checkmark$$
+
+McNeil states this formally in Lemma 9.12: "Let $E$ be a standard exponentially distributed rv... Define the random time $\tau$ by $\tau = \Gamma^{-1}(E)$ [where $\Gamma$ is the cumulative hazard]. Then $\tau$ is a doubly stochastic random time with hazard-rate process $(\gamma_t)$."
+
+### 36.11.2 Algorithm: Simulating a Single Default Time
+
+$$\boxed{\text{Algorithm: Threshold Simulation for Default Time}}$$
+
+**Input:** Hazard rate function $\lambda(t)$ (or piecewise constant hazards $\lambda_1, \lambda_2, \ldots$)
+
+**Output:** Simulated default time $\tau$
+
+1. **Draw** $E \sim \text{Exponential}(1)$ (equivalently, $E = -\ln(U)$ where $U \sim \text{Uniform}(0,1)$)
+2. **Compute** cumulative hazard function $H(t) = \int_0^t \lambda(s) ds$
+3. **Solve** $H(\tau) = E$ for $\tau$
+
+**For constant hazard $\lambda$:**
+$$\tau = \frac{E}{\lambda}$$
+
+**For piecewise constant hazards:**
+Find the interval containing $\tau$ by searching:
+- If $E \leq H(t_1) = \lambda_1 t_1$: $\tau = E/\lambda_1$
+- If $H(t_1) < E \leq H(t_2)$: $\tau = t_1 + (E - H(t_1))/\lambda_2$
+- Continue...
+
+### 36.11.3 Worked Example: Constant Hazard
+
+**Given:** $\lambda = 0.02$ (2%/year)
+**Draw:** $E = 0.8$ (example exponential sample)
+
+**Compute:**
+$$\tau = \frac{E}{\lambda} = \frac{0.8}{0.02} = 40 \text{ years}$$
+
+**Interpretation:** This simulated path shows the credit surviving 40 years before default.
+
+### 36.11.4 Worked Example: Piecewise Hazard
+
+**Given:** $\lambda_1 = 0.01$ for $[0,2)$, $\lambda_2 = 0.03$ for $[2, \infty)$
+**Draw:** $E = 0.15$
+
+**Step 1:** Compute $H(2) = \lambda_1 \times 2 = 0.02$
+
+**Step 2:** Check if $E \leq H(2)$: Is $0.15 \leq 0.02$? No.
+
+**Step 3:** Default occurs after $t_1 = 2$:
+$$\tau = 2 + \frac{E - H(2)}{\lambda_2} = 2 + \frac{0.15 - 0.02}{0.03} = 2 + 4.33 = 6.33 \text{ years}$$
+
+### 36.11.5 Connection to CVA and Portfolio Credit
+
+This simulation method is the foundation for:
+
+- **CVA Monte Carlo:** Simulate counterparty default time $\tau$, compute exposure at default, average over paths
+- **Portfolio credit risk:** Simulate correlated default times for all names, compute portfolio loss distribution
+- **Stress testing:** Condition on elevated hazard rates, re-run simulations
+
+McNeil provides multivariate extensions (Algorithm 9.34) for simulating multiple correlated default times, which is essential for CDO pricing and portfolio credit risk.
+
+---
+
+## 36.12 Cox Processes and Stochastic Hazard Rates
+
+### 36.12.1 When Hazard Rates Are Random
+
+In basic reduced-form models, $\lambda(t)$ is a deterministic function calibrated to market data. But in reality, hazard rates change randomly over time as credit conditions evolve.
+
+A **Cox process** (or doubly stochastic process) extends the framework to allow $\lambda(t)$ to be itself a stochastic process. McNeil provides the formal definition:
+
+**Definition (McNeil 9.11):** A random time $\tau$ is called **doubly stochastic** with respect to background filtration $(\mathcal{F}_t)$ if $\tau$ admits the conditional hazard-rate process $(\gamma_t)$ and:
+$$\Pr(\tau > t \mid \mathcal{F}_\infty) = \exp\left(-\int_0^t \gamma_s \, ds\right)$$
+
+### 36.12.2 Why Stochastic Hazard Matters
+
+**Correlation through common factors:**
+
+If multiple credits share a common factor driving their hazards, their defaults become correlated. For example:
+- Recession hits → all corporate hazard rates increase → defaults cluster
+
+This is how reduced-form models capture default correlation for portfolio credit products (CDOs, index tranches).
+
+**Time-varying credit quality:**
+
+A company's hazard rate might jump when:
+- Earnings disappoint
+- Leverage increases
+- Credit rating is downgraded
+
+Modeling these dynamics requires stochastic hazard rates.
+
+### 36.12.3 Practical Implications
+
+For **single-name CDS pricing**, deterministic hazard rates (calibrated daily to market spreads) are sufficient—we mark to market, not mark to model.
+
+For **portfolio credit risk**, **CVA with wrong-way risk**, and **options on credit spreads**, stochastic hazard matters. McNeil notes that the threshold simulation method extends naturally: simulate both the factor process and the hazard path, then apply the same $\tau = H^{-1}(E)$ formula.
+
+> **Practitioner Note:** Most single-name CDS desks use deterministic hazard curves. Stochastic hazard enters when you need:
+> - Default correlation (portfolio products)
+> - Wrong-way risk (CVA where exposure and default are correlated)
+> - Credit spread options (volatility of hazard matters)
+>
+> If you're just pricing vanilla CDS, deterministic hazard is the market standard.
+
+---
+
+## 36.13 Worked Examples
 
 ### Example 36.1: Constant Hazard → Survival Curve
 
@@ -617,9 +1035,35 @@ Holding spread fixed at $S = 120$ bp, vary recovery:
 
 ---
 
-## 36.10 Practical Notes
+### Example 36.9: Default Time Simulation
 
-### Common Pitfalls
+**Given:** $\lambda = 0.03$ (3%/year constant), Draw $E = 1.5$ from Exponential(1)
+
+**Compute default time:**
+$$\tau = \frac{E}{\lambda} = \frac{1.5}{0.03} = 50 \text{ years}$$
+
+This path shows long survival; the credit doesn't default for 50 years.
+
+---
+
+### Example 36.10: Risk-Neutral vs Real-World Comparison
+
+**Given (from Hull Table 24.2):** Baa credit
+
+| Measure | Hazard Rate | 5-Year Survival | 5-Year PD |
+|---------|-------------|-----------------|-----------|
+| Historical (real-world) | 0.47%/year | $e^{-0.0235} = 97.7\%$ | 2.3% |
+| Spread-implied (risk-neutral) | 2.20%/year | $e^{-0.11} = 89.6\%$ | 10.4% |
+
+**Ratio:** 2.20 / 0.47 = 4.7×
+
+The CDS market prices Baa credit as if it's 4.7× more likely to default than historical experience suggests. The difference is risk premium—compensation for bearing credit risk, especially during economic stress.
+
+---
+
+## 36.14 Practical Notes
+
+### 36.14.1 Common Pitfalls
 
 **Mixing measures:** Using spread-implied (risk-neutral) hazard rates in a VaR calculation, or using historical (real-world) default rates to price a CDS. Keep the measures consistent with their intended use.
 
@@ -629,7 +1073,7 @@ Holding spread fixed at $S = 120$ bp, vary recovery:
 
 **Accrued premium:** The credit triangle assumes continuous premium. Actual CDS pay quarterly with accrued premium on default. O'Kane shows the accrued-premium effect is quadratic in spread: higher spreads make the approximation less accurate.
 
-### Implementation Notes
+### 36.14.2 Implementation Notes
 
 **Numerical stability:** When $Q(t) \approx 1$, work with $H(t) = -\ln Q(t)$ to avoid catastrophic cancellation. When $Q(t)$ is very small (distressed credits), track $H(t)$ and exponentiate only when needed for final output.
 
@@ -637,7 +1081,7 @@ Holding spread fixed at $S = 120$ bp, vary recovery:
 
 **Arbitrage detection:** O'Kane emphasizes: "The no-arbitrage constraint is that the forward default rate $h(t)$ has to be positive." In other words, survival probabilities must be monotonically non-increasing. If your bootstrapped curve violates this—$Q(t_{i+1}) > Q(t_i)$—there's an arbitrage or data error in your inputs.
 
-### Verification Tests
+### 36.14.3 Verification Tests
 
 Before trusting any survival curve, run these checks:
 
@@ -659,8 +1103,11 @@ Before trusting any survival curve, run these checks:
 6. **Default density** is $f(t) = \lambda(t)Q(t)$—used for weighting protection payments
 7. **Interval default probability** is $\Pr(t_1 < \tau \leq t_2) = Q(t_1) - Q(t_2)$
 8. Practitioners use **piecewise-constant hazards** for curve construction and bootstrapping
-9. Spread-implied hazards are **risk-neutral**; historical rates are **real-world**—risk-neutral hazards are typically 5–15× higher
+9. Spread-implied hazards are **risk-neutral** (typically 5-15× higher than real-world); historical rates are **real-world**
 10. The **credit triangle** $S = \lambda(1-R)$ provides intuition but requires simplifying assumptions
+11. **Curve shapes** signal credit quality: upward-sloping (safe now), inverted (distressed), flat (transitional)
+12. **Arbitrage bounds** constrain how inverted curves can get
+13. **Threshold simulation** ($\tau = H^{-1}(E)$ where $E \sim \text{Exp}(1)$) enables Monte Carlo for credit
 
 ---
 
@@ -676,6 +1123,8 @@ Before trusting any survival curve, run these checks:
 | Risk-neutral hazard | Implied from spreads | Used for derivatives pricing |
 | Real-world hazard | From historical defaults | Used for risk management and capital |
 | Piecewise-constant hazard | $\lambda(t) = \lambda_i$ on $[t_{i-1}, t_i)$ | Industry standard for curve construction |
+| Inverted curve | Short spreads > long spreads | Signals distressed credit; near-term survival uncertain |
+| Threshold simulation | $\tau = H^{-1}(E)$, $E \sim \text{Exp}(1)$ | Monte Carlo method for default times |
 
 ---
 
@@ -730,12 +1179,20 @@ Before trusting any survival curve, run these checks:
 | 28 | When is constant hazard assumption appropriate? | Flat spread curves; quick approximations |
 | 29 | What is $H(t)$ useful for numerically? | Stability; work with $H = -\ln Q$ when $Q \approx 1$ |
 | 30 | Why does recovery assumption matter for implied hazard? | $\lambda = S/(1-R)$; higher $R$ means higher implied $\lambda$ |
+| 31 | What does an inverted credit curve signal? | Distressed credit; high near-term default risk, lower long-term if survives |
+| 32 | What does an upward-sloping credit curve signal? | Investment grade; safe today, uncertain in long term |
+| 33 | How to simulate a default time from survival curve? | Draw $E \sim \text{Exp}(1)$, set $\tau = H^{-1}(E)$ |
+| 34 | What constrains how inverted a curve can be? | No-arbitrage: $\lambda(t) \geq 0$; implies bounds on spread decline rate |
+| 35 | Spread 500bp, R=40% → hazard? | $\lambda = 0.05/0.60 = 8.33\%$/year |
+| 36 | Hazard 2%, 5 years → survival probability? | $Q(5) = e^{-0.10} = 90.5\%$ |
+| 37 | What hazard rate range is typical for BBB credits? | Approximately 1% – 3% per year (risk-neutral) |
+| 38 | What is a Cox process / doubly stochastic default? | A model where the hazard rate $\lambda(t)$ is itself random |
 
 ---
 
 ## Mini Problem Set
 
-*Solutions provided for questions 1–8.*
+*Solutions provided for questions 1–10.*
 
 ---
 
@@ -787,35 +1244,55 @@ Before trusting any survival curve, run these checks:
 
 ---
 
-**9.** Explain why a short-maturity credit can trade at non-zero spread even when one-day default probability is tiny.
+**9.** Given $E = 1.2$ from Exponential(1) and $\lambda = 0.04$, compute simulated default time.
+
+**Solution:** $\tau = E/\lambda = 1.2/0.04 = 30$ years.
 
 ---
 
-**10.** What happens to $\lambda(t)$ and $Q(t)$ at knot points in a piecewise-constant hazard curve?
+**10.** A Baa credit has historical hazard 0.47%/year but spread-implied hazard 2.20%/year. What is the ratio, and what does it represent?
+
+**Solution:** Ratio = 2.20/0.47 = 4.7×. This represents the credit risk premium—the multiple by which the market prices credit risk above actuarial expected loss, compensating for systematic risk, liquidity, and uncertainty.
 
 ---
 
-**11.** Give two reasons a bond spread may differ from a CDS spread (the CDS-bond basis).
+**11.** Explain why a short-maturity credit can trade at non-zero spread even when one-day default probability is tiny.
 
 ---
 
-**12.** If you observe different survival curves from bonds vs CDS for the same name, list three diagnostics you would run.
+**12.** What happens to $\lambda(t)$ and $Q(t)$ at knot points in a piecewise-constant hazard curve?
 
 ---
 
-**13.** Derive $\lambda(t) = -\frac{d}{dt}\ln Q(t)$ from $Q(t) = e^{-H(t)}$.
+**13.** Give two reasons a bond spread may differ from a CDS spread (the CDS-bond basis).
 
 ---
 
-**14.** If $Q(10) = 0.60$, what is the implied 10-year average hazard? Interpret the result.
+**14.** If you observe different survival curves from bonds vs CDS for the same name, list three diagnostics you would run.
 
 ---
 
-**15.** Conceptually describe how risk-neutral hazard rates enter CVA-style expected exposure weighting.
+**15.** Derive $\lambda(t) = -\frac{d}{dt}\ln Q(t)$ from $Q(t) = e^{-H(t)}$.
 
 ---
 
-**16.** Explain why recovery assumptions materially change implied hazards from a given spread.
+**16.** If $Q(10) = 0.60$, what is the implied 10-year average hazard? Interpret the result.
+
+---
+
+**17.** Given an inverted curve with 6M spread = 800bp, what is the approximate arbitrage lower bound for the 1Y spread?
+
+---
+
+**18.** A credit has piecewise hazards: 2% for [0,2), 5% for [2,5). Draw $E = 0.25$. Compute $\tau$.
+
+---
+
+**19.** Show why a curve with 6M=800bp and 1Y=100bp violates no-arbitrage using O'Kane's approximation.
+
+---
+
+**20.** Conceptually describe how risk-neutral hazard rates enter CVA-style expected exposure weighting.
 
 ---
 
@@ -832,16 +1309,31 @@ Before trusting any survival curve, run these checks:
 | Structural models: "credit spread tends to zero as $T-t \to 0$" | O'Kane Ch 3.4, explicit statement |
 | Credit triangle $S = \lambda(1-R)$ derivation | O'Kane Ch 3.10 |
 | Risk-neutral vs real-world hazard distinction | Hull Ch 24.5, O'Kane Ch 3.11 |
+| Hull Table 24.2: historical vs spread-implied hazard ratios | Hull Ch 24, Table 24.2 |
 | Analogy between discount factors and survival probabilities (table) | O'Kane Ch 7, explicit table |
 | Piecewise constant hazard interpolation | O'Kane Ch 7.4 |
 | No-arbitrage requires $\lambda(t) \geq 0$ | O'Kane Ch 7.7 |
-| Risk-neutral hazards exceed historical rates by factors of 5–15× | Hull Table 24.2 |
+| Three canonical curve shapes (flat, upward, inverted) | O'Kane Ch 7.2, Table 7.2 |
+| Arbitrage bounds on inverted curves | O'Kane Ch 7.7, Table 7.3 |
 | Expected default time for constant hazard is $1/\lambda$ | O'Kane Ch 3.9.3 |
 | Default density $f(t) = \lambda(t)Q(t)$ | O'Kane pricing derivations, standard probability theory |
 | Independence assumption is "market standard" for CDS pricing | O'Kane Ch 6.3 |
 | CDS pricing follows Duffie (1998), Hull-White (2000a), O'Kane-Turnbull (2003) | O'Kane Ch 6.4 |
+| Doubly stochastic (Cox process) definition | McNeil Ch 9.2.3, Definition 9.11 |
+| Threshold simulation algorithm | McNeil Ch 9, Lemma 9.12, Algorithm 9.14 |
+| Multivariate threshold simulation | McNeil Ch 9, Algorithm 9.34 |
 
-### (B) Reasoned Inference — Derived from (A)
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| "Desk Reality" boxes on measure confusion, curve interpretation | Extended from O'Kane/Hull concepts with practical trading context |
+| Typical hazard rate ranges by rating | Based on Hull Table 24.2 with interpolation for intermediate ratings |
+| Decision tree for when to use constant hazard | Synthesized from O'Kane guidance with practical formatting |
+| Back-of-envelope multipliers for credit triangle | Derived from credit triangle formula with standard recovery assumptions |
+| Simulation worked examples | Constructed to illustrate McNeil algorithms with specific numbers |
+
+### (C) Reasoned Inference — Derived from (A)
 
 | Fact | Derivation |
 |------|------------|
@@ -850,12 +1342,13 @@ Before trusting any survival curve, run these checks:
 | Cumulative hazard $H(t)$ properties | Integration of hazard rate definition |
 | Unit checks for all formulas | Dimensional analysis applied to definitions |
 | Memoryless property verification | Direct calculation from exponential survival formula |
+| Half-life formula $t_{1/2} = \ln(2)/\lambda$ | Standard exponential decay derivation |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Item | Uncertainty |
 |------|-------------|
 | Recovery convention (par vs market-value vs face value) | Multiple conventions exist; not specified without contract/ISDA details |
 | Exact spread component decomposition (risk premium, liquidity premium, etc.) | O'Kane mentions components qualitatively; exact magnitudes are market-specific and time-varying |
-| Negative hazard rates | Standard models require $\lambda(t) \geq 0$; I'm not sure about alternative models that might permit negative hazards without additional source verification |
+| Typical hazard ranges for specific ratings in current markets | I'm not sure about current market levels; values provided are illustrative based on historical patterns |
 | Precise CDS-bond basis drivers | Multiple factors cited in sources; relative importance varies by name and market conditions |

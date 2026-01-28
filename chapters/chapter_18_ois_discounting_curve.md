@@ -27,9 +27,10 @@ This chapter guides you through constructing that discounting backbone: the **OI
 5. **Interpolation** (Section 18.5): The art of filling the gaps between market quotes, and the implications for forward rates.
 6. **Locality** (Section 18.6): How quote bumps propagate through the curve.
 7. **Valuation Impact** (Section 18.7): Demonstrating the P&L difference between OIS and LIBOR discounting.
-8. **Practical Considerations** (Section 18.8): Turn-of-year effects and implementation pitfalls.
+8. **Practical Considerations** (Section 18.8): Turn-of-year effects, negative rates, collateral choices, margin costs, and the operational lifecycle.
+9. **The SOFR Transition** (Section 18.9): How the market moved from Fed Funds to SOFR, including the historic October 2020 "Big Bang."
 
-Mastering the OIS curve is no longer optional. It is the baseline for all modern derivatives pricing, the foundation upon which every other curve (LIBOR, SOFR, BSBY) is built.
+Mastering the OIS curve is no longer optional. It is the baseline for all modern derivatives pricing, the foundation upon which every other curve (LIBOR, SOFR projection, BSBY) is built.
 
 ---
 
@@ -96,7 +97,71 @@ This leads to the **separation of discount and forward curves** (discussed in de
 > 1.  **Project** flows using LIBOR (because the contract says so).
 > 2.  **Discount** flows using OIS (because the CSA collateral earns OIS).
 
-> **Practitioner Note**: While we often call this the "risk-free" curve, practitioners know it as the "collateral curve." It reflects the specific terms of the Credit Support Annex (CSA). A trade collateralized in USD cash uses the USD OIS curve; a trade collateralized in EUR uses the €STR curve. The choice of discounting curve is determined by the CSA, not by the underlying instrument.
+> **Practitioner Note:** While we often call this the "risk-free" curve, practitioners know it as the "collateral curve." It reflects the specific terms of the Credit Support Annex (CSA). A trade collateralized in USD cash uses the USD OIS curve; a trade collateralized in EUR uses the €STR curve. The choice of discounting curve is determined by the CSA, not by the underlying instrument.
+
+### 18.1.4 SOFR-Specific Conventions
+
+With the transition from Fed Funds to SOFR as the primary USD overnight rate, practitioners must understand SOFR-specific conventions. Hull notes that "the secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States."
+
+**Key SOFR OIS conventions for USD:**
+
+| Convention | SOFR OIS |
+|------------|----------|
+| Day Count | ACT/360 |
+| Compounding | Daily, geometric |
+| Payment Frequency | Quarterly (>1Y), single exchange (≤1Y) |
+| Payment Lag | Typically 2 business days after period end |
+| Lookback | 2-day observation shift (for some contracts) |
+| Holiday Calendar | USNY |
+
+> **Desk Reality: "Observation Shift" vs "Lockout"**
+>
+> SOFR swaps can use different methods to handle the "not-known-until-the-end" problem:
+> - **Observation Shift (most common):** Each daily rate is applied with a 2-day lookback—e.g., Friday's rate is used for Wednesday's accrual. This ensures the payment amount is known 2 days before payment.
+> - **Lockout Period:** The last few days of the period use the same rate (the rate observed N days before period end). Simpler but introduces basis risk.
+>
+> Most cleared SOFR swaps use the observation shift method.
+
+**Comparison with Other Overnight Indices:**
+
+| Index | Currency | Day Count | Compounding | Secured? |
+|-------|----------|-----------|-------------|----------|
+| SOFR | USD | ACT/360 | Geometric | Yes (repo) |
+| Fed Funds | USD | ACT/360 | Geometric | No |
+| €STR | EUR | ACT/360 | Geometric | No |
+| SONIA | GBP | ACT/365 | Geometric | No |
+| TONAR | JPY | ACT/365 | Geometric | No |
+
+### 18.1.5 Worked Example: Computing a SOFR OIS Floating Payment
+
+**Setup:** Consider a 3-month SOFR OIS for the period January 15, 2025 to April 15, 2025. Notional is $100 million. We use a simplified schedule with 5 representative rates:
+
+| Date | SOFR Rate | Days Applied |
+|------|-----------|--------------|
+| Jan 15-16 | 4.30% | 1 |
+| Jan 16-17 | 4.32% | 1 |
+| ... | ... | ... |
+| (assume average 4.35%) | | 90 total days |
+
+**Step 1: Daily Compounding**
+
+The floating leg compounded rate is approximately:
+
+$$\bar{L} = \left[\prod_{i=1}^{90}\left(1 + r_i \times \frac{d_i}{360}\right) - 1\right] \times \frac{360}{90}$$
+
+For illustration, if all rates were exactly 4.35%:
+
+$$\bar{L} \approx \left[\left(1 + \frac{0.0435}{360}\right)^{90} - 1\right] \times 4 = 4.372\%$$
+
+The compounding effect adds ~2bp over 3 months.
+
+**Step 2: Net Payment Calculation**
+
+If the fixed rate is 4.40%, the floating receiver pays:
+
+$$\text{Net Payment} = \$100\text{mm} \times \frac{90}{360} \times (4.40\% - 4.372\%) = \$7,000$$
+
+**Sanity Check:** Payment is small because rates are close. At 90/360 = 0.25 year fraction, each basis point is worth $2,500 per $100mm.
 
 ---
 
@@ -107,6 +172,8 @@ This leads to the **separation of discount and forward curves** (discussed in de
 To build the curve, we rely on the fundamental pricing equation: at inception, a par swap has a present value of zero. This implies the present value of the fixed leg equals the present value of the floating leg.
 
 Hull provides the key insight that allows us to treat the floating leg simply. By adding notional principal exchanges (which net to zero), we can view the swap as an exchange of bonds: "A key point is that the floating-rate bond... is worth [$N$]. This is because it provides the payments necessary to service [$N$] of borrowings at overnight rates."
+
+**The Economic Intuition:** Imagine you have $1 and invest it overnight, rolling the investment daily at the overnight rate. At the end of the period, you receive $1 plus interest—but if you were borrowing at the same overnight rate, you'd owe exactly the same amount. The investment self-finances. This is why a floating-rate bond paying the overnight rate trades at par.
 
 A par OIS can thus be conceptualized as two bonds:
 1. **Fixed Rate Bond**: Pays coupons $k$ at times $T_i$.
@@ -119,6 +186,10 @@ $$\boxed{1 = k\sum_{i=1}^{N} \tau_i P(0,T_i) + P(0,T_N)}$$
 Here, the left side (1) represents the floating leg value, and the right side represents the fixed leg coupons plus the return of notional at maturity $T_N$.
 
 As Hull confirms: "the OIS rate is the interest rate on a fixed-rate bond that is worth par."
+
+> **Preview: Multi-Curve Complication**
+>
+> This elegant "floating = par" result depends on the floating rate being the same as the discount rate. In Chapter 19, we'll see that when the floating rate is LIBOR (or a SOFR projection curve different from the discount curve), this relationship breaks down—the floating leg no longer automatically equals par.
 
 ### 18.2.2 The Annuity Factor
 
@@ -147,13 +218,17 @@ We cannot solve for all discount factors simultaneously because the equation for
 As Hull describes, "OIS rates with maturities one year or less, because they lead to just one exchange, have a straightforward interpretation. They provide the risk-free zero rates that are equivalent to the underlying overnight rates."
 
 **Step 1: Short End (Zero Rates)**
+
 For short-dated OIS (e.g., 1 month, 3 months), there is only one payment. The quoted rate $R$ acts as a simple zero rate:
 
 $$P(0,T) = \frac{1}{1 + R \cdot T}$$
 
+where $T$ is expressed as a year fraction using the appropriate day count (ACT/360 for USD).
+
 Hull's Table 7.3 provides an example: "The OIS rates out to one year define zero rates in a direct way."
 
 **Step 2: Long End (Iterative Solve)**
+
 For an $N$-year swap, assuming we have already found the discount factors $P(0,T_1) \dots P(0,T_{N-1})$, we isolate the single unknown $P(0,T_N)$ in the par equation:
 
 $$1 = k_N \left(\sum_{i=1}^{N-1} \tau_i P(0,T_i) + \tau_N P(0,T_N)\right) + P(0,T_N)$$
@@ -169,6 +244,7 @@ As Hull explains, for OIS rates with maturities greater than a year, "the zero c
 Let's apply this to a concrete set of market quotes. Assume annual payments ($\tau=1$) for simplicity.
 
 **Market Quotes:**
+
 | Maturity | Par Rate |
 |----------|----------|
 | 1Y | 2.50% |
@@ -178,21 +254,25 @@ Let's apply this to a concrete set of market quotes. Assume annual payments ($\t
 | 5Y | 3.20% |
 
 **First Calculation (1Y):**
+
 The 1Y instrument has a single flow. We solve directly:
 
 $$P(0,1) = \frac{1}{1 + 0.025} = 0.975610$$
 
 **Second Calculation (2Y):**
+
 Using the 1Y discount factor we just found, we solve for the 2Y factor. The 2.70% swap pays coupons at year 1 and year 2.
 
 $$P(0,2) = \frac{1 - 0.027(0.975610)}{1 + 0.027} = \frac{0.973659}{1.027} = 0.948061$$
 
 **Third Calculation (3Y):**
+
 Now utilizing both previous factors, we solve for the 3Y factor. The 2.90% swap pays at years 1, 2, and 3.
 
 $$P(0,3) = \frac{1 - 0.029(0.975610 + 0.948061)}{1 + 0.029} = \frac{0.944214}{1.029} = 0.917603$$
 
 **Continuing the Chain (4Y & 5Y):**
+
 By repeating this pattern:
 
 | Maturity | Discount Factor |
@@ -201,6 +281,17 @@ By repeating this pattern:
 | 5Y | 0.853408 |
 
 The result is a consistent curve where every input instrument reprices exactly to par.
+
+### 18.3.3 Using Futures as Inputs
+
+In practice, the short end of the OIS curve (up to 2 years) is often built from SOFR futures rather than OIS swaps, because futures are more liquid. Hull discusses both 1-month and 3-month SOFR futures:
+
+- **1-Month SOFR Futures:** Settlement based on arithmetic average of daily SOFR over the contract month.
+- **3-Month SOFR Futures:** Settlement based on geometric compounding of daily SOFR over the quarter.
+
+> **Desk Reality: Convexity Adjustment**
+>
+> When using futures rates to build a swap curve, a convexity adjustment is needed because futures settle daily (linear payoff) while swaps do not. Hull notes that the adjustment depends on "an assumption about the underlying interest rate model." For SOFR futures, the adjustment is typically small (a few basis points for short maturities) but grows with maturity. See Chapter 24 for the full treatment.
 
 ---
 
@@ -285,6 +376,32 @@ Andersen and Piterbarg catalog a hierarchy of smoothness:
 
 For trading systems, the piecewise flat forward approach is often preferred despite its lack of smoothness, because it produces predictable, local risk behavior.
 
+> **Desk Reality: ASCII Visualization of Forward Rates**
+>
+> Under log-linear interpolation (piecewise flat forwards):
+> ```
+> Forward Rate
+> |        ___________
+> |  _____/           \______
+> | /                        \___
+> |/                             \
+> +-------------------------------- Time
+>    1Y  2Y  3Y  5Y  10Y     30Y
+> ```
+>
+> Under cubic spline (smooth but can oscillate):
+> ```
+> Forward Rate
+> |      /\
+> |     /  \___
+> |    /       \      ___
+> |   /         \____/
+> |  /
+> +-------------------------------- Time
+>    1Y  2Y  3Y  5Y  10Y     30Y
+> ```
+> The oscillations in the spline can create phantom forward rate humps.
+
 ---
 
 ## 18.6 Locality: How Quote Bumps Propagate
@@ -344,13 +461,41 @@ A standard smooth curve will miss this spike. Andersen & Piterbarg (Vol 1, Secti
 
 $$f(t) = f_{smooth}(t) + \varepsilon_{TOY}(t)$$
 
+Specifically, the forward curve is decomposed as:
+
+$$\boxed{f(t) = \varepsilon_f(t) + f^*(t)}$$
+
+where $\varepsilon_f(t)$ is user-specified (and contains discontinuities around special dates) and $f^*(t)$ is the smooth curve to be calibrated.
+
 Practitioners explicitly mark a "turn" spread (e.g., +20bps for Dec 31 to Jan 2) to ensure that short-dated swaps crossing the year-end price correctly. Without this, your curve calibration would force the "smooth" rate up for the entire surrounding month to match the price, distorting the valuation of everything else.
+
+> **Desk Reality: Typical TOY Spreads**
+>
+> Turn spreads vary significantly by year based on:
+> - Regulatory capital requirements (higher capital = larger turn)
+> - Excess reserves in the banking system
+> - Fed policy actions
+>
+> Historical examples:
+> - 2018 year-end: ~25bp turn in Fed Funds
+> - 2019 year-end (repo spike): ~50bp+ turn
+> - 2020-2022 (excess reserves): ~5bp turn (barely visible)
+>
+> Similar effects occur around Fed meeting dates when rate changes are anticipated.
 
 ### 18.8.2 Fed Funds vs SOFR
 
 The transition from Fed Funds to SOFR as the primary USD overnight rate has implications for curve construction. Tuckman notes that "the GC rate is typically below the fed funds target rate because loans through repurchase agreement are effectively secured by collateral, while loans in the fed funds market are not."
 
 SOFR, being based on Treasury repo transactions, is generally lower and less volatile than Fed Funds. Practitioners building OIS curves must be clear about which overnight rate their curve references.
+
+| Characteristic | Fed Funds | SOFR |
+|----------------|-----------|------|
+| Security | Unsecured | Secured (Treasury repo) |
+| Typical Level | Higher | Lower (by ~5-20bp historically) |
+| Volatility | Lower | Can spike at quarter-end |
+| Volume | ~$80 billion/day | ~$1 trillion/day |
+| Use Case | Legacy swaps | New swaps (post-2021) |
 
 ### 18.8.3 Implementation Checklist
 
@@ -364,6 +509,228 @@ SOFR, being based on Treasury repo transactions, is generally lower and less vol
 
 Using the wrong day count is the most common "rookie error" in curve construction.
 
+### 18.8.4 Negative Rates: Operations and Models
+
+Negative interest rates became a feature of financial markets in 2014. Hull notes that "by the end of the first half of 2016, interest rates were negative for the Swedish krona, Danish krone, Japanese yen, euro, and Swiss franc. It was then estimated that more than $10 trillion of government bonds worldwide had negative yields."
+
+**Operational Implications:**
+
+When OIS rates go negative, discount factors exceed 1. Mathematically:
+
+$$P(0,T) = \frac{1}{1 + R \cdot T} > 1 \text{ when } R < 0$$
+
+This is mathematically valid—receiving $1 in the future is worth more than $1 today if you'd have to pay to store cash.
+
+> **Desk Reality: System Limits and Negative Rates**
+>
+> Many legacy trading systems were built assuming rates cannot go negative:
+> - Discount factor bounds: $0 < P(T) < 1$ (fails with negative rates)
+> - Log-rate calculations: $\ln(r)$ fails when $r < 0$
+> - Square root volatility models: $\sigma\sqrt{r}$ fails when $r < 0$
+>
+> When EUR and CHF rates went negative, many systems required emergency patches.
+
+**Modeling Implications:**
+
+For rate options (caps, floors, swaptions), negative rates broke the standard Black-76 model, which assumes rates are lognormal (and hence always positive). Hull describes two fixes:
+
+1. **Shifted Lognormal Model:** Assume $r + \alpha$ is lognormal for some shift $\alpha > 0$. Options are priced using Black-76 with $F_k \rightarrow F_k + \alpha$ and $K \rightarrow K + \alpha$.
+
+2. **Bachelier (Normal) Model:** Assume rates follow arithmetic Brownian motion: $dF = \sigma^* dz$. Hull notes this "leads to a normal rather than lognormal distribution for the underlying rate and so allows rates to become negative."
+
+The Bachelier caplet formula is:
+
+$$\text{Caplet} = L \delta_k P(0, t_{k+1})\left[(F_k - R_K)N(d) + \sigma_k^* \sqrt{t_k} N'(d)\right]$$
+
+where $d = \frac{F_k - R_K}{\sigma_k^* \sqrt{t_k}}$.
+
+> **Practitioner Note:** When quotes shifted from Black vol to normal vol, the numbers looked very different. Hull notes that "when the forward interest rate is 3%, $\sigma_k$ [Black vol] might be 33% while $\sigma_k^*$ [normal vol] is about 1%." Don't confuse the two!
+
+### 18.8.5 Multi-Currency Collateral and the Collateral Option
+
+Hull notes in a footnote that "a bank can choose which currency to post margin in and can in some circumstances post securities such as Treasury bills instead of cash." This creates an embedded option that affects the effective discount rate.
+
+**The Collateral Option Problem:**
+
+Many CSAs allow counterparties to post collateral in multiple currencies (e.g., USD, EUR, or GBP). The collateral poster will naturally choose the "cheapest" currency—the one with the lowest borrowing cost.
+
+> **Practitioner Note: The "Cheapest-to-Deliver" Collateral**
+>
+> The collateral choice problem is analogous to the cheapest-to-deliver option in Treasury futures. Just as a futures seller delivers the cheapest eligible bond, a margin poster posts the cheapest eligible currency.
+>
+> **Example:**
+> - You owe variation margin on a USD swap
+> - Your CSA allows USD or EUR collateral
+> - USD OIS is 5.25%; €STR is 3.75%
+> - EUR is cheaper to borrow → post EUR
+>
+> The effective discount rate for this trade is no longer simply "USD OIS" but something between USD OIS and €STR, depending on the optionality.
+
+**Simplified Pricing Approach:**
+
+For a first approximation, use the lowest rate among allowed collateral currencies:
+
+$$r_{eff} = \min(r_{USD}, r_{EUR}, r_{GBP}, ...)$$
+
+More sophisticated approaches model the option explicitly, but this adds significant complexity.
+
+> **Desk Reality: When the Collateral Option Matters**
+>
+> The collateral option is most valuable when:
+> - Large rate differentials between eligible currencies
+> - Long-dated trades (option value accumulates)
+> - One-directional MTM (always posting or always receiving)
+>
+> For vanilla 5-year swaps with typical CSAs, the impact might be 1-5bp of NPV. For 30-year cross-currency swaps, it can be much larger.
+
+### 18.8.6 Initial Margin and MVA
+
+The discussion so far has focused on **variation margin (VM)**—collateral that changes daily to reflect the mark-to-market value. There is also **initial margin (IM)**—collateral posted at trade inception (and potentially adjusted over time) to protect against potential future exposure.
+
+Hull explains the distinction: variation margin is rehypothecated (the receiver can use it), while initial margin typically is not. This creates different economic implications:
+
+- **VM can be rehypothecated** → Receiver earns OIS on it → This is why OIS discounting works
+- **IM cannot be rehypothecated** → Capital drag → Creates MVA
+
+**Margin Valuation Adjustment (MVA):**
+
+Hull defines MVA as an "adjustment to the value of a derivative to reflect the cost of funds tied up in margin accounts." The cost arises because:
+
+1. Initial margin must be funded (you borrow to post it)
+2. Interest received on IM is typically below your funding cost
+3. The spread represents a cost that reduces trade value
+
+A simplified MVA formula:
+
+$$\boxed{\text{MVA} = \int_0^T E[IM(t)] \cdot s_{fund} \cdot df(t) \, dt}$$
+
+where $E[IM(t)]$ is expected initial margin at time $t$, $s_{fund}$ is the funding spread (your cost of funds minus the rate received on margin), and $df(t)$ is the discount factor.
+
+> **Desk Reality: MVA in Practice**
+>
+> MVA is typically quoted in two ways:
+> - **Upfront cost:** "This trade has 5bp of MVA" (5bp of notional as day-one cost)
+> - **Running spread:** "MVA is 0.5bp running" (0.5bp per year)
+>
+> For a 10-year $100mm swap with 5bp upfront MVA, the cost is $50,000. This comes directly out of the trade's profit margin.
+>
+> Hull notes that there is debate about how to calculate the funding cost: "financial economists work with marginal funding costs while the financial engineers work with average costs." The difference can be significant—120bp vs 30bp in Hull's example.
+
+### 18.8.7 The Collateral Lifecycle and Price Alignment Interest (PAI)
+
+To truly understand why OIS discounting works, you need to understand the operational lifecycle of collateral and how **Price Alignment Interest (PAI)** creates the economic link.
+
+> **Practitioner Note: The Collateral Lifecycle**
+>
+> **Day 0: Trade Execution**
+> - You enter a swap with counterparty
+> - MTM is zero; no margin required
+>
+> **Day 1: First MTM**
+> - Swap moves in your favor: MTM = +$1,000,000
+> - Counterparty owes you variation margin
+>
+> **Day 2: Margin Call**
+> - Your operations team issues margin call
+> - Counterparty must post $1,000,000 cash
+>
+> **Day 3: Cash Received**
+> - You receive $1,000,000 cash collateral
+> - You invest it overnight at OIS (say, 5%)
+>
+> **Daily: PAI Accrues**
+> - You earn $1,000,000 × 5% / 360 ≈ $139 per day
+> - Under the CSA, you owe this PAI to the counterparty
+>
+> **Net Effect:**
+> - You hold cash earning 5%
+> - You pay PAI at 5%
+> - Your funding cost on this collateralized position = 0%
+>
+> **Why This Justifies OIS Discounting:**
+> - Your cost of funding a $1 future cashflow is the OIS rate
+> - Therefore, you should discount at OIS
+
+**PAI Mechanics:**
+
+Price Alignment Interest is the interest paid or received on variation margin. Under standard CSAs:
+
+- If you receive collateral: You pay PAI to the counterparty
+- If you post collateral: You receive PAI from the counterparty
+
+The PAI rate is typically the overnight rate (Fed Funds historically, now SOFR for USD).
+
+---
+
+## 18.9 The SOFR Transition and the "Big Bang"
+
+> **Practitioner Note:** This section describes the October 2020 discounting switch from Fed Funds to SOFR. This event is too recent for most textbooks but is fundamental desk knowledge. The content is based on industry knowledge at the time of the transition.
+
+### 18.9.1 Why the Switch Was Necessary
+
+For decades, USD OIS swaps referenced the Federal Funds rate. But Fed Funds has limitations:
+
+- **Thin market:** ~$80 billion daily volume vs. ~$1 trillion for repo
+- **Unsecured:** Contains bank credit risk
+- **Declining relevance:** Fed policy shifted away from targeting Fed Funds directly
+
+SOFR, launched in 2018, addressed these issues by being:
+- Based on actual Treasury repo transactions
+- Secured (nearly risk-free)
+- Supported by massive daily volume
+
+However, switching the discounting rate for trillions of dollars of existing swaps was not a simple software update.
+
+### 18.9.2 The October 2020 "Big Bang"
+
+On October 16, 2020, LCH and CME simultaneously switched their USD swap discounting from Fed Funds to SOFR. This was one of the largest risk transfer events in derivatives history.
+
+**Why the Switch Created Winners and Losers:**
+
+Consider a receiver of fixed in an existing swap:
+- Before switch: Discounted at Fed Funds (~0.08% at the time)
+- After switch: Discounted at SOFR (~0.09% at the time)
+
+A higher discount rate reduces the PV of future fixed payments. So:
+- **Fixed receivers** saw their swaps become less valuable
+- **Fixed payers** saw their swaps become more valuable
+
+> **Practitioner Note: Magnitude of the Impact**
+>
+> The Fed Funds-SOFR spread at the time was about 8-10bp (Fed Funds higher). For a typical swap book:
+> - 10-year swap: ~6 cents per $100 notional per bp of discounting change
+> - Portfolio with $100 billion 10Y equivalent: ~$60 million impact per bp
+>
+> The total wealth transfer across the market was estimated in the billions of dollars.
+
+### 18.9.3 Compensating Swaps Auction
+
+To address the wealth transfer, LCH conducted a "Compensating Swaps" auction. The basic mechanism:
+
+1. **Calculate each participant's P&L impact** from the discounting change
+2. **Create offsetting swaps** (the "compensating swaps") to neutralize the impact
+3. **Auction these swaps** to willing buyers at fair prices
+
+This allowed participants who didn't want the compensating swaps to sell them, while those who wanted the risk could buy them at market-clearing prices.
+
+### 18.9.4 Current State: SOFR as the Standard
+
+Post-October 2020, the USD derivatives market has largely transitioned to SOFR:
+
+- **Cleared swaps:** SOFR discounting is standard (LCH, CME)
+- **New OIS trades:** Reference SOFR, not Fed Funds
+- **Legacy trades:** Some still reference Fed Funds (slowly aging off)
+- **Fallback protocols:** ISDA's SOFR fallback applies to legacy LIBOR trades
+
+> **Desk Reality: "Which OIS Curve?"**
+>
+> When a trader says "OIS curve" in 2024, they mean SOFR. But be precise:
+> - "Fed Funds OIS" = legacy curve, still used for some old trades
+> - "SOFR OIS" = the standard USD discount curve
+> - "OIS discounting" generically = discount at the rate earned on collateral
+>
+> Always verify which curve a quote or risk report references.
+
 ---
 
 ## Summary
@@ -376,6 +743,10 @@ Using the wrong day count is the most common "rookie error" in curve constructio
 - **Locality protects hedging**: Changes to long-dated inputs don't affect short-dated discount factors.
 - **Valuation impact is large**: Mixing up funding curves leads to massive valuation errors.
 - **TOY overlays required**: Year-end rate spikes need explicit handling to avoid curve distortion.
+- **Negative rates are real**: EUR, CHF, JPY experienced negative rates; models shifted from Black to Bachelier.
+- **Collateral choice creates options**: Multi-currency CSAs embed optionality that affects the effective discount rate.
+- **MVA matters**: Initial margin costs reduce trade value; understanding MVA completes the "why OIS" picture.
+- **SOFR is the new standard**: The October 2020 "Big Bang" transitioned USD discounting from Fed Funds to SOFR.
 
 ---
 
@@ -391,6 +762,10 @@ Using the wrong day count is the most common "rookie error" in curve constructio
 | **Locality** | Input changes affect only $T \ge T_{input}$ | Crucial for stable hedging and risk management |
 | **TOY Effect** | Turn-of-Year rate spike | Requires a manual "overlay" to avoid distorting the smooth curve |
 | **Floating Leg = Par** | A floating bond paying the discount rate prices at par | Fundamental insight enabling par swap valuation |
+| **PAI** | Price Alignment Interest: interest on variation margin | The economic link between collateral and discounting |
+| **MVA** | Margin Valuation Adjustment | Cost of funding initial margin over trade life |
+| **Collateral Option** | Choice of which currency to post as margin | Affects effective discount rate in multi-currency CSAs |
+| **SOFR Big Bang** | October 2020 discounting switch | Established SOFR as USD discount standard |
 
 ---
 
@@ -406,6 +781,8 @@ Using the wrong day count is the most common "rookie error" in curve constructio
 | $z_a(T)$ | Annually compounded zero rate |
 | $\bar{L}_n$ | Compounded overnight rate for period $n$ |
 | $f(T)$ | Instantaneous forward rate at time $T$ |
+| $\varepsilon_f(t)$ | Forward rate overlay (for TOY effects) |
+| $s_{fund}$ | Funding spread (cost of funds minus margin rate) |
 
 ---
 
@@ -428,11 +805,11 @@ Using the wrong day count is the most common "rookie error" in curve constructio
 | 13 | What does "locality" mean in bootstrapping? | Changing an input rate only affects discount factors at or beyond that maturity. |
 | 14 | For a 1Y OIS, how do you get the discount factor from the quoted rate? | $P(0,1) = 1/(1 + R)$ since there's only one payment. |
 | 15 | What is the bootstrap formula for $P(T_N)$? | $P(T_N) = [1 - k_N \sum_{i < N} \tau_i P(T_i)] / (1 + k_N \tau_N)$. |
-| 16 | Why might spline interpolation be problematic for hedging? | Risk can "leak" to distant nodes, making hedge ratios unstable. |
-| 17 | What should the repricing error be after curve construction? | Effectively zero (< $10^{-10}$). Every input instrument must reprice exactly. |
-| 18 | What day count is commonly used for USD OIS? | ACT/360 for the floating leg. |
-| 19 | How is SOFR different from Fed Funds? | SOFR is repo-based (secured), typically lower and less volatile than unsecured Fed Funds. |
-| 20 | What is the valuation impact of using wrong discounting curve? | Potentially hundreds of basis points of NPV error on leveraged positions. |
+| 16 | What was the October 2020 "Big Bang"? | The LCH/CME switch from Fed Funds to SOFR discounting for USD derivatives. |
+| 17 | What is PAI (Price Alignment Interest)? | Interest earned/paid on variation margin, typically at the OIS rate. |
+| 18 | What is MVA? | Margin Valuation Adjustment: the cost of funding initial margin over trade life. |
+| 19 | If your CSA allows multiple currencies, what discount rate should you use? | The rate from the cheapest currency to borrow and post (the "collateral option"). |
+| 20 | What happens to discount factors when OIS rates go negative? | Discount factors exceed 1 ($P(T) > 1$), which is mathematically valid but operationally challenging. |
 
 ---
 
@@ -513,9 +890,50 @@ An OIS quotes at 5.00% (quarterly pay, 2-year maturity). At inception:
 
 ---
 
+**Problem 9** (TOY Adjustment)
+The 6-month OIS rate is 4.50% (ACT/360). You observe that rates spike 25bp over the Dec 31-Jan 2 window (3 calendar days). Assuming the period is Jan 1 to Jul 1 (181 days) and includes the TOY window:
+(a) What is the discount factor without TOY adjustment?
+(b) What is the approximate discount factor with the TOY overlay?
+
+*Solution sketch:* (a) $P = 1/(1 + 0.045 \times 181/360) = 0.9779$. (b) The TOY adds 0.25% for 3/360 year fraction = 0.00208 to effective rate, so $P \approx 1/(1 + 0.04708 \times 181/360) = 0.9769$. Difference: ~10bp in discount factor.
+
+---
+
+**Problem 10** (Negative Rates)
+The 6-month €STR OIS quotes at -0.50% (ACT/360, 182 days).
+(a) Calculate the discount factor.
+(b) Verify it exceeds 1.
+(c) What is the economic interpretation?
+
+*Solution sketch:* (a) $P = 1/(1 + (-0.005) \times 182/360) = 1/(1 - 0.00253) = 1.00254$. (b) Yes, $P > 1$. (c) Receiving €1 in 6 months is worth MORE than €1 today because holding cash costs money (you pay to store it).
+
+---
+
+**Problem 11** (Collateral Option)
+Your CSA allows posting USD or EUR collateral. Current rates:
+- USD SOFR: 5.25%
+- €STR: 3.50%
+
+You are receiving collateral on a USD-denominated 5-year swap. The counterparty will post the cheapest currency.
+(a) Which currency will they post?
+(b) What is the approximate impact on your swap value if you discount at USD SOFR vs. the effective rate?
+
+*Solution sketch:* (a) EUR is cheaper (3.50% < 5.25%), so they post EUR. (b) The effective discount rate is closer to 3.50% than 5.25%. For a 5-year swap, the ~175bp lower discount rate increases PV significantly—roughly 175bp × 4.5 duration ≈ 8% of the fixed leg value.
+
+---
+
+**Problem 12** (MVA Estimation)
+A 10-year swap requires initial margin of approximately $5 million throughout its life. Your funding spread (cost of funds minus margin rate) is 50bp.
+(a) Estimate the undiscounted MVA cost over 10 years.
+(b) If the average discount factor over this period is 0.85, what is the approximate PV of MVA?
+
+*Solution sketch:* (a) Annual cost = $5mm × 0.50% = $25,000. Over 10 years: $250,000. (b) PV ≈ $250,000 × 0.85 / 2 (rough average timing) ≈ $106,000. More precisely, integrate $E[IM(t)] \times s_{fund} \times df(t)$.
+
+---
+
 ## Source Map
 
-### (A) Verified Facts
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -524,7 +942,7 @@ An OIS quotes at 5.00% (quarterly pay, 2-year maturity). At inception:
 | OIS rate is the rate on a par bond | Hull, Ch 7.2 ("the OIS rate is the interest rate on a fixed-rate bond that is worth par") |
 | OIS rates define zero rates directly for maturities ≤ 1 year | Hull, Ch 7.2 ("OIS rates with maturities one year or less... provide the risk-free zero rates") |
 | Separation of Discount and Forward Curves | Andersen & Piterbarg, Vol 1, Section 6.5.2.2 |
-| Turn-of-Year Overlays | Andersen & Piterbarg, Vol 1, Section 6.5.1 |
+| Turn-of-Year Overlays | Andersen & Piterbarg, Vol 1, Section 6.5.1, Eq (6.35)-(6.37) |
 | Piecewise flat forward rates from log-linear interpolation | Andersen & Piterbarg, Vol 1, Section 6.2.1.2 |
 | OIS structure: single exchange ≤1Y, quarterly >1Y | Hull, Ch 7 ("When the life of the OIS is greater than one year...") |
 | Annuity factor definition | Andersen & Piterbarg, Vol 1, Section 4.1.3 |
@@ -532,15 +950,38 @@ An OIS quotes at 5.00% (quarterly pay, 2-year maturity). At inception:
 | GC rate typically below Fed Funds (secured vs unsecured) | Tuckman, Ch 15 |
 | Overnight reference rates considered better risk-free proxies than Treasuries | Hull, Ch 4 (footnote) |
 | Compounded overnight rate formula | Hull, Ch 4.2; Andersen & Piterbarg, Eq 5.7 |
+| Negative rates became feature in 2014; >$10 trillion bonds with negative yields | Hull, Ch 29 |
+| Bachelier normal model for negative rates | Hull, Ch 29 ("allows rates to become negative") |
+| Shifted lognormal model | Hull, Ch 29 |
+| Bank can choose which currency to post margin in | Hull, Ch 9 (footnote 6) |
+| MVA definition: cost of funding initial margin | Hull, Ch 9.2 |
+| FVA/MVA debate: marginal vs average funding costs | Hull, Ch 9.2 |
+| CSA specifies collateral requirements and interest | Hull, Ch 9 |
+| SOFR compounding formula | Hull, Ch 4.2 |
+| SOFR based on Treasury repo transactions | Hull, Ch 4.2 |
 
-### (B) Reasoned Inference
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| The "Big Bang" discounting switch October 2020 | Post-textbook industry event; marked as Practitioner Note |
+| Compensating Swaps auction mechanics | Post-textbook industry event; marked as Practitioner Note |
+| PAI lifecycle step-by-step | Extends Hull's CSA discussion with operational detail |
+| Collateral option "cheapest-to-deliver" analogy | Extends Hull footnote with practical pricing approach |
+| SOFR observation shift vs lockout conventions | Extends Hull's SOFR discussion with market conventions |
+| TOY spread magnitude examples (historical) | Extends Andersen & Piterbarg with practitioner color |
+| System limits with negative rates | Extends Hull's negative rate discussion with operational reality |
+| Fed Funds vs SOFR comparison table | Synthesizes Tuckman and Hull with market characteristics |
+
+### (C) Reasoned Inference
 
 - **Par Rate vs Zero Rate Logic**: For upward-sloping curves, the par rate is a weighted average of zeros, so the final zero rate must exceed the par rate. This follows from the mathematical structure of the par equation.
 - **Jacobian is Lower Triangular**: Follows from the bootstrap's sequential structure—each $P(T_i)$ depends only on inputs for $T \le T_i$.
 - **Valuation Impact Example**: Constructed from the bootstrapped curve to demonstrate magnitude of discounting differences.
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
-- **Exact TOY Spread Magnitudes**: The +20bp example is illustrative. Actual turn spreads vary by year and market conditions. Sources discuss the mechanism but don't specify current market levels.
-- **Index-Specific Day Counts**: Exact day counts (ACT/360 vs ACT/365) and lag conventions vary by currency (USD SOFR vs GBP SONIA vs EUR €STR). Implementation requires checking specific index definitions.
-- **SOFR vs Fed Funds Spread**: The relationship between SOFR and Fed Funds varies with market conditions. I'm not sure about typical current spreads without more recent market data.
+- **Exact TOY Spread Magnitudes**: The examples (10-50bp) are illustrative. Actual turn spreads vary by year and market conditions. Sources discuss the mechanism but don't specify current market levels.
+- **Index-Specific Day Counts**: Exact day counts (ACT/360 vs ACT/365) and lag conventions vary by currency and contract type. Implementation requires checking specific index definitions—I'm not sure of all regional variations without consulting current ISDA definitions.
+- **SOFR vs Fed Funds Spread**: The relationship between SOFR and Fed Funds varies with market conditions. The ~5-20bp spread cited is historical; I'm not sure about typical current spreads without more recent market data.
+- **Collateral Option Magnitude**: The 1-5bp impact cited is illustrative for typical trades. Actual impact depends heavily on trade structure, CSA terms, and rate differentials.

@@ -24,10 +24,11 @@ This chapter develops the machinery for cross-currency curve construction. We wi
 
 1. **Covered Interest Parity** (Section 21.1): The no-arbitrage relationship linking spot FX, forward FX, and discount factors across currencies—the foundation for everything that follows.
 2. **FX Forwards as Curve Constraints** (Section 21.2): How forward quotes, combined with a domestic curve, pin down the foreign discount curve.
-3. **Cross-Currency Basis** (Section 21.3): What "basis" means at the curve level, why it exists, and how to measure it.
-4. **Cross-Currency Basis Swaps** (Section 21.4): The instruments that provide constraint information beyond the short-dated FX forward market.
-5. **Multi-Currency Curve Construction** (Section 21.5): A practical algorithm for building consistent cross-currency curves.
-6. **Risk Decomposition** (Section 21.6): FX delta, rates PV01, and basis exposure as distinct risk dimensions.
+3. **Cross-Currency Basis** (Section 21.3): What "basis" means at the curve level, why it exists, why it persists despite "arbitrage," and what drives it (including issuance dynamics and the USD premium).
+4. **Cross-Currency Basis Swaps** (Section 21.4): The instruments that provide constraint information beyond the short-dated FX forward market, including structural details and cashflow mechanics.
+5. **Multi-Currency Curve Construction** (Section 21.5): A practical algorithm for building consistent cross-currency curves, with a complete numerical walkthrough.
+6. **Collateral Currency and Curve Choice** (Section 21.6): How the currency of posted collateral affects which discount curve applies—essential for production systems.
+7. **Risk Decomposition** (Section 21.7): FX delta, rates PV01, and basis exposure as distinct risk dimensions, including P&L attribution frameworks.
 
 **Chapter boundaries:** This chapter focuses on the *curve construction implications* of cross-currency markets. Chapter 29 covers FX forward mechanics and pricing in detail; Chapter 30 covers cross-currency swap structures and valuation. Here, we treat these instruments primarily as sources of constraint equations that must be satisfied when building curves. Chapter 20 develops the multi-curve framework for a single currency (tenor basis); this chapter extends that framework to multiple currencies.
 
@@ -266,6 +267,176 @@ In textbook arbitrage, exploiting a mispricing eliminates it. Why doesn't this h
 
 The basis represents a *shadow price* of these constraints—the cost of converting funding across currencies. In effect, the limits on arbitrage capacity are themselves priced into the basis.
 
+> **Desk Reality: The Balance Sheet Economics of "Arbitrage"**
+>
+> Consider a bank trying to exploit a 30bp CIP deviation in 5-year EUR/USD. The textbook trade is:
+> 1. Borrow EUR for 5 years
+> 2. Swap to USD via xccy basis swap
+> 3. Invest USD for 5 years
+>
+> **The problem**: This trade requires *funded balance sheet*. Under Basel III:
+> - **Leverage ratio**: The notional appears in the denominator. A $1bn trade might consume 3-5% of a bank's leverage ratio capacity.
+> - **Risk-weighted assets**: Even with minimal credit risk, standardized RWA applies.
+> - **Liquidity coverage ratio**: Term funding creates LCR drag.
+>
+> A bank with a 15% return-on-equity target and 4% leverage ratio capacity cost might need 15% × 4% = 60bp+ return to justify the trade—more than the 30bp basis profit.
+>
+> **This is why basis persists**: The "arbitrage" costs more in balance sheet terms than it earns in basis terms.
+
+### 21.3.5 The USD Premium: Why Non-US Banks Pay for Dollars
+
+> **Practitioner Note:** The following section extends beyond the textbook sources to explain the structural market dynamics driving cross-currency basis. This is essential desk-level knowledge for understanding basis direction and magnitude.
+
+The cross-currency basis is often described as "the price of USD liquidity." Understanding why requires grasping the structural imbalances in global dollar funding.
+
+**Why non-US banks need USD:**
+
+1. **Asset-liability mismatch**: Japanese, European, and other non-US banks hold substantial USD assets (corporate loans, securities) funded by local currency deposits. They need to *swap* their domestic funding into USD.
+
+2. **Dollar dominance**: The USD is the global reserve currency. Trade finance, commodity transactions, and international lending all require USD.
+
+3. **No USD lender of last resort**: Non-US banks cannot access the Fed's discount window. In a crisis, their USD funding can evaporate while domestic central banks can only provide local currency.
+
+**The supply-demand imbalance:**
+
+| Side | Who | What They Do | Effect on Basis |
+|------|-----|--------------|-----------------|
+| **Demand** | Non-US banks | Need USD, have EUR/JPY/etc | Pay spread to swap into USD |
+| **Supply** | US money funds, corporates | Have USD, limited need for foreign CCY | Receive spread to supply USD |
+
+When demand exceeds supply, the non-USD leg pays a negative spread (by market convention). This is the "USD premium"—the rental cost for borrowing dollar balance sheet.
+
+> **Desk Reality: Quarter-End Basis Widening**
+>
+> Every quarter-end, and especially year-end, basis widens predictably. Why?
+>
+> **Regulatory window-dressing**: Banks' leverage ratios are measured on reporting dates. To meet targets, banks shrink balance sheets at quarter-end, withdrawing from xccy markets. With less supply, basis widens.
+>
+> **The pattern**:
+> - Basis tightens in the first 2 months of each quarter
+> - Basis widens in the final 2-3 weeks before quarter-end
+> - Spikes on the actual reporting date
+> - Snaps back immediately after
+>
+> Traders who understand this seasonality can position accordingly—or at minimum, avoid getting caught paying wide basis into quarter-end.
+
+**Central bank swap lines as circuit breakers:**
+
+During the 2008 crisis and again in March 2020, the Federal Reserve established swap lines with major central banks (ECB, BoJ, BoE, SNB). These allow foreign central banks to borrow USD from the Fed and lend to their domestic banks.
+
+When swap lines are activated at scale, they act as a *ceiling* on basis—banks can always get USD from their central bank (at a penalty rate) rather than paying extreme basis in the market. The 2020 COVID crisis saw basis widen dramatically before swap line deployment, then compress as the Fed provided unlimited USD liquidity.
+
+> **Historical Episode: March 2020 COVID Basis Blow-Out**
+>
+> In early March 2020, EUR/USD 3-month basis traded around -20bp (normal for the period). Over two weeks:
+> - March 9-13: Basis widened to -50bp as pandemic fears grew
+> - March 16-19: Basis blew out to -150bp as dollar funding seized
+> - March 19: Fed announced unlimited swap lines with major central banks
+> - March 23-31: Basis compressed back to -30bp
+>
+> The episode demonstrated: (1) basis risk is real and can dominate P&L in stress; (2) central bank intervention can rapidly reverse moves; (3) even "arbitrage-free" relationships break when balance sheets seize.
+
+**Sign convention clarification:**
+
+The basis spread is typically quoted on the non-USD leg. Convention:
+- **Negative basis** (e.g., -30bp on EUR leg): EUR-funded party pays to swap into USD
+- **Positive basis** (e.g., +20bp on EUR leg): USD-funded party pays to swap into EUR
+
+Most of the time since 2008, non-USD currencies have traded with negative basis against USD—reflecting the structural USD shortage.
+
+### 21.3.6 Trading the Basis: Issuance and Funding Flows
+
+> **Practitioner Note:** This section describes real-world market flows that drive basis. While not covered in the standard textbooks, this knowledge is essential for understanding basis as an equilibrium price.
+
+**Who trades basis and why?**
+
+The cross-currency basis equilibrates supply and demand for currency-specific funding. Understanding the participants helps predict basis direction.
+
+| Participant | Typical Position | Why | Typical Size |
+|-------------|-----------------|-----|--------------|
+| **Corporate issuers** | Receive USD funding via swap | Issue in EUR (low rates), swap to USD | $bn single deals |
+| **Non-US bank ALM** | Pay for USD funding | Fund USD assets with domestic liabilities | Ongoing, structural |
+| **Central banks** | Swap reserves into USD | Diversify FX reserves | Very large, lumpy |
+| **Japanese lifers** | Hedge USD assets | Buy US Treasuries, hedge FX risk | Seasonal (fiscal year) |
+| **Relative value desks** | Trade around fair value | Capture basis moves vs. model | Opportunistic |
+| **Asset managers** | Hedge foreign holdings | International equity/bond funds | Index-driven |
+
+**Issuance Arbitrage: The Corporate Treasury Perspective**
+
+> **Desk Reality: How Apple Funds Itself in EUR and Swaps to USD**
+>
+> Consider a hypothetical US corporate (like Apple) that can issue:
+> - USD bonds at Treasury + 80bp = 4.80% (example)
+> - EUR bonds at Bunds + 60bp = 3.60% (example)
+>
+> With EUR/USD basis at -30bp (EUR leg), the swap works as follows:
+>
+> **Step 1:** Issue €500mm 5-year bonds at 3.60%
+>
+> **Step 2:** Enter 5Y EUR/USD xccy swap:
+> - Receive EUR SOFR equivalent (to pay EUR bondholders)
+> - Pay USD SOFR + basis adjustment
+> - At inception: receive €500mm, pay $550mm (at spot)
+> - At maturity: pay €500mm, receive $550mm
+>
+> **Step 3:** Net effect: All-in USD funding cost
+>
+> The math (simplified):
+> - EUR spread paid: 60bp
+> - EUR swap rate: ~3.00% (hypothetical)
+> - USD swap rate: ~4.00% (hypothetical)
+> - Basis adjustment: -30bp
+>
+> All-in USD cost ≈ 4.00% + 60bp - 30bp = 4.30%
+>
+> **vs. direct USD issuance**: 4.80%
+>
+> **Savings**: 50bp! On $550mm for 5 years, this is material.
+>
+> **Why this works**: The corporate exploits its *credit spread* being tighter in EUR than in USD (60bp vs 80bp), and the basis *paying it* to swap. High-quality corporates can access EUR investors who are starved for yield.
+
+**What issuance tells us about basis direction:**
+
+When many corporates issue in EUR and swap to USD:
+- **Supply effect**: More EUR flowing into the xccy market (selling EUR basis)
+- **Basis tightens**: EUR basis becomes less negative (moves toward zero)
+
+When issuance dries up:
+- **Demand effect**: Bank ALM demand still needs USD
+- **Basis widens**: EUR basis becomes more negative
+
+This creates a feedback loop: wide basis incentivizes issuance arbitrage, which compresses basis.
+
+**The "Yankee Reverse": How Foreign Banks Fund USD Directly**
+
+Japanese, European, and other non-US banks can reduce their dependence on xccy swaps by issuing USD-denominated instruments directly:
+
+- **USD CDs and commercial paper**: Short-term funding from US money market funds
+- **Yankee bonds**: Longer-term USD bonds sold to US investors
+- **USD repo**: Secured borrowing against USD collateral
+
+When foreign banks can access these markets cheaply, they need fewer xccy swaps, reducing demand and compressing basis. When these markets seize (as in 2008, 2020), banks must turn to xccy swaps, widening basis.
+
+> **Example 21.4b: All-In Funding Cost Calculation**
+>
+> A European bank needs $1bn USD funding for 3 months. Options:
+>
+> **Option A: Swap from EUR**
+> - EUR deposit rate: 3.50% (EURIBOR)
+> - 3M EUR/USD basis: -40bp
+> - All-in USD cost: USD SOFR + (-40bp) basis = SOFR - 40bp? No!
+>
+> **Correction**: The basis is quoted on the EUR leg. The bank *pays* EUR + basis to receive USD flat.
+> - If basis is -40bp on EUR, bank receives EUR EURIBOR - 40bp vs. paying USD SOFR flat
+> - Net cost: SOFR flat, but synthetically funded
+>
+> **Option B: Issue 3M USD CD**
+> - If the bank can issue at SOFR + 20bp, this is cheaper than swapping at wide basis
+>
+> **Option C: Borrow from central bank swap line (crisis only)**
+> - Fed-ECB swap line: OIS + 25bp (penalty rate)
+> - Only available when lines are activated
+
 ---
 
 ## 21.4 Cross-Currency Basis Swaps: Constraints Beyond FX Forwards
@@ -286,6 +457,47 @@ Andersen and Piterbarg provide a clear description: "CRX basis swaps are contrac
 | **Maturities** | Quoted out to 30+ years |
 
 **Critical insight:** Andersen and Piterbarg emphasize that "a one-period CRX basis swap is identical to an FX forward contract." This establishes the continuity between short-dated FX forwards and long-dated basis swaps. In fact, the basis swap generalizes the FX forward to multiple periods with intermediate floating payments.
+
+> **The Plumbing Diagram: Cashflows of a 5Y EUR/USD Xccy Basis Swap**
+>
+> Party A (USD-based) receives EUR EURIBOR + basis, pays USD SOFR flat
+>
+> ```
+> INCEPTION (t=0):
+> ─────────────────────────────────────────────────────────
+>   Party A ──────────────> €100mm ──────────────> Party B
+>   Party A <──────────────$110mm <──────────────Party B
+>                          (at spot 1.10)
+>
+> QUARTERLY PAYMENTS (t=0.25, 0.50, 0.75, ... 4.75):
+> ─────────────────────────────────────────────────────────
+>   Party A ──────> SOFR × τ × $110mm ──────> Party B
+>   Party A <──── (EURIBOR + e) × τ × €100mm <──── Party B
+>                  (e = basis spread, could be -30bp)
+>
+> MATURITY (t=5):
+> ─────────────────────────────────────────────────────────
+>   Party A ──────────────> $110mm ──────────────> Party B
+>   Party A <──────────────€100mm <──────────────Party B
+>                          (at ORIGINAL spot rate)
+>   Plus final coupon exchange
+> ```
+>
+> **Key observations:**
+> 1. **Principal exchange at spot, repaid at same rate**: FX risk on the notional exchange is locked in at inception
+> 2. **Floating-for-floating with basis**: Unlike IRS, both legs float
+> 3. **Basis on non-USD leg**: If e = -30bp, EUR receiver gets EURIBOR - 30bp
+> 4. **No FX risk on coupons during life**: Each coupon stays in its own currency
+
+**Mark-to-Market (MTM) vs. Resettable Structures:**
+
+> **Practitioner Note:** In modern markets, many long-dated xccy swaps use "mark-to-market" or "resettable" structures to reduce counterparty exposure.
+
+In a standard xccy swap, the FX rate is locked at inception. If spot moves significantly, the PV mismatch creates large counterparty exposure.
+
+**MTM xccy swap**: The notional exchange rate resets periodically (typically annually) to the prevailing spot rate. This reduces PFE (potential future exposure) and counterparty risk, but introduces additional cashflows to settle the notional revaluation.
+
+**I'm not sure** about the exact mechanics of MTM swaps across all markets—conventions vary by currency pair and counterparty relationship.
 
 ### 21.4.2 Valuation of a Cross-Currency Basis Swap
 
@@ -403,7 +615,85 @@ The initial bootstrap of $P_f^{(L)}$ treated it as a discount curve. With $P_f$ 
 
 Andersen and Piterbarg describe the iteration: "The iteration is initiated... with the estimate $\mathbf{V}^{(L)}(0) = \mathbf{V}$ and runs until the termination criterion is satisfied. As the approximation $\mathbf{V}^{(L)} \approx \mathbf{V}$ is normally very accurate, only a few iterations are needed to reach acceptable precision."
 
-### 21.5.3 Avoiding Circularity
+### 21.5.3 Numerical Walkthrough: The Iterative Algorithm in Action
+
+> **Example 21.5: Complete Iterative Curve Construction**
+>
+> We build a simplified 2-point EUR discount curve using the Andersen-Piterbarg algorithm.
+>
+> **Given:**
+> - USD OIS curve (discount = index by bedrock assumption):
+>   - $P_\$(0,1) = 0.9600$, $P_\$(0,2) = 0.9200$
+> - Spot EUR/USD: $X(0) = 1.10$ USD/EUR
+> - EUR swap rates: 1Y @ 3.00%, 2Y @ 3.20% (annual, 30/360)
+> - EUR/USD basis swaps: 1Y @ -20bp, 2Y @ -30bp (on EUR leg)
+>
+> **Step 1: Initialize with $V^{(L)}(0) = V$**
+>
+> EUR swap prices assuming par: $V = (1.00, 1.00)$
+>
+> **Step 2: Build initial EUR index curve $P_{EUR}^{(L)}$**
+>
+> From 1Y swap at 3.00%: $(0.03)(1) P_{EUR}^{(L)}(1) + 1 \cdot P_{EUR}^{(L)}(1) = 1.00$
+> $$P_{EUR}^{(L)}(0,1) = \frac{1.00}{1.03} = 0.9709$$
+>
+> From 2Y swap at 3.20%: $(0.032) P_{EUR}^{(L)}(1) + (1.032) P_{EUR}^{(L)}(2) = 1.00$
+> $$P_{EUR}^{(L)}(0,2) = \frac{1.00 - 0.032 \times 0.9709}{1.032} = 0.9383$$
+>
+> **Step 3: Calibrate EUR discount curve to basis swaps**
+>
+> Using equation (6.44)-(6.45), we parameterize:
+> $$P_{EUR}(T) = P_{EUR}^{(L)}(T) \cdot e^{-\varepsilon(T) \cdot T}$$
+>
+> For 1Y basis swap at -20bp ($e = -0.0020$):
+>
+> Par condition (simplified): FX-implied constraint must hold
+> $$P_{EUR}(0,1) = \frac{F(0,1)}{X(0)} P_\$(0,1)$$
+>
+> With basis adjustment: the effective forward embeds the basis spread.
+>
+> Solving iteratively: $\varepsilon_0 \approx 0.0018$ (18bp spread intensity)
+>
+> $P_{EUR}(0,1) = 0.9709 \times e^{-0.0018 \times 1} = 0.9691$
+>
+> For 2Y: $\varepsilon_1 \approx 0.0028$ (28bp spread intensity)
+>
+> $P_{EUR}(0,2) = 0.9383 \times e^{-0.0028 \times 2} = 0.9331$
+>
+> **Step 4: Re-price EUR swaps with multi-curve valuation**
+>
+> Using $P_{EUR}^{(L)}$ for projection and $P_{EUR}$ for discounting:
+>
+> 1Y EUR swap value:
+> - Fixed leg: $0.03 \times P_{EUR}(1) = 0.03 \times 0.9691 = 0.02907$
+> - Floating leg: Forward rate × DF = same by construction
+> - Value: $V^{(1)}(1) \approx 0.9998$ (close to 1.00)
+>
+> 2Y EUR swap value: $V^{(1)}(2) \approx 0.9996$
+>
+> **Step 5: Check convergence**
+>
+> $|V^{(1)} - V| = |(0.9998, 0.9996) - (1.00, 1.00)| < 0.001$
+>
+> Tolerance met? If not, update: $V^{(L)}(1) = V^{(L)}(0) - (V^{(1)} - V)$
+>
+> **Step 6: Iterate until convergence**
+>
+> | Iteration | $P_{EUR}^{(L)}(2)$ | $P_{EUR}(2)$ | Swap PV Error |
+> |-----------|-------------------|--------------|---------------|
+> | 0 | 0.9383 | 0.9331 | 0.0004 |
+> | 1 | 0.9385 | 0.9333 | 0.00005 |
+> | 2 | 0.9385 | 0.9333 | < 0.00001 ✓ |
+>
+> **Converged in 2-3 iterations** — as Andersen notes, "the approximation $V^{(L)} \approx V$ is normally very accurate, only a few iterations are needed."
+
+> **Desk Reality: Why Iteration Converges Quickly**
+>
+> The initial guess ($P^{(L)} = P$, i.e., index = discount) is already close to the truth in most cases. The basis spreads are typically small (tens of basis points), so the correction is minor.
+>
+> When basis is large (crisis periods), more iterations may be needed, but the algorithm remains stable because we're making incremental adjustments to a fundamentally sound approximation.
+
+### 21.5.4 Avoiding Circularity
 
 A subtle issue arises: if we use cross-currency basis swaps to infer the discounting basis in USD, we create circular reasoning—we're using non-USD markets to determine USD discounting.
 
@@ -415,13 +705,104 @@ In practice, the USD Libor-OIS basis is calibrated from:
 
 Then cross-currency instruments translate this basis into other currencies. The key insight is that the USD curve must be self-consistent before extending to other currencies.
 
+### 21.5.5 The Modern 3-Curve Framework
+
+Post-LIBOR transition, the standard framework for EUR/USD is:
+
+| Curve | Source Instruments | Role |
+|-------|-------------------|------|
+| **USD OIS** | SOFR swaps | USD discounting + USD projection |
+| **EUR OIS** | ESTR swaps | EUR discounting |
+| **EUR/USD basis** | Cross-currency basis swaps | Links EUR OIS to USD OIS |
+
+The algorithm:
+1. Build USD OIS from SOFR swaps
+2. Build EUR OIS from ESTR swaps (using EUR OIS as projection)
+3. Calibrate EUR discount curve adjustments from xccy basis swaps
+4. Iterate until consistent
+
 ---
 
-## 21.6 Risk Decomposition: FX Delta, Rates PV01, and Basis Exposure
+## 21.6 Collateral Currency and Curve Choice
+
+The discussion so far has assumed standard collateral practices. In reality, the currency in which collateral is posted affects which discount curve applies. Andersen and Piterbarg note that "uncollateralized derivative contracts are subject to credit risk, and a fully consistent pricing approach needs to incorporate the cost of hedging this risk."
+
+### 21.6.1 The Collateral-Discount Curve Linkage
+
+The fundamental principle: **discount at the collateral rate**.
+
+For a fully collateralized swap where collateral earns the overnight rate:
+- **USD collateral** → discount at USD OIS (SOFR)
+- **EUR collateral** → discount at EUR OIS (ESTR)
+- **Multi-currency CSA** → more complex (optionality)
+
+This linkage arises because the posted collateral earns the overnight rate. The counterparty receiving collateral funds the position at the same rate, making the overnight rate the appropriate discount rate.
+
+### 21.6.2 What If Collateral Currency Differs from Trade Currency?
+
+> **Example 21.6: Same Swap, Different Collateral, Different Value**
+>
+> Consider a 5Y USD interest rate swap (pay fixed, receive SOFR):
+> - Notional: $100mm
+> - Fixed rate: 4.00%
+> - Current USD OIS rate: 4.20%
+>
+> **Case A: USD collateral (standard)**
+>
+> Discount at USD OIS. PV of fixed leg uses USD OIS DFs.
+>
+> Approximate PV: $-\sum_{t=1}^{5} (0.04 - 0.042) \times DF_{USD}(t) \times 100mm$
+>
+> With average DF ≈ 0.90: PV ≈ $-0.002 \times 0.90 \times 5 \times 100mm = -\$900,000$
+>
+> **Case B: EUR collateral**
+>
+> If collateral is posted in EUR, the discount rate should be the EUR "equivalent" rate—which incorporates the xccy basis.
+>
+> EUR OIS rate: 3.00%
+> EUR/USD basis: -30bp
+>
+> Effective USD discount rate: USD OIS - basis adjustment
+>
+> With EUR collateral, the USD swap effectively discounts at a rate ~30bp lower than pure USD OIS (because EUR collateral costs less to fund).
+>
+> This changes the PV by approximately:
+> $$\Delta PV \approx 0.0030 \times \text{Duration} \times \text{Notional} = 0.0030 \times 4.5 \times 100mm = \$1.35mm$$
+>
+> **The swap is worth more under EUR collateral** when EUR funding is cheaper.
+>
+> **Case C: No collateral (uncollateralized)**
+>
+> Discount at the counterparty's funding rate + credit adjustments (CVA/DVA). This is significantly more complex and beyond simple curve construction.
+
+### 21.6.3 Practical Implications
+
+| Collateral Scenario | Discount Curve | Who Cares |
+|--------------------|----------------|-----------|
+| USD CSA, USD trade | USD OIS | Standard case |
+| EUR CSA, USD trade | USD OIS adjusted for basis | Large xccy books |
+| Choice of collateral currency | Optionality value | Sophisticated counterparties |
+| No collateral | Funding + CVA/DVA | Credit desks |
+
+**I'm not sure** about the exact mechanics of multi-currency CSA optionality pricing—this requires modeling the option to post in the cheapest currency, which involves basis volatility assumptions.
+
+> **Desk Reality: Why CSA Currency Matters**
+>
+> A European bank trading USD swaps with a US counterparty might have different valuations depending on CSA terms:
+> - **USD CSA**: Standard Bloomberg/ISDA valuation applies
+> - **EUR CSA**: The bank sees a different (often higher) PV because EUR funding is cheaper
+>
+> This creates "CSA basis"—two parties with different collateral arrangements will value the same trade differently. Disputes arise when one party expects USD CSA but the other operates under EUR CSA.
+>
+> **Best practice**: Always verify CSA terms before trading. The curve you discount with depends on the collateral you'll post.
+
+---
+
+## 21.7 Risk Decomposition: FX Delta, Rates PV01, and Basis Exposure
 
 Cross-currency instruments have three distinct risk dimensions that must be managed separately. Understanding this decomposition is essential for hedging.
 
-### 21.6.1 FX Delta
+### 21.7.1 FX Delta
 
 The sensitivity to spot FX changes. For an FX forward with PV = $X(0) P_f - K P_d$:
 
@@ -429,7 +810,7 @@ $$\frac{\partial V}{\partial X(0)} = P_f(0,T)$$
 
 This measures how much PV changes (in domestic currency) for a unit change in the spot rate.
 
-### 21.6.2 Interest Rate PV01 / DV01 by Currency
+### 21.7.2 Interest Rate PV01 / DV01 by Currency
 
 Tuckman defines DV01 as "the change in price for a one-basis-point decline in rates":
 
@@ -441,7 +822,7 @@ For cross-currency portfolios, you compute:
 
 These are not fungible—you cannot hedge domestic rate risk with foreign instruments (without taking on FX risk).
 
-### 21.6.3 Basis Exposure
+### 21.7.3 Basis Exposure
 
 The sensitivity to basis spread changes. For a position with basis $e$ appearing in its valuation:
 
@@ -449,7 +830,7 @@ $$\frac{\partial V}{\partial e} = \text{Basis01}$$
 
 This risk is distinct from both FX delta and rates PV01. A portfolio can be FX-hedged and DV01-neutral but still have significant basis exposure.
 
-> **Example 21.4: Basis Shock Sensitivity**
+> **Example 21.7: Basis Shock Sensitivity**
 >
 > From Example 21.3, the swap PV per unit notional is:
 >
@@ -469,7 +850,7 @@ This risk is distinct from both FX delta and rates PV01. A portfolio can be FX-h
 >
 > This is basis risk—separate from FX and rate moves.
 
-### 21.6.4 Summary of Risk Decomposition
+### 21.7.4 Summary of Risk Decomposition
 
 | Risk Type | What It Measures | Hedge Instruments |
 |-----------|-----------------|-------------------|
@@ -478,11 +859,68 @@ This risk is distinct from both FX delta and rates PV01. A portfolio can be FX-h
 | Foreign PV01 | Foreign curve sensitivity | Foreign swaps, futures |
 | Basis01 | Basis spread sensitivity | Basis swaps |
 
+### 21.7.5 P&L Attribution for Cross-Currency Portfolios
+
+> **Practitioner Note:** P&L attribution (or "P&L explain") is how traders and risk managers decompose daily portfolio changes into their constituent risk factors. This is essential for understanding what drove performance.
+
+**The attribution formula:**
+
+For a cross-currency position, daily P&L can be decomposed as:
+
+$$\boxed{\Delta PV \approx \underbrace{\Delta_{FX} \cdot \delta S}_{\text{FX}} + \underbrace{PV01_d \cdot \delta r_d}_{\text{Dom Rates}} + \underbrace{PV01_f \cdot \delta r_f \cdot S}_{\text{For Rates}} + \underbrace{Basis01 \cdot \delta e}_{\text{Basis}} + \underbrace{\theta}_{\text{Carry}} + \underbrace{\varepsilon}_{\text{Unexplained}}}$$
+
+where:
+- $\Delta_{FX}$: FX delta
+- $\delta S$: Change in spot FX rate
+- $PV01_d$, $PV01_f$: Domestic and foreign rate sensitivities
+- $\delta r_d$, $\delta r_f$: Changes in domestic and foreign rates (in bp)
+- $Basis01$: Basis spread sensitivity
+- $\delta e$: Change in basis spread (in bp)
+- $\theta$: Time decay / carry
+- $\varepsilon$: Unexplained (higher-order effects, cross-gamma)
+
+> **Example 21.8: Daily P&L Attribution for a 5Y EUR/USD Xccy Swap**
+>
+> **Position:** Long €100mm notional, receive EUR EURIBOR + 0bp, pay USD SOFR
+>
+> **Risk exposures:**
+> - FX Delta: $-€4.5mm$ (short EUR via the principal exchange)
+> - USD PV01: $+\$45,000$ per bp (benefit from lower USD rates)
+> - EUR PV01: $-€40,000$ per bp (hurt by lower EUR rates)
+> - Basis01: $+\$4,500$ per bp (benefit from basis tightening)
+>
+> **Day's market moves:**
+> - EUR/USD: 1.1000 → 1.1050 (+0.45%)
+> - USD 5Y: 4.00% → 4.05% (+5bp)
+> - EUR 5Y: 3.00% → 2.95% (-5bp)
+> - EUR/USD 5Y basis: -30bp → -25bp (+5bp tighter)
+>
+> **P&L attribution:**
+> | Component | Calculation | P&L |
+> |-----------|-------------|-----|
+> | FX | $-€4.5mm \times 0.0045$ | $-\$20,250$ |
+> | USD Rates | $+\$45,000 \times 5$ | $-\$225,000$ |
+> | EUR Rates | $-€40,000 \times (-5) \times 1.1025$ | $+\$220,500$ |
+> | Basis | $+\$4,500 \times 5$ | $+\$22,500$ |
+> | **Total Explained** | | $-\$2,250$ |
+>
+> **Interpretation:** The position was approximately rate-neutral (USD and EUR P&L offset), lost slightly on FX, but gained on basis tightening. Net small loss.
+
+> **Desk Reality: When P&L Explain Fails**
+>
+> In crisis periods, "unexplained" P&L can dominate. This happens because:
+> 1. **Cross-gamma**: FX and rates move together in large moves; the linear approximation breaks down
+> 2. **Correlation breakdown**: Historical correlations (EUR rates vs EUR/USD spot) shift
+> 3. **Liquidity effects**: Bid-ask spreads widen; marks become stale
+> 4. **Basis volatility**: Basis moves much more than the linear sensitivity suggests (convexity in basis)
+>
+> During March 2020, many xccy books had 50%+ unexplained P&L on peak days. This is a warning sign that your risk model is missing something—usually basis convexity or correlation regime shifts.
+
 ---
 
-## 21.7 Additional Worked Examples
+## 21.8 Additional Worked Examples
 
-### Example 21.5: CIP Forward from Zero Rates (Continuous Compounding)
+### Example 21.9: CIP Forward from Zero Rates (Continuous Compounding)
 
 **Given:**
 - Domestic = USD, Foreign = EUR
@@ -498,7 +936,7 @@ $$F(0,T) = S(0) \, e^{(r_d - r_f)T} = 1.1000 \times e^{0.02 \times 0.5} = 1.1000
 
 **Interpretation:** Higher domestic rates mean the domestic currency depreciates in the forward (forward > spot in D/F terms).
 
-### Example 21.6: Reconciling Rate and DF Forms
+### Example 21.10: Reconciling Rate and DF Forms
 
 **Using the same data, verify via discount factors:**
 
@@ -509,7 +947,7 @@ $$F(0,0.5) = S(0) \times \frac{P_f}{P_d} = 1.1000 \times \frac{0.995012}{0.98511
 
 **Match confirmed.** ✓
 
-### Example 21.7: Arbitrage-Consistency Check
+### Example 21.11: Arbitrage-Consistency Check
 
 **Scenario:** Compare FX-implied EUR curve against independently-built EUR OIS curve.
 
@@ -537,7 +975,7 @@ $$\Delta P = P_f^{FX} - P_f^{OIS} = 0.984572 - 0.980199 = 0.004373$$
 
 A consistent multi-curve framework would calibrate to *both* the OIS market and the FX forward market, with basis swaps providing the reconciliation.
 
-### Example 21.8: Hedged Foreign Bond Valuation
+### Example 21.12: Hedged Foreign Bond Valuation
 
 **Given:**
 - Domestic = USD, Foreign = JPY
@@ -565,9 +1003,9 @@ This "extra" PV is the manifestation of cross-currency basis in hedged foreign a
 
 ---
 
-## 21.8 Practical Notes
+## 21.9 Practical Notes
 
-### 21.8.1 Quote Direction Conventions
+### 21.9.1 Quote Direction Conventions
 
 Hull notes that "in many major pairs the spot/forward exchange rate is normally quoted as the number of units of the currency that are equivalent to one U.S. dollar." This varies by pair:
 
@@ -577,7 +1015,7 @@ Hull notes that "in many major pairs the spot/forward exchange rate is normally 
 
 **Impact on formulas:** If your market quote uses the inverse direction, you must invert spot and forward before applying CIP formulas. A common source of errors is misapplying the formula with an inverted quote.
 
-### 21.8.2 Basis Swap Quoting Conventions
+### 21.9.2 Basis Swap Quoting Conventions
 
 **I'm not sure** about universal conventions for which leg receives the spread. The spread can be quoted on:
 - The non-USD leg (common)
@@ -586,7 +1024,7 @@ Hull notes that "in many major pairs the spot/forward exchange rate is normally 
 
 **Always confirm** with the specific market before trading or calibrating.
 
-### 21.8.3 Settlement and Calendar Issues
+### 21.9.3 Settlement and Calendar Issues
 
 **I'm not sure** about exact spot/settlement conventions, which are currency-pair specific:
 - Spot date (T+2 vs T+1)
@@ -595,11 +1033,40 @@ Hull notes that "in many major pairs the spot/forward exchange rate is normally 
 
 These affect accrual calculations and must be specified precisely for production systems.
 
-### 21.8.4 When Collateral Currency Differs
+### 21.9.4 Common Implementation Errors
 
-The discussion in this chapter assumes standard collateral practices. Andersen and Piterbarg note that "uncollateralized derivative contracts are subject to credit risk, and a fully consistent pricing approach needs to incorporate the cost of hedging this risk (the so-called credit valuation adjustment or CVA)."
+> **Gotcha Box: The Million-Dollar Sign Error**
+>
+> The most common xccy curve construction error is getting the sign or direction wrong on:
+> 1. **FX quote direction**: Is the quote domestic/foreign or foreign/domestic?
+> 2. **Basis spread sign**: Does negative basis mean EUR pays or receives?
+> 3. **Notional exchange direction**: Who receives which currency at inception?
+>
+> A sign error on a $100mm 10Y xccy swap with 50bp basis can produce a PV error of:
+> $$Error \approx 0.0050 \times 10 \times \$100mm \times 2 = \$10mm$$
+>
+> **Prevention**: Always sanity-check that higher interest rate currencies should trade at forward discounts, and that USD generally trades with a premium (non-USD legs typically pay negative spreads).
 
-When collateral is posted in a third currency, additional basis adjustments may be needed. This is outside the scope of this chapter but represents an important practical consideration for exotic cross-currency trades.
+**Common errors and how to avoid them:**
+
+| Error | Symptom | Prevention |
+|-------|---------|------------|
+| Inverted FX quote | Forward points have wrong sign | Verify: higher rates → forward discount |
+| Wrong basis leg | PV way off market | Check market convention for pair |
+| Day count mismatch | Small but persistent errors | Verify both legs use correct convention |
+| Settlement date misalignment | PV breaks on date transitions | Align to correct spot/fixing dates |
+| Using wrong discount curve | PV differs from Street marks | Match collateral currency to CSA |
+
+**Sign convention cheat sheet:**
+
+| Currency Pair | Typical Basis | Quote Convention |
+|---------------|---------------|------------------|
+| EUR/USD | -15 to -50bp | Spread on EUR leg |
+| USD/JPY | -20 to -80bp | Spread on JPY leg |
+| GBP/USD | -10 to -30bp | Spread on GBP leg |
+| USD/CHF | -20 to -60bp | Spread on CHF leg |
+
+**Note**: These ranges are indicative of post-2015 typical levels; actual values vary with market conditions.
 
 ---
 
@@ -609,13 +1076,17 @@ When collateral is posted in a third currency, additional basis adjustments may 
 
 2. **FX forwards constrain curves**: Given a domestic curve and FX forward quotes, the foreign curve is determined by CIP. Building curves independently creates arbitrage.
 
-3. **Cross-currency basis is persistent**: Post-2008, the basis between FX-implied curves and local curves is material (often 10-50+ bp in stress) due to funding segmentation, balance sheet constraints, and credit differentiation.
+3. **Cross-currency basis is persistent**: Post-2008, the basis between FX-implied curves and local curves is material (often 10-50+ bp in stress) due to funding segmentation, balance sheet constraints, and credit differentiation. The basis represents the "price of USD liquidity"—the cost for non-US banks to access dollar funding.
 
 4. **Basis swaps extend the constraint horizon**: Beyond ~1 year, cross-currency basis swaps replace FX forwards as the source of constraint information. Andersen and Piterbarg note that "the interbank FX forward market is rarely liquid beyond maturities of one year."
 
-5. **Multi-curve construction is iterative**: Build domestic curves first, then calibrate foreign discount curves to basis swaps using the Andersen-Piterbarg algorithm.
+5. **Multi-curve construction is iterative**: Build domestic curves first, then calibrate foreign discount curves to basis swaps using the Andersen-Piterbarg algorithm. The algorithm converges quickly because index ≈ discount is a good initial approximation.
 
-6. **Risk decomposes into three dimensions**: FX delta, rates PV01 (by currency), and basis exposure are distinct and require separate hedges.
+6. **Collateral currency matters**: The currency in which collateral is posted determines the appropriate discount curve. A USD swap with EUR collateral values differently than one with USD collateral.
+
+7. **Risk decomposes into four dimensions**: FX delta, domestic rates PV01, foreign rates PV01, and basis exposure are distinct and require separate hedges. P&L attribution decomposes daily changes into these components.
+
+8. **Market dynamics drive basis**: Corporate issuance arbitrage (issuing in low-rate currencies and swapping), bank ALM demand for USD, and quarter-end regulatory effects all influence basis levels and direction.
 
 ---
 
@@ -625,10 +1096,14 @@ When collateral is posted in a third currency, additional basis adjustments may 
 |---------|------------|----------------|
 | **Covered Interest Parity (CIP)** | $F = S \cdot P_f/P_d$ | Foundation for cross-currency no-arbitrage |
 | **FX-implied curve** | Foreign DFs derived from domestic curve + FX forwards | Ensures curve consistency across currencies |
-| **Cross-currency basis** | Yield spread between index and discount curves: $P^{(L)} = P e^{-st}$ | Captures funding/credit segmentation |
+| **Cross-currency basis** | Yield spread between index and discount curves: $P^{(L)} = P e^{-st}$ | Captures funding/credit segmentation; the "price of USD liquidity" |
 | **Basis swap** | Floating-floating xccy swap with spread | Provides constraint info for long maturities |
 | **Bedrock assumption** | USD index = USD discount (or use OIS) | Anchors the multi-curve system |
 | **Forward FX rate** | $X_T(t) = X(t) P_f(t,T)/P_d(t,T)$ | The FX rate locked in today for future delivery |
+| **USD premium** | Non-US banks pay to swap into USD | Explains persistent negative basis on non-USD legs |
+| **Issuance arbitrage** | Issue in low-rate currency, swap to funding currency | Corporate exploitation of basis; drives basis dynamics |
+| **Collateral-curve linkage** | Discount at the rate earned on collateral | CSA currency determines appropriate discount curve |
+| **P&L attribution** | Decompose PV changes by risk factor | Essential for understanding what drove daily performance |
 
 ---
 
@@ -663,7 +1138,7 @@ When collateral is posted in a third currency, additional basis adjustments may 
 | 9 | What was the JPY CRX basis in late 1990s? | Around -40 bp due to Japanese bank credit concerns |
 | 10 | What was the JPY CRX basis in early 2008? | Up to +60 bp due to hedging demand from FX book rebalancing |
 | 11 | What is the "bedrock" USD assumption? | $P_\$^{(L)} = P_\$$ (USD index = USD discount) |
-| 12 | Why doesn't arbitrage eliminate the basis? | Capital requirements, counterparty limits, term funding constraints |
+| 12 | Why doesn't arbitrage eliminate the basis? | Capital requirements, counterparty limits, term funding constraints, balance sheet costs |
 | 13 | What three risks does a xccy position have? | FX delta, rates PV01 (by currency), basis exposure |
 | 14 | What is basis01? | PV sensitivity to a 1bp change in basis spread |
 | 15 | How is the iterative curve construction initiated? | Set $V^{(L)}(0) = V$ (prices as if index = discount) |
@@ -672,6 +1147,13 @@ When collateral is posted in a third currency, additional basis adjustments may 
 | 18 | What constrains the long end of xccy curves? | Cross-currency basis swaps (quoted to 30+ years) |
 | 19 | One-period basis swap = ? | FX forward contract |
 | 20 | If $P_d = P_f$, what is $F$? | $F = X$ (forward equals spot when rates are equal) |
+| 21 | What does negative EUR/USD basis mean? | EUR-funded party pays to swap into USD (USD is more expensive) |
+| 22 | Why does basis widen at quarter-end? | Regulatory window-dressing compresses bank balance sheets, reducing xccy supply |
+| 23 | What discount curve for EUR-collateralized USD swap? | USD OIS adjusted for basis (not pure USD OIS) |
+| 24 | What are Fed swap lines? | Central bank arrangements allowing foreign CBs to borrow USD from Fed, acting as basis ceiling |
+| 25 | What happened to EUR/USD basis in March 2020? | Widened from -20bp to -150bp, then compressed after Fed swap line expansion |
+| 26 | Why do corporates issue in EUR and swap to USD? | Exploit tighter EUR credit spreads and receive basis; can achieve lower all-in USD funding |
+| 27 | What is the P&L attribution formula for xccy? | $\Delta PV = \Delta_{FX} \cdot \delta S + PV01_d \cdot \delta r_d + PV01_f \cdot \delta r_f + Basis01 \cdot \delta e + \theta$ |
 
 ---
 
@@ -742,11 +1224,53 @@ Using Hull's AUD/USD example, if 2-year rates are 3% (AUD) and 1% (USD), spot is
 3. Sell 1415.79 AUD forward at 0.76 → receive $1415.79 \times 0.76 = 1075.99$ USD
 4. Repay USD loan ($1020.20), keep profit of $55.79
 
+### Problem 10 (Intermediate — P&L Attribution)
+A 5Y EUR/USD xccy swap has: FX delta = -€5mm, USD PV01 = +$50k/bp, EUR PV01 = -€45k/bp, Basis01 = +$5k/bp.
+
+Over one day: EUR/USD moves from 1.10 to 1.12, USD rates +3bp, EUR rates -2bp, basis +2bp tighter.
+
+Attribute the P&L.
+
+**Solution:**
+- FX: $-€5mm \times 0.02 / 1.10 = -\$90,909$
+- USD: $+\$50k \times 3 = -\$150,000$ (rates up hurts if receiving fixed)
+- EUR: $-€45k \times (-2) \times 1.11 = +\$99,900$
+- Basis: $+\$5k \times 2 = +\$10,000$
+- **Total**: $-\$131,009$
+
+### Problem 11 (Intermediate — Issuance Arbitrage)
+A corporate can issue:
+- USD bonds at T+90bp = 4.90%
+- EUR bonds at Bunds+70bp = 3.70%
+
+EUR 5Y swap rate is 3.00%, USD 5Y swap rate is 4.00%, basis is -25bp on EUR leg.
+
+Calculate the all-in USD funding cost via EUR issuance + swap.
+
+**Solution:**
+- EUR spread: 70bp over swaps
+- Swap EUR for USD: pay USD SOFR, receive EUR EURIBOR
+- Basis: receive -25bp on EUR (i.e., pay EUR EURIBOR - 25bp)
+- Net: USD swap rate + EUR spread - basis benefit = 4.00% + 0.70% - 0.25% = 4.45%
+- vs. direct USD: 4.90%
+- **Savings: 45bp**
+
+### Problem 12 (Advanced — Collateral Effect)
+A 5Y USD IRS (pay fixed 4.00%, receive SOFR) has PV01 of $48,000/bp. USD OIS is 4.20%. If the swap is collateralized in EUR instead of USD, and EUR/USD basis is -30bp, estimate the PV difference between EUR-collateral and USD-collateral.
+
+**Solution:**
+- EUR collateral effectively discounts at ~30bp lower rate (basis benefit)
+- Duration ≈ 4.8 years (from PV01/$100mm)
+- PV impact ≈ $\frac{0.0030 \times 4.8 \times \$100mm}{1} = \$1.44mm$
+- The swap is worth **more** under EUR collateral (lower discounting rate increases receiver leg PV)
+
+*Note: This is a simplified approximation; full calculation requires proper multi-curve valuation.*
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -770,8 +1294,26 @@ Using Hull's AUD/USD example, if 2-year rates are 3% (AUD) and 1% (USD), spot is
 | "Bedrock" assumption (Assumption 6.5.1) | Andersen Vol 1 Ch 6.5.2.2 |
 | AUD/USD arbitrage example | Hull Ch 5, Example 5.6 |
 | Fed funds/Libor spread widening post-2007 | Andersen Vol 1 Ch 6.5.3 |
+| "Uncollateralized derivatives subject to credit risk" | Andersen Vol 1 Ch 6.5.3 |
+| OIS and Fed funds/Libor basis swap markets for USD curve | Andersen Vol 1 Ch 6.5.3 |
+| Iteration converges quickly | Andersen Vol 1 Ch 6.5.2.4 |
 
-### (B) Reasoned Inference — Derivation Logic
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Context |
+|---------|---------|
+| Balance sheet economics of "arbitrage" | Extended from general knowledge of Basel III constraints |
+| The USD Premium section (21.3.5) | Structural market dynamics, not in standard textbooks |
+| Trading the Basis section (21.3.6) | Corporate issuance arbitrage, Yankee funding dynamics |
+| Quarter-end basis widening | Regulatory window-dressing effects |
+| March 2020 COVID basis blow-out | Recent historical episode (post-textbook publication) |
+| Central bank swap lines as circuit breakers | Post-2008 policy innovation |
+| Mark-to-market basis swap structures | Modern market practice |
+| Collateral currency section (21.6) | Operational practice extending textbook theory |
+| P&L attribution framework (21.7.5) | Desk-level practice for risk management |
+| Sign convention cheat sheet | Market convention reference |
+
+### (C) Reasoned Inference — Derivation Logic
 
 | Inference | Derivation |
 |-----------|------------|
@@ -780,16 +1322,20 @@ Using Hull's AUD/USD example, if 2-year rates are 3% (AUD) and 1% (USD), spot is
 | Floating leg telescopes to par when $P^{(L)} = P$ | Forward rate substitution and telescoping sum |
 | Basis sensitivity formula | Differentiation of swap PV w.r.t. spread |
 | Forward equals spot when rates equal | Setting $P_d = P_f$ in CIP formula |
+| P&L attribution formula | Linear approximation from Taylor expansion of PV function |
+| Numerical iteration example (21.5.3) | Application of Andersen algorithm to specific numbers |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Topic | Uncertainty |
 |-------|-------------|
 | Spot/settlement conventions | Currency-pair specific; not fully specified in sources |
 | Basis swap spread conventions (which leg, sign) | Market-convention specific; varies by venue |
 | Calendar construction | Books do not provide full operational calendars |
-| Collateral currency discounting | Flagged as out of scope; additional adjustments needed for third-currency collateral |
+| MTM basis swap exact mechanics | Varies by currency pair and counterparty |
+| Multi-currency CSA optionality pricing | Requires basis volatility assumptions not covered |
+| Typical basis ranges by currency | Indicative only; varies significantly with market conditions |
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: January 26, 2026*

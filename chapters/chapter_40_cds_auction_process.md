@@ -12,11 +12,14 @@ This chapter explains what the CDS auction accomplishes and why it exists. We fo
 
 1. **Why auctions became necessary** — the problem of notional exceeding deliverable supply
 2. **What the auction determines** — the final price for cash settlement
-3. **Settlement economics** — mapping auction prices to protection payouts
-4. **Historical examples** — Lehman and the evolution of settlement practice
-5. **What remains uncertain** — operational details not specified in our primary sources
+3. **How the two-stage auction mechanism works** — dealer quotes, open interest, and clearing
+4. **Settlement economics** — mapping auction prices to protection payouts
+5. **Manipulation risks and safeguards** — why auction design matters
+6. **Historical auction results** — Lehman and beyond
+7. **Index constituent default treatment** — how auctions apply to CDX/iTraxx positions
+8. **What remains uncertain** — operational details requiring ISDA documentation
 
-We are explicit about what the reference books cover and what requires additional documentation (such as ISDA's auction protocols). Where operational details are not specified in our sources, we say "I'm not sure" rather than speculate.
+We are explicit about what the reference books cover and what requires additional documentation. Where operational details are not specified in Hull or O'Kane, we use practitioner knowledge clearly marked as such, and we say "I'm not sure" rather than speculate.
 
 ---
 
@@ -29,6 +32,8 @@ Chapter 39 established that physical settlement requires the protection buyer to
 This works well when the amount of CDS protection outstanding is modest relative to the available debt. But the credit derivatives market grew rapidly through the 2000s, and a structural problem emerged: CDS notional outstanding could far exceed the supply of deliverable obligations.
 
 Hull provides the stark example: when Lehman defaulted, there was "$400 billion of CDS contracts and $155 billion of Lehman debt outstanding." The implication is immediate: if every protection buyer needed to source deliverable bonds, the combined buying pressure would create a massive short squeeze—pushing bond prices up, reducing the effective protection payout, and potentially destabilizing markets.
+
+O'Kane documents that this demand-supply mismatch creates a "short squeeze as protection buyers who do not hold a deliverable cash bond attempt to buy deliverable obligations to deliver into the contract. In this case, this demand can increase the price of the defaulted assets, thereby reducing the value of the loss payment."
 
 ### 40.1.2 The 2005 ISDA Protocol
 
@@ -106,31 +111,148 @@ Hull describes that "an ISDA-organized auction process is used to determine the 
 - The same final price applies to all contracts on the same reference entity
 - Hull mentions a "two-stage" process
 
-> **Deep Dive: The Two-Stage Auction**
+### 40.3.2 Overview of the Two-Stage Process
+
+Hull mentions that the auction follows a two-stage process, though the books do not detail the mechanics. Based on practitioner knowledge of how these auctions work in practice, we can describe the general framework while noting that the definitive rules are in ISDA's Credit Derivatives Auction Settlement documentation.
+
+> **Practitioner Note: Two-Stage Auction Framework**
 >
-> How does ISDA calculate the price?
+> The CDS auction typically operates in two stages:
 >
-> **Stage 1: The Initial Market Midpoint (IMM)**
-> *   Dealers submit two-way quotes (e.g., Bid 30, Offer 32).
-> *   We act on these quotes to stop dealers from lying. If you quote too high, you have to buy!
-> *   This sets the "Fair Value" range.
+> **Stage 1 — Initial Market Midpoint (IMM) and Open Interest**
+> - Participating dealers submit two-way quotes (bid and offer) for deliverable obligations
+> - These quotes establish a reference price range
+> - Dealers also submit their customers' physical settlement requests (buy or sell)
+> - The net of these requests becomes the "open interest"
 >
-> **Stage 2: Limit Orders**
-> *   Real investors (and banks) submit orders to buy or sell the actual bonds at specific prices.
-> *   "I will buy $50mm bonds if the price is 28."
-> *   The auction matches the net buying interest against the net selling interest to find the **Final Price**.
+> **Stage 2 — Dutch Auction Clearing**
+> - Participants submit limit orders to trade physical bonds at specified prices
+> - Orders clear against the open interest
+> - The price at which open interest clears becomes the final price
+>
+> **Important:** The definitive operational details—bid-offer constraints, price caps, timing windows, and the clearing algorithm—are specified in ISDA's Auction Settlement documentation. The description above reflects general practitioner understanding.
 
-### 40.3.2 What Is Not Specified in the Sources
+### 40.3.3 Stage 1 — Initial Market Midpoint and Open Interest
 
-I'm not sure about the full operational details of the auction mechanism from the primary sources. The following aspects are not specified in the excerpts I have verified:
+> **Practitioner Note: Stage 1 Mechanics**
+>
+> In Stage 1, each participating dealer submits:
+>
+> 1. **Two-way quotes:** A bid price (willing to buy bonds) and an offer price (willing to sell bonds) for deliverable obligations. These quotes are "touchable"—meaning if another dealer crosses your quote, you must honor the trade.
+>
+> 2. **Physical settlement requests:** Net requests from the dealer's customers who wish to physically settle their CDS contracts by buying or selling bonds.
+>
+> The **Initial Market Midpoint (IMM)** is calculated from the dealer quotes. If quotes are within acceptable bounds, the IMM is the midpoint of the valid quote range.
+>
+> The **Open Interest** is the net of all physical settlement requests:
+>
+> $$\boxed{\text{Open Interest (OI)} = \sum \text{Physical Buy Requests} - \sum \text{Physical Sell Requests}}$$
+>
+> - If OI > 0: There is net demand to buy bonds (protection sellers wanting to receive bonds)
+> - If OI < 0: There is net supply of bonds (protection buyers wanting to deliver bonds)
+> - The sign of OI determines whether Stage 2 will walk prices up (to attract sellers) or down (to attract buyers)
 
-- How dealers submit bids and offers and what constraints apply
-- How "open interest" (net physical settlement demand/supply) is calculated and incorporated
-- The precise algorithm for converting submissions into the final price
-- Exact timelines (cutoffs, publication times, settlement date conventions)
-- The role and composition of the ISDA Determinations Committee
+**Why "Touchable" Quotes Matter:**
 
-**External documentation needed:** The ISDA Credit Derivatives Auction Settlement documentation, ISDA Determinations Committee rules, and the applicable ISDA Credit Derivatives Definitions contain the operational details. Our primary sources (Hull, O'Kane) point readers to these documents for full specifications rather than reproducing them.
+The touchable quote requirement prevents dealers from submitting manipulative quotes. If a dealer submits an artificially low bid (hoping to push the final price down), another dealer can cross that bid and force the first dealer to buy at that price. This creates two-way accountability.
+
+> **Desk Reality: Why Dealers Can't Game Stage 1**
+>
+> If you're a dealer and submit a bid of 25 hoping to push the auction lower, but the market clears at 35, you've just agreed to buy bonds at 25 that you'll need to sell at 35—a loss. Touchable quotes mean your price is your commitment. This is why dealer quotes tend to cluster around fair value.
+
+### 40.3.4 Stage 2 — Dutch Auction and Clearing
+
+> **Practitioner Note: Stage 2 Mechanics**
+>
+> In Stage 2, participants submit **limit orders** to buy or sell physical bonds at specified prices. The direction of acceptable orders depends on the open interest sign from Stage 1:
+>
+> - If OI > 0 (net demand to buy): Stage 2 accepts only **sell** limit orders
+> - If OI < 0 (net supply to sell): Stage 2 accepts only **buy** limit orders
+>
+> The auction then walks the price from the IMM in the direction that clears the open interest:
+>
+> - If accepting sell orders, price walks down from IMM until cumulative sell volume ≥ |OI|
+> - If accepting buy orders, price walks up from IMM until cumulative buy volume ≥ |OI|
+>
+> The **final price** is the price at which the open interest is fully cleared. This is a Dutch auction (single clearing price)—all participants who trade do so at the same final price, regardless of their individual limit prices.
+
+**Example: Open Interest Clearing**
+
+Suppose Stage 1 produces:
+- IMM = 35.00
+- Open Interest = +$200mm (net demand to buy bonds)
+
+Stage 2 accepts sell limit orders. Suppose the following orders are submitted:
+
+| Limit Price | Sell Volume |
+|-------------|-------------|
+| 35.00 | $50mm |
+| 34.50 | $75mm |
+| 34.00 | $100mm |
+| 33.50 | $50mm |
+
+The auction walks down from 35.00:
+- At 35.00: $50mm cumulative (need $200mm)
+- At 34.50: $125mm cumulative (need $200mm)
+- At 34.00: $225mm cumulative ✓ (exceeds $200mm)
+
+**Final Price = 34.00.** All sell orders at 34.00 or above execute at 34.00.
+
+### 40.3.5 Manipulation Risks and Safeguards
+
+> **Practitioner Note: Ramping and Its Constraints**
+>
+> **What is "ramping"?** Ramping refers to attempts by market participants to manipulate the auction final price in their favor:
+>
+> - **Protection buyers** benefit from lower final prices (higher payouts), so they might try to push the auction down
+> - **Protection sellers** benefit from higher final prices (lower payouts), so they might try to push the auction up
+>
+> **How might manipulation occur?**
+>
+> 1. **Aggressive limit orders:** A large protection buyer could submit aggressive sell orders in Stage 2 at below-market prices, hoping to clear the open interest at a lower level
+>
+> 2. **Coordinated dealer quotes:** If multiple dealers colluded on Stage 1 quotes, they could influence the IMM
+>
+> **Auction safeguards:**
+>
+> 1. **Touchable quotes:** Dealers face real execution risk if their quotes are crossed
+>
+> 2. **IMM caps:** Stage 2 limit orders are typically constrained relative to the IMM—you can't submit orders far outside the Stage 1 price range
+>
+> 3. **Adjustment amounts:** Dealers whose quotes are crossed in Stage 1 may face penalty payments ("adjustment amounts")
+>
+> 4. **Transparency:** Auction results (final prices, volumes, participant lists) are published, enabling post-hoc scrutiny
+>
+> 5. **Regulatory oversight:** Post-2008, regulators have increased scrutiny of CDS auction conduct
+>
+> **I'm not sure** about specific documented manipulation cases or regulatory enforcement actions without additional verification. The safeguards described reflect auction design principles.
+
+> **Desk Reality: Why Manipulation is Difficult**
+>
+> Suppose you hold $500mm of CDS protection and want to push the final price down by 5 points to increase your payout by $25mm. To do this, you'd need to submit sell orders that move the clearing price. But:
+>
+> 1. You'd be selling bonds at below-market prices, crystallizing losses
+> 2. Other participants can see the open interest and submit offsetting orders
+> 3. Your aggressive pricing may not even clear if there's sufficient natural demand
+>
+> The auction design forces you to "put your money where your mouth is"—manipulation has real costs.
+
+### 40.3.6 Auction Day Sequence
+
+> **Practitioner Note: Typical Auction Timeline**
+>
+> The auction typically occurs several days after the credit event (often referred to as T+5 or similar, depending on the specific protocol). A typical auction day might proceed as:
+>
+> | Time (ET) | Event |
+> |-----------|-------|
+> | 8:00 AM | Stage 1 submission window opens |
+> | 10:00 AM | Stage 1 submission deadline |
+> | 10:30 AM | IMM and Open Interest published |
+> | 11:00 AM | Stage 2 limit order submission opens |
+> | 1:00 PM | Stage 2 submission deadline |
+> | 2:00 PM | Final Price published |
+>
+> **Important:** These times are illustrative. Actual schedules vary by auction and are specified in each auction's settlement terms published by ISDA.
 
 ---
 
@@ -152,17 +274,79 @@ The ISDA auction determined a final price of 8.625 per 100 of face value. This i
 
 Hull notes this was approximately "eight cents on the dollar" in recovery—reflecting severe impairment in Lehman's credit quality.
 
-### 40.4.2 Why Cash Settlement Became Standard
+### 40.4.2 Historical Auction Results
+
+> **Practitioner Note: Selected CDS Auction Final Prices**
+>
+> The following table shows final prices from selected CDS auctions. This data illustrates the wide range of recovery outcomes depending on issuer circumstances, capital structure, and market conditions.
+>
+> | Reference Entity | Year | Final Price (% of Par) | Context |
+> |-----------------|------|------------------------|---------|
+> | Lehman Brothers | 2008 | 8.625% | Bankruptcy; severe losses |
+> | Washington Mutual | 2008 | ~57% | FDIC seizure; senior debt protected |
+> | General Motors | 2009 | ~12.5% | Bankruptcy reorganization |
+> | CIT Group | 2009 | ~68% | Prepackaged bankruptcy |
+> | Eastman Kodak | 2012 | ~31% | Chapter 11 filing |
+> | Republic of Argentina | 2014 | ~41% | Sovereign debt restructuring |
+> | Sears Holdings | 2018 | ~8% | Liquidation |
+> | Hertz | 2020 | ~20% | COVID-related bankruptcy |
+>
+> **Key observations:**
+> - Recovery rates vary widely (8% to 68% in these examples)
+> - Senior secured debt typically recovers more than unsecured (see Chapter 35)
+> - Market conditions affect recovery—distressed markets depress prices
+> - The auction mechanism has processed dozens of credit events reliably
+>
+> **Note:** Verify current figures against ISDA's official auction history. The data above reflects commonly cited outcomes but may not capture all nuances (restructuring clauses, deliverable specifications, etc.).
+
+O'Kane provides empirical context from rating agency data: "The most relevant recovery value for the credit derivatives market is the expected recovery rate for senior unsecured bonds. This is equal to 34.89%. The median value is 42.27%." However, auction outcomes can diverge significantly from these averages depending on specific circumstances.
+
+### 40.4.3 Why Cash Settlement Became Standard
 
 O'Kane explains the evolution: "The current market standard for default swaps is to prefer physical settlement over cash settlement. However... there is a trend towards cash settlement for CDS, especially in the CDS index and STCDO markets."
 
 The 2005 protocol and subsequent refinements established auctions as the standard fallback mechanism. Hull notes that cash settlement with auctions is "now usual"—a significant shift from earlier practice where physical settlement was the norm.
 
-### 40.4.3 Earlier Precedents: The Delivery Option Problem
+> **Practitioner Note: The Big Bang Protocol (2009)**
+>
+> Following the 2008 financial crisis, ISDA implemented the "Big Bang Protocol" in 2009, which standardized CDS contracts globally and made auction settlement the default mechanism for credit events. This protocol:
+>
+> - Established fixed coupon conventions (100bp for investment grade, 500bp for high yield)
+> - Standardized credit event definitions
+> - Made auction settlement the universal standard
+>
+> The Big Bang Protocol transformed CDS from a market with varied bilateral conventions into a more standardized, liquid market—which in turn enabled the growth of synthetic CDOs and index trading covered in Chapters 45-52.
+
+### 40.4.4 Earlier Precedents: The Delivery Option Problem
 
 Before auctions became standard, physical settlement exposed the market to delivery option dynamics. Chapter 39 covered O'Kane's Conseco example from September 2000, where banks exploited the delivery option by delivering long-maturity, deep-discount bonds (trading at 65-80) for par while shorter-dated loans traded higher.
 
 Such exploitation illustrated the challenges of physical settlement when deliverables trade at dispersed prices. Auctions help address this by establishing a single settlement price that reflects CTD economics without requiring actual delivery.
+
+### 40.4.5 Index Constituent Defaults
+
+When a constituent of a CDS index (CDX, iTraxx) experiences a credit event, the auction process applies to that name specifically. The auction-determined final price then flows through to index positions.
+
+O'Kane describes the mechanics: When there is a default in an index with $M$ credits, "the buyer pays $1/M$ of the face value of the contract to the seller in return for delivery of a defaulted asset also on $1/M$ of the contract notional."
+
+Under cash settlement via auction, the index holder's economics are:
+
+$$\text{Index Payout} = \frac{N}{M} \times \left(1 - \frac{FP_{100}}{100}\right)$$
+
+where $N$ is the total index notional, $M$ is the number of index constituents, and $FP_{100}$ is the auction final price for the defaulted name.
+
+> **Desk Reality: Index Default Settlement**
+>
+> Consider a CDX.NA.IG position (125 names) with $125mm notional. If one name defaults with $FP_{100} = 40$:
+>
+> $$\text{Payout} = \frac{\$125\text{mm}}{125} \times (1 - 0.40) = \$1\text{mm} \times 0.60 = \$0.6\text{mm}$$
+>
+> After settlement:
+> - Index notional reduces to $124mm
+> - Future coupon payments are on the reduced notional
+> - The defaulted name is removed (without replacement)
+>
+> See Chapter 41 for full treatment of index mechanics and notional reduction.
 
 ---
 
@@ -177,6 +361,8 @@ Such exploitation illustrated the challenges of physical settlement when deliver
 | $R$ | Recovery fraction: $R = FP_{100}/100$ |
 | $s$ | CDS running spread (annualized, as a decimal) |
 | $\alpha$ | Accrual fraction from last premium date to credit event date |
+| $\text{OI}$ | Open interest (net physical settlement requests) |
+| $\text{IMM}$ | Initial Market Midpoint from Stage 1 |
 
 ### 40.5.2 Core Payoff Identity
 
@@ -208,6 +394,8 @@ Verification: $\$100\text{mm} \times (1 - 0.35) = \$65\text{mm}$ ✓
 
 Hull emphasizes that "the regular payments from the buyer of protection to the seller of protection cease when there is a credit event. However, because these payments are made in arrears, a final accrual payment by the buyer is usually required."
 
+O'Kane confirms: "An important feature of the premium leg is the payment of the coupon accrued at default. In the standard contract, following a credit event, the protection buyer must pay the fraction of the premium which has accrued since the previous premium payment date."
+
 For a contract with spread $s$ (annualized), notional $N$, and accrual fraction $\alpha$ since the last premium date:
 
 $$\boxed{\text{Accrued Premium} = N \cdot s \cdot \alpha}$$
@@ -216,7 +404,27 @@ This is paid by the protection buyer to the seller and is separate from the prot
 
 ---
 
-## 40.6 Worked Examples
+## 40.6 Governance: The Determinations Committee
+
+> **Practitioner Note: ISDA Determinations Committee**
+>
+> The ISDA Credit Derivatives Determinations Committee (DC) is the governance body that oversees credit events and auctions. The DC:
+>
+> 1. **Determines whether a credit event has occurred:** When a potential trigger arises, market participants can petition the DC for a ruling
+>
+> 2. **Decides whether to hold an auction:** Not all credit events result in auctions—the DC evaluates whether an auction is appropriate
+>
+> 3. **Sets auction parameters:** Deliverable obligations, timing, specific rules for each auction
+>
+> 4. **Resolves disputes:** Interpretation questions about contracts or credit events
+>
+> **DC membership** includes major CDS dealers and buy-side representatives. Decisions require supermajority votes and are binding on all market participants who adhere to the relevant ISDA protocols.
+>
+> **I'm not sure** about current DC membership, voting thresholds, or specific procedural rules without consulting the ISDA DC Rules documentation.
+
+---
+
+## 40.7 Worked Examples
 
 ### Example A — Basic Cash Settlement Payout
 
@@ -345,7 +553,7 @@ $$\text{Payout per }\$10\text{mm} = 10\text{mm} \times (1 - 0.32) = \$6.8\text{m
 **If auction final price = 40 (average):**
 $$\text{Payout per }\$10\text{mm} = 10\text{mm} \times (1 - 0.40) = \$6.0\text{mm}$$
 
-**Difference:** $0.8\text{mm}
+**Difference:** $0.8\text{mm}$
 
 The final price choice matters. Hull describes the auction as determining the "mid-market value of the cheapest deliverable bond," suggesting alignment with CTD economics.
 
@@ -391,9 +599,56 @@ Protection buyers receive 75% more through auction-based settlement.
 
 ---
 
-## 40.7 Risk and Measurement Considerations
+### Example K — Open Interest and Clearing Price
 
-### 40.7.1 Final Price Uncertainty
+> **Practitioner Note:** This example illustrates auction clearing mechanics based on general practitioner understanding.
+
+**Stage 1 Results:**
+- IMM = 36.00
+- Open Interest = +$150mm (net demand to buy bonds)
+
+**Stage 2 Sell Orders Submitted:**
+
+| Limit Price | Volume | Cumulative Volume |
+|-------------|--------|-------------------|
+| 36.00 | $30mm | $30mm |
+| 35.50 | $50mm | $80mm |
+| 35.00 | $80mm | $160mm |
+| 34.50 | $40mm | $200mm |
+
+**Clearing:**
+- At 35.50: $80mm < $150mm (not cleared)
+- At 35.00: $160mm ≥ $150mm (cleared)
+
+**Final Price = 35.00**
+
+All sell orders at 35.00 or above execute at 35.00. The $10mm excess supply at 35.00 is allocated pro-rata among orders at that price level.
+
+---
+
+### Example L — Index Constituent Default
+
+**Given:**
+- CDX.NA.IG position with $N = \$62.5\text{mm}$ notional
+- Index has $M = 125$ constituents
+- One name defaults with $FP_{100} = 40$
+
+**Step 1:** Affected notional
+$$N_{\text{affected}} = \frac{62.5\text{mm}}{125} = \$0.5\text{mm}$$
+
+**Step 2:** Payout on affected portion
+$$\text{Payout} = 0.5\text{mm} \times (1 - 0.40) = 0.5\text{mm} \times 0.60 = \$0.3\text{mm}$$
+
+**Step 3:** Post-settlement index position
+- Remaining notional: $62.5\text{mm} - 0.5\text{mm} = \$62.0\text{mm}$
+- Remaining constituents: 124
+- Future coupon payments: on $62.0\text{mm}$ notional
+
+---
+
+## 40.8 Risk and Measurement Considerations
+
+### 40.8.1 Final Price Uncertainty
 
 **What it is:** Risk that the realized auction price $FP_{100}$ differs from pre-event expectations.
 
@@ -403,13 +658,15 @@ Protection buyers receive 75% more through auction-based settlement.
 
 **When it matters most:** Near distress, when the reference entity's debt is trading at uncertain levels and market participants disagree about recovery prospects.
 
-### 40.7.2 Deliverable Dispersion Risk
+### 40.8.2 Deliverable Dispersion Risk
 
 Hull notes in a footnote that same-seniority bonds "may not sell for the same percentage of face value immediately after a default" due to "accrued interest differences and differing expectations about outcomes across bondholders."
 
+O'Kane provides empirical context: recovery rates show "large variability" with standard deviations around 22-28% across different debt types. The dispersion between senior secured (mean ~52%) and subordinated (mean ~29%) bonds is significant.
+
 **Implication for hedging:** If you hedge a specific bond with CDS, the hedge effectiveness depends on how that bond's post-event price compares to the CTD-referenced auction price. This is a source of basis risk—covered in detail in Chapters 43 and 44.
 
-### 40.7.3 Settlement Timing Risk
+### 40.8.3 Settlement Timing Risk
 
 O'Kane documents that physical settlement "can extend up to 72 calendar days after initial notification until a payment on the protection leg must be made." Cash settlement via auction compresses this timeline but still involves uncertainty about:
 
@@ -419,18 +676,19 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 
 ---
 
-## 40.8 Practical Notes
+## 40.9 Practical Notes
 
-### 40.8.1 Day-of-Event Checklist
+### 40.9.1 Day-of-Event Checklist
 
 1. **Confirm reference entity and contracts impacted** — legal entity mapping matters
 2. **Verify settlement type** — physical, cash, or auction-based fallback
 3. **Record key data:** notional $N$, spread $s$, last premium date, event date (for accrual)
-4. **Obtain auction final price** $FP_{100}$ when published
-5. **Compute payout:** $N \times (1 - FP_{100}/100)$
-6. **Reconcile signs:** buyer receives protection, pays accrued premium
+4. **Monitor DC announcements:** Has the DC declared a credit event? Is an auction scheduled?
+5. **Obtain auction final price** $FP_{100}$ when published
+6. **Compute payout:** $N \times (1 - FP_{100}/100)$
+7. **Reconcile signs:** buyer receives protection, pays accrued premium
 
-### 40.8.2 Common Pitfalls
+### 40.9.2 Common Pitfalls
 
 | Pitfall | Consequence |
 |---------|-------------|
@@ -439,12 +697,24 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | Assuming auction operational details | Verify against ISDA documentation |
 | Treating auction price as "true recovery" for all obligations | Deliverable dispersion creates gaps |
 | Ignoring restructuring clause | Affects deliverable range (see Chapter 39) |
+| Applying single-name auction price incorrectly to index | Must account for $1/M$ weighting |
 
-### 40.8.3 Verification Tests
+### 40.9.3 Verification Tests
 
 1. **Payout bounds:** If $0 \le FP_{100} \le 100$, then $0 \le \text{Payout} \le N$
 2. **Mirror symmetry:** Buyer's net = −(Seller's net)
 3. **Physical/cash alignment:** Under stated assumptions, both settlement methods give same economics
+4. **Index consistency:** Index payout = (1/M) × single-name payout formula
+
+### 40.9.4 Information Sources
+
+| Information Needed | Source |
+|-------------------|--------|
+| Auction final prices | ISDA website, Markit, Bloomberg |
+| DC rulings | ISDA DC website |
+| Auction protocols | ISDA Auction Settlement documentation |
+| Historical auction results | Creditex, ISDA |
+| Deliverable obligations | Auction-specific ISDA announcements |
 
 ---
 
@@ -458,17 +728,23 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 
 4. The **cash settlement payout** is $N(1-R) = N(1 - FP_{100}/100)$, where $FP_{100}$ is the auction final price
 
-5. **Auctions avoid short squeezes** by eliminating the need to source physical deliverables, preventing settlement-driven price distortion
+5. The auction uses a **two-stage process**: Stage 1 establishes the IMM and open interest; Stage 2 clears the open interest via Dutch auction to determine the final price
 
-6. The **same final price applies to all contracts** on the reference entity, providing standardization across thousands of bilateral positions
+6. **Auctions avoid short squeezes** by eliminating the need to source physical deliverables, preventing settlement-driven price distortion
 
-7. **Accrued premium at default** is paid by the buyer to the seller, separate from the protection payout
+7. The **same final price applies to all contracts** on the reference entity, providing standardization across thousands of bilateral positions
 
-8. **Physical and cash settlement are economically equivalent** when the auction price equals the CTD market price
+8. **Manipulation safeguards** (touchable quotes, IMM caps, adjustment amounts) make "ramping" difficult and costly
 
-9. **Operational auction details** (bidding rules, timelines, algorithms) require ISDA documentation beyond what the primary sources specify
+9. **Accrued premium at default** is paid by the buyer to the seller, separate from the protection payout
 
-10. The auction mechanism transformed credit event settlement from potential chaos into an **orderly, standardized process**
+10. **Index constituent defaults** use the same auction process; payout applies to the 1/M portion of index notional
+
+11. **Physical and cash settlement are economically equivalent** when the auction price equals the CTD market price
+
+12. **Operational auction details** (bidding rules, timelines, algorithms) require ISDA documentation beyond what the primary sources specify
+
+13. The auction mechanism transformed credit event settlement from potential chaos into an **orderly, standardized process**
 
 ---
 
@@ -480,6 +756,10 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | 2005 ISDA protocol | Introduced auction fallback for cash settlement | Resolved supply/demand mismatch when CDS > debt |
 | Short squeeze avoidance | Eliminating physical sourcing pressure | Preserves fair-value settlement economics |
 | CTD alignment | Auction targets CTD value | Makes cash and physical settlement equivalent |
+| Open interest | Net physical settlement requests from Stage 1 | Determines Stage 2 clearing direction |
+| Initial Market Midpoint (IMM) | Midpoint from Stage 1 dealer quotes | Reference point for Stage 2 limit orders |
+| Touchable quotes | Dealer quotes that must be honored if crossed | Prevents manipulation of Stage 1 quotes |
+| Determinations Committee | ISDA body that governs credit events and auctions | Decides when auctions occur and sets parameters |
 | Accrued premium at default | Premium owed from last payment to event date | Ensures seller receives compensation for protection provided |
 
 ---
@@ -493,6 +773,9 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | $R$ | Recovery fraction: $FP_{100}/100$ |
 | $s$ | CDS spread (annualized) |
 | $\alpha$ | Accrual fraction since last premium date |
+| $\text{OI}$ | Open interest (net physical settlement requests) |
+| $\text{IMM}$ | Initial Market Midpoint |
+| $M$ | Number of index constituents |
 
 ---
 
@@ -530,12 +813,17 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | 28 | For a $\$50\text{mm}$ position, what payout change from $FP$ moving 35→40? | Decrease of $\$2.5\text{mm}$ |
 | 29 | What makes cash settlement "now usual" according to Hull? | ISDA-organized auction process standardization |
 | 30 | What should you verify on a real trade before computing settlement? | Settlement type, auction price, notional, accrual conventions |
+| 31 | What is "open interest" in a CDS auction? | Net physical settlement requests (buy minus sell) |
+| 32 | What determines whether Stage 2 walks prices up or down? | Sign of open interest: positive = walks down; negative = walks up |
+| 33 | What is the Initial Market Midpoint (IMM)? | Midpoint calculated from Stage 1 dealer quotes |
+| 34 | What is "ramping" in CDS auctions? | Attempting to manipulate the final price in one's favor |
+| 35 | What does the ISDA Determinations Committee decide? | Whether credit events occurred, whether to hold auctions, auction parameters |
 
 ---
 
 ## Mini Problem Set
 
-**Questions 1-8 have solution sketches below.**
+**Questions 1-10 have solution sketches below.**
 
 1. A CDS has $N = \$12\text{mm}$ and $FP_{100} = 25$. Compute payout and implied recovery.
 
@@ -567,9 +855,19 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 
 15. List five data items needed to process a credit event settlement for a CDS position.
 
+16. **(Simulation)** Given Stage 1 results of IMM = 40.00 and OI = +$100mm, and the following Stage 2 sell orders, find the final price:
+    - 40.00: $20mm
+    - 39.50: $40mm
+    - 39.00: $50mm
+    - 38.50: $30mm
+
+17. A CDX.NA.IG position has $\$62.5\text{mm}$ notional (125 names). One name defaults with $FP_{100} = 40$. Calculate the payout and remaining index notional.
+
+18. **(Reasoning)** Explain why a protection buyer might submit aggressive limit sell orders in Stage 2, and what constrains this strategy.
+
 ---
 
-### Solution Sketches (Questions 1-8)
+### Solution Sketches (Questions 1-10)
 
 **1.** $R = 0.25$. Payout $= 12\text{mm} \times (1 - 0.25) = \$9\text{mm}$.
 
@@ -587,11 +885,30 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 
 **8.** Payout $= 200\text{mm} \times 0.91375 = \$182.75\text{mm}$.
 
+**9.** Under physical settlement, if CDS notional exceeds deliverable bonds, protection buyers must compete to source bonds. This buying pressure drives prices up (short squeeze), so the bond costs more to acquire. Since the protection buyer delivers the bond for par, a higher acquisition cost means lower net gain (effectively lower payout).
+
+**10.** Suppose your bond has unusual features (long maturity, low coupon) that make it trade at 25 post-default, while the CTD trades at 35. The auction final price is 35 (CTD value), so cash settlement pays $N(1-0.35) = 0.65N$. But if you held the specific bond and physically settled, you could deliver the 25-price bond for par, gaining $N(1-0.25) = 0.75N$. The 10-point deliverable dispersion creates a $0.10N$ difference.
+
+---
+
+### Solution Sketches (Questions 16-18)
+
+**16.** Stage 2 clears by accumulating sell orders from IMM downward until volume ≥ OI:
+- At 40.00: $20mm (need $100mm)
+- At 39.50: $60mm cumulative (need $100mm)
+- At 39.00: $110mm cumulative ≥ $100mm ✓
+
+**Final Price = 39.00**
+
+**17.** Affected notional = $62.5\text{mm}/125 = \$0.5\text{mm}$. Payout = $0.5\text{mm} \times (1-0.40) = \$0.3\text{mm}$. Remaining notional = $62.5\text{mm} - 0.5\text{mm} = \$62.0\text{mm}$.
+
+**18.** A protection buyer benefits from lower final prices (higher payout). By submitting aggressive sell orders at below-market prices in Stage 2, they could potentially push the clearing price down. However, constraints include: (1) they must actually sell bonds at those prices if filled, crystallizing losses; (2) IMM caps limit how far below Stage 1 prices they can bid; (3) other participants can see open interest and submit offsetting orders; (4) regulatory scrutiny of manipulative behavior.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -605,8 +922,26 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | Physical settlement: "The protection buyer delivers face value of deliverable obligations to the protection seller. In return, the protection seller makes a simultaneous payment of the face value in cash to the protection buyer" | O'Kane Ch 5 |
 | Same-seniority bonds "may not sell for the same percentage of face value immediately after a default" due to "accrued interest differences and differing expectations" | Hull Ch 25 (footnote) |
 | Physical settlement timeline can extend "up to 72 calendar days after initial notification" | O'Kane Ch 5 |
+| Short squeeze: "demand can increase the price of the defaulted assets, thereby reducing the value of the loss payment" | O'Kane Ch 5 |
+| Recovery rates show large variability: senior unsecured mean 34.89%, median 42.27% | O'Kane Ch 3.2 |
+| Conseco restructuring example with delivery option exploitation | O'Kane Ch 5.4 |
+| Index default mechanics: "the buyer pays $1/M$ of the face value... in situations where outstanding notional exceeds supply, an auction method is used" | O'Kane Ch 10 |
+| Coupon accrued at default: "In the standard contract, following a credit event, the protection buyer must pay the fraction of the premium which has accrued since the previous premium payment date" | O'Kane Ch 5.3 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Basis |
+|---------|-------|
+| Two-stage auction framework (Stage 1/Stage 2 mechanics) | Extends Hull's "two-stage" mention with practitioner understanding of auction design |
+| Open interest calculation and clearing direction | General knowledge of Dutch auction mechanics applied to CDS context |
+| Touchable quotes and manipulation safeguards | Extends O'Kane's short-squeeze discussion with auction design principles |
+| Ramping definition and constraints | General market microstructure principles applied to CDS auctions |
+| Historical auction results table | Public ISDA auction data (requires verification against official records) |
+| Big Bang Protocol (2009) | Industry knowledge of post-crisis CDS standardization |
+| Determinations Committee role | General ISDA governance understanding |
+| Auction day timeline | Illustrative timeline based on typical auction structure |
+
+### (C) Reasoned Inference (Derived from A and B)
 
 | Inference | Derivation |
 |-----------|------------|
@@ -615,13 +950,19 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 | Payout sensitivity = $0.01 \times N$ per point | Differentiation of payout formula |
 | Short squeeze risk reduces effective protection | CDS > debt supply creates buying pressure; reasoned from scarcity economics |
 | Auctions eliminate short squeeze by removing need to source deliverables | Logical implication of cash settlement mechanics |
+| Index payout = $(N/M) \times (1-R)$ | Direct application of O'Kane's index mechanics description |
+| OI > 0 implies walking prices down to attract sellers | Standard Dutch auction clearing logic |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
-- **Full auction operational mechanics:** I'm not sure about the two-stage process details, bid/offer constraints, open interest calculation, timeline milestones, or Determinations Committee procedures. Hull mentions "two-stage" but does not detail the mechanics. To be certain, we would need the ISDA Credit Derivatives Auction Settlement documentation.
+- **Full auction operational mechanics:** I'm not sure about the exact bid-offer constraints, price cap formulas, adjustment amount calculations, or clearing algorithm specifics. Hull mentions "two-stage" but does not detail the mechanics. The definitive rules are in ISDA's Credit Derivatives Auction Settlement documentation.
 
-- **Exact timing conventions:** I'm not sure about the precise number of days between credit event and auction, publication times, or settlement dates without the specific auction protocol.
+- **Exact timing conventions:** I'm not sure about the precise number of days between credit event and auction, specific hour windows, or settlement dates without the specific auction protocol.
 
 - **How final price relates to CTD across all protocols:** I'm not sure whether every auction protocol targets CTD specifically or uses different pricing approaches. Hull's description of "mid-market value of the cheapest deliverable bond" is suggestive but not a complete protocol specification.
 
-- **Determinations Committee procedures:** I'm not sure about modern DC rules for declaring credit events or determining settlement terms without the relevant ISDA governance documents.
+- **Determinations Committee procedures:** I'm not sure about current DC membership, voting thresholds, or procedural rules without the relevant ISDA DC Rules documentation.
+
+- **Historical auction figures:** The auction results table reflects commonly cited outcomes but I'm not sure about exact figures without verifying against ISDA's official auction history. Market participants should verify current data.
+
+- **Specific regulatory enforcement:** I'm not sure about documented manipulation cases or regulatory actions related to CDS auctions without additional verification.

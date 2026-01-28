@@ -10,16 +10,19 @@ This question captures the essence of one of credit trading's most persistent pu
 
 The stakes are practical and immediate. Suppose you hedge a portfolio of single-name CDS positions with an index trade, believing you've neutralized your spread risk. If the index basis moves against you—if the index tightens while your single-names stay put—you've just taken an unexpected loss despite having "hedged." O'Kane addresses this directly: "when we look at the index spread quoted in the market, we often find that it is not the same as the intrinsic index spread." This basis arises from multiple sources, including documentation differences, liquidity premia, and technical supply-demand dynamics.
 
+For those in middle office roles—risk, operations, or product control—who see P&L breaks when index hedges don't match constituent moves, this chapter explains the underlying mechanics. The intrinsic spread is what your model says the index is worth; the quoted spread is what the market says. When these diverge, someone's P&L breaks.
+
 This chapter develops the framework for understanding and measuring the index basis:
 
 1. **Intrinsic spread calculation** — How to compute what the index "should" trade at from its constituents
 2. **The RPV01-weighted average approximation** — Why simple averaging is wrong and what the correct weighting is
 3. **Index basis definition and measurement** — The wedge between quoted and intrinsic levels
-4. **Basis drivers** — Documentation (restructuring clauses), liquidity, composition, and roll effects
-5. **Portfolio swap adjustment** — How practitioners force intrinsic to equal quoted for model consistency
-6. **Risk and hedging implications** — Why the basis matters for P&L attribution and hedge design
+4. **Basis drivers** — Documentation (restructuring clauses), liquidity, composition, roll effects, and crisis dynamics
+5. **Limits to basis arbitrage** — Why the basis persists despite apparent arbitrage opportunities
+6. **Portfolio swap adjustment** — How practitioners force intrinsic to equal quoted for model consistency
+7. **Risk and hedging implications** — Why the basis matters for P&L attribution and hedge design
 
-Understanding the index basis connects directly to the mechanics covered in **Chapter 41** (CDS Index Mechanics), prepares you for the hedging strategies in **Chapter 47**, and is essential for the tranche pricing framework in **Chapters 48-50**, where model calibration requires that intrinsic equals quoted.
+Understanding the index basis connects directly to the mechanics covered in **Chapter 45** (CDS Index Structure), prepares you for the hedging strategies in **Chapter 47**, and is essential for the tranche pricing framework in **Chapters 48-50**, where model calibration requires that intrinsic equals quoted.
 
 ---
 
@@ -103,6 +106,10 @@ This represents the present value of receiving $1 per year, continuously, until 
 
 For a name with higher default risk (lower survival probability), the RPV01 is lower because the expected premium-paying period is shorter. This has important implications for how we weight constituent spreads when computing intrinsic.
 
+> **Desk Reality: How Traders Think About RPV01**
+>
+> When a trader says "this name has short duration," they often mean its RPV01 is low—either because it's near maturity or because it's distressed with high default probability. A 1000 bp name might have RPV01 of only 2 years versus 4.5 years for a 50 bp name at the same maturity. This "risky duration" is the natural unit for weighting credit exposure.
+
 ### 46.1.4 The Exact Intrinsic Spread Definition
 
 The intrinsic spread $S_{\text{intrinsic}}$ is defined as the flat spread that, when applied to the index using its market-convention flat curve, produces the same PV as the bottom-up constituent calculation. O'Kane explains that "market convention is that the index curve $S_I(t,T)$ is flat. It is found by solving for the value of $S_I(t,T)$ at which a CDS contract with a coupon $C(T)$ has the same upfront value as the index."
@@ -139,6 +146,40 @@ A simple average of constituent spreads would be wrong because it ignores the di
 
 O'Kane provides a mathematical intuition: "the RPVOI-weighted average spread... is a concave function and so its average is less than the simple average." This explains why intrinsic is typically below the simple average when spread dispersion exists.
 
+### 46.1.6 The Concavity Effect: Jensen's Inequality Applied
+
+> **Practitioner Note (extended from Claude knowledge):** O'Kane notes that the RPV01-weighted average is "concave" but doesn't provide the full mathematical derivation. Here we explain why this effect arises using Jensen's inequality.
+
+The key insight is that RPV01 is a *decreasing, concave* function of spread. As spread increases, RPV01 falls (because default probability rises, shortening expected premium life). Moreover, this decrease is convex—the RPV01 of a 500 bp name is more than halfway between a 0 bp name and a 1000 bp name because default risk accelerates nonlinearly with spread.
+
+Consider two names with spreads $S_1$ and $S_2$ where $S_2 > S_1$. Let $f(S) = \text{RPV01}(S)$ be the RPV01 as a function of spread. The intrinsic spread is:
+
+$$S_{\text{intrinsic}} = \frac{S_1 \cdot f(S_1) + S_2 \cdot f(S_2)}{f(S_1) + f(S_2)}$$
+
+The simple average is:
+
+$$\bar{S} = \frac{S_1 + S_2}{2}$$
+
+Because $f(S)$ is decreasing, the high-spread name gets *less* weight in the intrinsic calculation than equal weighting would give. The RPV01-weighted average is therefore pulled toward the low-spread name.
+
+More formally, define weights $w_m = \text{RPV01}_m / \sum_k \text{RPV01}_k$. Since high-spread names have low RPV01, these weights underweight high-spread names relative to equal weights. The intrinsic spread is:
+
+$$S_{\text{intrinsic}} = \sum_m w_m S_m < \frac{1}{M} \sum_m S_m = \bar{S}$$
+
+when spread dispersion exists. This is a direct application of Jensen's inequality: the weighted average of a convex transformation (here, the identity function under weights that are inversely related to the argument) differs systematically from the equally-weighted average.
+
+**Numerical demonstration (2-name toy example):**
+
+| Name | Spread (bp) | RPV01 (years) | Weight |
+|------|-------------|---------------|--------|
+| A (Safe) | 50 | 4.5 | 4.5/5.0 = 90% |
+| B (Distressed) | 1000 | 0.5 | 0.5/5.0 = 10% |
+
+- **Simple average:** $(50 + 1000)/2 = 525$ bp
+- **Intrinsic (RPV01-weighted):** $0.90 \times 50 + 0.10 \times 1000 = 45 + 100 = 145$ bp
+
+The distressed name contributes 10% weight despite being 50% of the portfolio by count. The intrinsic spread (145 bp) is dramatically below the simple average (525 bp).
+
 > **Deep Dive: The High-Yield Trap (Why Simple Average Lies)**
 >
 > Imagine a 2-name index:
@@ -167,7 +208,7 @@ O'Kane tested this approximation against the exact solution and found excellent 
 
 The high-yield case shows larger error (1.5 bp) due to higher spreads, higher spread dispersion, and large upfront value.
 
-### 46.1.6 Intrinsic vs Simple Average: The Dispersion Effect
+### 46.1.7 Intrinsic vs Simple Average: The Dispersion Effect
 
 O'Kane demonstrates that spread dispersion systematically causes intrinsic to fall below the simple average. Table 46.2 shows this effect using real market data.
 
@@ -191,6 +232,15 @@ O'Kane demonstrates that spread dispersion systematically causes intrinsic to fa
 *Source: O'Kane Ch 10, Table 10.5*
 
 O'Kane notes that "for the investment grade portfolios we see that the difference between the intrinsic spread and the average spread is small, of the order of 1-2 bp for the DJ CDX NA, rising to about 3 bp for the iTraxx Europe index." The difference is dramatically larger for high-yield: at 5Y, intrinsic is 275 bp versus average of 305 bp—a 30 bp gap. O'Kane explains this by noting "the very high standard deviation of the high-yield index spreads can be explained by a number of distressed credits with spreads greater than 1000 bp which were in this index."
+
+> **Desk Reality: How Traders Actually Compute Intrinsic**
+>
+> In practice, traders rarely compute intrinsic manually. Vendor systems (Bloomberg CDSW, Markit, internal pricing engines) perform the RPV01 weighting automatically. However, understanding the mechanics matters when:
+> - Debugging a P&L break between your model and the desk's
+> - Evaluating a new name entering or exiting the index
+> - Stress-testing a portfolio with distressed names
+>
+> Some systems use a flat 40% recovery for all names; others allow name-specific recoveries. The choice can matter when recoveries differ significantly (see Example 9).
 
 ---
 
@@ -237,6 +287,18 @@ Notice that the basis can be positive or negative, varies across indices, and ca
 The basis calculation requires consistency in how quoted and intrinsic spreads are measured. Investment-grade indices typically use a **spread quote** (market convention that prices the index "as if" a single-name CDS with flat curve). Some high-yield or crossover indices use a **bond price** convention where the upfront is computed as "price minus 100."
 
 O'Kane notes that the bond price convention "avoids disagreement about the index PV01 needed to convert a spread quote into an upfront." When comparing basis across indices, ensure you're applying the same pricing convention to both sides.
+
+### 46.2.3 Basis P&L Impact
+
+> **Desk Reality: Why Basis Matters for P&L**
+>
+> On a $100mm index position with RPV01 of 4.2 years, a 3 bp adverse basis move costs:
+>
+> $$\Delta \text{PV} = 100,000,000 \times 3 \times 10^{-4} \times 4.2 = \$126,000$$
+>
+> This is pure basis P&L—distinct from parallel spread moves. A portfolio manager who hedges single-name exposure with an index can be perfectly CS01-neutral and still experience this P&L from basis volatility.
+>
+> **For middle office:** When you see a P&L break between index and constituent books that are supposedly hedged, basis movement is often the culprit. The basis is a distinct risk factor that survives CS01-neutral hedging.
 
 ---
 
@@ -292,6 +354,75 @@ When a name defaults:
 
 O'Kane notes that "a default on the CDS index should be offset by another index swap position of the same face value" for risk management purposes. These mechanics mean that indices with different default histories have different effective portfolios. Computing intrinsic requires knowing exactly which names remain and what the current effective notional is.
 
+### 46.3.5 Limits to Basis Arbitrage
+
+> **Practitioner Note (extended):** If the basis represents "free money," why doesn't arbitrage eliminate it? O'Kane discusses analogous frictions in the bond-CDS basis context (Section 5.6), and these apply with equal force to index basis arbitrage.
+
+The ETF analogy suggests that if the index trades at a premium to intrinsic, you should buy the index and sell the constituents (or vice versa), capturing the basis. In practice, several frictions prevent this:
+
+**1. Execution friction:** Trading 125 single-name CDS simultaneously is operationally difficult. Bid-ask spreads, market impact, and execution timing all erode the apparent arbitrage profit. O'Kane notes in the bond-CDS context: "it is difficult to assign degrees of importance to the individual factors as it is hard to tease them apart empirically."
+
+**2. Capital constraints:** Basis trades require balance sheet. You must post margin on both the index and constituent legs, tying up capital. The return on capital may not justify the trade at small basis levels.
+
+**3. Documentation mismatch creates real risk:** When CDX trades No-Re but constituents trade Mod-Re, you don't have a pure arbitrage—you have restructuring event risk. O'Kane explicitly warns: "the market standard for CDS in the US is based on the use of the Mod-Re restructuring clause." A Mod-Re restructuring event triggers your single-name short but not your index long, producing a real loss.
+
+**4. Timing risk (convergence uncertainty):** Basis may not converge before the index rolls. If you put on a basis trade expecting convergence, you may need to roll the position—at a cost—or close at a loss if the basis persists.
+
+**5. Funding and carry:** O'Kane notes for bond-CDS basis: "Default swaps are unfunded transactions and bonds are funded. For the same spread, CDS are favoured by investors who have funding costs above Libor while bonds are favoured by those who fund below." Similar funding dynamics affect index basis trades.
+
+> **Desk Reality: Basis Arbitrage in Practice**
+>
+> Dedicated basis arbitrage desks exist, but they operate with tight risk limits and accept that:
+> - Small basis (1-3 bp) is typically not tradeable after costs
+> - Basis can widen before converging
+> - Crisis-period basis can remain wide for months
+>
+> The basis is more like a "soft" arbitrage than a hard one—it rewards patient capital that can weather mark-to-market swings.
+
+### 46.3.6 Basis Dynamics in Stress Periods
+
+> **Practitioner Note (extended):** O'Kane mentions that the index "leads" single-names in widening markets but doesn't provide specific crisis data. Based on general market knowledge, here is how basis typically behaves during stress.
+
+**2008 Financial Crisis:** Index basis widened dramatically as investors rushed to buy index protection to hedge credit exposure. The index became the "first responder" instrument—liquid when single-names weren't. Basis for CDX IG reportedly widened to double-digit basis points (I'm not sure of exact levels without historical data verification). The directional effect—index leading constituents—is well-documented by O'Kane.
+
+**2011 European Sovereign Crisis:** iTraxx Main and Crossover indices showed similar dynamics. Sovereign names and financials drove index widening faster than single-name markets could absorb.
+
+**March 2020 (COVID-19):** CDX IG and HY widened aggressively in the initial panic. Basis blew out as hedging demand concentrated in the liquid index. Subsequently, Fed intervention (including indirect support via credit ETFs) helped normalize basis—but the episode demonstrated that basis can move 10+ bp intraday during crisis.
+
+**Pattern recognition:**
+- In stress: Index widens first → positive basis (index cheap)
+- As stress abates: Single-names catch up → basis normalizes
+- Mean-reversion is NOT guaranteed in any specific timeframe
+
+> **Desk Reality: Basis During a Sell-Off**
+>
+> When you see basis blow out:
+> 1. Don't assume it's a "signal" to buy index vs constituents—it may widen further
+> 2. Recognize that your index hedges may underperform in the short term
+> 3. P&L attribution should separate "spread P&L" from "basis P&L"
+> 4. Liquidity in single-names may be severely impaired—don't assume you can execute the "arbitrage"
+
+### 46.3.7 Cross-Series and Cross-Index Basis
+
+**On-the-Run vs Off-the-Run Series Basis:**
+
+After a roll, liquidity migrates to the new on-the-run series. The old (off-the-run) series continues to trade but with wider bid-ask spreads and less depth. This creates:
+
+- **Liquidity-driven basis:** Off-the-run may trade at a discount (tighter) to its intrinsic as sellers accept worse prices for liquidity
+- **Composition-driven basis:** If the old series has experienced defaults or downgrades not reflected in the new series, intrinsic levels differ
+- **Hedging risk:** Using on-the-run index to hedge off-the-run positions introduces series basis risk in addition to standard basis
+
+> **Practitioner Note (extended):** Traders hedging legacy positions sometimes face a choice: pay up for the matching (but illiquid) off-the-run series, or accept series basis risk with the liquid on-the-run. Most choose the latter, accepting that some basis P&L is the cost of liquidity.
+
+**CDX vs iTraxx Geographic Basis:**
+
+The two major index families have different compositions, documentation, and market dynamics:
+- CDX (North American) uses No-Re documentation; iTraxx (European) includes restructuring
+- Different constituent quality mixes (European vs North American credit profiles)
+- Different investor bases and hedging patterns
+
+Cross-index basis trades (long one, short the other) are occasionally implemented as macro bets on US vs European credit. However, these are not arbitrage—they are directional views on relative credit cycles with basis as the expression.
+
 ---
 
 ## 46.4 The Portfolio Swap Adjustment (PSA)
@@ -304,6 +435,8 @@ He further notes: "The exact nature of the adjustment is somewhat arbitrary. We 
 
 The adjustment modifies constituent curves (spreads or survival probabilities) so that when you compute intrinsic from these adjusted curves, you get exactly the market quoted spread. This ensures consistency between index and constituent pricing for products that depend on both (like tranches).
 
+O'Kane states the calibration requirement clearly: "This is a prerequisite for those who wish to build models for products including options on CDS indices and especially the standard tranches which are based on these indices in a way which ensures that there is no built-in basis between the market value and intrinsic value."
+
 ### 46.4.2 Principles of the Adjustment
 
 O'Kane emphasizes several desirable properties:
@@ -315,6 +448,18 @@ O'Kane emphasizes several desirable properties:
 3. **Preserve relative ranking:** The adjustment should not change which names are riskier than others
 
 4. **Fast:** "Since it will become a preprocessing layer to much of the correlation product analytics which we will encounter later, it is important that the implementation is as fast as possible."
+
+> **Why Proportional, Not Absolute?**
+>
+> Consider a 10% proportional adjustment applied to two names:
+> - Name A (tight): 20 bp → 22 bp (2 bp increase = 10% of its risk)
+> - Name B (wide): 200 bp → 220 bp (20 bp increase = 10% of its risk)
+>
+> Compare to an absolute 20 bp bump:
+> - Name A: 20 bp → 40 bp (100% increase in risk—doubling!)
+> - Name B: 200 bp → 220 bp (10% increase)
+>
+> The absolute bump would dramatically distort the relative risk profile, making tight names appear much riskier relative to wide names. Proportional adjustment preserves the "shape" of the credit portfolio.
 
 ### 46.4.3 The Spread Multiplier Approach
 
@@ -369,6 +514,25 @@ Selected constituent adjustments from O'Kane Table 10.7:
 
 Notice that the 3Y adjustment is uniform (0.737) while 5Y adjustments vary slightly by name due to different curve shapes. O'Kane explains: "It is not the same for all credits since the adjustment to the 3Y spreads has already been done and these proportional changes do not affect all issuer survival probabilities by the same amount."
 
+### 46.4.6 What Happens If You Skip PSA
+
+> **Desk Reality: The Tranche Calibration Failure Mode**
+>
+> If you price a tranche using raw constituent curves (where intrinsic ≠ quoted), your model has a built-in PV difference vs the index. Here's what goes wrong:
+>
+> **Setup:** You're pricing a 3-7% CDX IG tranche. The index trades at 60 bp quoted, but your constituent curves imply 65 bp intrinsic (basis = -5 bp).
+>
+> **Problem:** Your tranche model uses constituent curves to build a loss distribution. The expected loss and protection leg PV are computed as if the index trades at 65 bp (your intrinsic). But when you delta-hedge using the quoted index, you're hedging a 60 bp instrument.
+>
+> **Result:** Systematic P&L breaks equal to the basis times your position size. Every day, your model says one thing, the market another.
+>
+> **Solution:** Apply PSA to scale constituent curves so intrinsic = 60 bp. Now your tranche model and your index hedge are calibrated to the same underlying.
+>
+> **Numerical example:** On a $50mm tranche with index RPV01 of 4.0 years and 5 bp basis:
+> $$\text{Daily P\&L break risk} \approx 50{,}000{,}000 \times 5 \times 10^{-4} \times 4.0 = \$100{,}000$$
+>
+> This isn't a one-time error—it's a systematic mismatch that compounds over time.
+
 ---
 
 ## 46.5 Risk Measurement and Hedging Implications
@@ -420,6 +584,25 @@ When single-name positions are illiquid, the index provides a liquid proxy hedge
 - Idiosyncratic risk is accepted
 
 In stressed markets, this hedge can break down exactly when you need it most—O'Kane notes the index may "lead" single-names, widening faster if hedging demand concentrates in the liquid instrument.
+
+### 46.5.5 Systematic vs Idiosyncratic Delta
+
+**Chapter 47** develops this framework in detail (following O'Kane's tranche delta treatment). The key insight is that spread risk decomposes into:
+
+- **Systematic (index) delta:** Exposure to parallel moves in the index level
+- **Idiosyncratic delta:** Exposure to individual name moves that don't affect the index average
+
+For a pure index position, idiosyncratic delta is zero (by construction—you hold all names in weight). For a constituent position, both are nonzero. Basis risk emerges when systematic deltas are matched but basis itself moves.
+
+> **Desk Reality: When to Accept Basis Risk**
+>
+> **Macro hedging:** Basis risk is often acceptable. You want systematic credit exposure hedged; if your IG portfolio correlates 0.9 with CDX IG, that's good enough for most purposes. Accept that basis P&L is the cost of using a liquid hedge.
+>
+> **Basis trading:** You're explicitly betting on basis convergence. Size the trade based on how much basis P&L you can stomach if it moves against you before converging.
+>
+> **Model calibration (tranches):** You must eliminate basis via PSA. Tranche Greeks depend on a consistent model; a 5 bp basis mismatch can distort delta hedges significantly.
+>
+> **P&L attribution:** When explaining to your P&L committee that you're CS01-flat but made/lost money, basis is the answer. A good risk report separates "spread P&L" from "basis P&L" to make this transparent.
 
 ---
 
@@ -475,7 +658,7 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 
 ---
 
-### Example 3: Attributing Basis to Drivers
+### Example 3: Attributing Basis to Drivers (Decomposition)
 
 **Scenario:** CDX NA IG index trades at 70 bp. Using Mod-Re single-name spreads, intrinsic is 75 bp (basis = −5 bp). Investigate.
 
@@ -489,6 +672,14 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
    - Residual: $-1.25 + 0.5 = -0.75$ bp
 
 3. **Measurement error / bid-ask:** Within typical 1 bp uncertainty
+
+**Decomposition summary:**
+| Driver | Contribution (bp) |
+|--------|-------------------|
+| Restructuring (No-Re vs Mod-Re) | -3.75 |
+| Liquidity premium | +0.5 |
+| Residual / noise | -0.75 |
+| **Total basis** | **-5.0** |
 
 **Conclusion:** Most of the apparent −5 bp basis is explained by the documentation mismatch (−3.75 bp from restructuring). After adjustment, the index trades only slightly tight to intrinsic.
 
@@ -612,6 +803,62 @@ $$N_m = \$20.5mm$$
 
 ---
 
+### Example 9: Recovery Rate Sensitivity in Intrinsic Calculation
+
+**Setup:** 3-name index with heterogeneous recovery assumptions
+
+| Name | Spread (bp) | Recovery | Implied RPV01 (years) |
+|------|-------------|----------|----------------------|
+| A | 50 | 40% | 4.4 |
+| B | 100 | 40% | 4.0 |
+| C | 200 | 25% | 3.2 |
+
+**Note:** Name C has lower recovery assumption (subordinated debt), which implies higher loss-given-default and therefore shorter RPV01 at the same spread. The RPV01 is computed using the standard formula; lower recovery increases implied hazard rate for a given spread, reducing RPV01.
+
+**Intrinsic (heterogeneous recovery):**
+$$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} = \frac{220 + 400 + 640}{11.6} = \frac{1260}{11.6} = 108.6 \text{ bp}$$
+
+**Comparison: If all names used 40% recovery:**
+- Name C's RPV01 at 40% recovery would be higher, say 3.6 years
+- New denominator: $4.4 + 4.0 + 3.6 = 12.0$
+- New intrinsic: $(220 + 400 + 200 \times 3.6)/12.0 = (220 + 400 + 720)/12.0 = 111.7$ bp
+
+**Result:** Using accurate name-specific recoveries (with Name C at 25%) produces intrinsic of 108.6 bp versus 111.7 bp with flat 40%. The 3 bp difference arises because the low-recovery name has shorter risk duration and gets less weight.
+
+> **Practitioner Note:** Most production systems default to 40% flat recovery for simplicity. The error is usually small for IG indices but can matter for HY or when specific names have known subordinated exposure.
+
+---
+
+### Example 10: Cross-Series Hedging Residual Risk
+
+**Situation:** You hold $50mm long protection on CDX IG Series 37 (off-the-run). You want to hedge using the liquid on-the-run Series 38.
+
+**Key differences between series:**
+- Series 37 has 3 names that were replaced in Series 38 (fallen angels/upgrades)
+- Series 38 has 6-month longer maturity (curves may slope)
+- Liquidity: Series 38 bid-ask ~0.5 bp; Series 37 bid-ask ~2 bp
+
+**Hedge design:**
+- Match CS01: Both series have RPV01 ≈ 4.1 years
+- Hedge notional: $50mm Series 38 short protection
+
+**Residual risks:**
+
+1. **Composition mismatch:** The 3 replaced names create idiosyncratic exposure. If one of the dropped names widens 50 bp (it was dropped because it's deteriorating), your Series 37 position gains, but your Series 38 hedge doesn't respond.
+   - Estimated impact: ~$50mm × (1/125) × 50 bp × 4.1 × 10⁻⁴ = ~$8,200
+
+2. **Series basis:** If Series 37 trades at a different basis to its intrinsic than Series 38, you have basis mismatch.
+   - If Series 37 basis is -2 bp and Series 38 is 0 bp, you're effectively short 2 bp of basis.
+
+3. **Maturity mismatch:** Series 38 has 6 months more duration. If curves steepen (long end widens more), the hedge underperforms.
+
+**P&L scenario:** Series 37 and 38 both widen 10 bp, but Series 37 basis widens 3 bp while Series 38 stays flat.
+- Series 37 P&L: +10 bp × $41k/bp = +$410k (spread) + 3 bp × $41k/bp = +$123k (basis) = +$533k
+- Series 38 P&L: -10 bp × $41k/bp = -$410k
+- **Net: +$123k** (series basis slippage benefited you this time)
+
+---
+
 ## 46.7 Practical Notes
 
 ### 46.7.1 Production Checklist
@@ -625,7 +872,27 @@ Before computing intrinsic and basis:
 - **Discount curve:** Consistent across index and constituent pricing
 - **Quoting convention:** Spread vs bond price; understand upfront conversion
 
-### 46.7.2 Common Pitfalls
+### 46.7.2 Data Sourcing Considerations
+
+> **Practitioner Note (extended):** Reliable intrinsic calculation requires accurate, timely constituent spreads.
+
+**Where to get constituent spreads:**
+- **Markit:** Industry-standard composite quotes, updated daily
+- **Bloomberg CDSW:** Real-time indicative quotes from contributing dealers
+- **DTCC/ICE:** Trade-level data (post-trade, with lag)
+- **Internal pricing engines:** Calibrated to live dealer quotes
+
+**Staleness flags:**
+- If a single-name quote hasn't moved in 3+ days, it may be stale
+- Illiquid names (off-index, subordinated) may have indicative-only quotes
+- Verify against recent trade data if available
+
+**Timing mismatch:**
+- Index official close (typically 4:30 PM NY) may differ from constituent snapshot time
+- Intraday intrinsic can move as constituent quotes update
+- For EOD P&L, use consistent timestamps across index and constituents
+
+### 46.7.3 Common Pitfalls
 
 1. **Documentation mismatch:** Using Mod-Re constituent spreads without adjusting for No-Re index (CDX)
 2. **Stale quotes:** Computing intrinsic from end-of-day constituent spreads vs intraday index moves
@@ -634,7 +901,7 @@ Before computing intrinsic and basis:
 5. **Series confusion:** Comparing on-the-run index to off-the-run constituents with different composition
 6. **Ignoring defaults:** Not adjusting for names that have already defaulted and been removed
 
-### 46.7.3 Verification Tests
+### 46.7.4 Verification Tests
 
 - **Weight check:** Equal weights sum to 1, or stated weights verified
 - **Intrinsic stability:** Small spread bumps should produce small intrinsic changes
@@ -649,19 +916,26 @@ Before computing intrinsic and basis:
 
 2. The intrinsic spread is approximated as an **RPV01-weighted average** of constituent spreads—not a simple average, because high-spread names have shorter expected premium-paying lives and lower RPV01s
 
-3. The market **quoted spread** often differs from intrinsic—this difference is the **index basis**
+3. The **concavity effect** (RPV01 weighting < simple average) arises from Jensen's inequality: RPV01 is a decreasing, concave function of spread, so high-spread names get underweighted
 
-4. **Basis drivers** include:
+4. The market **quoted spread** often differs from intrinsic—this difference is the **index basis**
+
+5. **Basis drivers** include:
    - Documentation differences (restructuring clauses—No-Re vs Mod-Re can explain ~5% spread difference)
    - Liquidity premia (index typically more liquid, may trade tighter)
    - Technical flows (hedging demand can push index wider in stressed markets)
    - Composition and roll effects
+   - Cross-series and geographic factors
 
-5. The **portfolio swap adjustment** modifies constituent curves so that intrinsic exactly equals quoted—essential for index option and tranche pricing where model consistency is required
+6. **Limits to basis arbitrage** prevent the basis from closing: execution friction, capital constraints, documentation mismatch risk, and timing uncertainty
 
-6. **Basis risk** is a real exposure: hedging an index with constituents (or vice versa) leaves residual P&L from basis moves, even when CS01 is matched
+7. **Basis behaves differently in stress**: Index typically leads constituents in widening markets; basis can blow out and remain wide for extended periods
 
-7. For model calibration in **tranche pricing** (Chapters 48-50), practitioners must first apply a PSA to ensure the constituent curves are consistent with quoted index levels
+8. The **portfolio swap adjustment** modifies constituent curves so that intrinsic exactly equals quoted—essential for index option and tranche pricing where model consistency is required
+
+9. **Basis risk** is a real exposure: hedging an index with constituents (or vice versa) leaves residual P&L from basis moves, even when CS01 is matched
+
+10. For model calibration in **tranche pricing** (Chapters 48-50), practitioners must first apply a PSA to ensure the constituent curves are consistent with quoted index levels
 
 ---
 
@@ -673,8 +947,10 @@ Before computing intrinsic and basis:
 | **Quoted spread** | Market-traded index level | What you actually pay/receive |
 | **Index basis** | Quoted − Intrinsic | Measures deviation from replication value |
 | **RPV01** | Risky PV01; PV of 1 bp premium until default/maturity | The correct weight for averaging spreads |
+| **Concavity effect** | Intrinsic < simple average when dispersion exists | High-spread names have low RPV01, get less weight |
 | **Portfolio swap adjustment** | Scaling constituent curves to force intrinsic = quoted | Required for tranche/option model calibration |
 | **Restructuring clause** | Credit event definition (No-Re, Mod-Re, etc.) | Can create ~5% systematic spread difference |
+| **Limits to arbitrage** | Frictions preventing basis closure | Explains why basis persists despite "free money" appearance |
 
 ---
 
@@ -696,18 +972,22 @@ Before computing intrinsic and basis:
 | 12 | What happens to index notional after a default? | Reduces by 1/M; future premiums shrink accordingly |
 | 13 | What's the formula for index upfront? | $U = (S - C) \times \text{RPV01}_I$ |
 | 14 | If all constituent spreads equal, what is intrinsic? | The common spread (weighted average reduces to simple average) |
-| 15 | Why does off-the-run vs on-the-run hedging create risk? | Different constituent sets across series |
+| 15 | Why does off-the-run vs on-the-run hedging create risk? | Different constituent sets, liquidity levels, and possibly different basis across series |
 | 16 | What is the typical basis range for IG indices? | ±1-5 bp in normal markets (based on O'Kane's examples) |
 | 17 | What is the exact condition for intrinsic spread? | Intrinsic PV from constituents equals index PV under flat-curve convention |
 | 18 | How does bid-ask dispersion affect intrinsic? | Creates a band of executable intrinsic values; mid may not be tradeable |
 | 19 | What adjustment ratio is typical for PSA? | Often 0.7-1.0, depending on intrinsic vs quoted discrepancy |
 | 20 | Why is survival probability adjustment faster than spread adjustment? | Avoids rebuilding all M survival curves in each iteration |
+| 21 | What is the concavity effect in intrinsic calculation? | Intrinsic < simple average because RPV01 weighting underweights high-spread names |
+| 22 | Name two limits to basis arbitrage | (1) Execution friction (125 names hard to trade), (2) Documentation mismatch creates real risk |
+| 23 | How does basis typically behave during a credit crisis? | Widens as hedgers pile into liquid index; index leads constituents |
+| 24 | What P&L impact does a 3 bp basis move have on $100mm position (RPV01=4.2)? | $100mm × 3 × 10⁻⁴ × 4.2 = $126,000 |
 
 ---
 
 ## Mini Problem Set
 
-**Problems 1-9 include solution sketches; 10-15 are for practice.**
+**Problems 1-9 include solution sketches; 10-17 are for practice.**
 
 **1.** Compute intrinsic spread for 4 names: spreads [40, 60, 80, 100] bp, RPV01 [4.5, 4.0, 3.5, 3.0] years.
 
@@ -757,11 +1037,25 @@ Before computing intrinsic and basis:
 
 **15.** Why must tranche models apply PSA before calibrating correlation?
 
+**16.** Given historical data showing basis was -2 bp before a crisis and +8 bp during the crisis, what driver dominated?
+
+*Sketch:* The 10 bp widening of basis (from -2 to +8) indicates the index widened faster than constituents. This is the "index leads in stress" dynamic—hedging demand concentrated in the liquid index, pushing it wider. Liquidity/technical flows dominated.
+
+**17.** Compute the PSA adjustment ratio for a 4-name index: quoted spread 45 bp, constituent spreads [30, 40, 50, 60] bp, RPV01s [4.5, 4.2, 3.9, 3.6] years.
+
+*Sketch:*
+- Numerator: 30(4.5) + 40(4.2) + 50(3.9) + 60(3.6) = 135 + 168 + 195 + 216 = 714
+- Denominator: 4.5 + 4.2 + 3.9 + 3.6 = 16.2
+- Intrinsic: 714/16.2 = 44.07 bp
+- Adjustment ratio: 45/44.07 = 1.021
+
+Spreads must be scaled UP by 2.1% to match the quoted spread. Adjusted spreads: [30.6, 40.8, 51.1, 61.3] bp.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Source-Backed
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -775,13 +1069,30 @@ Before computing intrinsic and basis:
 | "CDS index may be considered to lead the CDS market" in widening markets | O'Kane Ch 10, Section 10.5.2 |
 | Portfolio swap adjustment: proportional spread/survival multiplier | O'Kane Ch 10, Sections 10.6.1-10.6.3 |
 | Survival probability adjustment ~50x faster than spread multiplier | O'Kane Ch 10, Section 10.6.3 |
+| "The exact nature of the adjustment is somewhat arbitrary" | O'Kane Ch 10, Section 10.6 |
 | Default removes name from index; notional reduces by 1/M | O'Kane Ch 10 |
 | Approximation error: <0.1 bp for IG, ~1.5 bp for HY | O'Kane Ch 10, Table 10.4 |
 | Intrinsic vs average spread data for CDX/iTraxx | O'Kane Ch 10, Table 10.5 |
 | RPV01 definition as "time $t$ present value of a credit risky \$1 annuity" | O'Kane Ch 10 notation table |
-| "The exact nature of the adjustment is somewhat arbitrary" | O'Kane Ch 10, Section 10.6 |
+| "RPVOI-weighted average spread... is a concave function and so its average is less than the simple average" | O'Kane Ch 10, footnote 3 |
+| CDS-Cash basis drivers: funding, delivery option, technical default, loss on default, premium accrued | O'Kane Ch 5, Section 5.6.1 |
+| CDS-Cash basis market factors: relative liquidity, CDO technical short, new issuance, demand for protection | O'Kane Ch 5, Section 5.6.2 |
+| PSA is "prerequisite for those who wish to build models for products including options on CDS indices and especially the standard tranches" | O'Kane Ch 10, Section 10.8 |
 
-### (B) Reasoned Inference — Derived from (A)
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Context |
+|---------|---------|
+| Jensen's inequality derivation for concavity effect | O'Kane notes the concavity result but doesn't provide the full Jensen's argument |
+| Basis dynamics during specific crises (2008, 2011, 2020) | O'Kane mentions directional effects; specific crisis behavior from general market knowledge |
+| Limits to basis arbitrage (execution friction, capital constraints, timing risk) | Extended from O'Kane's bond-CDS basis discussion in Section 5.6 |
+| Cross-series and on/off-the-run basis dynamics | Extended from O'Kane's roll discussion |
+| Recovery rate sensitivity example | Extended from O'Kane's general recovery discussion |
+| Data sourcing and staleness considerations | General practitioner knowledge |
+| "What happens if you skip PSA" failure mode example | Derived from O'Kane's calibration requirement statement |
+| Middle-office P&L break context in introduction | Added for target audience connection |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 | Inference | Logic |
 |-----------|-------|
@@ -790,20 +1101,23 @@ Before computing intrinsic and basis:
 | Basis P&L decomposition | First-order Taylor expansion of PV functions |
 | Documentation adjustment of ~5% explains most CDX vs Mod-Re intrinsic gap | Direct application of O'Kane's "~5% lower" estimate |
 | Higher spread dispersion → larger intrinsic vs average gap | O'Kane's explanation that RPV01-weighted average is concave |
+| Series basis risk from composition differences | Logical extension of composition-driven intrinsic differences |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Topic | Note |
 |-------|------|
 | Exact restructuring clause for specific index series | O'Kane notes differences; verify against current index documentation |
-| Time-series behavior of basis in specific crisis periods | O'Kane discusses directional effects but does not provide specific crisis data |
-| Typical basis range in normal vs stressed markets | Inferred from examples (~±1-5 bp for IG) but not explicitly stated as a range |
+| Specific basis levels during 2008, 2011, 2020 crises | I'm not sure of exact historical levels without data verification; directional effects are documented |
+| Typical basis range in normal vs stressed markets | Inferred from examples (~±1-5 bp for IG normal; can be 10+ bp in stress) but ranges vary |
 | Current standard coupons for specific index series | Operational details evolve with market practice; verify against current documentation |
+| Precise recovery rates for specific subordinated names | Depends on deal terms and seniority; examples use illustrative values |
 
 ---
 
 ## Cross-References
 
-- **Chapter 41** (CDS Index Mechanics): Index cashflow structure, roll mechanics, on/off-the-run liquidity
-- **Chapter 47** (Index Hedging and RV): Applying basis understanding to hedge design and relative value trades
-- **Chapter 48-50** (Tranches): Why PSA is required before tranche pricing—intrinsic must equal quoted for model consistency
+- **Chapter 43** (CDS Risks): CS01 definition, VOD risk, spread duration
+- **Chapter 45** (CDS Index Structure): Index naming, quoting conventions, lifecycle, roll mechanics
+- **Chapter 47** (Index Hedging and RV): Applying basis concepts to hedge design, systematic vs idiosyncratic delta framework
+- **Chapter 48-50** (Tranches): PSA required before tranche pricing—intrinsic must equal quoted for model consistency

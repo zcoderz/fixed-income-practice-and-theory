@@ -4,15 +4,15 @@
 
 ## Introduction
 
-A corporate's 3-year CDS trades at 80bp, its 5-year at 120bp. Is that steep or flat? A hedge fund manager sees the cash bond trading 30bp wider than the CDS. Is that a buying opportunity or a warning sign? A credit trader notices that senior and subordinated CDS spreads have compressed. Should she put on a capital structure trade?
+A corporate's 3-year CDS trades at 80bp, its 5-year at 120bp. Is that steep or flat? A hedge fund manager sees the cash bond trading 30bp wider than the CDS. Is that a buying opportunity or a warning sign? A credit trader notices that senior and subordinated CDS spreads have compressed. Should she put on a capital structure trade? The equity desk sees implied volatility on puts at 60% while the credit desk sees 5Y CDS at 150bp—is that relationship in line, or is one market mispricing the credit risk?
 
 These questions sit at the heart of CDS relative value trading. Unlike directional credit positions that simply bet on spreads widening or tightening, relative value (RV) trades attempt to exploit mispricings between related instruments while hedging out broader market exposure. The appeal is obvious: if you can identify a temporary dislocation between the 3-year and 5-year CDS curve, why take outright default risk when you can trade the relationship instead?
 
 The danger lies in what appears market-neutral but is not. O'Kane emphasizes in his treatment of CDS risk management that a CDS position carries multiple, distinct risks: "sensitivities to changes in the credit spread curve, changes in the Libor rate curve, changes in the recovery rate, the passage of time, and the risk of a default event." A curve trade that neutralizes total CS01 may still carry massive jump-to-default risk. A basis trade that looks like pure arbitrage may blow up when funding markets seize. The 2008 financial crisis provided brutal lessons in how "market-neutral" positions can generate catastrophic losses when correlations spike and liquidity evaporates.
 
-This chapter takes a risk-first approach to CDS relative value. Building on the CDS mechanics from Chapter 38, the pricing framework from Chapter 41, and the risk measures from Chapter 43, we develop a systematic framework for translating any RV idea into explicit risk exposures, designing hedges that target specific risks, identifying failure modes before they materialize, and constructing verification tests that expose hidden vulnerabilities. The framework applies equally to curve trades (steepeners and flatteners), cash-CDS basis trades, capital structure trades (senior versus subordinated), and index versus single-name relative value. For index-specific mechanics, we connect to Chapter 45's treatment of CDS indices.
+This chapter takes a risk-first approach to CDS relative value. Building on the CDS mechanics from Chapter 38, the pricing framework from Chapter 41, and the risk measures from Chapter 43, we develop a systematic framework for translating any RV idea into explicit risk exposures, designing hedges that target specific risks, identifying failure modes before they materialize, and constructing verification tests that expose hidden vulnerabilities. The framework applies equally to curve trades (steepeners and flatteners), cash-CDS basis trades, capital structure trades (senior versus subordinated), equity-credit arbitrage (Merton-based trades), and index versus single-name relative value. For index-specific mechanics, we connect to Chapter 45's treatment of CDS indices.
 
-We begin with the core risk concepts that underpin all CDS positions: CS01, jump-to-default, recovery sensitivity, and theta. We then apply these concepts systematically to the major RV trade types, working through the mechanics of constructing and hedging each position. Throughout, we maintain the discipline that no trade idea is meaningful until it has been decomposed into measurable exposures and stress-tested against failure scenarios.
+We begin with the core risk concepts that underpin all CDS positions: CS01, jump-to-default, recovery sensitivity, and theta. We then apply these concepts systematically to the major RV trade types, working through the mechanics of constructing and hedging each position. We conclude with equity-credit relative value—a domain that bridges the credit derivatives and equity derivatives desks through the Merton framework—and historical case studies that illuminate how seemingly "hedged" positions can fail catastrophically.
 
 ---
 
@@ -194,6 +194,26 @@ The basis trade appears to offer near-arbitrage: buy a cheap bond, hedge with CD
 
 5. **Counterparty risk:** The CDS hedge is only as good as the counterparty providing it. In systemic stress, counterparty credit becomes correlated with the underlying credit.
 
+### 44.2.4 Funding Cost Deep Dive
+
+The economics of a basis trade depend critically on funding levels. Consider how changes in repo rates affect trade viability:
+
+**Table 44.3: Funding Level vs Required Basis for Positive Carry**
+
+| Repo Funding Cost | Bond Spread (L+X) | CDS Premium | Required Basis |
+|-------------------|-------------------|-------------|----------------|
+| L + 10bp | 150bp | 120bp | +20bp positive |
+| L + 25bp | 150bp | 120bp | +5bp positive |
+| L + 50bp | 150bp | 120bp | -20bp (breakeven) |
+| L + 100bp | 150bp | 120bp | -70bp (losing) |
+| L + 150bp | 150bp | 120bp | -120bp (severely losing) |
+
+The table reveals the funding cliff: a trade that earns carry at normal funding levels can become deeply negative as funding costs rise. The 2008 crisis saw funding costs spike from L+25bp to L+200bp or more for stressed counterparties, turning "risk-free" basis trades into massive losers.
+
+> **Practitioner Note: The Funding Trap**
+>
+> Middle-office professionals often see basis trades marked at theoretical value without explicit funding cost attribution. When funding costs spike, the "unexplained P&L" is exactly the funding component that wasn't being tracked separately. The lesson: always decompose basis trade P&L into (1) basis convergence, (2) carry, and (3) funding cost—never lump them together.
+
 ---
 
 ## 44.3 Credit Curve Trades: Steepeners and Flatteners
@@ -322,13 +342,179 @@ Events that affect the senior-sub spread:
 - Distress: market prices in that sub will recover less than expected
 - Liquidity crisis: sub CDS liquidity evaporates first
 
+### 44.4.5 Event Risk: LBO and M&A Effects
+
+> **Practitioner Note: The LBO Trade**
+>
+> Leveraged buyout (LBO) announcements create distinctive patterns in credit spreads that sophisticated traders anticipate. When a company is taken private via LBO, the new owners typically add substantial debt to the capital structure, which affects existing creditors asymmetrically.
+>
+> **The Mechanics:**
+> - New secured debt is layered on top of existing obligations
+> - Existing senior unsecured debt becomes effectively subordinated
+> - Cash flow available for debt service is stretched across more claims
+> - Covenants may be weakened or removed
+>
+> **Spread Reactions:**
+> - Senior spreads typically widen 50-200bp on LBO announcement
+> - Subordinated spreads widen even more (often 100-400bp)
+> - The sub/senior ratio typically increases (decompression)
+>
+> **The "LBO Trade":**
+> Before LBO announcements, event-driven funds identify likely targets based on:
+> - Strong free cash flow (can service new debt)
+> - Low existing leverage (room for more debt)
+> - Stable, predictable business (attractive to PE sponsors)
+> - Cheap valuation (attractive entry point)
+>
+> They then buy protection on senior CDS and/or put on curve steepeners, anticipating the spread widening and decompression that accompany leveraging events.
+>
+> **Curve Implications:**
+> LBO risk manifests in the 5Y point but not the 1Y point—deals take time to consummate. This creates curve steepening opportunities: buy 5Y protection, sell 1Y protection, anticipating that announcement effects hit the long end first.
+>
+> **Warning:** Event risk is distinct from credit deterioration. A company can be a high-quality credit yet have significant LBO risk precisely because its quality makes it an attractive PE target.
+
 ---
 
-## 44.5 Index vs Single-Name Relative Value
+## 44.5 Equity-Credit Relative Value: The Merton Framework
+
+One of the most sophisticated RV strategies bridges the credit and equity derivatives markets through the Merton model of default. This section develops the theory and practice of equity-credit arbitrage.
+
+### 44.5.1 The Merton Model: Equity as a Call Option
+
+The foundational insight comes from Merton's 1974 paper, which Hull summarizes clearly: "A company's equity is an option on the assets of the company."
+
+Consider a firm with:
+- $V_0$: Current value of company's assets
+- $V_T$: Value of assets at time $T$
+- $E_0$: Current value of equity
+- $D$: Amount of debt due at time $T$
+- $\sigma_V$: Volatility of assets
+- $\sigma_E$: Volatility of equity
+
+If $V_T < D$ at maturity, the company defaults—equity holders receive nothing. If $V_T > D$, equity holders receive $V_T - D$ after paying off the debt. This means:
+
+$$E_T = \max(V_T - D, 0)$$
+
+This is exactly the payoff of a call option on firm assets with strike price equal to the debt. Hull provides the pricing equation:
+
+$$\boxed{E_0 = V_0 N(d_1) - D e^{-rT} N(d_2)}$$
+
+where:
+$$d_1 = \frac{\ln(V_0/D) + (r + \sigma_V^2/2)T}{\sigma_V \sqrt{T}}$$
+$$d_2 = d_1 - \sigma_V \sqrt{T}$$
+
+and $N(\cdot)$ is the cumulative normal distribution function.
+
+### 44.5.2 The Equity Volatility Link
+
+The equity and asset volatility are linked through the option's delta. Hull derives:
+
+$$\boxed{\sigma_E E_0 = N(d_1) \sigma_V V_0}$$
+
+This equation, combined with the equity pricing formula, gives us two equations in two unknowns ($V_0$ and $\sigma_V$). Given observable equity value $E_0$ and equity volatility $\sigma_E$, we can solve for the unobservable firm value and asset volatility.
+
+Hull provides a worked example: "The value of a company's equity is \$3 million and the volatility of the equity is 80%. The debt that will have to be paid in one year is \$10 million. The risk-free rate is 5% per annum." Solving the simultaneous equations yields $V_0 = \$12.40$ million and $\sigma_V = 21.23\%$. The implied probability of default is $N(-d_2) = 12.7\%$.
+
+### 44.5.3 Distance to Default
+
+Hull introduces the key practitioner concept: "The term distance to default has been coined to describe the output from Merton's model. This is the number of standard deviations the asset price must change for default to be triggered."
+
+$$\boxed{\text{Distance to Default} = d_2 = \frac{\ln(V_0/D) + (r - \sigma_V^2/2)T}{\sigma_V \sqrt{T}}}$$
+
+The distance to default can be interpreted as follows: if the firm's assets are currently 2.5 standard deviations above the default barrier, the DD is 2.5. As the company becomes more leveraged or volatile, DD declines and default probability rises.
+
+Hull notes that "Moody's KMV and Kamakura provide a service that transforms a default probability produced by Merton's model into a real-world default probability." The raw Merton probabilities must be calibrated to empirical default frequencies to be useful for prediction.
+
+### 44.5.4 Credit Spreads from Merton
+
+The Merton model directly implies credit spreads. From Hull: the credit spread on a $T$-year zero-coupon bond is:
+
+$$\text{Credit Spread} = -\frac{1}{T}\ln\left[N(d_2) + \frac{N(-d_1)}{L}\right]$$
+
+where $L = D e^{-rT}/V_0$ is the leverage ratio in present value terms.
+
+This provides the crucial link: equity volatility $\sigma_E$ → asset volatility $\sigma_V$ → distance to default $d_2$ → credit spread. If the equity market is pricing one level of volatility and the CDS market is pricing a different credit spread, an arbitrage opportunity exists.
+
+### 44.5.5 Capital Structure Arbitrage: The Trade
+
+The Volatility Surface book describes the arbitrage mechanism: "Capital structure arbitrage is the term used to describe the fashion for arbitraging equity claims against fixed income and convertible claims. At its simplest, the trader looks to see if equity puts are cheaper than credit derivatives and if so buys the one and sells the other."
+
+**The Setup:**
+
+Under the Merton framework, a put option on equity has value related to the firm's default probability. A CDS provides protection against default. In principle, they should be priced consistently.
+
+**Key insight from put-call parity under default risk:**
+
+The Volatility Surface book derives:
+
+$$P_0 = P_I + K(B_0 - B_I)$$
+
+where $P_0$ is the value of a risk-free put, $P_I$ is the value of an issuer-written put, $B_0$ is a risk-free bond, and $B_I$ is the issuer's risky bond. The difference $K(B_0 - B_I)$ is approximately the value of default protection—i.e., a CDS.
+
+**The Arbitrage:**
+
+The Volatility Surface explains: "Taking advantage of the market maker's lack of understanding, the trader buys an equity option on the exchange at a 'very high' (but, of course, insufficiently high) implied volatility and sells a default put on the same stock in the credit derivatives market locking in a risk-free return."
+
+This actually occurred: "hedge funds were able to lock in risk-free gains for a period of time. During this period, market makers saw what were to them extremely steep volatility skews get even steeper and they lost money."
+
+### 44.5.6 The CreditGrades Model
+
+The basic Merton model has a problem: it generates almost no short-dated credit spreads. The firm value must diffuse to the default barrier, which takes time. For short maturities, this probability is negligible.
+
+The CreditGrades model (described in the Volatility Surface book) resolves this by making the default barrier uncertain. The model assumes:
+
+- Firm value $V$ follows geometric Brownian motion: $dV_t/V_t = \sigma dW$
+- The default barrier is $LD$ where $D$ is debt per share and $L$ is recovery rate
+- Critically, $L$ is lognormally distributed with mean $\bar{L}$ and standard deviation $\lambda$
+
+This uncertainty in the recovery/barrier level generates meaningful short-dated credit spreads. The survival probability under CreditGrades is:
+
+$$P_t = N\left(-\frac{A_t}{2} + \frac{\log d}{A_t}\right) - d \cdot N\left(-\frac{A_t}{2} - \frac{\log d}{A_t}\right)$$
+
+where:
+$$d = \frac{V_0 e^{\lambda^2}}{\bar{L}D}, \quad A_t^2 = \sigma^2 t + \lambda^2$$
+
+The CreditGrades model relates equity volatility to credit spreads in a more realistic way than basic Merton, enabling practitioners to identify when equity vol looks "cheap" or "rich" relative to credit.
+
+### 44.5.7 Example: Goodyear Tire (GT)
+
+The Volatility Surface provides a detailed example fitting the Merton model to Goodyear Tire options (October 2004). With GT's stock at \$9.40 and high credit spreads (5Y CDS over 5%), the book fits Merton parameters:
+
+$$\lambda = 0.01934, \quad \sigma = 39.46\%$$
+
+The fitted implied volatilities match the market well for low strikes:
+
+| Strike | Market Vol | Merton Vol |
+|--------|-----------|------------|
+| 2.50 | 147% | 145% |
+| 5.00 | 81% | 86% |
+| 7.50 | 53% | 51% |
+| 10.00 | 42% | 43% |
+
+The book notes: "most of the volatility skew for stocks with high credit spreads can be ascribed to default risk." However, Merton generates no right-wing structure (high strikes)—it produces a pure steep downside skew and flat upside, whereas empirical surfaces show some upside structure from stochastic volatility.
+
+### 44.5.8 When Equity-Credit Arbitrage Fails
+
+> **Practitioner Note: The Capital Structure Arbitrage Blow-Up**
+>
+> Capital structure arbitrage was highly profitable from 2003-2006 as hedge funds exploited systematic mispricings between equity options and CDS. However, the strategy faced serious challenges:
+>
+> **What Went Wrong:**
+> 1. **Model risk:** Merton is a simplification. Real defaults involve complex legal processes, not clean option exercise.
+> 2. **Correlation regime change:** The correlation between equity and credit can shift dramatically in crisis. Equity may rally on M&A rumors while credit widens on leverage concerns.
+> 3. **Liquidity mismatch:** Equity options are exchange-traded with tight spreads; CDS is OTC with wider spreads and counterparty risk.
+> 4. **Jump risk:** Merton assumes diffusive asset value process. In reality, firms can experience sudden jumps (fraud revelations, regulatory actions) that violate the model.
+> 5. **Convergence timing:** The arbitrage may require long holding periods for convergence, during which funding costs accumulate.
+>
+> **The GM/Ford Correlation Trade (2005):** Many funds had sold protection on auto credits while buying equity puts, betting on credit-equity consistency. When GM and Ford were downgraded to junk in May 2005, credit spreads exploded but equity did not fall proportionately—the hedge didn't work as expected. Funds positioned for the "normal" relationship suffered significant losses when correlation broke down.
+
+---
+
+## 44.6 Index vs Single-Name Relative Value
 
 The relationship between a CDS index and its constituent single-name CDS creates another RV opportunity. This section provides a brief treatment; Chapter 45 covers index mechanics in depth.
 
-### 44.5.1 Intrinsic Spread and Index Basis
+### 44.6.1 Intrinsic Spread and Index Basis
 
 O'Kane (Ch 10.5) defines the intrinsic value of a CDS index as the sum of the values of its constituent CDS. The intrinsic spread is the spread that makes the intrinsic value equal to zero.
 
@@ -342,7 +528,7 @@ $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot \text{RPV01}_m}{\
 
 where the weighting by RPV01 accounts for the fact that higher-spread names contribute more to index value. This is an RPV01-weighted average, not a simple average of spreads.
 
-**Table 44.3: Intrinsic vs Average Spread**
+**Table 44.4: Intrinsic vs Average Spread**
 
 | Spread Type | Formula | When Different |
 |-------------|---------|----------------|
@@ -351,7 +537,7 @@ where the weighting by RPV01 accounts for the fact that higher-spread names cont
 
 The difference between the intrinsic spread and the simple average can be material when spread dispersion is high.
 
-### 44.5.2 Drivers of Index Basis
+### 44.6.2 Drivers of Index Basis
 
 The index basis can be positive or negative depending on:
 
@@ -365,7 +551,7 @@ The index basis can be positive or negative depending on:
 
 5. **Skew effects:** When a few names are much wider than the rest, the intrinsic spread is pulled higher, potentially creating a negative basis.
 
-### 44.5.3 Trading the Index Basis
+### 44.6.3 Trading the Index Basis
 
 The trade involves going long (short) the index versus short (long) the constituents:
 
@@ -376,11 +562,67 @@ Sizing requires matching the overall CS01, typically by scaling constituent posi
 
 ---
 
-## 44.6 The Risk-First Framework: Putting It Together
+## 44.7 Historical Case Studies
+
+Understanding past failures is essential for risk management. These case studies illustrate how "hedged" positions can produce catastrophic losses.
+
+### 44.7.1 Case Study: Basis Trade Failures in 2008
+
+> **Practitioner Note: The 2008 Basis Trade Disaster**
+>
+> **The Setup:** Through 2007, negative basis trades were considered "money machines." Hedge funds borrowed at L+25bp to buy investment-grade bonds yielding L+80bp, then bought CDS protection at 50bp. Net carry: +5bp "risk-free."
+>
+> **What Happened:**
+> - September 2008: Lehman bankruptcy triggers funding crisis
+> - Repo markets freeze; funding costs spike from L+25bp to L+300bp or more
+> - Many funds cannot roll their repo financing at any price
+> - Banks demand additional collateral on CDS positions as counterparty risk rises
+> - Forced liquidation of bond positions into illiquid markets
+>
+> **The Damage:**
+> - Basis trades that were earning 5bp annualized suddenly showed losses of 20-40% of capital
+> - The basis—supposed to converge—actually blew out further as distressed selling continued
+> - Funds that thought they were market-neutral discovered they were massively exposed to liquidity and funding risk
+>
+> **Lesson:** The basis trade demonstrates that "arbitrage" in credit markets is never truly risk-free. Funding risk, counterparty risk, and liquidity risk can overwhelm any theoretical spread.
+>
+> **What Risk Reports Showed vs Reality:**
+> - Risk reports showed: CS01 neutral, small VaR, positive carry
+> - Reality: massive exposure to funding cliff, liquidity spiral, forced unwind at worst prices
+
+### 44.7.2 Case Study: The Hertz Anomaly (2020)
+
+> **Practitioner Note: When Equity and Credit Completely Disconnect**
+>
+> In 2020, Hertz filed for bankruptcy protection in May. The bonds immediately collapsed to recovery values around 20-40 cents on the dollar. According to Merton, equity should be worthless—when a firm defaults, equity (the residual claim) is wiped out.
+>
+> **What Actually Happened:**
+> - Hertz stock *rallied* from $0.50 to over $5 in June 2020
+> - Retail traders on Robinhood and other platforms bought the stock aggressively
+> - The company even attempted (unsuccessfully) to issue new equity into this rally
+> - Meanwhile, bonds remained at deeply distressed levels (20-40 cents)
+>
+> **The Disconnect:**
+> - Bonds implied: company is insolvent, equity worth zero
+> - Equity implied: significant chance of recovery, company worth billions
+> - These cannot both be right under any rational model
+>
+> **What Happened to Equity-Credit Trades:**
+> Traders who shorted the stock and sold CDS protection (expecting convergence to bankruptcy values) faced significant mark-to-market losses as the stock rallied. The "arbitrage" took months to converge—Hertz equity eventually went to zero in bankruptcy, but traders needed funding to survive the interim.
+>
+> **Lessons:**
+> 1. Equity-credit convergence can take much longer than expected
+> 2. Retail flows can create irrational prices that persist
+> 3. The Merton model assumes rational, informed participants—reality differs
+> 4. Funding and margin calls can force exits before convergence
+
+---
+
+## 44.8 The Risk-First Framework: Putting It Together
 
 For any CDS relative value position, apply this systematic framework:
 
-### 44.6.1 Step 1: Identify the Object
+### 44.8.1 Step 1: Identify the Object
 
 Explicitly state what relationship you are trading:
 
@@ -390,9 +632,10 @@ Explicitly state what relationship you are trading:
 | CDS curve spread | 5Y-1Y steepener/flattener |
 | Cash-CDS basis | Bond Z-spread vs CDS spread |
 | Capital structure | Senior vs subordinated |
+| Equity-credit | Equity vol vs CDS spread (Merton-based) |
 | Index basis | Index vs intrinsic |
 
-### 44.6.2 Step 2: Decompose into Exposures
+### 44.8.2 Step 2: Decompose into Exposures
 
 For the identified trade, compute:
 
@@ -404,9 +647,11 @@ For the identified trade, compute:
 | Recovery risk | Recovery DV01 (USD per 1% R) |
 | Rates risk | IR DV01 (USD per bp) |
 | Time decay | Theta (USD per day) |
+| Equity exposure (for Merton trades) | Equity delta, vega |
 | Liquidity/technical | Qualitative assessment |
+| Funding exposure | Sensitivity to repo/funding costs |
 
-### 44.6.3 Step 3: Design Hedges
+### 44.8.3 Step 3: Design Hedges
 
 For each exposure, specify the hedge instrument and what risk it targets:
 
@@ -416,9 +661,11 @@ For each exposure, specify the hedge instrument and what risk it targets:
 | Bucket CS01 | Multiple CDS maturities |
 | JTD | Balanced notional positions |
 | IR DV01 | Interest rate swaps |
+| Equity delta | Stock or equity options |
 | Recovery | Often unhedgeable; scenario management |
+| Funding | Funding derivatives (if available) |
 
-### 44.6.4 Step 4: Identify Failure Modes
+### 44.8.4 Step 4: Identify Failure Modes
 
 Before entering the trade, enumerate what can go wrong:
 
@@ -428,8 +675,11 @@ Before entering the trade, enumerate what can go wrong:
 4. **Liquidity evaporation:** Unable to exit or rebalance
 5. **Recovery surprise:** Auction final price differs from assumption
 6. **Roll/technical:** Index rolls, liquidity point shifts
+7. **Correlation breakdown:** Equity-credit relationship breaks (Merton trades)
+8. **Funding crisis:** Repo or margin costs spike (basis trades)
+9. **Convergence delay:** Arbitrage takes longer than funding allows
 
-### 44.6.5 Step 5: Define Verification Tests
+### 44.8.5 Step 5: Define Verification Tests
 
 Run the following scenarios before and during the trade:
 
@@ -440,10 +690,13 @@ Run the following scenarios before and during the trade:
 | Default scenario | Apply VOD/JTD |
 | Recovery shock | R ± 10% absolute |
 | Repricing check | Linear CS01 vs full repricing |
+| Funding shock | Repo +100bp, +200bp |
+| Equity move (Merton) | Stock ±20% |
+| Correlation break | Equity moves opposite to credit |
 
 ---
 
-## 44.7 Worked Examples
+## 44.9 Worked Examples
 
 ### Example A: CS01-Neutral 5Y vs 1Y Steepener
 
@@ -535,15 +788,15 @@ Financing cost: $25\text{bp} \times 10.2\text{mm} / 12 = \$2,125$
 
 **Net monthly carry: $12,750 - 10,330 - 2,125 = +\$295$**
 
-**Step 4: Basis risk**
+**Step 4: Funding stress scenario**
 
-If CDS widens 50bp while bond widens only 30bp:
+If repo rises to L+150bp:
 
-$$\Delta V_{\text{bond}} = -4,590 \times 30 = -\$137,700$$
-$$\Delta V_{\text{CDS}} = +4,855 \times 50 = +\$242,750$$
-$$\text{Net} = +\$105,050$$
+Financing cost: $150\text{bp} \times 10.2\text{mm} / 12 = \$12,750$
 
-The basis convergence produces profit. But if the basis diverges further (CDS widens less than bond), the trade loses.
+**Net monthly carry: $12,750 - 10,330 - 12,750 = -\$10,330$**
+
+The trade flips from positive to deeply negative carry when funding costs spike.
 
 ---
 
@@ -583,7 +836,48 @@ The market prices sub materially wider than the simple recovery model predicts, 
 
 ---
 
-### Example E: Three-Leg Trade for JTD Neutrality
+### Example E: Merton Model Calibration
+
+**Setup (from Hull RM Example 19.4):**
+- Equity value: $E_0 = \$3$ million
+- Equity volatility: $\sigma_E = 80\%$
+- Debt due in 1 year: $D = \$10$ million
+- Risk-free rate: $r = 5\%$
+
+**Step 1: Set up simultaneous equations**
+
+From Merton:
+$$E_0 = V_0 N(d_1) - D e^{-rT} N(d_2)$$
+$$\sigma_E E_0 = N(d_1) \sigma_V V_0$$
+
+**Step 2: Solve numerically**
+
+Using solver (e.g., Excel Solver minimizing sum of squared residuals):
+
+$$V_0 = \$12.40 \text{ million}$$
+$$\sigma_V = 21.23\%$$
+
+**Step 3: Compute default probability**
+
+$$d_2 = \frac{\ln(12.40/10) + (0.05 - 0.2123^2/2)(1)}{0.2123 \sqrt{1}} = 1.14$$
+
+$$P(\text{default}) = N(-d_2) = N(-1.14) = 12.7\%$$
+
+**Step 4: Derive credit spread**
+
+Market value of debt = $V_0 - E_0 = \$9.40$ million
+
+Risk-free value of debt = $10 \times e^{-0.05} = \$9.51$ million
+
+Expected loss = $(9.51 - 9.40)/9.51 = 1.2\%$
+
+Implied recovery: $1 - 1.2\%/12.7\% = 91\%$
+
+**Interpretation:** The firm has distance-to-default of 1.14 standard deviations, 12.7% default probability, and implied recovery around 91% (high because assets substantially exceed debt).
+
+---
+
+### Example F: Three-Leg Trade for JTD Neutrality
 
 To achieve both CS01 and JTD neutrality, we need three instruments.
 
@@ -618,9 +912,9 @@ Net notional = 0 (JTD neutral); Net CS01 $\approx$ 0. The remaining exposure is 
 
 ---
 
-## 44.8 Practical Notes and Common Pitfalls
+## 44.10 Practical Notes and Common Pitfalls
 
-### 44.8.1 Convention Mismatches
+### 44.10.1 Convention Mismatches
 
 | Pitfall | Description |
 |---------|-------------|
@@ -629,7 +923,7 @@ Net notional = 0 (JTD neutral); Net CS01 $\approx$ 0. The remaining exposure is 
 | **Recovery assumption mismatch** | Bond valuations may use different recovery assumptions than CDS analytics. |
 | **Day count differences** | Bond accrual and CDS accrual may use different conventions. |
 
-### 44.8.2 Implementation Issues
+### 44.10.2 Implementation Issues
 
 1. **Survival curve interpolation:** Different interpolation schemes (linear on $-\log Q$, piecewise constant hazard) give different bucket CS01s.
 
@@ -639,7 +933,9 @@ Net notional = 0 (JTD neutral); Net CS01 $\approx$ 0. The remaining exposure is 
 
 4. **Liquidity cliff:** 5Y is typically liquid; 4Y and 6Y may not be. Hedging curve positions requires trading at illiquid points.
 
-### 44.8.3 Why RV Trades Fail
+5. **Merton calibration sensitivity:** Small changes in equity volatility input can produce large changes in implied default probability.
+
+### 44.10.3 Why RV Trades Fail
 
 The most common failure modes:
 
@@ -648,14 +944,16 @@ The most common failure modes:
 3. **Correlation spikes:** "Hedged" positions that become correlated in stress
 4. **Liquidity evaporation:** Inability to rebalance or exit
 5. **Model error:** Analytics that don't match market pricing conventions
+6. **Convergence timing:** Arbitrage takes longer than funding allows (Hertz, equity-credit)
+7. **Correlation breakdown:** Equity-credit relationship deviates from Merton predictions
 
 ---
 
-## 44.9 Summary
+## 44.11 Summary
 
 CDS relative value trading requires a disciplined risk-first framework. The key points:
 
-1. **Every RV trade carries multiple risks:** CS01 (total and bucketed), JTD, recovery sensitivity, IR DV01, theta, and liquidity. All must be measured and managed.
+1. **Every RV trade carries multiple risks:** CS01 (total and bucketed), JTD, recovery sensitivity, IR DV01, theta, funding exposure, and liquidity. All must be measured and managed.
 
 2. **CS01-neutral does not mean risk-neutral:** Curve trades can have massive JTD exposure. Index-vs-single trades carry basis risk. Capital structure trades retain recovery risk.
 
@@ -665,9 +963,15 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 
 5. **Three-leg trades can achieve both CS01 and JTD neutrality:** But they still carry curve shape exposure, which is the intended bet.
 
-6. **Failure modes must be identified before entering trades:** Default, basis blowout, funding shock, liquidity evaporation, recovery surprise.
+6. **The Merton model links equity and credit:** Equity is a call option on firm assets; equity volatility determines credit spreads through distance-to-default.
 
-7. **Scenario testing is mandatory:** Parallel shocks, twists, default, recovery shocks, and repricing checks reveal hidden exposures.
+7. **Capital structure arbitrage exploits equity-credit mispricings:** But model risk, correlation breakdown, and convergence timing can cause failures.
+
+8. **Historical case studies teach essential lessons:** The 2008 basis trade failures (funding crisis) and the 2020 Hertz anomaly (equity-credit disconnect) illustrate how "hedged" positions can fail catastrophically.
+
+9. **Failure modes must be identified before entering trades:** Default, basis blowout, funding shock, liquidity evaporation, recovery surprise, correlation breakdown.
+
+10. **Scenario testing is mandatory:** Parallel shocks, twists, default, recovery shocks, funding shocks, and repricing checks reveal hidden exposures.
 
 ---
 
@@ -683,6 +987,9 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | Carry | Net premium accrual per period | "Curves unchanged" P&L component |
 | Rolldown | MTM from maturity shortening on static curve | "Curves unchanged" P&L component |
 | Recovery DV01 | Value change per 1% recovery shift | Critical for capital structure trades |
+| Merton model | Equity = call option on firm assets | Links equity vol to credit spreads |
+| Distance to default | Standard deviations to default barrier | Key metric for equity-credit RV |
+| CreditGrades | Merton with uncertain barrier | Generates realistic short-dated spreads |
 
 ---
 
@@ -701,6 +1008,12 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | VOD | Value on default |
 | JTD | Jump-to-default (often used interchangeably with VOD) |
 | $S_{\text{intrinsic}}$ | Intrinsic spread of a CDS index |
+| $V_0$ | Firm value (Merton model) |
+| $\sigma_V$ | Asset volatility (Merton model) |
+| $E_0$ | Equity value (Merton model) |
+| $\sigma_E$ | Equity volatility |
+| $d_1, d_2$ | Black-Scholes parameters in Merton model |
+| DD | Distance to default |
 
 ---
 
@@ -733,6 +1046,17 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | 23 | Why is VOD called a measure of "unexpected shock"? | If spreads widen gradually before default, V(t) already reflects default risk, so VOD is small |
 | 24 | What determines the sign of theta for a CDS position? | Short protection (receiving premium) has positive theta; long protection has negative theta |
 | 25 | What is Recovery DV01? | Change in MTM for 1% absolute change in recovery rate assumption |
+| 26 | What is capital structure arbitrage (equity-credit)? | Exploiting mispricings between equity derivatives and CDS based on Merton framework |
+| 27 | What is the Merton equity formula? | $E = V N(d_1) - D e^{-rT} N(d_2)$ — equity is a call on firm assets |
+| 28 | What is distance-to-default? | Number of standard deviations firm value must fall to trigger default: $d_2$ |
+| 29 | What is CreditGrades? | Extension of Merton with uncertain default barrier, generates short-dated spreads |
+| 30 | What is the LBO trade? | Buying protection anticipating leverage event that widens spreads |
+| 31 | Why did capital structure arbitrage fail for some? | Model risk, correlation breakdown, jump risk, convergence timing |
+| 32 | What happened to basis trades in 2008? | Funding markets froze, repo costs spiked, trades became deeply unprofitable |
+| 33 | How does convertible arb affect the CDS basis? | Creates natural buying of CDS protection (to hedge converts), can tighten basis |
+| 34 | What is event risk in credit? | Risk of M&A, LBO, or other corporate action that affects credit quality |
+| 35 | How does equity volatility relate to credit spreads (Merton)? | $\sigma_E E = N(d_1) \sigma_V V$ — higher equity vol implies higher asset vol and wider spreads |
+| 36 | What was the Hertz anomaly in 2020? | Bankrupt company's stock rallied while bonds traded at distressed levels — equity-credit disconnect |
 
 ---
 
@@ -778,11 +1102,35 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 
 > **Solution sketch:** 1bp move = \$5,000. Days to offset = 5,000 / 200 = 25 days. The position needs 25 days of positive theta to compensate for a 1bp spread widening.
 
+**11.** A firm has equity value $E_0 = \$5$ million, equity volatility $\sigma_E = 60\%$, debt $D = \$20$ million due in 2 years, risk-free rate 4%. Using the Merton model approach, explain how you would find $V_0$ and $\sigma_V$.
+
+> **Solution sketch:** Set up two equations: (1) $E_0 = V_0 N(d_1) - D e^{-rT} N(d_2)$ and (2) $\sigma_E E_0 = N(d_1) \sigma_V V_0$. Solve numerically using iterative solver. The solution gives firm value and asset volatility consistent with observed equity.
+
+**12.** Using Merton, if $V_0 = \$25$ million, $D = \$20$ million, $\sigma_V = 25\%$, $T = 2$ years, $r = 4\%$, compute the distance-to-default.
+
+> **Solution sketch:** $d_2 = \frac{\ln(25/20) + (0.04 - 0.25^2/2)(2)}{0.25\sqrt{2}} = \frac{0.223 + 0.0175}{0.354} = 0.68$. Distance-to-default is 0.68 standard deviations.
+
+**13.** In Problem 12, what is the implied default probability?
+
+> **Solution sketch:** $P(\text{default}) = N(-0.68) \approx 25\%$. This is a high-risk firm.
+
+**14.** Equity vol is 50%, CDS spread is 200bp. The Merton model implies credit spread should be 150bp. Is equity cheap or rich relative to credit? What trade do you put on?
+
+> **Solution sketch:** CDS is 50bp wider than Merton implies. Either equity vol is too low (equity puts are cheap) or CDS is too wide (CDS protection is expensive). Trade: buy equity puts, sell CDS protection, expecting convergence.
+
+**15.** A basis trade is entered at -30bp negative basis. Over the next month, repo funding goes from L+25bp to L+175bp. The basis remains at -30bp. Explain the P&L impact.
+
+> **Solution sketch:** Monthly carry shifts: previously earning +\$X from basis minus L+25 funding; now losing from L+175 funding. Even though basis hasn't moved, the trade becomes unprofitable due to funding cost increase. This is the 2008 failure mode.
+
+**16.** The Hertz stock rallied from \$0.50 to \$5 after bankruptcy while bonds traded at 30 cents. Explain why a trader who shorted equity and sold CDS protection might have lost money, even though bankruptcy eventually wiped out equity.
+
+> **Solution sketch:** The stock rally created mark-to-market losses on the short equity position. Margin calls and funding costs forced some traders to exit before the stock eventually went to zero. The "arbitrage" existed in the long run but couldn't be held due to short-term losses. Convergence timing risk.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts — Cite Specific Sources
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -803,8 +1151,33 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | Risk sensitivity table structure | O'Kane Table 8.3 |
 | Broad standard deviation of recovery distributions | O'Kane Ch 3, discussion of Table 3.2 |
 | APR violations in US bankruptcy | O'Kane Ch 3 |
+| Merton model: equity as call option on firm assets | Hull RM Ch 19, Eq 19.4-19.5 |
+| Distance-to-default definition | Hull RM Ch 19 |
+| Equity-asset volatility link | Hull RM Ch 19, Eq 19.5 |
+| Merton model Example (E=3, σE=80%, D=10) | Hull RM Example 19.4 |
+| KMV and CreditGrades as practical implementations | Hull RM Ch 19 |
+| Merton model credit spread formula | Hull RM Ch 19 (Problem 19.17) |
+| Capital structure arbitrage definition | Volatility Surface Ch 6 |
+| Put-call parity under default risk | Volatility Surface Ch 6 |
+| CreditGrades model with uncertain barrier | Volatility Surface Ch 6 |
+| CreditGrades survival probability formula | Volatility Surface Ch 6, Eq 6.3 |
+| GT (Goodyear Tire) example with fitted Merton parameters | Volatility Surface Table 6.2 |
+| Hedge fund losses from steep skews | Volatility Surface Ch 6 |
 
-### (B) Reasoned Inference — Note Derivation Logic
+### (B) Claude-Extended Content (Practitioner Notes)
+
+| Content | Context |
+|---------|---------|
+| LBO trade mechanics and spread reactions | Extended from general credit market knowledge |
+| Event risk vs credit deterioration distinction | Extended from general trading knowledge |
+| 2008 basis trade failure mechanics | Extended from financial crisis knowledge |
+| Funding cliff quantification table | Inference from O'Kane funding discussion |
+| Hertz 2020 anomaly case study | Extended from 2020 market events |
+| GM/Ford 2005 correlation trade | Extended from credit market history |
+| Why capital structure arbitrage failed | Extended from hedge fund performance knowledge |
+| Robinhood/retail trading effects on equity-credit | Extended from 2020 market knowledge |
+
+### (C) Reasoned Inference
 
 | Inference | Derivation |
 |-----------|------------|
@@ -814,13 +1187,16 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | Net JTD with different recoveries | Apply VOD formula to each leg |
 | Intrinsic vs simple average spread difference | Algebraic comparison of weighting schemes |
 | Carry days to offset 1bp move | Ratio of CS01 to daily theta |
+| Funding break-even calculations | Linear carry decomposition |
+| Merton example extensions | Application of Hull RM formulas |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 - **Recovery swaps:** I'm not sure about contract mechanics. The sources discuss recovery sensitivity but not recovery swap instruments.
-- **Historical basis behavior in 2008:** The sources discuss basis drivers conceptually but do not provide time-series data on basis movements during the crisis. The statement that basis trades failed in 2008 is widely known but not directly sourced from O'Kane.
+- **Exact historical basis levels in 2008:** The mechanics are well-understood but specific numbers (how wide basis went) would need time-series data not in the sources.
 - **Exact curve inversion dynamics:** The sources discuss curve shape generally but do not provide specific examples of credit curve inversions.
-- **Convertible arbitrage effects on basis:** O'Kane mentions this briefly but does not quantify the impact.
+- **Hertz stock price specifics:** The general pattern is accurate but exact prices may differ from stated values.
+- **GM/Ford correlation trade details:** General dynamics are correct but specific hedge fund losses not verified.
 
 ---
 

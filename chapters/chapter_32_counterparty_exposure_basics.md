@@ -14,9 +14,12 @@ This chapter builds the **exposure primitives**—the building blocks you need b
 
 1. **Exposure as a function of MTM** — Why exposure equals $\max(V, 0)$ and how collateral modifies this
 2. **Netting and close-out** — How ISDA master agreements transform counterparty risk and why "netting sets" matter
-3. **Collateral mechanics** — VM, IM, thresholds, MTAs, and how they reduce (but never eliminate) exposure
-4. **The margin period of risk (MPOR)** — Why even "fully collateralized" trades carry residual exposure
-5. **Wrong-way risk** — When exposure and default probability move together (a preview; modeling comes later)
+3. **Collateral mechanics** — VM, IM, thresholds, MTAs, haircuts, and how they reduce (but never eliminate) exposure
+4. **Central clearing vs. bilateral clearing** — How CCPs change the exposure landscape
+5. **The margin period of risk (MPOR)** — Why even "fully collateralized" trades carry residual exposure
+6. **Exposure simulation** — How Monte Carlo generates PFE and EE profiles
+7. **Incremental exposure** — How new trades affect portfolio CVA
+8. **Wrong-way risk** — When exposure and default probability move together
 
 None of this machinery is glamorous. But every CVA calculation, every credit limit decision, and every capital charge traces back to these exposure primitives. Get them wrong, and nothing downstream makes sense.
 
@@ -52,6 +55,8 @@ These conventions follow Hull's treatment in *Risk Management and Financial Inst
 | $q$ | Quantile level (e.g., 95%) | Dimensionless |
 | $D(0,t)$ | Discount factor from 0 to $t$ | Dimensionless |
 | $R$ | Recovery rate (in $[0,1]$) | Dimensionless |
+| $v_i$ | PV of expected exposure at midpoint of interval $i$ | Currency |
+| $q_i$ | Risk-neutral probability of default during interval $i$ | Dimensionless |
 
 ---
 
@@ -69,10 +74,10 @@ $$\boxed{E(t) = \max(V(t), 0)}$$
 
 > **Analogy: The Casino Chip**
 >
-> Counterparty Risk is like holding a Casino Chip.
+> Counterparty risk is like holding a casino chip.
 >
-> *   **If you are winning (\$1000 chip)**: You have exposure to the Casino. You worry: "Does the cage have enough cash to pay me?"
-> *   **If you are losing**: You owe the Casino. You have *no* exposure to them (they have exposure to *you*).
+> *   **If you are winning (\$1000 chip)**: You have exposure to the casino. You worry: "Does the cage have enough cash to pay me?"
+> *   **If you are losing**: You owe the casino. You have *no* exposure to them (they have exposure to *you*).
 > *   **Max(V, 0)**: You only care about the counterparty's health when you are winning. If you are losing, their bankruptcy doesn't hurt you (in fact, you might get out of paying!).
 
 **This is the fundamental exposure identity** (without collateral). Exposure is the positive part of the portfolio's MTM.
@@ -98,6 +103,18 @@ The Group of Thirty's risk management recommendations, cited in Hull, emphasize 
 
 This dual assessment—current and potential—is the foundation of credit limit frameworks and regulatory capital calculations.
 
+> **Desk Reality: Why Exposure Metrics Matter for Capital**
+>
+> Banks care intensely about exposure metrics because they drive regulatory capital. Under the Basel framework, the credit equivalent amount for a derivative is:
+>
+> $$\boxed{\text{Credit Equivalent} = \max(V, 0) + aL}$$
+>
+> where $V$ is current value, $a$ is an add-on factor (from Table 15.2 in Hull RM), and $L$ is the principal amount. The add-on captures potential future exposure.
+>
+> Hull provides the example: "A bank has entered into a \$100 million interest rate swap with a remaining life of four years. The current value of the swap is \$2.0 million. In this case, the add-on amount is 0.5% of the principal so that the credit equivalent amount is \$2.0 million plus \$0.5 million or \$2.5 million."
+>
+> The capital charge is then 8% of (Credit Equivalent × Risk Weight). This is why traders care about both current exposure (for today's capital) and PFE (for limit utilization).
+
 ---
 
 ## 32.2 Netting: From Trade-Level to Portfolio-Level Exposure
@@ -114,6 +131,8 @@ This legal protection is not automatic. It requires:
 1. A master agreement (typically an ISDA Master Agreement) between the parties
 2. A legal opinion confirming enforceability in the relevant jurisdictions
 3. Proper documentation and identification of which trades are covered
+
+Hull emphasizes the practical importance: "Consider a bank that has three swap transactions outstanding with a particular counterparty. The transactions are worth +\$24 million, -\$17 million, and +\$8 million to the bank... Without netting, the counterparty would default on the first transaction, keep the second transaction, and default on the third transaction. Assuming no recovery, the loss to the bank would be \$32 (= 24 + 8) million. With netting, the counterparty is required to default on the second transaction as well. The loss to the bank is then \$15 (= 24 - 17 + 8) million."
 
 ### 32.2.2 The Mathematics of Netting
 
@@ -132,6 +151,8 @@ The "single transaction" principle means the close-out is computed on the net va
 $$V_{\text{net}} = \sum_{i=1}^{N} V_i$$
 
 $$\boxed{E_{\text{net}} = \max\left(\sum_{i=1}^{N} V_i, 0\right)}$$
+
+Hull provides the elegant interpretation: "Without netting, the exposure is the payoff from a portfolio of options. With netting, the exposure is the payoff from an option on a portfolio."
 
 ### 32.2.3 The Netting Benefit
 
@@ -193,7 +214,35 @@ In bilateral OTC, IM is often called an **independent amount**. The purpose is t
 
 > **Connection to discounting:** The presence of collateral affects not just exposure but also *how we discount* derivative cashflows. When collateral earns the overnight rate, OIS discounting becomes appropriate. This connection between collateral and discounting is developed fully in **Chapter 33**.
 
-### 32.3.4 Thresholds and MTAs
+### 32.3.4 Haircuts and Eligible Collateral
+
+Not all collateral is equal. When securities (rather than cash) are posted as collateral, their value is reduced by a **haircut** to account for potential price declines before liquidation.
+
+Hull explains in the context of exchange margins: "The percentage by which the market value of a security is reduced to determine its value for the purposes of the margin account is known as the haircut applied to the security. For example, Treasury bills might be marginable at 90% of their value (a 10% haircut), shares of a stock might be marginable at 70% of their value (a 30% haircut), and so on."
+
+**Typical Haircut Schedule:**
+
+| Collateral Type | Typical Haircut |
+|-----------------|-----------------|
+| Cash (same currency) | 0% |
+| Cash (different currency) | 5-8% |
+| Government bonds (AAA, <1yr) | 0.5-1% |
+| Government bonds (AAA, 1-5yr) | 2-4% |
+| Government bonds (AAA, >5yr) | 4-8% |
+| Investment-grade corporate bonds | 8-15% |
+| Equities (major indices) | 15-25% |
+
+The effective collateral value is:
+
+$$\boxed{C_{\text{effective}} = C_{\text{market}} \times (1 - \text{haircut})}$$
+
+> **Desk Reality: Cheapest-to-Deliver Collateral**
+>
+> When a CSA permits multiple collateral types, the posting party will optimize by posting the "cheapest-to-deliver" collateral—the one with the lowest opportunity cost after haircut. If you can post either \$100 cash or \$115 of Treasuries (with a 13% haircut giving \$100 effective), you'll post whichever costs less to fund.
+>
+> This creates collateral optionality that affects exposure and valuation. When USD rates rise and Treasury prices fall, a counterparty might switch from posting Treasuries to posting cash. The receiving party must track this optionality.
+
+### 32.3.5 Thresholds and MTAs
 
 A **threshold** means VM is required only above a certain amount. Hull's example: "if value is 9 and threshold is 10, no collateral; if value is 11, collateral of 1."
 
@@ -203,7 +252,7 @@ The **minimum transfer amount (MTA)** avoids operational "nuisance" transfers fo
 
 Both features increase residual exposure but reduce operational friction.
 
-### 32.3.5 Rehypothecation
+### 32.3.6 Rehypothecation
 
 **Rehypothecation** refers to the practice where a party that receives collateral reuses that collateral to meet its own margin requirements elsewhere. Hull defines it as "the use of collateral posted by one counterparty to satisfy the collateral requirements of another counterparty."
 
@@ -211,7 +260,7 @@ The practice improves market liquidity but introduces additional risk. If the pa
 
 As a result, post-crisis regulations and CSA amendments now commonly include clauses banning or limiting rehypothecation. Initial margin under bilateral clearing regulations must typically be segregated with a third-party custodian precisely to prevent rehypothecation.
 
-### 32.3.6 Downgrade Triggers
+### 32.3.7 Downgrade Triggers
 
 CSAs may include **downgrade triggers**—clauses stating that if one party's credit rating falls below a specified level, the other party can demand additional collateral or terminate all transactions.
 
@@ -222,11 +271,90 @@ Downgrade triggers are a double-edged sword:
 - But they do not protect against sudden "jump-to-default" events (e.g., AA to default)
 - If a company has many downgrade triggers across its contracts, a single downgrade can trigger cascade effects—precisely when the company is least able to respond
 
+> **Practitioner Note: The Daily Margin Call Workflow**
+>
+> The operational workflow for margin calls typically follows this sequence:
+>
+> 1. **Valuation (T, morning):** Both parties independently value all trades in the netting set
+> 2. **Call calculation:** Compare valuations, compute required transfer per CSA terms
+> 3. **Call issuance (T, early afternoon):** Demanding party sends margin call
+> 4. **Dispute window (T to T+1):** Receiving party can dispute valuation
+> 5. **Settlement (T+1 or T+2):** Collateral transferred if no dispute
+>
+> **Common dispute causes:**
+> - MTM disagreement (curve differences, model differences)
+> - Trade population mismatch (one side missing a trade)
+> - Incorrect collateral balance (prior transfers not reflected)
+>
+> **Operational implication:** Disputes effectively extend MPOR. If a counterparty is deteriorating and disputes every call for 5 days, your effective cure period may be 15+ days, not the 10 days assumed in your model.
+
 ---
 
-## 32.4 The Margin Period of Risk (MPOR)
+## 32.4 Central Clearing vs. Bilateral Clearing
 
-### 32.4.1 Why MPOR Matters
+### 32.4.1 The Two Clearing Regimes
+
+Hull explains that there are "two main approaches" to clearing OTC derivatives: bilateral clearing and central clearing.
+
+**Bilateral clearing:** Each pair of market participants enters into an ISDA master agreement with a credit support annex (CSA) defining collateral arrangements. The parties have direct exposure to each other.
+
+**Central clearing:** A central counterparty (CCP) interposes itself between the two parties. Hull describes: "Suppose that two companies, A and B, agree to an over-the-counter derivatives transaction. They can then present it to a CCP for clearing... The CCP acts as an intermediary and enters into offsetting transactions with the two companies." After clearing, A has exposure only to the CCP, and B has exposure only to the CCP—neither has direct exposure to the other.
+
+### 32.4.2 How CCPs Operate
+
+A CCP operates similarly to an exchange clearing house:
+
+1. **Initial margin:** Both parties post IM to the CCP. Hull notes that "typically, the initial margin is calculated so that it is 99% certain to cover market moves over five days."
+
+2. **Variation margin:** Daily (or intraday) VM flows through the CCP. "If, on the first day, interest rates fall so that the value of the swap to Company A goes down by \$100,000, Company A would be required to pay a variation margin equal to this to the CCP and the CCP would be required to pay the same amount to Company B."
+
+3. **Default fund contributions:** Members contribute to a guaranty fund that mutualizes losses beyond a defaulting member's margin.
+
+### 32.4.3 The CCP Default Waterfall
+
+If a CCP member defaults, losses are absorbed in a specific order. Hull describes the **waterfall**:
+
+1. The initial margin of the defaulting member
+2. The default fund contribution of the defaulting member
+3. The default fund contributions of other members
+4. The equity of the CCP
+
+This structure means that even highly creditworthy counterparties face some mutualized credit risk when clearing through a CCP—they could lose part of their default fund contribution if another member defaults.
+
+### 32.4.4 Bilateral vs. CCP: A Comparison
+
+| Feature | Bilateral Clearing | CCP Clearing |
+|---------|-------------------|--------------|
+| **Counterparty exposure** | To original counterparty | To CCP |
+| **Netting** | Within bilateral netting set | Across all trades cleared at that CCP |
+| **Initial margin** | Negotiated (post-crisis: mandatory for financial institutions) | Standardized, typically 5-day 99% |
+| **Default handling** | Early termination under ISDA | CCP manages close-out |
+| **Mutualization** | None | Default fund contributions |
+| **Regulatory capital** | Higher risk weights | Lower risk weights (CCP treated as low risk) |
+
+### 32.4.5 Netting Efficiency and Fragmentation
+
+Central clearing can increase netting efficiency because a market participant can net all trades cleared at a single CCP, even if originally transacted with different counterparties. Hull notes this potential benefit.
+
+However, Hull also warns about fragmentation: "There will be many CCPs and it is quite likely that they will not cooperate with each other to reduce initial margin requirements." If a bank clears interest rate swaps at one CCP and credit derivatives at another, it cannot net across CCPs—losing the netting benefit.
+
+Moreover, some trades cannot be centrally cleared (nonstandard transactions, some FX transactions). Hull shows that "it is even possible that the new rules requiring the use of CCPs could reduce rather than increase netting in some cases" because standard trades that previously netted with nonstandard trades under bilateral agreements are now separated.
+
+> **Desk Reality: Why Clearing Matters for Credit Limits**
+>
+> A trade executed bilaterally with Counterparty X consumes credit limit against X. The same trade cleared through a CCP consumes no credit limit against X—instead, it requires IM and default fund contributions to the CCP.
+>
+> For a trading desk, this changes deal economics:
+> - Bilateral trade: Need credit approval, may hit limit, CVA charge against X
+> - Cleared trade: No credit limit usage against X, but must fund IM
+>
+> Many desks now have "clearing mandates" requiring standard trades to be cleared whenever possible, precisely to preserve bilateral credit lines for nonstandard trades that *must* be bilateral.
+
+---
+
+## 32.5 The Margin Period of Risk (MPOR)
+
+### 32.5.1 Why MPOR Matters
 
 Even with daily variation margin and zero thresholds, exposure is not zero. The reason is timing: there is a gap between when the counterparty stops posting collateral and when trades are actually closed out.
 
@@ -238,13 +366,17 @@ During this period:
 3. The bank must value the portfolio and execute close-out
 4. Throughout, the market is moving—but collateral is frozen
 
-### 32.4.2 Collateral at Default Is Stale
+### 32.5.2 Collateral at Default Is Stale
 
 The key implication: **collateral at default reflects the portfolio value $c$ days earlier**, not the current value. Hull emphasizes that "the Monte Carlo simulation to calculate the $v_i$ must be structured so that the value of the derivatives portfolio with the counterparty is calculated at times $t_i^* - c$ as well as at time $t_i^*$."
 
 This stale-collateral effect means that even under "perfect collateralization," exposure can emerge from market moves during MPOR.
 
-### 32.4.3 Hull's MPOR Example
+> **Analogy: The Stale GPS**
+>
+> Collateral under MPOR is like a GPS that shows where you were 20 minutes ago, not where you are now. If you're driving fast on a twisting road, your "position" shown on the GPS (collateral) can be very different from your actual position (MTM). The faster the market moves, the larger this gap.
+
+### 32.5.3 Hull's MPOR Example
 
 Hull provides a concrete illustration (Example 20.1 in *Risk Management and Financial Institutions*):
 
@@ -258,17 +390,39 @@ The first scenario shows how MPOR creates exposure: the portfolio moved from 45 
 
 ---
 
-## 32.5 Exposure Metrics: EE, PFE, and EPE
+## 32.6 Exposure Metrics: EE, ENE, PFE, and EPE
 
-### 32.5.1 Expected Exposure (EE)
+### 32.6.1 Expected Exposure (EE)
 
 **Expected exposure at time $t$** is the expected value of exposure at that time:
 
-$$\boxed{EE(t) := \mathbb{E}[E(t)]}$$
+$$\boxed{EE(t) := \mathbb{E}[E(t)] = \mathbb{E}[\max(V(t) - C(t), 0)]}$$
 
 This is the average exposure across all possible market scenarios at time $t$. EE is the exposure measure that enters CVA calculations because CVA is an expected loss, and expected loss involves expected exposure.
 
-### 32.5.2 Potential Future Exposure (PFE)
+### 32.6.2 Expected Negative Exposure (ENE) and DVA
+
+While EE measures the bank's exposure to the counterparty, **expected negative exposure (ENE)** measures the counterparty's exposure to the bank:
+
+$$\boxed{ENE(t) := \mathbb{E}[\max(-V(t), 0)]}$$
+
+ENE is the mirror image of EE. When $V < 0$ (bank owes counterparty), the counterparty has positive exposure to the bank.
+
+**Connection to DVA:** Just as CVA uses EE (the counterparty's expected exposure to the bank feeds into CVA calculation), **DVA (Debit Value Adjustment)** uses ENE. Hull explains: "DVA is the expected cost to the counterparty because the dealer might default. It is the counterparty's CVA."
+
+The bilateral valuation with credit risk becomes:
+
+$$\boxed{f^* = f_{\text{nd}} - CVA + DVA}$$
+
+where $f_{\text{nd}}$ is the value assuming neither side will default.
+
+> **Practitioner Note: The DVA Controversy**
+>
+> DVA is controversial because it represents a gain to the dealer from the possibility of its *own* default. Hull notes: "One surprising effect of DVA is that when the credit spread of a derivatives dealer increases, DVA increases. This in turn leads to an increase in the reported value of the derivatives on the books of the dealer and a corresponding increase in its profits."
+>
+> Regulators are uncomfortable with this, and "have excluded DVA gains and losses from the definition of common equity in the determination of regulatory capital."
+
+### 32.6.3 Potential Future Exposure (PFE)
 
 **Potential future exposure** is a quantile of the exposure distribution:
 
@@ -280,7 +434,7 @@ Hull describes peak exposure as "a high percentile of simulated exposures at eac
 
 **PFE vs. EE:** PFE answers "how bad can it get?" while EE answers "what's the average?" PFE is used for credit limits and stress testing; EE feeds into CVA pricing.
 
-### 32.5.3 Expected Positive Exposure (EPE)
+### 32.6.4 Expected Positive Exposure (EPE)
 
 **EPE** is a time-aggregated measure of expected exposure. The common convention is a time-weighted average:
 
@@ -290,7 +444,7 @@ EPE provides a single-number summary of the exposure profile over the life of th
 
 > **Note on uncertainty:** The precise definition of EPE (time-weighting, discounting, whether collateral is included) varies across desks and regulatory frameworks. To be certain, verify your desk's specific definition.
 
-### 32.5.4 Risk-Neutral vs. Real-World Simulation
+### 32.6.5 Risk-Neutral vs. Real-World Simulation
 
 Hull flags an important conceptual distinction: CVA is a valuation exercise requiring risk-neutral simulation, but PFE is scenario analysis asking "how bad can it get?"
 
@@ -300,9 +454,88 @@ In practice, this distinction is often ignored, and the same risk-neutral simula
 
 ---
 
-## 32.6 Exposure Profiles for Different Instruments
+## 32.7 Monte Carlo Simulation for Exposure
 
-### 32.6.1 Interest Rate Swaps vs. Currency Swaps
+### 32.7.1 The Simulation Framework
+
+Computing exposure metrics (EE, PFE, EPE) requires simulating how portfolio values evolve under many possible future scenarios. This section explains the Monte Carlo procedure.
+
+**Step 1: Identify Risk Factors**
+
+The portfolio value $V(t)$ depends on market variables: interest rates, FX rates, credit spreads, equity prices, volatilities. These are the **risk factors** to be simulated.
+
+For an interest rate swap portfolio, typical risk factors include:
+- Short rate or yield curve level
+- Curve slope and curvature
+- Volatilities (if options are present)
+
+**Step 2: Generate Scenarios**
+
+For each simulation path $\omega$ and each future time $t_i$:
+1. Simulate market variable evolution: $X^{(\omega)}(t_i)$
+2. These may use geometric Brownian motion, short-rate models, or more sophisticated processes
+
+**Step 3: Compute Portfolio Values**
+
+At each future time $t_i$ on each path $\omega$:
+1. Price all trades in the netting set using the simulated market state
+2. Sum to get $V^{(\omega)}(t_i)$
+
+**Step 4: Apply Collateral Model**
+
+If the portfolio is collateralized:
+1. Compute collateral $C^{(\omega)}(t_i)$ based on the CSA rules
+2. Account for MPOR: $C^{(\omega)}(t_i)$ reflects $V^{(\omega)}(t_i - c)$, not $V^{(\omega)}(t_i)$
+
+**Step 5: Compute Exposure**
+
+$$E^{(\omega)}(t_i) = \max(V^{(\omega)}(t_i) - C^{(\omega)}(t_i), 0)$$
+
+**Step 6: Aggregate Across Paths**
+
+$$EE(t_i) = \frac{1}{N} \sum_{\omega=1}^{N} E^{(\omega)}(t_i)$$
+
+$$PFE_{97.5\%}(t_i) = \text{97.5th percentile of } \{E^{(\omega)}(t_i)\}_{\omega=1}^{N}$$
+
+### 32.7.2 Time Grid Selection
+
+The choice of time grid $\{t_1, t_2, \ldots, t_n\}$ affects accuracy and computation:
+
+- **Finer at the front end:** Exposure changes rapidly in early periods; use daily or weekly steps for the first year
+- **Coarser at the back end:** For long-dated portfolios, quarterly or semi-annual steps may suffice
+- **Align with cashflow dates:** Include coupon and reset dates to capture discrete jumps
+
+> **Desk Reality: What the Quant Team Actually Does**
+>
+> A typical CVA simulation for a large netting set might involve:
+> - 10,000 Monte Carlo paths
+> - 100+ time steps over a 30-year horizon (finer at front, coarser at back)
+> - 5-20 risk factors (depending on product complexity)
+> - Full revaluation of hundreds of trades at each time step on each path
+>
+> This is computationally intensive. Many desks use approximations:
+> - **American Monte Carlo (regression):** Approximate future values rather than full repricing
+> - **Bucketing:** Group similar trades and compute representative exposure
+> - **Adjoint Algorithmic Differentiation (AAD):** Efficiently compute sensitivities
+>
+> The simulation paths are often **stored** so that incremental CVA can be computed quickly when new trades are added (see Section 32.10).
+
+### 32.7.3 The Exposure Cone
+
+The distribution of exposure over time can be visualized as an **exposure cone**: a fan of percentile bands showing how exposure uncertainty grows (and eventually shrinks) over the portfolio's life.
+
+For a typical interest rate swap:
+- At $t = 0$: Exposure is zero (or small) since the swap is at-the-money
+- At intermediate times: Exposure distribution widens as rates can move substantially
+- Near maturity: Exposure shrinks because few payments remain
+
+The 97.5% PFE line forms the "upper boundary" of the cone; the EE is the center of mass.
+
+---
+
+## 32.8 Exposure Profiles for Different Instruments
+
+### 32.8.1 Interest Rate Swaps vs. Currency Swaps
 
 Hull provides a striking comparison (Figure 20.1 in *Risk Management and Financial Institutions*):
 
@@ -316,10 +549,10 @@ This has practical implications: "The impact of default risk for a dealer in cur
 
 > **Visual: The Exposure Shape**
 >
-> *   **Interest Rate Swap ("The Hump")**: Starts low (Par), grows as rates move, then falls to zero as payments are made and time runs out. Peak risk is in the middle.
+> *   **Interest Rate Swap ("The Hump")**: Starts low (par), grows as rates move, then falls to zero as payments are made and time runs out. Peak risk is in the middle.
 > *   **FX Swap / Cross-Currency ("The Ramp")**: Starts low, but grows steadily because the huge principal exchange at the end gets riskier and riskier as FX drifts further from the strike. Peak risk is at the very end.
 
-### 32.6.2 Forward Contracts
+### 32.8.2 Forward Contracts
 
 For a forward contract to buy an asset at price $K$ with current forward price $F_0$, Hull derives the present value of expected exposure:
 
@@ -327,41 +560,117 @@ $$v_i = e^{-rT}\left[F_0 N(d_1) - K N(d_2)\right]$$
 
 where $d_1$ and $d_2$ are Black-Scholes-type quantities. The exposure looks like a call option on the forward price—which makes sense, because the bank's positive exposure occurs when the forward price exceeds the strike.
 
+### 32.8.3 Options: Bounded and Asymmetric Exposure
+
+Options have distinct exposure profiles depending on whether you bought or sold them.
+
+**Bought options (long):** When you buy an option, you pay the premium upfront. Your future exposure is limited to the replacement cost of the option—at most the current market value, which is bounded by the premium paid (for capped premium structures) or can grow but is always positive.
+
+Hull's framework shows that for a derivative "that is bound to have a positive value to the dealer... at all future times" (like a purchased option), the CVA simplifies because the exposure is simply the option value at each time.
+
+**Sold options (short):** When you sell an option, you receive premium but have a contingent liability. From the bank's perspective, the sold option has *negative* value—so the bank has *no exposure* on a sold option. Instead, the *counterparty* has exposure to the bank.
+
+> **Practitioner Note: Option Exposure Dynamics**
+>
+> For a purchased call option:
+> - Exposure = option value = intrinsic + time value
+> - As expiry approaches, time value decays (Theta)
+> - But if in-the-money, intrinsic value grows with the underlying
+>
+> This creates a complex exposure profile. For at-the-money options, exposure typically follows a "decay then spike" pattern: initially decaying as time value erodes, but potentially spiking if the option goes deep in-the-money near expiry.
+>
+> For swaptions and other rate options, the profile depends on whether strike rates are hit. A receiver swaption gains value as rates fall—its exposure profile looks like a call option on rates.
+
 ---
 
-## 32.7 Wrong-Way Risk (Preview)
+## 32.9 Wrong-Way Risk (Preview)
 
-### 32.7.1 Definition and Intuition
+### 32.9.1 Definition and Intuition
 
 **Wrong-way risk** occurs when exposure and the probability of default are positively correlated. Hull defines it as the situation where "exposure rises when counterparty becomes more likely to default."
 
 The intuition is captured by the phrase: "The counterparty is weakest exactly when I'm most exposed."
 
-### 32.7.2 Examples of Wrong-Way Risk
+### 32.9.2 Examples of Wrong-Way Risk
 
 Hull provides several examples:
 
 **Speculating counterparty:** "A situation in which a company is speculating by entering into many similar trades with one or more dealers is likely to lead to wrong-way risk for these dealers. This is because the company's financial position and therefore its probability of default is likely to be affected adversely if the trades move against the company."
 
 **CDS seller:** A counterparty selling credit protection on a reference entity may experience wrong-way risk for the protection buyer. If the reference entity defaults, the protection becomes very valuable—exactly when the protection seller (who has similar credit characteristics) may also be in distress.
->
+
 > **Classic Example: The Put Option on the Bank**
-> If you buy a Put Option on Bank A *from* Bank A...
+>
+> If you buy a put option on Bank A's stock *from* Bank A...
 > *   **The Payoff**: You make money if Bank A's stock crashes.
 > *   **The Catch**: If Bank A's stock crashes, Bank A might be bankrupt.
-> *   **Result**: You are "winning" exactly when the person paying you is "dying." Your expected recovery is terrible. This is extreme Wrong Way Risk.
+> *   **Result**: You are "winning" exactly when the person paying you is "dying." Your expected recovery is terrible. This is extreme wrong-way risk.
 
-### 32.7.3 Right-Way Risk
+### 32.9.3 Right-Way Risk
 
 The opposite is **right-way risk**: exposure and default probability are negatively correlated.
 
 Hull notes: "If a company enters into transactions with a dealer to partially hedge an existing exposure, there should in theory be right-way risk. This is because, when the transactions move against the counterparty, it will be benefiting from the unhedged portion of its exposure so that its probability of default should be relatively low."
 
-> **Scope note:** Modeling wrong-way risk requires specifying the dependence between market variables and default probability. This is a separate (and difficult) modeling problem, treated in later chapters. Here we only preview the concept.
+### 32.9.4 Modeling Wrong-Way Risk
+
+Hull describes the regulatory approach: "A simple way of dealing with wrong-way risk is to use what is termed the 'alpha' multiplier to increase $v_i$... Basel II rules set alpha equal to 1.4, but allow banks to use their own models, with a floor for alpha of 1.2."
+
+This means CVA calculated under the independence assumption must be scaled up by at least 20% (alpha = 1.2) to account for potential wrong-way risk.
+
+More sophisticated approaches model the dependence directly. Hull references research where "the hazard rate at time $t$ is a function of variables observable at that time," allowing exposure and credit quality to co-move.
+
+> **Scope note:** Quantitative modeling of wrong-way risk requires specifying the dependence between market variables and default probability. This is a separate (and difficult) modeling problem, treated in the XVA chapters. Here we only preview the concept.
 
 ---
 
-## 32.8 CVA Preview: How Exposure Metrics Feed Into Valuation
+## 32.10 Incremental Exposure and CVA
+
+### 32.10.1 Why Incremental CVA Matters
+
+When a trader considers adding a new trade to an existing portfolio with a counterparty, the key question is: *How does this trade affect the CVA we charge?*
+
+The answer is **not** simply the standalone CVA of the new trade. Because of netting, the new trade interacts with existing trades:
+- If the new trade has *opposite* exposure to the existing portfolio, it provides a netting benefit and *reduces* total exposure
+- If the new trade has *similar* exposure to the existing portfolio, it adds to exposure
+
+### 32.10.2 Incremental vs. Standalone
+
+Hull explains the distinction: "If the value of the new transaction is positively correlated with other transactions... the incremental effect on CVA is likely to be positive. If it is negatively correlated, the effect could well be negative."
+
+$$\boxed{\Delta CVA = CVA_{\text{portfolio + new}} - CVA_{\text{portfolio}}}$$
+
+This **incremental CVA** can be negative—meaning the new trade *reduces* the credit charge because of netting benefits.
+
+### 32.10.3 Efficient Computation
+
+Hull notes that "calculating the incremental effect of a new transaction on CVA by recomputing CVA is not usually feasible" because full CVA calculation is computationally intensive.
+
+The efficient approach: **store simulation paths** from the original CVA calculation. When a new trade is proposed:
+1. Price the new trade on each stored path at each time step
+2. Add to the portfolio values already stored
+3. Recompute exposure on each path with the combined portfolio
+4. Calculate the new CVA and compare
+
+This "incremental CVA engine" allows traders to get real-time quotes on the credit charge for new trades.
+
+### 32.10.4 Pricing Implications
+
+> **Desk Reality: Pricing a New Trade**
+>
+> When a salesperson asks for a price on a new trade with an existing counterparty:
+>
+> 1. **Compute standalone price** (as if no credit risk)
+> 2. **Query incremental CVA** from the CVA desk
+> 3. **Adjust bid/offer** to include CVA
+>
+> If the new trade *reduces* portfolio exposure (e.g., an offsetting swap), the incremental CVA may be negative—the credit desk effectively "pays" the trading desk for the netting benefit. This can make otherwise marginal trades attractive.
+>
+> If the new trade *increases* exposure (e.g., same-direction risk), the CVA charge widens the bid-offer, making the trade less competitive.
+
+---
+
+## 32.11 CVA Preview: How Exposure Metrics Feed Into Valuation
 
 This chapter focuses on exposure primitives. The full treatment of CVA, DVA, and other valuation adjustments belongs in **Chapter 34 (XVA Overview)**. The connection between collateral and discount curves is developed in **Chapter 33 (Collateral Discounting and OIS)**. But it is useful here to see how exposure connects to valuation.
 
@@ -384,7 +693,7 @@ This is a desk-friendly approximation of Hull's $(1-R) q_i v_i$ structure.
 
 ---
 
-## 32.9 Worked Examples
+## 32.12 Worked Examples
 
 The following examples build intuition for how exposure, netting, and collateral interact. All use the bank perspective with $E = \max(V - C, 0)$.
 
@@ -625,7 +934,25 @@ Total $E = 6$
 
 ---
 
-### Example K: CVA Preview Calculation
+### Example K: Incremental Exposure (Netting Benefit)
+
+**Setup:** Existing portfolio has $V_{\text{existing}} = +10$ with certainty. New trade has $V_{\text{new}} = -6$ with certainty (perfectly offsetting direction).
+
+**Before new trade:**
+$$E_{\text{before}} = \max(10, 0) = 10$$
+
+**After new trade (with netting):**
+$$V_{\text{combined}} = 10 - 6 = 4$$
+$$E_{\text{after}} = \max(4, 0) = 4$$
+
+**Incremental exposure:**
+$$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
+
+**Interpretation:** The new trade *reduces* exposure by 6 due to netting. The incremental CVA would be negative—the credit desk "pays" for the benefit.
+
+---
+
+### Example L: CVA Preview Calculation
 
 **Setup:** Discretized CVA with three intervals.
 - Times: $t_1 = 1$, $t_2 = 2$, $t_3 = 3$ years
@@ -650,9 +977,9 @@ Total $E = 6$
 
 ---
 
-## 32.10 Practical Notes
+## 32.13 Practical Notes
 
-### 32.10.1 Common Pitfalls
+### 32.13.1 Common Pitfalls
 
 **Computing exposure trade-by-trade instead of at netting set level:** This violates netting logic and overstates exposure. Always aggregate within enforceable netting agreements.
 
@@ -662,19 +989,25 @@ Total $E = 6$
 
 **Sign convention errors:** Always verify that positive $V$ means in-the-money for the bank, and that collateral $C$ follows the correct convention. Sign errors reverse conclusions.
 
-### 32.10.2 Implementation Considerations
+**Ignoring haircuts on securities collateral:** \$100 of Treasury bonds is not \$100 of collateral. After a 5% haircut, it's \$95 effective.
+
+### 32.13.2 Implementation Considerations
 
 **Time grid choices:** Exposure profiles depend on discretization. Finer grids near the front end (where exposure changes rapidly) may be needed.
 
-**Collateral modeling:** Frequency, thresholds, MTAs, and "stale collateral" assumptions can dominate exposure outcomes. Model these carefully.
+**Collateral modeling:** Frequency, thresholds, MTAs, haircuts, and "stale collateral" assumptions can dominate exposure outcomes. Model these carefully.
 
 **Simulation requirements:** Hull notes that dealers may have transactions with thousands of counterparties, making CVA calculation computationally intensive. Efficient simulation and storage of paths is essential.
 
-### 32.10.3 Sanity Checks
+**CCP vs. bilateral treatment:** Ensure your systems correctly identify which trades are centrally cleared (exposure to CCP) vs. bilateral (exposure to counterparty).
+
+### 32.13.3 Sanity Checks
 
 - **Netting cannot increase exposure:** If $E_{\text{net}} > E_{\text{no net}}$ in your model, something is wrong.
 - **Tighter collateral reduces exposure:** Lower thresholds, lower MTAs, and more frequent VM should all reduce exposure metrics.
 - **PFE ≥ EE** for typical distributions. Equality occurs only for degenerate cases (constant exposure).
+- **IRS exposure is hump-shaped; FX swap exposure increases:** If your model shows opposite shapes, investigate.
+- **Incremental exposure can be negative:** A trade that offsets existing exposure has negative incremental exposure and CVA.
 
 ---
 
@@ -698,11 +1031,17 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 7. **PFE and EE are different:** PFE is a quantile (tail risk); EE is a mean (for CVA).
 
-8. **Exposure profiles differ by product:** Interest rate swaps have hump-shaped profiles; currency swaps increase monotonically.
+8. **ENE feeds DVA:** Expected negative exposure is the counterparty's view, used for DVA.
 
-9. **Wrong-way risk is dangerous:** Exposure rising exactly when default probability rises amplifies losses.
+9. **Exposure profiles differ by product:** Interest rate swaps have hump-shaped profiles; currency swaps increase monotonically; bought options are bounded.
 
-10. **CVA uses exposure primitives:** $CVA = \sum (1-R) q_i v_i$ where $v_i$ comes from exposure modeling.
+10. **Central clearing changes exposure:** Exposure is to the CCP, not the original counterparty; netting is across all trades at that CCP.
+
+11. **Incremental CVA can be negative:** New trades that reduce portfolio exposure provide a netting benefit.
+
+12. **Wrong-way risk is dangerous:** Exposure rising exactly when default probability rises amplifies losses.
+
+13. **CVA uses exposure primitives:** $CVA = \sum (1-R) q_i v_i$ where $v_i$ comes from exposure modeling.
 
 ---
 
@@ -713,6 +1052,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | **MTM** $V(t)$ | Net mark-to-market value of netting set | The input to exposure calculation |
 | **Exposure** $E(t)$ | $\max(V-C, 0)$—positive part of (MTM minus collateral) | What you lose at counterparty default |
 | **EE** | $\mathbb{E}[E(t)]$—expected exposure | Feeds into CVA calculation |
+| **ENE** | $\mathbb{E}[\max(-V,0)]$—expected negative exposure | Feeds into DVA calculation |
 | **PFE** | Quantile of $E(t)$—"how bad can it get?" | Used for credit limits |
 | **EPE** | Time-average of EE | Single-number exposure summary |
 | **Netting** | Legal aggregation under master agreement | Reduces exposure via offset |
@@ -721,9 +1061,33 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | **MPOR** | Cure period (10-20 days) | Makes collateral stale |
 | **Threshold** | Level below which no VM required | Creates residual unsecured band |
 | **MTA** | Minimum transfer amount | Avoids nuisance transfers |
+| **Haircut** | Reduction in collateral value for securities | Adjusts effective collateral |
+| **CCP** | Central counterparty | Changes exposure counterparty, increases netting |
+| **Default fund** | CCP member contribution to mutualize losses | Shared loss after IM exhausted |
 | **Rehypothecation** | Reuse of received collateral for other purposes | Creates recovery risk if holder defaults |
 | **Downgrade trigger** | CSA clause demanding collateral on rating downgrade | Protection vs. cascade risk |
 | **Wrong-way risk** | Exposure ↑ when default probability ↑ | Amplifies losses |
+| **Incremental CVA** | CVA change from adding a new trade | Can be negative (netting benefit) |
+
+---
+
+## Notation for This Chapter
+
+| Symbol | Definition |
+|--------|------------|
+| $V(t)$ | Net MTM of netting set at time $t$ |
+| $C(t)$ | Collateral held by bank (positive = received) |
+| $E(t)$ | Bank's exposure: $\max(V-C, 0)$ |
+| $EE(t)$ | Expected exposure at time $t$ |
+| $ENE(t)$ | Expected negative exposure at time $t$ |
+| $PFE_q(t)$ | $q$-quantile of exposure at time $t$ |
+| $EPE$ | Expected positive exposure (time-average of EE) |
+| $H$ | Threshold |
+| $m$ | Minimum transfer amount (MTA) |
+| $c$ | Cure period / MPOR (days) |
+| $v_i$ | PV of expected exposure at midpoint of interval $i$ |
+| $q_i$ | Default probability during interval $i$ |
+| $R$ | Recovery rate |
 
 ---
 
@@ -737,46 +1101,36 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | 4 | What is netting (contractually)? | A clause treating all covered trades as a single transaction on default. |
 | 5 | How do you compute exposure without netting? | $\sum \max(V_i, 0)$ |
 | 6 | How do you compute exposure with netting? | $\max(\sum V_i, 0)$ |
-| 7 | What is variation margin (VM)? | Collateral posted to track positive MTM to the other side. |
-| 8 | What is another name for IM in bilateral OTC? | Independent amount. |
-| 9 | What is the cure period / MPOR? | Delay (typically 10-20 days) between collateral cessation and close-out. |
-| 10 | Why does MPOR matter? | Collateral at default reflects value $c$ days earlier, creating exposure if MTM moves. |
-| 11 | What is peak exposure? | High percentile of simulated exposures at each future time. |
-| 12 | What measure should be used for peak exposure simulation? | Real-world (for scenario analysis), though risk-neutral is often used in practice. |
-| 13 | Define EE(t). | $EE(t) = \mathbb{E}[E(t)]$—expected exposure at time $t$. |
-| 14 | Define PFE. | The $q$-quantile of $E(t)$—e.g., 95th percentile of exposure. |
-| 15 | What is a threshold in a CSA? | Level below which no VM is required. |
+| 7 | Define EE(t). | $EE(t) = \mathbb{E}[E(t)]$—expected exposure at time $t$. |
+| 8 | Define ENE(t). | $ENE(t) = \mathbb{E}[\max(-V(t), 0)]$—expected negative exposure, used for DVA. |
+| 9 | Define PFE. | The $q$-quantile of $E(t)$—e.g., 95th percentile of exposure. |
+| 10 | What is variation margin (VM)? | Collateral posted to track positive MTM to the other side. |
+| 11 | What is initial margin (IM) designed to cover? | Potential exposure during the margin period of risk (10-day stressed moves at 99% confidence). |
+| 12 | What is the cure period / MPOR? | Delay (typically 10-20 days) between collateral cessation and close-out. |
+| 13 | Why does MPOR matter? | Collateral at default reflects value $c$ days earlier, creating exposure if MTM moves. |
+| 14 | What is a haircut? | Reduction applied to securities collateral to account for potential price decline. |
+| 15 | What is a threshold in a CSA? | Level below which no VM is required—creates residual unsecured exposure. |
 | 16 | What is MTA? | Minimum transfer amount—avoids small collateral movements. |
-| 17 | What is IM calibrated to cover (post-crisis rules)? | 10-day stressed period at 99% confidence. |
-| 18 | How is IM typically held? | Segregated with a third-party custodian. |
-| 19 | What is wrong-way risk? | Exposure rising when counterparty default probability rises. |
-| 20 | What does "aggregate exposures reflecting netting" mean? | Compute exposure on netted portfolios under enforceable agreements. |
-| 21 | What is current exposure? | Replacement cost if counterparty defaulted now. |
-| 22 | What is potential future exposure? | Distribution of exposure at future times. |
-| 23 | When can bank exposure be positive even if bank posted collateral? | If posted collateral exceeds what bank owed and isn't returned on default. |
-| 24 | What is rehypothecation? | Reuse of posted collateral to meet other collateral needs. |
-| 25 | Why can't CVA be calculated transaction-by-transaction? | Netting means exposure depends on the net portfolio, not individual trades. |
-| 26 | How do interest rate swap exposure profiles behave? | Hump-shaped: start at zero, increase, then decrease. |
-| 27 | How do currency swap exposure profiles behave? | Monotonically increasing (principal exchanged at end). |
-| 28 | In Example A, what is EE? | 2.5 |
-| 29 | In Example A, what is PFE at 95%? | 5 |
-| 30 | In Example C, what is netted EE? | 1 |
-| 31 | In Example C, what is unnetted EE? | 9 |
-| 32 | What is the core operational driver of exposure under VM? | Timing—how quickly collateral updates vs. MTM moves. |
-| 33 | For MPOR simulation, what times must be computed? | Values at both $t_i^* - c$ and $t_i^*$. |
-| 34 | What do thresholds do to residual exposure? | Create residual unsecured bands. |
-| 35 | What is the CVA formula structure? | $CVA = \sum (1-R) q_i v_i$ |
-| 36 | What risk does rehypothecation create? | If the party holding collateral defaults, rehypothecated collateral may not be returned. |
-| 37 | What happened to Lehman's hedge fund clients due to rehypothecation? | They found it difficult to recover collateral that Lehman had rehypothecated. |
-| 38 | What is a downgrade trigger? | CSA clause allowing collateral demands or termination if credit rating falls below a level. |
-| 39 | What happened to AIG due to downgrade triggers? | Downgrade below AA triggered massive collateral calls, requiring government bailout. |
-| 40 | Why can downgrade triggers be dangerous for the protected party? | They don't protect against sudden jump-to-default events. |
+| 17 | What is a CCP? | Central counterparty that interposes itself between trade parties, becoming counterparty to both. |
+| 18 | What is the CCP default waterfall? | IM of defaulter → Default fund of defaulter → Default fund of other members → CCP equity. |
+| 19 | How does central clearing change netting? | Trades with different counterparties can be netted if all cleared at the same CCP. |
+| 20 | What is wrong-way risk? | Exposure rising when counterparty default probability rises. |
+| 21 | What is right-way risk? | Exposure falling when counterparty default probability rises. |
+| 22 | What is rehypothecation? | Reuse of received collateral to meet other collateral demands. |
+| 23 | How do IRS exposure profiles behave? | Hump-shaped: start at zero, increase, then decrease toward maturity. |
+| 24 | How do currency swap exposure profiles behave? | Monotonically increasing (principal exchanged at end). |
+| 25 | What is incremental CVA? | CVA change from adding a new trade: $\Delta CVA = CVA_{\text{new portfolio}} - CVA_{\text{old portfolio}}$. |
+| 26 | Can incremental CVA be negative? | Yes—if the new trade reduces portfolio exposure through netting. |
+| 27 | What is the CVA formula structure? | $CVA = \sum (1-R) q_i v_i$ |
+| 28 | What measure is used for CVA? | Risk-neutral (for pricing). |
+| 29 | What measure is conceptually appropriate for PFE? | Real-world (for scenario analysis), though risk-neutral often used in practice. |
+| 30 | What happened to AIG due to downgrade triggers? | Downgrade below AA triggered massive collateral calls, requiring government bailout. |
 
 ---
 
 ## Mini Problem Set
 
-**Instructions:** Problems increase in difficulty. Solution sketches provided for Q1-Q9.
+**Instructions:** Problems increase in difficulty. Solution sketches provided for Q1-Q10.
 
 ---
 
@@ -810,9 +1164,9 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ---
 
-**Q6 (Medium):** Build a two-scenario example where netting reduces EE but increases ENE (counterparty exposure to bank).
+**Q6 (Medium):** A bank posts \$110 of Treasury bonds as collateral. The haircut is 10%. The bank owes the counterparty \$95. If the counterparty defaults, what is the bank's exposure?
 
-> **Sketch:** Use scenarios where netting reduces positive tail but increases negative tail; compute both sides' exposures.
+> **Sketch:** Effective collateral posted = $110 \times (1 - 0.10) = 99$. Bank's exposure = $\max(-95 - (-99), 0) = \max(4, 0) = 4$.
 
 ---
 
@@ -822,19 +1176,21 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ---
 
-**Q8 (Medium):** Weekly vs daily VM on a 5-day rising MTM path. Compute max exposure under each.
+**Q8 (Medium):** A bank has trades worth +\$50mm with Counterparty X cleared bilaterally, and trades worth -\$30mm with the same counterparty cleared at CCP Alpha. Can these be netted? What is total exposure?
 
-> **Sketch:** Daily immediate gives $\approx 0$; weekly leaves exposure equal to MTM until first call.
-
----
-
-**Q9 (Medium):** Using the "peak exposure" definition, explain how to compute 97.5% peak exposure from 10,000 simulated exposures.
-
-> **Sketch:** Sort exposures at each time; pick the 250th highest value.
+> **Sketch:** No—different netting sets. Bilateral exposure = $\max(50, 0) = 50$mm. CCP exposure = $\max(-30, 0) = 0$. Total = \$50mm.
 
 ---
 
-**Q10 (Medium):** Extend Example E by adding a 1-day lag; compute day-by-day exposures for a 4-day path.
+**Q9 (Medium):** Using the "peak exposure" definition, explain how to compute 97.5% peak exposure from 10,000 simulated exposures at time $t$.
+
+> **Sketch:** Sort the 10,000 exposures at time $t$ from lowest to highest. The 97.5th percentile is the 250th highest value (since $10,000 \times 0.025 = 250$).
+
+---
+
+**Q10 (Medium):** Existing portfolio has EE = 10 at all times. A new trade has standalone EE = 5. If the new trade is perfectly negatively correlated with the existing portfolio, what is the approximate EE of the combined portfolio?
+
+> **Sketch:** If perfectly negatively correlated, the new trade offsets the existing one. Combined EE ≈ $|10 - 5| = 5$, not $10 + 5 = 15$. Incremental EE is -5 (a reduction).
 
 ---
 
@@ -846,7 +1202,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ---
 
-**Q13 (Hard):** Suppose IM is sized to a 99% 10-day move but MPOR operationally becomes 20 days. What happens to residual exposure?
+**Q13 (Hard):** Suppose IM is sized to a 99% 10-day move but MPOR operationally becomes 20 days due to disputes. What happens to residual exposure?
 
 ---
 
@@ -874,53 +1230,83 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ---
 
-**Q20 (Hard):** Consider a CSA that permits rehypothecation. If the bank rehypothecates \$100M of collateral received from Counterparty A to Counterparty B, and then Counterparty B defaults, what is the bank's exposure to A under the Hull convention? Assume A's trades are worth +\$100M to the bank.
+**Q20 (Hard):** Compare total exposure under: (a) all trades bilateral with 3 counterparties, (b) all trades cleared at one CCP, (c) trades split across 2 CCPs. Use a simple 6-trade example.
 
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
 | Exposure without collateral: $\max(V, 0)$ where $V$ is net MTM | Hull RM Ch 20 |
 | Exposure with collateral: $E = \max(V - C, 0)$ | Hull RM Ch 20 (Eq. 20.4) |
 | Netting treats covered trades as single transaction | Hull RM Ch 15, Ch 20 |
-| Without netting: $\sum \max(V_i, 0)$ | Hull RM Ch 20 |
+| Without netting: $\sum \max(V_i, 0)$; with netting: option on portfolio vs. portfolio of options | Hull RM Ch 15, Ch 20 |
 | Cure period/MPOR typically 10-20 days | Hull RM Ch 20 |
 | Collateral at default reflects value $c$ days earlier | Hull RM Ch 20 (Example 20.1) |
 | Peak exposure is high percentile of simulated exposures | Hull RM Ch 20 |
 | Peak exposure conceptually uses real-world simulation | Hull RM Ch 20 |
 | CVA formula: $\sum (1-R) q_i v_i$ | Hull RM Ch 20 (Eq. 20.1) |
 | IM for bilateral: 10-day stressed 99% confidence | Hull RM Ch 18 |
+| CCP operates like exchange clearing house | Hull RM Ch 18 |
+| CCP default waterfall: IM → default fund → other members → equity | Hull RM Ch 18 |
+| Central clearing increases netting across counterparties | Hull RM Ch 18 |
+| Multiple CCPs reduce netting benefit (fragmentation) | Hull RM Ch 18 |
 | CSA specifies thresholds, MTAs, independent amounts | Hull RM Ch 18, Ch 20 |
+| Haircut definition: percentage reduction in securities value | Hull RM Ch 18 |
 | IRS exposure hump-shaped; currency swap increasing | Hull RM Ch 20 (Figure 20.1) |
+| Forward contract exposure formula | Hull RM Ch 20 (Eq. 20.10) |
 | Wrong-way risk: speculating counterparties | Hull RM Ch 20 |
 | Right-way risk: hedging counterparties | Hull RM Ch 20 |
+| Alpha multiplier for wrong-way risk (Basel: 1.4, floor 1.2) | Hull RM Ch 20 |
 | Group of Thirty: assess current and potential future exposure | Hull RM Ch 15 |
 | Aggregate exposures reflecting enforceable netting | Hull RM Ch 15 |
+| Basel credit equivalent = max(V,0) + add-on factor × L | Hull RM Ch 15 (Eq. 15.1) |
+| Add-on factors by product type and maturity | Hull RM Ch 15 (Table 15.2) |
+| DVA is counterparty's CVA; bilateral value = $f_{nd} - CVA + DVA$ | Hull RM Ch 20.6 |
+| DVA increases when dealer's credit spread increases | Hull RM Ch 20 |
+| Incremental CVA: new trade effect depends on correlation with existing | Hull RM Ch 20.3 |
+| Efficient incremental CVA: store simulation paths | Hull RM Ch 20.3 |
 | Rehypothecation definition | Hull RM Ch 18 |
 | Lehman rehypothecation problems for hedge fund clients | Hull RM Ch 18 |
 | Downgrade triggers and their risks | Hull RM Ch 20 |
 | AIG downgrade trigger example (September 15, 2008) | Hull RM Ch 20 |
 | Lehman had 1.5M derivatives with 8,000 counterparties | Hull RM Ch 20 (footnote 5) |
 
-### (B) Reasoned Inference (Derived from Sources)
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| "Desk Reality: Why Exposure Metrics Matter for Capital" box | Extends Hull RM Ch 15 Basel content |
+| "Desk Reality: Cheapest-to-Deliver Collateral" box | Extends Hull RM Ch 18 haircut discussion |
+| "Practitioner Note: The Daily Margin Call Workflow" box | Operational extension of collateral mechanics |
+| "Desk Reality: Why Clearing Matters for Credit Limits" box | Extends Hull RM Ch 18 CCP discussion |
+| "Desk Reality: What the Quant Team Actually Does" box | Extends Hull RM Ch 20 simulation discussion |
+| "Analogy: The Stale GPS" for MPOR | Pedagogical extension |
+| Typical haircut schedule table | Standard market practice, not verbatim from Hull |
+| Option exposure profile discussion | Logical extension of Hull's derivative-positive-value example |
+
+### (C) Reasoned Inference
 
 | Inference | Derivation |
 |-----------|------------|
 | EE as $\mathbb{E}[E(t)]$ | Consistent with "expected exposure" terminology in Hull |
+| ENE as $\mathbb{E}[\max(-V, 0)]$ | Mirror of EE for counterparty side; consistent with DVA definition |
 | PFE as quantile of $E(t)$ | Matches "high percentile of simulated exposures" |
 | Netting benefit inequality | Mathematical consequence of max subadditivity |
 | EPE as time-average of EE | Common desk convention; sources don't fix single definition |
 | CVA preview approximation | Reinterpretation of Hull's $(1-R) q_i v_i$ structure |
+| Incremental exposure formula: $\Delta E = E_{\text{combined}} - E_{\text{existing}}$ | Direct consequence of netting mechanics |
+| Effective collateral formula with haircut | Direct application of haircut definition |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Topic | Uncertainty |
 |-------|-------------|
 | EPE/ENE exact definitions | Desks vary (time grids, discounting, collateral inclusion) |
 | Settlement-lag vs MPOR | Sources don't separate intraday mechanics from MPOR |
-| CSA haircuts | Not defined in primary sources for this chapter |
-| Operational timing conventions | Call cutoffs, settlement cycles, dispute resolution |
+| Specific haircut percentages | Vary by institution and CSA; table shows typical values only |
+| Operational margin call timing | Call cutoffs, settlement cycles, dispute resolution procedures vary by institution |
+| Wrong-way risk modeling details | Hull provides conceptual framework; specific implementation varies |

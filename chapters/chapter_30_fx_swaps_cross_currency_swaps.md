@@ -13,14 +13,15 @@ Why does the basis exist at all? Under textbook Covered Interest Parity (CIP), b
 This chapter covers the **structure** of these instruments and the **valuation dependencies**—which curves price which legs, how FX conversion enters, and what risks emerge. We will:
 
 1. Review FX forward mechanics and the discount-factor form of CIP (Section 30.1)
-2. Define FX swaps and their funding interpretation (Section 30.2)
-3. Define cross-currency swaps and the role of the basis spread (Section 30.3)
-4. Develop the valuation framework: project in each currency, discount appropriately (Section 30.4)
+2. Define FX swaps, their funding interpretation, and comparison to XCCY swaps (Section 30.2)
+3. Define cross-currency swaps, the role of the basis spread, and MTM reset structures (Section 30.3)
+4. Develop the valuation framework: project in each currency, discount appropriately, handle collateral (Section 30.4)
 5. Work through detailed examples including a 5-year EUR/USD xccy swap (Section 30.5)
 6. Decompose risk exposures: FX delta, domestic/foreign PV01, basis DV01 (Section 30.6)
-7. Discuss practical use cases: funding foreign assets, hedging foreign liabilities (Section 30.7)
+7. Discuss practical use cases: funding foreign assets, hedging foreign liabilities, the "box" trade (Section 30.7)
+8. Provide practical notes on conventions, settlement, and common pitfalls (Section 30.8)
 
-**What this chapter does not cover:** The construction of cross-currency curves from market instruments belongs to Chapter 21. Full XVA treatment (CVA, FVA) and CSA mechanics are outside scope—we note only that collateralization affects which discount curve to use.
+**What this chapter does not cover:** The construction of cross-currency curves from market instruments belongs to Chapter 21. Full XVA treatment (CVA, FVA) and CSA mechanics are outside scope—we note only that collateralization affects which discount curve to use (see Chapter 33).
 
 ---
 
@@ -103,7 +104,7 @@ The bank has effectively borrowed dollars (received now, repaid later) and lent 
 > An FX Swap is essentially a **Collateralized Loan**.
 >
 > 1.  **You want to borrow Dollars**: But you don't have a U.S. credit history. You *do* have Euros.
-> 2.  **The Deal**: You give me €100m Euros as "colateral". I give you \$110m Dollars.
+> 2.  **The Deal**: You give me €100m Euros as "collateral". I give you \$110m Dollars.
 > 3.  **The Return**: At the end of the year, we swap back.
 > 4.  **The Interest**: Because I let you use my Dollars, and you let me use your Euros, the "interest" is handled by the **Forward Points** (the difference between the exchange rate today vs. next year).
 >
@@ -122,9 +123,43 @@ The directional funding interpretation depends on which way the flows go:
 
 Andersen & Piterbarg note that "the interbank FX forward market is rarely liquid beyond maturities of one year," which is why longer-dated cross-currency needs are typically met with cross-currency swaps rather than FX forwards or swaps.
 
-### 30.2.3 FX Swap vs. FX Forward
+### 30.2.3 FX Swap vs. Cross-Currency Swap: A Detailed Comparison
 
-A single-period FX swap where the near leg settles immediately is economically identical to an FX forward. Andersen & Piterbarg explicitly state that "a one-period CRX basis swap is identical to an FX forward contract." The difference is mainly in documentation and settlement mechanics—an FX swap typically involves actual exchange of notionals at inception, while a forward may be documented as a single future exchange.
+A single-period FX swap where the near leg settles immediately is economically identical to an FX forward. Andersen & Piterbarg explicitly state that "a one-period CRX basis swap is identical to an FX forward contract." However, the similarities end at one period. The table below summarizes the key distinctions:
+
+| Feature | FX Swap | Cross-Currency Swap (XCCY) |
+|---------|---------|---------------------------|
+| **Typical Tenor** | 1 day to 1 year | 1 year to 30 years |
+| **Liquidity** | Very high (spot + forward markets) | Good, but less liquid than short FX |
+| **Structure** | Spot + single forward | Periodic floating payments + notional exchanges |
+| **Interest Rate Exposure** | None (implicit in forward points) | Explicit floating rate exposure on both legs |
+| **Primary Use** | Short-term funding, hedging | Long-term liability transformation, hedging |
+| **Documentation** | Simple FX confirmation | Full ISDA swap documentation |
+| **Counterparty Credit Exposure** | Low (short duration, collateralized) | Higher (longer tenor, may require CSA) |
+| **MTM Resets** | Not applicable | Often included for multi-year tenors |
+
+> **Desk Reality: Which Product for Which Need**
+>
+> - **Overnight to 1 week:** Tom/Next or Spot/Next FX swaps for daily funding needs
+> - **1 month to 1 year:** Standard FX swaps for working capital management, trade finance hedging
+> - **1 to 5 years:** Cross-currency basis swaps for liability hedging, asset conversion
+> - **5 to 30 years:** Long-dated XCCY with MTM resets for pension fund hedging, sovereign debt management
+>
+> The key distinction: FX swaps transfer *funding* without explicit interest rate exposure. XCCY swaps explicitly exchange *floating rate cashflows* and create interest rate exposure on both legs.
+
+### 30.2.4 Single-Period vs Multi-Period Economics
+
+For a single period, FX swap and XCCY swap economics are identical. Consider:
+
+- **FX Swap:** Pay \$100m at T=0, receive $100 \times (1 + r_{USD} \times T)$ at T=1 (implicitly through forward rate)
+- **XCCY Swap (1 period):** Pay \$100m at T=0, receive USD floating at T=1, exchange principals at maturity
+
+Both achieve the same economic transfer. However, for multi-period swaps:
+
+- **FX Swap rolled:** Each rollover creates new FX exposure; forward points fluctuate
+- **XCCY Swap:** All periods locked at inception; no rollover risk
+
+This roll risk explains why long-dated hedgers prefer XCCY swaps despite slightly lower liquidity.
 
 ---
 
@@ -141,18 +176,52 @@ The canonical structure for a cross-currency basis swap:
 
 Hull notes that for floating-for-floating currency swaps: "A floating-for-floating swap can be valued by assuming that forward interest rates in each currency will be realized and discounting the cash flows at risk-free rates. The value of the swap is the difference between the values of the two sets of payments using current exchange rates."
 
+**Cashflow Structure Visualization:**
+
+```
+Time 0     │  Period 1   │  Period 2   │  Period 3   │  Maturity
+───────────┼─────────────┼─────────────┼─────────────┼────────────
+USD Leg:   │             │             │             │
+  ←$100m   │  →SOFR×τ×N  │  →SOFR×τ×N  │  →SOFR×τ×N  │  →$100m
+           │             │             │             │
+EUR Leg:   │             │             │             │
+  →€90.9m  │ ←(EUR+b)τ×N │ ←(EUR+b)τ×N │ ←(EUR+b)τ×N │  ←€90.9m
+```
+
+The arrows indicate direction of payment (→ = receive, ← = pay) from the perspective of the USD-receiving party.
+
 ### 30.3.2 The Cross-Currency Basis Spread
 
 The basis spread $b$ is the key market observable that distinguishes cross-currency swaps from a simple combination of single-currency swaps. Andersen & Piterbarg measure the difference between projection and discount curves through what they call the "cross-currency (CRX) yield spread" $s(t)$, writing $P^{(L)}(t) = P(t) e^{-s(t)t}$.
 
-**Sign conventions vary by market and desk.** The convention might be:
-- "EUR leg pays EURIBOR + $b$" (basis quoted on non-USD leg)
-- "USD leg pays SOFR + $b$" (less common)
-- Positive $b$ meaning the non-USD borrower pays extra, or the reverse
+#### Sign Conventions by Currency Pair
 
-I'm not sure a universal sign convention is specified in the sources. In practice, always confirm which leg carries the basis and the sign convention for your specific currency pair.
+> **Practitioner Note (market convention, not from books/):**
+>
+> The basis is conventionally quoted on the **non-USD leg** for most pairs, with USD as the reference. The table below shows common conventions post-LIBOR transition:
+>
+> | Currency Pair | Basis Quote Convention | Example Interpretation |
+> |--------------|------------------------|------------------------|
+> | **EUR/USD** | EUR leg pays €STR (or EURIBOR) + basis | Basis = -30bp means EUR payer pays €STR - 30bp vs SOFR flat |
+> | **USD/JPY** | JPY leg pays TONA (or TIBOR) + basis | Basis = -50bp means JPY payer pays TONA - 50bp vs SOFR flat |
+> | **GBP/USD** | GBP leg pays SONIA + basis | Basis = -20bp means GBP payer pays SONIA - 20bp vs SOFR flat |
+> | **AUD/USD** | AUD leg pays AONIA + basis | Similar convention |
+> | **USD/CHF** | CHF leg pays SARON + basis | Similar convention |
+>
+> **Negative basis** (the typical case) means the non-USD borrower pays *less* than the flat floating rate—they effectively receive a spread. This reflects the premium for USD funding: counterparties accept a lower return on their non-USD currency to obtain dollars.
+>
+> **Important:** Always verify conventions with your specific counterparty and confirmation. Some legacy systems or regional conventions may differ.
 
-### 30.3.3 Why the Basis Exists: Funding Costs and Credit
+**Why the sign matters for P&L:** If you are **paying** the non-USD leg with a negative basis:
+- You pay (Reference Rate + negative basis) = (Reference Rate - |basis|)
+- You are paying *less* than the reference rate
+- If basis becomes *more* negative (widens), your payment *decreases*—you benefit
+
+If you are **receiving** the non-USD leg with a negative basis:
+- You receive less than the reference rate
+- If basis becomes more negative, you receive less—you lose
+
+### 30.3.3 Why the Basis Exists: Funding Costs, Credit, and Crisis Dynamics
 
 Under textbook CIP, the basis should be zero—any non-zero basis would create arbitrage. Yet persistent non-zero bases are observed. Why?
 
@@ -183,6 +252,99 @@ The persistence of the basis is not a market inefficiency in the usual sense—i
 > *   **The Vacuum**: The demand sucks all the USD liquidity out of the system. The Basis widens (becomes more negative) as everyone tries to "Rent Dollars" at the same time.
 >
 > When the Basis blows out, Central Banks often step in with "Swap Lines" to flood the market with USD and normalize the spread.
+
+#### Central Bank Swap Lines: The Crisis Response Mechanism
+
+> **Practitioner Note (market history, not from books/):**
+>
+> **What are swap lines?** The U.S. Federal Reserve has standing arrangements with major central banks (ECB, BOJ, BOE, SNB, BOC, and others) allowing them to borrow U.S. dollars in exchange for their local currency. The foreign central bank then lends these dollars to local commercial banks experiencing dollar funding stress.
+>
+> **How they work:**
+> 1. ECB borrows USD from Fed at OIS + 25bp (historically; rate varies)
+> 2. ECB provides EUR as collateral
+> 3. ECB lends USD to European banks via weekly auctions
+> 4. At maturity, flows reverse
+>
+> **Impact on basis:** Swap line activation floods the market with dollar liquidity, compressing the basis. Key episodes:
+>
+> | Crisis | Peak Basis | After Swap Lines |
+> |--------|-----------|------------------|
+> | **2008 Financial Crisis** | EUR/USD hit -120bp | Normalized to -30bp within weeks |
+> | **2011 Euro Debt Crisis** | EUR/USD hit -100bp | Reduced after coordinated CB action |
+> | **March 2020 COVID** | EUR/USD hit -80bp intraday | Compressed to -20bp after Fed enhanced swap lines |
+>
+> **Trading implication:** Basis blowouts are often short-lived once central banks act. Traders monitor Fed swap line usage (published weekly) as a real-time stress indicator. When swap line usage spikes, it signals stress; when it declines, the crisis is easing.
+
+### 30.3.4 Mark-to-Market (MTM) Cross-Currency Swaps
+
+> **Practitioner Note (market convention, not from books/):**
+>
+> For multi-year cross-currency swaps, the **mark-to-market reset** structure has become the market standard. This addresses the credit exposure problem created by FX movements over the life of a long-dated swap.
+
+#### The Problem with Fixed Notional Swaps
+
+Consider a 5-year EUR/USD swap with fixed notionals of €100m / $110m (at inception spot of 1.10). If after 2 years EUR appreciates to 1.25:
+
+- The EUR notional is now worth $125m
+- The USD notional is still $110m
+- The party paying EUR has a $15m paper gain on the notional exchange
+- The party receiving EUR has $15m of counterparty credit exposure
+
+This asymmetric exposure grows with FX volatility and swap tenor, making long-dated swaps problematic for credit limits.
+
+#### The MTM Reset Mechanism
+
+In an **MTM cross-currency swap**, the notional is periodically reset to reflect current FX rates:
+
+1. At each reset date (typically quarterly or semi-annually), recalculate the notional using current spot
+2. Exchange a compensation payment equal to the notional adjustment
+3. Continue the swap with the new notionals
+
+**Reset Calculation:**
+
+$$\boxed{N_f^{\text{new}} = \frac{N_d}{X(t_{\text{reset}})}}$$
+
+where $N_d$ is the fixed domestic notional and $X(t_{\text{reset}})$ is the spot rate at reset.
+
+**Compensation Payment:**
+
+$$\text{Compensation} = (N_f^{\text{new}} - N_f^{\text{old}}) \times X(t_{\text{reset}})$$
+
+paid in domestic currency to the party whose notional decreased.
+
+#### Example: MTM Reset Mechanics
+
+**Setup:** 3-year EUR/USD swap, $100m USD notional, initial EUR notional €90.91m at $X(0) = 1.10$
+
+| Reset Date | Spot Rate | Old EUR Notional | New EUR Notional | Compensation |
+|------------|-----------|------------------|------------------|--------------|
+| Year 1 | 1.15 | €90.91m | €86.96m | €3.95m to EUR payer (in USD: $4.54m) |
+| Year 2 | 1.08 | €86.96m | €92.59m | €5.63m to EUR receiver (in USD: $6.08m) |
+| Maturity | 1.12 | €92.59m | (Final exchange) | €89.29m exchanged |
+
+**Effect on Credit Exposure:**
+
+| Structure | Peak PFE (95th percentile) |
+|-----------|---------------------------|
+| Fixed Notional 5Y | ~15-20% of notional |
+| MTM Reset Quarterly | ~3-5% of notional |
+
+The MTM structure dramatically reduces counterparty credit exposure, which is why it has become standard for multi-year XCCY swaps.
+
+> **Desk Reality: MTM Resets in Practice**
+>
+> **Operations workflow:**
+> 1. Calculation agent (usually the dealer) computes the reset amount
+> 2. Notice sent to counterparty with calculation details
+> 3. Settlement typically T+2 for the compensation payment
+> 4. Systems update notional for subsequent period calculations
+>
+> **Common issues:**
+> - Fixing source disputes (which rate, which time?)
+> - Calendar mismatches affecting reset timing
+> - Legacy systems that don't handle changing notionals
+>
+> **Middle-office tip:** MTM swaps require careful tracking of notional history for accurate P&L attribution. The compensation payments are not "P&L"—they offset the mark-to-market movement on the principal exchange.
 
 ---
 
@@ -250,6 +412,44 @@ These are identical when $F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)}$:
 $$P_d(0,T) \cdot F(0,T) = P_d(0,T) \cdot X(0) \frac{P_f(0,T)}{P_d(0,T)} = X(0) \cdot P_f(0,T)$$
 
 **Why this matters:** If your curve construction is consistent (FX forwards implied from discount factor ratios), both approaches give the same answer. If not, you have an arbitrage inconsistency. Andersen & Piterbarg demonstrate this with a "zero-cost scheme" showing how to transform USD fixed cash flows into JPY fixed cash flows through a chain of swaps. They note: "If the JPY discount curve is inconsistent with the basis-swap market, the value computed this way may not equal the value computed by discounting the original USD cash flows at the USD discount curve. Since the swap transactions 1-3 above are costless, this discrepancy will indicate an arbitrage."
+
+### 30.4.5 Collateral Currency and Discount Curve Selection
+
+> **Practitioner Note (extending Andersen & Piterbarg Ch 6.5.3):**
+>
+> Modern derivative pricing requires matching the discount curve to the collateral currency specified in the Credit Support Annex (CSA). This is because the collateral earns interest at the overnight rate in the collateral currency, which becomes the effective funding cost for the position.
+
+**The Principle:** Discount with the OIS curve of the **collateral currency**, regardless of the swap's currencies.
+
+| CSA Collateral | Discount Curve | Example Application |
+|---------------|----------------|---------------------|
+| USD cash | USD SOFR curve | EUR/USD swap, USD collateralized |
+| EUR cash | EUR €STR curve | EUR/USD swap, EUR collateralized |
+| USD or EUR (optionality) | Cheapest-to-deliver analysis | Adds complexity; often use USD |
+| No collateral | Bank's funding curve + CVA/DVA | Uncollateralized = more expensive |
+
+**Why this matters for XCCY:**
+
+Consider a EUR/USD cross-currency swap. The "correct" valuation depends on the collateral:
+
+1. **USD-collateralized:** Discount both legs at USD OIS. The EUR leg's foreign-currency PV is converted at spot.
+
+2. **EUR-collateralized:** Discount both legs at EUR OIS. The USD leg appears as a "quanto" from EUR perspective.
+
+3. **Uncollateralized:** No clean discount rate. Must add CVA for counterparty credit risk.
+
+The difference can be significant—5-15bp of notional for long-dated swaps—and explains why CSA negotiation is critical.
+
+> **Desk Reality: CSA Impact on P&L**
+>
+> A trader executing a 10-year EUR/USD XCCY has three potential discount treatments depending on CSA:
+> - USD collateral: Use SOFR curve
+> - EUR collateral: Use €STR curve
+> - Mixed/optional: Requires cheapest-to-deliver analysis
+>
+> Systems must track CSA terms per counterparty. Mis-discounting a large portfolio can create substantial P&L breaks.
+>
+> **Middle-office tip:** Reconciliation breaks between front-office and risk systems often stem from different discount curve assumptions. Always verify CSA terms when investigating valuation differences.
 
 ---
 
@@ -484,6 +684,83 @@ Hull then values each annual exchange as a forward contract by "assuming that fo
 
 This approach—valuing each exchange of payments as a forward contract—works for all currency swap types, including floating-for-floating when combined with forward rate projection.
 
+### 30.5.7 Example G: MTM Cross-Currency Swap with Quarterly Resets
+
+> **Practitioner Note (illustrative example, not from books/):**
+
+**Setup:** 2-year EUR/USD swap with quarterly MTM resets
+
+| Parameter | Value |
+|-----------|-------|
+| Initial spot | $X(0) = 1.10$ USD/EUR |
+| USD notional | \$100m (fixed) |
+| Initial EUR notional | €90.91m |
+| Reset frequency | Quarterly |
+
+**Spot rate path (hypothetical):**
+
+| Quarter | Spot Rate | EUR Notional | Notional Change | Compensation |
+|---------|-----------|--------------|-----------------|--------------|
+| 0 | 1.10 | €90.91m | — | — |
+| 1 | 1.12 | €89.29m | -€1.62m | €1.62m × 1.12 = \$1.81m to EUR payer |
+| 2 | 1.08 | €92.59m | +€3.30m | €3.30m × 1.08 = \$3.56m to EUR receiver |
+| 3 | 1.15 | €86.96m | -€5.63m | €5.63m × 1.15 = \$6.47m to EUR payer |
+| 4 | 1.10 | €90.91m | +€3.95m | €3.95m × 1.10 = \$4.35m to EUR receiver |
+
+**Key observation:** The compensation payments sum to approximately zero over time (they net against principal exchange movements). They are not additional P&L—they keep the notional exposures aligned.
+
+**Valuation:** At any point, the swap is valued as a standard XCCY using the **current** EUR notional, not the original. This is why MTM swaps have lower mark-to-market volatility.
+
+### 30.5.8 Example H: The Box Trade
+
+> **Practitioner Note (trading strategy, not from books/):**
+
+The "box" trade isolates cross-currency basis exposure by combining an XCCY swap with offsetting single-currency swaps.
+
+**Setup:** A trader wants pure basis exposure without interest rate risk.
+
+**Step 1: Enter XCCY basis swap**
+- Pay EUR floating + basis on €100m
+- Receive USD floating on \$110m (at spot 1.10)
+- 5-year tenor
+
+**Step 2: Hedge EUR interest rate risk**
+- Enter EUR IRS: Receive EUR floating, pay EUR fixed on €100m
+- This cancels the EUR floating exposure
+
+**Step 3: Hedge USD interest rate risk**
+- Enter USD IRS: Pay USD floating, receive USD fixed on \$110m
+- This cancels the USD floating exposure
+
+**Net position:**
+
+| Component | EUR Leg | USD Leg |
+|-----------|---------|---------|
+| XCCY | Pay EUR float + basis | Receive USD float |
+| EUR IRS | Receive EUR float | — |
+| USD IRS | — | Pay USD float |
+| **Net** | Pay basis only | Fixed spread |
+
+The resulting position is:
+- **Long** the cross-currency basis (benefit when basis becomes more negative)
+- **Neutral** to EUR rates
+- **Neutral** to USD rates
+- Exposed to FX through notional exchange
+
+**P&L attribution:**
+
+If basis moves from -20bp to -30bp (more negative):
+- Box position gains: 10bp × annuity
+- The gain comes entirely from basis tightening, not from rate moves
+
+> **Desk Reality: When to Use the Box**
+>
+> - **Express pure basis views:** Trader believes dollar funding stress will ease → go short basis via box
+> - **Relative value:** Basis looks cheap vs historical range → position for mean reversion
+> - **Hedge extraction:** Start with XCCY position, extract rates risk, leave basis
+>
+> **Warning:** The box still has FX exposure through notional exchanges. True "pure basis" requires additional FX hedging.
+
 ---
 
 ## 30.6 Risk Decomposition
@@ -580,6 +857,27 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 - If JPY/USD basis is negative (Japanese institutions pay to get USD), the USD funding cost exceeds raw USD rates
 - This is precisely why the basis market exists—it prices the relative cost of currency-transformed funding
 
+### 30.7.4 The Box Trade: Isolating Basis Exposure
+
+As detailed in Example H, the "box" trade combines an XCCY swap with offsetting single-currency IRS to isolate the cross-currency basis:
+
+$$\text{XCCY Basis Swap} + \text{EUR IRS (receive float)} + \text{USD IRS (pay float)} = \text{Pure Basis Position}$$
+
+> **Desk Reality: Box Trade Applications**
+>
+> **When traders use the box:**
+> - **Relative value:** Basis at -50bp looks wide vs 3-year average of -25bp → short basis via box
+> - **Directional view:** Expect Fed to ease → dollar funding stress decreases → basis compresses → long basis
+> - **Hedge extraction:** Have existing XCCY position, want to isolate basis component for management
+>
+> **P&L attribution complexity:**
+> When the box is put on, daily P&L should be attributed to:
+> - Basis movement (the intended exposure)
+> - FX movement on notional (unintended, needs separate hedge if unwanted)
+> - Any curve rebuild effects from basis change
+>
+> **Risk management consideration:** The box still has FX exposure through the notional exchange. True isolation requires additional FX hedging or accepting the notional FX risk.
+
 ---
 
 ## 30.8 Practical Notes and Common Pitfalls
@@ -612,6 +910,48 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 
 3. **Bump-and-rebuild vs. bump-fixed:** When computing PV01, decide whether to hold other curves/FX fixed or re-bootstrap consistently. Document the choice. As Andersen & Piterbarg note, the parameterization should "naturally aggregate 'similar' risks such as overall rate level risks, discounting risks, basis risks, while keeping different kinds separate for efficient risk management."
 
+### 30.8.4 Settlement Mechanics and Operational Workflow
+
+> **Practitioner Note (operational details, not from books/):**
+
+#### Settlement Timing
+
+| Event | Standard Convention | Notes |
+|-------|---------------------|-------|
+| **Spot settlement** | T+2 for most pairs | USD/CAD is T+1; some EM pairs differ |
+| **Initial notional exchange** | Trade date + 2 (or as specified) | May differ from regular spot |
+| **Interest payments** | Per swap schedule | Often quarterly or semi-annually |
+| **Final notional exchange** | Maturity date | Same-day settlement both currencies |
+
+#### Payment Netting
+
+Most bilateral CSAs include payment netting provisions:
+- If USD and EUR payments fall on the same date, net to single payment
+- Reduces settlement risk and operational cost
+- Requires both parties to have netting agreement in place
+
+#### Fails and Fails Charges
+
+**I'm not sure** about the exact fails charge formula for XCCY swaps—this varies by currency, market, and bilateral agreement. In general:
+
+- A "fail" occurs when one party does not deliver on settlement date
+- The failing party may owe compensation (overnight rate on the failed amount)
+- Persistent fails create counterparty credit concern
+
+> **Desk Reality: Common Settlement Issues**
+>
+> | Issue | P&L Impact | Resolution |
+> |-------|------------|------------|
+> | **Mismatched payment dates** | Timing P&L due to different discount | Align schedules at trade inception |
+> | **Holiday calendar error** | One leg pays T, other pays T+1 | Use joint business day convention |
+> | **Nostro account issues** | Failed delivery, funding cost | Pre-fund accounts, monitor balances |
+> | **Fixing source dispute** | Different rate, different cashflow | Agree fixing source in confirmation |
+>
+> **Middle-office tip:** Many "unexplained" P&L breaks trace to settlement timing differences. When investigating, check:
+> 1. Are both legs using the same value date?
+> 2. Were holidays handled consistently?
+> 3. Did any payment fail and get rolled?
+
 ---
 
 ## Summary
@@ -626,15 +966,21 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 
 5. **The basis spread compensates for funding/credit differentials** between currency money markets—not arbitrageable away due to capital constraints
 
-6. **Modern valuation separates projection and discounting:** Project floating rates from $P^{(L)}$, discount with $P$, convert at spot FX
+6. **MTM reset swaps** periodically adjust notional to current FX, dramatically reducing counterparty credit exposure
 
-7. **Hull's valuation principle:** "Assume forward rates are realized and discount cash flows at risk-free rates"
+7. **Modern valuation separates projection and discounting:** Project floating rates from $P^{(L)}$, discount with $P$, convert at spot FX
 
-8. **Andersen & Piterbarg's XCCY-PV formula** makes curve dependencies explicit: domestic discount, foreign discount, projection curves, spot FX, basis spread
+8. **Collateral currency determines discount curve:** USD-collateralized swaps use SOFR; EUR-collateralized use €STR
 
-9. **Key risks:** FX delta (short foreign PV), domestic PV01, foreign PV01, basis DV01—each requires specifying what's held fixed
+9. **Hull's valuation principle:** "Assume forward rates are realized and discount cash flows at risk-free rates"
 
-10. **Practical uses:** Funding foreign assets, hedging foreign liabilities, transforming funding currency
+10. **Andersen & Piterbarg's XCCY-PV formula** makes curve dependencies explicit: domestic discount, foreign discount, projection curves, spot FX, basis spread
+
+11. **Key risks:** FX delta (short foreign PV), domestic PV01, foreign PV01, basis DV01—each requires specifying what's held fixed
+
+12. **The "box" trade** combines XCCY with IRS to isolate pure basis exposure
+
+13. **Practical uses:** Funding foreign assets, hedging foreign liabilities, transforming funding currency, expressing basis views
 
 ---
 
@@ -647,8 +993,10 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 | FX Swap | Spot + opposite forward exchange | Largest derivatives market; primary tool for cross-currency funding |
 | Cross-Currency Swap | Exchange of floating payments in two currencies with notional exchange | Transforms currency and rate basis of assets/liabilities |
 | Cross-Currency Basis | Spread added to one floating leg to make swap par | Prices relative funding costs between currency markets |
+| MTM Reset | Periodic notional adjustment to current FX | Reduces counterparty credit exposure for long-dated swaps |
 | Projection Curve | Curve used to forecast floating rates | Distinct from discount curve in multi-curve framework |
 | Basis DV01 | PV change per 1bp basis move | Key risk for XCCY positions; often hardest to hedge |
+| Box Trade | XCCY + offsetting IRS | Isolates pure basis exposure for relative value trading |
 
 ---
 
@@ -674,14 +1022,19 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 | 16 | Alternative conversion using forwards | $\text{PV}^{(d)} = P_d(0,T) \cdot F(0,T) \cdot C_f(T)$ |
 | 17 | When are the two conversion methods equivalent? | When CIP holds: $P_d \cdot F = X \cdot P_f$ |
 | 18 | What happened to JPY basis in late 1990s per A&P? | Reached approximately -40bp |
-| 19 | What does negative basis mean for EUR leg payer? | EUR payer receives spread (EUR funding relatively cheaper) |
+| 19 | What does negative basis mean for EUR leg payer? | EUR payer pays less than flat rate (receives effective spread) |
 | 20 | What's "par basis"? | Spread that makes swap PV zero at inception |
+| 21 | What is an MTM cross-currency swap? | XCCY where notional is reset periodically to current spot FX |
+| 22 | How is notional reset in MTM swaps? | $N_f^{\text{new}} = N_d / X(t_{\text{reset}})$; compensation payment exchanged |
+| 23 | What is a "box" trade in XCCY context? | XCCY + offsetting IRS in both currencies to isolate basis exposure |
+| 24 | Which leg typically carries the basis in EUR/USD? | EUR leg (pays €STR/EURIBOR + basis vs SOFR flat) |
+| 25 | What did Fed swap lines do to EUR/USD basis in March 2020? | Compressed from -80bp peak to -20bp within days |
 
 ---
 
 ## Mini Problem Set
 
-### Questions with Solution Sketches (1-8)
+### Questions with Solution Sketches (1-10)
 
 **Q1:** Given $X(0) = 1.25$, $P_d(0,1) = 0.96$, $P_f(0,1) = 0.98$, compute the no-arbitrage forward.
 
@@ -731,23 +1084,39 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 
 ---
 
-### Questions without Solutions (9-16)
+**Q9:** An MTM swap has \$100m USD notional, initial EUR notional €91m at spot 1.10. After one quarter, spot is 1.15. What is the new EUR notional, and what is the compensation payment?
 
-**Q9:** Compute par basis for a 3-year semi-annual XCCY swap given specific curve inputs.
+*Sketch:* New notional = $100m / 1.15 = €86.96m$. Change = $91m - 86.96m = €4.04m$. Compensation = €4.04m × 1.15 = \$4.65m paid to EUR payer (since their EUR notional decreased).
 
-**Q10:** Show how basis DV01 sign flips when you switch from pay-basis to receive-basis.
+---
 
-**Q11:** Explain how XCCY basis swaps help build long-dated cross-currency curves when FX forwards are illiquid.
+**Q10:** A trader constructs a "box": 5Y EUR/USD XCCY (receive USD, pay EUR+basis), EUR IRS (receive EUR float, pay fixed), USD IRS (pay USD float, receive fixed). What is the net exposure?
 
-**Q12:** Design a hedge portfolio that neutralizes FX delta and USD PV01 while leaving basis exposure.
+*Sketch:* The EUR floating legs cancel (XCCY pay + IRS receive). The USD floating legs cancel (XCCY receive + IRS pay). Net = pay basis + fixed rate differential. The position is long basis (benefits from compression).
 
-**Q13:** How does collateral currency affect discount curve choice? What additional data is needed?
+---
 
-**Q14:** Design a "CIP-consistent" bump scheme where domestic curve bump automatically adjusts FX forwards.
+### Questions without Solutions (11-20)
 
-**Q15:** Compare valuing a foreign bond via (i) foreign discount + spot, (ii) domestic discount + forwards. Under what assumptions are they identical?
+**Q11:** Compute par basis for a 3-year semi-annual XCCY swap given specific curve inputs.
 
-**Q16:** Create a P&L attribution template separating FX, domestic curve, foreign curve, and basis. State limitations.
+**Q12:** Show how basis DV01 sign flips when you switch from pay-basis to receive-basis.
+
+**Q13:** Explain how XCCY basis swaps help build long-dated cross-currency curves when FX forwards are illiquid.
+
+**Q14:** Design a hedge portfolio that neutralizes FX delta and USD PV01 while leaving basis exposure.
+
+**Q15:** How does collateral currency affect discount curve choice? What additional data is needed?
+
+**Q16:** Design a "CIP-consistent" bump scheme where domestic curve bump automatically adjusts FX forwards.
+
+**Q17:** Compare valuing a foreign bond via (i) foreign discount + spot, (ii) domestic discount + forwards. Under what assumptions are they identical?
+
+**Q18:** Create a P&L attribution template separating FX, domestic curve, foreign curve, and basis. State limitations.
+
+**Q19:** An MTM swap has quarterly resets. The spot moved 5% since last reset. Estimate the compensation payment relative to notional.
+
+**Q20:** The EUR/USD basis is at -50bp, vs a 5-year average of -25bp. Describe a relative value trade and its risks.
 
 ---
 
@@ -775,7 +1144,20 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 | Zero-cost scheme demonstrating arbitrage from inconsistent curves | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3 |
 | Hull Example 7.2: currency swap valuation with forward rates | Hull, Ch 7.9 |
 
-### (B) Reasoned Inference — Derived
+### (B) Claude-Extended Content
+
+| Content | Basis |
+|---------|-------|
+| FX Swap vs XCCY Swap comparison table | Extends A&P liquidity comment with practical product differentiation |
+| Basis sign convention table by currency pair | Market convention; extends A&P's general basis definition |
+| MTM reset swap mechanics and formulas | Market standard not detailed in academic sources |
+| Central bank swap line mechanism and crisis response | Market history; extends A&P's crisis basis observations |
+| Collateral currency discount curve selection table | Extends A&P Ch 6.5.3 with practical CSA configurations |
+| Settlement mechanics and fails | Operational practice not in academic sources |
+| Box trade structure and rationale | Trading strategy extending XCCY valuation framework |
+| Crisis basis data (2011, 2020) | Market history extending A&P historical examples |
+
+### (C) Reasoned Inference — Derived
 
 | Inference | Derivation |
 |-----------|------------|
@@ -785,13 +1167,15 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 | Basis DV01 linear structure | Differentiation of XCCY-PV by basis spread $b$ |
 | Par basis formula | Setting PV = 0 and solving for $b$ |
 | Equivalence of two FX conversion methods | Algebraic substitution of CIP formula |
+| MTM notional reset formula | From definition of keeping USD notional fixed and recalculating EUR |
+| Box trade net exposure | Algebraic cancellation of floating legs |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Uncertainty | What Would Be Needed |
 |-------------|----------------------|
-| Universal sign convention for basis | Market convention documentation for specific currency pair; ISDA definitions |
-| XCCY variants (resettable notionals, mark-to-market, etc.) | Product standard documentation for specific structures |
-| Multi-currency collateral discounting | CSA terms, collateral currency, remuneration rate for specific trade |
-| Calendar/rolling conventions for specific currency pairs | Product documentation, ISDA schedule |
-| Exact spot settlement conventions | Market practice varies (T+2 for most, T+1 for some); sources do not specify |
+| Universal sign convention for basis across all pairs | Counterparty-specific confirmation; ISDA definitions |
+| Exact fails charge formulas for XCCY | Market-specific bilateral agreements |
+| Spot settlement conventions by currency pair | Market practice varies; sources do not comprehensively specify |
+| Multi-currency collateral discount curve when optionality exists | Cheapest-to-deliver analysis; specific CSA terms |
+| Calendar/rolling conventions for specific pairs | Product documentation, ISDA schedule specifics |

@@ -18,6 +18,7 @@ This chapter develops the machinery for handling tenor basis within the multi-cu
 4. **The mathematics of multi-curve valuation** with tenor-specific projection curves (Section 20.4)
 5. **Bootstrapping secondary tenor curves** from basis swap quotes (Section 20.5)
 6. **Risk decomposition**: why DV01 hedging alone leaves residual basis exposure (Section 20.6)
+7. **Practical considerations**: turn-of-year effects, conventions, and implementation (Section 20.7)
 
 **Chapter boundaries:** Chapter 19 introduced the multi-curve framework and the conceptual distinction between discount and projection curves. This chapter goes deeper into the *tenor dimension*—how to handle the differences between 1M, 3M, and 6M projection curves within a single currency. Chapter 21 extends the framework to multiple currencies, where cross-currency basis introduces additional constraints.
 
@@ -62,6 +63,34 @@ In calm markets, these differences manifest as small but measurable spreads—a 
 > *   **6-Month Cash**: It's frozen in a block of ice. You can't use it for 180 days.
 > *   **The Premium**: If I ask you to freeze your water for 6 months, you demand a premium for the inconvenience (Liquidity Risk). You also worry I might steal the ice block while it's freezing (Credit Risk).
 > *   **The Result**: 6-month rates are *structurally higher* than rolling 1-month rates. You can't just melt the 6-month rate into 1-month chunks without losing value.
+
+### 20.1.3 The RFR Transition: Tenor Basis in a Post-LIBOR World
+
+The global transition away from LIBOR to risk-free rates (RFRs) has fundamentally reshaped how tenor basis manifests in modern markets. Hull's *Options, Futures, and Other Derivatives* notes that SOFR, unlike LIBOR, is "based on overnight repo rates that are considered almost risk-free" and is "backward-looking" rather than forward-looking.
+
+**The Structural Shift.** In the LIBOR era, tenor basis arose primarily from:
+- **Credit risk**: Interbank lending at different terms carried different default probabilities
+- **Liquidity premium**: Term funding commanded a premium over rolling short-term
+
+With RFRs, the credit component largely disappears—overnight secured rates contain essentially no bank credit risk. However, tenor basis persists for different reasons:
+
+**New Sources of Tenor Basis in RFR Markets:**
+
+1. **Compounding in Arrears vs. Term Rates.** SOFR swaps typically compound overnight rates in arrears, while Term SOFR (for loans) is set at the start of each period. The difference between these creates a basis that depends on rate volatility and the shape of expectations.
+
+2. **Liquidity Differentials.** Even within RFR markets, different tenors have different liquidity. 3-month SOFR swaps are typically more liquid than 1-month or 6-month swaps, creating supply/demand imbalances.
+
+3. **Convexity Effects.** Rolling overnight funding has different convexity characteristics than term funding. In a volatile rate environment, this creates measurable pricing differences.
+
+> **Desk Reality: RFR Basis in Practice**
+>
+> A rates trader at a major dealer explains: "SOFR basis is fundamentally different from LIBOR basis. In LIBOR days, 3s6s was about bank credit—we watched it as a stress indicator. Now it's more mechanical: Fed meeting dates, quarter-ends, and the shape of Fed expectations matter more than credit fears."
+>
+> The practical implication: when building SOFR curves, you still need separate projections for 1M, 3M, and 6M payment frequencies, but the spreads tend to be smaller and more predictable. The 3s6s SOFR basis typically runs 1-3 bps in normal markets, compared to 5-15 bps for LIBOR historically.
+
+**Legacy Positions.** Many legacy LIBOR positions were converted to SOFR plus a fixed spread adjustment (the ISDA fallback spread). This embedded spread creates its own basis dynamics as it reflects the historical average LIBOR-OIS spread, not current market conditions.
+
+> **Practitioner Note:** While LIBOR-based tenor basis was primarily a credit/liquidity story, RFR-based tenor basis is primarily a supply/demand and technical story. The analytical framework is the same (separate projection curves), but the economic interpretation differs.
 
 ---
 
@@ -110,6 +139,26 @@ The crisis exposed this approach as fundamentally flawed. Andersen and Piterbarg
 > *   **2020**: Sharp spike (Covid). "Liquidity Crunch."
 >
 > This graph proves that Tenor Basis is a **fear gauge**. When banks are scared, they hoard short-term cash, and the basis explodes.
+
+### 20.2.4 Connection to Cross-Currency Basis
+
+The tenor basis within a single currency is closely related to the cross-currency basis discussed in Chapter 21. Both arise from supply/demand imbalances, credit concerns, and liquidity preferences—but across different dimensions.
+
+**The Linkage Mechanism:**
+
+Consider a European bank that needs USD funding for 6 months. It has several options:
+
+1. **Direct USD borrowing**: Borrow 6M USD at USD LIBOR (or SOFR + spread)
+2. **Cross-currency swap**: Borrow EUR, swap to USD via XCCY
+3. **Synthetic via tenor**: Borrow 3M USD and roll, hedging the roll risk with a 3s6s basis swap
+
+If the 6M USD market is stressed, all three approaches should become more expensive through arbitrage linkages. Specifically:
+
+$$\text{6M USD rate} \approx \text{3M USD rate} + \text{3s6s basis} \approx \text{EUR rate} + \text{XCCY basis}$$
+
+When one component dislocates (e.g., XCCY basis blows out), the others adjust through arbitrage activity—though imperfectly and with lags.
+
+> **Practitioner Note:** During the March 2020 COVID crisis, both tenor basis and XCCY basis widened simultaneously as global dollar funding stress affected all channels. The Fed's swap lines with foreign central banks helped normalize XCCY basis, which in turn reduced pressure on the USD tenor basis.
 
 ---
 
@@ -160,6 +209,61 @@ The convention for which leg receives the spread varies by market. Understanding
 >     3.  Roll the loan twice.
 >
 > If Approach A is expensive (Banks hate 3M lending), Approach B becomes cheaper. Traders rush to do B, pushing up the price of the Basis Swap until A and B are roughly equal. The Basis Swap is the price of *transforming* 1M risk into 3M risk.
+
+### 20.3.4 Who Trades Basis Swaps and Why
+
+Understanding the natural flow of basis swap trading helps explain the persistent supply/demand imbalances that drive basis levels.
+
+**Natural Payers of the Basis (Want Shorter Tenor):**
+
+| Participant | Motivation | Typical Trade |
+|-------------|------------|---------------|
+| **Asset Managers** | Hold floating-rate assets paying 6M; fund at 3M | Pay 3M, receive 6M (pay basis) |
+| **Insurance Companies** | Long-dated liabilities indexed to 6M; prefer to invest at 3M | Pay 3M, receive 6M |
+| **Pension Funds** | Similar to insurers; liability matching at 6M | Pay 3M, receive 6M |
+
+**Natural Receivers of the Basis (Want Longer Tenor):**
+
+| Participant | Motivation | Typical Trade |
+|-------------|------------|---------------|
+| **Banks (Treasury)** | Short-term deposits; want longer-term funding | Receive 3M, pay 6M (receive basis) |
+| **Corporates (Issuers)** | Issue CP (1M); have loan facilities at 6M | Receive 3M, pay 6M |
+| **Money Market Funds** | Invest at overnight/1M; clients want 3M+ exposure | Receive 1M, pay 3M |
+
+**Dealers as Intermediaries:**
+
+Dealers warehouse the residual imbalance between these natural flows. If more clients want to pay 3M than receive it, dealers accumulate a position paying 3M basis, which they hedge by:
+- Trading with other dealers
+- Managing the position dynamically as the basis moves
+- Warehousing the risk if they have a view
+
+> **Desk Reality: Flow Patterns**
+>
+> A senior basis trader describes the market: "Insurance companies are almost always on the same side—they pay 3s6s to convert their 6M liabilities into 3M assets. This creates a persistent supply of basis paying flow. Bank treasuries are natural receivers, but their demand is less consistent. Quarter-end and year-end create predictable imbalances that we can position for."
+
+### 20.3.5 Market Conventions by Currency
+
+Basis swap conventions vary significantly across currencies. This table summarizes the key conventions for major markets:
+
+| Currency | Primary Tenor Pair | Quote Convention | Day Count | Settlement |
+|----------|-------------------|------------------|-----------|------------|
+| **USD** | 3M vs 6M | Spread on 3M leg (3s6s) | ACT/360 both legs | T+2 |
+| **EUR** | 3M vs 6M | Spread on 3M leg (3s6s) | ACT/360 both legs | T+2 |
+| **GBP** | 3M vs 6M | Spread on 3M leg | ACT/365 both legs | T+0 |
+| **JPY** | 3M vs 6M | Spread on 3M leg | ACT/360 both legs | T+2 |
+| **CHF** | 3M vs 6M | Spread on 3M leg | ACT/360 both legs | T+2 |
+
+**Notes on Currency-Specific Quirks:**
+
+**USD:** The 1M vs 3M basis is also actively traded, particularly by money market participants. The Fed Funds vs LIBOR basis was the original stress indicator and remains relevant for legacy positions.
+
+**EUR:** EURIBOR-based basis swaps remain active despite the RFR transition. The 6M EURIBOR is the most liquid tenor in EUR, so the "3s6s" market references 3M EURIBOR vs 6M EURIBOR. Some markets also trade ESTR vs EURIBOR basis.
+
+**GBP:** The transition to SONIA was completed ahead of other currencies. SONIA-based swaps compound overnight rates, so the traditional tenor basis concept applies differently. The market primarily trades SONIA compounded against any residual legacy LIBOR positions.
+
+**JPY:** TONA (Tokyo Overnight Average) is the RFR, but TIBOR (both DTIBOR and ZTIBOR) remains in use for many contracts. This creates a TONA-TIBOR basis market in addition to the traditional 3s6s TIBOR basis.
+
+> **I'm not sure** about the precise conventions for emerging market basis swaps (CNY, INR, BRL, etc.) as these markets have less standardization and often trade OTC with bespoke terms. Always verify with the specific term sheet and local market practice.
 
 ---
 
@@ -364,17 +468,99 @@ A modern risk system should decompose interest rate risk into at least:
 
 For more granular analysis, key-rate exposures (see Chapter 14) should be computed for each curve separately.
 
+### 20.6.4 Computing Multi-Curve Sensitivities: The Jacobian Approach
+
+Andersen and Piterbarg (§6.4.1-6.4.3) develop a rigorous framework for computing sensitivities in a multi-curve environment using **Jacobian matrices**. This approach ensures that risk is reported in terms of tradeable hedge instruments rather than abstract curve points.
+
+**The Core Insight:**
+
+When we bump a curve, we get sensitivities to curve nodes (e.g., zero rates at 1Y, 2Y, 5Y). But traders hedge with market instruments (swaps, FRAs, basis swaps). The Jacobian maps between these two representations.
+
+**Mathematical Framework:**
+
+Let $\mathbf{z}$ be a vector of curve nodes (zero rates or discount factors) and $\mathbf{r}$ be a vector of market instrument rates (par swap rates, FRA rates, basis spreads). The Jacobian matrix $\mathbf{J}$ relates them:
+
+$$\mathbf{J} = \frac{\partial \mathbf{r}}{\partial \mathbf{z}}$$
+
+For a portfolio with value $V$, the sensitivity to curve nodes is:
+
+$$\frac{\partial V}{\partial \mathbf{z}} = \text{(curve DV01 vector)}$$
+
+But we want sensitivity to market instruments:
+
+$$\frac{\partial V}{\partial \mathbf{r}} = \frac{\partial V}{\partial \mathbf{z}} \cdot \mathbf{J}^{-1} = \text{(par-point DV01 vector)}$$
+
+**Practical Implementation:**
+
+Andersen and Piterbarg describe this as computing "par-point delta sensitivities" where each sensitivity corresponds to the DV01 of a hedging instrument. For a multi-curve setup:
+
+$$\begin{pmatrix} \partial V / \partial r_{\text{OIS}} \\ \partial V / \partial r_{\text{3M Swap}} \\ \partial V / \partial r_{\text{Basis}} \end{pmatrix} = \mathbf{J}^{-1} \begin{pmatrix} \partial V / \partial z_{\text{discount}} \\ \partial V / \partial z_{\text{3M proj}} \\ \partial V / \partial z_{\text{6M proj}} \end{pmatrix}$$
+
+> **Desk Reality: Why Jacobians Matter**
+>
+> A rates quant explains: "Without the Jacobian transformation, your risk report shows sensitivities to abstract curve points that don't trade. When I tell a trader 'you have $50k DV01 to the 3.5-year interpolated zero rate,' that's useless. With Jacobians, I can say 'you need to sell $50k DV01 of the 3Y swap and buy $30k of the 5Y swap to be flat.' That's actionable."
+>
+> The Jacobian also reveals hedging gaps. If your curve construction uses instruments you can't trade (e.g., illiquid FRAs), the Jacobian may be ill-conditioned, warning you that the hedge won't work as expected.
+
+> **Worked Example 20.6: Jacobian-Based Risk Attribution**
+>
+> Consider a portfolio with the following raw curve sensitivities:
+>
+> | Curve Point | Sensitivity ($) |
+> |-------------|-----------------|
+> | 2Y OIS zero | +15,000 |
+> | 2Y 3M proj zero | -8,000 |
+> | 2Y 6M proj zero | -12,000 |
+>
+> After Jacobian transformation to par-point deltas:
+>
+> | Hedge Instrument | Par-Point DV01 ($) |
+> |------------------|-------------------|
+> | 2Y OIS swap | +14,200 |
+> | 2Y 3M vanilla swap | -7,500 |
+> | 2Y 3s6s basis swap | -4,700 |
+>
+> **Interpretation:** The hedge is approximately +14k OIS swaps, -7.5k 3M swaps, and -4.7k basis swaps at the 2Y point. The negative basis DV01 means the portfolio loses money when the 3s6s basis tightens.
+
 ---
 
 ## 20.7 Practical Notes
 
-### 20.7.1 Implementation Pitfalls
+### 20.7.1 Turn-of-Year and Seasonal Effects
 
-**Circular Dependencies.** Ensure your curve construction code respects the hierarchy: OIS → Base Projection → Spread curves. Do not let the 6M curve feed back into the 3M curve construction. If using a global optimizer, this can introduce subtle cross-dependencies that are hard to debug.
+Andersen and Piterbarg (§6.5.1) note that "turn-of-year effects" create predictable seasonal patterns in basis spreads. These arise from regulatory and accounting pressures that affect bank funding behavior at calendar boundaries.
 
-**Interpolation Choices.** When interpolating tenor curves, remember that $P^{(k)}$ is not a real discount factor—it is a mathematical construct. Interpolating directly on the "basis spread" $\eta(t)$ often yields smoother results than interpolating the raw pseudo-discount factors. This avoids artifacts where the basis curve develops unexpected wiggles.
+**Sources of Seasonal Basis:**
 
-**Turn-of-Year Effects.** Some systems maintain "clean" curves (pure interest rate expectations) and "dirty" curves (including turn-of-year premiums). Basis swaps often pick up these seasonal liquidity crunches, so the December basis spread may differ materially from nearby months.
+1. **Year-End Balance Sheet Constraints:** Banks face capital and liquidity requirements measured at year-end. They reduce balance sheet usage in December, particularly for term funding, causing year-end rates to spike.
+
+2. **Quarter-End Reporting:** Similar but smaller effects occur at quarter-ends as banks manage leverage ratios and liquidity coverage.
+
+3. **Fed Meeting Dates:** In USD markets, FOMC meetings create step-changes in forward expectations that affect different tenors differently.
+
+4. **Tax Payment Dates:** Corporate tax deadlines (e.g., March 15, June 15 in the US) can create short-term funding pressures.
+
+**Impact on Basis Curves:**
+
+The basis spread for periods crossing year-end is typically elevated. Practitioners handle this by:
+
+- **Maintaining "turn" adjustments:** Explicit bumps to forwards for periods spanning year-end
+- **Seasonal basis curves:** Separate curves for "clean" (excluding turns) and "dirty" (including turns) analysis
+- **Stub period handling:** Special treatment for the first period if it spans a turn date
+
+> **Worked Example 20.7: Turn-of-Year Effect**
+>
+> In November, you're pricing a basis swap maturing in March. The 3-month periods are:
+> - Nov-Feb: Includes December year-end
+> - Feb-May: No turn effect
+>
+> Historical data shows year-end turn adds approximately 5-10 bps to the Dec-Jan period. Your curve should show an elevated forward for the Nov-Feb period, then a drop for Feb-May.
+>
+> **Practical impact:** If you ignore the turn, you'll misprice the Nov-Feb period by 5-10 bps, potentially creating an arbitrage against dealers who properly account for seasonality.
+
+> **Desk Reality: Trading the Turn**
+>
+> An experienced basis trader notes: "Year-end turn is one of the most predictable trades in rates. Starting in October, I'll pay the Dec/Jan IMM basis spread when it's still cheap, knowing it will widen as we approach year-end. The only question is timing and size—the direction is almost certain."
 
 ### 20.7.2 Convention Ambiguities
 
@@ -387,6 +573,12 @@ For more granular analysis, key-rate exposures (see Chapter 14) should be comput
 
 > **I'm not sure** about the exact conventions for newer RFR-based tenor basis markets (e.g., SOFR 1M vs SOFR 3M) as these markets are still developing. Liquidity varies by currency and maturity. Always verify with the specific term sheet or electronic trading platform.
 
+### 20.7.3 Implementation Pitfalls
+
+**Circular Dependencies.** Ensure your curve construction code respects the hierarchy: OIS → Base Projection → Spread curves. Do not let the 6M curve feed back into the 3M curve construction. If using a global optimizer, this can introduce subtle cross-dependencies that are hard to debug.
+
+**Interpolation Choices.** When interpolating tenor curves, remember that $P^{(k)}$ is not a real discount factor—it is a mathematical construct. Interpolating directly on the "basis spread" $\eta(t)$ often yields smoother results than interpolating the raw pseudo-discount factors. This avoids artifacts where the basis curve develops unexpected wiggles.
+
 ---
 
 ## Summary
@@ -397,11 +589,15 @@ For more granular analysis, key-rate exposures (see Chapter 14) should be comput
 
 3. **Tenor Basis Economics.** The basis reflects credit risk differences (longer tenor = more default risk) and liquidity preferences (banks prefer shorter liabilities). These premiums are small in normal times but flare dramatically during crises.
 
-4. **Basis Swap Pricing.** The par basis spread is the amount added to one leg (typically the shorter tenor) to equate the PVs of the two floating streams. The spread encodes the market's view of the relative value of different funding tenors.
+4. **RFR Transition.** In post-LIBOR markets, tenor basis persists but for different reasons: compounding conventions, liquidity differentials, and technical factors rather than interbank credit risk.
 
-5. **Sequential Construction.** Curves are built in order of liquidity: OIS → 3M → Basis curves. This ensures stable, local sensitivities and orthogonal risk dimensions.
+5. **Basis Swap Pricing.** The par basis spread is the amount added to one leg (typically the shorter tenor) to equate the PVs of the two floating streams. The spread encodes the market's view of the relative value of different funding tenors.
 
-6. **Risk Management.** Standard DV01 hedging leaves residual basis risk. A portfolio is only fully hedged if it is neutral to discount curve moves, projection curve moves, *and* basis spread changes.
+6. **Sequential Construction.** Curves are built in order of liquidity: OIS → 3M → Basis curves. This ensures stable, local sensitivities and orthogonal risk dimensions.
+
+7. **Risk Management.** Standard DV01 hedging leaves residual basis risk. A portfolio is only fully hedged if it is neutral to discount curve moves, projection curve moves, *and* basis spread changes. The Jacobian approach translates curve sensitivities into hedge instrument quantities.
+
+8. **Seasonal Effects.** Turn-of-year and quarter-end effects create predictable patterns in basis spreads that must be accounted for in curve construction and trading.
 
 ---
 
@@ -416,6 +612,8 @@ For more granular analysis, key-rate exposures (see Chapter 14) should be comput
 | **Projection Curve** | A pseudo-discount curve used to calculate forwards for a specific tenor | Ensures forwards match market FRA/basis quotes exactly |
 | **Sequential Bootstrapping** | Building curves in hierarchy: OIS → base tenor → spread curves | Ensures locality and orthogonality of sensitivities |
 | **Basis Risk** | The risk that the spread between tenors changes | Not eliminated by DV01 hedging; requires basis swaps |
+| **Jacobian Matrix** | Maps curve sensitivities to hedge instrument sensitivities | Enables actionable risk reporting and efficient hedging |
+| **Turn-of-Year Effect** | Seasonal elevation of basis spreads at year-end | Must be captured in curves for accurate pricing |
 
 ---
 
@@ -429,6 +627,7 @@ For more granular analysis, key-rate exposures (see Chapter 14) should be comput
 | $e^{1,2}(T)$ or $e_{1,2}(T)$ | Par basis spread at maturity $T$ (Tenor 1 vs Tenor 2) |
 | $\tau_i^{(k)}$ | Year fraction for period $i$ in tenor structure $k$ |
 | $\eta^{1,2}(t)$ | Continuous spread function between curves 1 and 2 |
+| $\mathbf{J}$ | Jacobian matrix mapping curve nodes to instrument rates |
 
 ---
 
@@ -454,6 +653,8 @@ For more granular analysis, key-rate exposures (see Chapter 14) should be comput
 | 16 | If you receive 6M LIBOR and hedge by paying 3M LIBOR, what residual risk do you have? | Basis risk—if 6M-3M spread widens, you gain; if it tightens, you lose. |
 | 17 | What is a "pseudo-discount factor"? | A mathematical construct ($P^{(k)}$) that reproduces tenor-specific forwards via the standard formula, but is not used for discounting cash flows. |
 | 18 | Why might interpolating on basis spreads be preferable to interpolating pseudo-discount factors? | It often produces smoother curves and avoids interpolation artifacts. |
+| 19 | What is the Jacobian matrix used for in multi-curve risk? | It transforms curve node sensitivities into hedge instrument sensitivities (par-point deltas). |
+| 20 | What causes turn-of-year effects in basis spreads? | Year-end balance sheet constraints force banks to reduce term funding, elevating rates for periods crossing December. |
 
 ---
 
@@ -536,11 +737,46 @@ If rates move as follows: OIS +5bp, 3M projection +5bp, 3s6s basis +3bp, what is
 $$\text{P\&L} = (100,000 \times 5) + (-80,000 \times 5) + (20,000 \times 3)$$
 $$= 500,000 - 400,000 + 60,000 = +\$160,000$$
 
+### Problem 9 (Advanced: RFR Basis)
+
+In a SOFR-based market, a 1-year swap paying compounded SOFR has a par rate of 4.50%. A 1-year swap paying Term SOFR (3M) has a par rate of 4.55%. What does this 5bp difference represent, and who might trade it?
+
+**Solution Sketch:**
+The 5bp difference represents the "term premium" for locking in a rate at the start of each period (Term SOFR) versus accepting the compounded outcome of overnight rates (SOFR in arrears).
+
+**Who trades it:**
+- **Borrowers with fixed budgets** prefer Term SOFR (known payment) and pay the premium
+- **Lenders/investors** may prefer compounded SOFR if they expect overnight rates to average lower
+- **Basis traders** position for changes in this spread based on Fed expectations
+
+### Problem 10 (Advanced: Turn-of-Year Pricing)
+
+It's October 15. You're pricing a 3s6s basis swap with the following structure:
+- Start: November 1
+- Maturity: May 1 (6 months)
+- 3M leg resets Nov 1, Feb 1
+- 6M leg resets Nov 1
+
+The "clean" 3s6s basis (excluding turn effects) is 8 bps. Historical turn-of-year effect adds 6 bps to the Dec-Jan period. Estimate the fair par basis spread for this swap.
+
+**Solution Sketch:**
+The 3M leg has two periods:
+- Nov-Feb: Includes turn effect, spans 3M (weighted ~50%)
+- Feb-May: Clean, spans 3M (weighted ~50%)
+
+The 6M leg spans Nov-May entirely, so it captures the turn effect fully.
+
+Approximate adjustment: The 3M leg's first period needs the turn adjustment. Since 50% of the 3M leg is affected by the 6bp turn, the average turn effect on the 3M leg is approximately 3bp.
+
+The 6M leg fully spans the turn. If we assume the turn affects roughly 2 months out of 6, the proportional effect is ~2bp.
+
+Net adjustment: The basis should be slightly higher than 8bp because the 6M leg's turn exposure differs from the 3M leg's exposure. A precise calculation requires the exact timing and forward rates, but expect approximately 8-9 bps.
+
 ---
 
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
@@ -556,8 +792,22 @@ $$= 500,000 - 400,000 + 60,000 = +\$160,000$$
 | Fixed-float swap valuation with separate discount/projection (6.47) | Andersen & Piterbarg Vol 1, §6.5.3 |
 | Orthogonal risk sensitivities from spread-based construction | Andersen & Piterbarg Vol 1, §6.5.3 |
 | Basis swap spread can be "positive or negative, depending on perceived desirability" | Andersen & Piterbarg Vol 1, §6.5.3 |
+| Par-point delta methodology via Jacobian transformation | Andersen & Piterbarg Vol 1, §6.4.1-6.4.3 |
+| Turn-of-year effects on rate curves | Andersen & Piterbarg Vol 1, §6.5.1 |
+| SOFR is "based on overnight repo rates that are considered almost risk-free" | Hull, Options, Futures, and Other Derivatives, Preface/Ch 4 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content
+
+| Content | Context |
+|---------|---------|
+| RFR transition section (20.1.3) | Extended from Hull's brief discussion of SOFR; adds practical implications for basis |
+| Market participant motivations table (20.3.4) | Extended from general fixed income knowledge; explains natural flow patterns |
+| Currency-specific convention table (20.3.5) | Extended from general market practice; day counts and settlement vary by currency |
+| Desk Reality boxes throughout | Practitioner perspective on trading and risk management |
+| Cross-currency basis connection (20.2.4) | Extended from understanding of arbitrage linkages across markets |
+| March 2020 COVID crisis references | Extended from general market knowledge; example of stress episodes |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 | Inference | Derivation |
 |-----------|------------|
@@ -565,11 +815,15 @@ $$= 500,000 - 400,000 + 60,000 = +\$160,000$$
 | Example Calculations | Constructed to demonstrate the arithmetic of the derived formulas using typical market values. |
 | Risk Scenarios (hedging examples) | Inferred from the definitions of curve sensitivities and the orthogonal decomposition. |
 | FRN above par in multi-curve | Derived from the fact that $F^{(3M)} > F^{OIS}$ breaks the telescoping sum identity. |
+| Jacobian transformation formula | Standard chain rule application to the par-point delta concept from A&P. |
+| Turn-of-year worked example | Constructed to demonstrate application of seasonal effects to pricing. |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Topic | Uncertainty |
 |-------|-------------|
 | Market Quoting Conventions | Specifics of which leg pays the spread (3s6s vs 6s3s) vary by dealer, currency, and electronic platform. Always verify. |
 | RFR Tenor Conventions | I'm not sure about the exact conventions for developing SOFR Term / RFR basis markets as liquidity is still emerging. |
-| Turn-of-year effects | Seasonal effects on basis spreads are market-dependent and evolve year to year. |
+| Turn-of-year effects | Seasonal effects on basis spreads are market-dependent and evolve year to year. Specific bp numbers are illustrative. |
+| Emerging Market Basis | I'm not sure about precise conventions for EM currency basis swaps (CNY, INR, BRL); these markets have less standardization. |
+| SOFR basis spread magnitudes | The typical 1-3 bp range for 3s6s SOFR basis is approximate and evolves as the market matures. |

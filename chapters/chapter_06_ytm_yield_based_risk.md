@@ -10,10 +10,11 @@ Has she made a good decision? Not necessarily. The yield-to-maturity is one numb
 
 Yield-to-maturity (YTM) is the fixed income market's most ubiquitous metric. It appears on every trading screen, in every research report, in every risk system. Bonds are quoted by yield as often as by price because the two are equivalent—given one, you can always compute the other. But this convenience creates a trap. Practitioners who treat YTM as "the return you'll earn" or who use yield-based risk measures without understanding their assumptions will eventually be surprised by P&L that doesn't match their expectations.
 
-This chapter has two aims:
+This chapter has three aims:
 
 1. **Define YTM precisely**—including the clean/dirty price relationship, compounding and day-count conventions, and what YTM actually measures (and what it hides)
-2. **Build yield-based risk measures**—DV01, modified duration, and convexity—and show why they can diverge from curve-based risk when the term structure moves in non-parallel ways
+2. **Expose the reinvestment fallacy**—the dangerous myth that YTM represents a "locked-in" return
+3. **Build yield-based risk measures**—DV01, modified duration, and convexity—and show why they can diverge from curve-based risk when the term structure moves in non-parallel ways
 
 The yield-based framework developed here serves as the foundation for understanding interest rate risk, even as we acknowledge its limitations. Chapter 11 will revisit DV01 in the context of full curve construction, and Chapter 14 will introduce key-rate exposures that address the multi-factor nature of yield curve movements.
 
@@ -42,6 +43,12 @@ Solving numerically yields $y \approx 4.8875\%$.
 Yield-to-maturity compresses the entire term structure of discount rates into one "average discount rate" that reproduces the observed price. This makes YTM extraordinarily useful as a **quoting convention**: traders can move between price and yield with a simple calculation, and yields are easier to compare across bonds of different maturities and coupons than raw prices.
 
 On the trading desk, "bond yields 5.7%" is shorthand for "the single rate $y$ that reprices this bond under our standard compounding convention." Everyone understands the convention, so the communication is efficient. Tuckman notes that "it is easy to move from price to yield and back" and that "yield-to-maturity is often used as an alternate way to quote price." The danger comes when participants forget that YTM is a summary statistic, not a measure of expected return.
+
+> **Desk Reality: YTM as Communication**
+>
+> When a trader says "I'm bid at 5.25," everyone on the desk immediately knows the price. The yield convention eliminates the need to quote awkward prices like 98-24+ (which would be "98 and 24.5 thirty-seconds"). For relative value discussions, yields provide a common language: "The 10-year is 15 bps cheap to the 7-year" is more informative than comparing prices directly.
+>
+> The trap: junior traders sometimes interpret "yield" as "return." When your PM asks "what's the yield on that position?" they want a quoting convention, not a return forecast.
 
 ### 6.1.3 The Compounding Convention
 
@@ -164,9 +171,120 @@ As Tuckman cautions, relative-value screens that rank bonds by yield "can be mis
 
 ---
 
-## 6.4 Yield-Based DV01 and Modified Duration
+## 6.4 The Reinvestment Fallacy: Why YTM Is Not a Locked-In Return
 
-### 6.4.1 DV01: Dollar Value of a Basis Point
+### 6.4.1 The Myth of "Locked-In" Returns
+
+One of the most persistent misconceptions in fixed income is that buying a bond and holding it to maturity "locks in" the yield-to-maturity as your return. This is false. Tuckman states explicitly: "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect." The YTM calculation assumes every coupon payment can be reinvested at exactly the same rate—an assumption that virtually never holds in practice.
+
+The mechanics are straightforward: when you receive a coupon payment, you must do something with that cash. If you reinvest it, the rate available at that future time will almost certainly differ from the original YTM. If rates have fallen, you'll reinvest at lower rates; if rates have risen, you'll reinvest at higher rates. Either way, your realized return will differ from the initial YTM.
+
+### 6.4.2 Decomposing Total Return
+
+To understand reinvestment risk, decompose total return into three components:
+
+$$\boxed{\text{Total Return} = \text{Coupon Income} + \text{Reinvestment Income} + \text{Price Change}}$$
+
+For a hold-to-maturity investor:
+- **Coupon Income**: The sum of all coupon payments—this is known at purchase
+- **Reinvestment Income**: Interest earned on reinvested coupons—this is unknown
+- **Price Change**: For hold-to-maturity, the bond matures at par—this is known
+
+The reinvestment component is the source of uncertainty. For high-coupon, long-maturity bonds, reinvestment income can represent a substantial fraction of total return.
+
+### 6.4.3 Worked Example: The 8% Bond Scenarios
+
+Consider an investor who purchases a 10-year, 8% annual coupon bond at par (price = 100, YTM = 8%). The investor plans to hold to maturity.
+
+**Base Case: Rates Stay at 8%**
+
+Each annual coupon of $8 is reinvested at 8%. At maturity:
+
+| Year | Coupon | Years to Compound | Future Value |
+|------|--------|-------------------|--------------|
+| 1 | 8 | 9 | $8 \times 1.08^9 = 15.99$ |
+| 2 | 8 | 8 | $8 \times 1.08^8 = 14.81$ |
+| 3 | 8 | 7 | $8 \times 1.08^7 = 13.71$ |
+| ... | ... | ... | ... |
+| 10 | 8 | 0 | $8.00$ |
+
+Total future value of coupons = $8 \times \frac{(1.08^{10} - 1)}{0.08} = 115.89$
+
+Add principal: $100 + 115.89 = 215.89$
+
+Realized return: $(215.89/100)^{1/10} - 1 = 8.00\%$ ✓
+
+**Scenario A: Rates Drop to 6% Immediately After Purchase**
+
+Now each coupon is reinvested at 6%:
+
+Total future value of coupons = $8 \times \frac{(1.06^{10} - 1)}{0.06} = 105.50$
+
+Add principal: $100 + 105.50 = 205.50$
+
+Realized return: $(205.50/100)^{1/10} - 1 = 7.48\%$
+
+**Scenario B: Rates Rise to 10% Immediately After Purchase**
+
+Total future value of coupons = $8 \times \frac{(1.10^{10} - 1)}{0.10} = 127.50$
+
+Add principal: $100 + 127.50 = 227.50$
+
+Realized return: $(227.50/100)^{1/10} - 1 = 8.57\%$
+
+**Summary:**
+
+| Scenario | Reinvestment Rate | Realized Return | vs. YTM |
+|----------|-------------------|-----------------|---------|
+| Base | 8% | 8.00% | — |
+| Rates Fall | 6% | 7.48% | -52 bps |
+| Rates Rise | 10% | 8.57% | +57 bps |
+
+The initial YTM of 8% was never "locked in." Reinvestment risk created a 109 bp range of outcomes.
+
+> **Desk Reality: Why This Matters for Liability Managers**
+>
+> Insurance companies and pension funds that purchase bonds to "match" long-dated liabilities face reinvestment risk on every coupon. An actuary who assumes the 8% yield will compound for 30 years is making an assumption that cannot be hedged. This is why liability-driven investors increasingly favor zero-coupon bonds or strips for precise liability matching—they eliminate reinvestment risk entirely.
+>
+> The trade-off: zeros typically yield less than coupon bonds (you pay for the certainty), and zeros have higher duration per dollar invested.
+
+### 6.4.4 The Reinvestment Risk Hierarchy
+
+Reinvestment risk varies systematically across bond types:
+
+| Bond Type | Reinvestment Risk | Why |
+|-----------|-------------------|-----|
+| Zero-coupon | None | No intermediate cash flows |
+| Low-coupon | Low | Fewer/smaller coupons to reinvest |
+| High-coupon | High | More cash flow arriving early |
+| Short maturity | Low | Less time for rate changes |
+| Long maturity | High | More coupons, longer horizon |
+| Annuity/amortizing | Very high | Principal returns throughout life |
+
+**Key insight:** Reinvestment risk and price risk move in opposite directions. If rates fall:
+- Price risk: Unrealized gain (bond appreciates)
+- Reinvestment risk: Future coupons reinvest at lower rates
+
+This is the foundation of immunization strategies covered in Chapter 15.
+
+### 6.4.5 Total Return Analysis
+
+Because YTM is unreliable as a return forecast, practitioners use **total return analysis** (also called horizon analysis). This involves:
+
+1. Specifying an investment horizon (e.g., 3 years)
+2. Assuming a reinvestment rate for coupons during the holding period
+3. Assuming an ending yield to compute the sale price
+4. Calculating the total return from all three components
+
+This approach makes assumptions explicit rather than hiding them inside the YTM calculation.
+
+> **Practitioner Note:** Total return analysis is standard for portfolio managers making allocation decisions. The question is not "what's the yield?" but "given my view on rates, what's the expected total return over my horizon?" Two bonds with identical YTM can have very different expected total returns depending on the rate scenario.
+
+---
+
+## 6.5 Yield-Based DV01 and Modified Duration
+
+### 6.5.1 DV01: Dollar Value of a Basis Point
 
 DV01 measures the change in bond price for a one-basis-point change in yield. Tuckman introduces DV01 as "an acronym for dollar value of an '01 (i.e., .01%) and gives the change in the value of a fixed income security for a one-basis point decline in rates." The general definition is:
 
@@ -180,7 +298,15 @@ $$\text{DV01} = \frac{1}{10{,}000} \times \frac{1}{1+y/2}\left[\sum_{t=1}^{2T} \
 
 In words: "DV01 is the sum of the time-weighted present values of a bond's cash flows divided by 10,000 multiplied by one plus half the yield."
 
-### 6.4.2 Computing DV01 Numerically
+> **Desk Reality: DV01 as the Lingua Franca of Rates**
+>
+> When a portfolio manager says "I'm long 50k DV01," they mean their position gains approximately $50,000 for every basis point rates fall. This is how risk is communicated on rates desks—not in terms of notional or duration, but in dollar sensitivity.
+>
+> Why DV01 dominates: A $100 million position in 2-year notes and a $50 million position in 10-year notes cannot be compared by notional. But if the 2-year has DV01 of $19k and the 10-year has DV01 of $42k, you immediately know the 10-year position has more than twice the rate risk.
+>
+> **Common gotcha:** Make sure everyone is using the same DV01 convention. "DV01 per million" vs "total DV01" vs "DV01 per bp per 100 face" can cause confusion.
+
+### 6.5.2 Computing DV01 Numerically
 
 For practical computation, use a central difference:
 
@@ -188,7 +314,7 @@ $$\boxed{\text{DV01}_y \approx \frac{P(y - 1\text{ bp}) - P(y + 1\text{ bp})}{2}
 
 This is robust and works regardless of whether you have closed-form derivatives. Tuckman notes that "the most stable numerical estimate chooses rates that are equally spaced above and below" the current rate.
 
-### 6.4.3 Modified Duration
+### 6.5.3 Modified Duration
 
 Duration measures percentage price sensitivity rather than dollar sensitivity. Hull defines duration as "a measure of how long the holder of the bond has to wait before receiving the present value of the cash payments." More precisely, it is "a weighted average of the times when payments are made, with the weight applied to time $t_i$ being equal to the proportion of the bond's total present value provided by the cash flow at time $t_i$."
 
@@ -202,7 +328,7 @@ $$\frac{\Delta P}{P} \approx -D_{\text{mod}} \cdot \Delta y$$
 
 Hull notes that this relationship "is easy to use and is the reason why duration, first suggested by Frederick Macaulay in 1938, has become such a popular measure."
 
-### 6.4.4 The DV01-Duration Link
+### 6.5.4 The DV01-Duration Link
 
 DV01 and modified duration are related by:
 
@@ -210,7 +336,7 @@ $$\boxed{\text{DV01}_y = \frac{P \cdot D_{\text{mod}}}{10{,}000}}$$
 
 Given either measure, you can compute the other if you know the price. The distinction matters: DV01 gives dollar risk (useful for hedging notional amounts), while duration gives percentage risk (useful for comparing bonds of different prices).
 
-### 6.4.5 Macaulay Duration and Its Interpretation
+### 6.5.5 Macaulay Duration and Its Interpretation
 
 Macaulay duration is a simple transformation of modified duration:
 
@@ -236,7 +362,7 @@ This provides intuition for duration generally—a bond's Macaulay duration equa
 
 Hull explains that duration is "a weighted average of the times when payments are made." For a 5-year bond with Macaulay duration of 4.4 years, you wait (on a present-value-weighted basis) 4.4 years to receive your money back.
 
-### 6.4.6 How Duration Varies with Coupon and Maturity
+### 6.5.6 How Duration Varies with Coupon and Maturity
 
 Tuckman provides graphical analysis showing:
 
@@ -255,9 +381,9 @@ Luenberger provides additional insight: "Duration does not increase appreciably 
 
 ---
 
-## 6.5 Yield-Based Convexity
+## 6.6 Yield-Based Convexity
 
-### 6.5.1 Definition and Interpretation
+### 6.6.1 Definition and Interpretation
 
 Convexity measures the curvature of the price-yield relationship—how duration itself changes as yields move. Tuckman defines yield-based convexity as:
 
@@ -267,7 +393,7 @@ where $d^2P/dy^2$ is the second derivative of the price-yield function. Tuckman 
 
 Convexity explains the asymmetry in price changes: when yields fall, prices rise by more than duration alone would predict; when yields rise, prices fall by less. This asymmetry favors bondholders.
 
-### 6.5.2 The Duration-Convexity Approximation
+### 6.6.2 The Duration-Convexity Approximation
 
 The second-order Taylor expansion gives:
 
@@ -275,7 +401,7 @@ $$\boxed{\Delta P \approx -P \cdot D_{\text{mod}} \cdot \Delta y + \frac{1}{2} P
 
 Tuckman notes that for small yield changes, "the duration term... is much larger than the convexity term." But for larger moves, convexity becomes meaningful. In his numerical example with a 25bp move, the duration term is about 30% while the convexity term is about 3%—convexity is a correction, not the main effect.
 
-### 6.5.3 Positive Convexity as a Benefit
+### 6.6.3 Positive Convexity as a Benefit
 
 For plain-vanilla fixed-rate bonds, convexity is positive ($C_y > 0$). This means:
 
@@ -296,22 +422,95 @@ Graphically, "the property of positive convexity may also be thought of as the p
 >
 > "You win more than you lose." This is why traders pay up for convexity.
 
-Tuckman cautions, however, that "bonds are priced to reflect their convexity advantage." Investors pay for convexity through lower yields. This leads to the barbell-versus-bullet analysis.
+### 6.6.4 The Cost of Convexity
 
-### 6.5.4 The Barbell versus the Bullet
+Convexity is valuable, and markets price it accordingly. Tuckman emphasizes: "Bonds are priced to reflect their convexity advantage." An investor who wants more convexity must accept a lower yield—there is no free lunch.
 
-Tuckman develops an important example. An asset-liability manager with liabilities having 9-year duration could fund with:
+The economic intuition is straightforward: if Bond A and Bond B have the same duration but Bond A has higher convexity, Bond A will outperform in large rate moves (either direction). The market recognizes this and bids up the price of Bond A, lowering its yield.
+
+**Quantifying the trade-off:** Consider two duration-matched portfolios:
+- Portfolio A: High convexity, yield = 5.00%
+- Portfolio B: Low convexity, yield = 5.15%
+
+The 15 bp yield give-up is the "price" of convexity. Whether this is worthwhile depends on:
+1. Expected rate volatility (higher volatility → convexity more valuable)
+2. The investor's horizon (shorter horizon → less time for convexity to help)
+3. The investor's view on rate direction (asymmetric views may favor different structures)
+
+> **Desk Reality: "Paying for Convexity"**
+>
+> When a trader says "I'm paying 10 bps for convexity," they mean they're accepting a 10 bp lower yield on a high-convexity position compared to a duration-matched alternative. This is the explicit cost of the asymmetric payoff profile.
+>
+> The decision framework: if you expect rates to move significantly (high volatility), paying for convexity is rational. If you expect rates to be stable, collecting the yield premium (selling convexity) is better.
+>
+> **Who sells convexity?** Mortgage investors are natural sellers—MBS have negative convexity from prepayment risk. They receive higher yields as compensation.
+
+### 6.6.5 The Convexity-Gamma Connection
+
+For readers familiar with options, convexity has a direct analogue: **gamma**. Both measure the second derivative of value with respect to an underlying variable.
+
+| Concept | Options | Bonds |
+|---------|---------|-------|
+| First derivative | Delta ($\Delta$) | Duration |
+| Second derivative | Gamma ($\Gamma$) | Convexity |
+| Interpretation | How delta changes | How duration changes |
+| Sign for long positions | Positive | Positive |
+| Benefit | Win more, lose less | Win more, lose less |
+| Cost | Pay option premium | Accept lower yield |
+
+**Long convexity = Long gamma.** Both create a payoff profile where you benefit from volatility. Both are valuable in uncertain environments. Both cost money.
+
+The mathematical parallel:
+
+$$\text{Options: } \Delta V \approx \Delta \cdot \Delta S + \frac{1}{2}\Gamma \cdot (\Delta S)^2$$
+
+$$\text{Bonds: } \Delta P \approx -D \cdot P \cdot \Delta y + \frac{1}{2}C \cdot P \cdot (\Delta y)^2$$
+
+> **Practitioner Note:** The convexity-gamma analogy extends further. Just as options traders "gamma scalp" by rebalancing their delta hedge to capture volatility, bond traders can implement convexity trades by rebalancing duration. The principle is identical: the second derivative generates P&L from volatility of the underlying.
+
+### 6.6.6 The Barbell versus the Bullet
+
+Tuckman develops an important example demonstrating how portfolio structure affects convexity. An asset-liability manager with liabilities having 9-year duration could fund with:
 
 - **Bullet portfolio:** Intermediate-maturity bonds with 9-year duration
 - **Barbell portfolio:** A mix of short and long bonds (e.g., 2-year and 30-year) that also has 9-year portfolio duration
 
-The barbell has higher convexity. Using zero-coupon convexity formulas, Tuckman calculates that a 75%/25% mix of 2-year and 30-year zeros has convexity of about 221, substantially greater than a 9-year zero's convexity of about 86.
+The barbell has higher convexity because convexity increases with the *square* of maturity. Using zero-coupon bonds, Tuckman provides a specific numerical example:
 
-"The bullet outperforms if rates move by a relatively small amount, up or down, while the barbell outperforms if rates move by a relatively large amount." This is because the barbell's higher convexity provides greater gains (or smaller losses) for large moves, but the bullet has a yield advantage for small moves.
+**Example: 75%/25% Barbell vs 9-Year Bullet**
 
-> **Key Insight:** "Spreading out the cash flows of a portfolio (without changing its duration) raises its convexity." This is the essence of barbelling.
+At a 5% yield:
+- 2-year zero: Duration = 2, Convexity ≈ 4
+- 30-year zero: Duration = 30, Convexity ≈ 871
+- 9-year zero (bullet): Duration = 9, Convexity ≈ 81
 
-### 6.5.5 Convexity of Zero-Coupon Bonds
+A barbell of 75% in 2-year zeros and 25% in 30-year zeros:
+- Portfolio duration: $0.75 \times 2 + 0.25 \times 30 = 9$ years ✓
+- Portfolio convexity: $0.75 \times 4 + 0.25 \times 871 = 3 + 218 = 221$
+
+The barbell has convexity of **221** versus the bullet's **81**—nearly three times as much convexity for the same duration.
+
+**Performance comparison:**
+
+| Rate Move | Bullet Performance | Barbell Performance | Winner |
+|-----------|-------------------|---------------------|--------|
+| Small (±25 bp) | Better | Worse | Bullet |
+| Medium (±100 bp) | Similar | Similar | Tie |
+| Large (±200 bp) | Worse | Better | Barbell |
+
+Tuckman explains: "The bullet outperforms if rates move by a relatively small amount, up or down, while the barbell outperforms if rates move by a relatively large amount."
+
+> **Key Insight:** "Spreading out the cash flows of a portfolio (without changing its duration) raises its convexity." This is the mathematical essence of barbelling.
+
+> **Desk Reality: Barbell vs Bullet in Practice**
+>
+> The barbell-bullet trade is a classic rates position. A trader who expects high volatility will prefer the barbell; one expecting stability prefers the bullet (and collects the yield advantage).
+>
+> **The "butterfly" trade** combines both views: long the wings (2y and 30y), short the belly (10y). This is a pure bet on convexity/volatility without a directional rate view.
+>
+> **Warning:** The simple barbell example assumes parallel shifts. If the curve twists (e.g., 2s flatten while 30s steepen), the barbell can underperform even with realized volatility. Real-world implementation requires careful curve analysis.
+
+### 6.6.7 Convexity of Zero-Coupon Bonds
 
 Setting $c=0$ in the convexity formula yields:
 
@@ -321,7 +520,7 @@ Convexity increases with the **square** of maturity—much faster than duration,
 
 $$C = \frac{30 \times 30.5}{(1.025)^2} \approx 871$$
 
-### 6.5.6 Computing Convexity Numerically
+### 6.6.8 Computing Convexity Numerically
 
 With a finite-difference approach using $\Delta = 50$ bp:
 
@@ -329,15 +528,65 @@ $$\boxed{C_y \approx \frac{P(y - \Delta) + P(y + \Delta) - 2P(y)}{P(y) \cdot \De
 
 Tuckman notes that "extra precision is often necessary when calculating second derivatives" because the second-order effect is small.
 
-### 6.5.7 Negative Convexity
+### 6.6.9 Negative Convexity and Callable Bonds
 
-Not all fixed income securities exhibit positive convexity. Tuckman notes that "fixed income securities need not be positively convex at all rate levels. Some important examples of negative convexity are callable bonds... and mortgage-backed securities." When a bond is callable, the issuer's option to call at par caps the upside, creating negative convexity in the region where rates fall significantly below the call threshold.
+Not all fixed income securities exhibit positive convexity. Tuckman notes that "fixed income securities need not be positively convex at all rate levels. Some important examples of negative convexity are callable bonds... and mortgage-backed securities."
+
+**The Callable Bond Pricing Relationship:**
+
+A callable bond can be decomposed as:
+
+$$\boxed{P_{\text{callable}} = P_{\text{non-callable}} - \text{Value of Call Option}}$$
+
+The issuer owns an embedded call option—the right to redeem the bond early at a specified price (typically par). This option becomes valuable when rates fall significantly below the coupon rate.
+
+**Why Callable Bonds Have Negative Convexity:**
+
+When rates fall substantially:
+- A non-callable bond's price rises without limit
+- A callable bond's price is capped near the call price—the issuer will call the bond
+
+This cap eliminates the upside that positive convexity provides. In the region where rates are low enough that the call is likely, the price-yield curve bends *downward* (concave), creating negative convexity.
+
+Tuckman provides a numerical example showing a callable bond with convexity of **-223** when the call is deep in the money, compared to positive convexity for the same structure when rates are high.
+
+**Table: Convexity Across Rate Levels (Callable vs Non-Callable)**
+
+| Yield Level | Non-Callable Convexity | Callable Convexity |
+|-------------|------------------------|-------------------|
+| High (call out-of-money) | +80 | +75 |
+| Medium (call at-money) | +80 | +10 |
+| Low (call in-money) | +80 | -223 |
+
+> **Desk Reality: Trading Callable Bonds**
+>
+> Callable bonds are typically quoted in terms of "yield-to-call" (YTC) when trading near or above the call price, and "yield-to-maturity" when trading well below. The switch point is important: a bond quoted at YTM when it should be quoted at YTC will appear cheaper than it is.
+>
+> **The negative convexity trap:** A trader who buys a callable bond for its "high yield" without understanding the embedded short option position may be surprised when rates fall but the bond doesn't rally as expected. You're effectively short volatility.
+>
+> **Who issues callables?** Corporations and agencies that want to refinance if rates fall. Investors demand higher yields as compensation for bearing prepayment/call risk.
+
+### 6.6.10 Yield-to-Call and Yield-to-Worst
+
+For callable bonds, practitioners use additional yield measures:
+
+**Yield-to-Call (YTC):** The yield assuming the bond is called at the next call date:
+
+$$P_{\text{dirty}} = \sum_{t=1}^{T_{\text{call}}} \frac{CF_t}{(1+y_c/2)^t} + \frac{\text{Call Price}}{(1+y_c/2)^{T_{\text{call}}}}$$
+
+**Yield-to-Worst (YTW):** The minimum of YTM and all possible YTCs:
+
+$$\boxed{\text{YTW} = \min(\text{YTM}, \text{YTC}_1, \text{YTC}_2, ...)}$$
+
+Tuckman explains that "investors will most likely use yield-to-worst—that is, the yield given the redemption price schedule that minimizes value to the investor."
+
+> **Practitioner Note:** Yield-to-worst is conservative but not always accurate. It assumes the issuer will act optimally against the investor. In practice, issuers sometimes don't call bonds when it would be optimal (refinancing frictions, transaction costs). The "worst" case may not materialize.
 
 ---
 
-## 6.6 Curve-Based Risk: A Preview
+## 6.7 Curve-Based Risk: A Preview
 
-### 6.6.0 The Three Drivers of Yields (PCA)
+### 6.7.0 The Three Drivers of Yields (PCA)
 
 Before simplifying to "one factor," know that 90%+ of yield curve movements can be explained by three "Principal Components" (see Chapter 16):
 
@@ -347,7 +596,7 @@ Before simplifying to "one factor," know that 90%+ of yield curve movements can 
 
 Yield-based risk (Duration/DV01) implicitly assumes **#1 only**. It is blind to #2 and #3.
 
-### 6.6.1 The Single-Factor Assumption
+### 6.7.1 The Single-Factor Assumption
 
 All yield-based measures assume that a bond's price depends on one number: its yield. This is convenient but dangerous. Tuckman warns that "a major weakness of the approach taken in Chapters 5 and 6... is the assumption that movements in the entire term structure can be described by one interest rate factor. To put it bluntly, the change in the six-month rate is assumed to predict perfectly the change in the 10-year and 30-year rates."
 
@@ -357,7 +606,7 @@ $$P = \sum_{i} \text{CF}_i \cdot P(0, t_i)$$
 
 where $P(0,t_i)$ is the discount factor for maturity $t_i$.
 
-### 6.6.2 Curve DV01
+### 6.7.2 Curve DV01
 
 Under a full curve framework, we can define curve DV01 as the sensitivity to a parallel bump in spot rates. For continuously compounded spot rates $\hat{r}(t)$:
 
@@ -369,7 +618,7 @@ $$d_{\Delta}(t) = d(t) \cdot \exp(-\Delta \cdot t)$$
 
 The curve DV01 is then $P_{\text{base}} - P_{\text{bumped}}$.
 
-### 6.6.3 When Yield DV01 and Curve DV01 Differ
+### 6.7.3 When Yield DV01 and Curve DV01 Differ
 
 Yield DV01 assumes the bond's yield changes. Curve DV01 bumps all spot rates uniformly. These can differ because:
 
@@ -382,7 +631,7 @@ In practice, the differences are usually small for straightforward bonds but bec
 - Portfolios mixing short and long maturities
 - Hedges involving different instruments
 
-### 6.6.4 Why Yield Hedges Fail Under Curve Twists
+### 6.7.4 Why Yield Hedges Fail Under Curve Twists
 
 A yield-DV01 hedge matches the DV01 of bond A with bond B. This works if both yields change by the same amount. But Tuckman emphasizes in Chapter 7: "A major weakness of the approach... is the assumption that movements in the entire term structure can be described by one interest rate factor."
 
@@ -390,9 +639,19 @@ When the curve twists—say, the 2-year yield rises while the 10-year falls—a 
 
 This limitation motivates the multi-factor approaches in Chapter 14 (key-rate durations) and Chapter 16 (curve hedging with PCA).
 
+> **Desk Reality: P&L Breaks from Curve Moves**
+>
+> A classic P&L break: the risk system shows you're "flat" because your total DV01 is zero. But you're long 5-year and short 10-year in equal DV01. When the curve flattens (5s underperform 10s), you lose money despite being "hedged."
+>
+> **The conversation with your PM:**
+> "But the risk report said we were flat!"
+> "We were flat to parallel shifts. We were massively exposed to curve."
+>
+> This is why sophisticated desks run key-rate DV01 reports, not just total DV01.
+
 ---
 
-## 6.7 Worked Examples
+## 6.8 Worked Examples
 
 ### Example A: Computing YTM from Clean Price
 
@@ -580,9 +839,46 @@ Despite infinite maturity, the perpetuity has a finite 17-year duration because 
 
 ---
 
-## 6.8 Practical Notes
+### Example H: Reinvestment Risk Calculation
 
-### 6.8.1 Yield Quoting Conventions
+**Bond:** 5-year, 6% annual coupon, purchased at par (YTM = 6%)
+
+**Scenario:** Rates fall to 4% immediately after purchase and remain there.
+
+**Step 1: Future value of reinvested coupons at 4%**
+
+$$FV_{\text{coupons}} = 6 \times \frac{(1.04^5 - 1)}{0.04} = 6 \times 5.416 = 32.50$$
+
+**Step 2: Total terminal value**
+
+$$\text{Terminal Value} = 100 + 32.50 = 132.50$$
+
+**Step 3: Realized return**
+
+$$r = (132.50/100)^{1/5} - 1 = 5.79\%$$
+
+**Shortfall:** The realized return of 5.79% is 21 bps below the initial YTM of 6.00%.
+
+---
+
+### Example I: Callable Bond Decomposition
+
+**Setup:** A 10-year, 8% corporate bond callable at par in 5 years.
+- Current yield environment: 6%
+- Non-callable 10-year bond price: 114.72
+- Callable bond market price: 107.50
+
+**Option Value:**
+
+$$\text{Call Option Value} = 114.72 - 107.50 = 7.22$$
+
+**Interpretation:** The issuer's call option is worth 7.22 points. This represents the value the investor is giving up in exchange for the higher coupon (8% vs market rates of 6%).
+
+---
+
+## 6.9 Practical Notes
+
+### 6.9.1 Yield Quoting Conventions
 
 Tuckman distinguishes **money market quoting** (simple interest with ACT/360) from **bond quoting** (semiannual compounding). Converting between them requires care:
 
@@ -591,7 +887,7 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 > **Note on BEY:** The term "bond-equivalent yield" (BEY) is sometimes used for semi-annual yields, but market usage varies. I'm not sure precisely which desks or markets label the semiannual-quoted bond yield as "BEY" without additional context.
 
-### 6.8.2 Common Pitfalls
+### 6.9.2 Common Pitfalls
 
 **1. Using clean price for YTM:** Settlement cash is the dirty price. Using clean price in the PV equation produces the wrong yield.
 
@@ -603,7 +899,11 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 **5. Ignoring optionality:** Yield-based measures assume fixed promised cash flows. Callable bonds, MBS, and other structured products require different treatment.
 
-### 6.8.3 Verification Tests
+**6. Confusing duration types:** Modified duration gives percentage sensitivity; Macaulay duration gives weighted-average time. Don't mix them in hedge calculations.
+
+**7. Ignoring convexity for large moves:** Duration alone underestimates gains and overestimates losses. For moves >50 bps, convexity matters.
+
+### 6.9.3 Verification Tests
 
 - **Monotonicity:** Price should decrease as yield increases (for fixed cash flows)
 - **Near-par check:** For bonds trading near par, yield should be near the coupon rate
@@ -622,19 +922,27 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 4. **YTM hides the term structure.** It cannot reveal whether individual cash flows are cheap or rich relative to their appropriate spot rates.
 
-5. **A defensible short-horizon interpretation:** If yield is unchanged over a short period, realized return approximately equals yield.
+5. **The reinvestment assumption is almost certainly incorrect.** YTM is not a "locked-in" return; realized returns depend on actual reinvestment rates.
 
-6. **Yield DV01** measures price change per 1 bp in YTM; computed via finite differences or from duration.
+6. **A defensible short-horizon interpretation:** If yield is unchanged over a short period, realized return approximately equals yield.
 
-7. **Modified duration** is the percentage price sensitivity: $D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}$, with units of years.
+7. **Yield DV01** measures price change per 1 bp in YTM; computed via finite differences or from duration.
 
-8. **Macaulay duration** equals the maturity of a zero with the same price sensitivity; for a zero, it equals years to maturity.
+8. **Modified duration** is the percentage price sensitivity: $D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}$, with units of years.
 
-9. **Convexity** ($C_y = \frac{1}{P}\frac{d^2P}{dy^2}$) captures the curvature benefit: gains from rate decreases exceed losses from equal rate increases.
+9. **Macaulay duration** equals the maturity of a zero with the same price sensitivity; for a zero, it equals years to maturity.
 
-10. **Barbell vs bullet:** Spreading out cash flows (barbelling) increases convexity without changing duration, but costs yield.
+10. **Convexity** ($C_y = \frac{1}{P}\frac{d^2P}{dy^2}$) captures the curvature benefit: gains from rate decreases exceed losses from equal rate increases.
 
-11. **Yield-based hedges can fail** when curve shape moves. Parallel-yield assumptions are a strong restriction; multi-factor approaches provide better protection.
+11. **Bonds are priced to reflect their convexity advantage.** Higher convexity means lower yield—there's no free lunch.
+
+12. **Barbell vs bullet:** Spreading out cash flows (barbelling) increases convexity without changing duration, but costs yield.
+
+13. **Callable bonds have negative convexity** when the call is in the money, because the price ceiling caps upside.
+
+14. **Convexity is analogous to gamma** in options—both measure second-derivative exposure and benefit from volatility.
+
+15. **Yield-based hedges can fail** when curve shape moves. Parallel-yield assumptions are a strong restriction; multi-factor approaches provide better protection.
 
 ---
 
@@ -644,12 +952,16 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 |---------|------------|----------------|
 | YTM | Single rate that reproduces price | Universal quoting convention |
 | Clean/Dirty | $P_{\text{dirty}} = P_{\text{clean}} + \text{AI}$ | Clean is quoted; dirty is exchanged |
+| Reinvestment Risk | Coupons reinvest at unknown future rates | YTM ≠ Realized return |
 | DV01 | $-\frac{1}{10{,}000}\frac{dP}{dy}$ | Dollar risk per basis point |
 | Modified Duration | $-\frac{1}{P}\frac{dP}{dy}$ | Percentage risk per yield change |
 | Macaulay Duration | $(1+y/2) \times D_{\text{mod}}$ | Weighted-average time to receipt |
 | Convexity | $\frac{1}{P}\frac{d^2P}{dy^2}$ | Curvature benefit; explains asymmetry |
+| Cost of Convexity | Higher convexity → Lower yield | No free lunch |
+| Negative Convexity | Price ceiling caps upside | Callable bonds, MBS |
 | Parallel Shift | All yields move by the same amount | Implicit assumption of yield-based measures |
 | Barbell | Short + long maturities | Higher convexity than bullet |
+| YTW | min(YTM, all YTCs) | Conservative yield for callables |
 
 ---
 
@@ -670,6 +982,8 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | $D_{\text{Mac}}$ | Macaulay duration |
 | $C_y$ | Yield convexity |
 | $P(0,t)$ or $d(t)$ | Discount factor to maturity $t$ |
+| $\text{YTC}$ | Yield-to-call |
+| $\text{YTW}$ | Yield-to-worst |
 
 ---
 
@@ -689,7 +1003,7 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | 10 | What does positive convexity imply? | Price gains from yield decreases exceed losses from equal increases |
 | 11 | When does "return = yield" hold? | If yield remains unchanged over a short period |
 | 12 | Typical bond compounding convention? | Semiannual |
-| 13 | Why reinvestment risk matters for YTM | If rates change, coupons are reinvested at different rates than the initial yield |
+| 13 | Why is reinvestment risk real? | Coupons must be reinvested at unknown future rates, not the initial YTM |
 | 14 | What is "curve PV"? | $P = \sum_i \text{CF}_i \cdot P(0,t_i)$ using discount factors |
 | 15 | Why might yield DV01 ≠ curve DV01? | Yield DV01 assumes one rate; curve DV01 bumps the whole term structure |
 | 16 | What assumption underlies yield-based measures? | Parallel yield shifts |
@@ -701,6 +1015,17 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | 22 | Perpetuity Macaulay duration formula? | $(1+y/2)/y$ |
 | 23 | What is barbelling? | Using short + long maturities instead of intermediate to increase convexity |
 | 24 | When does barbell outperform bullet? | When rates move by large amounts (either up or down) |
+| 25 | What is the "cost of convexity"? | Higher convexity bonds have lower yields—you pay for the asymmetric payoff |
+| 26 | Tuckman quote on reinvestment assumption? | "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect" |
+| 27 | What is negative convexity? | When the price-yield curve is concave (curves downward); price gains are capped |
+| 28 | Which securities exhibit negative convexity? | Callable bonds, mortgage-backed securities |
+| 29 | Callable bond decomposition formula? | $P_{\text{callable}} = P_{\text{non-callable}} - \text{Call Option Value}$ |
+| 30 | What is Yield-to-Worst (YTW)? | Minimum of YTM and all possible yields-to-call |
+| 31 | How does convexity relate to gamma? | Both are second derivatives; long convexity = long gamma = benefit from volatility |
+| 32 | Why do liability managers care about reinvestment risk? | Coupon reinvestment rates are unknown, making total return uncertain |
+| 33 | Three components of total return? | Coupon income + Reinvestment income + Price change |
+| 34 | Which bond type has zero reinvestment risk? | Zero-coupon bonds (no intermediate cash flows) |
+| 35 | What does "long 50k DV01" mean? | Position gains $50,000 for every 1 bp decline in rates |
 
 ---
 
@@ -790,19 +1115,47 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 ---
 
+**15.** An investor buys a 10-year, 6% annual coupon bond at par. If rates immediately drop to 4% and stay there, what is the realized return?
+
+**Solution:**
+- Coupons reinvested at 4%: $FV = 6 \times \frac{1.04^{10}-1}{0.04} = 72.04$
+- Terminal value: $100 + 72.04 = 172.04$
+- Return: $(172.04/100)^{0.1} - 1 = 5.58\%$ (vs initial YTM of 6%)
+
+---
+
+**16.** A callable bond trades at 104. The equivalent non-callable bond trades at 112. What is the embedded call option worth?
+
+**Solution:** Call option value = $112 - 104 =$ **8 points**.
+
+---
+
+**17.** Explain why a barbell has higher convexity than a bullet with the same duration.
+
+**Solution:** Convexity increases with the square of maturity. A barbell combining short and long maturities has more weight at the extremes, where convexity per dollar is highest. The long-maturity component contributes disproportionately to portfolio convexity.
+
+---
+
+**18.** A trader says "I'm paying 12 bps for convexity." Explain what this means.
+
+**Solution:** The trader is accepting a yield 12 bps lower on a high-convexity position compared to a duration-matched low-convexity alternative. The 12 bps is the price of the more favorable asymmetric payoff profile.
+
+---
+
 ## Source Map
 
-### (A) Verified Facts (Source-Backed)
+### (A) Book-Verified Facts
 
 | Fact | Source |
 |------|--------|
 | YTM is the single rate that discounts promised cash flows to market price | Tuckman Ch 3 |
 | "Yield-to-maturity is often used as an alternate way to quote price" | Tuckman Ch 3 |
 | YTM is solved by trial-and-error or numerical methods | Tuckman Ch 3 |
+| "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect" | Tuckman Ch 3 |
+| "Holding to maturity will not necessarily earn the initial yield" | Tuckman Ch 3 |
 | Dirty price = clean price + accrued interest | Tuckman Ch 4 |
 | If yield unchanged, quoted price continuous across coupon dates | Tuckman Ch 4 |
 | Semiannual compounding convention for bond yields | Tuckman Ch 3 |
-| "Holding to maturity will not necessarily earn the initial yield" | Tuckman Ch 3 |
 | If yield unchanged over short period, realized return = yield | Tuckman Ch 3 |
 | YTM is a blend of spot rates | Tuckman Ch 3 |
 | DV01 = $-\frac{1}{10{,}000}\frac{dP}{dy}$ | Tuckman Ch 5-6 |
@@ -818,12 +1171,32 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | Perpetuity Macaulay duration = $(1+y/2)/y$ | Tuckman Ch 6, equation (6.31) |
 | "Major weakness... movements in entire term structure described by one factor" | Tuckman Ch 7 |
 | Barbell has greater convexity than bullet | Tuckman Ch 6 |
+| 75%/25% barbell of 2y/30y zeros has convexity ~221 vs 9y bullet ~81 | Tuckman Ch 6 |
 | "Spreading out cash flows raises convexity" | Tuckman Ch 6 |
+| "Bonds are priced to reflect their convexity advantage" | Tuckman Ch 6 |
 | Higher coupon → lower duration | Tuckman Ch 6 |
 | Convexity increases with square of maturity | Tuckman Ch 6 |
 | Duration asymptotes to finite limit as maturity → ∞ | Tuckman Ch 6; Luenberger Ch 3 |
+| Callable bonds and MBS exhibit negative convexity | Tuckman Ch 6 |
+| Callable bond price = non-callable - call option value | Tuckman Ch 5 |
+| Callable bond can have convexity of -223 when call is in the money | Tuckman Table 5.4 |
+| Yield-to-worst is yield given redemption that minimizes investor value | Tuckman Ch 5 |
 
-### (B) Reasoned Inference (Derived from A)
+### (B) Claude-Extended Content (Practitioner Knowledge)
+
+| Content | Context |
+|---------|---------|
+| DV01 as "lingua franca of rates" | Extended from general fixed income practice |
+| "Long 50k DV01" interpretation | Standard desk communication |
+| Total return analysis approach | Standard portfolio management practice |
+| Barbell vs butterfly trade structure | Standard rates trading strategy |
+| P&L break examples from curve moves | Common operational experience |
+| Cost of convexity as yield give-up | Derived from Tuckman + trading practice |
+| Convexity-gamma analogy | Standard quantitative finance parallel |
+| Callable bond trading conventions (YTC vs YTM) | Market practice |
+| Liability manager concerns about reinvestment | Insurance/pension industry practice |
+
+### (C) Reasoned Inference (Derived from A or B)
 
 | Inference | Derivation Logic |
 |-----------|------------------|
@@ -834,11 +1207,14 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | Near-par yield ≈ coupon rate | Follows from pricing equation structure |
 | Zero-coupon YTM = spot rate | Follows from single cash flow discounting |
 | DV01-duration relationship | Algebraic derivation from definitions |
+| Reinvestment shortfall calculation | Derived from compound interest formulas |
+| Negative convexity from price ceiling | Follows from call option decomposition |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Content | Uncertainty |
 |---------|-------------|
 | "BEY" terminology in practice | Not explicitly defined in cited sources; desk/market usage varies; I'm not sure which markets label the semiannual-quoted bond yield as "BEY" |
 | Exact day-count handling in yield calculations | Market-specific variations exist (actual/actual vs 30/360); verify for your desk |
 | Fractional-period discounting conventions | Tuckman shows actual/actual for Treasuries; corporate bonds may differ |
+| Precise convexity figures for specific callable structures | Depend on option modeling assumptions; values shown are illustrative |

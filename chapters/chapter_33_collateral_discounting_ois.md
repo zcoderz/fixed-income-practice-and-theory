@@ -12,11 +12,13 @@ This chapter explains **why collateral terms determine the discount rate** for d
 
 We cover:
 
-1. **What collateral is and how it works** — CSA terms, variation margin, thresholds, and the margin period of risk
+1. **What collateral is and how it works** — CSA terms, variation margin, thresholds, rehypothecation, and the margin period of risk
 2. **The economic principle** — why discounting follows the collateral remuneration rate, with an arbitrage-based derivation
 3. **From CSA to OIS curve** — how overnight rates like Fed funds/SOFR link to the OIS discount curve
 4. **Multi-curve pricing** — separating discount curves from projection curves
-5. **Imperfect collateralization** — what breaks when thresholds, lags, or defaults enter
+5. **Multi-currency CSAs** — cheapest-to-deliver collateral and how to value the optionality
+6. **Imperfect collateralization** — what breaks when thresholds, lags, or defaults enter, including downgrade triggers
+7. **Price Alignment Interest (PAI)** — the daily mechanics of collateral remuneration
 
 The stakes are high: every dealer, risk manager, and quantitative analyst working with OTC derivatives must understand this material. Get the discounting wrong, and your P&L is fiction.
 
@@ -79,6 +81,20 @@ Similar overnight rates exist for other currencies:
 - **GBP:** SONIA
 
 These rates are "computed as averages of all actual overnight lending/borrowing transactions by qualifying banks weighted by the size of the transactions," as *Interest Rate Modeling* explains. They reflect actual transactions, in contrast to LIBOR which reflects banks' estimates of rates at which borrowing might take place.
+
+### 33.1.7 Rehypothecation
+
+**Rehypothecation** is the practice of using collateral received from one counterparty to meet collateral demands from another—or more broadly, to fund hedging positions.
+
+Hull defines rehypothecation in *Risk Management and Financial Institutions*: "Rehypothecation occurs when collateral posted by A with B is used by B to meet collateral demands from C." For a dealer, this means collateral received can be used to fund hedge positions. This ability is central to the discounting argument: if you can use received collateral to fund your hedge, your effective funding cost is the collateral remuneration rate.
+
+> **The Lehman Aftermath: Why Rehypothecation Limits Matter**
+>
+> The Lehman Brothers bankruptcy in September 2008 exposed the risks of unrestricted rehypothecation. Hull notes in *Risk Management and Financial Institutions* Business Snapshot 18.1 that clients who had posted collateral to Lehman's UK prime brokerage "found that they were unable to reclaim their collateral" because it had been rehypothecated.
+>
+> The consequences were severe: clients became unsecured creditors in bankruptcy proceedings, waiting years to recover a fraction of what they had posted. Post-Lehman, CSA clauses limiting or prohibiting rehypothecation became far more common. The UK and US regulatory frameworks now differ on rehypothecation limits.
+>
+> **Desk Reality:** If your CSA prohibits rehypothecation, the funding argument for OIS discounting becomes more complex. You receive collateral but cannot use it—so your effective funding cost may be higher than the collateral rate. Some desks apply an FVA adjustment in such cases.
 
 ---
 
@@ -168,6 +184,14 @@ The clean price then takes the form:
 $$\boxed{V(0) = \mathbb{E}^{Q^c}\left[\sum_k e^{-\int_0^{t_k} c(u)\,du} \cdot \text{CF}(t_k)\right]}$$
 
 where the expectation is taken under the measure associated with the collateral numeraire.
+
+> **Advanced Note: Numeraire and Measure Theory**
+>
+> *Interest Rate Modeling* Theorem 1.4.2 provides the foundation: "Suppose that a non-dividend paying asset has a strictly positive price process $X$ in some economy with stochastic discount factor $M$. Then $X$ can be used as a numeraire, with a martingale measure $Q^X$ under which the Radon-Nikodym derivative satisfies $dQ^X/dQ = X(T)/(\beta(T) \cdot X(0))$."
+>
+> For collateralized derivatives, the collateral account $\beta_c(t)$ serves as the numeraire. The associated measure $Q^c$ is the "collateral measure" under which discounting at $c(t)$ is the correct operation. This is not merely a convenience—it is a change of measure that correctly prices the funding dynamics of the collateralized position.
+>
+> The practical implication: different CSAs with different collateral currencies correspond to different numeraires and different pricing measures. A USD derivative collateralized in EUR must be priced under the EUR collateral measure, then converted to USD.
 
 **Caveat:** A fully rigorous proof that "perfect collateralization implies collateral numeraire discounting" under all CSA legal and operational details would require specifying close-out conventions, rehypothecation rights, haircuts, and settlement timing. What the sources establish is the market-motivated link: collateral remunerates at overnight rates like Fed funds, and OIS rates provide the proxy "risk-free" curve for discounting in multi-curve practice.
 
@@ -333,6 +357,8 @@ When EUR rates were deeply negative (2015-2021), posting EUR collateral meant *r
 
 Even comparing overnight rates directly is insufficient. You must account for the cost of converting currencies via FX forwards. The cross-currency basis can make one currency systematically cheaper than another even when spot rates suggest otherwise.
 
+Andersen and Piterbarg discuss cross-currency basis swaps extensively: these instruments "exchange floating rates in different currencies" and reveal the market-implied cost of switching funding currencies. The cross-currency basis spread $b(t)$ captures this cost.
+
 ### 33.5.3 Practical Implications
 
 For trades with multi-currency CSAs:
@@ -340,7 +366,34 @@ For trades with multi-currency CSAs:
 - Risk systems must track collateral currency exposure separately
 - The effective discount rate may depend on which counterparty is in-the-money (and thus posting collateral)
 
-> **I'm not sure** the provided excerpts contain a complete CTD collateral model. *Interest Rate Modeling* mentions "index-discounting basis" and multi-currency curve construction but does not spell out a full CTD collateral pricing framework. In practice, some desks model this via an additional basis spread; others use scenario analysis.
+### 33.5.4 Valuing the CTD Collateral Option
+
+When a CSA permits posting in multiple currencies, the collateral poster holds a **cheapest-to-deliver option**. This option has value—and affects the discount rate used for pricing.
+
+**Framework for CTD Valuation:**
+
+Let $\mathcal{C}$ denote the set of eligible collateral currencies. For each currency $i \in \mathcal{C}$, let:
+- $c_i(t)$ = overnight rate in currency $i$
+- $b_i(t)$ = cross-currency basis spread to convert to the derivative's native currency
+
+The effective collateral rate is:
+
+$$\boxed{c_{\text{eff}}(t) = \max_{i \in \mathcal{C}}\left(c_i(t) + b_i(t)\right)}$$
+
+The collateral poster will always choose the currency that maximizes their effective rate (minimizes their funding cost when posting).
+
+> **Desk Reality: How Traders Think About CTD Collateral**
+>
+> "CTD collateral is like a swaption embedded in your CSA. When EUR rates went negative, everyone who could post USD did—instantly. The desks that hadn't modeled the optionality got crushed on their P&L."
+>
+> **Practical approaches:**
+> 1. **Simple:** Assume the current CTD currency persists; use that currency's OIS curve
+> 2. **Intermediate:** Scenario analysis across plausible rate environments
+> 3. **Full model:** Stochastic model of rates in all eligible currencies with optimal switching
+>
+> Most dealer desks use approach (2) for risk management and approach (1) for day-to-day pricing, with manual overrides when rates are near switching thresholds.
+
+> **I'm not sure** the provided excerpts contain a complete CTD collateral model. *Interest Rate Modeling* mentions "index-discounting basis" and multi-currency curve construction but does not spell out a full CTD collateral pricing framework with explicit optionality valuation. In practice, some desks model this via an additional basis spread; others use scenario analysis.
 
 ---
 
@@ -384,11 +437,127 @@ where:
 
 Hull notes that "the $v_i$ are usually calculated using Monte Carlo simulation" and that "dealers may have transactions with thousands of counterparties so that the calculation of the $v_i$ for all of them can be computationally very intensive."
 
+### 33.6.4 Hybrid Discounting for Partial Collateralization
+
+> **Practitioner Note: When Perfect OIS Discounting Doesn't Apply**
+>
+> For trades with material thresholds, imperfect margining, or mixed collateral/uncollateralized portions, pure OIS discounting is technically incorrect. The exposure up to the threshold is effectively uncollateralized and should be discounted at a rate reflecting unsecured funding.
+>
+> **A practical hybrid approach:**
+>
+> $$V = V_{\text{collateralized portion}} + V_{\text{uncollateralized portion}}$$
+>
+> where:
+> - Collateralized portion (MTM above threshold): discount at OIS
+> - Uncollateralized portion (up to threshold $H$): discount at unsecured funding rate or apply CVA/FVA
+>
+> **Example:** $100mm swap with $10mm threshold
+> - Expected MTM often exceeds threshold → mostly OIS discounting applies
+> - But $10mm is always unsecured → adds CVA and potentially FVA
+>
+> Most desks simplify by discounting everything at OIS and adding XVA adjustments for the unsecured component. This is an approximation but operationally tractable.
+
+### 33.6.5 Downgrade Triggers and Liquidity Risk
+
+Many CSAs contain **downgrade triggers**—clauses that change collateral requirements if a counterparty's credit rating falls below a specified level. Hull discusses these extensively in *Risk Management and Financial Institutions*.
+
+**How downgrade triggers work:**
+
+A typical clause might specify:
+- If rated A or above: threshold = $50 million
+- If rated BBB: threshold = $10 million
+- If rated below investment grade: threshold = zero (full collateralization required)
+
+When a downgrade occurs, the party must immediately post additional collateral equal to the threshold reduction. This can create severe **liquidity stress** precisely when the firm is already under pressure.
+
+> **The AIG Case: Downgrade Triggers in Action**
+>
+> Hull describes how AIG's near-collapse in 2008 was accelerated by downgrade triggers. As AIG's credit rating fell, counterparties demanded billions in additional collateral under CSA downgrade provisions. AIG couldn't meet these demands, triggering further rating downgrades in a vicious spiral.
+>
+> "A company might be required to post more collateral if its credit rating decreases. This is known as a downgrade trigger. Because a company's credit rating tends to worsen at the same time as its liquidity worsens, these types of triggers can lead to serious problems."
+>
+> The lesson: downgrade triggers create **wrong-way risk** between collateral demands and the firm's ability to fund them. Risk managers must stress-test what happens if ratings fall and collateral demands spike simultaneously.
+
+**Implications for pricing:**
+
+When valuing a portfolio with downgrade triggers:
+1. **Scenario analysis:** Model collateral demands under rating downgrade scenarios
+2. **Liquidity reserves:** Ensure funding is available for contingent collateral calls
+3. **CVA sensitivity:** Recognize that exposure profiles change discontinuously at rating thresholds
+
 ---
 
-## 33.7 Risk Measurement for OIS-Discounted Portfolios
+## 33.7 Price Alignment Interest (PAI)
 
-### 33.7.1 OIS PV01 (Discount Curve Sensitivity)
+### 33.7.1 What Is PAI?
+
+**Price Alignment Interest (PAI)** is the daily interest payment on variation margin that ensures the economics of margining align with the derivative's theoretical value. It is the operational mechanism by which the collateral remuneration rate enters the trade's cashflows.
+
+For a cleared trade (or bilateral trade with daily settlement), PAI works as follows:
+- Each day, the clearinghouse (or bilateral counterparty) calculates the change in MTM
+- VM is exchanged to match this change
+- **PAI is paid on the VM balance**, typically at the overnight rate (OIS, SOFR, etc.)
+
+Without PAI, the party receiving VM would have "free money"—cash on which they pay nothing. PAI ensures this doesn't happen.
+
+### 33.7.2 PAI Mechanics
+
+**Daily PAI calculation:**
+
+$$\text{PAI}_t = \text{VM Balance}_{t-1} \times r_{\text{overnight}} \times \frac{1}{360}$$
+
+where the day count is typically ACT/360 for USD.
+
+**Example:**
+- VM balance at end of day $t-1$: $+\$10{,}000{,}000$ (we hold collateral)
+- Overnight rate: 5.25%
+- Day count: ACT/360
+
+$$\text{PAI}_t = \$10{,}000{,}000 \times 0.0525 \times \frac{1}{360} = \$1{,}458.33$$
+
+We **pay** this amount to the counterparty (who posted the VM).
+
+### 33.7.3 PAI vs. Traditional Coupon Accrual
+
+PAI fundamentally changes how swap economics work compared to legacy bilateral trades:
+
+| Aspect | Traditional (No VM/PAI) | Modern (Daily VM + PAI) |
+|--------|------------------------|------------------------|
+| **Funding of MTM** | Party with positive MTM funds at own rate | VM provides funding at overnight rate |
+| **Interest on collateral** | May differ from trade economics | PAI aligns collateral interest with discounting |
+| **Effective discounting** | Depends on party's funding | Enforced as overnight rate |
+
+**The key insight:** PAI operationalizes OIS discounting. When you receive PAI at the overnight rate on your VM, the economics are identical to discounting at that rate. This is not coincidence—it's the mechanism that makes the no-arbitrage argument work in practice.
+
+### 33.7.4 PAI and P&L
+
+For traders, PAI shows up as a daily P&L line item:
+
+$$\text{Daily P\&L} = \Delta\text{MTM} + \text{Coupon received} - \text{Coupon paid} + \text{PAI received} - \text{PAI paid}$$
+
+A common mistake is ignoring PAI when computing carry. On a large swap book, daily PAI can be substantial:
+
+**Example:** A desk with $\$500\text{mm}$ net positive VM at 5% overnight rate earns:
+$$\text{Annual PAI} \approx \$500{,}000{,}000 \times 0.05 = \$25{,}000{,}000$$
+
+This is real money that affects the economics of holding positions.
+
+> **Desk Reality: PAI Reconciliation**
+>
+> One of the most common sources of P&L breaks on swap desks is PAI miscalculation or misreconciliation:
+>
+> - **Rate mismatch:** Your system uses yesterday's SOFR; the clearinghouse uses today's
+> - **Day count errors:** Using 365 vs. 360
+> - **Balance timing:** EOD vs. SOD VM balance
+> - **Settlement lag:** PAI accrues on settled VM, not called VM
+>
+> If your daily P&L is breaking by small amounts that compound over time, check PAI first.
+
+---
+
+## 33.8 Risk Measurement for OIS-Discounted Portfolios
+
+### 33.8.1 OIS PV01 (Discount Curve Sensitivity)
 
 If discounting is OIS-based, the desk measures sensitivity of PV to shifts in the OIS curve. For deterministic cashflows, a first-order parallel-shift approximation is:
 
@@ -398,7 +567,7 @@ where $\Delta y$ is the rate shift in decimal form (1 bp = 0.0001).
 
 **Sign check:** If rates go up ($\Delta y > 0$), discount factors go down, so PV decreases for positive cashflows—the formula correctly produces a negative $\Delta PV$.
 
-### 33.7.2 Discounting Basis Exposure
+### 33.8.2 Discounting Basis Exposure
 
 A useful risk metric is the **discounting basis** PV difference:
 
@@ -406,7 +575,7 @@ $$\Delta PV_{\text{basis}} = PV_{\text{OIS disc}} - PV_{\text{legacy disc}}$$
 
 Post-crisis, this became a material P&L and risk dimension. Desks that repriced their books from LIBOR discounting to OIS discounting saw large Day-1 P&L impacts—in some cases tens of millions of dollars on large swap books.
 
-### 33.7.3 Collateral Terms as Risk Factors
+### 33.8.3 Collateral Terms as Risk Factors
 
 The CSA parameters are themselves risk factors:
 - **Threshold:** Higher threshold increases CVA (more unsecured exposure)
@@ -418,7 +587,7 @@ These effects must be captured in stress testing and risk limits.
 
 ---
 
-## 33.8 Worked Examples
+## 33.9 Worked Examples
 
 ### Example 33.1: Clean vs. Collateralized PV (Single Cashflow)
 
@@ -701,9 +870,100 @@ $$\boxed{V(0) = \$1{,}000{,}000 \times e^{-0.025} = \$975{,}309.91}$$
 
 ---
 
-## 33.9 Practical Notes
+### Example 33.11: EUR vs. USD Collateral with Negative Rates
 
-### 33.9.1 CSA Terms You Must Know Before Discounting
+**Setup:**
+- 5-year USD swap, $100mm notional
+- CSA allows USD or EUR collateral
+- USD OIS curve: flat at 3.00%
+- EUR OIS curve: flat at -0.50%
+- Cross-currency basis: -30bp (EUR funding cheaper in USD terms)
+
+**Step 1: Calculate effective discount factors**
+
+USD collateral:
+$$P^{\text{USD}}(0,5) = e^{-0.03 \times 5} = 0.8607$$
+
+EUR collateral (after basis adjustment):
+$$P^{\text{EUR,adj}}(0,5) = e^{-(-0.005 - 0.003) \times 5} = e^{0.04} = 1.0408$$
+
+Wait—this produces a discount factor > 1, which seems wrong. Let's reconsider.
+
+**Correct approach:** The party posting EUR collateral earns -0.50% (i.e., pays 0.50% to post). After converting back to USD via FX forwards with -30bp basis, the effective USD funding rate is approximately:
+
+$$r_{\text{eff}}^{\text{EUR}} = r^{\text{EUR}} + \text{FX forward drift} + \text{basis}$$
+
+Under covered interest parity (with basis):
+$$r_{\text{eff}}^{\text{EUR}} \approx r^{\text{USD}} + \text{basis} = 3.00\% - 0.30\% = 2.70\%$$
+
+So posting EUR is 30bp cheaper than posting USD.
+
+**Discount factors:**
+- USD collateral: $P^{\text{USD}}(0,5) = 0.8607$
+- EUR collateral (USD-equivalent): $P^{\text{EUR,eff}}(0,5) = e^{-0.027 \times 5} = 0.8737$
+
+**PV difference on $1mm cashflow at year 5:**
+$$\Delta PV = \$1{,}000{,}000 \times (0.8737 - 0.8607) = \$13{,}000$$
+
+**Conclusion:** The party with CTD optionality benefits by ~$13,000 per $1mm 5-year cashflow by choosing EUR collateral.
+
+---
+
+### Example 33.12: Downgrade Trigger Impact
+
+**Setup:**
+- Bilateral swap portfolio MTM: $+\$80\text{mm}$ to us
+- Current CSA: Threshold = $50mm (counterparty rated A)
+- Current collateral held: $80mm - $50mm = $30mm
+- Downgrade trigger: If counterparty falls to BBB, threshold becomes $10mm
+
+**Before downgrade:**
+- Unsecured exposure: $50mm (the threshold)
+- CVA based on this exposure level
+
+**After downgrade to BBB:**
+- New threshold: $10mm
+- Required collateral: $80mm - $10mm = $70mm
+- Collateral call: $70mm - $30mm = $40mm immediate demand
+
+**Liquidity impact on counterparty:**
+The counterparty must post an additional $40mm immediately. If they cannot:
+- Potential margin dispute
+- Possible default trigger
+- Our exposure increases if they fail to post
+
+**CVA impact:**
+- Before: $50mm unsecured × (expected default loss)
+- After (if posted): $10mm unsecured × (higher expected default loss due to lower rating)
+
+The net CVA may increase even with lower threshold because default probability increased.
+
+---
+
+### Example 33.13: Daily PAI Calculation
+
+**Setup:**
+- Cleared USD swap
+- VM balance (we hold): $+\$25{,}000{,}000$
+- SOFR today: 5.30%
+- Day count: ACT/360
+
+**Daily PAI we owe:**
+$$\text{PAI} = \$25{,}000{,}000 \times 0.0530 \times \frac{1}{360} = \$3{,}680.56$$
+
+**Monthly PAI (30 days):**
+$$\text{PAI}_{\text{month}} \approx \$3{,}680.56 \times 30 = \$110{,}417$$
+
+**Annual PAI:**
+$$\text{PAI}_{\text{annual}} \approx \$25{,}000{,}000 \times 0.0530 = \$1{,}325{,}000$$
+
+**P&L implication:** If we're holding $25mm positive MTM on a receiver swap, we earn PAI. But this PAI is offset by the fact that we're implicitly "short" rates on our discount curve exposure. The economics balance out—which is exactly the point of PAI.
+
+---
+
+## 33.10 Practical Notes
+
+### 33.10.1 CSA Terms You Must Know Before Discounting
 
 Before saying "OIS discounting," verify:
 
@@ -716,8 +976,9 @@ Before saying "OIS discounting," verify:
 7. **Eligible collateral** — cash vs. securities, haircuts
 8. **Rehypothecation rights** — can received collateral fund hedges?
 9. **Close-out convention** — mid-market vs. replacement cost
+10. **Downgrade triggers** — how thresholds change with ratings
 
-### 33.9.2 Common Pitfalls
+### 33.10.2 Common Pitfalls
 
 **Mixing up discount and projection curves:** Discounting affects PV weights; projection affects floating cashflows. These are different economic questions.
 
@@ -727,7 +988,11 @@ Before saying "OIS discounting," verify:
 
 **Confusing CVA with "just a spread":** CVA is an expectation of discounted loss depending on exposure profiles, collateral terms, and default probabilities—not a simple spread.
 
-### 33.9.3 Verification Tests
+**Ignoring PAI in carry calculations:** PAI is real cash flow that affects portfolio economics.
+
+**Underestimating downgrade trigger risk:** Contingent collateral demands can create liquidity crises precisely when least affordable.
+
+### 33.10.3 Verification Tests
 
 **Repricing checks:**
 - Rebuild curves → benchmark OIS instruments should reprice to near-zero
@@ -764,6 +1029,12 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 
 6. **CSA terms are product-defining.** You cannot choose a discount curve without knowing collateral currency, remuneration rate, threshold, and rehypothecation rights.
 
+7. **Multi-currency CSAs create CTD optionality.** The collateral poster chooses the cheapest currency, affecting the effective discount rate.
+
+8. **Downgrade triggers add liquidity risk.** Collateral demands can spike precisely when a counterparty is least able to meet them.
+
+9. **PAI operationalizes the funding argument.** Daily interest on VM ensures the economics match the theoretical discounting.
+
 ---
 
 ## Key Concepts Summary
@@ -779,6 +1050,9 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | **Threshold** | MTM level below which no VM is required | Creates residual unsecured exposure |
 | **Margin Period of Risk (MPOR)** | Time between last collateralization and close-out | Exposure can move even with zero threshold |
 | **Rehypothecation** | Using received collateral to meet other collateral demands | Determines whether collateral actually funds hedges |
+| **CTD Collateral** | Cheapest-to-deliver collateral in multi-currency CSAs | Creates optionality affecting discount rate |
+| **Downgrade Trigger** | CSA clause changing terms when credit rating falls | Creates liquidity risk at worst times |
+| **Price Alignment Interest (PAI)** | Daily interest paid on variation margin | Operationalizes OIS discounting in practice |
 | **CVA** | PV of expected loss from counterparty default | Adjustment needed when collateral is imperfect |
 
 ---
@@ -795,6 +1069,8 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | $R$ | Recovery rate |
 | $q_i$ | Default probability for interval $i$ |
 | $v_i$ | PV of expected exposure at interval $i$ |
+| $b(t)$ | Cross-currency basis spread |
+| $\beta_c(t)$ | Collateral account numeraire |
 
 ---
 
@@ -822,6 +1098,11 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | 18 | What is wrong-way risk? | When exposure increases as counterparty credit deteriorates |
 | 19 | In a multi-currency CSA, what determines the effective discount rate? | The cheapest-to-deliver collateral currency (after FX basis adjustment) |
 | 20 | What information must you verify before choosing a discount curve? | Collateral currency, remuneration rate, threshold, MTA, eligible collateral, rehypothecation rights |
+| 21 | What is Price Alignment Interest (PAI)? | Daily interest payment on variation margin that aligns collateral economics with derivative discounting |
+| 22 | How is daily PAI calculated? | $\text{PAI} = \text{VM Balance} \times r_{\text{overnight}} \times \text{day fraction}$ |
+| 23 | What is a downgrade trigger in a CSA? | A clause that reduces thresholds (increases collateral requirements) if a party's credit rating falls |
+| 24 | Why are downgrade triggers dangerous for liquidity? | They demand more collateral precisely when the firm is under financial stress and least able to fund it |
+| 25 | What is CTD collateral optionality? | The right to post collateral in the cheapest available currency under a multi-currency CSA |
 
 ---
 
@@ -887,13 +1168,29 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 
 ---
 
-**11)** Why is "OIS everywhere" potentially misleading as a slogan?
+**11)** Calculate the daily PAI on a VM balance of $50mm when SOFR = 4.80% (ACT/360).
+
+**Solution:**
+$$\text{PAI} = \$50{,}000{,}000 \times 0.0480 \times \frac{1}{360} = \$6{,}666.67$$
+
+---
+
+**12)** A CSA has threshold = $25mm when the counterparty is rated A. If downgraded to BBB, threshold becomes $5mm. Current MTM = $40mm. What additional collateral is required upon downgrade?
+
+**Solution:**
+- Before downgrade: Collateral = $40mm - $25mm = $15mm
+- After downgrade: Collateral required = $40mm - $5mm = $35mm
+- Additional collateral call = $35mm - $15mm = **$20mm**
+
+---
+
+**13)** Why is "OIS everywhere" potentially misleading as a slogan?
 
 **Solution:** "OIS" could mean Fed funds OIS, SOFR OIS, €STR, or SONIA. The discount rate must match the specific collateral remuneration rate in the CSA. A USD trade with EUR collateral earning €STR should not use USD OIS.
 
 ---
 
-**12)** How would increasing recovery rate $R$ affect CVA?
+**14)** How would increasing recovery rate $R$ affect CVA?
 
 **Solution:** CVA $\propto (1-R)$. Higher $R$ means lower loss-given-default, hence lower CVA. If $R$ increases from 40% to 60%, CVA decreases by factor $(1-0.6)/(1-0.4) = 0.67$.
 
@@ -914,25 +1211,40 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | Cure period (MPOR) typically 10-20 days; creates residual exposure | Hull RM Ch 20, Example 20.1 |
 | CVA formula: $\sum(1-R)q_i v_i$ | Hull RM Ch 20 |
 | Rehypothecation: using received collateral to meet other demands | Hull RM Ch 18 |
-| Post-Lehman: clauses limiting rehypothecation became common | Hull RM Ch 18 |
+| Post-Lehman: clauses limiting rehypothecation became common | Hull RM Ch 18, Business Snapshot 18.1 |
 | EONIA, SONIA as overnight proxies for EUR, GBP | *Interest Rate Modeling* Section 5.1 |
+| Downgrade triggers can require additional collateral posting | Hull RM Ch 18-20 |
+| AIG's collapse accelerated by downgrade triggers | Hull RM (credit crisis discussion) |
+| Change of numeraire theorem | *Interest Rate Modeling* Theorem 1.4.2 |
+| Cross-currency basis swaps reveal cost of switching funding currencies | *Interest Rate Modeling* |
 
-### (B) Reasoned Inference — Derived from (A)
+### (B) Claude-Extended Content — Practitioner Knowledge
+
+| Content | Context |
+|---------|---------|
+| PAI mechanics and daily calculation | Extended from general derivatives operations knowledge; operationalizes the funding argument |
+| CTD collateral valuation framework | Extended from cross-currency basis principles; practical approaches used on dealer desks |
+| Hybrid discounting for partial collateralization | Extended from CVA/FVA principles; practical approximation approach |
+| Downgrade trigger liquidity risk discussion | Extended from AIG example; broader implications for risk management |
+| P&L reconciliation issues with PAI | Extended from operations knowledge; common desk issues |
+
+### (C) Reasoned Inference — Derived from (A) or (B)
 
 | Inference | Derivation |
 |-----------|------------|
 | Collateral rate $c(t)$ determines discount rate for perfectly collateralized trades | No-arbitrage: if hedge funded at $c(t)$, replication cost uses $c(t)$; using other rate creates arbitrage |
-| Numerical examples (swap PV, discount PV01) | Direct arithmetic from sourced rate/curve relationships |
+| Numerical examples (swap PV, discount PV01, PAI) | Direct arithmetic from sourced rate/curve relationships |
 | Multi-currency CTD effect | Combining collateral remuneration facts with covered interest parity logic |
+| Downgrade trigger impact calculation | Direct application of threshold mechanics under rating change |
 
-### (C) Flagged Uncertainties
+### (D) Flagged Uncertainties
 
 | Uncertainty | Reason |
 |-------------|--------|
 | Complete proof of "perfect collateralization ⇒ collateral numeraire discounting" | Sources establish market practice and motivation; don't provide full theorem covering all CSA legal details |
-| Cheapest-to-deliver collateral framework | *Interest Rate Modeling* mentions index-discounting basis but doesn't spell out complete CTD model |
+| Cheapest-to-deliver collateral framework with explicit optionality valuation | *Interest Rate Modeling* mentions index-discounting basis but doesn't spell out complete CTD model with option pricing |
 | Exact SOFR CSA amendment mechanics | Sources predate full LIBOR transition |
-| FVA framework | Sources note FVA controversy but don't provide complete pricing model |
+| FVA framework when rehypothecation is prohibited | Sources note FVA controversy but don't provide complete pricing model for this case |
 
 ---
 

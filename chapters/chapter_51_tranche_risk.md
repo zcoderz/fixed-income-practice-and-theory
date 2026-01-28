@@ -554,6 +554,113 @@ From O'Kane's Chapter 17 risk report example for long protection positions on st
 
 ---
 
+## 3.5 Systemic and Idiosyncratic Gamma (Second-Order Sensitivity)
+
+Beyond first-order delta measures, tranches exhibit significant **gamma**—the second derivative of value with respect to spread moves. O'Kane Ch 17 distinguishes two types of gamma that parallel the systemic/idiosyncratic delta distinction.
+
+### 3.5.1 Systemic Gamma Definition
+
+**Systemic gamma** measures the curvature of tranche value with respect to parallel portfolio spread moves:
+
+$$\boxed{\Gamma_s = \frac{\partial^2 V}{\partial S^2} \times (1\text{bp})^2}$$
+
+where $S$ represents a parallel shift in all portfolio spreads.
+
+**Finite-difference calculation:**
+
+$$\Gamma_s = V(S + 1\text{bp}) - 2V(S) + V(S - 1\text{bp})$$
+
+**Units:** USD (the P&L impact of the gamma effect per 1bp squared move).
+
+### 3.5.2 Idiosyncratic Gamma Definition
+
+**Idiosyncratic gamma** measures the curvature with respect to a single name's spread:
+
+$$\boxed{\Gamma_i = \frac{\partial^2 V}{\partial S_i^2} \times (1\text{bp})^2}$$
+
+For a portfolio of $N$ names, the **aggregate idiosyncratic gamma** is the sum:
+
+$$\Gamma_{\text{idio, total}} = \sum_{i=1}^{N} \Gamma_i$$
+
+### 3.5.3 O'Kane Table 17.2: Gamma Data Across Capital Structure
+
+From O'Kane's Chapter 17 risk report example (same 125-name portfolio as the delta table above):
+
+| Tranche | Systemic Gamma ($) | Idiosyncratic Gamma × 125 ($) |
+|---------|-------------------|------------------------------|
+| 0–3% (Equity) | −4,013 | +1,202 |
+| 3–7% (Mezz) | +47 | −66 |
+| 7–10% (Senior) | +667 | −187 |
+| 10–15% (Senior) | +901 | −200 |
+| 15–30% (Super-Sr) | +805 | −118 |
+
+*Source: O'Kane Table 17.2*
+
+### 3.5.4 The Gamma Sign Pattern
+
+The gamma signs exhibit a striking pattern that has profound hedging implications:
+
+**Equity tranches have negative systemic gamma and positive idiosyncratic gamma:**
+- **Negative systemic gamma** means convexity works *against* equity holders for large parallel spread moves. A 10bp spread widening costs more than 10× a 1bp move—the position "bleeds" under volatility.
+- **Positive idiosyncratic gamma** reflects that individual name spread moves have diminishing marginal impact as the equity tranche approaches its attachment point.
+
+**Senior tranches have positive systemic gamma and negative idiosyncratic gamma:**
+- **Positive systemic gamma** means senior tranches benefit from convexity in large market-wide moves—they are "long volatility" in the systemic dimension.
+- **Negative idiosyncratic gamma** reflects increasing marginal sensitivity as the tranche approaches attachment from individual name deterioration.
+
+> **Desk Reality: The Gamma Squeeze**
+>
+> The negative systemic gamma on equity tranches creates what traders call a "gamma squeeze." In volatile markets with large parallel spread moves, an equity tranche protection seller experiences accelerating losses beyond what the delta hedge suggests. This is why equity tranche trading desks must actively manage gamma exposure—either through dynamic delta hedging (which has execution costs in volatile markets) or through offsetting positions in other tranches.
+>
+> The rule of thumb from O'Kane: "Equity tranches are short gamma on systemic moves but long gamma on idiosyncratic moves." This creates a hedging asymmetry: index hedges fail to offset the gamma, but single-name hedges can.
+
+### 3.5.5 Gamma's Impact on Delta Hedging
+
+Why does gamma matter for hedging? Consider a delta-neutral position hedged at current spreads. If spreads move significantly:
+
+1. **The delta itself changes** (because gamma measures $\partial\Delta/\partial S$)
+2. **The hedge becomes stale** and must be rebalanced
+3. **Rebalancing costs real money** (transaction costs, bid-offer spreads)
+4. **With negative gamma, rebalancing is always costly** (you buy high, sell low)
+
+For equity tranches with systemic gamma of −$4,013 per (bp)², a 10bp parallel spread move creates a gamma P&L of:
+
+$$\text{Gamma P&L} \approx \frac{1}{2} \times \Gamma_s \times (\Delta S)^2 = \frac{1}{2} \times (-4{,}013) \times 100 = -\$200{,}650$$
+
+This is *in addition to* any delta slippage from hedge rebalancing.
+
+### 3.5.6 Hedging Decision Framework: Systemic vs Idiosyncratic
+
+O'Kane emphasizes that the hedging decision depends critically on expected spread behavior:
+
+| Market View | Hedge Approach | Rationale |
+|-------------|----------------|-----------|
+| Spreads move together (correlation-driven) | Use systemic delta | Parallel moves dominate |
+| Spreads disperse (name-specific) | Use idiosyncratic delta | Name moves are independent |
+| Mixed/uncertain | Blend of both | Hedge between the extremes |
+
+**Quantitative hedging framework:**
+
+Let $\alpha$ be the trader's view on the fraction of spread variance that is systemic:
+- $\alpha = 1$: All moves are parallel → use systemic delta
+- $\alpha = 0$: All moves are idiosyncratic → use idiosyncratic delta
+
+**Blended hedge ratio:**
+
+$$\Delta_{\text{hedge}} = \alpha \cdot \Delta_{\text{systemic}} + (1-\alpha) \cdot \Delta_{\text{idio, total}}$$
+
+From O'Kane Table 17.2 for equity (0–3%):
+- Systemic delta = $691mm
+- Idiosyncratic delta × 125 ≈ $3,450mm (each name ≈ $27.6mm)
+
+With $\alpha = 0.5$ (equal systemic/idiosyncratic weighting):
+
+$$\Delta_{\text{hedge}} = 0.5 \times 691 + 0.5 \times 3{,}450 = \$2{,}070.5\text{mm}$$
+
+This is roughly 3× the pure systemic hedge—a massive difference that explains why equity tranche hedging is notoriously difficult.
+
+---
+
 ## 4. Correlation Risk (Why PV Changes When Dependence Changes)
 
 ### 4.1 Why Dependence Changes Tranche PV
@@ -662,6 +769,86 @@ A minimal scenario suite for tranche books:
 | 6 | Systemic spread widening + correlation move | Joint stress |
 
 Scenarios (3)–(4) are the clearest proxies for clustering/tail risk.
+
+---
+
+### 5.4 Tail Dependence: t-Copula vs Gaussian Copula
+
+A critical model risk for senior tranches concerns **tail dependence**—the tendency for extreme events to occur jointly. QRM (McNeil, Frey, Embrechts) provides rigorous analysis of how copula choice affects clustering risk.
+
+#### The Gaussian Copula's Fatal Flaw for Senior Tranches
+
+QRM demonstrates that the **Gaussian copula is asymptotically tail independent** for any correlation $\rho < 1$:
+
+$$\boxed{\lambda_{\text{Gaussian}} = 0 \quad \text{for all } |\rho| < 1}$$
+
+**Intuition:** Under the Gaussian copula, the probability that both variables are simultaneously extreme vanishes as we look further into the tail. Joint extreme outcomes become vanishingly rare relative to marginal extremes.
+
+**The mathematical result** (QRM Example 5.32): For a bivariate Gaussian copula with correlation $\rho < 1$:
+
+$$\lim_{u \to 1} P(U_1 > u \mid U_2 > u) = 0$$
+
+This means that knowing one variable is extreme provides no asymptotic information about whether the other is extreme—even with correlation 0.9.
+
+#### The t-Copula Preserves Tail Dependence
+
+The **t-copula** with $\nu$ degrees of freedom has explicit tail dependence:
+
+$$\boxed{\lambda_t = 2t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)}$$
+
+where $t_{\nu+1}$ is the CDF of a Student-t distribution with $\nu+1$ degrees of freedom.
+
+**Key property:** As $\nu \to \infty$, the t-copula converges to the Gaussian copula and $\lambda_t \to 0$. But for finite $\nu$, tail dependence is strictly positive for any $\rho > -1$.
+
+#### QRM Table 5.1: Tail Dependence Coefficients
+
+From QRM Table 5.1, the upper tail dependence coefficient $\lambda$ for the t-copula:
+
+| ρ | ν = 1 | ν = 2 | ν = 4 | ν = 10 | ν = 25 | ν = 50 | Gaussian |
+|---|-------|-------|-------|--------|--------|--------|----------|
+| 0.00 | 0.250 | 0.181 | 0.106 | 0.039 | 0.013 | 0.005 | 0 |
+| 0.25 | 0.310 | 0.237 | 0.152 | 0.066 | 0.026 | 0.011 | 0 |
+| 0.50 | 0.391 | 0.317 | 0.223 | 0.115 | 0.054 | 0.027 | 0 |
+| 0.75 | 0.500 | 0.431 | 0.338 | 0.210 | 0.122 | 0.073 | 0 |
+| 0.90 | 0.608 | 0.553 | 0.468 | 0.339 | 0.231 | 0.161 | 0 |
+| 0.95 | 0.687 | 0.641 | 0.565 | 0.442 | 0.326 | 0.245 | 0 |
+
+*Source: QRM Table 5.1*
+
+**Reading the table:** With correlation $\rho = 0.75$ and $\nu = 4$ degrees of freedom, the tail dependence coefficient is 0.338. This means that conditional on one credit defaulting in an extreme scenario, there's a 33.8% probability the correlated credit also defaults—*in the limit*. The Gaussian copula says this probability goes to zero.
+
+#### Implications for Senior Tranche Risk
+
+**Why this matters for senior tranches:**
+
+1. **Senior tranches are exposed to tail states:** The 15–30% super-senior tranche only suffers losses when portfolio losses exceed 15%—an extreme event requiring multiple defaults.
+
+2. **Gaussian copula underestimates clustering:** With λ = 0, the Gaussian copula says extreme joint defaults become negligible. This underprices senior tranche protection.
+
+3. **Model risk is largest for senior tranches:** The ratio of t-copula to Gaussian tail probability can be infinite in the limit—a discontinuous model risk.
+
+> **Desk Reality: The 2008 Lesson**
+>
+> The 2008 financial crisis demonstrated the practical consequences of tail dependence model risk. Senior tranches priced under Gaussian copula assumptions experienced far more losses than models suggested. The correlation "smile" (implied correlations higher for equity and super-senior than mezzanine) emerged partly as the market repriced tail dependence.
+>
+> Post-crisis, many desks switched to t-copula or mixed/regime-switching models for senior tranche risk management, even if Gaussian copula remained the standard for pricing and hedging. The gap between pricing models and risk models reflects the lesson: **senior tranche risk requires fat-tailed thinking**.
+
+#### Worked Example: Tail Dependence Impact on Joint Default Probability
+
+Consider a 2-name portfolio where each name has 5% marginal default probability. What is the probability that both default?
+
+**Under independence:**
+$$P(\text{both default}) = 0.05 \times 0.05 = 0.25\%$$
+
+**Under Gaussian copula with ρ = 0.5:**
+Using the bivariate normal formula with correlation 0.5:
+$$P(\text{both default}) \approx 0.78\%$$
+
+**Under t-copula with ρ = 0.5, ν = 4:**
+From simulation or numerical integration:
+$$P(\text{both default}) \approx 0.95\%$$
+
+The t-copula increases joint default probability by roughly 22% compared to Gaussian copula—a material difference for portfolios where many such pairs exist.
 
 ---
 
@@ -1578,7 +1765,7 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 
 ---
 
-### 10.3 Flashcards (35 Q/A)
+### 10.3 Flashcards (55 Q/A)
 
 | # | Question | Answer |
 |---|----------|--------|
@@ -1626,10 +1813,21 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 | 42 | What does the "hockey stick" shape of TL(L) create? | Nonlinear risk characteristics — PV01 hedges fail for large moves and defaults. |
 | 43 | How does auction final price affect tranche settlement? | Loss = (1 - Final Price) × Defaulted Notional; lower final price means larger tranche loss increment. |
 | 44 | What is the leverage ratio for a tranche? | Systemic delta / tranche notional — measures effective exposure amplification. |
+| 45 | What is systemic gamma? | Second derivative of tranche value with respect to parallel portfolio spread moves: $\Gamma_s = \frac{\partial^2 V}{\partial S^2}(1\text{bp})^2$. |
+| 46 | What is idiosyncratic gamma? | Second derivative of tranche value with respect to a single name's spread: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}(1\text{bp})^2$. |
+| 47 | What sign is systemic gamma for equity tranches? | Negative—convexity works against equity holders for large parallel spread moves. |
+| 48 | What sign is systemic gamma for senior tranches? | Positive—senior tranches benefit from convexity in large market-wide moves (long volatility). |
+| 49 | What is the Gaussian copula tail dependence coefficient? | Zero ($\lambda = 0$) for any correlation $\rho < 1$—asymptotically tail independent. |
+| 50 | What is the t-copula tail dependence formula? | $\lambda_t = 2t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$ where $\nu$ is degrees of freedom. |
+| 51 | Why does Gaussian copula underestimate senior tranche risk? | Zero tail dependence means extreme joint defaults become negligible—underpricing tail clustering. |
+| 52 | What is the "gamma squeeze" on equity tranches? | Negative systemic gamma causes accelerating losses in volatile markets beyond what delta hedges suggest. |
+| 53 | What is the hedging decision parameter $\alpha$ in the blended hedge framework? | Trader's view on fraction of spread variance that is systemic; $\alpha = 1$ means all parallel, $\alpha = 0$ means all idiosyncratic. |
+| 54 | How do you compute systemic gamma via finite differences? | $\Gamma_s = V(S + 1\text{bp}) - 2V(S) + V(S - 1\text{bp})$. |
+| 55 | What is the approximate gamma P&L for a 10bp spread move with systemic gamma = −$4,000? | $\frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$ loss. |
 
 ---
 
-## 11. Mini Problem Set (18 Questions)
+## 11. Mini Problem Set (24 Questions)
 
 *Provide brief solution sketches for questions 1–9 only.*
 
@@ -1725,6 +1923,36 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 
 ---
 
+**19.** Calculate the systemic gamma P&L for a 15bp parallel spread widening on an equity tranche with $\Gamma_s = -4{,}013$.
+
+> **Sketch:** Gamma P&L $\approx \frac{1}{2} \times \Gamma_s \times (\Delta S)^2 = \frac{1}{2} \times (-4{,}013) \times 225 = -\$451{,}463$.
+
+---
+
+**20.** Given V(S-1bp) = $2.5mm, V(S) = $2.498mm, V(S+1bp) = $2.494mm, compute the systemic gamma.
+
+> **Sketch:** $\Gamma_s = V_+ - 2V_0 + V_- = 2.494 - 2(2.498) + 2.5 = -\$2{,}000$.
+
+---
+
+**21.** Using QRM Table 5.1, compare the tail dependence coefficient for $\rho = 0.75$ under (a) Gaussian copula, (b) t-copula with $\nu = 4$, and (c) t-copula with $\nu = 10$. Discuss implications for senior tranche risk.
+
+---
+
+**22.** A trader has an equity tranche with systemic delta = $500mm and aggregate idiosyncratic delta = $2,000mm. If the trader believes 40% of spread variance is systemic ($\alpha = 0.4$), what is the blended hedge notional?
+
+> **Sketch:** $\Delta_{\text{hedge}} = 0.4 \times 500 + 0.6 \times 2{,}000 = 200 + 1{,}200 = \$1{,}400$mm.
+
+---
+
+**23.** Explain why equity tranches have negative systemic gamma but positive idiosyncratic gamma, and how this creates hedging asymmetries.
+
+---
+
+**24.** A desk uses Gaussian copula for tranche pricing but suspects t-copula better captures tail risk. Design a scenario analysis to quantify the model risk for a 10–15% senior tranche.
+
+---
+
 ## Source Map
 
 ### (A) Verified Facts — Cite Specific Sources
@@ -1734,15 +1962,24 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 - CDS-style tranche valuation with trapezoidal premium leg — O'Kane Ch 12
 - RPV01 (risky PV01) concept and profile across capital structure — O'Kane Ch 17
 
-**Risk Measures:**
+**Risk Measures (First-Order):**
 - Systemic delta vs idiosyncratic delta distinction — O'Kane Ch 17
 - "The actual hedge will lie somewhere between the systemic and the idiosyncratic" — O'Kane Ch 17
 - Correlation 01 definition (1% absolute bump) — O'Kane Ch 14, Ch 17 (risk report framework)
 - VOD (Value-on-Default) definition with $\pm G$ — O'Kane Ch 14, Ch 17
 - Table 17.2 risk report example data (equity RPV01=2.95, systemic delta=$691mm, leverage=18.37) — O'Kane Ch 17
 
+**Risk Measures (Second-Order / Gamma):**
+- Systemic gamma definition: $\Gamma_s = \frac{\partial^2 V}{\partial S^2}(1\text{bp})^2$ — O'Kane Ch 17
+- Idiosyncratic gamma definition: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}(1\text{bp})^2$ — O'Kane Ch 17
+- Table 17.2 gamma data: equity systemic gamma = −$4,013, senior = +$805 — O'Kane Ch 17
+- Idiosyncratic gamma × 125: equity = +$1,202, senior tranches negative — O'Kane Ch 17
+- Gamma sign pattern across capital structure — O'Kane Ch 17
+
 **Dependence and Tail Risk:**
-- Tail dependence coefficient $\lambda_u$ and Gaussian copula asymptotic independence ($\lambda = 0$ for $\rho < 1$) — QRM (McNeil et al)
+- Tail dependence coefficient $\lambda_u$ and Gaussian copula asymptotic independence ($\lambda = 0$ for $\rho < 1$) — QRM Ch 5, Example 5.32
+- t-copula tail dependence formula: $\lambda_t = 2t_{\nu+1}(-\sqrt{(\nu+1)(1-\rho)/(1+\rho)})$ — QRM Eq. 5.31
+- Table 5.1 tail dependence coefficients by $\rho$ and $\nu$ — QRM Ch 5
 - Base correlation decomposition and expected loss relationship — O'Kane Ch 13–14
 - Empirical negative correlation between default rates and recovery rates — O'Kane Ch 3, QRM
 
@@ -1758,6 +1995,9 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 - PV01-neutral hedges fail under jump events — demonstrated via Examples 13–14
 - Systemic/idiosyncratic hedge ratio difference of ~5× for equity — derived from O'Kane Table 17.2 data
 - Correlation hedge using capital structure combination — derived from Corr01 offset principle
+- Blended hedge ratio formula $\Delta_{\text{hedge}} = \alpha \cdot \Delta_{\text{systemic}} + (1-\alpha) \cdot \Delta_{\text{idio}}$ — derived from O'Kane's qualitative guidance
+- Gamma P&L approximation $\frac{1}{2}\Gamma(\Delta S)^2$ — standard Taylor expansion applied to O'Kane's gamma framework
+- Negative systemic gamma implies "short volatility" for equity tranches — inferred from sign and convexity economics
 
 ### (C) Speculation — Flag Uncertainties
 
@@ -1766,3 +2006,4 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 - I'm not sure which base correlation construction variant and interpolation method your desk uses
 - I'm not sure how your desk defines recovery sensitivity (defaulted name vs portfolio average vs auction final price)
 - I'm not sure about the exact timing of auction settlement relative to tranche premium accrual cutoffs without product documentation
+- I'm not sure about the exact t-copula joint default probabilities stated in the worked example without explicit numerical integration (directional comparison is verified but exact percentages may vary)
