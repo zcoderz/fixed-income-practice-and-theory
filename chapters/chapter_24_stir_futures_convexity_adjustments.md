@@ -1019,74 +1019,8 @@ For front-month contracts, the adjustment is negligible (~0.1 bp). For contracts
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts — Specific Sources
-
-| Fact | Source |
-|------|--------|
-| STIR futures quote convention $Q = 100 - R$ | Hull Ch 6, Tuckman Ch 17, Andersen Vol 1 |
-| Eurodollar futures reference 3M USD LIBOR | Hull Ch 6 |
-| 3M SOFR futures reference compounded SOFR, settle at end of period | Hull Ch 6 |
-| Fed funds futures reference monthly average fed funds rate | Tuckman Ch 17 |
-| Forward rate formula from discount factors | Andersen Vol 1 Ch 4, Hull Ch 4 |
-| Convexity adjustment definition: Forward = Futures $- c$ | Hull Ch 6: "Forward Rate = Futures Rate - c" |
-| Convexity adjustment is positive | Hull Ch 6: "$c$ is positive" |
-| Futures = forwards when rates are constant | Hull Ch 5-6: "When interest rates are constant, forward and futures prices are the same" |
-| Eurodollar/3M SOFR futures DV01 = \$25/bp | Hull Ch 6: "\$1,000,000 × 0.0001 × 0.25 = 25" |
-| Fed funds/1M SOFR futures DV01 = \$41.67/bp (30-day) | Hull Ch 6, Tuckman Ch 17 |
-| Tuckman approximation: $\sigma^2 t^2/2 + \sigma^2 \beta t/2$ | Tuckman Ch 17, equations (17.29)-(17.30) |
-| "Mark-to-market gains invested at low rates, losses financed at high rates" | Tuckman Ch 17 |
-| Eurodollar futures settle at beginning of 3M period | Hull Ch 6 |
-| Bucket hedging: "divide first 10 years into three-month buckets" | Tuckman Ch 7, Ch 17 |
-| Longer-maturity ED futures less liquid | Tuckman Ch 17 footnote |
-| ED convexity adjustment = difference of expectations under Q vs forward measure | Andersen Vol 1 Ch 4, Ch 16.8 |
-| Futures rate is Q-martingale under continuous MTM | Andersen Vol 1 Lemma 4.2.2 |
-| "Difference between daily and continuous settlement is quite small" | Andersen Vol 1 Ch 4 |
-| TED spread definition and "obvious theoretical flaw" | Tuckman Ch 17 |
-| "Determining c involves assumption about the underlying interest rate model" | Hull Ch 6 footnote |
-| EDZ6 example: 13.4 bp adjustment | Tuckman Ch 17, equation (17.32) |
-| Tailed hedge definition: "sets face amounts to present value of exposure" | Tuckman Ch 17 |
-| Tailed hedge formula: $N_{\text{fut}} = N_{\text{fwd}}/(1 + rd/360)$ | Tuckman Ch 17, eq. (17.5) |
-| "Tailed hedges are only an approximation to a theoretically correct hedge" | Tuckman Ch 17 |
-| Fed funds futures designed as "hedge to 30-day deposit in fed funds" | Tuckman Ch 17 |
-
-### (B) Claude-Extended Content (Practitioner Knowledge)
-
-| Content | Context |
-|---------|---------|
-| Pack/bundle color conventions (Whites/Reds/Greens/Blues/Golds) | Standard market terminology not explicitly detailed in sources |
-| FOMC meeting date extraction formula derivation | Derived from averaging mechanics described in Tuckman |
-| Mean reversion reduces convexity adjustment | Qualitative extension of model discussion in Andersen & Piterbarg |
-| SOFR-FF basis interpretation | Extended from SOFR/Fed Funds definitions in sources |
-| Stub rate stitching procedure | Practical implementation extending curve construction discussion |
-| When-to-tail decision table | Practical guidance derived from tailing formula |
-
-### (C) Reasoned Inference — Derivation Logic
-
-| Inference | Logic |
-|-----------|-------|
-| Convexity adjustment grows with $\sigma^2$ and $t^2$ | Direct from Tuckman approximation formula |
-| Deterministic-rate limit implies $c \to 0$ | Follows from Hull's statement about constant rates; also formula gives zero when $\sigma = 0$ |
-| Ignoring convexity adjustment biases forward curve upward | If $c > 0$, treating futures as forwards overstates forwards by $c$ |
-| Hedge ratio formula | Standard DV01 matching logic with sign for direction |
-| Adjustment magnitude table | Computed from Tuckman formula with stated parameters |
-| Sensitivity to volatility table | Computed from Tuckman formula ($c \propto \sigma^2$) |
-| Fed Funds DV01 for 31-day month = \$43.06 | $5{,}000{,}000 \times 0.0001 \times 31/360$ |
-| Pack DV01 = \$100/bp | $4 \times \$25$ |
-| Tailing factor derivation | Compound interest on reinvested daily settlement |
-
-### (D) Flagged Uncertainties
-
-| Item | Uncertainty |
-|------|-------------|
-| Exact exchange tick sizes, settlement calendars for specific current contracts | I'm not sure — need exchange rulebook for specific contracts; conventions may have changed since source publication |
-| Exact index definitions beyond cited examples (e.g., specific SOFR compounding rules) | I'm not sure — contract-specific and evolving |
-| Mean reversion effects on ED convexity adjustment (exact magnitude) | Discussed qualitatively; exact magnitude is model-dependent |
-| Convexity adjustment for SOFR futures (exact formula) | Hull notes difference exists; exact formula may differ from ED case |
-| Current market conventions for convexity adjustment (volatility assumptions) | I'm not sure — dealer practices vary and may have evolved |
-| Current pack/bundle naming conventions post-LIBOR transition | May have evolved; verify with CME documentation |
-
----
-
-*Last Updated: January 2026*
+- Hull, *Options, Futures, and Other Derivatives* (futures vs forwards; STIR futures mechanics; convexity adjustments).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (STIR futures, tailing, and convexity-adjustment intuition).
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (measure-change view of futures rates and sensitivity mechanics).

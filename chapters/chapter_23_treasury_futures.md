@@ -93,7 +93,7 @@ Tuckman frames the intuition: "The conversion factor of a bond is approximately 
 
 > **Practitioner Note: Historical Context**
 >
-> The notional coupon for U.S. Treasury futures was historically 8% when the contracts were first introduced in the late 1970s. When yields declined substantially, the CME changed the notional coupon to 6%. I'm not sure about the exact timing of this change without additional verification, but the effect was to recalibrate which bonds would typically be CTD under prevailing market conditions. This historical context helps explain why some older references use 8% in their examples.
+> The notional coupon for U.S. Treasury futures was historically 8% when the contracts were first introduced. In February 1999, the CBOT approved changing the notional coupon to 6%, effective with the March 2000 Treasury bond and Treasury note futures contracts. This historical context helps explain why some older references use 8% in their examples.
 
 ### 23.2.3 What Conversion Factors Are NOT
 
@@ -621,7 +621,7 @@ The squeeze hurts:
 | **Open interest vs. deliverable** | OI approaching or exceeding deliverable supply |
 | **Net basis collapsing** | CTD net basis approaching zero from above |
 
-> **Practitioner Note:** Historical squeeze episodes include various Treasury issues that went on extreme special during deliveries. In such cases, the CTD could trade 100+ bp special, making the basis trade economics dramatically different from normal carry-adjusted expectations. I'm not sure about specific recent squeeze episodes without current market data, but the mechanics described here apply to any such event.
+> **Practitioner Note:** In squeeze-like conditions, the CTD can trade extremely special (repo far below GC), making basis trade economics dramatically different from normal carry-adjusted expectations. The mechanics described here apply to any such event, regardless of the specific episode.
 
 ### 23.12.4 Operational Responses to Squeeze Risk
 
@@ -869,7 +869,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 | T-Bond (US) | 15+ years | ~15-20 years | 1/32 |
 | Ultra T-Bond (UB) | 25+ years | ~25 years | 1/32 |
 
-*I'm not sure about the exact current specifications without the CME rulebook. Specifications evolve, so verify current rules before trading.*
+*These are approximate parameters for intuition. Exchange specifications evolve; always verify current rules (eligible deliverables, ticks, timing) before trading.*
 
 ### Common Pitfalls
 
@@ -1061,78 +1061,9 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Concept | Source |
-|---------|--------|
-| Deliverable basket, quality option, timing option definitions | Tuckman Ch 20, Hull Ch 6 |
-| Invoice price: $cf \times F + AI$ | Tuckman Ch 20, Hull Ch 6 |
-| Conversion factor = 6% discounting rule | Hull Ch 6 (explicit calculation examples), Tuckman Ch 20 |
-| Conversion factor worked examples (10% 20yr → 1.4623; 8% 18y4m → 1.2199) | Hull Ch 6 |
-| Cost of delivery: $P - cf \times F$ | Tuckman Eq 20.1 |
-| CTD minimizes cost of delivery | Tuckman Ch 20, Hull Ch 6 |
-| Futures price at delivery: $F(T) = P^{CTD}/cf^{CTD}$ | Tuckman Eq 20.3 |
-| Arbitrage proof of futures price | Tuckman Ch 20 |
-| Gross basis definition | Tuckman Eq 20.10 |
-| Net basis definition | Tuckman Eq 20.11 |
-| Net basis = gross basis - carry | Tuckman Eq 20.12 |
-| Net basis = quality option value interpretation | Tuckman Ch 20 |
-| Basis trade P&L = change in net basis × face | Tuckman Eq 20.15 |
-| DV01 and hedge ratio concepts | Tuckman Ch 5-6, Hull Ch 6 |
-| Duration-based hedge formula $N^* = (P \times D_P)/(V_F \times D_F)$ | Hull Eq 6.3 |
-| Special spread and repo mechanics | Tuckman Ch 15-16 |
-| End-of-month option definition and P&L | Tuckman Ch 20 |
-| Wild card play description | Hull Business Snapshot 6.2 |
-| Delivery options reduce futures price | Hull Ch 6 (explicit statement) |
-| Yield level effects on CTD (high yield → high duration CTD) | Tuckman Ch 20, Hull Ch 6 |
-| Curve shape effects on CTD | Tuckman Ch 20, Hull Ch 6 |
-| Duration determines price/CF slope | Tuckman Ch 20 |
-| Negative convexity of futures | Tuckman Ch 20 ("the contract is negatively convex") |
-| Exact pricing is "difficult" due to delivery options | Hull Ch 6 |
-| CTD switch requires hedge adjustment | Hull Ch 6 |
-| Timing option: early vs late delivery trade-off | Tuckman Ch 20 |
-| TYM0 case study data and narrative | Tuckman Ch 20 Tables 20.6-20.10 |
-| Multi-factor model considerations | Tuckman Ch 20 |
-| Basket rationale (prevent squeezes) | Tuckman Ch 20 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| Roll mechanics section | Extends Tuckman's carry/basis concepts to calendar spreads |
-| Roll P&L attribution | Logical extension of basis trade P&L framework |
-| Squeeze risk detailed mechanics | Extends Tuckman's brief mention with practical implications |
-| Historical notional coupon context | General fixed income knowledge (timing flagged as uncertain) |
-| Model selection decision framework table | Synthesizes Tuckman's model discussion into practical guidance |
-| Contract specifications table | General market knowledge (flagged as requiring verification) |
-| "Desk Reality" boxes | Practical insights extending book material |
-| Timing option decision framework | Structured presentation of Tuckman's discussion |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Derived Result | Derivation Chain |
-|----------------|------------------|
-| Net basis formula: $NB = GB - \text{Carry}$ | Substitution of $P_{\text{fwd}} = P - \text{Carry}$ into net basis definition (Tuckman Eq 20.11-20.12) |
-| Implied repo formula | Break-even condition on cash-and-carry: set delivery profit = 0 and solve for $r$ |
-| Futures DV01 $\approx \text{DV01}_{\text{CTD}}/cf$ | Differentiation of $F \approx P/cf$ with respect to yield |
-| Accrued cancels in cost of delivery | Algebraic: $(P + AI) - (cf \times F + AI) = P - cf \times F$ |
-| Net basis behaves like straddle near CTD | Tuckman's observation that rate moves in either direction increase net basis |
-| Roll derives from carry differential | Logical extension: roll is difference in two net bases, which depends on carry differential |
-
-### (D) Flagged Uncertainties
-
-| Item | Uncertainty |
-|------|-------------|
-| Exact fails-charge formula | Sources discuss fails conceptually but don't specify penalty mechanics |
-| Precise delivery notice deadlines | Contract-specific; depends on exact exchange rulebook version |
-| Repo conventions outside USD | Would need additional source verification |
-| Operational specialness bounds | Tuckman discusses conceptually but precise bounds are contract/market specific |
-| Current standard contract specs (2Y/5Y/10Y/Ultra) | Exchange rules evolve; I'm not sure without current rulebook |
-| Historical notional coupon (was 8%, now 6%) | I'm not sure exactly when the change occurred without additional verification |
-| Specific recent squeeze episodes | Would need current market data to identify recent examples |
-
----
-
-*Last Updated: January 2026*
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (Treasury futures CTD, basis, implied repo, and delivery options; case studies).
+- Hull, *Options, Futures, and Other Derivatives* (Treasury futures hedging, conversion factors, and delivery-option intuition).
+- CBOT/CME historical documentation on the 8% → 6% notional coupon change (approved Feb 1999; effective Mar 2000).
+- CME contract specifications / rulebook (current deliverable-basket and tick/settlement details).

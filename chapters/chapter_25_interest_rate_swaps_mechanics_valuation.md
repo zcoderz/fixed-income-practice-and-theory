@@ -132,23 +132,19 @@ where $D$ is the total number of days in the period.
 
 ### 25.3.2 Observation Shift and Payment Delay
 
-Because SOFR is backward-looking and published with a one-day lag, several conventions have emerged to make payments operational:
+Because SOFR is backward-looking and published with a one-day lag, swaps use operational conventions so coupons can be calculated and paid smoothly. Common approaches include:
 
-**Lookback (Observation Shift):** The most common convention shifts the observation period backward by 2 business days. For a payment period from March 1 to June 1, the SOFR rates used are those from February 27 to May 28 (assuming 2-day shift). This allows the payment amount to be known 2 days before payment date.
+**Payment delay:** Keep the observation and accrual period aligned, but pay the coupon a fixed number of business days after period end (e.g., 2 business days).
 
-**Payment Delay:** Some contracts keep the observation period aligned with the interest period but delay the payment by 2 business days after the period end.
+**Lookback / observation shift:** Observe rates from a few business days earlier so the final coupon can be calculated before the accrual period ends.
 
-**Lockout Period:** Some contracts stop observing new SOFR rates a few days before period end, using the last observed rate for the remaining days.
+**Lockout:** Freeze the last few daily rates so the coupon amount is known early.
 
-> **Desk Reality: SOFR Fixing and T+1 Publication**
+The exact convention is documentation/CCP-specific. The key desk skill is to recognize that different conventions create a small but real “convention basis” between otherwise similar SOFR trades.
+
+> **Desk Reality: SOFR Fixing and Operational Timing**
 >
-> SOFR is published at approximately 8:00 AM Eastern Time on T+1—meaning the rate for Monday's transactions is published Tuesday morning. This creates operational complexity:
->
-> - For a quarterly payment due June 1, if using a 2-day lookback, you need SOFR through May 28
-> - The May 28 SOFR is published May 29
-> - This gives 2 days (May 29-30) to calculate and confirm the payment amount
->
-> Without the lookback, you wouldn't know the payment amount until the payment date itself, creating settlement risk.
+> SOFR is published on T+1 (the rate for Monday’s transactions is published Tuesday morning). This is why SOFR swaps typically include operational conventions (payment delays, lookbacks, or lockouts): without them, you may not have enough time to calculate and confirm a coupon before settlement.
 
 ### 25.3.3 Term SOFR vs. Overnight SOFR Compounding
 
@@ -162,13 +158,17 @@ Two SOFR-based products exist:
 
 ### 25.3.4 Standard USD SOFR Swap Conventions
 
-| Element | Fixed Leg | Floating Leg |
-|---------|-----------|--------------|
+The most common USD “fixed vs SOFR” swap structure looks similar to the legacy USD fixed-vs-LIBOR swap: fixed coupons are paid periodically (often semiannual) and floating coupons are paid periodically (often quarterly), but the floating coupon is computed from **compounded SOFR in arrears**.
+
+| Element | Fixed Leg (common) | Floating Leg (common) |
+|---------|---------------------|------------------------|
 | Day count | 30/360 | ACT/360 |
-| Payment frequency | Semiannual (Annual for short) | Quarterly (Annual for short) |
-| Rate determination | At inception | Compounded SOFR in arrears |
-| Observation shift | N/A | 2 business days lookback |
+| Payment frequency | Semiannual | Quarterly |
+| Rate determination | Fixed at inception | Compounded SOFR in arrears over the accrual period |
+| Operational convention | — | Payment delay and/or lookback/lockout (per documentation) |
 | Business day | Modified following | Modified following |
+
+*Note:* There are other SOFR swap conventions (including OIS-style annual payment structures). Always confirm the product definition you are trading/valuing.
 
 ### 25.3.5 Example: Computing a SOFR Floating Payment
 
@@ -1086,63 +1086,8 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Swap definition and mechanics | Hull Ch 7 |
-| Swap = long fixed bond, short floating bond | Hull Ch 7, Tuckman Ch 18 |
-| Set in advance, pay in arrears structure | Hull Ch 7, Andersen Vol 1 |
-| Fixed 30/360, floating ACT/360 conventions | Hull Ch 7, Tuckman Ch 18 |
-| Single-curve par swap rate formula | Andersen Vol 1 (4.10), Tuckman Ch 18 |
-| Multi-curve framework with universal discount + index curves | Andersen Vol 1 Ch 6 (6.47)-(6.48) |
-| OIS discounting for collateralized swaps | Andersen Vol 1 Ch 6, Hull Ch 9 |
-| Floating-rate note worth par on reset dates | Tuckman Ch 18 |
-| Swap as portfolio of FRAs | Hull Ch 7 |
-| Par swap value = 0 but individual exchanges ≠ 0 | Hull Ch 7.7 |
-| Expected swap value path based on term structure | Hull Ch 7.7 |
-| Swap credit risk much lower than bond credit risk | Tuckman Ch 18 |
-| Loss limited to swap value, not principal | Tuckman Ch 18 |
-| Collateral/margin mechanism for swaps | Tuckman Ch 18 |
-| Internal inconsistency in LIBOR discounting | Tuckman Ch 18 |
-| Major uses: synthetic floating funding, mortgage hedging | Tuckman Ch 18 |
-| Swaps vs Treasuries for hedging debt issuance | Tuckman Ch 18 |
-| CCP clearing mechanics, Dodd-Frank requirements | Hull Ch 2 |
-| Swap spreads history and Treasury scarcity | Tuckman Ch 18 |
-| Comparative advantage argument | Hull Ch 7.5 |
-| SOFR compounding formula | Hull Ch 4 |
-
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| Desk language: "5s are 10.5 out", "paying/receiving" | Extended from trading floor conventions |
-| SOFR observation shift (2-day lookback) conventions | Extended from current market practice |
-| SEF execution (RFQ, CLOB) details | Extended from post-Dodd-Frank market structure |
-| Common P&L break sources | Extended from operational practice |
-| Sanity checks for swap operations | Extended from risk management practice |
-| Term SOFR vs overnight SOFR distinction | Extended from current market practice |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| Par rate = $PV_{\text{float}}$/Annuity | Set $V = 0$, solve for $c$ |
-| Single-curve telescoping to $1 - P(0,T)$ | Term-by-term cancellation |
-| Off-market PV = $(c - c_{\text{par}}) \cdot N \cdot A$ | Linear algebra from leg PV formulas |
-| Upfront payment = swap NPV for off-market swaps | Fair value exchange principle |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| Exact SOFR conventions (lockout vs lookback specifics) | I'm not sure—conventions continue to evolve and may vary by counterparty |
-| Desk-specific conventions (payment lags, stubs, business days) | I'm not sure—varies by currency and documentation |
-| Exact CCP initial margin percentages | I'm not sure—varies by CCP, portfolio, and market conditions |
-| Exact bump methodology for curve sensitivities | I'm not sure—desk convention; examples use explicit approximations |
-
----
-
-*Chapter 25 complete.*
+- Hull, *Options, Futures, and Other Derivatives* (swap mechanics, valuation, and SOFR compounding examples).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (swap PV01/annuity intuition, discounting vs projection, and desk conventions).
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-curve valuation framework and curve-consistent swap pricing).
