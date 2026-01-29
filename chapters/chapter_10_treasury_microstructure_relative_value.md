@@ -30,7 +30,7 @@ Treasury prices are quoted in dollars and 32nds per $100 face value. A quote of 
 
 ### 10.1.2 The Primary Dealer System
 
-The U.S. Treasury market is intermediated by a network of **primary dealers**—securities firms designated by the Federal Reserve Bank of New York to participate directly in Treasury auctions and to make markets in government securities. As of 2024, there are approximately 24 primary dealers, including major banks (JPMorgan, Goldman Sachs, Citigroup) and broker-dealers.
+The U.S. Treasury market is intermediated by a network of **primary dealers**—securities firms designated by the Federal Reserve Bank of New York to participate directly in Treasury auctions and to make markets in government securities. The roster changes over time; if you need the current list for operational or regulatory reasons, use the New York Fed’s primary dealer list as the source of truth.
 
 Primary dealers have three key obligations:
 
@@ -424,7 +424,7 @@ The result was a severe shortage of on-the-run collateral. Table 10.2 shows aver
 
 *Source: Tuckman, Table 15.3*
 
-Tuckman notes: "the GC rate was 1.75% while the fed funds rate at the time was 3%. The widespread shortage of Treasury collateral widened the spread between fed funds and GC to 125 basis points." The five-year OTR was trading at just 0.10%—essentially at the fails floor.
+Tuckman notes: "the GC rate was 1.75% while the fed funds rate at the time was 3%. The widespread shortage of Treasury collateral widened the spread between fed funds and GC to 125 basis points." The five-year OTR was trading at just 0.10%—extremely special, reflecting acute scarcity and “borrow vs fail” economics.
 
 ### 10.10.2 The Treasury's Response
 
@@ -439,7 +439,7 @@ This episode illustrates how microstructure effects can dominate during stress: 
 > 1.  **Setup**: Too many shorts crowd into the OTR 10y (betting on rates rising).
 > 2.  **Trigger**: Market panic (e.g., 9/11). Lenders pull collateral back to safety.
 > 3.  **Consequence**: Shorts *must* borrow the bond to deliver, but no one is lending.
-> 4.  **Price**: Repo rate hits 0% (or -3% today). Shorts bleed cash daily to hold the position.
+> 4.  **Price**: The special repo rate can fall toward 0% and, in extreme cases, go negative. Shorts bleed cash daily to keep the position on.
 > 5.  **Blowout**: The price of the OTR *spikes* relative to the curve. Shorts are forced to cover at any price, driving it higher.
 
 ---
@@ -962,11 +962,12 @@ The fly is: short $116.7mm 2-year, long $100mm 5-year, short $26.9mm 10-year.
 
 **17.** The fed funds target is 0.25%. Calculate the TMPG fails charge. What is the effective floor on special repo rates?
 
-**Solution:**
-- Fails charge = $\max(0, 3\% - 0.25\%) = 2.75\%$
-- Floor on special rate = $0.25\% - 3\% = -2.75\%$
+**Solution (simplified intuition):**
+- Under the TMPG fails charge framework, the *all-in* cost of failing is designed to be meaningful even when short rates are low (details and floors vary; see Chapter 1).
+- With a 0.25% reference rate, the “$3\% - R$” term is 2.75% p.a., so the daily charge is on the order of: proceeds × 2.75% / 360.
+- A rough **borrow vs fail** bound comes from comparing the cost of borrowing the bond (lending cash at a very low/negative special rate) to the cost of failing (opportunity cost plus fails charge). Under the common simplifying assumption that the opportunity cost is roughly $R$, this suggests an order-of-magnitude extreme special rate around $R - 3\% \approx -2.75\%$.
 
-A bond could theoretically trade at -2.75% special before failing becomes preferable.
+Treat this as intuition, not a universal hard floor: the effective bound depends on the exact TMPG rule version, the reference rate definition, and settlement details.
 
 ---
 
@@ -983,68 +984,9 @@ The financing drag exceeds the spread convergence gain. This illustrates why fin
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| On-the-run vs off-the-run definitions | Tuckman Ch 15 |
-| Self-fulfilling nature of OTR liquidity | Tuckman Ch 15 |
-| Repo repurchase price formula | Tuckman Ch 15, Eq 15.3-15.4 |
-| GC vs special repo definitions | Tuckman Ch 15 |
-| GC rate typically below fed funds (secured vs unsecured) | Tuckman Ch 15 |
-| Special spread magnitude (159 bp for 5-year) | Tuckman Table 15.1 |
-| Shorts prefer liquid securities | Tuckman Ch 15 |
-| Auction-cycle pattern for specials | Tuckman Ch 15 |
-| Reopenings produce smaller special spreads | Tuckman Ch 15 |
-| Fails mechanism and 0% floor | Tuckman Ch 15 |
-| Liquidity premium decomposition (financing + pure liquidity) | Tuckman Ch 15 |
-| Liquidity premium magnitudes (5-6 bp for 5-year) | Tuckman Table 15.2 |
-| Financing advantage calculation | Tuckman Ch 15, Eq 15.16-15.19 |
-| September 2001 collateral crisis data | Tuckman Ch 15, Table 15.3 |
-| Treasury surprise auction response | Tuckman Ch 15 |
-| Carry decomposition formula | Tuckman Ch 15, Eq 15.8 |
-| Forward price = Spot - Carry | Tuckman Ch 16, Eq 16.7-16.8 |
-| OTR yields distort swap spread measurement | Tuckman Ch 18 |
-| Solutions: fitted curves or adjusted yields | Tuckman Ch 18 |
-| Forward yield spread vs spot yield spread difference | Tuckman Ch 18 |
-| Roll's implicit spread model | Tsay Ch 5, pp. 235-240 |
-| LTCM convergence arbitrage and losses (~$4B) | Hull RM Ch 22, pp. 467-468, 578-584 |
-| Flight to quality mechanism | Hull RM Ch 22 |
-| Liquidity black holes concept | Hull RM Ch 22 |
-| Butterfly trade mechanics and equations | Tuckman Ch 4, 8 (Eq 4.25-4.29) |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Context |
-|---------|---------|
-| Primary dealer system and SLR constraints | Extended from general market knowledge; not detailed in Tuckman |
-| TMPG fails charge formula ($\max(0, 3\% - r_{FF})$) | Post-2009 market practice; Tuckman covers only pre-2008 zero-floor logic |
-| March 2020 "dash for cash" dynamics | Extended from general knowledge of 2020 crisis; not in primary sources |
-| OTR lifecycle description | Synthesized from Tuckman's discussion; explicit lifecycle not enumerated |
-| Auction concession mechanics | Common desk knowledge; brief mention in sources |
-| Spread-of-spreads as a cheapness indicator | Common RV desk metric; not explicitly defined in Tuckman |
-| Asset swap spread analysis for Treasuries | Extended from general swap spread knowledge |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation Logic |
-|-----------|------------------|
-| RV decomposition: curve + financing + liquidity | Combines liquidity premium definition with carry mechanics |
-| Hedging with OTR creates microstructure exposure | Follows from OTR yield including non-fundamental components |
-| Time-varying liquidity premium | Implied by auction-cycle patterns and crisis behavior |
-| Special spread bounded by GC rate (historical) | Direct implication of fails/zero-bound logic |
-| Forward price lower when special | Follows from $P_{fwd} = P - \text{Carry}$ where carry is higher when special |
-| Negative repo floor with fails charges | Derived from fails charge formula: floor = FFTarget - 3% |
-| March 2020 as "dash for cash" vs LTCM "flight to quality" | Contrast derived from description of both crises |
-
-### (D) Flagged Uncertainties
-
-| Item | Uncertainty |
-|------|-------------|
-| Exact current U.S. Treasury auction calendar | Not enumerated in provided sources; varies over time |
-| Precise empirical magnitude of when-issued cheapening | Would require specific empirical study |
-| Open repo mechanics (indefinite term, daily rate reset) | Sources discuss overnight and term repo but do not define open repo specifically |
-| Exact number of primary dealers (stated "approximately 24") | Changes over time; figure is approximate as of 2024 |
-| Precise March 2020 bid-ask spread magnitudes | Stated as indicative; actual spreads varied intraday |
+- Bruce Tuckman, *Fixed Income Securities* (Treasury on-the-run/off-the-run liquidity premia; repo specialness; auction-cycle effects; 2001 collateral episode; relative value framing).
+- John C. Hull, *Risk Management and Financial Institutions* (LTCM case study; flight-to-quality and liquidity stress intuition).
+- Ruey S. Tsay, *Analysis of Financial Time Series* (Roll’s implicit bid/ask spread model).
+- Federal Reserve Bank of New York (primary dealer program documentation and current dealer list).

@@ -282,7 +282,7 @@ Suppose:
 
 The implied 6-month forward rate starting in 6 months:
 
-$$f(0.5,1) = 2 \left[ \frac{(1.0275)^2}{1.025} - 1 \right] = 2 \left[ \frac{1.0556}{1.025} - 1 \right] = 2 \times 0.0299 = 5.98\%$$
+$$f(0.5,1) = 2 \left[ \frac{(1.0275)^2}{1.025} - 1 \right] = 2 \left[ \frac{1.055756}{1.025} - 1 \right] \approx 2 \times 0.030004 = 6.00\%$$
 
 **Interpretation:**
 - If the 6-month rate in 6 months is **above 5.98%**, Strategy B (roll) wins.
@@ -324,15 +324,15 @@ Suppose the yield curve is:
 
 You buy a 2-year zero-coupon bond at 4.50% yield. Price per $100 face:
 
-$$P_0 = \frac{100}{(1 + 0.045/2)^4} = 91.458$$
+$$P_0 = \frac{100}{(1 + 0.045/2)^4} = 91.484$$
 
 After 6 months, **if the curve doesn't change**, the bond is now a 1.5-year zero yielding 4.20%:
 
-$$P_{0.5} = \frac{100}{(1 + 0.042/2)^3} = 93.944$$
+$$P_{0.5} = \frac{100}{(1 + 0.042/2)^3} = 93.956$$
 
 **Rolldown return** (6-month holding):
 
-$$\frac{93.944 - 91.458}{91.458} = 2.72\%$$
+$$\frac{93.956 - 91.484}{91.484} = 2.70\%$$
 
 Annualized, this is roughly 5.4%—significantly more than the 4.50% yield would suggest from "holding to maturity" logic.
 
@@ -347,9 +347,9 @@ Annualized, this is roughly 5.4%—significantly more than the 4.50% yield would
 
 The risk is **curve flattening**. If the 1.5-year yield rises to 4.50% while you're holding:
 
-$$P_{0.5}^{\text{flat}} = \frac{100}{(1 + 0.045/2)^3} = 93.506$$
+$$P_{0.5}^{\text{flat}} = \frac{100}{(1 + 0.045/2)^3} = 93.543$$
 
-Return: $\frac{93.506 - 91.458}{91.458} = 2.24\%$ (annualized ~4.5%)
+Return: $\frac{93.543 - 91.484}{91.484} = 2.25\%$ (annualized ~4.5%)
 
 You've earned less than the initial yield—the curve flattening eroded your rolldown.
 
@@ -359,14 +359,18 @@ In 2022, the U.S. Treasury curve inverted significantly. A roll-down strategy th
 
 > **Practitioner Note:** The 2022-2023 curve inversion caught many systematic curve-riding strategies off guard. When the 2-year yield exceeded the 10-year yield by over 100bp, "rolling down the curve" meant rolling into *higher* yields, producing capital losses rather than gains.
 
-**P&L Scenarios Table:**
+**P&L Scenarios Table (Zero-Coupon Illustration):**
 
-| Scenario | 2Y Yield Start | 1.5Y Yield End | Price Change | 6M Return |
-|----------|---------------|----------------|--------------|-----------|
-| Stable curve | 4.50% | 4.20% | +2.49 | +2.72% |
-| Parallel +50bp | 4.50% | 4.70% | -0.21 | -0.23% |
-| Flattening | 4.50% | 4.50% | +2.05 | +2.24% |
-| Inversion | 4.50% | 5.00% | -0.91 | -1.00% |
+Entry: 2-year yield = 4.50%, entry price $P_0 = 91.484$.
+
+Your **breakeven exit yield** is the 1.5-year yield that makes the exit price equal to $P_0$ (zero P&L). In this setup it’s about **6.02%**—very close to the “implied forward” breakeven logic from the prior section.
+
+| Scenario | 1.5Y Yield at Exit | Exit Price | Price Change | 6M Return |
+|----------|--------------------|------------|--------------|-----------|
+| Stable curve (rolldown benefit) | 4.20% | 93.956 | +2.471 | +2.70% |
+| Flat curve (no rolldown) | 4.50% | 93.543 | +2.058 | +2.25% |
+| Breakeven (forward-ish) | 6.02% | 91.484 | 0.000 | 0.00% |
+| Adverse sell-off | 6.50% | 90.851 | -0.633 | -0.69% |
 
 ### 7.3.8 Term Premium: Why Rolldown May Be Fair Compensation
 
@@ -1306,7 +1310,7 @@ This chapter developed a complete framework for decomposing bond returns:
 
 **7.** Define $P_0 = P_{\text{clean}}(0; z_0, s_0)$, $P_h^{\text{uc}} = P_{\text{clean}}(h; z_0, s_0)$, $P_h^{\text{curve}} = P_{\text{clean}}(h; z_1, s_0)$, $P_h^{\text{actual}} = P_{\text{clean}}(h; z_1, s_1)$. Then rolldown $= P_h^{\text{uc}} - P_0$, curve effect $= P_h^{\text{curve}} - P_h^{\text{uc}}$, spread effect $= P_h^{\text{actual}} - P_h^{\text{curve}}$, and they sum to $P_h^{\text{actual}} - P_0$.
 
-**8.** Forward rate: $f = 2[(1.0275)^2/1.025 - 1] = 5.98\%$. Interpretation: If the 6-month rate in 6 months equals 5.98%, buying the 1-year zero produces the same return as rolling 6-month zeros.
+**8.** Forward rate: $f = 2[(1.0275)^2/1.025 - 1] \approx 6.00\%$. Interpretation: If the 6-month rate in 6 months equals about 6.00%, buying the 1-year zero produces the same return as rolling 6-month zeros.
 
 **9.** (1) Adverse curve moves can overwhelm positive carry; (2) Spread widening can dominate all other components. Carry+rolldown is conditional on "nothing happening," which is rarely the case.
 
@@ -1322,63 +1326,11 @@ This chapter developed a complete framework for decomposing bond returns:
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts (Source-Backed)
-
-| Content | Source |
-|---------|--------|
-| Dirty = clean + AI; accrued interest proportional formula | Tuckman Ch 1-4 |
-| Repo P&L identity and carry definition; 360-day basis | Tuckman Ch 15 |
-| Carry = interest earned minus cost of financing | Tuckman Ch 15: "Carry is defined as the interest earned on a position minus the cost of financing the position" |
-| Breakeven price change and breakeven holding period calculations | Tuckman Ch 15 |
-| Positive carry does not imply superior expected return | Tuckman Ch 15: "Positive carry trades... by no means implies that the expected return... is greater than that of a negative carry trade" |
-| DV01 definition: $-\frac{1}{10000}\frac{\partial P}{\partial y}$ | Tuckman Ch 5-6 |
-| Duration/convexity 2nd-order approximation (equation 5.20); convexity increases return whether rates rise or fall | Tuckman Ch 5 |
-| Pull-to-par mechanism and diagram | Tuckman Ch 3 |
-| Forward rate derivation from spot rates | Tuckman Ch 2 |
-| Forward rates as breakeven for maturity strategies | Tuckman Ch 2-3 (implied from forward rate derivations) |
-| Risk premium and expected return: $E[dP/P] = r dt + \lambda D dt$ | Tuckman Ch 10 |
-| Observational equivalence of expectations and risk premium | Tuckman Ch 10: "separating [expectations and risk premium] by observing a given term structure" is difficult |
-| Expected return = short-term rate + risk premium; carry composition vs level | Tuckman Ch 15 (Part Three reference) |
-| OAS definition; DVOAS as dollar value of 1bp OAS change | Tuckman Ch 14 |
-| P&L attribution: carry, factor exposure, convergence | Tuckman Ch 14 |
-| Convergence as OAS normalizing to zero | Tuckman Ch 14: "the OAS tends to zero or, equivalently, the security price tends toward its fair value" |
-| Z-spread/ZVS definition; compounding variants noted | Tuckman Ch 4 |
-| Cost of carry concept | Hull Ch 5 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| "Riding the yield curve" trade mechanics and P&L scenarios | Extended from Tuckman Ch 3 forward rate discussion; desk practice |
-| 2022 curve inversion example | Current market knowledge (not in books/) |
-| Term premium discussion and NY Fed ACM reference | Extended from Tuckman Ch 10 risk premium; academic literature |
-| Crisis behavior and cross-gamma in March 2020 | Extended from Tuckman Ch 14 residual discussion; market experience |
-| Attribution politics and PM incentives | Practitioner knowledge (not in books/) |
-| Multi-curve context (OIS discounting) | Extended from modern market practice |
-| Day count mismatch in carry (Act/360 vs Act/Act) | Extended from Tuckman Ch 15 and Hull Ch 4 day count discussions |
-
-### (C) Reasoned Inference (Derived from A)
-
-| Inference | Derivation Logic |
-|-----------|------------------|
-| Rolldown = counterfactual reprice at horizon with unchanged curve/spread | Operational definition using source mechanics (aging along the curve) |
-| Exact telescoping decomposition via intermediate prices | Direct algebraic construction |
-| Residual = convexity + cross terms | Follows from 2nd-order Taylor expansion in Tuckman Ch 14 |
-| Spread attribution depends on spread definition choice | Implied by multiple spread definitions in sources |
-| Forward rate as breakeven for maturity choice (explicit algebra) | Derived from Tuckman Ch 2 forward rate equations |
-
-### (D) Flagged Uncertainties
-
-| Topic | Notes |
-|-------|-------|
-| "Rolldown" terminology | Sources discuss mechanics (pull-to-par, aging) but do not impose a single industry-wide definition. Adopted explicit operational definition; desks may differ. |
-| Term premium magnitudes | Empirical estimates vary significantly across models and time periods; real-time measurement is difficult |
-| Hedged carry conventions | Instrument- and desk-specific; not fully specified in sources |
-| Crisis residual thresholds (10-15%) | Practitioner rule of thumb; not rigorously justified in sources |
-
----
+- Bruce Tuckman, *Fixed Income Securities* (carry and funded P&L decomposition; rolldown and pull-to-par; forwards and term premium discussion; attribution concepts).
+- John C. Hull, *Options, Futures, and Other Derivatives* (duration/convexity approximations and intuition; forward rates as no-arbitrage breakevens).
+- David G. Luenberger, *Investment Science* (present value and return decomposition intuition).
 
 *Cross-references:*
 - Clean/dirty price and accrued interest: see Chapter 4, Chapter 5

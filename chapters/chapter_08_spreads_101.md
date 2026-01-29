@@ -205,13 +205,13 @@ O'Kane notes that "some practitioners choose to hedge using the ZVS rather than 
 
 > **Deep Dive: Direction of Bias**
 >
-> On a typical upward-sloping (steep) curve, the spot rate curve often lies above the par yield curve at the same maturity (since forward rates > spot rates > par yields). If we intuitively view Z-spread as a spread to the spot curve and G-spread as a spread to the par yield, a bond priced off the higher spot curve requires *less* added spread to match a given low price than a bond priced off the lower par yield.
+> On an upward-sloping curve, the fitted **zero (spot) curve** and the **par-yield curve** differ because coupon bonds weight early cash flows more heavily than late cash flows. Z-spread is defined as a constant shift to the **zero** curve used to discount *each* cash flow, while G-spread is a difference between two **single** yields at one maturity. So Z-spread and G-spread can diverge on steep curves—especially for high-coupon/premium bonds.
 >
-> **Rule of thumb:** For standard bullet bonds on steep curves, we often observe **Z-spread < G-spread**. (See Example D below.)
+> **Rule of thumb (not a theorem):** For many bullet bonds on steep upward-sloping curves, practitioners often observe **Z-spread below G-spread**, but the sign and magnitude depend on coupon, curve construction, and compounding conventions. Always validate by repricing.
 >
 > **Trading rule:** Never trust G-spread alone on a steep curve for high-premium bonds. The coupon effect distorts the comparison.
 >
-> **Sanity check:** If Z-spread and G-spread differ by more than 20 bp, investigate the curve shape before drawing conclusions about relative value.
+> **Sanity check:** If Z-spread and G-spread differ materially (e.g., tens of bp), check curve shape, compounding/day-count conventions, and whether your “Treasury curve” is fitted zeros or on-the-run yields.
 
 ---
 
@@ -983,7 +983,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 
 **9.** Three clarifications needed: (a) Which swap curve—OIS, SOFR, or legacy LIBOR construction? (b) What interpolation method for off-market maturities? (c) Clean or dirty price basis for the bond yield?
 
-**10.** If matching clean price instead of dirty, the spread will be biased **lower** for bonds trading above par (positive AI). This is because clean price < dirty price, so less spread is needed to match the lower (wrong) target.
+**10.** If matching clean price instead of dirty (and accrued interest is positive), the spread will be biased **higher**. The engine is trying to fit a *lower* target price, which requires more discounting (larger spread). (If the bond is in an ex-dividend convention where accrued can be negative, the sign can flip—always check the convention.)
 
 **11.** Z-spread **larger** than OAS. For a callable bond, the investor is short the call option. The option has positive value to the issuer, so the bond price is lower than an equivalent non-callable. The Z-spread must be higher to match this lower price. OAS removes the option value, leaving only the credit/liquidity spread. Hence ZVS = OAS + option cost, so ZVS > OAS.
 
@@ -995,76 +995,8 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Full price = flat price + accrued interest | Tuckman Ch 1-4 |
-| Yield spread ignores term structure, depends on coupon | O'Kane Ch 4-5 |
-| Single yield is not complete description when rates vary | Tuckman |
-| Bond yield spread is excess over risk-free rate | Hull Ch 24.4 |
-| Z-spread (ZVS) definition as constant spread to discounting | O'Kane Ch 4.2.9 |
-| Z-spread continuous and discrete compounding formulas | O'Kane Ch 4.2.9 |
-| Practitioners prefer ZVS to yield for hedging | O'Kane Ch 4.2.9 |
-| OAS definition (spread added to tree rates) | Tuckman Ch 14 |
-| OAS name arose from callable bond/MBS analysis | Tuckman Ch 14 |
-| OAS is now used for securities without option features | Tuckman Ch 14 |
-| ZVS = OAS + Option Cost relation | O'Kane Ch 4.2.9 |
-| DVOAS sensitivity definition | Tuckman Ch 14 |
-| P&L attribution via OAS (carry + factor + convergence) | Tuckman Ch 14 |
-| "Long position in cheap security earns OAS carry + convergence" | Tuckman Ch 14 |
-| Asset swap spread definition | Tuckman Ch 18, O'Kane Ch 4.4 |
-| Par asset swap formula | O'Kane Ch 4.4.2 |
-| Asset swap intuition (long defaultable, short risk-free) | O'Kane Ch 4.4.2 |
-| Market asset swap convention and formula $A^*(0) = A(0)/P$ | O'Kane Ch 4.5 |
-| Market ASW higher for discount bonds | O'Kane Ch 4.5 |
-| Market ASW reverses counterparty exposure | O'Kane Ch 4.5 |
-| Asset swap MTM formula | O'Kane Ch 4.4.3 |
-| Asset swap MTM worked example | O'Kane Ch 4.4.3 |
-| Asset swap default risk analysis (loss = P - R) | O'Kane Ch 4.4.4 |
-| Default contingent interest rate risk | O'Kane Ch 4.4.4 |
-| CDS-cash basis definition | O'Kane Ch 5.6 |
-| Fundamental factors for basis (funding, delivery option, etc.) | O'Kane Ch 5.6.1 |
-| Market factors for basis (liquidity, CDO hedging, etc.) | O'Kane Ch 5.6.2 |
-| TED spread definition (spread to futures rates) | Tuckman Ch 17 |
-| TED spread as negative of OAS to futures | Tuckman Ch 17 |
-| Credit spread decomposition (actuarial + risk premia + liquidity) | O'Kane Ch 3.11 |
-| Coverage ratio and spread premium definitions | O'Kane Ch 3.11 |
-| Coverage ratio by rating (Table 3.4) | O'Kane and Schloegl (2002) |
-| On-the-run yields affected by liquidity/specialness | Tuckman Ch 15 |
-| Liquidity premiums of 5-6 bp in 2y and 5y sectors | Tuckman Ch 15 |
-| Asset swap spreads reflect security-specific effects | Tuckman Ch 18 |
-| Swap spread history (1990s banking, late 1990s scarcity) | Tuckman Ch 18 |
-| DV01 formula | O'Kane Ch 4 |
-| Semiannual bond pricing formula | Tuckman Ch 3-4 |
-| Expected excess return on bonds by rating | Hull Ch 24 Table 24.3 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| Desk-to-spread mapping table (Section 8.11) | Extends from general market practice; spread definitions from books |
-| Negative swap spread drivers (balance sheet costs, clearing advantages) | Extends Tuckman's historical context with post-2008 market knowledge |
-| "Career tip" and "Interview tip" practical notes | Practitioner knowledge for target audience |
-| Analogy: Car vs. Car + Warranty for par vs market ASW | Pedagogical addition |
-| Worked Example H (Asset Swap MTM) | Parallel to O'Kane's worked example |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| G-spread inherits benchmark-selection sensitivities | Extended from Tuckman's swap spread benchmark discussion |
-| I-spread inherits curve-definition sensitivities | Extended from Tuckman's swap spread discussion |
-| CS01 is not universal | Follows from multiple spread definitions having different price sensitivities |
-| Spread duration formula for Z-spread | Direct calculus on the continuous-form Z-spread PV equation |
-| On-the-run yield contamination applies to G-spreads | Extended from Tuckman's discussion of swap spreads vs on-the-run Treasuries |
-| Z-spread < G-spread on steep curves | Derived from Spot Rate vs Par Yield relationship (Spot > Par implies Z < G) |
-| I-spread can exceed G-spread in negative swap spread regimes | Follows from swap spread definition and post-2008 market dynamics |
-| Market ASW spread formula derivation | Standard algebra from O'Kane's setup |
-
-### (D) Flagged Uncertainties
-
-- **Desk-specific conventions:** The desk-to-spread mapping in Section 8.11 reflects general market practice but may vary by institution. Some desks may use proprietary spread measures not covered here.
-- **Post-2008 swap spread dynamics:** The specific magnitudes and persistence of negative swap spreads vary over time and by maturity. Current levels require market data verification.
+- Dominic O’Kane, *Modeling Single-name and Multi-name Credit Derivatives* (yield spreads vs Z-spread; asset swap spreads; credit spread decomposition; CDS–bond basis).
+- Bruce Tuckman, *Fixed Income Securities* (limits of yield summaries; OAS framework; benchmark choice and on-the-run distortions; spread-based attribution).
+- John C. Hull, *Options, Futures, and Other Derivatives* (bond yields and credit spread interpretation; conventions and practical cautions).

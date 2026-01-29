@@ -425,30 +425,21 @@ $$r_{\text{spec}} \geq 0\% \quad \Rightarrow \quad s \leq r_{\text{GC}}$$
 
 In the fall of 2001, with GC near 2%, the maximum special spread was about 200 basis points.
 
-### 9.6.4 The Post-2009 Floor: The TMPG Fails Charge
+### 9.6.4 Fails Charges and “Borrow vs Fail” Economics (Modern Intuition)
 
-> **Practitioner Note (not sourced from books/):** The TMPG Fails Charge
->
-> The 2008 financial crisis created a problematic dynamic: with interest rates near zero, there was no cost to failing, so strategic fails became widespread. This disrupted settlement and created systemic risk.
->
-> In May 2009, the Treasury Market Practices Group (TMPG) introduced a **fails charge**: parties that fail to deliver Treasury securities must pay the counterparty a penalty of **3% per annum** on the face value for each day of the fail.
->
-> **The new floor:**
-> $$\boxed{r_{\text{spec}} \geq -3\% \quad \text{(post-2009)}}$$
->
-> **Why?** If the special rate is -3%, borrowing the bond costs exactly the same as failing (paying the 3% fails charge). If specials went below -3%, rational traders would choose to fail instead—establishing -3% as the effective floor.
->
-> **Decision tree:**
-> - If special rate > -3%: Borrow the bond (better than failing)
-> - If special rate = -3%: Indifferent between borrowing and failing
-> - If special rate < -3%: Fail instead (cheaper than borrowing)
->
-> This changed the maximum possible specialness from ~GC (when GC was low) to approximately GC + 3%.
+When a short cannot borrow a security, it may **fail** to deliver. Historically (the pre-2009 logic), failing was often described as being “equivalent” to lending cash at 0%: you don’t deliver, so you don’t receive proceeds, and you miss out on investing those proceeds for a day. That logic suggests specials shouldn’t go meaningfully below 0%.
 
-> **Logic Chain: Fails as the Floor (Updated)**
-> *   **Pre-2009**: If Repo Rate < 0%, failing earns you 0%, so fail instead. Floor = 0%.
-> *   **Post-2009**: If Repo Rate < -3%, failing costs you 3%, but borrowing at < -3% costs more. Floor = -3%.
-> *   **Result**: Maximum specialness = $r_{\text{GC}} + 3\%$
+In modern Treasuries settlement practice, an explicit **fails charge** can apply to discourage chronic failing (see Chapter 1 and the TMPG trading practice). This changes the economics:
+
+- Failing now has an **explicit penalty component** (not just an opportunity cost).
+- As a result, specials can go **very low** and may even go **negative** in extreme scarcity/squeeze episodes.
+
+**Key desk takeaway:** There is no single, universal “special repo floor.” Instead, there is a *borrow-versus-fail tradeoff*:
+
+- **Borrow** if the all-in cost of borrowing the bond (how much interest you forgo/“pay” by lending cash at a low special rate) is **less** than the all-in cost of failing (opportunity cost plus any fails charge).
+- **Fail** if borrowing becomes even more expensive than failing.
+
+That breakeven depends on the reference rate used in the fails charge, any floors in the rule, and the exact settlement convention—so treat any hard-coded number like “-3%” as, at best, an order-of-magnitude intuition, not a theorem.
 
 ---
 
@@ -731,7 +722,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 | Check | What to Verify |
 |-------|----------------|
 | **Cashflow reconciliation** | Initial cash + interest − coupon adjustments = repurchase cash |
-| **Special rate bounds** | Special rates should not be below approximately -3% (fails charge floor post-2009) |
+| **Special rate reasonableness** | Specials can be very low (even negative). If you see extreme specials, sanity-check against “borrow vs fail” economics (fails charge rules) and your sign conventions |
 | **Leverage check** | With haircut $h$, leverage should be near $1/h$ |
 | **Sensitivity sign** | Higher repo rate → higher financing cost → $\partial \text{P\&L}/\partial r < 0$ for funded longs |
 
@@ -749,7 +740,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 
 5. **Specialness** ($r_{\text{GC}} - r_{\text{spec}}$) measures scarcity value and has real dollar impact via financing costs.
 
-6. **Special rates cannot go below approximately -3%** (post-2009) because the TMPG fails charge establishes a floor.
+6. **Fails charges matter for specials:** settlement fails economics affect the “borrow vs fail” decision and can limit how extreme specialness can get.
 
 7. **Haircuts** create overcollateralization and limit leverage; repricing creates margin call liquidity risk.
 
@@ -778,7 +769,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 | Carry | Interest income minus financing cost | Key component of funded P&L |
 | Implied repo | Financing rate implied by spot/forward prices | Reveals embedded financing in positions |
 | SOFR | Volume-weighted median of overnight repo rates | Primary USD reference rate |
-| Fails charge | 3% penalty for failing to deliver (post-2009) | Establishes floor on special rates at -3% |
+| Fails charge | Explicit penalty for Treasury settlement fails (per TMPG trading practice) | Affects “borrow vs fail” economics and can limit extreme specialness |
 
 ---
 
@@ -820,7 +811,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 | 14 | When is carry typically positive? | When coupon rate exceeds repo rate |
 | 15 | Write the funding-adjusted P&L formula | $\text{P\&L} = N(P(d)+AI(d)) - N(P(0)+AI(0))(1+rd/360)$ |
 | 16 | How does repo link to forward prices? | Forward invoice = spot invoice × (1 + rd/360), so $P_{\text{fwd}} = P(0) - \text{Carry}$ |
-| 17 | What bounds special rates from below post-2009? | The 3% TMPG fails charge—failing costs 3%, so specials can't go below -3% |
+| 17 | What can limit how negative a special can trade? | If borrowing becomes more expensive than failing delivery (after accounting for fails charges and opportunity cost), some participants may choose to fail instead—limiting extreme specialness |
 | 18 | What is a manufactured coupon? | The coupon payment passed from security borrower to lender during a repo |
 | 19 | What is repo-rate risk? | P&L sensitivity to changes in financing rates |
 | 20 | What is SOFR and why does it matter? | Secured Overnight Financing Rate—the primary USD reference rate based on repo |
@@ -855,7 +846,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 
 **Problem 6:** Using Problem 5, if collateral falls to $76 million, compute margin call.
 
-*Solution:* Required max loan = $0.95 \times 76{,}000{,}000 = \$72{,}200{,}000$. Margin call = $76{,}000{,}000 - 72{,}200{,}000 = \$3{,}800{,}000$.
+*Solution:* Required max loan = $0.95 \times 76{,}000{,}000 = \$72{,}200{,}000$. Current loan from Problem 5 is $76{,}000{,}000$. Margin call (cash to post / loan to reduce) = $76{,}000{,}000 - 72{,}200{,}000 = \$3{,}800{,}000$.
 
 **Problem 7:** $r_{\text{GC}} = 4.5\%$, $r_{\text{spec}} = 0.5\%$, $L_0 = \$200$ million, $d = 1$. Compute daily specialness benefit.
 
@@ -877,63 +868,11 @@ The September 2001 episode illustrates that repo markets can become severely str
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Content | Source |
-|---------|--------|
-| Repo as secured loan; start/end legs; repurchase price formula | Tuckman Ch 15 |
-| Financing long positions via selling repo | Tuckman Ch 15 |
-| Reverse repo for shorting; covering shorts | Tuckman Ch 15 |
-| Carry definition and P&L decomposition | Tuckman Ch 15 |
-| GC vs special repo; specialness spread | Tuckman Ch 15 |
-| On-the-run issues trade special due to liquidity/shorting demand | Tuckman Ch 15 |
-| Special rate floor bounded by zero (original fails argument) | Tuckman Ch 15 |
-| Haircuts and repricing provisions exist | Tuckman Ch 15 |
-| Forward price = spot invoice × (1+rd/360); link to carry | Tuckman Ch 16 |
-| Coupon treatment during repo (manufactured coupon) | Tuckman Ch 15–16 |
-| September 2001 market disruption and Treasury response | Tuckman Ch 15 |
-| Repo as secured borrowing; SOFR as overnight repo rate | Hull Ch 4 |
-| SOFR compounding formula | Hull Ch 4 |
-| GC rate typically below fed funds | Tuckman Ch 15, Hull Ch 4 |
-| Valuing bonds trading special—financing advantage calculation | Tuckman Ch 15 |
-| Gross basis and net basis definitions | Tuckman Ch 20 |
-| Basis trade mechanics | Tuckman Ch 20 |
-
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| Open repo mechanics (indefinite term, daily reset, cancellation notice) | Extended from general fixed income knowledge; marked with Practitioner Note |
-| TMPG fails charge (3%, introduced 2009) lowering floor to -3% | Post-Tuckman market development; marked with Practitioner Note |
-| Bilateral vs tri-party vs GCF vs sponsored repo market structure | Operational detail not in source books; marked with Practitioner Note |
-| Typical haircuts by collateral type | Market convention extended from general knowledge; marked with Practitioner Note |
-| "Bond Thermostat" framing for specialness signals | Pedagogical framing; marked with Desk Reality box |
-| Margin call cascade dynamics | Extended from general knowledge; marked with Desk Reality box |
-| P&L attribution breakdown | Standard desk practice; marked with Desk Reality box |
-| Squeeze mechanics systematic description | Derived from Tuckman specialness + Sept 2001 content |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Derivation | Logic |
-|------------|-------|
-| Repo-rate sensitivity $\partial \text{P\&L}/\partial r$ | Direct differentiation of P&L formula |
-| Dollar value of specialness | Arithmetic: $L_0 \times s \times d/360$ |
-| Leverage = 1/h | Follows from haircut definition |
-| Implied repo formula | Inversion of forward price relationship |
-| Post-2009 floor at -3% | Fails charge creates indifference point between failing and borrowing |
-| Worked numeric examples | Application of formulas under explicit conventions |
-| SOFR compounding example | Application of Hull's formula with specific rates |
-
-### (D) Flagged Uncertainties
-
-| Topic | Notes |
-|-------|-------|
-| Exact current haircut conventions | Vary by counterparty and market conditions; ranges given are approximate |
-| Collateral substitution rights in term repo | Not developed in provided sources |
-| Specific TMPG fails charge implementation details | Sourced from general knowledge, not books/ |
-| GCF repo operational details | Brief description based on general knowledge |
+- Bruce Tuckman, *Fixed Income Securities* (repo mechanics; specialness; funded P&L/carry; on-the-run vs off-the-run; basis intuition).
+- John C. Hull, *Options, Futures, and Other Derivatives* (SOFR as a repo-based overnight reference; money-market conventions).
+- Treasury Market Practices Group (TMPG), *U.S. Treasury Securities Fails Charge Trading Practice* (settlement fails charges and their interaction with “borrow vs fail” economics).
 
 ---
 
