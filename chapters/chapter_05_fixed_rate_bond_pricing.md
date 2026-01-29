@@ -164,7 +164,7 @@ Then the computed dirty price (at a coupon date, so AI = 0) should be exactly 10
 > *   **Premium Bond**: You paid extra upfront. You "lose" slightly every day as price falls to 100. This loss offsets the high coupon.
 > *   **Discount Bond**: You paid less upfront. You "gain" slightly every day as price rises to 100. This gain supplements the low coupon.
 >
-> **Result**: Total Return ≈ Yield, regardless of coupon.
+> **Result (with a caveat):** Under a constant-yield assumption (and reinvestment at that yield), total return is approximately the yield regardless of coupon—the price “pull to par” offsets coupon differences. Chapter 6 explains why realized return can still differ when yields move or reinvestment rates change.
 
 ### 5.3.4 Price Trajectory: Pull to Par Over Time
 
@@ -173,11 +173,11 @@ Consider a 5% coupon bond when market yields are constant at 4% (so the bond tra
 | Years to Maturity | Price (@ 4% YTM) | Price Change |
 |-------------------|------------------|--------------|
 | 5.0 | 104.49 | — |
-| 4.0 | 103.63 | -0.86 |
-| 3.0 | 102.78 | -0.85 |
-| 2.0 | 101.90 | -0.88 |
-| 1.0 | 100.96 | -0.94 |
-| 0.0 | 100.00 | -0.96 |
+| 4.0 | 103.66 | -0.83 |
+| 3.0 | 102.80 | -0.86 |
+| 2.0 | 101.90 | -0.90 |
+| 1.0 | 100.97 | -0.93 |
+| 0.0 | 100.00 | -0.97 |
 
 The price decline accelerates as maturity approaches because the "extra" coupon payments become fewer. For discount bonds, the pattern is reversed—price rises accelerate toward maturity.
 
@@ -765,7 +765,7 @@ Any pricing engine should pass these checks:
 
 **9.** AI cannot exceed the coupon amount. $3.50 > 3.00$ violates the bound check. Either the AI calculation is wrong (day count error) or the coupon amount is wrong.
 
-**10.** Fails charge = $50mm × max(0, 3% - 0.25%) × 3/360 = $50mm × 2.75% × 3/360 = \$11,458$ (approximately)
+**10.** Using the TMPG Treasury fails charge convention (order-of-magnitude), fails charge rate $\approx \max(0, 3\% - R)$. With $R=0.25\%$, rate = 2.75% p.a. Assuming the failed proceeds are about $50mm$, charge $\approx 50mm \times 2.75\% \times 3/360 = \$11{,}458$.
 
 **11.** Curve-based pricing uses the market's discount rate for each cashflow's specific maturity. YTM forces a single "average" rate on all cashflows, which is only correct if the yield curve is flat.
 
@@ -773,54 +773,9 @@ Any pricing engine should pass these checks:
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| "Invoice price—the money paid by the buyer and received by the seller" | Tuckman Ch 4, discussing 5½s example |
-| "The only quantity that matters is the invoice price" and it "equals the present value of future cash flows" | Tuckman Ch 4 |
-| Quote examples: "101-4⁵⁄₈", invoice = $10,137.24 | Tuckman Ch 4 (5½s of Jan 31, 2003 example) |
-| Dirty Price = Clean Price + Accrued Interest | Tuckman Ch 4, Hull Ch 6 |
-| Treasury Quote Syntax (32nds, "+" for half-ticks) | Tuckman Ch 1 ("numbers after the hyphens denote 32nds, often called ticks") |
-| Accrued Interest formula (Actual/Actual): AI = (days elapsed / days in period) × coupon | Tuckman Ch 4 |
-| Clean price continuous across coupon dates: "$P^a = P^b$" | Tuckman Ch 4 (algebraic proof) |
-| "A more accurate approach is to use a different zero rate for each cash flow" | Hull Ch 4 (Bond Pricing section) |
-| "Par yield... is the coupon rate that causes the bond price to equal its par value" | Hull Ch 4 |
-| "Discount factors extracted from one set of bonds may be used to price any other bond with cash flows on the same set of dates" | Tuckman Ch 1 (Law of One Price) |
-| T+1 settlement for Treasuries | Tuckman Ch 1 |
-| Zero-coupon bond "generates a single cash flow" | Luenberger Ch 3 |
-| 30/360 day count formula | Tuckman Ch 17, Hull Ch 6 |
-| February day count anomaly (3 days vs 1 day under 30/360 vs Act/Act) | Hull Business Snapshot 6.1 |
-| "The penalty for failing to deliver to the futures exchange is quite severe" | Tuckman Ch 20 footnote |
-| Mark-to-market loss example: 23.5 ticks on $100,000 = $734 | Tuckman Ch 20 (Table 20.2) |
-| Yield is "a blend of spot rates" | Tuckman Ch 2 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| Tick value formula and P&L calculation table | Extends from Tuckman's tick examples; standard desk practice |
-| "The Handle Game" trader language box | Common desk terminology not in textbooks |
-| Fails charge formula (3% - Fed Funds) | TMPG fails charge practice post-2008; extends Tuckman's fails footnote |
-| Flat trading definition and defaulted bond conventions | Extends from O'Kane's credit discussion; standard market practice |
-| Stub period pricing formula and worked example | Extends from Tuckman Ch 4 equation 4.15 discussion of fractional periods |
-| Pull-to-par price trajectory table | Reasoned from premium/discount logic in Tuckman |
-| "Taxi meter" analogy for accrued interest | Pedagogical extension |
-
-### (C) Reasoned Inference
-
-- **Price Sensitivity:** Derived from the PV formula—falling discount factors imply falling price. The magnitude grows with time-to-cashflow because $(1+r)^{-t}$ is more sensitive to $r$ for larger $t$.
-- **Premium/Discount Logic:** If coupon > yield, the stream of above-market coupons has positive NPV relative to par, so price > 100. Symmetric argument for discount bonds.
-- **Settlement Timing:** Weekend accrual follows from the definition that AI is computed to settlement date.
-- **Unit Examples:** Derived from standard arithmetic scaling ($10,000 face = 100 units of $100 par).
-- **Curve vs Yield difference:** Follows from Hull's quote that curve-based is "more accurate"; the single-yield method averages across the term structure.
-
-### (D) Flagged Uncertainties
-
-- **Specific Holiday Calendars:** Exact "business day" definitions vary by exchange and country. This chapter uses general rules.
-- **Ex-Dividend Dates:** Specific ex-dividend rules for UK gilts and European bonds not detailed here; conventions vary.
-- **Fractional 32nds Beyond Half-Ticks:** Some platforms use quarter-ticks (1/128ths); conventions vary by trading venue.
-- **Fails Charge Exact Mechanics:** The TMPG fails charge rate may be subject to updates; current 3% cap may change. I'm not sure about the exact calculation for intraday fails.
-- **30/360 Variants:** Multiple variants exist (30/360 ISDA, 30E/360, 30E+/360); specific rules depend on ISDA definitions in trade documentation.
+- Bruce Tuckman, *Fixed Income Securities* (bond cash flows; clean/dirty pricing; accrued interest; Treasury quoting conventions).
+- John C. Hull, *Options, Futures, and Other Derivatives* (present value of bond cash flows; yield and day-count conventions).
+- David G. Luenberger, *Investment Science* (zero-coupon bond and present-value intuition).
+- Treasury Market Practices Group (TMPG), *U.S. Treasury Securities Fails Charge Trading Practice* (fails charge convention).

@@ -885,7 +885,7 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 - Semi-annual to continuous: $R_c = 2\ln(1 + y/2)$
 - Continuous to semi-annual: $y = 2(e^{R_c/2} - 1)$
 
-> **Note on BEY:** The term "bond-equivalent yield" (BEY) is sometimes used for semi-annual yields, but market usage varies. I'm not sure precisely which desks or markets label the semiannual-quoted bond yield as "BEY" without additional context.
+> **Note on BEY:** The term "bond-equivalent yield" (BEY) is sometimes used for semi-annual yields, but market usage varies. 
 
 ### 6.9.2 Common Pitfalls
 
@@ -1142,79 +1142,8 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| YTM is the single rate that discounts promised cash flows to market price | Tuckman Ch 3 |
-| "Yield-to-maturity is often used as an alternate way to quote price" | Tuckman Ch 3 |
-| YTM is solved by trial-and-error or numerical methods | Tuckman Ch 3 |
-| "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect" | Tuckman Ch 3 |
-| "Holding to maturity will not necessarily earn the initial yield" | Tuckman Ch 3 |
-| Dirty price = clean price + accrued interest | Tuckman Ch 4 |
-| If yield unchanged, quoted price continuous across coupon dates | Tuckman Ch 4 |
-| Semiannual compounding convention for bond yields | Tuckman Ch 3 |
-| If yield unchanged over short period, realized return = yield | Tuckman Ch 3 |
-| YTM is a blend of spot rates | Tuckman Ch 3 |
-| DV01 = $-\frac{1}{10{,}000}\frac{dP}{dy}$ | Tuckman Ch 5-6 |
-| "DV01 is an acronym for dollar value of an '01" | Tuckman Ch 5 |
-| Modified duration = $-\frac{1}{P}\frac{dP}{dy}$ | Tuckman Ch 6, equation (6.12) |
-| Macaulay duration = $(1+y/2) \times D_{\text{mod}}$ | Tuckman Ch 6, equation (6.16) |
-| Macaulay duration of a zero equals years to maturity | Tuckman Ch 6, equation (6.19) |
-| Duration is weighted-average time of cash flows | Hull Ch 4; Luenberger Ch 3 |
-| Duration first suggested by Macaulay in 1938 | Hull Ch 4 |
-| Yield convexity = $\frac{1}{P}\frac{d^2P}{dy^2}$ | Tuckman Ch 6, equation (6.33) |
-| Convexity of zero = $T(T+0.5)/(1+y/2)^2$ | Tuckman Ch 6, equation (6.36) |
-| Perpetuity price = $c/y$ | Tuckman Ch 3 |
-| Perpetuity Macaulay duration = $(1+y/2)/y$ | Tuckman Ch 6, equation (6.31) |
-| "Major weakness... movements in entire term structure described by one factor" | Tuckman Ch 7 |
-| Barbell has greater convexity than bullet | Tuckman Ch 6 |
-| 75%/25% barbell of 2y/30y zeros has convexity ~221 vs 9y bullet ~81 | Tuckman Ch 6 |
-| "Spreading out cash flows raises convexity" | Tuckman Ch 6 |
-| "Bonds are priced to reflect their convexity advantage" | Tuckman Ch 6 |
-| Higher coupon → lower duration | Tuckman Ch 6 |
-| Convexity increases with square of maturity | Tuckman Ch 6 |
-| Duration asymptotes to finite limit as maturity → ∞ | Tuckman Ch 6; Luenberger Ch 3 |
-| Callable bonds and MBS exhibit negative convexity | Tuckman Ch 6 |
-| Callable bond price = non-callable - call option value | Tuckman Ch 5 |
-| Callable bond can have convexity of -223 when call is in the money | Tuckman Table 5.4 |
-| Yield-to-worst is yield given redemption that minimizes investor value | Tuckman Ch 5 |
-
-### (B) Claude-Extended Content (Practitioner Knowledge)
-
-| Content | Context |
-|---------|---------|
-| DV01 as "lingua franca of rates" | Extended from general fixed income practice |
-| "Long 50k DV01" interpretation | Standard desk communication |
-| Total return analysis approach | Standard portfolio management practice |
-| Barbell vs butterfly trade structure | Standard rates trading strategy |
-| P&L break examples from curve moves | Common operational experience |
-| Cost of convexity as yield give-up | Derived from Tuckman + trading practice |
-| Convexity-gamma analogy | Standard quantitative finance parallel |
-| Callable bond trading conventions (YTC vs YTM) | Market practice |
-| Liability manager concerns about reinvestment | Insurance/pension industry practice |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation Logic |
-|-----------|------------------|
-| YTM is an "average discount rate" | Follows from IRR definition—single rate matching price; confirmed by Tuckman's "blend of spot rates" |
-| Clean price avoids mechanical accrual drift | Follows from $P_{\text{dirty}} = P_{\text{clean}} + \text{AI}$ and Tuckman's continuity proof |
-| Convexity benefit for plain vanilla bonds | Follows from $C_y > 0$ and Taylor expansion |
-| Yield-DV01 hedge failure under twists | Follows from single-factor vs multi-factor logic |
-| Near-par yield ≈ coupon rate | Follows from pricing equation structure |
-| Zero-coupon YTM = spot rate | Follows from single cash flow discounting |
-| DV01-duration relationship | Algebraic derivation from definitions |
-| Reinvestment shortfall calculation | Derived from compound interest formulas |
-| Negative convexity from price ceiling | Follows from call option decomposition |
-
-### (D) Flagged Uncertainties
-
-| Content | Uncertainty |
-|---------|-------------|
-| "BEY" terminology in practice | Not explicitly defined in cited sources; desk/market usage varies; I'm not sure which markets label the semiannual-quoted bond yield as "BEY" |
-| Exact day-count handling in yield calculations | Market-specific variations exist (actual/actual vs 30/360); verify for your desk |
-| Fractional-period discounting conventions | Tuckman shows actual/actual for Treasuries; corporate bonds may differ |
-| Precise convexity figures for specific callable structures | Depend on option modeling assumptions; values shown are illustrative |
+- Bruce Tuckman, *Fixed Income Securities* (yield-to-maturity; reinvestment caveats; duration/convexity; single-factor vs curve risk; callable bond intuition).
+- John C. Hull, *Options, Futures, and Other Derivatives* (duration definitions and bond yield conventions; yield curve movements and hedging intuition).
+- David G. Luenberger, *Investment Science* (IRR and present-value framing; duration intuition).
