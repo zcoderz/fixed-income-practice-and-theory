@@ -308,7 +308,7 @@ When demand exceeds supply, the non-USD leg pays a negative spread (by market co
 
 > **Desk Reality: Quarter-End Basis Widening**
 >
-> Every quarter-end, and especially year-end, basis widens predictably. Why?
+> Around quarter-end (and especially year-end), basis often widens. Why?
 >
 > **Regulatory window-dressing**: Banks' leverage ratios are measured on reporting dates. To meet targets, banks shrink balance sheets at quarter-end, withdrawing from xccy markets. With less supply, basis widens.
 >
@@ -322,27 +322,17 @@ When demand exceeds supply, the non-USD leg pays a negative spread (by market co
 
 **Central bank swap lines as circuit breakers:**
 
-During the 2008 crisis and again in March 2020, the Federal Reserve established swap lines with major central banks (ECB, BoJ, BoE, SNB). These allow foreign central banks to borrow USD from the Fed and lend to their domestic banks.
+In severe USD funding stress, the Federal Reserve can provide USD liquidity to foreign central banks via **swap lines**. Those central banks can then lend USD to domestic banks, reducing the need to source dollars through expensive private-market basis swaps.
 
-When swap lines are activated at scale, they act as a *ceiling* on basis—banks can always get USD from their central bank (at a penalty rate) rather than paying extreme basis in the market. The 2020 COVID crisis saw basis widen dramatically before swap line deployment, then compress as the Fed provided unlimited USD liquidity.
-
-> **Historical Episode: March 2020 COVID Basis Blow-Out**
->
-> In early March 2020, EUR/USD 3-month basis traded around -20bp (normal for the period). Over two weeks:
-> - March 9-13: Basis widened to -50bp as pandemic fears grew
-> - March 16-19: Basis blew out to -150bp as dollar funding seized
-> - March 19: Fed announced unlimited swap lines with major central banks
-> - March 23-31: Basis compressed back to -30bp
->
-> The episode demonstrated: (1) basis risk is real and can dominate P&L in stress; (2) central bank intervention can rapidly reverse moves; (3) even "arbitrage-free" relationships break when balance sheets seize.
+When swap lines are activated at scale, they can act as a *ceiling* on extreme basis moves: banks can access USD (at a penalty) via their central bank rather than paying any price in the market.
 
 **Sign convention clarification:**
 
-The basis spread is typically quoted on the non-USD leg. Convention:
+The basis spread is **often** quoted on the non-USD leg (but this is not universal—always verify the market quote definition). A common convention:
 - **Negative basis** (e.g., -30bp on EUR leg): EUR-funded party pays to swap into USD
 - **Positive basis** (e.g., +20bp on EUR leg): USD-funded party pays to swap into EUR
 
-Most of the time since 2008, non-USD currencies have traded with negative basis against USD—reflecting the structural USD shortage.
+Since the crisis era, non-USD currencies have often traded with negative basis against USD—reflecting persistent USD funding demand and balance-sheet constraints.
 
 ### 21.3.6 Trading the Basis: Issuance and Funding Flows
 
@@ -497,7 +487,7 @@ In a standard xccy swap, the FX rate is locked at inception. If spot moves signi
 
 **MTM xccy swap**: The notional exchange rate resets periodically (typically annually) to the prevailing spot rate. This reduces PFE (potential future exposure) and counterparty risk, but introduces additional cashflows to settle the notional revaluation.
 
-**I'm not sure** about the exact mechanics of MTM swaps across all markets—conventions vary by currency pair and counterparty relationship.
+Exact MTM/resettable mechanics vary by currency pair and documentation (reset frequency, whether notionals reset on one or both legs, and how the reset cashflow is settled). Treat the term sheet as the source of truth.
 
 ### 21.4.2 Valuation of a Cross-Currency Basis Swap
 
@@ -784,7 +774,7 @@ This linkage arises because the posted collateral earns the overnight rate. The 
 | Choice of collateral currency | Optionality value | Sophisticated counterparties |
 | No collateral | Funding + CVA/DVA | Credit desks |
 
-**I'm not sure** about the exact mechanics of multi-currency CSA optionality pricing—this requires modeling the option to post in the cheapest currency, which involves basis volatility assumptions.
+Pricing multi-currency CSA optionality requires modeling the **collateral currency option** (a cheapest-to-deliver feature) and therefore assumptions about basis dynamics/volatility. This is typically treated as part of XVA/CSA optionality rather than “just curve building.”
 
 > **Desk Reality: Why CSA Currency Matters**
 >
@@ -867,12 +857,13 @@ This risk is distinct from both FX delta and rates PV01. A portfolio can be FX-h
 
 For a cross-currency position, daily P&L can be decomposed as:
 
-$$\boxed{\Delta PV \approx \underbrace{\Delta_{FX} \cdot \delta S}_{\text{FX}} + \underbrace{PV01_d \cdot \delta r_d}_{\text{Dom Rates}} + \underbrace{PV01_f \cdot \delta r_f \cdot S}_{\text{For Rates}} + \underbrace{Basis01 \cdot \delta e}_{\text{Basis}} + \underbrace{\theta}_{\text{Carry}} + \underbrace{\varepsilon}_{\text{Unexplained}}}$$
+This book uses the DV01 convention: **DV01 is positive for positions that gain when rates fall**. Under that convention, the linear P&L approximation is:
+$$\boxed{\Delta PV \approx \underbrace{\Delta_{FX} \cdot \delta S}_{\text{FX}} - \underbrace{DV01_d \cdot \delta r_d}_{\text{Dom Rates}} - \underbrace{DV01_f \cdot \delta r_f \cdot S}_{\text{For Rates}} + \underbrace{Basis01 \cdot \delta e}_{\text{Basis}} + \underbrace{\theta}_{\text{Carry}} + \underbrace{\varepsilon}_{\text{Unexplained}}}$$
 
 where:
 - $\Delta_{FX}$: FX delta
 - $\delta S$: Change in spot FX rate
-- $PV01_d$, $PV01_f$: Domestic and foreign rate sensitivities
+- $DV01_d$, $DV01_f$: Domestic and foreign DV01s (in $/bp and foreign-currency/bp)
 - $\delta r_d$, $\delta r_f$: Changes in domestic and foreign rates (in bp)
 - $Basis01$: Basis spread sensitivity
 - $\delta e$: Change in basis spread (in bp)
@@ -885,12 +876,12 @@ where:
 >
 > **Risk exposures:**
 > - FX Delta: $-€4.5mm$ (short EUR via the principal exchange)
-> - USD PV01: $+\$45,000$ per bp (benefit from lower USD rates)
-> - EUR PV01: $-€40,000$ per bp (hurt by lower EUR rates)
+> - USD DV01: $+\$45,000$ per bp (benefit from lower USD rates)
+> - EUR DV01: $+€40,000$ per bp (benefit from lower EUR rates)
 > - Basis01: $+\$4,500$ per bp (benefit from basis tightening)
 >
 > **Day's market moves:**
-> - EUR/USD: 1.1000 → 1.1050 (+0.45%)
+> - EUR/USD: 1.1000 → 1.1050 (ΔS = +0.0050, +0.45%)
 > - USD 5Y: 4.00% → 4.05% (+5bp)
 > - EUR 5Y: 3.00% → 2.95% (-5bp)
 > - EUR/USD 5Y basis: -30bp → -25bp (+5bp tighter)
@@ -898,11 +889,11 @@ where:
 > **P&L attribution:**
 > | Component | Calculation | P&L |
 > |-----------|-------------|-----|
-> | FX | $-€4.5mm \times 0.0045$ | $-\$20,250$ |
-> | USD Rates | $+\$45,000 \times 5$ | $-\$225,000$ |
-> | EUR Rates | $-€40,000 \times (-5) \times 1.1025$ | $+\$220,500$ |
+> | FX | $-€4.5mm \times 0.0050$ | $-\$22,500$ |
+> | USD Rates | $-(+\$45,000) \times (+5)$ | $-\$225,000$ |
+> | EUR Rates | $-(+€40,000) \times (-5) \times 1.1025$ | $+\$220,500$ |
 > | Basis | $+\$4,500 \times 5$ | $+\$22,500$ |
-> | **Total Explained** | | $-\$2,250$ |
+> | **Total Explained** | | $-\$4,500$ |
 >
 > **Interpretation:** The position was approximately rate-neutral (USD and EUR P&L offset), lost slightly on FX, but gained on basis tightening. Net small loss.
 
@@ -914,7 +905,7 @@ where:
 > 3. **Liquidity effects**: Bid-ask spreads widen; marks become stale
 > 4. **Basis volatility**: Basis moves much more than the linear sensitivity suggests (convexity in basis)
 >
-> During March 2020, many xccy books had 50%+ unexplained P&L on peak days. This is a warning sign that your risk model is missing something—usually basis convexity or correlation regime shifts.
+> In crisis episodes, it is common to see a much larger “unexplained” residual than on normal days. This is a warning sign that the linear model is missing higher-order effects (basis convexity/cross-gamma) and that correlations/regimes have shifted.
 
 ---
 
@@ -1017,19 +1008,11 @@ Hull notes that "in many major pairs the spot/forward exchange rate is normally 
 
 ### 21.9.2 Basis Swap Quoting Conventions
 
-**I'm not sure** about universal conventions for which leg receives the spread. The spread can be quoted on:
-- The non-USD leg (common)
-- The "lower-rate" currency leg
-- Different conventions by dealer/venue
-
-**Always confirm** with the specific market before trading or calibrating.
+Quoting conventions differ by currency pair and venue. A common convention is to quote the spread on the non-USD leg, but you should **always confirm** the quote definition (which leg, pay/receive, sign) before trading or calibrating.
 
 ### 21.9.3 Settlement and Calendar Issues
 
-**I'm not sure** about exact spot/settlement conventions, which are currency-pair specific:
-- Spot date (T+2 vs T+1)
-- Holiday calendars (both currencies' holidays matter)
-- Business day conventions for adjusting flows
+Spot/settlement conventions are currency-pair specific (spot-lag, holiday calendars, and business day adjustments). Many major pairs are T+2; some are T+1. For production systems, this must be specified precisely for the currency pair.
 
 These affect accrual calculations and must be specified precisely for production systems.
 
@@ -1151,7 +1134,7 @@ These affect accrual calculations and must be specified precisely for production
 | 22 | Why does basis widen at quarter-end? | Regulatory window-dressing compresses bank balance sheets, reducing xccy supply |
 | 23 | What discount curve for EUR-collateralized USD swap? | USD OIS adjusted for basis (not pure USD OIS) |
 | 24 | What are Fed swap lines? | Central bank arrangements allowing foreign CBs to borrow USD from Fed, acting as basis ceiling |
-| 25 | What happened to EUR/USD basis in March 2020? | Widened from -20bp to -150bp, then compressed after Fed swap line expansion |
+| 25 | What happened to EUR/USD basis in pandemic-era USD funding stress? | It widened sharply (more negative) as USD funding demand spiked, then compressed as policy backstops (e.g., swap lines) reduced pressure |
 | 26 | Why do corporates issue in EUR and swap to USD? | Exploit tighter EUR credit spreads and receive basis; can achieve lower all-in USD funding |
 | 27 | What is the P&L attribution formula for xccy? | $\Delta PV = \Delta_{FX} \cdot \delta S + PV01_d \cdot \delta r_d + PV01_f \cdot \delta r_f + Basis01 \cdot \delta e + \theta$ |
 
@@ -1268,74 +1251,8 @@ A 5Y USD IRS (pay fixed 4.00%, receive SOFR) has PV01 of $48,000/bp. USD OIS is 
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| CIP rate form: $F_0 = S_0 e^{(r_d - r_f)T}$ | Hull Ch 5, equation (5.9) |
-| "Interest rate parity relationship from international finance" | Hull Ch 5 |
-| CIP discount-factor form: $F(0,T) = X(0) P_f/P_d$ | Andersen Vol 1 Ch 6 (implicit in eq 6.38) |
-| Forward FX rate definition: $X_T(t) = X(t) P_f(t,T)/P_d(t,T)$ | Andersen Vol 1 Ch 4.3.1 |
-| FX forward replication via foreign/domestic ZCBs | Andersen Vol 1 Ch 4.3.1 |
-| Independent curve construction violates (6.38), creating arbitrage | Andersen Vol 1 Ch 6.5.2.1 |
-| Multi-curve separation: discount vs index curves | Andersen Vol 1 Ch 6.5.2.2 |
-| Cross-currency basis swaps: exchange floating + spread, notional at spot ratio | Andersen Vol 1 Ch 6.5.2.3 |
-| One-period CRX basis swap = FX forward | Andersen Vol 1 Ch 6.5.2.3 |
-| CRX yield spread definition: $P^{(L)}(t) = P(t) e^{-s(t)t}$ | Andersen Vol 1 Ch 6.5.2.2 |
-| JPY basis -40 bp in late 1990s | Andersen Vol 1 Ch 6.5.2.2 |
-| JPY basis +60 bp in early 2008 | Andersen Vol 1 Ch 6.5.2.2 |
-| FX forwards rarely liquid beyond ~1 year | Andersen Vol 1 Ch 6.5.2.3 |
-| DV01 definition | Tuckman Ch 5-6 |
-| FX quote direction warning | Hull Ch 5 |
-| Basis swap valuation equation (6.42) | Andersen Vol 1 Ch 6.5.2.3 |
-| Iterative algorithm for cross-currency curve construction | Andersen Vol 1 Ch 6.5.2.4 |
-| "Bedrock" assumption (Assumption 6.5.1) | Andersen Vol 1 Ch 6.5.2.2 |
-| AUD/USD arbitrage example | Hull Ch 5, Example 5.6 |
-| Fed funds/Libor spread widening post-2007 | Andersen Vol 1 Ch 6.5.3 |
-| "Uncollateralized derivatives subject to credit risk" | Andersen Vol 1 Ch 6.5.3 |
-| OIS and Fed funds/Libor basis swap markets for USD curve | Andersen Vol 1 Ch 6.5.3 |
-| Iteration converges quickly | Andersen Vol 1 Ch 6.5.2.4 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Context |
-|---------|---------|
-| Balance sheet economics of "arbitrage" | Extended from general knowledge of Basel III constraints |
-| The USD Premium section (21.3.5) | Structural market dynamics, not in standard textbooks |
-| Trading the Basis section (21.3.6) | Corporate issuance arbitrage, Yankee funding dynamics |
-| Quarter-end basis widening | Regulatory window-dressing effects |
-| March 2020 COVID basis blow-out | Recent historical episode (post-textbook publication) |
-| Central bank swap lines as circuit breakers | Post-2008 policy innovation |
-| Mark-to-market basis swap structures | Modern market practice |
-| Collateral currency section (21.6) | Operational practice extending textbook theory |
-| P&L attribution framework (21.7.5) | Desk-level practice for risk management |
-| Sign convention cheat sheet | Market convention reference |
-
-### (C) Reasoned Inference — Derivation Logic
-
-| Inference | Derivation |
-|-----------|------------|
-| Implied foreign DF: $P_f = (F/X) P_d$ | Algebra from CIP-DF form |
-| Yield spread formula: $s(t) = -(1/t)\ln(P^{(L)}/P)$ | Algebra from spread definition |
-| Floating leg telescopes to par when $P^{(L)} = P$ | Forward rate substitution and telescoping sum |
-| Basis sensitivity formula | Differentiation of swap PV w.r.t. spread |
-| Forward equals spot when rates equal | Setting $P_d = P_f$ in CIP formula |
-| P&L attribution formula | Linear approximation from Taylor expansion of PV function |
-| Numerical iteration example (21.5.3) | Application of Andersen algorithm to specific numbers |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| Spot/settlement conventions | Currency-pair specific; not fully specified in sources |
-| Basis swap spread conventions (which leg, sign) | Market-convention specific; varies by venue |
-| Calendar construction | Books do not provide full operational calendars |
-| MTM basis swap exact mechanics | Varies by currency pair and counterparty |
-| Multi-currency CSA optionality pricing | Requires basis volatility assumptions not covered |
-| Typical basis ranges by currency | Indicative only; varies significantly with market conditions |
-
----
-
-*Last Updated: January 26, 2026*
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (CIP constraints; cross-currency basis swaps; iterative curve construction).
+- Hull, *Options, Futures, and Other Derivatives* (FX forwards and covered interest parity; practical quoting pitfalls).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (DV01 conventions and risk interpretation in fixed income).

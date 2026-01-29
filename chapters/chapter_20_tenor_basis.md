@@ -112,11 +112,11 @@ The difference is the tenor basis.
 
 The basis tends to exhibit several regularities:
 
-1. **Wider with maturity:** The 10-year basis swap spread is typically larger than the 2-year spread, reflecting long-term uncertainty about credit and liquidity conditions.
+1. **Often wider with maturity:** Longer-maturity basis quotes are often larger than shorter-maturity quotes, reflecting greater uncertainty about credit/liquidity and balance-sheet conditions over longer horizons.
 
-2. **Wider with tenor difference:** The 1M-6M basis is typically larger than the 3M-6M basis because the difference in lock-up period is greater.
+2. **Often wider with tenor difference:** The 1M–6M basis is often larger than the 3M–6M basis because the lock-up difference is larger.
 
-3. **Procyclical with stress:** During crises—2008, the European debt crisis, COVID-19 in March 2020—basis spreads widen significantly as banks hoard liquidity and prefer shorter-term funding.
+3. **Procyclical with funding stress:** In stressed funding environments, basis spreads can widen sharply as banks hoard liquidity and prefer shorter-term funding.
 
 4. **Mean-reverting but persistent:** Unlike temporary dislocations, tenor basis does not fully collapse to zero even in normal markets. There is a structural component reflecting the economic differences between tenors.
 
@@ -128,17 +128,11 @@ This created logical inconsistencies—fixed legs of swaps would be discounted a
 
 The crisis exposed this approach as fundamentally flawed. Andersen and Piterbarg note that after September 2007, the Fed funds/LIBOR spread "went up to as much as 275 basis points, and it is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
 
-> **Historical Note:** The 275 basis point spread between Fed funds and 3-month LIBOR in late 2008 remains one of the most dramatic dislocations in modern financial history. It signaled that banks considered lending to each other for even three months to be deeply risky.
+**Key clarification:** Two related spreads widened in the crisis period:
+- **OIS vs LIBOR (secured vs unsecured term):** a funding/credit liquidity stress indicator.
+- **Tenor basis (e.g., 1M vs 3M, 3M vs 6M):** the price of transforming one tenor exposure into another.
 
-> **Visual: The Basis Spread History**
->
-> Imagine a line graph of the 3M-OIS Annualized Spread.
-> *   **2000-2007**: A flat line near zero (0-5 bps). "Boring."
-> *   **2008**: Vertical spike to 350 bps. "Panic."
-> *   **2010-2012**: Elevated, choppy (Euro Crisis). "Stress."
-> *   **2020**: Sharp spike (Covid). "Liquidity Crunch."
->
-> This graph proves that Tenor Basis is a **fear gauge**. When banks are scared, they hoard short-term cash, and the basis explodes.
+Both tend to widen when the funding system is stressed — but they are not the same object, and they hedge with different instruments.
 
 ### 20.2.4 Connection to Cross-Currency Basis
 
@@ -158,7 +152,7 @@ $$\text{6M USD rate} \approx \text{3M USD rate} + \text{3s6s basis} \approx \tex
 
 When one component dislocates (e.g., XCCY basis blows out), the others adjust through arbitrage activity—though imperfectly and with lags.
 
-> **Practitioner Note:** During the March 2020 COVID crisis, both tenor basis and XCCY basis widened simultaneously as global dollar funding stress affected all channels. The Fed's swap lines with foreign central banks helped normalize XCCY basis, which in turn reduced pressure on the USD tenor basis.
+> **Practitioner Note:** In acute USD funding stress episodes, both tenor basis and cross-currency basis can widen as global dollar funding pressure affects multiple channels. Central bank swap lines and liquidity facilities can help normalize cross-currency funding markets, which can reduce pressure on tenor basis as well.
 
 ---
 
@@ -197,7 +191,7 @@ The convention for which leg receives the spread varies by market. Understanding
 
 > **Convention Warning:** Always verify the specific convention for your currency and counterparty. Is the quote "3s6s" paying the spread on the 3M leg or receiving it? Is it quoted as a spread *over* 3M or *under* 6M? A sign error guarantees a loss.
 
-> **I'm not sure** about the exact conventions in emerging RFR markets (e.g., SOFR 1M vs SOFR 3M term) as liquidity is still developing and conventions are evolving. Always verify with the term sheet or Bloomberg `FLDS` function.
+> **Convention note:** In newer and less-liquid RFR-based basis markets (e.g., Term SOFR vs compounded SOFR structures), quoting conventions are less standardized. Always verify the quote definition (which leg, day count, compounding/convention, effective date) in the term sheet or your market data system.
 
 > **Deep Dive: The Synthetic Loan**
 >
@@ -241,29 +235,24 @@ Dealers warehouse the residual imbalance between these natural flows. If more cl
 >
 > A senior basis trader describes the market: "Insurance companies are almost always on the same side—they pay 3s6s to convert their 6M liabilities into 3M assets. This creates a persistent supply of basis paying flow. Bank treasuries are natural receivers, but their demand is less consistent. Quarter-end and year-end create predictable imbalances that we can position for."
 
-### 20.3.5 Market Conventions by Currency
+### 20.3.5 Market Conventions (What to Check Before Trading)
 
-Basis swap conventions vary significantly across currencies. This table summarizes the key conventions for major markets:
+Tenor basis swaps are deceptively simple. Before you trade, lock down the conventions:
 
-| Currency | Primary Tenor Pair | Quote Convention | Day Count | Settlement |
-|----------|-------------------|------------------|-----------|------------|
-| **USD** | 3M vs 6M | Spread on 3M leg (3s6s) | ACT/360 both legs | T+2 |
-| **EUR** | 3M vs 6M | Spread on 3M leg (3s6s) | ACT/360 both legs | T+2 |
-| **GBP** | 3M vs 6M | Spread on 3M leg | ACT/365 both legs | T+0 |
-| **JPY** | 3M vs 6M | Spread on 3M leg | ACT/360 both legs | T+2 |
-| **CHF** | 3M vs 6M | Spread on 3M leg | ACT/360 both legs | T+2 |
+1. **Which leg carries the spread, and the sign convention**
+   - Is the quote “3s6s” meaning *3M + e vs 6M flat*, or the opposite?
+   - Is the basis quoted as “pay spread” or “receive spread” on the shorter-tenor leg?
 
-**Notes on Currency-Specific Quirks:**
+2. **Index definitions**
+   - Day count and holiday calendar (often inherited from the underlying index).
+   - Fixing conventions and any lookback/payment delay.
 
-**USD:** The 1M vs 3M basis is also actively traded, particularly by money market participants. The Fed Funds vs LIBOR basis was the original stress indicator and remains relevant for legacy positions.
+3. **Schedule details**
+   - Effective date (spot-lag) and whether there are stubs.
+   - Payment frequency mismatch (e.g., quarterly vs semiannual).
 
-**EUR:** EURIBOR-based basis swaps remain active despite the RFR transition. The 6M EURIBOR is the most liquid tenor in EUR, so the "3s6s" market references 3M EURIBOR vs 6M EURIBOR. Some markets also trade ESTR vs EURIBOR basis.
-
-**GBP:** The transition to SONIA was completed ahead of other currencies. SONIA-based swaps compound overnight rates, so the traditional tenor basis concept applies differently. The market primarily trades SONIA compounded against any residual legacy LIBOR positions.
-
-**JPY:** TONA (Tokyo Overnight Average) is the RFR, but TIBOR (both DTIBOR and ZTIBOR) remains in use for many contracts. This creates a TONA-TIBOR basis market in addition to the traditional 3s6s TIBOR basis.
-
-> **I'm not sure** about the precise conventions for emerging market basis swaps (CNY, INR, BRL, etc.) as these markets have less standardization and often trade OTC with bespoke terms. Always verify with the specific term sheet and local market practice.
+4. **Liquidity reality**
+   - Major-currency IBOR markets were relatively standardized; newer RFR-based basis markets and many EM markets are often more bespoke. Treat “the term sheet” as the source of truth.
 
 ---
 
@@ -571,7 +560,7 @@ The basis spread for periods crossing year-end is typically elevated. Practition
 2. Whether the spread is added (+) or subtracted (-)
 3. The daycount convention for each leg
 
-> **I'm not sure** about the exact conventions for newer RFR-based tenor basis markets (e.g., SOFR 1M vs SOFR 3M) as these markets are still developing. Liquidity varies by currency and maturity. Always verify with the specific term sheet or electronic trading platform.
+> **Note:** Liquidity and standardization are highest in the most actively traded benchmarks; for newer RFR-based tenor basis markets, conventions and liquidity can vary by currency, maturity, and venue. Verify the exact contract definition before assuming a sign or a hedge mapping.
 
 ### 20.7.3 Implementation Pitfalls
 
@@ -774,56 +763,7 @@ Net adjustment: The basis should be slightly higher than 8bp because the 6M leg'
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Multi-index curve group definition: collection $\{P(\cdot), P^{1}(\cdot), \ldots, P^{K}(\cdot)\}$ | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Basis swap PV equality equation (6.49) | Andersen & Piterbarg Vol 1, §6.5.3 |
-| 1M–3M basis historically ~1bp, widened to ~50bp post-2007 | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Fed funds/LIBOR spread reached 275bp post-2007 | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Tenor basis attributed to "credit considerations and partly liquidity considerations" | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Banks "have a natural desire to have longer-term deposits to better match their loan commitments" | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Sequential curve construction methodology with spread functions | Andersen & Piterbarg Vol 1, §6.5.3 |
-| OIS discounting for collateralized trades | Hull Ch 7; Andersen & Piterbarg Vol 1, §6.5.3 |
-| Forward rate formula from projection curve (6.48) | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Fixed-float swap valuation with separate discount/projection (6.47) | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Orthogonal risk sensitivities from spread-based construction | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Basis swap spread can be "positive or negative, depending on perceived desirability" | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Par-point delta methodology via Jacobian transformation | Andersen & Piterbarg Vol 1, §6.4.1-6.4.3 |
-| Turn-of-year effects on rate curves | Andersen & Piterbarg Vol 1, §6.5.1 |
-| SOFR is "based on overnight repo rates that are considered almost risk-free" | Hull, Options, Futures, and Other Derivatives, Preface/Ch 4 |
-
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| RFR transition section (20.1.3) | Extended from Hull's brief discussion of SOFR; adds practical implications for basis |
-| Market participant motivations table (20.3.4) | Extended from general fixed income knowledge; explains natural flow patterns |
-| Currency-specific convention table (20.3.5) | Extended from general market practice; day counts and settlement vary by currency |
-| Desk Reality boxes throughout | Practitioner perspective on trading and risk management |
-| Cross-currency basis connection (20.2.4) | Extended from understanding of arbitrage linkages across markets |
-| March 2020 COVID crisis references | Extended from general market knowledge; example of stress episodes |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Par Basis Spread Formula | Derived algebraically from the standard PV equality condition (rearranging equation 6.49). |
-| Example Calculations | Constructed to demonstrate the arithmetic of the derived formulas using typical market values. |
-| Risk Scenarios (hedging examples) | Inferred from the definitions of curve sensitivities and the orthogonal decomposition. |
-| FRN above par in multi-curve | Derived from the fact that $F^{(3M)} > F^{OIS}$ breaks the telescoping sum identity. |
-| Jacobian transformation formula | Standard chain rule application to the par-point delta concept from A&P. |
-| Turn-of-year worked example | Constructed to demonstrate application of seasonal effects to pricing. |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| Market Quoting Conventions | Specifics of which leg pays the spread (3s6s vs 6s3s) vary by dealer, currency, and electronic platform. Always verify. |
-| RFR Tenor Conventions | I'm not sure about the exact conventions for developing SOFR Term / RFR basis markets as liquidity is still emerging. |
-| Turn-of-year effects | Seasonal effects on basis spreads are market-dependent and evolve year to year. Specific bp numbers are illustrative. |
-| Emerging Market Basis | I'm not sure about precise conventions for EM currency basis swaps (CNY, INR, BRL); these markets have less standardization. |
-| SOFR basis spread magnitudes | The typical 1-3 bp range for 3s6s SOFR basis is approximate and evolves as the market matures. |
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-index curves; tenor basis swaps; projection vs discounting separation; basis curve construction and risk decomposition).
+- Hull, *Options, Futures, and Other Derivatives* (OIS discounting context and RFR mechanics).

@@ -922,62 +922,10 @@ To comply: Reduce 5Y short by $30k (buy $30k of 5Y swaps) and reduce 10Y long by
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Par-point approach: bump → rebuild → reprice | Andersen Vol 1 Ch 6, Section 6.4.1 |
-| Locality requirement for clean perturbations | Andersen Vol 1 Ch 6, Section 6.4.1 |
-| See-saw effect: "30 year swap yield shifted by 1 bp... $L_{30}$ will move by 30 bp" | Andersen Vol 1 Ch 6, below Eq. 6.33 |
-| $L_n \approx n S_n - (n-1) S_{n-1}$ approximation | Andersen Vol 1 Ch 6, Eq. 6.33 |
-| Jacobian method decouples risk from curve construction | Andersen Vol 1 Ch 6, Section 6.4.3 |
-| Gâteaux derivatives for controlled perturbations | Andersen Vol 1 Ch 6, Eq. 6.26 |
-| Triangular and flat basis functions | Andersen Vol 1 Ch 6, Eqs. 6.27–6.28 |
-| Cumulative par-point approach description | Andersen Vol 1 Ch 6, below Eq. 6.33 |
-| Cumulative deltas sum to parallel delta | Andersen Vol 1 Ch 6, below Eq. 6.34 |
-| Orthogonal risk decomposition in spread-based construction | Andersen Vol 1 Ch 6, Section 6.5.3 |
-| Tension splines improve locality | Andersen Vol 1 Ch 6, Fig. 6.8 discussion |
-| Poor P&L predict from inconsistent pricing/risk curves | Andersen Vol 1 Ch 6, Section 6.4.4 |
-| P&L predict formulation with Taylor expansion | Andersen Vol 2 Ch 22, Eq. 22.19 |
-| Theta calculation using forward values | Andersen Vol 2 Ch 22, Eqs. 22.20–22.21 |
-| Waterfall P&L explain | Andersen Vol 2 Ch 22, Section 22.2.2.1 |
-| Bump-and-reset P&L explain | Andersen Vol 2 Ch 22, Section 22.2.2.2 |
-| Adjoint method for Greeks calculation | Andersen Vol 2 Ch 24, Section 24.3.3 |
-| Key-rate shifts sum to parallel shift | Tuckman Ch 7 |
-| Key-rate methodology for hedging | Tuckman Ch 7 |
-| Bucket exposures for forward-rate segments | Tuckman Ch 7 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| "Smoking adjoints" terminology | Extended from Andersen AD discussion with trader jargon |
-| Risk limits framework (bucket, aggregate, twist) | Standard desk practice, not well-covered in academic books |
-| "Filling the hole" risk limit arbitrage | Practitioner knowledge |
-| P&L predict diagnostic checklist | Extended from Andersen P&L predict with operational workflow |
-| Jacobian refresh criteria (5bp, 4 hours, events) | Practitioner heuristics based on Andersen's "sufficiently far" guidance |
-| Limit escalation protocol | Standard desk practice |
-| FRTB regulatory context for P&L explain | Regulatory knowledge |
-| Jacobian condition number diagnostic | Numerical analysis applied to hedge problem |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Chain rule $dV_0/dq = (\partial V_0/\partial x)(\partial x/\partial q)$ | Standard multivariable calculus applied to curve builder |
-| $L_{n+1}$ shifts by $-n\delta$ when $S_n$ bumps $\delta$ with neighbors fixed | Direct algebra from $L_n \approx n S_n - (n-1) S_{n-1}$ |
-| Central differences improve numerical stability | Standard numerical analysis (symmetric error cancellation) |
-| Jacobian has block-triangular structure for bootstrapping | Follows from sequential nature of bootstrap algorithm |
-| AD computational complexity O(1) vs O(N) | Follows from structure of adjoint chain rule |
-
-### (D) Flagged Uncertainties
-
-| Item | Uncertainty |
-|------|-------------|
-| Specific desk bump conventions (size, one-sided vs central) | Varies by institution; 1 bp is common but not universal |
-| Optimal tension parameters for splines | Implementation and data-dependent; no universal formula |
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1–2) (par-point deltas, Jacobians, locality issues, P&L explain, and numerical stability).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (key-rate shifts and curve-risk decomposition intuition).
 | Turn-of-year and event-date curve overlays | Market-specific; overlay specification varies by desk |
 | Ordering of market variables in waterfall explain | Arbitrary choice affects attribution; no canonical ordering |
 | Exact AD overhead factor (3-5×) | Depends on implementation and problem structure |
