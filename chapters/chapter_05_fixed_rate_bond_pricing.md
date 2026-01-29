@@ -559,11 +559,13 @@ Tuckman notes in a footnote that "The penalty for failing to deliver to the futu
 
 After the 2008 financial crisis, the Treasury Market Practices Group (TMPG) implemented a fails charge to discourage intentional fails. The fails charge is calculated as:
 
-$$\text{Daily Fails Charge} = \text{Notional} \times \max(0, 3\% - \text{Fed Funds Target}) \times \frac{1}{360}$$
+$$\text{Daily Fails Charge} \approx \text{Proceeds} \times \frac{r_{\text{fails}}}{360}$$
 
-When the Fed Funds target is above 3%, the charge is zero. When rates are near zero (as they were 2009-2015 and 2020-2021), the charge can be significant.
+where the fails-charge rate $r_{\text{fails}}$ is defined by TMPG trading practice (see Chapter 1 for the full convention). Intuitively, it behaves like “about $(3\% - R)$ per annum” when short rates are low (with additional floors/definitions in the actual rule).
 
-> **Practitioner Note:** The fails charge is currently capped at 3% annualized. For a $100mm fail when Fed Funds is at 0%, the daily charge is:
+When short rates are near zero (as they were 2009–2015 and 2020–2021), the charge can be significant and helps prevent “cheap failing.”
+
+> **Practitioner Note (order of magnitude):** When the relevant reference rate is near 0%, the fails-charge rate is near 3% p.a. For a $100mm fail, the daily charge is about:
 > $$\$100,000,000 \times 0.03 \times \frac{1}{360} = \$8,333 \text{ per day}$$
 >
 > This charge creates an incentive to resolve fails quickly.

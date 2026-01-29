@@ -389,7 +389,7 @@ where $p$ is the probability of a rate change.
 
 > **Desk Reality: "The Market is Pricing 3 Cuts This Year"**
 >
-> When you hear traders or CNBC say "the market expects 75bp of cuts in 2024," they're using exactly this methodology—applied sequentially across multiple FOMC meetings.
+> When you hear traders or CNBC say "the market is pricing ~75bp of cuts over the next year," they're using exactly this methodology—applied sequentially across multiple FOMC meetings.
 >
 > **The calculation chain:**
 > 1. Use near-month futures to extract probability of next meeting's action

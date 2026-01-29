@@ -687,6 +687,8 @@ Let $r = 1 + y/2$. Cash flows and fractional periods from settlement:
 | ... | ... | ... | ... |
 | Feb 15, 2031 | 103 | 1860 | 10.1918 |
 
+**Note:** The “Periods (approx)” column converts calendar days into semiannual coupon periods for discounting; production systems use the market’s exact Treasury yield convention (actual/actual in period with precise date rules).
+
 Solve:
 
 $$\sum_{i=1}^{11} \frac{\text{CF}_i}{r^{a_i}} = 103.6957$$
@@ -864,7 +866,7 @@ $$r = (132.50/100)^{1/5} - 1 = 5.79\%$$
 ### Example I: Callable Bond Decomposition
 
 **Setup:** A 10-year, 8% corporate bond callable at par in 5 years.
-- Current yield environment: 6%
+- Assumed yield environment: 6%
 - Non-callable 10-year bond price: 114.72
 - Callable bond market price: 107.50
 
