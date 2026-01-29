@@ -200,7 +200,7 @@ We found the nodes, but what is $P(1.5)$? This is where interpolation enters. Th
 >
 > *   **Linear Interpolation**: Connects dots with straight lines. Easy, but the ride is jerky. The "speed" (Forward Rate) jumps instantly at every node.
 > *   **Spline Interpolation (Cubic)**: Connects dots with flexible metal strips. The ride is buttery smooth. The "speed" changes gradually.
-> *   **Tradeoff**: Splines look better but can "wobble" (Ring) if you hit a bump. Linear is ugly but stable. Pro desks use **Tension Splines** (stiff splines) to get the best of both.
+> *   **Tradeoff**: Splines look better but can "wobble" (Ring) if you hit a bump. Linear is ugly but stable. Many desks use **tension / shape-preserving splines** to balance smoothness and stability.
 
 These methods produce a yield curve that is continuous but has kinks (discontinuous first derivative) at the knot points. The resulting forward curve is discontinuous.
 
@@ -340,7 +340,7 @@ These methods impose constraints during curve construction to ensure forwards re
 
 > **Desk Reality: The Trading Impact of Interpolation**
 >
-> If Bank A uses linear yield interpolation and Bank B uses cubic splines, they will price "off-node" instruments differently. For a vanilla 7.5-year swap (halfway between 5Y and 10Y benchmarks), the difference is typically 0.1–0.5 basis points. This seems small, but:
+> If Bank A uses linear yield interpolation and Bank B uses cubic splines, they will price "off-node" instruments differently. For a vanilla 7.5-year swap (halfway between 5Y and 10Y benchmarks), differences can be on the order of 0.1–0.5 basis points depending on the curve shape and method. This seems small, but:
 >
 > 1. **For exotics with many intermediate cashflows** (CMO, amortizing swap), differences compound.
 > 2. **For illiquid tenors** (17-month, 9-year), differences can exceed 1 bp.
@@ -384,7 +384,7 @@ This is a **linear function of $T$** within each interval. But at the boundary $
 > *   Rate rises... Jump down!
 > *   Rate rises... Jump down!
 > *   It's mathematically correct but financially nonsensical. (Why would rates jump exactly on Dec 15th?).
-> *   This is why pros don't use simple linear interpolation for pricing options (which depend on forward volatility).
+> *   This is why many pricing/risk systems avoid simple linear yield interpolation when valuing instruments sensitive to the forward curve shape (e.g., options).
 
 ### 17.4.3 Worked Example: The Boundary Jump
 
@@ -837,64 +837,8 @@ Hedge: Short $5.31mm 2Y swaps, long $1.25mm 5Y swaps.
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| "Curve construction boils down to supplementing with assumptions to determine $P(T)$" | Andersen & Piterbarg Vol 1, Ch 6 |
-| Bootstrap algorithm steps | Andersen & Piterbarg Vol 1, §6.2.1 |
-| "One common choice is to simply set $y(t) = y(T_1)$, $t < T_1$" | Andersen & Piterbarg Vol 1, §6.2.1.1 |
-| "Saw-tooth shape characteristic for piecewise linear yield" | Andersen & Piterbarg Vol 1, §6.2.1.1 |
-| Piecewise flat forward formula $f(T) = f(T_i)$ | Andersen & Piterbarg Vol 1, §6.2.1.2 |
-| Catmull-Rom Hermite spline for $C^1$ curves | Andersen & Piterbarg Vol 1, §6.2.2 |
-| Cubic splines "subject to oscillatory behavior, ringing" | Andersen & Piterbarg Vol 1, §6.2.3 |
-| Tension spline formula with $\sinh$ terms | Andersen & Piterbarg Vol 1, §6.2.4 |
-| "$\sigma = 0$ recovers cubic, $\sigma \to \infty$ approaches linear" | Andersen & Piterbarg Vol 1, §6.2.4 |
-| Tension as "extra knob" for balancing smoothness and locality | Andersen & Piterbarg Vol 1, §6.2.4 |
-| "Shape preserving" splines mentioned | Andersen & Piterbarg Vol 1, index |
-| Penalized least-squares norm formulation | Andersen & Piterbarg Vol 1, §6.3.1 |
-| Optimal curve is a tension spline (Proposition 6.3.1) | Andersen & Piterbarg Vol 1, §6.3.1 |
-| Par-point approach for risk sensitivities | Andersen & Piterbarg Vol 1, §6.4.1 |
-| Ringing perturbation illustration (Fig 6.7) | Andersen & Piterbarg Vol 1, §6.4.1 |
-| "Two different curves" workaround mentioned | Andersen & Piterbarg Vol 1, §6.4.1 |
-| Jacobian method for hedging | Andersen & Piterbarg Vol 1, §6.4.3 |
-| Bootstrap "used daily by trading desks" | Hull Ch 4, §4.7 |
-| Spline function for zero curve | Hull Ch 4, §4.7 |
-| Linear yield interpolation produces kinks in forwards | Tuckman Ch 4 |
-| "Shortcomings least noticeable in DF, most in forwards" | Tuckman Ch 4 |
-| RMSE definition and fitting criterion | Tuckman Ch 4, eq. 4.23 |
-| Stub rate concept and calculation | Tuckman Ch 17 |
-| "Parametric functional forms (e.g. Nelson and Siegel [1987])" | Andersen & Piterbarg Vol 1, §6.2 intro |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Desk Reality: Why Your P&L Report Disagrees" | Extends A&P locality discussion with practical MO→FO context |
-| "Desk Reality: The Trading Impact of Interpolation" | Practitioner insight on inter-bank model differences |
-| RMSE targets by market type (government, corporate, EM) | Extends Tuckman's RMSE discussion with market-specific guidance |
-| Turn-of-year handling implementation | Extends stub rate concept with operational detail |
-| "Desk Reality: The Two-Curve Approach" | Extends A&P's "two curves" mention with practical implications |
-| Nelson-Siegel-Svensson contrast with trading curves | Extends A&P's mention of parametric models with practitioner reasoning |
-| Central bank meeting handling | General practitioner knowledge extending stub discussion |
-| "Desk Reality: Stub Rate Errors Propagate Everywhere" | Practitioner insight extending bootstrap error propagation |
-
-### (C) Reasoned Inference
-
-- The formula $f(T) = y(T) + Ty'(T)$ follows from differentiating $P(T) = e^{-y(T)T}$.
-- The saw-tooth pattern is derived by substituting piecewise-constant $y'(T)$ into the forward formula.
-- Locality differences between methods follow from the structure of their matrix systems (diagonal for bootstrap, full for cubic $C^2$).
-- Log-linear interpolation equivalence to geometric mean derived from $P(T) = e^{-y(T)T}$ properties.
-
-### (D) Flagged Uncertainties
-
-- **Specific desk choices:** Different institutions may use proprietary spline variants (monotone convex, Hagan-West, etc.). The tension spline is presented as one well-documented choice.
-- **Default tension values:** No universally agreed $\sigma$ exists; it depends on the benchmark set and practitioner judgment.
-- **Turn premium magnitudes:** The 10-50 bp range is illustrative; actual values vary significantly by year and market conditions. I'm not sure about current market levels without real-time data.
-- **Jacobian implementation details:** The full numerical implementation involves choices about hedging instrument weights $\mathbf{W}$, $\mathbf{U}$ that vary by institution.
-
----
-
-*Chapter 17 verified against: Andersen & Piterbarg (Vol 1, Ch 6), Tuckman (Ch 4, Ch 17), Hull (Ch 4, §4.7).*
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (curve construction as an inverse problem; bootstrapping; locality vs smoothness; tension splines; Jacobian hedging).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (curve fitting, forward-curve artifacts, and interpolation pitfalls).
+- Hull, *Options, Futures, and Other Derivatives* (bootstrapping and zero-curve construction basics).

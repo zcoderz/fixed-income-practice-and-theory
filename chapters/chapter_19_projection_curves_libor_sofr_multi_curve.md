@@ -327,7 +327,7 @@ CME publishes **Term SOFR** rates that are forward-looking—derived from SOFR f
 >
 > Corporate treasurers and loan markets strongly preferred a LIBOR-like forward-looking rate. "We need to know what we owe at the start of the period for budgeting and cash management." Term SOFR fills this gap.
 >
-> However, Term SOFR is not freely usable in all products—see Section 19.4.5 for regulatory restrictions.
+> However, Term SOFR use is intentionally limited by best-practice guidance—see Section 19.4.5.
 
 ### 19.4.3 Observation Conventions
 
@@ -361,8 +361,6 @@ The rate is frozen for the last few days of the period, using the penultimate ob
 > **Practitioner Note: Convention Basis Risk**
 >
 > Different conventions create small but systematic differences. If you have a SOFR loan with 5-day lookback and hedge with a swap using 2-day payment delay, there's a "convention basis" mismatch. Over many periods, this can compound into material P&L differences.
->
-> I'm not sure about exact magnitudes—these vary by rate environment and are still being studied as the market matures.
 
 ### 19.4.4 The Credit-Sensitivity Gap: Why Banks Resisted SOFR
 
@@ -389,17 +387,14 @@ This creates a **funding mismatch**: banks' assets don't re-price when their lia
 
 ### 19.4.5 Term SOFR Regulatory Restrictions
 
-In response to concerns that Term SOFR might become "new LIBOR"—a heavily used benchmark susceptible to manipulation and systemic risk—the Alternative Reference Rates Committee (ARRC) imposed restrictions on its use.
+In response to concerns that a widely used forward-looking term benchmark could recreate “LIBOR-style” systemic vulnerabilities, the Alternative Reference Rates Committee (ARRC) published **best practices** to keep CME Term SOFR usage targeted and limited.
 
-> **Practitioner Note (Priority 2 — not sourced from books/):**
->
-> ARRC's Term SOFR guidance restricts its use in certain products:
-> * **Permitted:** Business loans, commercial real estate, FRNs for end-users
-> * **Restricted:** Interdealer derivatives markets (to prevent Term SOFR from becoming dominant and creating systemic risk similar to LIBOR)
->
-> **Hedging Implication:** A bank with a Term SOFR loan book cannot directly hedge with Term SOFR swaps in the interdealer market. They must hedge with Compound SOFR swaps, creating **Term-Compound basis risk**.
->
-> I'm not sure about the exact current status of these restrictions—regulatory guidance may evolve. Verify with current ARRC documentation.
+**ARRC best-practice framing (high level):**
+- **Primary use:** Cash products where a forward-looking rate is operationally valuable (e.g., many business loans) and where end users demand “known-at-period-start” coupons.
+- **Derivatives use:** Primarily for **end-user hedging** of Term SOFR cash exposures (not for building a broad interdealer Term SOFR swap market).
+- **Dealer behavior:** The best practices **discourage** deep interdealer Term SOFR derivatives liquidity; risk management is expected to rely heavily on **compounded SOFR** instruments plus limited Term–Compounded basis trading where appropriate.
+
+**Hedging implication (desk reality):** If your asset book references **Term SOFR** but your hedge stack is mostly **compounded SOFR swaps**, you carry **Term–Compounded basis risk** (plus convention basis if schedules differ). You can reduce it with Term–Compounded basis instruments when available, but the ecosystem is intentionally narrower than the old LIBOR swap market.
 
 **Example E: Term SOFR Hedge Basis Risk**
 
@@ -413,20 +408,20 @@ This is unhedged risk that exists purely because of the regulatory constraint on
 
 In response to the credit-sensitivity gap, some institutions explored credit-sensitive alternatives to SOFR.
 
-> **Practitioner Note (Priority 2):**
+> **Practitioner Note: Credit-Sensitive Alternatives**
 >
 > * **BSBY (Bloomberg Short-Term Bank Yield Index):** A credit-sensitive rate derived from bank funding transactions. Gained some traction in lending markets but faced regulatory pushback.
 > * **Ameribor:** Based on unsecured overnight loans between small and mid-size banks. Used by regional banks concerned about SOFR's disconnect from their funding costs.
 >
-> As of late 2023, Bloomberg announced it would discontinue BSBY, and the regulatory consensus has firmly settled on SOFR as the primary USD benchmark. Credit-sensitive rates exist but are not recommended for broad use.
+> Bloomberg Index Services Limited announced on **November 15, 2023** that it would cease publishing BSBY, and publication ceased on **November 15, 2024**. SOFR remains the dominant USD benchmark for most derivatives and many cash markets.
 >
-> The current market consensus is clear: SOFR has won. But understanding *why* alternatives were explored illuminates the economic tensions in the transition.
+> Understanding *why* alternatives were explored still matters: it clarifies the economic tensions in the transition and why basis risk can show up even when “everything is SOFR.”
 
 ### 19.4.7 The Return of the Single Curve?
 
 Interestingly, for a standard SOFR OIS swap (where we pay fixed and receive compounded SOFR), the "Projection" curve and the "Discount" curve are conceptually the same (both are SOFR). In this specific corner of the market, the "single curve" world has effectively returned.
 
-However, as soon as we trade a **BSBY** swap, or a **Term SOFR** swap, or a legacy **LIBOR** instrument, or involve **foreign currency** cash flows, the multi-curve distinction comes roaring back. The modern desk must handle both regimes simultaneously.
+However, as soon as we deal with a **legacy BSBY-linked** instrument, a **Term SOFR** structure, a legacy **LIBOR** exposure, or involve **foreign currency** cash flows, the multi-curve distinction comes roaring back. The modern desk must handle both regimes simultaneously.
 
 ---
 
@@ -455,7 +450,7 @@ A risk manager who lumps these together into a single "Interest Rate Delta" woul
 |-----------|-------------|-------------------|
 | **OIS/Discount Risk** | Sensitivity to collateral rate | OIS swaps, Fed Funds futures, SOFR futures |
 | **Projection Risk (SOFR)** | Sensitivity to SOFR curve | SOFR OIS swaps, SOFR futures |
-| **Projection Risk (Term)** | Sensitivity to term rates | Term rate derivatives (restricted) |
+| **Projection Risk (Term)** | Sensitivity to term rates | Term-rate derivatives (limited best-practice scope); basis hedges |
 | **Tenor Basis Risk** | Sensitivity to spread between tenors | Basis swaps (3M vs 6M, etc.) |
 | **OIS-Index Basis** | Sensitivity to OIS-LIBOR/SOFR spread | OIS vs 3M basis swaps |
 
@@ -526,7 +521,8 @@ Build curves in order of liquidity:
 
 5. **Credit-Sensitivity Gap:** SOFR doesn't rise when bank funding costs rise, creating a mismatch for bank balance sheets. This explains why the LIBOR transition was contentious.
 
-6. **Term SOFR Restrictions:** Regulatory guidance limits Term SOFR use in interdealer derivatives, creating basis risk when hedging Term SOFR loans.
+6. **Term SOFR Best Practices:** ARRC best practices keep Term SOFR usage focused (mainly cash products and end-user hedging), so Term–Compounded basis risk can appear when hedging Term SOFR exposures with compounded SOFR instruments.
+6. **Term SOFR Best Practices:** ARRC best practices keep Term SOFR usage focused (mainly cash products and end-user hedging), so Term–Compounded basis risk can appear when hedging Term SOFR exposures with compounded SOFR instruments.
 
 7. **Decompose Your Risk:** Always distinguish between sensitivity to the discount curve (OIS delta), sensitivity to the projection curve (index delta), and sensitivity to the spread between them (basis delta).
 
@@ -548,7 +544,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
 | **Tenor Basis** | Spread between forward rates of different tenors | Represents credit/liquidity risk differences by funding horizon |
 | **Par Floater Paradox** | LIBOR FRN trades above par when LIBOR > OIS | Classic manifestation of the two-curve divergence |
 | **SOFR Compound-in-Arrears** | Standard SOFR: daily rates compounded over period | Backward-looking; not known until period end |
-| **Term SOFR** | Forward-looking SOFR from futures | Like LIBOR; regulatory restrictions apply |
+| **Term SOFR** | Forward-looking SOFR from futures | Like LIBOR; best-practice limits apply |
 | **Credit-Sensitivity Gap** | SOFR doesn't rise with bank funding costs | Explains bank resistance to SOFR transition |
 | **Orthogonality** | Discount and projection risks are independent | Enables clean hedging and risk attribution |
 
@@ -584,7 +580,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
 | 9 | What is the key difference between LIBOR and SOFR? | LIBOR is forward-looking (set at period start); SOFR is backward-looking (compounded over period). |
 | 10 | What is "compound-in-arrears"? | The standard SOFR convention: daily overnight rates compounded over the accrual period. |
 | 11 | What is Term SOFR? | A forward-looking rate derived from SOFR futures, published by CME. Known at period start like LIBOR. |
-| 12 | Why are there restrictions on Term SOFR use? | To prevent it from becoming "new LIBOR"—a dominant benchmark with systemic risk and manipulation potential. |
+| 12 | Why is Term SOFR use intentionally limited? | To avoid recreating “new LIBOR” dynamics; best practices encourage focused use (mainly cash products and end-user hedging) rather than a deep interdealer Term SOFR derivatives market. |
 | 13 | What is the "credit-sensitivity gap"? | SOFR doesn't rise when bank funding costs rise, creating a mismatch between assets and liabilities in stress. |
 | 14 | What is "discount risk" vs "projection risk"? | Discount risk = sensitivity to OIS curve; Projection risk = sensitivity to the specific index curve. |
 | 15 | What instruments hedge projection risk? | SOFR futures, FRAs, fixed-float swaps on the relevant index. |
@@ -741,54 +737,10 @@ This is a rough estimate; actual mispricing depends on the specific cash flow st
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Fed Funds-LIBOR spread widened to 275 bps post-2007 | Andersen & Piterbarg Vol 1, §6.5.3 |
-| 1M-3M tenor basis widened from ~1 bp to 50 bps | Andersen & Piterbarg Vol 1, §6.5.3 |
-| OIS discounting for collateralized trades | Andersen & Piterbarg Vol 1, §6.5.3; Hull Ch 4, Ch 7 |
-| Definition of multi-index curve group | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Forward rate from index curve formula (6.48) | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Swap valuation formula mixing curves (6.47) | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Spread-based curve construction: $P^k = P_d \cdot e^{-\int \eta}$ | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Risk decomposition: discount vs projection vs basis | Andersen & Piterbarg Vol 1, §6.5.3 |
-| SOFR as backward-looking compounded rate | Hull Ch 4, Ch 6 |
-| SOFR compounding formula | Hull Ch 4 |
-| LIBOR forward-looking vs RFR backward-looking | Hull Ch 4 |
-| Tenor basis driven by credit and liquidity | Andersen & Piterbarg Vol 1, §6.5.3 |
-| Pseudo-discount factors called "index curves" | Andersen & Piterbarg Vol 1, §6.5.3 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Two Watches" analogy | Conceptual framing of discount vs projection roles |
-| "Weather Forecast vs Thermometer" analogy | Conceptual framing of forward vs backward-looking |
-| Credit-sensitivity gap explanation | Extends from A&P's credit/liquidity discussion to bank funding economics |
-| Term SOFR regulatory restrictions | Post-2020 ARRC guidance (Priority 2 knowledge) |
-| BSBY / Ameribor discussion | Post-2020 market developments (Priority 2 knowledge) |
-| SOFR observation conventions (lookback, lockout, payment delay) | Standard market practice (Priority 2) |
-| Basis trading desk reality | General trading desk practice |
-| Hedge instrument mapping table | Synthesized from A&P risk decomposition |
-| Term SOFR vs Compound SOFR basis risk example | Derived from regulatory constraint implications |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Par Floater Paradox: FRN ≠ 100 | Derived from the fact that $P_k \neq P_d$ breaks the telescoping sum identity |
-| Single curve is inconsistent | Derived from the mathematical impossibility of fitting one curve to both OIS and FRA markets |
-| Par swap formula mixes curves | Direct algebraic consequence of projecting at $F_k$ and discounting at $P_d$ |
-| Spread extraction formula | Rearrangement of Andersen & Piterbarg's spread-based construction |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| **Term SOFR regulatory status** | I'm not sure about current ARRC guidance — it may have evolved since initial restrictions. Verify with current documentation. |
-| **BSBY discontinuation details** | The exact timeline and transition arrangements should be verified with Bloomberg. |
-| **SOFR observation convention magnitudes** | Convention basis risk exists but exact magnitudes vary by environment and are still being studied. |
-| **Credit-sensitive rate viability** | The regulatory landscape for alternatives like Ameribor may continue to evolve. |
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-curve valuation mechanics; tenor basis; discount vs projection risk decomposition).
+- Hull, *Options, Futures, and Other Derivatives* (SOFR vs LIBOR mechanics; compounded-in-arrears conventions).
+- ARRC, *Best Practices for Use of the Term SOFR Reference Rates* (July 29, 2021; updated April 21, 2023).
+- Bloomberg Index Services Limited: BSBY cessation announcement (published Nov 15, 2023; cessation effective Nov 15, 2024).
+- CME: Term SOFR methodology and publication conventions.

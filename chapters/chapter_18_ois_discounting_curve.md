@@ -6,7 +6,7 @@
 
 In the years before 2008, fixed income practitioners lived in a convenient fiction: they assumed that "risk-free" rates were observable in the interbank market, and that a single yield curve could serve both for forecasting cashflows and for discounting them. LIBOR was the universal standard, used to price everything from mortgages to complex derivatives.
 
-The 2008 financial crisis shattered this consensus. As banks failed, the spread between LIBOR (an unsecured lending rate) and OIS (a geometric average of overnight rates) exploded from a negligible few basis points to over 350 basis points. The market realized an uncomfortable truth: LIBOR embeds credit risk. Discounting a risk-free (or collateralized) cashflow at LIBOR effectively undervalues it, as if the cashflow itself were subject to bank default risk.
+The 2008 financial crisis shattered this consensus. As banks failed, the spread between LIBOR (an unsecured term funding rate) and OIS (a compounded overnight rate) widened from a negligible few basis points to **hundreds of basis points** (peaking around the high-300s in October 2008). The market realized an uncomfortable truth: LIBOR embeds bank credit and liquidity risk. Discounting a risk-free (or collateralized) cashflow at LIBOR effectively undervalues it, as if the cashflow itself were subject to bank default risk.
 
 For collateralized trades backed by cash margin, the economically correct discount rate is not LIBOR, but the rate earned on that collateral—typically the overnight rate. This realization forced a wholesale re-architecture of valuation frameworks, moving from a "single-curve" world to a "multi-curve" world where the discounting curve is separated from the projection curve.
 
@@ -67,6 +67,8 @@ $$\boxed{\text{Payoff at } T_{n+1} = N \tau_n (\bar{L}_n - k)}$$
 
 Hull clarifies the structure of OIS contracts across different maturities: "When the life of the OIS is greater than one year, it is typically divided into three-month subperiods, with the fixed rate being exchanged at the end of each three-month period for the three-month reference rate that is calculated for that period from one-day rates. OISs lasting ten years or longer are now traded."
 
+In practice, the exact coupon period (annual vs quarterly) is a **market/CCP/documentation convention**. What stays the same is the core mechanic: within each coupon period, the floating leg is computed from **daily compounding** of the overnight rate, and a net payment is exchanged at the period end (often with a payment delay).
+
 For shorter maturities, the structure is simpler:
 
 | Maturity | Structure |
@@ -75,7 +77,7 @@ For shorter maturities, the structure is simpler:
 | 3 Months | Single exchange at maturity |
 | 6 Months | Single exchange at maturity |
 | 1 Year | Single exchange at maturity |
-| 2+ Years | Quarterly exchanges |
+| 2+ Years | Periodic exchanges (often annual for standard cleared OIS; conventions vary by product/CCP) |
 
 ### 18.1.3 Why OIS Became the Discounting Standard
 
@@ -87,8 +89,8 @@ This leads to the **separation of discount and forward curves** (discussed in de
 
 > **Visual: The Crisis Gap**
 >
-> In 2007, the spread between 3-month LIBOR and OIS was ~5 basis points. It was noise.
-> In 2008, that spread hit **350 basis points**.
+> In 2007, the spread between 3-month LIBOR and OIS was only a few basis points.
+> In October 2008, that spread spiked to the high-300s of basis points.
 >
 > *   **Pre-2008**: OIS $\approx$ LIBOR. Using LIBOR to discount was "close enough."
 > *   **Post-2008**: OIS $\ll$ LIBOR. Using LIBOR to discount collateralized cash flows meant throwing away 3% of the value per year.
@@ -103,24 +105,26 @@ This leads to the **separation of discount and forward curves** (discussed in de
 
 With the transition from Fed Funds to SOFR as the primary USD overnight rate, practitioners must understand SOFR-specific conventions. Hull notes that "the secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States."
 
-**Key SOFR OIS conventions for USD:**
+**Common cleared USD SOFR OIS conventions (check your product/CCP):**
 
 | Convention | SOFR OIS |
 |------------|----------|
 | Day Count | ACT/360 |
 | Compounding | Daily, geometric |
-| Payment Frequency | Quarterly (>1Y), single exchange (≤1Y) |
-| Payment Lag | Typically 2 business days after period end |
-| Lookback | 2-day observation shift (for some contracts) |
-| Holiday Calendar | USNY |
+| Fixed Leg Payment Frequency | Often annual (standard cleared OIS); shorter maturities may be single exchange |
+| Floating Leg Payment Frequency | Often annual, compounded in arrears |
+| Payment Delay | Commonly 2 business days after period end |
+| Observation Convention | Often no observation shift; other conventions (lookback/lockout) exist by product |
+| Holiday Calendar | USNY (USD) |
 
 > **Desk Reality: "Observation Shift" vs "Lockout"**
 >
-> SOFR swaps can use different methods to handle the "not-known-until-the-end" problem:
-> - **Observation Shift (most common):** Each daily rate is applied with a 2-day lookback—e.g., Friday's rate is used for Wednesday's accrual. This ensures the payment amount is known 2 days before payment.
-> - **Lockout Period:** The last few days of the period use the same rate (the rate observed N days before period end). Simpler but introduces basis risk.
+> Overnight rates are compounded **in arrears**, so the final coupon is only known at the end of the accrual period. Operationally, markets handle this with one or more of:
+> - **Payment delay:** Pay the coupon a fixed number of business days after period end (e.g., 2 days).
+> - **Lookback / observation shift:** Accrue using rates observed earlier so the amount is known before period end.
+> - **Lockout:** Freeze the last few daily rates to a fixed value so the coupon is known early.
 >
-> Most cleared SOFR swaps use the observation shift method.
+> Conventions differ across products and clearing houses. If two swaps use different conventions, that difference is a small basis risk that can matter for hedging and P&L explain.
 
 **Comparison with Other Overnight Indices:**
 
@@ -134,7 +138,7 @@ With the transition from Fed Funds to SOFR as the primary USD overnight rate, pr
 
 ### 18.1.5 Worked Example: Computing a SOFR OIS Floating Payment
 
-**Setup:** Consider a 3-month SOFR OIS for the period January 15, 2025 to April 15, 2025. Notional is $100 million. We use a simplified schedule with 5 representative rates:
+**Setup:** Consider a 3-month SOFR OIS over a generic 90-day period. Notional is $100 million. We use a simplified schedule with representative rates:
 
 | Date | SOFR Rate | Days Applied |
 |------|-----------|--------------|
@@ -467,35 +471,24 @@ $$\boxed{f(t) = \varepsilon_f(t) + f^*(t)}$$
 
 where $\varepsilon_f(t)$ is user-specified (and contains discontinuities around special dates) and $f^*(t)$ is the smooth curve to be calibrated.
 
-Practitioners explicitly mark a "turn" spread (e.g., +20bps for Dec 31 to Jan 2) to ensure that short-dated swaps crossing the year-end price correctly. Without this, your curve calibration would force the "smooth" rate up for the entire surrounding month to match the price, distorting the valuation of everything else.
+Practitioners may explicitly mark a "turn" spread (e.g., a special forward premium over the year-end dates) to ensure that short-dated swaps crossing the year-end price correctly. Without this, curve calibration can force the "smooth" rate up for the entire surrounding month to match the price, distorting the valuation of everything else.
 
-> **Desk Reality: Typical TOY Spreads**
+> **Desk Reality: Why Turns Matter**
 >
-> Turn spreads vary significantly by year based on:
-> - Regulatory capital requirements (higher capital = larger turn)
-> - Excess reserves in the banking system
-> - Fed policy actions
->
-> Historical examples:
-> - 2018 year-end: ~25bp turn in Fed Funds
-> - 2019 year-end (repo spike): ~50bp+ turn
-> - 2020-2022 (excess reserves): ~5bp turn (barely visible)
->
-> Similar effects occur around Fed meeting dates when rate changes are anticipated.
+> Turn-of-year effects can be large or negligible depending on balance-sheet capacity and liquidity conditions. The key operational point is not the exact number — it’s that **special dates can create localized forward-rate spikes** that a smooth interpolation will miss unless you explicitly model them.
 
 ### 18.8.2 Fed Funds vs SOFR
 
 The transition from Fed Funds to SOFR as the primary USD overnight rate has implications for curve construction. Tuckman notes that "the GC rate is typically below the fed funds target rate because loans through repurchase agreement are effectively secured by collateral, while loans in the fed funds market are not."
 
-SOFR, being based on Treasury repo transactions, is generally lower and less volatile than Fed Funds. Practitioners building OIS curves must be clear about which overnight rate their curve references.
+SOFR, being based on Treasury repo transactions, reflects secured financing conditions; Fed Funds reflects unsecured interbank conditions. The spread between them varies over time (including quarter-end dynamics). Practitioners building OIS curves must be clear about which overnight rate their curve references.
 
 | Characteristic | Fed Funds | SOFR |
 |----------------|-----------|------|
 | Security | Unsecured | Secured (Treasury repo) |
-| Typical Level | Higher | Lower (by ~5-20bp historically) |
-| Volatility | Lower | Can spike at quarter-end |
-| Volume | ~$80 billion/day | ~$1 trillion/day |
-| Use Case | Legacy swaps | New swaps (post-2021) |
+| Relative Level | Can differ; depends on funding/quarter-end conditions | Can differ; depends on repo conditions |
+| Quarter-End Effects | Can move | Can move (repo-specific) |
+| Primary Use | Legacy overnight index for USD OIS | Primary USD overnight index for modern OIS |
 
 ### 18.8.3 Implementation Checklist
 
@@ -931,57 +924,10 @@ A 10-year swap requires initial margin of approximately $5 million throughout it
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| OIS floating rate is known at end of period, LIBOR at beginning | Hull, Ch 7 ("LIBOR rates for a period are known at the beginning...") |
-| Floating-rate bond paying overnight rates is worth par | Hull, Ch 7.2 ("A key point is that the floating-rate bond... is worth [$N$]") |
-| OIS rate is the rate on a par bond | Hull, Ch 7.2 ("the OIS rate is the interest rate on a fixed-rate bond that is worth par") |
-| OIS rates define zero rates directly for maturities ≤ 1 year | Hull, Ch 7.2 ("OIS rates with maturities one year or less... provide the risk-free zero rates") |
-| Separation of Discount and Forward Curves | Andersen & Piterbarg, Vol 1, Section 6.5.2.2 |
-| Turn-of-Year Overlays | Andersen & Piterbarg, Vol 1, Section 6.5.1, Eq (6.35)-(6.37) |
-| Piecewise flat forward rates from log-linear interpolation | Andersen & Piterbarg, Vol 1, Section 6.2.1.2 |
-| OIS structure: single exchange ≤1Y, quarterly >1Y | Hull, Ch 7 ("When the life of the OIS is greater than one year...") |
-| Annuity factor definition | Andersen & Piterbarg, Vol 1, Section 4.1.3 |
-| Swap rate formula $S = (P_0 - P_N)/A$ | Andersen & Piterbarg, Vol 1, Eq 4.10 |
-| GC rate typically below Fed Funds (secured vs unsecured) | Tuckman, Ch 15 |
-| Overnight reference rates considered better risk-free proxies than Treasuries | Hull, Ch 4 (footnote) |
-| Compounded overnight rate formula | Hull, Ch 4.2; Andersen & Piterbarg, Eq 5.7 |
-| Negative rates became feature in 2014; >$10 trillion bonds with negative yields | Hull, Ch 29 |
-| Bachelier normal model for negative rates | Hull, Ch 29 ("allows rates to become negative") |
-| Shifted lognormal model | Hull, Ch 29 |
-| Bank can choose which currency to post margin in | Hull, Ch 9 (footnote 6) |
-| MVA definition: cost of funding initial margin | Hull, Ch 9.2 |
-| FVA/MVA debate: marginal vs average funding costs | Hull, Ch 9.2 |
-| CSA specifies collateral requirements and interest | Hull, Ch 9 |
-| SOFR compounding formula | Hull, Ch 4.2 |
-| SOFR based on Treasury repo transactions | Hull, Ch 4.2 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| The "Big Bang" discounting switch October 2020 | Post-textbook industry event; marked as Practitioner Note |
-| Compensating Swaps auction mechanics | Post-textbook industry event; marked as Practitioner Note |
-| PAI lifecycle step-by-step | Extends Hull's CSA discussion with operational detail |
-| Collateral option "cheapest-to-deliver" analogy | Extends Hull footnote with practical pricing approach |
-| SOFR observation shift vs lockout conventions | Extends Hull's SOFR discussion with market conventions |
-| TOY spread magnitude examples (historical) | Extends Andersen & Piterbarg with practitioner color |
-| System limits with negative rates | Extends Hull's negative rate discussion with operational reality |
-| Fed Funds vs SOFR comparison table | Synthesizes Tuckman and Hull with market characteristics |
-
-### (C) Reasoned Inference
-
-- **Par Rate vs Zero Rate Logic**: For upward-sloping curves, the par rate is a weighted average of zeros, so the final zero rate must exceed the par rate. This follows from the mathematical structure of the par equation.
-- **Jacobian is Lower Triangular**: Follows from the bootstrap's sequential structure—each $P(T_i)$ depends only on inputs for $T \le T_i$.
-- **Valuation Impact Example**: Constructed from the bootstrapped curve to demonstrate magnitude of discounting differences.
-
-### (D) Flagged Uncertainties
-
-- **Exact TOY Spread Magnitudes**: The examples (10-50bp) are illustrative. Actual turn spreads vary by year and market conditions. Sources discuss the mechanism but don't specify current market levels.
-- **Index-Specific Day Counts**: Exact day counts (ACT/360 vs ACT/365) and lag conventions vary by currency and contract type. Implementation requires checking specific index definitions—I'm not sure of all regional variations without consulting current ISDA definitions.
-- **SOFR vs Fed Funds Spread**: The relationship between SOFR and Fed Funds varies with market conditions. The ~5-20bp spread cited is historical; I'm not sure about typical current spreads without more recent market data.
-- **Collateral Option Magnitude**: The 1-5bp impact cited is illustrative for typical trades. Actual impact depends heavily on trade structure, CSA terms, and rate differentials.
+- Hull, *Options, Futures, and Other Derivatives* (OIS mechanics; discounting under collateral; SOFR compounding examples; negative rates).
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-curve discounting motivation; curve overlays for special dates; interpolation choices).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (secured vs unsecured funding intuition; repo/GC vs Fed Funds discussion).
+- Federal Reserve Board publications on money-market spreads during the 2007–2009 crisis (LIBOR–OIS widening).
+- CFTC: cleared swap-class specifications for USD OIS/SOFR (payment frequency and operational conventions).
