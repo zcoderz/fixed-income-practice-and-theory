@@ -62,16 +62,20 @@ This is the **clean** or **flat** price—it excludes accrued interest. The actu
 
 Why quote clean? Because if markets quoted dirty prices, bond prices would mechanically drift upward between coupon dates as interest accrued, then drop on coupon payment. Clean pricing removes this sawtooth pattern, making prices more comparable across dates.
 
-> **Source:** Hull confirms that Treasury bonds are "quoted in dollars and thirty-seconds of a dollar" and that "the quoted price, which traders refer to as the clean price, is not the same as the cash price paid by the purchaser of the bond, which is referred to by traders as the dirty price."
-
-> **Desk Reality: Bid-Ask Spreads and Tick Size**
+> **Example: Tick Size and Bid/Ask**
 >
-> Tuckman notes that "bid-ask spreads are particularly low" for liquid securities, especially on-the-run Treasuries. A typical bid-ask spread for the on-the-run 10-year might be 1/64th (half a tick), meaning the market-maker buys at 99-16 and sells at 99-16+.
->
-> Why does this matter? On $100 million face, a one-tick (1/32) bid-ask spread costs:
+> Quotes in 32nds make small spreads natural to discuss in “ticks.” For illustration, a one‑tick (1/32 of par) spread on $100 million face corresponds to:
 > $$\$100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = \$31{,}250$$
 >
-> When a trader says "I'm offered at 16-plus," they mean they're willing to sell at 99-16+. "Bid at 16" means they're willing to buy at 99-16. The half-tick spread is the dealer's compensation for providing liquidity.
+> A half‑tick (1/64) would be half that amount.
+
+> **Desk Reality: What “Bid at 16, Offered at 16+” Means**
+>
+> Traders will often speak in shorthand:
+> - “**Bid 16**” means the dealer is willing to **buy** at `…-16`.
+> - “**Offered 16+**” means the dealer is willing to **sell** at `…-16+` (half‑tick higher).
+>
+> Crossing the bid/ask is the economic cost of immediacy. For large notionals, even “tiny” tick spreads show up in P&L, so desks obsess over price format, tick size, and where liquidity is deepest (on‑the‑run vs off‑the‑run).
 
 ### 1.1.3 T-Bill Quotations: Discount Rate Convention
 
@@ -118,22 +122,11 @@ $$\text{Interest} = 1 \times 0.05 \times \frac{d}{360}$$
 
 The denominator is 360 (not 365 or actual days in the year). This is not a mathematical choice—it is a market convention that affects the actual dollars owed.
 
-> **Source:** Tuckman explains that "lending $\$1$ for $d$ days at a rate of $r$ will earn the lender an interest payment of $r \times d/360$ dollars at the end of the $d$ days" under the actual/360 convention.
-
 ### 1.1.5 Why Conventions Differ Across Markets
 
-Conventions evolved historically and persist because changing them would require coordinated action across thousands of market participants, legal documents, and systems. A few examples:
+Conventions are historical and contractual: they exist to standardize communication and settlement, not to optimize mathematical elegance.
 
-| Market | Quote Convention | Day Count | Compounding |
-|--------|------------------|-----------|-------------|
-| U.S. Treasuries | Price (32nds), clean | ACT/ACT | Semiannual |
-| U.S. Corporate bonds | Price (decimals), clean | 30/360 | Semiannual |
-| USD term money market | Rate | ACT/360 | Simple |
-| USD swaps (fixed leg) | Rate | 30/360 or ACT/360 | Varies |
-| USD swaps (floating leg) | Rate | ACT/360 | Simple |
-| EUR/GBP money market deposits | Rate | ACT/360 (EUR), ACT/365 (GBP) | Simple |
-
-O'Kane notes that "in US dollars, Japanese yen and euros, the standard money-market deposit convention is Actual/360. For UK sterling, Actual/365 is used." These differences are not arbitrary annoyances—they reflect each market's history and what information participants find most useful. But they create traps for anyone who moves between markets without adjusting their mental model.
+The takeaway is simple: treat the quote *and* its conventions as one package. If you are missing the day count, compounding, calendar, or settlement assumptions, you are missing part of the price.
 
 ---
 
@@ -151,8 +144,6 @@ The interest earned between two dates is then:
 $$\boxed{\text{Interest} = \frac{\text{Number of days between dates}}{\text{Number of days in reference period}} \times \text{Interest earned in reference period}}$$
 
 This fraction—(days between dates) / (days in reference period)—is the **accrual fraction** or **year fraction**, often denoted $\Delta$ or $\tau$.
-
-> **Source:** Hull states: "The day count convention is usually expressed as $X/Y$. When we are calculating the interest earned between two dates, $X$ defines the way in which the number of days between the two dates is calculated, and $Y$ defines the way in which the total number of days in the reference period is measured."
 
 ### 1.2.2 The Three Common U.S. Conventions
 
@@ -208,25 +199,23 @@ This means a full year of 365 days earns $365/360 \approx 1.0139$ times the quot
 
 ### 1.2.4 International Day Count Variants
 
-Day count conventions vary not only across instruments but across regions and specific market standards. Beyond the three core U.S. conventions, practitioners encounter several variants:
+Day count conventions vary by market and instrument, and there are multiple “flavors” of the same headline convention (especially for 30/360, where end‑of‑month rules matter).
 
-| Convention | Numerator | Denominator | Primary Use |
-|------------|-----------|-------------|-------------|
-| ACT/ACT (ISDA) | Actual days | Actual days in year | Treasury bonds |
-| ACT/ACT (ICMA) | Actual days | Actual days × frequency | Eurobonds |
-| ACT/365 Fixed | Actual days | 365 (always) | GBP, AUD, CAD money markets |
-| ACT/360 | Actual days | 360 | USD, EUR, JPY money markets |
-| 30/360 (Bond Basis) | 30-day months | 360 | U.S. corporates |
-| 30E/360 (Eurobond) | 30-day months, different end-of-month rules | 360 | Eurobonds |
-| 30E/360 (ISDA) | 30-day months | 360 | ISDA swaps |
+Treat the day count as part of the contract: the correct choice is the one specified in the instrument documentation (confirmation, term sheet, rulebook).
 
-O'Kane emphasizes that "every time we encounter a day count fraction, we must take care to apply the correct day count basis convention."
+A quick sanity check: under ACT/360 with simple interest, a “5%” rate applied for 365 actual days accrues \(0.05\times 365/360 \approx 5.069\%\) of notional over the year.
 
-> **Practitioner Note:** The difference between ACT/365 Fixed and ACT/360 can be significant. For a 365-day loan at 5%:
-> - ACT/360: Interest = $\frac{365}{360} \times 5\% = 5.069\%$ effective
-> - ACT/365: Interest = $\frac{365}{365} \times 5\% = 5.000\%$ effective
->
-> This 6.9bp difference on $100mm is $6,944 per year—real money on a funding desk.
+Here is a compact “you will see these on the desk” list:
+
+| Convention (headline) | Numerator | Denominator | Where you’ll commonly see it |
+|---|---:|---:|---|
+| ACT/360 | Actual days | 360 | USD/EUR/JPY money markets; many floating legs |
+| ACT/365F | Actual days | 365 | Many GBP money market instruments |
+| 30/360 (Bond basis) | 30‑day months | 360 | US corporate bonds (coupon accrual) |
+| 30E/360 (Eurobond) | 30‑day months (Euro end‑of‑month rules) | 360 | Some EUR bond markets |
+| 30E/360 (ISDA) | 30‑day months (ISDA rules) | 360 | Some swaps / ISDA definitions |
+
+**Important:** “30/360” is not one thing. End‑of‑month handling differs across variants, and that difference can move accrued interest and PVs around coupon dates. Always verify which variant your system is using.
 
 ### 1.2.5 Why Day Counts Matter: The "Million Dollar Calendar Mistake"
 
@@ -237,47 +226,9 @@ Hull provides a vivid illustration in Business Snapshot 6.1. Between February 28
 
 If a corporate bond and a Treasury bond have the same coupon and same quoted price, the corporate bond (using 30/360) accrues **three times as much interest** over this one-day period as the Treasury (using ACT/ACT).
 
-> **Source:** Hull's Business Snapshot 6.1: "Between February 28, 2018, and March 1, 2018, you have a choice between owning a U.S. government bond and a U.S. corporate bond. They pay the same coupon and have the same quoted price... In fact you should have a marked preference for the corporate bond."
-
 This is not a mathematical curiosity—it affects which bond you should prefer to hold over that date.
 
-> **Case Study: The "Million Dollar Calendar Mistake"**
->
-> **The Scenario**: You hold $100 million face value of 5% coupon bonds overnight from February 28 to March 1 (non-leap year).
->
-> **The Trap**:
-> *   **Corporate Bond (30/360)**: Counts as **3 days** of accrual (Feb 28 $\to$ Feb 30 $\to$ Mar 1).
->     *   Interest = $\$100m \times 5\% \times \frac{3}{360} \approx \$41,666$.
-> *   **Treasury Bond (Act/Act)**: Counts as **1 day** of accrual (Feb 28 $\to$ Mar 1).
->     *   Interest = $\$100m \times 5\% \times \frac{1}{365} \approx \$13,698$.
->
-> **The Lesson**: The corporate bond pays $\approx 3x$ the interest for that single overnight hold. Trading systems that mismatch these conventions can generate massive "mystery P&L" breaks overnight.
-
-> **Desk Reality: The Day Count Hedge Mismatch**
->
-> Consider hedging a $100mm 5% corporate bond (30/360) with Treasury futures (ACT/ACT). Over a quarter with 92 actual days (say, January 1 to April 2):
->
-> - **Corporate accrual (30/360):** $\frac{91}{360} \times 5\% \times \$100mm = \$126,389$
->   (Jan: 30, Feb: 30, Mar: 30, Apr 1: 1 = 91 days)
-> - **Treasury accrual (ACT/ACT):** $\frac{92}{365} \times 5\% \times \$100mm = \$126,027$
->
-> The mismatch of $362 may seem small, but it's systematic. Over a year, it compounds. Worse, around February, the mismatch explodes—creating "day count basis" P&L that your risk system may not flag.
->
-> **The fix:** Acknowledge the mismatch in your hedge accounting and true up periodically. Or use matched instruments (corporate CDS vs corporate bond, not Treasury hedges).
-
-### 1.2.6 Leap Year Edge Cases
-
-Leap years create additional complexity:
-
-> **Practitioner Note: February 29 and Day Count Anomalies**
->
-> In leap years, February 29 adds one extra day under ACT conventions but is ignored under 30/360. From February 28 to March 1 in a leap year:
-> - **ACT/ACT:** 2 days (Feb 28 → Feb 29 → Mar 1)
-> - **30/360:** 3 days (same as non-leap year)
->
-> This creates a brief window where ACT conventions *under-accrue* relative to 30/360 (2 vs 3 days), partially offsetting the usual February anomaly. Some arbitrage desks track these calendar effects explicitly.
-
-### 1.2.7 Day Count as a "Unit System"
+### 1.2.6 Day Count as a "Unit System"
 
 Think of day counts like measurement systems. Quoting a rate as "5%" without specifying the day count is like saying a distance is "100" without specifying whether it's meters or feet.
 
@@ -365,19 +316,11 @@ More generally, to convert from compounding $m_1$ times per year at rate $R_1$ t
 
 $$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 
-> **Source:** Hull provides these conversion formulas explicitly and notes that continuous compounding "can be regarded as the limit as the compounding period becomes infinitely small." Actuaries sometimes refer to a continuously compounded rate as the "force of interest."
-
 ### 1.3.5 Convention Risk
 
 The practical danger is **convention risk**: accidentally using the wrong compounding assumption. A risk system that assumes continuous compounding when the market quotes semiannual will systematically misprice by a small but consistent amount—easily enough to cause P&L breaks.
 
-> **Desk Reality: Compounding Mismatch in Systems**
->
-> Consider a $500mm swap portfolio where your risk system assumes continuous compounding but the market convention is semiannual. The "error" at 5% rates:
->
-> $$\text{Semiannual: } 5.00\% \quad \text{vs} \quad \text{Continuous: } 2 \ln(1.025) = 4.939\%$$
->
-> The 6.1bp difference, applied to DV01 calculations across the portfolio, can produce systematic P&L attribution errors of tens of thousands of dollars monthly. Worse, the error is *consistent*—always in the same direction—so it doesn't average out.
+Practical rule: before comparing rates across systems, convert them to a common convention (or convert to discount factors using consistent year fractions) and then compare.
 
 **Worked Example D:** Convert 10% semiannual to continuous (Hull Example 4.1).
 
@@ -408,18 +351,11 @@ Tuckman explains: "An investor purchasing a Treasury bond on a particular date m
 | Instrument | Typical Settlement |
 |------------|-------------------|
 | U.S. Treasuries | T+1 |
-| U.S. Corporate bonds | T+2 |
-| Eurobonds | T+2 or T+3 |
-| USD Term Deposits/Swaps | T+2 |
-| Money market deposits | T+2 (spot) |
+| Vanilla interest rate swaps | T+2 |
 
 O'Kane confirms: "An interest rate swap traded at time 0 settles at time $t_s$. This typically occurs two days later, i.e. the settlement convention is known as 'T+2'."
 
-**Trends in Settlement Lag:**
-Settlement times are shrinking globally to reduce counterparty risk.
-
-*   **Analogy:** Settlement lag is like the time between swiping your credit card and the money actually leaving your bank. In markets, this gap creates risk: if your counterparty goes bankrupt during the lag (after trade but before cash moves), you have a problem.
-*   **The Shift to T+1:** In May 2024, U.S. Equities moved to T+1 settlement. U.S. Treasuries have long been T+1. The goal is to minimize the "pending" exposure in the system.
+Settlement conventions differ across markets and can change over time. In practice, treat settlement lag as part of the instrument definition and confirm the relevant convention before pricing or risk.
 
 ### 1.4.2 What Happens on Settlement Day
 
@@ -439,19 +375,28 @@ Tuckman explains the economics: "Consider a trader who is short the OTR 10-year 
 
 This creates a natural floor for special repo rates: "if the repo rate is 0%, there is no point in bothering with the repo agreement: Earning 0% on the proceeds is the equivalent of having failed to deliver the bond. And certainly the trader will prefer to fail rather than accept a special rate less than 0%. Therefore, the special rate cannot fall below 0%, and, equivalently, the special spread cannot be greater than the GC rate."
 
-> **Practitioner Note: The Fails Charge Mechanism**
+> **Desk Reality: Fails Are Funding Events**
 >
-> After the 2008 financial crisis, when repo rates approached zero and fails spiked, the Treasury Market Practices Group (TMPG) introduced a **fails charge** to discourage chronic fails. The mechanism works as a penalty:
+> A fail is not just an “ops exception.” Economically, it is a **funding / financing disruption**:
+> - the short can’t deliver, so it doesn’t receive sale proceeds when expected;
+> - the long doesn’t receive the bond, so it may have to replace it (or fail onward).
 >
-> - If a party fails to deliver Treasury securities, they owe a **fails charge** to the counterparty
-> - The charge is calculated as: $\max(0, 3\% - \text{Fed Funds Target}) \times \text{Face Value} \times \frac{\text{Days Failed}}{360}$
-> - When the Fed Funds target is below 3%, there's a meaningful penalty for failing
-> - When rates are above 3%, the opportunity cost of not having proceeds is penalty enough
+> **U.S. Treasuries: TMPG Fails Charge (Formula)**
 >
-> **Example:** Failing to deliver $100mm for 3 days when Fed Funds target is 0.25%:
-> $$\text{Fails Charge} = (3\% - 0.25\%) \times \$100mm \times \frac{3}{360} = \$22,917$$
+> The Treasury Market Practices Group (TMPG) recommends a fails charge intended to discourage chronic failing. Under the TMPG “U.S. Treasury Securities Fails Charge Trading Practice” (revised April 23, 2018), the **daily** fails charge amount for a delivery-versus-payment (DVP) Treasury trade is:
 >
-> **Why this matters to middle office:** Settlement fails appear as exceptions in your daily processing. Understanding the economic penalty helps you triage which fails need urgent escalation (large notional, scarce collateral) versus routine cleanup.
+> $$\boxed{C \;=\; \frac{1}{360}\times 0.01 \times \max(3 - R,\; F)\times P}$$
+>
+> where:
+> - $C$ = fails charge amount, in dollars (accrues each calendar day during the fail);
+> - $P$ = “trade proceeds”, i.e., the amount of funds due from the non-failing party (for DVP);  
+>   *(TMPG uses $P$ for proceeds—don’t confuse it with bond price notation elsewhere in this chapter.)*
+> - $R$ = TMPG reference rate (defined from the Fed funds target; if a target range is used, the lower limit is used);
+> - $F$ = floor in percentage points. Under the TMPG revision, $F=1$ (1% per annum) for Treasury transactions entered into on/after July 2, 2018 (and earlier transactions still unsettled on July 2, 2018); otherwise $F=0$.
+>
+> **Intuition:** when short rates are low, failing is otherwise “cheap,” so the fails charge creates an explicit cost. When short rates are high enough, the opportunity cost of not receiving proceeds is already meaningful and the explicit charge may be small or zero (subject to any floor).
+>
+> **Worked number (order of magnitude):** If $P=\$100{,}000{,}000$ and the applicable fails charge rate is 2% per annum, then $C \approx 100{,}000{,}000\\times 0.02/360 = \$5{,}556$ per day.
 
 Tuckman documents a real example: after September 11, 2001, "the terrorist attack on the World Trade Center disrupted the specials market in two ways. First, the resulting confusion and the destruction of records caused many government bond transactions to fail... Second, heightened uncertainty and credit concerns caused many participants in the repo markets to pull their securities from the repo market. The combination of these forces caused a severe shortage of on-the-run collateral."
 
@@ -468,38 +413,28 @@ What happens when a payment date falls on a weekend or holiday? Markets use **bu
 **Modified Preceding:** Move to the previous business day, unless that would push into the previous calendar month—in which case, move forward.
 
 Hull explains: "Another business day convention that is sometimes specified is the modified following business day convention, which is the same as the following business day convention except that when the next business day falls in a different month from the specified day, the payment is made on the immediately preceding business day."
-
-Modified Following is the most common for swaps because it keeps payments within the same month for accounting purposes, while minimizing the delay.
-
-> **Source:** Hull's Business Snapshot 7.1 shows a swap confirmation specifying "Following business day" convention with the "U.S." holiday calendar, meaning "if a payment date falls on a weekend or a U.S. holiday, the payment is made on the next business day."
+Which convention applies is a contract term (swap confirmations typically specify it).
 
 ### 1.4.5 Holiday Calendars
 
 Different markets use different holiday calendars:
 
-| Currency/Market | Holiday Calendar |
-|-----------------|------------------|
-| USD | U.S. (Federal Reserve holidays) |
-| EUR | TARGET (Trans-European Automated Real-time Gross settlement) |
-| GBP | London |
-| JPY | Tokyo |
+| Example market | Example holiday calendar |
+|----------------|--------------------------|
+| USD | U.S. calendar (as specified in the confirmation) |
+| EUR | TARGET (used in some EUR contracts; product-specific) |
 
-For cross-currency products, payment dates typically must be business days in *all* relevant calendars.
+For multi-currency products, contracts often specify joint business-day rules (e.g., “must be a business day in both calendars”).
 
 Hull's glossary confirms: "Holiday Calendar: Calendar defining which days are holidays for the purposes of determining payment dates in a swap."
 
-> **Practitioner Note: Holiday Risk and "Stranded Liquidity"**
+> **Desk Reality: Calendar Mismatch Can Create “Stranded Liquidity”**
 >
-> Cross-currency trades create **calendar mismatch risk**. If you have a USD/EUR cross-currency swap:
-> - July 4 is a U.S. holiday but not a TARGET holiday
-> - December 26 is a TARGET holiday but often not a U.S. holiday
+> Multi-currency and cross-market books are exposed to calendar mismatch:
+> - one currency’s market can be open while the other is closed;
+> - margin calls, FX funding, and hedges may not line up cleanly.
 >
-> When one market is open and the other closed, you may have:
-> - **Funding mismatches:** You owe EUR but can't receive USD to cover
-> - **Hedging gaps:** Your USD hedge isn't trading, but EUR rates are moving
-> - **Operational bottlenecks:** Half your counterparties are offline
->
-> Most confirmations specify that payment dates must be business days in *both* relevant calendars. But fixing dates, margin calls, and other operational dates can still create friction. Large trading desks maintain explicit "holiday risk" reports for periods like Christmas week and Golden Week (Japan).
+> Practical habit: when planning funding and risk for a week (especially around year‑end), check the joint calendar for your major currencies and the business-day convention in each confirmation.
 
 ### 1.4.6 Fixing Dates vs Payment Dates
 
@@ -518,7 +453,7 @@ The payment is calculated based on the rate observed on the fixing date, but the
 
 ### 1.4.7 Risk-Free Rate (RFR) Compounding Mechanics
 
-Modern markets have transitioned from forward-looking term rates (like LIBOR) to backward-looking overnight Risk-Free Rates (RFRs) like SOFR (USD), SONIA (GBP), and €STR (EUR). This creates operational complexity because the applicable rate is not known until the accrual period ends.
+In many markets, LIBOR-type term rates have been replaced by backward-looking overnight reference rates such as SOFR (USD) and SONIA (GBP). This creates operational complexity because the applicable rate is not known until the accrual period ends.
 
 Hull explains: "The new reference rates are backward looking. The rate applicable to a particular period is not known until the end of the period when all the relevant overnight rates have been observed."
 
@@ -553,22 +488,16 @@ where $r_i$ is the overnight rate on day $i$, $\hat{d}_i = d_i/360$, $d_i$ is th
 > **Step 3:** Annualize:
 > $$\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\%$$
 
-> **Practitioner Note: Lookback vs Observation Shift vs Lockout**
+Because the rate is determined from realized overnight fixings, operational timing conventions (when you observe rates and when you pay) are part of the contract specification. This book treats those timing conventions as inputs (we return to them when discussing curve construction and instrument mechanics later).
+
+> **Desk Reality: “Observation Shift”, “Lookback”, “Lockout”, “Payment Delay”**
 >
-> The challenge with backward-looking rates is that you don't know the final payment until the period ends—leaving no time for operational processing. Markets have developed three main solutions:
+> For overnight-compounded legs, desks care about *when* a fixing is taken versus *when* cash is paid. Market standards vary by currency and product, but common operational patterns include:
+> - **Observation shift / lookback:** use an earlier fixing (e.g., shift the observation window) so the payment amount can be known before the payment date.
+> - **Lockout:** keep the final few daily rates fixed (reuse an earlier fixing) near period end to simplify operations.
+> - **Payment delay:** pay a few business days after period end, so all overnight rates are known before cash moves.
 >
-> | Convention | Mechanism | Trade-off |
-> |------------|-----------|-----------|
-> | **Payment Delay** | Payment occurs 2-5 days after period end | Simplest; slight timing mismatch |
-> | **Lookback** | Observation period shifted back (e.g., by 5 days) | Payment known in advance; hedging mismatch |
-> | **Lockout** | Rate frozen for last few days of period | Payment known in advance; rate approximation |
->
-> **Example:** For a 3-month period ending June 30:
-> - **Payment Delay (2 days):** Pay July 2, using actual SOFR through June 30
-> - **Lookback (5 days):** Pay June 30, using SOFR from ~March 26 to ~June 25
-> - **Lockout (2 days):** Pay June 30, using SOFR through June 28, then freeze
->
-> The lookback approach is common for SOFR-linked loans; lockout is common for floating rate notes. Different conventions create small basis risks when hedging across instruments. Chapter 18 covers these mechanics in depth.
+> The names (and exact definitions) are not universal. If you are reconciling cashflows across systems, pull the trade confirmation and identify which timing convention each system implemented.
 
 ### 1.4.8 Stub Periods
 
@@ -607,19 +536,6 @@ Nov 15    Mar 15 (4 months) Jun 15 (3 months)
 ```
 
 *In a "Long First Stub," the first payment covers more than one full period (e.g., 4 months instead of 3). The payment will be $\approx 1.33 \times$ a normal coupon.*
-
-### 1.4.9 End-of-Month Rules
-
-The **End-of-Month (EOM) rule** addresses what happens when a swap or bond starts on the last day of a month. Without an EOM rule, a swap starting January 31 would have a payment "February 31" which doesn't exist.
-
-**Standard EOM rule for swaps:** If the start date is the last business day of the month, all future payment dates are also the last business day of their respective months.
-
-| Start Date | Without EOM | With EOM |
-|------------|-------------|----------|
-| Jan 31 | Feb 28, Mar 31, Apr 30... | Feb 28, Mar 31, Apr 30... |
-| Feb 28 (non-leap) | Mar 28, Apr 28, May 28... | Mar 31, Apr 30, May 31... |
-
-> **Practitioner Note:** EOM rules can create surprisingly large differences in accrual periods. A swap starting February 28 with EOM rule will have a first period of either 28 or 31 days depending on whether March is "28" or "31" under EOM. This affects the first payment by roughly 10%—material on large notionals.
 
 ---
 
@@ -671,7 +587,6 @@ $$P^a + 0 = PV(\text{cash flows after the next coupon})$$
 
 By contrast, the dirty price falls from $(P^b + c/2)$ before the coupon to $P^a = P^b$ after the coupon—a drop of exactly $c/2$.
 
-> **Source:** Tuckman states: "With an accrued interest convention, if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment."
 
 ### 1.5.4 Why This Matters for P&L
 
@@ -783,9 +698,9 @@ This chapter established the "plumbing" that underlies all fixed-income pricing:
 
 3. **Compounding is also a unit choice**: A 5% semiannual rate is not the same as 5% continuous. Conversion formulas exist, but mixing conventions creates errors. Continuous compounding is standard in derivatives pricing for its mathematical convenience.
 
-4. **Settlement timing matters**: Cash moves on settlement date, not trade date. Accrued interest is computed to settlement. Different markets have different settlement lags (T+1 for Treasuries, T+2 for swaps). When settlement fails, there are economic consequences including fails charges.
+4. **Settlement timing matters**: Cash moves on settlement date, not trade date. Accrued interest is computed to settlement. Different markets have different settlement lags (e.g., T+1 for Treasuries, T+2 for swaps). When settlement fails, there are economic consequences (in repo, failing can be an alternative to borrowing the bond).
 
-5. **RFR mechanics are backward-looking**: Unlike term rates that are fixed in advance, overnight RFRs compound daily and aren't known until period end. Lookback, lockout, and payment delay conventions address operational challenges.
+5. **Overnight reference rates are backward-looking**: Unlike term rates that are fixed in advance, overnight reference rates compound from realized overnight fixings and are known only at period end. Operational timing conventions are contract-specific.
 
 6. **Clean pricing removes mechanical drift**: Markets quote clean to make prices comparable across dates. The dirty price is what actually changes hands. Tuckman proves that clean prices are continuous across coupon dates when yields are unchanged.
 
@@ -805,7 +720,7 @@ None of this is mathematically deep, but all of it must be exactly right. The ch
 | Compounding | Frequency of interest computation | Unit of rate quotes; affects conversions |
 | Continuous compounding | Limit as frequency → ∞ | Standard in derivatives pricing |
 | Settlement | Date when cash moves | Accrued computed to settlement |
-| Settlement fail | Failure to deliver on settlement date | Creates fails charge penalty |
+| Settlement fail | Failure to deliver on settlement date | Has operational and economic consequences (e.g., foregone interest on sale proceeds; repo implications) |
 | Business day roll | What to do when date is a holiday | Modified Following is common for swaps |
 | Stub | Irregular first/last period | Affects actual cash payment amount |
 | Fixing date | When floating rate is observed | Typically T-2 for term rates |
@@ -856,12 +771,9 @@ The following notation will be used throughout subsequent chapters:
 | 17 | How many days between Feb 28 and Mar 1 under ACT/ACT? | 1 day |
 | 18 | Why is continuous compounding used in derivatives pricing? | Mathematical convenience: discount factors multiply simply |
 | 19 | What is the relationship between T-bill quoted price and cash price? | $P = \frac{360}{n}(100 - Y)$ where $P$ is quoted, $Y$ is cash, $n$ is days |
-| 20 | What holiday calendar is used for EUR payments? | TARGET (Trans-European Automated Real-time Gross settlement) |
+| 20 | Give an example of a holiday calendar used in EUR contracts | TARGET (product-specific) |
 | 21 | What is a settlement fail? | When the seller cannot deliver securities on the agreed settlement date |
-| 22 | What is the fails charge mechanism? | A penalty calculated as max(0, 3% - Fed Funds) to discourage chronic settlement fails |
 | 23 | How are RFR (overnight) rates compounded over a period? | Daily rates are compounded: $\prod(1 + r_i \times d_i/360) - 1$, annualized |
-| 24 | What is the "lookback" convention for RFRs? | Observation period is shifted back (e.g., 5 days) so payment amount is known before payment date |
-| 25 | If you hedge a 30/360 corporate bond with an ACT/ACT Treasury, what basis risk exists? | Day count mismatch—accrual differs systematically, especially around February |
 
 ---
 
@@ -895,11 +807,7 @@ The following notation will be used throughout subsequent chapters:
 
 13. A CDS trades on November 10 with quarterly payments on the 20th. If the spread is 150bp on $5mm notional, what is the first (stub) premium payment on December 20? (Use ACT/360)
 
-14. You fail to deliver $50mm of Treasuries for 2 days when the Fed Funds target is 0.50%. Calculate the fails charge.
-
-15. Calculate the compounded rate for a 3-day period where Monday's SOFR is 5.25% (applies 1 day), Tuesday's is 5.28% (applies 1 day), and Wednesday's is 5.26% (applies 3 days including the weekend). Express as an annualized rate.
-
-16. A trader holds $100mm face of 6% corporate bonds (30/360) and hedges with $100mm Treasury futures (ACT/ACT). Over March 1-31 (31 actual days), what is the accrual mismatch in dollars?
+14. Calculate the compounded rate for a **5-day** period where Monday's SOFR is 5.25% (applies 1 day), Tuesday's is 5.28% (applies 1 day), and Wednesday's is 5.26% (applies 3 days). Express as an annualized rate.
 
 ### Brief Solutions
 
@@ -929,72 +837,13 @@ The following notation will be used throughout subsequent chapters:
 
 13. Days from Nov 10 to Dec 20 = 40 days. Accrual fraction = 40/360 = 0.1111. Payment = $5mm × 0.015 × 0.1111 = $8,333.
 
-14. Fails charge = $(3\% - 0.5\%) \times \$50mm \times \frac{2}{360} = \$6,944$
-
-15. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 = 0.000731$. Annualized: $0.000731 \times 360/5 = 5.26\%$
-
-16. Corporate (30/360): 30 days, accrual = $100mm × 3% × 30/360 = $250,000. Treasury (ACT/ACT): 31 days in 184-day period, accrual = $100mm × 3% × 31/184 = $50,543. Mismatch ≈ $199,457. (Note: This example assumes same coupon for comparison; actual hedge ratio would differ.)
+14. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 = 0.000731$. Annualized: $0.000731 \times 360/5 = 5.26\%$
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Treasury prices quoted in 32nds | Tuckman Ch 1, Hull Ch 6 |
-| Futures quoted to half/quarter 32nds | Hull Ch 6 |
-| T-bill discount rate quotation formula | Hull Ch 6 |
-| Dirty = clean + accrued interest | Tuckman Ch 4, Hull Ch 6, O'Kane Ch 4 |
-| Day count defines interest accrual (X/Y definition) | Hull Ch 6 |
-| Three U.S. day counts: ACT/ACT, 30/360, ACT/360 | Hull Ch 6 |
-| 30/360 day counting algorithm | Tuckman Ch 17 |
-| Actual/360 money market convention | Tuckman Ch 4, Hull Ch 6 |
-| ACT/365 for GBP, ACT/360 for USD/EUR/JPY money markets | Hull Ch 6, O'Kane Ch 2 |
-| Clean price continuity across coupon dates (proof) | Tuckman Ch 4 |
-| T+1 settlement for Treasuries | Tuckman Ch 1 |
-| T+2 settlement for swaps | O'Kane Ch 2, Hull Ch 7 |
-| Compounding conversion formulas | Hull Ch 4 |
-| Modified Following business day rule | Hull Ch 7, O'Kane Ch 2 |
-| February day count anomaly (3 days vs 1 day) | Hull Business Snapshot 6.1 |
-| Fixing date 2 days before accrual start for term rates | O'Kane Ch 2 |
-| Stub periods in CDS premium leg | O'Kane Ch 5 |
-| RFR backward-looking compounding formula | Hull Ch 4 |
-| Stock vs bond accrual convention difference | Tuckman Ch 4 footnote |
-| Continuous compounding preferred in derivatives | Hull Ch 4 |
-| Settlement fails economics (loss of one day's interest) | Tuckman Ch 15 |
-| Special repo rate floor at 0% due to fails alternative | Tuckman Ch 15 |
-| September 11, 2001 fails disruption | Tuckman Ch 15 |
-| Bid-ask spreads particularly low for liquid securities | Tuckman Ch 15 |
-| Holiday calendar definition | Hull Glossary |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| Fails charge mechanism (3% - Fed Funds formula) | Extends Tuckman Ch 15 fails discussion with TMPG post-2008 practice |
-| Day count hedge mismatch P&L example | Extends Hull Business Snapshot 6.1 with hedging application |
-| Holiday risk and "stranded liquidity" | Extends Hull Ch 7 calendar discussion with cross-currency operational practice |
-| RFR lookback vs observation shift vs lockout | Extends Hull Ch 4 backward-looking discussion with market convention details |
-| Compounding mismatch in systems desk reality | Extends Hull Ch 4 compounding with operational risk application |
-| Bid-ask spread tick-size economics | Extends Tuckman Ch 15 liquidity discussion with trading desk example |
-| P&L reporting clean/dirty separation | General fixed income desk practice |
-| EOM rule details for swaps | Standard swap market practice |
-| Leap year day count anomalies | Derived from day count definitions |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-- Clean pricing removes sawtooth accrual pattern (follows from the clean/dirty identity and the coupon-date continuity proof)
-- Day counts are like measurement units (conceptual framing consistent with Tuckman's statement that conventions "do not really matter so long as cash flows are properly computed")
-- Convention risk exists whenever conventions are mixed (implied by the existence of multiple conventions)
-- Dirty price ≈ PV of remaining cashflows (follows from Tuckman's pricing equation P + AI = PV)
-- Stub payment proportionality check (derived from accrual fraction definition)
-
-### (D) Flagged Uncertainties
-
-- **Exact fails charge details:** The 3% threshold was introduced by TMPG in 2009; specific implementation may vary by market and may have been updated. Readers should verify current TMPG guidance.
-- **End-of-month rules:** Exact EOM conventions for 30/360 vary by specific variant (30/360 ISDA, 30E/360, etc.); specific rules require contract documentation.
-- **RFR convention details:** Specific lookback, lockout, and payment delay conventions vary by currency, product, and counterparty agreement. The examples given are illustrative; Chapter 18 covers these in more depth.
-- **Exact settlement lags:** May vary by market, currency, instrument type, and can change over time (e.g., U.S. equities moved from T+2 to T+1).
-- **Business day calendars:** Holiday calendars are jurisdiction-specific and change annually; production systems require maintained calendar data.
+- Bruce Tuckman, *Fixed Income Securities* (market quoting conventions; day counts; clean/dirty; settlement and fails in repo).
+- John C. Hull, *Options, Futures, and Other Derivatives* (compounding; day count conventions; business-day conventions; Treasury bills; overnight reference-rate compounding).
+- Dominic O’Kane, *Modeling Single-name and Multi-name Credit Derivatives* (clean vs. dirty price and accrued interest; calendar choice examples such as TARGET).
+- Treasury Market Practices Group (TMPG), *U.S. Treasury Securities Fails Charge Trading Practice* (revised April 23, 2018).
