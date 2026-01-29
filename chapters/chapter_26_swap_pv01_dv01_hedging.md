@@ -490,6 +490,8 @@ A DV01-neutral hedge can have significant P&L under non-parallel curve moves. Co
 
 With DV01-matched positions (bond + payer swap), apply a twist: +10bp at years 1-2, 0bp at year 3, -10bp at years 4-5.
 
+These dollar figures are **illustrative**. The point is that a "DV01-neutral" hedge can still carry meaningful **key-rate** exposure that produces P&L under twists.
+
 - The zero bond gains as the 5-year rate falls: approximately +$43,610
 - The swap loses because the annuity's PV weights extend across the curve, and the short end (where rates rose) pulls value down: approximately -$41,433
 
@@ -538,13 +540,13 @@ Static hedges drift out of alignment as time passes and curves move. Rebalancing
 
 | Trigger | Action |
 |---------|--------|
-| DV01 drift > 5-10% of original | Resize hedge position |
+| DV01 drift > ~5-10% of original (illustrative) | Resize hedge position |
 | Curve shape changed significantly | Check bucket exposures; may need term adjustment |
 | Large rate move (> 50bp) | Check convexity impact; may need gamma hedge |
 | Near payment date | Floating leg DV01 changes at reset |
 | Approaching roll date | If hedging with futures, roll or close |
 
-The cost of rebalancing (bid-ask, market impact) must be weighed against the cost of carrying a misaligned hedge. Large, stable portfolios may rebalance weekly or monthly; actively traded books may rebalance daily.
+The cost of rebalancing (bid-ask, market impact) must be weighed against the cost of carrying a misaligned hedge. The exact thresholds and cadence are desk-specific.
 
 > **Desk Reality: The Drift You Don't See**
 >
@@ -841,67 +843,8 @@ For $N = 100\text{mm}$: $PV_{\text{pay}} = -\$2,097,000$ (negative to payer beca
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Swap PV = $V_{\text{fixed}} - V_{\text{float}}$ (receiver perspective) | Tuckman Ch 18 |
-| "The value of a swap to the fixed receiver/floating payer is $V_{\text{Fixed}} - V_{\text{Float}}$" | Tuckman Ch 18 |
-| "PV01" in swap markets = "change in value for one-basis point change in its fixed rate" | Tuckman Ch 18 |
-| "PV01 equals the sum of the discount factors used to discount the fixed cash flows" | Tuckman Ch 18 |
-| Fixed and floating risks should be managed separately | Tuckman Ch 18 |
-| "DV01 of the fixed leg depends on swap rate curve out to maturity... DV01 of floating leg depends on LIBOR out to first payment date" | Tuckman Ch 18 |
-| Floating rate note "behaves like a zero coupon bond maturing on next payment date... duration is approximately equal to time to next payment date" | Tuckman Ch 18 |
-| Bucket exposures for swap books; $100mm 6Y swap example gives $4,187 exposure | Tuckman Ch 7 |
-| "Bucket analysis usually uses very many buckets... each bucket shift is a parallel shift of forward rates" | Tuckman Ch 7 |
-| "The practice of accumulating swaps leads to large portfolios that change in composition only slowly" | Tuckman Ch 7 |
-| "So while the portfolio has no risk with respect to parallel shifts of the forward curve, it can hardly be said that the portfolio has no interest rate risk" | Tuckman Ch 7 |
-| DV01 hedge ratio: $F_B = -F_A(DV01_A/DV01_B)$ | Tuckman Ch 5 |
-| $DV01 = (1/10,000)(-dP/dy)$ | Tuckman Ch 5 |
-| "substantial basis risk remains when hedging changes in corporate rates with swaps" | Tuckman Ch 18 |
-| Corporate hedging: issue fixed, enter swap to pay fixed/receive floating | Tuckman Ch 18 |
-| Spread lock alternative for corporate hedging | Tuckman Ch 18 footnote 3 |
-| On-the-run securities trade special in repo market | Tuckman Ch 15-16 |
-| Annuity factor definition: $A_{k,m}(t) = \sum P(t, T_{n+1}) \tau_n$ | Andersen & Piterbarg Vol 1 Ch 4 |
-| "The quantity $A(\cdot)$ is the annuity of the swap (or its PVBP)" | Andersen & Piterbarg Vol 1 Ch 5 |
-| $V_{\text{swap}}(t) = A(t)(S(t) - k)$ | Andersen & Piterbarg Vol 1 Ch 5 |
-| Par swap rate: $S_{k,m}(t) = (P(t,T_k) - P(t,T_{k+m})) / A_{k,m}(t)$ | Andersen & Piterbarg Vol 1 Ch 4 |
-| Multi-curve: project forwards, discount at OIS | Hull Ch 7 |
-| Duration-based hedge ratio / price sensitivity hedge ratio | Hull Ch 6 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Rate hedge vs spread hedge" framing | Extends Tuckman's basis risk discussion to clarify what DV01 hedges actually hedge |
-| SOFR transition note | Updates Tuckman's Eurodollar discussion for current market |
-| Repo squeeze → swap demand dynamic | Extends Tuckman Ch 15-16 repo concepts to explain swap spread behavior |
-| Operational comparison table (swap vs short bond) | Synthesizes Tuckman Ch 15-16 and general market knowledge |
-| Corporate hedging market flow narrative | Extends Tuckman Ch 18 corporate discussion with market impact intuition |
-| Rebalancing triggers table | Derived from general risk management practice; not explicitly in cited sources |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| $PV01_K = \pm N \times A \times 0.0001$ | Differentiate PV formula w.r.t. $K$; consistent with Tuckman's statement about sum of discount factors |
-| Par swap rate formula as weighted average of forwards | Algebraic rearrangement of Andersen's formula |
-| Discount vs projection PV01 split | Multi-curve structure + chain rule applied to valuation formula |
-| Residual P&L formula for basis risk | Apply DV01 × bp move to different instruments moving by different amounts |
-| Bucket exposures = key-rate DV01s for swaps | Structural parallel between the two risk decomposition methods |
-
-### (D) Flagged Uncertainties
-
-| Item | Note |
-|------|------|
-| Exact desk curve-bump methodologies | Varies by desk and system; bump zeros vs par rates vs quotes affects sensitivity distribution |
-| Projection-curve bump rule | Implementation choice: bump zeros and rebuild vs direct forward bump produces slightly different results |
-| Specific numerical results in curve twist examples | Illustrative calculations to demonstrate concept; exact numbers depend on curve and methodology choices |
-| Rebalancing thresholds (5-10% DV01 drift) | Common practice but varies by institution; no single standard |
-| March 2020 Treasury-swap dynamics | Market stress period; specific mechanisms are subject to debate |
-
----
-
-*Last Updated: January 2026*
+- Tuckman & Serrat, *Fixed Income Securities* (swap valuation; DV01/PV01; swap spreads; repo specialness)
+- Andersen & Piterbarg, *Interest Rate Modeling* (swap annuity/PVBP; multi-curve framework)
+- Hull, *Options, Futures, and Other Derivatives* (multi-curve discounting overview; hedging intuition)

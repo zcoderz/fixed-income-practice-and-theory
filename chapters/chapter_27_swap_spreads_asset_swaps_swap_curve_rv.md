@@ -4,15 +4,15 @@
 
 ## Introduction
 
-The 10-year swap spread is negative 20 basis points. The U.S. government—supposedly the risk-free benchmark—yields *more* than AA-rated bank credit. How is this possible?
+The 10-year swap spread is negative 20 basis points. The U.S. government—often treated as the "risk-free" benchmark—yields *more* than the par swap rate. How is this possible?
 
-This credit paradox has persisted since 2015 and fundamentally challenges the textbook interpretation of swap spreads as "credit spreads." If spreads measured pure credit, they could never be negative—no rational investor would accept lower compensation for taking on bank credit risk rather than holding Treasuries. Yet negative spreads exist, persist, and have become a structural feature of the post-crisis market.
+Negative swap spreads feel like a "credit paradox" if you interpret the swap spread as a pure bank-credit spread over Treasuries. If that story were literally true, swap spreads "shouldn't" be negative. In practice, the swap spread is a relative-value quote that mixes multiple forces: benchmark choice (on-the-run liquidity and repo specialness), funding and balance-sheet constraints that limit arbitrage, and supply/demand flows that hit swaps and cash Treasuries differently.
 
 Understanding this puzzle requires unpacking what swap spreads actually measure. At first glance, the answer seems obvious: swap rates are above (or below) Treasury yields of the same maturity, reflecting credit and liquidity differences. But this simple interpretation masks a web of complications. The Treasury yield you subtract may be distorted by on-the-run liquidity premiums and repo specialness. The swap rate reflects rolling short-term bank credit—not a static credit spread. And the spread itself conflates credit, supply/demand dynamics, bank capital constraints, and pension hedging demand in ways that can mislead the unwary trader.
 
 This chapter unpacks the mechanics and interpretation of swap spreads and their close relative, the asset swap spread. Where swap spreads compare swap rates to government yields directly, asset swap spreads anchor individual bonds to the swap curve—providing a cleaner measure of a bond's value relative to bank-credit-based funding. Understanding the distinction matters because the two measures answer different questions and can move in opposite directions.
 
-The chapter proceeds as follows. Section 27.1 defines swap spreads precisely and examines why benchmark choice matters. Section 27.2 explains the negative swap spread regime—the three structural drivers that pushed spreads negative post-2015. Section 27.3 introduces asset swaps as both a spread measure and a trading structure. Section 27.4 addresses the "premium bond trap"—a critical gotcha in asset swap analysis. Section 27.5 contrasts the zero-volatility spread (ZVS) with asset swap spreads. Section 27.6 develops the CDS-bond basis framework that links cash and derivative credit markets. Section 27.7 covers risk measurement, P&L attribution, and funding effects. Section 27.8 presents the swap-curve relative value framework. Section 27.9 addresses multi-curve considerations.
+The chapter proceeds as follows. Section 27.1 defines swap spreads precisely and examines why benchmark choice matters. Section 27.2 explains why swap spreads can be negative and why negative spreads can persist. Section 27.3 introduces asset swaps as both a spread measure and a trading structure. Section 27.4 addresses the "premium bond trap"—a critical gotcha in asset swap analysis. Section 27.5 contrasts the zero-volatility spread (ZVS) with asset swap spreads. Section 27.6 develops the CDS-bond basis framework that links cash and derivative credit markets. Section 27.7 covers risk measurement, P&L attribution, and funding effects. Section 27.8 presents the swap-curve relative value framework. Section 27.9 addresses multi-curve considerations.
 
 The reader should come away understanding: (1) why swap spreads can be negative and what that signals, (2) how to compute and interpret asset swap spreads using both Tuckman's and O'Kane's approaches, (3) the premium bond trap and how to avoid it, (4) the CDS-bond basis and its trading implications, and (5) how desks attribute P&L and manage funding costs.
 
@@ -143,19 +143,19 @@ The swap spread curve slope from 5Y to 10Y is $20 - 25 = -5$ bp, meaning the cur
 
 ---
 
-## 27.2 The Negative Swap Spread Regime
+## 27.2 Why Swap Spreads Can Be Negative
 
-### 27.2.1 The Post-2015 Credit Paradox
+### 27.2.1 The "Credit Paradox" Intuition
 
-Since 2015, U.S. swap spreads at longer maturities (10Y, 30Y) have frequently traded negative—meaning the "risk-free" Treasury yield exceeds the swap rate that embeds AA bank credit. This appears to violate the most basic credit logic: why would investors accept *less* compensation for taking on bank credit risk than for holding Treasuries?
+In some markets and periods—especially at longer maturities—swap spreads can trade negative (swap rates below government yields). This appears to violate the most basic credit logic: why would investors accept *less* compensation for taking on swap-market risk than for holding the government benchmark?
 
 The answer lies in recognizing that swap spreads are not pure credit spreads. Three structural forces combine to push swap spreads negative, and understanding them is essential for any modern practitioner.
 
 ### 27.2.2 Driver 1: Treasury Supply Surge
 
-The first driver is the dramatic increase in Treasury supply since the financial crisis. Tuckman notes that swap spreads in the late 1990s widened due to "perceived scarcity in the supply of U.S. Treasury securities relative to demand." The post-2015 period represents the opposite phenomenon.
+One driver is Treasury supply/demand. Tuckman notes that swap spreads in the late 1990s widened due to "perceived scarcity in the supply of U.S. Treasury securities relative to demand." Large changes in issuance and dealer intermediation can push Treasury yields up or down relative to swap rates.
 
-U.S. government deficits have produced enormous Treasury issuance—trillions of dollars annually. This supply must be absorbed by the market, pushing Treasury prices down (yields up) relative to swaps. The effect is particularly pronounced at the long end (10Y, 30Y) where duration is highest and supply is concentrated.
+Intuition: if the cash Treasury sector cheapens (yields rise) due to supply pressure or balance-sheet frictions in the cash market, swap spreads can tighten and may go negative even without any "credit improvement" story in swaps.
 
 > **Desk Reality: The Supply Calendar**
 >
@@ -163,22 +163,22 @@ U.S. government deficits have produced enormous Treasury issuance—trillions of
 >
 > "We're short swap spreads into the auction" means the trader expects Treasury yields to rise (prices fall) relative to swaps.
 
-### 27.2.3 Driver 2: Bank Capital Constraints (SLR)
+### 27.2.3 Driver 2: Balance Sheet Constraints (Leverage/Capital)
 
-The second driver is bank capital regulation, specifically the Supplementary Leverage Ratio (SLR) introduced under Basel III. This regulation requires banks to hold capital against all assets—including low-risk assets like Treasury holdings and matched-book swap positions.
+The second driver is dealer balance-sheet constraints. In the real world, the classic swap-spread arbitrage (buy cash Treasuries, receive fixed on swaps, finance the Treasury in repo) is not "free money"—it consumes balance sheet and internal capital, and those costs can dominate the raw spread.
 
-The critical implication: banks that historically arbitraged swap spread dislocations can no longer do so profitably. The classic trade—buy Treasuries, receive fixed on swaps, finance in repo—requires significant balance sheet. Under SLR, the capital cost of this trade often exceeds the spread earned, especially when spreads are narrow.
+The critical implication: even if a spread looks like an arbitrage on paper, the economics can fail once you include balance sheet usage, repo haircuts, and internal hurdle rates.
 
-This breakdown of arbitrage allows swap spreads to remain persistently negative. In the pre-SLR world, a -10 bp swap spread would attract arbitrage capital until the spread normalized. Today, the spread can remain at -20 bp or wider because the arbitrage economics don't work.
+This breakdown of arbitrage allows swap spreads to remain persistently negative. In a textbook arbitrage world, a sufficiently negative spread would attract capital until it normalized. In the real world, the spread can remain negative because the balance-sheet-adjusted economics don't work.
 
 > **Desk Reality: Balance Sheet as a Scarce Resource**
 >
-> Before SLR, swap spread arbitrage was a bread-and-butter trade for bank fixed income desks. Today, the conversation is different:
+> On many desks, swap spread "arb" is framed as a balance-sheet trade. The conversation often looks like:
 >
-> *Trader:* "Swap spreads are -25 bp. Classic arb opportunity."
-> *Risk manager:* "What's the balance sheet usage?"
-> *Trader:* "We'd need $500mm notional for the Treasury leg."
-> *Risk manager:* "That's $5mm of SLR capital for maybe $125k annual P&L before funding. Doesn't clear the hurdle."
+> *Trader:* "Swap spreads are negative. Classic arb opportunity."
+> *Risk manager:* "What's the balance sheet usage and funding P&L?"
+> *Trader:* "Big cash leg, tight spread."
+> *Risk manager:* "Doesn't clear the hurdle."
 >
 > The arbitrage exists, but the capital constraint prevents exploitation.
 
@@ -188,9 +188,7 @@ The third driver is structural demand from pension funds and insurance companies
 
 This persistent one-way demand pushes swap rates down. Pension funds and insurers are natural receivers of fixed—they want to lock in rates on their liabilities. There is no equally large natural population of fixed payers at the long end, creating a structural imbalance.
 
-The demand intensifies when rates fall (pension funding ratios deteriorate, requiring more hedging) and around liability-driven investment (LDI) rebalancing dates (quarter-end, year-end).
-
-> **Practitioner Note:** The LDI demand effect is not directly documented in Tuckman or Hull but is well-known to practitioners as a key driver of long-end swap spread dynamics. UK gilt yields in 2022 spiked partly due to LDI-related forced selling, illustrating the magnitude of these flows.
+The demand can intensify when rates fall (liability PV rises, funding ratios deteriorate, and hedging needs can increase) and around institutional rebalancing dates. Quantifying these effects precisely is market- and regime-specific, but the "receiver demand" narrative is central to how many desks think about long-end spreads.
 
 ### 27.2.5 The Three Drivers Combined
 
@@ -199,10 +197,10 @@ The negative swap spread regime reflects all three forces operating simultaneous
 | Driver | Effect on Treasury Yields | Effect on Swap Rates | Net Effect on Swap Spread |
 |--------|--------------------------|---------------------|--------------------------|
 | Treasury supply surge | Yields ↑ | Unchanged | Spreads ↓ (tighter/more negative) |
-| SLR capital constraints | Arbitrage disabled | Arbitrage disabled | Spreads can stay negative |
+| Balance sheet constraints | Arbitrage muted | Arbitrage muted | Spreads can stay negative |
 | Pension/LDI demand | — | Swap rates ↓ | Spreads ↓ (more negative) |
 
-The result is a structural regime where negative swap spreads are not an anomaly to be arbitraged away but a persistent feature of the market landscape.
+The result is a regime where negative swap spreads are not necessarily an anomaly to be arbitraged away; they can persist when benchmark distortions and balance-sheet constraints overwhelm simple "credit logic."
 
 ### 27.2.6 Trading Implications
 
@@ -212,7 +210,7 @@ Understanding the negative spread regime has practical implications:
 
 **Watch the driver mix.** Swap spread moves can come from any of the three channels. Attributing a move to the wrong driver leads to incorrect positioning.
 
-**Recognize regime dependence.** Pre-2015 intuition about swap spreads doesn't apply. Historical relationships (swap spread vs. credit indices, vs. equity vol) have shifted.
+**Recognize regime dependence.** Relationships between swap spreads, credit indices, and risk sentiment can change across market regimes.
 
 ---
 
@@ -240,7 +238,9 @@ O'Kane provides a complementary perspective, framing the asset swap as a *contra
 
 In a par asset swap, an investor combines a bond purchase with an interest rate swap structured so that the combined package costs par. O'Kane describes the mechanics in detail:
 
-**On settlement.** The asset swap buyer receives a fixed-rate bond with full price $P$ and pays par (i.e., 100% of face value). If $P \neq 1$, there is an upfront payment of $(1 - P)$ from the buyer (if the bond is at a discount) or to the buyer (if at a premium).
+**On settlement (time 0).** The bond is delivered and par is paid. From the asset swap buyer's perspective, the net upfront value is $P - 1$, where $P$ is the bond's full price per 1 of face value (O'Kane). Equivalently:
+- If $P < 1$ (discount bond), the buyer is paying above the bond's market value at inception and must be compensated by the running spread.
+- If $P > 1$ (premium bond), the buyer receives value upfront and the running spread can be lower (or even negative).
 
 **Interest rate swap.** The buyer enters a payer swap with fixed leg payments matching the bond coupon schedule. On the floating leg, the buyer receives LIBOR plus the asset swap spread $A$.
 
@@ -344,17 +344,17 @@ Tuckman emphasizes: "the asset swap spread is a measure of the credit risk of th
 
 ## 27.4 The Premium Bond Trap
 
-### 27.4.1 The Problem: Par ASW Overstates Credit Spread for Premium Bonds
+### 27.4.1 The Problem: Par ASW Mixes Credit and Price Effects
 
-The par asset swap spread has a subtle but important flaw: it can significantly overstate the credit spread for bonds trading at a premium. This "premium bond trap" catches practitioners who mechanically compare par ASW spreads across bonds without adjusting for price effects.
+The par asset swap spread has a subtle but important flaw: it can be misleading for bonds trading far from par. This "premium bond trap" catches practitioners who mechanically compare par ASW spreads across bonds with very different dollar prices and coupons without thinking through the embedded price/par mechanics.
 
 The issue arises from the structure of the par asset swap. When a bond trades at a premium ($P > 100$), the asset swap buyer:
 1. Pays par (100) but receives a bond worth $P > 100$
-2. Receives an upfront payment of $(P - 100)$ from the swap counterparty
+2. Has net upfront value of $(P - 100)$ at inception (because the par exchange differs from the bond’s full price)
 
-This upfront payment is effectively amortized into the spread over the life of the swap. For a high-coupon bond trading at 110, the "spread" includes not just credit compensation but also the amortization of the 10-point premium.
+This upfront value is effectively amortized into the running spread over the life of the swap. The running ASW quote can therefore reflect not only credit compensation but also the mechanical effect of being far from par.
 
-### 27.4.2 Intuition: Why Premium Bonds Look Artificially Wide
+### 27.4.2 Intuition: Why Par ASW Can Mislead Away from Par
 
 Consider two bonds from the same issuer with identical credit risk:
 
@@ -363,12 +363,12 @@ Consider two bonds from the same issuer with identical credit risk:
 | Bond A | 2% | 95 | 5Y | 100 bp |
 | Bond B | 6% | 108 | 5Y | 100 bp |
 
-Both bonds have the same credit spread in a Z-spread or CDS sense. But their par ASW spreads will differ:
+Both bonds have the same credit spread in a Z-spread or CDS sense. But their par ASW quotes can differ materially because the par-asset-swap structure embeds an upfront value linked to price and coupon schedule.
 
-- **Bond A (discount):** Par ASW must include compensation for the 5-point discount pulling to par, *reducing* the quoted spread
-- **Bond B (premium):** Par ASW includes the benefit of the 8-point premium pulling to par, *increasing* the quoted spread
+- **Bond A (discount):** The structure includes a positive upfront paid by the buyer (about 5 points) that is effectively amortized through the running spread.
+- **Bond B (premium):** The structure includes a positive upfront value to the buyer (about 8 points) that is also effectively amortized through the running spread.
 
-The premium bond appears wider on par ASW even though its credit risk is identical.
+As a result, cross-bond comparisons of par ASW can confuse "credit compensation" with "price/par mechanics."
 
 ### 27.4.3 Worked Example: The Trap in Action
 
@@ -389,7 +389,7 @@ A naive analyst looking only at par ASW would conclude that the 7% bond is "chea
 $$A^*_{\text{3\%}} = \frac{80 \text{ bp}}{0.955} = 83.8 \text{ bp}$$
 $$A^*_{\text{7\%}} = \frac{120 \text{ bp}}{1.12} = 107.1 \text{ bp}$$
 
-Wait—the market ASW still shows the 7% bond wider. This is because even market ASW doesn't fully correct the issue. For true comparison, use Z-spread (which both bonds might show at ~100 bp) or the CDS spread.
+Market ASW ($A^* = A/P$) reduces the mechanical par-notional effect, but ASW remains convention-dependent. For cross-bond comparisons, desks typically cross-check with Z-spread and/or CDS.
 
 > **Desk Reality: The RV Analyst's Checklist**
 >
@@ -756,7 +756,7 @@ A full multi-curve ASW calculation requires specifying:
 - Collateral/CSA terms
 - The instrument set used to build each curve
 
-> **I'm not sure** we can rigorously recompute ASW under OIS discounting without specifying (i) the projection curve, (ii) collateral/CSA terms, and (iii) the exact market instrument set used to build OIS vs LIBOR curves. The books confirm multi-curve separation (Andersen & Piterbarg Vol 1, Hull), but the full desk convention set varies by institution and is not pinned down here.
+NOT SURE: A fully specified multi-curve ASW number depends on the exact curve-building inputs and CSA terms used by the pricing system. Without those conventions, this chapter can only give the single-curve formulas and qualitative sensitivities.
 
 ### 27.9.2 Sensitivity to Discounting Assumptions
 
@@ -883,10 +883,10 @@ $$\text{Swap notional} = \$100\text{mm} \times \frac{0.0263}{0.0350} = \$75.1\te
 | ZVS vs. ASW confusion | Different constructions (discounting spread vs. swap-package spread) |
 | Clean/dirty mismatch | Using clean price where full price is required (or vice versa) |
 | Ignoring default terms | Bond default does not extinguish swap fixed payments |
-| Premium bond trap | Par ASW overstates spread for premium bonds |
+| Premium bond trap | Par ASW can be misleading far from par; price/coupon mechanics contaminate comparisons |
 | Forgetting basis and funding | Treasury specialness affects swap spreads; repo levels affect realized carry |
 | Compounding mismatches | Semiannual vs. money-market conventions across curves |
-| Assuming negative spreads are "wrong" | Post-2015, negative swap spreads are structural, not anomalies |
+| Assuming negative spreads are "wrong" | Negative swap spreads can persist due to benchmark distortions and balance-sheet constraints |
 
 ### Verification Tests
 
@@ -908,11 +908,11 @@ This chapter has developed the framework for understanding swap spreads, asset s
 
 2. **Swap spreads are not pure credit spreads**—they reflect rolling bank credit (a "continually refreshed rate"), Treasury supply/demand, bank capital constraints, and pension hedging demand jointly.
 
-3. **Negative swap spreads** have been structural since 2015, driven by Treasury supply, SLR capital constraints, and pension/LDI demand. Don't fade them on "credit logic."
+3. **Negative swap spreads** can persist when Treasury supply/demand, benchmark distortions, balance-sheet constraints, and receiver demand overwhelm simple "credit logic."
 
 4. **Asset swap spreads** anchor bonds to the swap curve, measuring value relative to bank-credit-based funding. The formula $A = (P_{\text{Libor}} - P)/\text{PV01}$ provides the par ASW spread.
 
-5. **The premium bond trap**: Par ASW overstates credit spread for premium bonds; use Z-spread or market ASW for comparisons.
+5. **The premium bond trap**: Par ASW can be misleading for bonds far from par; use market ASW and cross-check with Z-spread/CDS for comparisons.
 
 6. **Market asset swaps** use notional equal to bond price, with $A^* = A/P$, reversing the timing and direction of counterparty exposure.
 
@@ -931,10 +931,10 @@ This chapter has developed the framework for understanding swap spreads, asset s
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
 | Swap spread | $S_T - y_T^{gov}$ | Broad swaps vs. gov indicator, but benchmark-sensitive |
-| Negative swap spread regime | Swap rate < Treasury yield | Post-2015 structural feature; not an anomaly |
-| Three drivers of negative spreads | Treasury supply, SLR, pension demand | Explain why negative spreads persist |
+| Negative swap spreads | Swap rate < Treasury yield | Can persist; not a pure "credit spread" signal |
+| Common drivers of negative spreads | Treasury supply/demand, balance sheet, receiver demand | Helps attribute moves correctly |
 | Asset swap spread | Spread on floating leg making bond+swap = par | Bond valuation vs. swap curve |
-| Premium bond trap | Par ASW overstates spread for premium bonds | Use Z-spread for cross-bond comparison |
+| Premium bond trap | Par ASW comparisons break away from par | Cross-check with market ASW and Z-spread |
 | $P_{\text{Libor}}$ | PV of bond cashflows on swap curve | Reference for cheap/rich determination |
 | PV01 | Discounted accrual sum | Denominates spread formulas and sensitivities |
 | ZVS | Discounting spread over Libor curve | Alternative spread measure with different mechanics |
@@ -951,11 +951,11 @@ This chapter has developed the framework for understanding swap spreads, asset s
 | 1 | Define swap spread at maturity $T$. | $\text{SS}_T = S_T - y_T^{gov}$, usually vs. on-the-run gov yield |
 | 2 | Why is on-the-run benchmarking problematic? | On-the-run yields include liquidity premiums and special financing effects |
 | 3 | What does "continually refreshed rate" mean for swaps? | Swap rates reflect rolling short-term bank credit, not static term credit |
-| 4 | Name three drivers of negative swap spreads post-2015. | Treasury supply surge, SLR capital constraints, pension/LDI hedging demand |
-| 5 | Why can't banks arbitrage negative swap spreads? | SLR capital requirements make the arbitrage uneconomic |
+| 4 | Name three common drivers of persistent negative swap spreads. | Treasury supply/demand, balance sheet constraints, receiver demand |
+| 5 | Why can negative swap spreads persist? | Arbitrage can be balance-sheet/funding constrained; benchmarks can be distorted |
 | 6 | Write the par ASW spread formula. | $A = (P_{\text{Libor}} - P)/\text{PV01}$ |
-| 7 | What is the premium bond trap? | Par ASW overstates credit spread for bonds trading above par |
-| 8 | How to avoid the premium bond trap? | Use Z-spread or market ASW for cross-bond comparison |
+| 7 | What is the premium bond trap? | Par ASW can be misleading when bonds are far from par |
+| 8 | How to avoid the premium bond trap? | Prefer market ASW and cross-check with Z-spread/CDS |
 | 9 | Define $P_{\text{Libor}}(0,T)$. | $(c/f) \sum Z + Z(T)$—Libor-discounted value of bond cashflows |
 | 10 | How does market ASW spread $A^*$ relate to $A$? | $A^* = A/P$ |
 | 11 | What is the CDS-bond basis? | CDS spread minus ASW spread |
@@ -1017,62 +1017,9 @@ This chapter has developed the framework for understanding swap spreads, asset s
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Swap spread definition $\text{SS}_T = S_T - y_T^{gov}$ with on-the-run convention | Tuckman Ch 18 |
-| Swap rates reflect rolling bank credit; "continually refreshed rate" | Tuckman Ch 18, Hull RM Ch 9 |
-| On-the-run yields embed liquidity premiums and special financing | Tuckman Ch 15, 18 |
-| Historical swap spread dynamics (1990s banking recovery, late-1990s Treasury scarcity) | Tuckman Ch 18 |
-| ASW defined as spread such that discounting bond cashflows by swap+spread gives price | Tuckman Ch 18 |
-| Par asset swap formula $A = (P_{\text{Libor}} - P)/\text{PV01}$ | O'Kane Ch 4 |
-| ASW is equivalent to long defaultable bond, short risk-free bond with same coupons | O'Kane Ch 4 |
-| Market asset swap $A^* = A/P$ with notional = full price | O'Kane Ch 4 |
-| Market asset swap reverses timing and direction of counterparty exposure | O'Kane Ch 4 |
-| Fixed swap payments are non-contingent (continue even if bond defaults) | O'Kane Ch 4 |
-| ZVS as fixed spread adjustment to Libor discount rate | O'Kane Ch 4 |
-| ZVS preferred over yield because it accounts for term structure | O'Kane Ch 4 |
-| Bond default stops coupons but swap payments remain due | Tuckman Ch 18, O'Kane Ch 4 |
-| Asset swaps give direct estimates of excess yields over LIBOR/swap rates | Hull RM Ch 19 |
-| CDS-bond basis definition: CDS spread minus asset swap spread | Hull RM Ch 19, O'Kane Ch 5 |
-| CDS-bond basis typically positive pre-2007, very negative during crisis | Hull RM Ch 19 |
-| Six factors affecting CDS-bond basis | Hull RM Ch 19 |
-| Multi-curve separation (OIS discounting vs. Libor projection) | Andersen & Piterbarg Vol 1, Hull RM Ch 9 |
-| DV01 definition | Tuckman Ch 5 |
-| Only with flat swap curve does ASW = bond yield − swap rate | Tuckman Ch 18 footnote |
-
-### (B) Claude-Extended Content (Practitioner Knowledge)
-
-| Content | Context |
-|---------|---------|
-| Three drivers of negative swap spreads (Treasury supply, SLR, pension/LDI) | Extended from Tuckman's supply discussion; SLR and LDI are post-publication developments well-known to practitioners |
-| Premium bond trap explanation and worked example | Derived from O'Kane's market ASW discussion; trap phenomenon is practitioner knowledge |
-| P&L attribution framework (5 components) | Extended from Tuckman's carry discussion; standard desk practice |
-| Desk Reality boxes | Practitioner color based on market experience |
-| Balance sheet constraints preventing arbitrage | Extended from crisis discussion in Hull RM |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation Logic |
-|-----------|------------------|
-| Benchmark choice can change swap spreads by multiple bp | Direct application of definition with different $y_T^{gov}$ |
-| ASW and ZVS differ due to curve shape, conventions, multi-curve | Structural difference in definitions |
-| ASW spread sensitivity $\partial V / \partial A = \text{PV01}$ | Differentiation of O'Kane's swap value formula |
-| DV01 mismatch in bond-vs-swap when bond yield $\neq$ swap rate | Follows from Tuckman's discussion |
-| Negative ASW possible for high-quality issuers | Follows from formula when $P > P_{\text{Libor}}$ |
-| Premium bond par ASW includes price/par amortization | Follows from par ASW structure |
-
-### (D) Flagged Uncertainties
-
-| Item | Note |
-|------|------|
-| Full multi-curve ASW computation under OIS | **I'm not sure** — requires specifying projection curve, CSA terms, instrument set; sources confirm concept but don't provide complete desk conventions |
-| Exact magnitude of LDI flows and timing | **I'm not sure** — the effect is well-known but quantification varies by market condition |
-| Precise SLR capital calculation for swap spread arbitrage | **I'm not sure** — depends on bank-specific factors and regulatory interpretation |
-
----
-
-*Chapter 27 complete.*
+- Tuckman & Serrat, *Fixed Income Securities* (swap spreads; benchmark choice; repo specialness; asset swaps)
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (asset swap mechanics; par and market ASW; ASW formulas)
+- Hull, *Risk Management and Financial Institutions* (asset swaps as spread measures; CDS-bond basis discussion)
+- Andersen & Piterbarg, *Interest Rate Modeling* (multi-curve discounting/projection framework)
