@@ -290,7 +290,7 @@ However, there is a subtlety. When bucket shifts sum to a parallel shift in forw
 > | 5 | 17-20 | 4-5 years | **Gold** |
 >
 > **Usage examples:**
-> - "I'm short the Red Pack" = short exposure to Year 2 forward rates (contracts 5-8)
+> - "I'm short the Red Pack" = short exposure to the second strip of quarterly STIR contracts (often interpreted as “year-2” forward exposure; naming varies by desk)
 > - "We're long the 3-year bundle" = long contracts 1-12 (0-3 years forward)
 > - "Sell 200 Whites and buy 200 Reds" = a steepener in the front of the curve
 >
@@ -336,28 +336,32 @@ The portfolio is immune to a parallel shift. The risk report says "Net DV01: 0."
 The curve **steepens**: 2-year rates fall 10 bps, 10-year rates rise 10 bps. This is a classic "rotation" around the 5-year point.
 
 **P&L Calculation:**
-We sum the product of exposure and rate change for each key:
+Use the first-order approximation (Chapter 11): for key-rate shocks in bp,
+$$\Delta P \approx -\sum_k \mathrm{KR01}_k \times \Delta r_k.$$
+Here, the portfolio has:
+- $\mathrm{KR01}_{2y} \approx -\$8{,}500/\text{bp}$ (short 2y)
+- $\mathrm{KR01}_{10y} \approx +\$8{,}500/\text{bp}$ (long 10y)
 
-1. **2y Key:** We are *short* the 2y zero.
-   - We gain when 2y rates fall.
-   - $\text{Gain} \approx \$8{,}500/\text{bp} \times 10 \text{ bps} = \$85{,}000$.
-2. **10y Key:** We are *long* the 10y bond.
-   - Rates rise 10 bps → Price falls.
-   - $\text{Loss} \approx \$8{,}500/\text{bp} \times 10 \text{ bps} = \$85{,}000$.
+1. **2y Key:** $\Delta r_{2y} = -10$ bp  
+   $$\Delta P_{2y} \approx -(-8{,}500)\times(-10)= -\$85{,}000.$$
+   Intuition: the 2y bond price rises when yields fall; being short loses money.
 
-**Net P&L:** $+\$85{,}000 - \$85{,}000 = 0$.
+2. **10y Key:** $\Delta r_{10y} = +10$ bp  
+   $$\Delta P_{10y} \approx -(+8{,}500)\times(+10)= -\$85{,}000.$$
 
-In this specific symmetric steepener, the gains and losses offset. But what about asymmetric moves?
+**Net P&L:** $-\$170{,}000$.
 
-**Twist Scenario 2: Asymmetric Flattening**
+This is the key lesson: **DV01-neutrality does not mean “one leg wins when the other loses.”** It means the *sum* offsets under a **parallel** move. Under a twist, you can lose on both legs.
+
+**Twist Scenario 2: Asymmetric Flattening (Front-End Sell-Off)**
 The curve **flattens**: 2y rates rise 20 bps, 10y rates unchanged.
 
-- **2y P&L:** Short position loses when rates rise.
-  - Loss: $8{,}500 \times 20 = \$170{,}000$.
-- **10y P&L:** Rates unchanged = 0.
-- **Net Loss:** **$170,000.**
+- **2y P&L:** Short position *gains* when rates rise.  
+  $$\Delta P_{2y} \approx -(-8{,}500)\times(+20)= +\$170{,}000.$$
+- **10y P&L:** Rates unchanged $\Rightarrow \Delta P_{10y}\approx 0$.
+- **Net P&L:** **+$170,000.**
 
-Despite being DV01 neutral, the portfolio lost $170k. This demonstrates the danger: a DV01-neutral portfolio effectively bets that the spread between 2y and 10y rates will not change. If you don't intend to take that bet, you are not hedged.
+This DV01-neutral portfolio is therefore a **2s–10s flattener** (short the front end, long the back end). If you don't intend to take a slope view, net DV01 = 0 is not a hedge.
 
 ### 14.4.2 The General Formula
 
@@ -729,14 +733,14 @@ Hull (RM Ch 9) demonstrates that **Principal Component Analysis (PCA)** reveals 
 | 10 | What is "Basis Risk" in key-rate hedging? | Risk that the spread between instrument (e.g., Corp) and hedge (e.g., Treasury) changes. |
 | 11 | Does KRDV01 capture convexity? | No, it is a first-order (linear) measure only. |
 | 12 | What is a partial duration? (Hull terminology) | The percentage price change for a 1 bp move at a specific point on the curve. |
-| 13 | According to Hull, how much of yield curve variance do the first two PCA factors explain? | Approximately 97.7% (level + slope). |
+| 13 | According to Hull, how much of yield curve variance do the first two PCA factors explain? | Over 97% in Hull's example (level + slope). |
 | 14 | When is the hedge matrix $\mathbf{H}$ diagonal? | When hedging with par bonds at exactly the key rate maturities. |
 | 15 | What is the cumulative par-point approach? | A method where each key rate shift is retained when computing subsequent deltas. |
 | 16 | How does forward rate delta differ from KRDV01? | Forward rate delta uses forward curve bumps; KRDV01 typically uses par yield bumps. |
 | 17 | What is GAP management? | Hull's term for bucket exposure analysis, common in bank ALM. |
 | 18 | Can a portfolio be DV01-neutral and still lose money? | Yes—if it has non-zero KRDV01 exposures and the curve twists. |
 | 19 | What is a "steepener" trade in KRDV01 terms? | Long front-end, short back-end (e.g., long 2y, short 10y). |
-| 20 | What is a "Red Pack" in STIR desk terminology? | Contracts 5-8 covering Year 2 forward exposure. |
+| 20 | What is a "Red Pack" in STIR desk terminology? | A common term for the second strip of four consecutive quarterly STIR contracts (often interpreted as “year-2” forward exposure; naming varies by desk). |
 
 ---
 
@@ -770,7 +774,7 @@ You are Long $10M 2y notes (DV01 = $1,800) and Short $2M 10y notes (DV01 = $9,00
 
 **Problem 3: Futures Hedge**
 
-Your risk report shows a +$1,250 bucket exposure to the Dec '25 SOFR contract.
+Your risk report shows a +$1,250 bucket exposure to the Dec '26 SOFR contract.
 
 (a) How many contracts do you trade to hedge?
 (b) Do you Buy or Sell?
@@ -899,22 +903,18 @@ For each KRDV01 vector, name the trade:
 
 **Problem 11: Why Did My DV01-Neutral Portfolio Lose Money?**
 
-Your portfolio has KRDV01 = [+$20k, 0, -$20k] at 2y, 5y, 30y. Net DV01 = 0. Yesterday, 2y rates fell 5bp, 5y rates fell 3bp, and 30y rates fell 1bp. You lost $60,000.
+Your portfolio has KRDV01 = [+$20k, 0, -$20k] at 2y, 5y, 30y. Net DV01 = 0. Yesterday, 2y rates fell 1bp, 5y rates fell 3bp, and 30y rates fell 4bp. You lost $60,000.
 
 Explain why.
 
 *Solution:*
-P&L = -[(+20,000)(-5) + (0)(-3) + (-20,000)(-1)]
-= -[-100,000 + 0 + 20,000] = -(-80,000) = +$80,000 expected
+Using $\Delta V \approx -\sum_i \text{KR01}_i \times \Delta y_i$ (with $\Delta y_i$ in bp):
 
-Wait—that's a gain, not a loss. Let me recalculate with the loss scenario.
+P&L = -[(+20{,}000)(-1) + (0)(-3) + (-20{,}000)(-4)]
+= -[-20{,}000 + 80{,}000]
+= -\$60{,}000
 
-If you *lost* $60,000, the actual rate moves must have been different. Let's check: the formula gives a gain of $80k if 2y fell more than 30y. For a loss, 30y must have fallen more than 2y (curve flattening).
-
-**Corrected scenario:** If 2y rose 5bp, 30y fell 5bp:
-P&L = -[(+20,000)(+5) + (0)(0) + (-20,000)(-5)] = -[+100,000 + 100,000] = -$200,000
-
-The portfolio is a steepener (long 2y, short 30y). It loses when the curve flattens.
+The 5y move is irrelevant because KR01(5y) = 0. The key point is that the **30y rallied more than the 2y** (a flattening rally), which hurts a position that is **long the front end and short the long end**.
 
 ---
 
@@ -936,56 +936,9 @@ Total unexplained: approximately -$5,200.
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|:---|:---|
-| DV01 definition (−ΔP / 10,000 × Δy) | Tuckman Ch 5 |
-| "Movements in the entire term structure can be described by one interest rate factor" is a weakness | Tuckman Ch 7 |
-| Triangular key-rate shift design | Tuckman Ch 7 |
-| Sum-to-parallel property: sum of key shifts = parallel shift | Tuckman Ch 7 |
-| 10y bond has intermediate key-rate risk from coupons | Tuckman Ch 7 |
-| Par-yield bumps cause bizarre forward curves | Tuckman Ch 7, Andersen Vol 1 §6.4.4 |
-| Par bonds have exposure only to matching key rate | Tuckman Ch 7 |
-| Partial duration definition $D_i = -(1/P)(\Delta P_i / \Delta y_i)$ | Hull RM Ch 9 |
-| Partial durations sum to total duration | Hull RM Ch 9 |
-| Twist example: portfolio more exposed to rotation than parallel | Hull RM Ch 9 (Table 9.5) |
-| First two PCA factors explain 97.7% of variance | Hull RM Ch 9 (Table 9.8) |
-| Eurodollar futures DV01 = $25 | Hull OFD Ch 6, Tuckman Ch 17 |
-| Forward rate deltas using Gâteaux derivatives | Andersen Vol 1 §6.4.2 |
-| Jacobian method for hedge optimization | Andersen Vol 1 §6.4.3 |
-| Cumulative par-point approach | Andersen Vol 1 §6.4.4 |
-| 30y swap bump → ±30 bp forward move | Andersen Vol 1 §6.4.4 |
-| "Hedge will work as intended only if par yields between key rates move as assumed" | Tuckman Ch 7 |
-| Mortgage key-rate decomposition example | Tuckman Ch 7 (Table 7.1) |
-| Butterfly trades "designed to profit from perceived mispricing while protecting against market and curve risk" | Tuckman Ch 4 |
-| Barbell vs bullet convexity discussion | Tuckman Ch 6 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|:---|:---|
-| STIR desk pack/bundle/color conventions (White, Red, Green, Blue, Gold) | Desk vocabulary; extends Tuckman's mention of Eurodollar buckets |
-| Trade vocabulary table (steepener, flattener, butterfly, barbell, bullet) | Extends Tuckman Ch 4 and Ch 7 with explicit KRDV01 mapping |
-| "Long 2s-10s" sign convention explanation | Standard market terminology |
-| P&L attribution workflow and unexplained residual interpretation | Extends Andersen §22.2.2 P&L explain concept |
-| Liquidity-constrained hedging workflow | Extends Andersen §6.4.3 weighted optimization with practical application |
-| Pin risk explanation and monitoring | Derived from Tuckman's warning about "20-year rate doing something different" |
-| Daily P&L explain workflow steps | General fixed income operations practice |
-
-### (C) Reasoned Inference
-
-- **Swap KRDV01 concentration:** Inferred from the valuation structure of a par swap (floating leg ≈ par), implying risk concentration at maturity.
-- **Steepener P&L formula:** Derived algebraically from the dot product of KRDV01 vector and rate shift vector.
-- **Bucket-to-DV01 sum property:** Follows from the definition of discount factors as products of forward rates.
-- **Pin risk profile:** Derived from interpolation assumptions in triangular key-rate construction.
-- **Residual P&L = basis + credit + model error:** Standard decomposition in P&L attribution.
-
-### (D) Flagged Uncertainties
-
-- **Exact bump size conventions:** Markets vary between 0.1 bp, 1 bp, or 10 bps bumps. This chapter assumes 1 bp for pedagogy.
-- **Interpolation method dependence:** The exact values of KRDV01 depend on the curve interpolation method (spline vs. linear vs. monotone). This is system-specific.
-- **Cross-market conventions:** Different markets (USD, EUR, JPY) may use different key rate selections and bucket definitions. I'm not sure about non-USD conventions without additional source verification.
-- **Pack color conventions:** The White/Red/Green/Blue/Gold naming is common but may vary slightly by institution. Some desks use different colors or numbering schemes.
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (key-rate durations, triangular shifts, curve-risk intuition, butterflies).
+- Hull, *Risk Management and Financial Institutions* (partial durations, yield-curve PCA, and multi-factor delta thinking).
+- Andersen & Piterbarg, *Interest Rate Modeling* (curve deltas, Jacobian methods, and hedging optimization).
+- Hull, *Options, Futures, and Other Derivatives* (futures risk conventions and DV01 mechanics).

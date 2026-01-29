@@ -8,7 +8,7 @@ The yield curve moves in parallel only by accident. This observation, which any 
 
 Tuckman captures this danger precisely: "A (naive) DV01 analysis would allow for the hedging of a position in 10- or 30-year bonds with six-month securities." While duration matching protects against small level shifts, it leaves the portfolio fully exposed to **curve shape risk**—steepening, flattening, and bowing. An asset-liability manager who hedges the yield-based duration of a nine-year liability with a barbell of two- and 30-year assets will suffer losses "if the 30-year rate increases and the rest of the curve stays the same... or if the nine-year rate decreases and the rest of the curve stays the same." The hedge that looks perfect under parallel-shift assumptions fails spectacularly when the curve reshapes.
 
-This chapter moves beyond the single-number view of rate risk. We begin with the **taxonomy of curve risk**, decomposing movements into level, slope, and curvature. We then develop **multi-factor hedging mechanics** using key-rate exposures and linear algebra, showing how to immunize a portfolio against arbitrary curve changes. The **butterfly trade** emerges as the precision instrument for curvature exposure, and we examine the critical question of how to weight the wings. We analyze **regression hedging**—including the often-misunderstood translation of standard errors into P&L risk. Finally, we examine **Principal Component Analysis (PCA)**, which reveals yield curve behavior is remarkably low-dimensional. As Hull documents, "yield curve shifts that occur in practice are, to a large extent, a linear sum of two or three standard shifts," with the first three principal components explaining over 98% of variance in rate changes.
+This chapter moves beyond the single-number view of rate risk. We begin with the **taxonomy of curve risk**, decomposing movements into level, slope, and curvature. We then develop **multi-factor hedging mechanics** using key-rate exposures and linear algebra, showing how to immunize a portfolio against arbitrary curve changes. The **butterfly trade** emerges as the precision instrument for curvature exposure, and we examine the critical question of how to weight the wings. We analyze **regression hedging**—including the often-misunderstood translation of standard errors into P&L risk. Finally, we examine **Principal Component Analysis (PCA)**, which reveals yield curve behavior is remarkably low-dimensional. As Hull documents, "yield curve shifts that occur in practice are, to a large extent, a linear sum of two or three standard shifts"—and, in his swap-rate example, the first two PCs explain 97.7% of variance and the first three explain over 98%.
 
 This chapter connects backward to Chapter 14's key-rate decomposition and Chapter 15's DV01 hedging, and forward to Part IV's multi-curve construction, where similar multi-factor thinking applies to basis and cross-currency risk.
 
@@ -97,7 +97,7 @@ From this data, Hull calculates: "the first factor accounts for $17.55^2/338.8 =
 
 Tuckman's analysis of swap rate data yields similar conclusions: "This first component explains about 85.6% of the total variance of term structure changes... The second component... accounts for about 8.7% of the total variance... The third component is typically called curvature and accounts for about 4.5% of the total variance."
 
-The key insight from both sources: **the first three principal components together explain over 98% of yield curve variation**. This remarkable finding means that despite the yield curve being a high-dimensional object, its movements are dominated by just three patterns.
+The key insight from both sources is that, in published samples, **just three factors explain the vast majority of yield-curve variation**. In Hull’s swap-rate sample, PC1+PC2 account for 97.7% and adding PC3 brings the total to roughly 99%. In Tuckman’s sample, PC1–PC3 sum to 98.8%. This means that although the curve is high-dimensional, its *typical* daily movements are dominated by a small number of patterns.
 
 ### 16.2.2 Factor Interpretation
 
@@ -113,9 +113,11 @@ Hull notes: "Results similar to those described here, concerning the nature of t
 
 > **Desk Reality: Interpreting the Variance Split**
 >
-> When Hull says PC1 explains 90.9% of variance, the flip side is critical: **9.1% of curve risk is non-parallel**. For a large portfolio, this "residual" risk is substantial.
+> When Hull says PC1 explains 90.9% of variance, the flip side is critical: **9.1% of curve risk is non-parallel**. In standard-deviation terms, the residual “shape” volatility is about $\sqrt{0.091}\approx 30\%$ of total (in the PCA basis used for the decomposition).
 >
-> Consider a $100mm DV01 position with 7-year duration. Daily parallel volatility of 5bp produces about $35mm daily VaR. But the 9.1% non-parallel component represents over $3mm of daily risk that DV01 hedging leaves on the table. For a market maker earning 0.25bp bid-ask, this residual risk dwarfs the profit margin.
+> **Illustrative sizing:** Suppose your book has total DV01 of $500{,}000/bp. If the 1-sigma daily level move were 5 bp (illustrative), the level P&L volatility is about $2.5mm. A pure DV01 hedge targets that level risk, but the remaining shape risk can still be on the order of $0.30 \\times 2.5mm \\approx 0.75mm$ per day.
+>
+> This is why desks look at KRDV01/PCA exposures in addition to net DV01: the “small leftover percentage” can still be big in dollars.
 
 ### 16.2.3 Using PCA for Hedging
 
@@ -499,7 +501,7 @@ Tuckman explicitly warns about regime dependence: "The current economic environm
 
 1. **Fed tightening cycles:** When the Fed raises rates aggressively, the short end moves independently of the long end. PC1 becomes less "parallel" and PC2 loadings shift.
 
-2. **Flight-to-quality events:** During crises (2008, March 2020), correlations across all tenors spike toward 1.0. The "slope" and "curvature" factors temporarily vanish.
+2. **Flight-to-quality events:** During crisis episodes, correlations across all tenors can spike toward 1.0. The "slope" and "curvature" factors temporarily weaken.
 
 3. **Yield curve inversions:** Inverted curves have different dynamics than steep curves. PCA loadings estimated during steep-curve periods may not apply.
 
@@ -528,7 +530,7 @@ Before putting on a complex curve trade, run the **Standard Suite**:
 
 1. **DV01 is a scalpel, not a shield.** It protects against parallel shifts but leaves the portfolio exposed to twists and butterflies. As Tuckman states, DV01 hedging "fails to protect against changes in the shape of the yield curve, whether against flattening, steepening, or some other twist."
 
-2. **Principal Component Analysis** reveals that curve movements are low-dimensional. Three factors (level, slope, curvature) explain over 98% of yield variance. Hull shows the first factor alone accounts for about 91% of variance; Tuckman finds 85.6% using different data.
+2. **Principal Component Analysis** reveals that curve movements are low-dimensional. In the published examples used here, three factors (level, slope, curvature) explain roughly 99% (Hull) and 98.8% (Tuckman) of yield variance. Hull’s first factor alone accounts for 90.9% in his sample; Tuckman finds 85.6% using different data.
 
 3. **Key-Rate DV01 (KRDV01)** provides the resolution needed to see level, slope, and curvature risks. The triangular shift construction ensures that key-rate exposures sum to parallel DV01.
 
@@ -705,62 +707,7 @@ The regression weighting implies a slightly over-hedged DV01 position, consisten
 
 ---
 
-## 16.13 Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| DV01 hedging "fails to protect against changes in the shape of the yield curve" | Tuckman Ch 7 |
-| Key-rate shifts use triangular perturbations summing to parallel | Tuckman Ch 7 |
-| PC1 explains 85.6% of swap rate variance | Tuckman Ch 13 (U.S. dollar swaps, early 1990s-2001) |
-| PC1 explains 90.9% of variance; PC1+PC2 = 97.7% | Hull RM Ch 9 (swap rates, 2000-2011) |
-| PC2 explains 8.7%; PC3 explains 4.5% | Tuckman Ch 13 |
-| Factor loadings table (PC1-PC8 for 1y-30y) | Hull RM Table 9.7 |
-| Factor score standard deviations (17.55, 4.77, 2.08, ...) | Hull RM Table 9.8 |
-| "Factor loadings have the property that the sum of their squares for each factor is 1.0" | Hull RM Ch 9, footnote 9 |
-| Regression hedge ratio $\beta = \rho\sigma_{\text{target}}/\sigma_{\text{hedge}}$ | Tuckman Ch 8, eq. (8.10) |
-| One-variable regression of 20y on 30y yields $\beta = 1.057$, R² = 98.25%, SE = 0.6973 | Tuckman Ch 8, Table 8.1 |
-| Two-variable regression yields $\beta_{10} = 0.161$, $\beta_{30} = 0.877$, SE = 0.6170 | Tuckman Ch 8, Table 8.2 |
-| Daily P&L formula: SE × DV01/100 × Notional = $8,258 | Tuckman Ch 8, eq. (8.9) |
-| 30-year mortgage KRDV01 breakdown (0.9%, 3.3%, 37%, 58.8%) | Tuckman Ch 7, Table 7.1 |
-| Two-factor model hedge weights: F₂ = 54.10, F₁₀ = 46.72 | Tuckman Ch 14, eqs. (14.18-14.19) |
-| Risk weights: 23.8% (2y), 80.0% (10y), sum = 103.8% | Tuckman Ch 14, eqs. (14.20-14.21) |
-| Butterfly designed to "profit from perceived mispricing while protecting against market and curve risk" | Tuckman Ch 4 |
-| "Risk weights were set so as to allocate half of the risk to each wing" | Tuckman Ch 4, eq. (4.27) |
-| "Equal risk weights on each wing are not necessarily the best weights for immunizing" | Tuckman Ch 4 |
-| Hull: "Yield curve shifts are, to a large extent, a linear sum of two or three standard shifts" | Hull RM Ch 9 |
-| Federal Reserve activity affects PCA loadings | Tuckman Ch 13 |
-| "Least squares criterion is equivalent to minimizing the standard deviation of the P&L" | Tuckman Ch 8 |
-| "The volatility-weighted hedge assumes perfect correlation ($\rho = 1.0$)" | Tuckman Ch 8 |
-
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| Interpretation of 9.1% non-parallel variance as $3mm risk on $100mm portfolio | Extended from Hull's variance decomposition |
-| Position sizing guidance using standard error (1-sigma, 2-sigma, 3-sigma, monthly) | Extended from Tuckman's $8,258 example |
-| "Signal-to-noise" analogy for R-squared interpretation | Practitioner intuition |
-| Regime shift warning signals (rolling correlation, PC1 share, beta drift) | Extended from Tuckman's regime warning |
-| Comparison of cash-neutral, duration-neutral, regression-weighted butterfly methods | Synthesized from Tuckman Ch 4, 8, 14 |
-| "Sniper rifle vs. shotgun" analogy for key rates vs. PCA | Pedagogical extension |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation |
-|-----------|------------|
-| KRDV01 vector P&L formula $\Delta P \approx -d^\top\delta$ | Standard Taylor expansion combined with Tuckman's key-rate construction |
-| Three-factor hedging captures >98% of curve risk | Follows from Hull's 97.7% + 1.3% for PC3 |
-| Regression minimizes variance of hedged P&L | Tuckman Ch 8 proves least squares equivalent to variance minimization |
-| Unexplained standard deviation is ~13.2% of total volatility when R² = 98.25% | $\sqrt{1 - 0.9825} = 0.132$ |
-
-### (D) Flagged Uncertainties
-
-- The exact PCA loadings vary with sample period, market, and data source. The percentages quoted (85-91% for PC1) represent typical ranges across published studies.
-- Current market practice for key-rate definition may vary by institution; the triangular shift is one widely-used convention but not universal.
-- The specific signals for regime shifts (0.10 correlation change, 80%/95% PC1 thresholds) are practitioner rules of thumb, not rigorously derived thresholds.
-- I'm not sure about the exact fails-charge formula in the context of butterfly trades — the sources discuss trade mechanics but don't specify penalty calculations.
-
----
-
-*Chapter 16 connects Chapter 14 (key-rate decomposition) and Chapter 15 (DV01 hedging) to multi-factor curve risk management. The techniques here extend naturally to the multi-curve world of Part IV, where tenor basis and cross-currency risks require similar vector-based thinking.*
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (key-rate shifts, butterflies, regression hedging, and PCA interpretation).
+- Hull, *Risk Management and Financial Institutions* (PCA of swap rates and factor-variance decomposition).
