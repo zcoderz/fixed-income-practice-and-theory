@@ -864,7 +864,9 @@ Which has higher duration? Which has higher DV01? Explain the relationship.
 (b) $D = (10.2×3.5 + 14.7×6.2 + 5.5×9.1)/30.4 = (35.7 + 91.14 + 50.05)/30.4 = 5.82$ years
 (c) DV01 = $(30.4mm × 5.82)/10,000 = $17,693$
 
-**Q4.** Perpetuity duration at 6%: $(1.03)/(0.06) = 17.17$ years. The 50-year deep discount (1% coupon) has duration approximately 21 years—exceeding the perpetuity due to the heavy weighting on the distant principal.
+**Q4.** Assuming semiannual compounding, the perpetuity Macaulay duration (in years) is:
+$$D_{\text{Mac}} = \frac{1+y/2}{y}$$
+At $y=6\\%$, $D_{\text{Mac}} = 1.03/0.06 = 17.17$ years. The 50-year deep discount (1% coupon) has duration approximately 21 years—exceeding the perpetuity due to the heavy weighting on the distant principal.
 
 **Q5.** Let $V_X$ in Bond X, $V_Y$ in Bond Y.
 - PV matching: $V_X + V_Y = 500,000/(1.025)^{16} = 335,602$
@@ -876,56 +878,11 @@ Solving: $V_Y = (8×335,602 - 5×335,602)/(12-5) = 143,829$; $V_X = 191,773$
 
 ---
 
-## 12.17 Source Map
+Chapter 12 connects to Chapter 11 (DV01/PV01 definitions) and leads to Chapter 13 (Convexity), where we add the second-order correction that matters for large yield moves.
 
-### (A) Book-Verified Facts
+## References
 
-| Fact | Source |
-|:-----|:-------|
-| Macaulay duration definition as weighted-average time | Hull OFD Ch 4: "duration is a weighted average of the times when payments are made" |
-| Macaulay invented duration in 1938 | Hull OFD Ch 4: "first suggested by Frederick Macaulay in 1938" |
-| Zero-coupon duration equals maturity | Tuckman Ch 6 Eq 6.19: "$D_{Mac}\|_{c=0} = T$" |
-| Modified duration formula | Tuckman Ch 6, Hull OFD Ch 4: "$D_{Mod} = D_{Mac}/(1+y/m)$" |
-| DV01-duration relationship | Tuckman Ch 6 Eq 6.32: "$\text{DV01} = P \times D_{Mod}/10,000$" |
-| Perpetuity duration formulas | Tuckman Ch 6 Eq 6.26-6.27: "$D_{Mod}\|_{T=\infty} = 1/y$" |
-| Par bond duration formula | Tuckman Ch 6 Eq 6.26-6.27 |
-| Duration falls with higher yield | Tuckman Ch 6: "increasing yield lowers duration" |
-| Duration falls with higher coupon | Tuckman Ch 6: "duration falls as coupon increases" |
-| Deep discount can exceed perpetuity | Tuckman Ch 6: "the duration of a discount bond rises above the duration of a perpetuity" |
-| Price vs duration effect on DV01 | Tuckman Ch 6: "the duration effect tends to increase DV01... the price effect can either increase or decrease DV01" |
-| Dollar duration definition | Hull OFD Ch 4: "dollar duration... is the product of modified duration and bond price" |
-| Dollar duration additivity | Hull RM Ch 9: "The dollar duration of a portfolio... is the sum of the dollar durations" |
-| Portfolio duration as weighted average | Hull RM Ch 9: "the duration D of a portfolio is the weighted average of the durations" |
-| Immunization principle | Luenberger Ch 3.6: "matching durations as well as present values" |
-| Immunization as widely used technique | Luenberger Ch 3.6: "one of the most widely used analytical techniques of investment science" |
-| VaR formula using duration | Hull RM Ch 9, 14: duration-based VaR methodology |
-| Effective vs modified duration distinction | Tuckman Ch 5: "effective duration... Many market participants use the term duration to mean Macaulay duration or modified duration" |
-| Hull's worked example (3-year bond, 12% yield) | Hull OFD Ch 4 Table 4.6 |
-| Luenberger's X Corporation immunization example | Luenberger Ch 3.6, Table 3.7-3.8 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|:--------|:------|
-| "Duration as Leverage" rule of thumb | Extended from Tuckman/Hull concepts of percentage sensitivity |
-| "Risk Report Uses DV01" desk reality box | Extended from Hull RM's dollar duration discussion |
-| "When Duration VaR Fails" desk reality | Extended from Hull RM's limitations discussion |
-| Table comparing modified vs effective for instrument types | Extended from Tuckman's effective duration discussion |
-| "Portfolio Duration Trap" explanation | Extended from Hull RM's portfolio duration formula |
-| Deep discount numerical example (Table) | Constructed based on Tuckman's Figure 6.1 concepts |
-
-### (C) Reasoned Inference
-
-- **DV01 = Dollar Duration / 10,000**: Derived from the fact that DV01 is for 1bp and dollar duration is for 100bp (algebra)
-- **Portfolio dollar duration additivity proof**: Follows from $D_{\$} = D \times P$ and the linearity of the P&L approximation
-- **VaR formula derivation**: Standard transformation of Hull RM's duration relationship to VaR via volatility scaling
-
-### (D) Flagged Uncertainties
-
-- **Exact numerical values in worked examples**: While formulas are verified, specific numerical outputs depend on calculation precision and compounding assumptions. Cross-check production-critical calculations.
-- **Market convention for "modified duration" vs "D*" naming**: Some sources use $D^*$, others $D_{Mod}$. The mathematical content is identical.
-- **Duration drift formulas**: Specific formulas for how duration changes with time passage (theta) are not explicitly provided in sources; derived from first principles but may vary by convention.
-
----
-
-*Chapter 12 connects to Chapter 11 (DV01/PV01 definitions) and leads to Chapter 13 (Convexity), where we explore the second-order corrections that improve duration-based approximations for large yield moves.*
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today's Markets* (Macaulay/modified duration; yield-based DV01; perpetuities; deep discount behavior).
+- Hull, *Options, Futures, and Other Derivatives* (duration/convexity definitions and worked examples).
+- Hull, *Risk Management and Financial Institutions* (dollar duration, portfolio aggregation, duration-based VaR discussions).
+- Luenberger, *Investment Science* (immunization: matching PV and duration; convexity considerations).

@@ -418,9 +418,9 @@ Always clarify: "Is this PV01 from bumping the curve, or the coupon?" Quantitati
 
 ### 11.4.4 Multi-Curve Risk Decomposition
 
-In modern post-crisis markets, we use different curves for:
-- **Discounting:** OIS (overnight indexed swap) curve, reflecting collateralized funding
-- **Projecting floating rates:** Term SOFR or legacy IBOR curves
+In a **multi-curve** pricing framework (common for collateralized swaps), we separate:
+- **Discounting:** an overnight curve (e.g., OIS)
+- **Projecting floating rates:** a term index curve (e.g., term SOFR or legacy IBOR-style curves)
 
 This splits "PV01" into two components: **OIS PV01** (discount curve sensitivity) and **Projection PV01** (forecast curve sensitivity).
 
@@ -448,7 +448,7 @@ This splits "PV01" into two components: **OIS PV01** (discount curve sensitivity
 >
 > 1. **Deep in-the-money swap:** You entered a receiver swap at 5.00% when rates were high. Now rates are 3.00%, and your swap has positive MTM of $2 million. The present value of this $2 million gain is highly sensitive to how you discount it—OIS PV01 is now material.
 >
-> 2. **Funding squeeze:** During the 2020 COVID crisis, OIS rates moved 50bp in days while projection curves moved less. A portfolio "hedged" on total PV01 but mismatched on the OIS/projection split showed large unexplained P&L.
+> 2. **Funding / collateral stress:** In stressed markets, the discounting curve and projection curve can move differently. A portfolio "hedged" on total PV01 but mismatched on the OIS/projection split can show large unexplained P&L.
 >
 > **Rule of thumb:** OIS risk is proportional to the swap's MTM (net PV). Projection risk is proportional to the swap's notional.
 
@@ -1057,63 +1057,9 @@ A pension fund has liabilities with DV01 of $125,000. Available bonds have DV01 
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| DV01 definition: "change in value for a one-basis point decline in rates" | Tuckman Ch 5 |
-| DV01 formula: $-\Delta P / (10,000 \times \Delta y)$ | Tuckman Ch 5, Eq 5.1 |
-| "The negative sign defines DV01 to be positive if price increases when rates decline" | Tuckman Ch 5 |
-| Yield-based DV01 is special case where yield is the rate factor | Tuckman Ch 6 |
-| "DV01 of a portfolio is the sum of the individual DV01 values" | Tuckman Ch 5 |
-| Explicit DV01 formula with time-weighted PVs | Tuckman Ch 6, Eq 6.5 |
-| "This hedge will work...only if the yield of the bond bought changes by the same amount" | Tuckman Ch 6 |
-| "The most stable numerical estimate chooses rates that are equally spaced above and below" | Tuckman Ch 5 |
-| Swap Annuity Factor definition $A = \sum \tau_n P(t, T_{n+1})$ | Andersen & Piterbarg Vol 1, Ch 4-5 |
-| "The quantity $A(\cdot)$ is the annuity of the swap (or its PVBP)" | Andersen & Piterbarg Vol 1 |
-| Par-point approach for curve risk | Andersen Vol 1 Ch 6, Section 6.4.1 |
-| "The Jacobian method for interest rate deltas" | Andersen Vol 1 Ch 6, Section 6.4.3 |
-| Key rate shifts technique | Tuckman Ch 7, pp 133-142 |
-| "Key rate exposures essentially decompose a sensitivity measure like DV01" | Tuckman Ch 7 |
-| Hedge ratio derivation | Tuckman Ch 5, Eq 5.7 |
-| Dollar duration: $D_{\$} = -dB/dy$ | Hull RM Ch 9 |
-| "Dollar duration is similar to the delta measure" | Hull RM Ch 9 |
-| Partial durations for nonparallel shifts | Hull RM Ch 9, Section 9.6 |
-| "The sum of all the partial duration measures equals the usual duration measure" | Hull RM Ch 9 |
-| Immunization as protection against interest rate changes | Luenberger Ch 3, Section 3.6 |
-| "Immunization...is one of the most widely used analytical techniques of investment science" | Luenberger Ch 3 |
-| Convexity improvement to immunization | Luenberger Ch 3, Section 3.7 |
-| Duration as "sensitivity of value...to a small parallel shift in the zero-coupon yield curve" | Hull RM Ch 9 |
-| Hull's DV01 convention as "price change from a 1-basis-point increase" | Hull OFD Glossary |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Tower of Babel Problem" analogy in introduction | Extended from Tuckman's emphasis on bump definition specificity |
-| "Desk Reality: The Basis Trap" example | Extended from Tuckman's warning about yield vs curve DV01 mismatch |
-| "Desk Reality: When OIS Risk Bites" funding squeeze scenario | Extended from Andersen's multi-curve framework; practical desk knowledge |
-| "Desk Reality: The Coupon Drop P&L" example | Practitioner knowledge about clean/dirty price accounting |
-| "Practitioner Note: Repo Effects on Effective DV01" | Practitioner knowledge about carry interaction |
-| "Desk Reality: Quote PV01 as Hedging Recipe" explanation | Extended from Andersen's par-point approach |
-| "Sensitivity Spectrum" ranking of instrument ambiguity | Inferred from model-dependency discussion in sources |
-| Multi-curve table showing OIS vs Projection sensitivity by swap MTM | Extended from Andersen multi-curve framework |
-
-### (C) Reasoned Inference
-
-- The divergence between Yield and Curve DV01 (Section 11.3.3) is derived from the mathematical fact that yield is a complex weighted average of spot rates; bumping one changes the other non-linearly.
-- Multi-curve decomposition logic follows directly from the definition of decoupled discount/projection curves in post-crisis frameworks (Andersen Vol 1).
-- Sign convention translation rule ($\text{DV01}_{\text{Tuckman}} = -\text{DV01}_{\text{Hull}}$) follows from comparing explicit definitions.
-- The DV01-Duration mapping formula ($\text{DV01} = P \times D_{\text{Mod}} / 10,000$) is derived algebraically from the definitions of each term.
-
-### (D) Flagged Uncertainties
-
-- **Desk Naming Conventions:** "PV01," "PVBP," and related terms are used differently across firms and systems. Complete standardization is impossible to verify.
-- **Exact numbers in multi-curve example (Section 11.4.4):** Illustrative; actual values depend on specific curve shapes and swap terms.
-- **Repo "carry-adjusted DV01" terminology:** Exact terminology varies by desk; the concept is standard but naming is not universal.
-
----
-
-*Last Updated: January 26, 2026*
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today's Markets* (DV01 definitions, yield-based risk measures, key-rate risk).
+- Hull, *Risk Management and Financial Institutions* (dollar duration/dollar convexity; portfolio aggregation of sensitivities).
+- Hull, *Options, Futures, and Other Derivatives* (interest-rate Greeks terminology and conventions).
+- Andersen & Piterbarg, *Interest Rate Modeling* (swap PVBP/annuity; curve-based deltas and multi-curve setup).

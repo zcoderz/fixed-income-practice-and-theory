@@ -75,7 +75,7 @@ We divide by price $P$ for the same reason we normalize duration: to interpret t
 
 ### 13.2.2 Dollar Convexity: The Gamma Analog
 
-While normalized convexity is useful for comparing bonds of different prices, trading desks often work with **dollar convexity**—the absolute second derivative without normalization.
+While normalized convexity is useful for comparing bonds of different prices, it is also useful to work with **dollar convexity**—the absolute second derivative without normalization.
 
 Hull (RM Ch 9) defines this explicitly: "The dollar convexity of a bond, $C_\$$, can be defined analogously to dollar duration as the product of convexity and the value of the bond. This means that $C_\$ = d^2B/dy^2$."
 
@@ -83,20 +83,35 @@ Hull further notes that "dollar convexity is similar to the gamma measure introd
 
 $$\boxed{\text{Dollar Convexity} = P \times C = \frac{d^2P}{dy^2}}$$
 
-**Why Dollar Convexity Matters:** Risk systems often report dollar convexity because portfolio P&L from curvature is calculated directly as:
+**Why Dollar Convexity Matters:** Even when a system does not report it directly, dollar convexity is a natural object for P&L attribution because curvature P&L can be written as:
 
 $$\text{Convexity P&L} = \frac{1}{2} \times \text{Dollar Convexity} \times (\Delta y)^2$$
 
 Hull (RM Ch 9) confirms: "The dollar convexity for a portfolio worth $P$ can be defined as $P$ times the convexity. This is a measure of the gamma of the portfolio with respect to interest rates."
 
-> **Desk Reality: "I'm Long 50 Million Gamma"**
+If you want to plug in a yield move in **basis points** (instead of decimal yield units), define:
+
+- $\Delta y_{\text{bp}}$: change in yield in basis points
+- $\Delta y = 0.0001 \times \Delta y_{\text{bp}}$
+
+Then the convexity P&L can be written as:
+
+$$\boxed{\text{Convexity P\&L}=\underbrace{\left[\frac{1}{2}\times \text{Dollar Convexity}\times (0.0001)^2\right]}_{\text{Convexity01 (\\$/bp}^2\text{)}}\times (\Delta y_{\text{bp}})^2}$$
+
+This is often the most desk-friendly way to compute convexity P&L because it takes the move in bps and makes the quadratic scaling explicit.
+
+> **Desk Reality: Unit Confusion Creates 10×–1000× Errors**
 >
-> When a trader says "I'm long 50 million gamma," they mean dollar convexity. This number tells you directly how much the portfolio gains from a 1bp squared move. For $50 million dollar convexity:
-> - 10bp move: $\frac{1}{2} \times \$50mm \times (0.001)^2 = \$25,000$
-> - 50bp move: $\frac{1}{2} \times \$50mm \times (0.005)^2 = \$625,000$
-> - 100bp move: $\frac{1}{2} \times \$50mm \times (0.01)^2 = \$2,500,000$
+> Dollar convexity is defined with respect to **decimal yield** ($y=5\\%$ is $0.05$). That makes the raw number look enormous at the portfolio level.
 >
-> **Critical:** Always verify whether your system reports normalized convexity or dollar convexity. Confusing them causes order-of-magnitude errors.
+> Example: if a $\\$100mm portfolio has normalized convexity $C=100$, then dollar convexity is $P\\times C = 10\\text{bn}$. The convexity P&L is still intuitive:
+> - 10bp move: $\frac{1}{2} \\times 10\\text{bn} \\times (0.001)^2 = \\$5{,}000$
+> - 50bp move: $\frac{1}{2} \\times 10\\text{bn} \\times (0.005)^2 = \\$125{,}000$
+> - 100bp move: $\frac{1}{2} \\times 10\\text{bn} \\times (0.01)^2 = \\$500{,}000$
+>
+> The same example implies $\text{Convexity01}=\\frac{1}{2}\\times 10\\text{bn}\\times (0.0001)^2=\\$50$ per bp², so $\text{Convexity P\&L}\\approx 50\\times(\\Delta y_{\\text{bp}})^2$.
+>
+> **Critical:** Always verify whether your system reports normalized convexity, dollar convexity, or a pre-scaled “convexity01/gamma01.” Confusing them causes order-of-magnitude errors.
 
 ### 13.2.3 Computing Convexity Numerically
 
@@ -109,7 +124,7 @@ where:
 - $P_0$ is the current price
 - $P_+$ is the price at $y + \Delta y$
 
-Tuckman demonstrates this method in detail in Table 5.3, noting that "extra precision is often necessary when calculating second derivatives" because the calculation involves the difference of differences, which can amplify numerical noise. A bump size of 1 to 5 basis points is typically optimal; bump sizes smaller than 0.1 bps risk numerical instability, while deviations larger than 20 bps may inadvertently capture higher-order effects beyond convexity.
+Tuckman demonstrates this method in detail in Table 5.3, noting that "extra precision is often necessary when calculating second derivatives" because the calculation involves a difference of differences. In practice, choose the bump size to balance numerical noise (too small) and higher-order contamination (too large); the right choice depends on the instrument and your curve representation.
 
 ### 13.2.4 Worked Example A: Tuckman's Table 5.3 Methodology
 
@@ -225,17 +240,22 @@ The danger arises because doubling the shock size quadruples the error:
 
 This exponential growth is why linear models fail spectacularly during crashes. Tuckman notes: "While convexity is usually a larger number than duration, for relatively small changes in rate the change in rate is so much larger than the change in rate squared that the duration effect dominates."
 
-For standard daily moves of 5–10 bps, duration is adequate. For "Value at Risk" (VaR) scenarios or stress tests involving 50–100 bp moves, ignoring convexity is professional malpractice.
+For standard daily moves of 5–10 bps, duration is often adequate. For VaR scenarios or stress tests involving 50–100 bp moves, ignoring convexity can materially misstate risk.
 
 ### 13.4.3 Convexity in Daily P&L Attribution
 
-When risk managers decompose daily P&L, the convexity term appears explicitly. The standard attribution formula is:
+When risk managers decompose daily P&L, the convexity term appears explicitly. A common second-order attribution uses the yield move in basis points:
 
-$$\boxed{\text{Daily P&L} = \underbrace{-\text{DV01} \times \Delta y}_{\text{Duration P&L}} + \underbrace{\frac{1}{2} \times \text{Dollar Convexity} \times (\Delta y)^2}_{\text{Convexity P&L}} + \text{Carry} + \text{Unexplained}}$$
+$$\boxed{\text{Daily P\&L}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration P\&L}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity P\&L}}+\text{Carry}+\text{Unexplained}}$$
+
+Where:
+- **DV01** is in dollars per bp (see Chapter 11 for conventions)
+- $\Delta y_{\text{bp}}$ is the signed yield change in bp
+- **Convexity01** is the $/bp² coefficient defined in Section 13.2.2
 
 **Sign Convention:** For vanilla bonds with positive convexity, the convexity term is **always positive**—whether rates rise or fall. This is the mathematical signature of convexity's "cushion."
 
-**When It Shows Up:** Convexity P&L is typically negligible for daily moves (5-10bp) because $(0.0005)^2 = 0.00000025$ is tiny. But during volatility events (50bp+ moves), convexity can dominate the explain.
+**When It Shows Up:** Convexity P&L is typically negligible for daily moves (5–10bp) because it scales with $(\Delta y_{\text{bp}})^2$. But during volatility events (50bp+ moves), convexity can dominate the explain.
 
 > **Desk Reality: Diagnosing Large Unexplained P&L**
 >
@@ -340,6 +360,8 @@ Consider a 5% Callable Bond (callable at par in 1 year) compared to a vanilla no
 | **5% (ATM)** | 100.00 | 96.95 | **-223** (Deeply Negative) |
 | **4% (ITM)** | 108.18 | 100.03 | **-147** (Negative) |
 
+These numbers are illustrative; actual convexity depends on the call schedule and the option model/volatility assumptions used for pricing.
+
 At a 5% yield, the convexity is **-223**. This negative number has profound hedging implications. If rates drop 100 bps to 4%, the vanilla bond gains 8.18, but the callable bond gains only 3.08 because it is capped at par. If you hedged this callable bond with a standard DV01 ratio, you would massively underperform the hedge.
 
 Tuckman warns: "care must be exercised when mixing securities of positive and negative convexity because the resulting hedges or comparative return estimates are inherently unstable."
@@ -353,11 +375,11 @@ Tuckman warns: "care must be exercised when mixing securities of positive and ne
 
 This phenomenon is known as "extension risk." Tuckman illustrates this in Figure 19.5, showing how "the duration of callable bonds increases as rates rise above the coupon."
 
-It explains why MBS hedging is notoriously difficult: as rates rise and the market sells off, your hedge ratio increases, forcing you to sell *more* into a falling market to remain hedged. This pro-cyclical selling can exacerbate market crashes.
+It explains why MBS hedging is difficult: as rates move, the duration (and DV01) of the underlying instrument can change materially, which means yesterday's hedge ratio can be wrong today. When many participants must rebalance in the same direction, this can amplify volatility.
 
 ### 13.6.4 The MBS Convexity "Death Spiral"
 
-The extension risk mechanism in MBS creates a dangerous feedback loop that has contributed to several market dislocations:
+The extension risk mechanism in MBS can create a dangerous feedback loop when many market participants are positioned similarly:
 
 **Anatomy of a Sell-off:**
 1. **Rates rise** → MBS duration extends (prepayments slow as refinancing becomes unattractive)
@@ -366,17 +388,13 @@ The extension risk mechanism in MBS creates a dangerous feedback loop that has c
 4. **Selling pressure pushes rates higher** → Returns to step 1
 5. **Cycle repeats** → Pro-cyclical feedback loop
 
-> **Practitioner Note: Historical Convexity Events**
+> **Practitioner Note: Mortgage Hedging Flows and Swap Spreads**
 >
-> - **1994 Bond Massacre:** Rates rose ~300bp; MBS convexity hedging amplified the sell-off as mortgage servicers sold Treasuries to extend hedge duration.
-> - **2003 Convexity Hedging:** Sharp rate rise in June-July 2003 caused significant Treasury selling from mortgage hedgers.
-> - **2020 March Covid Crash:** Treasury market dislocation partly attributed to convexity-driven selling from MBS portfolios.
+> Tuckman documents episodes where swap spreads tended to narrow in sharp rallies and widen in sharp sell-offs, and market commentators attributed part of this pattern to mortgage hedging flows.
 >
-> **The Lesson:** "In a crisis, everyone discovers they're short convexity."
-
-> **Desk Reality: The Fed as "Convexity Supplier of Last Resort"**
->
-> When the Fed buys MBS (as in QE programs), it removes negative convexity from the market. Private holders no longer need to hedge, reducing pro-cyclical selling pressure. This is one reason why Fed MBS purchases dampen rate volatility beyond the direct demand effect.
+> One desk story (following Tuckman's discussion) is:
+> - **Rates fall (rally):** MBS duration shortens. Hedgers may need to **add duration**, e.g. by **receiving in swaps**, which can contribute to **swap spread narrowing**.
+> - **Rates rise (sell-off):** MBS duration extends. Hedgers may need to **shed duration**, e.g. by **paying in swaps**, which can contribute to **swap spread widening**.
 
 ### 13.6.5 Effective Convexity (OAS-Based)
 
@@ -578,9 +596,9 @@ Key-rate convexity is most important for:
 ### 13.10.1 Bump Size Selection
 
 When computing convexity numerically:
-- **Too small** (< 0.1 bp): Numerical precision errors dominate
-- **Too large** (> 20 bp): Captures higher-order effects beyond convexity
-- **Optimal**: 1–5 bp provides the best balance
+- **Too small**: Numerical precision errors can dominate (you are taking a “difference of differences”).
+- **Too large**: The estimate can mix in higher-order effects beyond the quadratic term.
+- **Practical approach**: Start with small symmetric bumps (Tuckman illustrates 1bp increments), then sanity-check stability by varying the bump size.
 
 ### 13.10.2 Sign Checks
 
@@ -622,11 +640,11 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 
 3. **Error Correction**: For shocks >50 bps, linear DV01 models fail. Convexity corrections are mandatory for stress testing. The error scales with $(\Delta y)^2$.
 
-4. **Dollar Convexity (Gamma)**: Trading desks use dollar convexity = $P \times C$ for P&L attribution. "I'm long 50 million gamma" means dollar convexity.
+4. **Dollar Convexity (Gamma)**: Dollar convexity = $P \times C$ is the un-normalized second derivative used in convexity P&L calculations. In practice, always verify units/scaling (some systems report a pre-scaled $/bp^2$ number like Convexity01).
 
 5. **Negative Convexity**: Callable bonds and MBS exhibit negative convexity ("frown"), meaning duration extends during sell-offs, exacerbating losses. As Tuckman warns, hedges mixing positive and negative convexity are "inherently unstable."
 
-6. **Extension Risk and the Death Spiral**: MBS negative convexity creates pro-cyclical hedging—selling into sell-offs—that can amplify market dislocations.
+6. **Extension Risk and the Death Spiral**: MBS negative convexity can create pro-cyclical hedging flows that amplify volatility in stressed markets.
 
 7. **Barbell vs Bullet**: Spreading cash flows (barbell) increases convexity; concentrating them (bullet) reduces it. The barbell wins in volatile markets; the bullet wins in stable markets. The breakeven can be calculated explicitly.
 
@@ -641,7 +659,8 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | Concept | Definition | Why It Matters |
 | :--- | :--- | :--- |
 | **Convexity ($C$)** | $\frac{1}{P}\frac{d^2P}{dy^2}$ | Corrects linear duration errors for large rate moves |
-| **Dollar Convexity** | $P \times C = \frac{d^2P}{dy^2}$ | Direct P&L calculation; the "gamma" traders quote |
+| **Dollar Convexity ($\Gamma$)** | $P \times C = \frac{d^2P}{dy^2}$ | Un-normalized second derivative; check unit conventions |
+| **Convexity01** | $\frac{1}{2}\Gamma(0.0001)^2$ | $/bp^2 coefficient used with $(\Delta y_{bp})^2$ |
 | **Positive Convexity** | Curvature "smile" | You gain more on rallies and lose less on sell-offs |
 | **Negative Convexity** | Curvature "frown" | Found in Callables/MBS; price capped on rallies |
 | **$T^2$ Scaling** | $C_{\text{zero}} \approx T^2$ | Long-dated bonds have exponentially more convexity |
@@ -663,6 +682,8 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | $C_\$$ | Dollar convexity ($P \times C$) |
 | $D$ | Modified Duration |
 | $\Delta y$ | Yield change (in decimal, e.g., 0.01 = 100 bp) |
+| $\Delta y_{\text{bp}}$ | Yield change in basis points |
+| Convexity01 | $\frac{1}{2}\,C_\$(0.0001)^2$ (a $/bp^2$ coefficient) |
 | $T$ | Maturity in years |
 | $P_+$, $P_-$, $P_0$ | Prices at bumped-up, bumped-down, and base yields |
 | $\sigma$ | Yield volatility (annualized standard deviation) |
@@ -684,7 +705,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | 8 | What is the relationship between convexity and volatility? | Long Convexity ≈ Long Volatility |
 | 9 | Why don't traders always hold maximum convexity? | Convexity usually costs yield (negative carry) |
 | 10 | For a zero-coupon bond, how does convexity relate to maturity? | Roughly proportional to $T^2$: $C = \frac{T(T+0.5)}{(1+y/2)^2}$ |
-| 11 | What is the typical "bump size" for numeric convexity? | 1–5 basis points (balance noise vs accuracy) |
+| 11 | What is the typical "bump size" for numeric convexity? | Use small symmetric yield bumps; Tuckman illustrates 1bp increments. Choose bump size to balance numerical noise vs higher-order effects. |
 | 12 | State the Taylor expansion for bond price change including convexity. | $\frac{\Delta P}{P} \approx -D\Delta y + \frac{1}{2}C(\Delta y)^2$ |
 | 13 | What is Jensen's Inequality for a convex function? | $E[f(x)] > f(E[x])$ |
 | 14 | How does convexity affect bond yields? | Higher convexity → Lower yields (convexity is valuable) |
@@ -697,7 +718,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | 21 | When should you include convexity in risk calculations? | For moves > 50 bp, stress tests, VaR, and optioned instruments |
 | 22 | What is effective convexity? | OAS-based convexity that accounts for changing option values |
 | 23 | What conditions are needed for robust immunization? | Match both duration AND convexity: $D_A = D_L$ and $C_A \geq C_L$ |
-| 24 | How is convexity P&L calculated for daily attribution? | Convexity P&L = $\frac{1}{2} \times$ Dollar Convexity $\times (\Delta y)^2$ |
+| 24 | How is convexity P&L calculated for daily attribution? | Convexity P&L = Convexity01 $\times (\Delta y_{\text{bp}})^2 = \frac{1}{2} \times$ Dollar Convexity $\times (\Delta y)^2$ (consistent units) |
 | 25 | What is the convexity effect on yield? | Approximately $-\frac{1}{2}C\sigma^2$; convexity lowers yields |
 
 ---
@@ -738,12 +759,12 @@ Design a barbell using 2-year and 30-year zeros to match a 10-year bullet's dura
 (c) Barbell outperforms in both directions due to higher convexity.
 
 **4. Dollar Convexity and P&L**
-A portfolio has dollar convexity of $80 million. Rates move 75 bp.
+A portfolio has dollar convexity (as defined in Section 13.2.2) of $80 billion. Rates move 75 bp.
 (a) Calculate the convexity P&L.
 (b) If the portfolio also has DV01 of $400,000, what is the total estimated P&L?
 
 *Solution Sketch:*
-(a) Convexity P&L = $\frac{1}{2} \times \$80mm \times (0.0075)^2 = \$2,250,000$ gain
+(a) Convexity P&L = $\frac{1}{2} \times \$80bn \times (0.0075)^2 = \$2,250,000$ gain
 (b) Duration P&L = $-\$400,000 \times 75 = -\$30,000,000$. Total ≈ $-\$27,750,000$
 
 **5. Callable Bond Analysis**
@@ -804,71 +825,9 @@ Convexity: $80(2/3) + 500(1/3) = 53.3 + 166.7 = 220$
 This exceeds 200, so the fund has excess convexity (desirable per Luenberger's $C_A \geq C_L$).
 
 ---
+## References
 
-## Source Map
-
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Convexity definition $C = \frac{1}{P}\frac{d^2P}{dy^2}$ | Tuckman Ch 5 Eq 5.14; Hull Ch 4.11 |
-| Dollar convexity definition $C_\$ = d^2B/dy^2 = P \times C$ | Hull RM Ch 9 |
-| "Dollar convexity is similar to the gamma measure" | Hull RM Ch 9 |
-| Second-order Taylor expansion $\frac{\Delta P}{P} \approx -D\Delta y + \frac{1}{2}C(\Delta y)^2$ | Tuckman Ch 5 Eq 5.20; Hull Ch 4.11 |
-| Numerical estimation via central differences | Tuckman Ch 5 Eqs 5.15-5.17, Table 5.3 |
-| "Extra precision is often necessary when calculating second derivatives" | Tuckman Ch 5 |
-| Positive convexity = "DV01 falls as rates increase" | Tuckman Ch 5 |
-| Zero-coupon convexity $C = \frac{T(T+0.5)}{(1+y/2)^2}$ | Tuckman Ch 6 Eq 6.36 |
-| "Convexity increases with the square of maturity" | Tuckman Ch 6 |
-| Barbell vs Bullet example with convexity 221.30 vs 81.38 | Tuckman Ch 6 Eq 6.37 |
-| "Spreading out cash flows raises convexity" | Tuckman Ch 6 |
-| "Bullet outperforms if rates move by small amount; barbell outperforms if rates move by large amount" | Tuckman Ch 6 |
-| Negative convexity in callable bonds and MBS | Tuckman Ch 5, Ch 19, Ch 21 |
-| "Care must be exercised when mixing securities of positive and negative convexity" | Tuckman Ch 5 |
-| "An embedded call option induces negative convexity" | Tuckman Ch 19 |
-| "Duration of callable bonds increases as rates rise" | Tuckman Ch 19 |
-| Jensen's Inequality convexity effect: $E[1/(1+r)] > 1/E[1+r]$ | Tuckman Ch 10 |
-| "Value of convexity increases with volatility" | Tuckman Ch 10 |
-| Convexity effect on yield: $-(1/2)C\sigma^2$ | Tuckman Ch 10 Eq 10.27 |
-| "Long convexity position is long volatility" | Tuckman Ch 5 |
-| Effective duration definition (and by extension effective convexity) | Tuckman Ch 5 |
-| Immunization with duration and convexity matching | Hull RM Ch 9; Luenberger Ch 3.7 |
-| "Portfolio can be protected against large parallel shifts by ensuring duration and convexity are both zero" | Hull RM Ch 9 |
-| Yield-based coupon bond convexity formula | Tuckman Ch 6 Eq 6.35 |
-| Convexity of portfolio = weighted convexity of components | Tuckman Ch 5; Hull Ch 4.11 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| "30-Year Dominance" in convexity trading | Extends Tuckman Ch 6 $T^2$ scaling with desk practice |
-| MBS "Death Spiral" feedback mechanism | Extends Tuckman Ch 21 extension risk with market microstructure |
-| Historical convexity events (1994, 2003, 2020) | General market knowledge; events are well-documented |
-| Fed as "Convexity Supplier of Last Resort" | Extends Tuckman MBS discussion with QE mechanics |
-| Convexity cost "rule of thumb" (1-2bp per 100 units) | General desk practice |
-| P&L attribution formula and diagnostic | Standard risk management practice |
-| "I'm long 50 million gamma" desk language | Industry terminology extending Hull RM Ch 9 |
-| Effective convexity table (when to use which measure) | Synthesizes Tuckman Ch 5, 19, 21 guidance |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| All worked example numerical calculations | Algebraic application of source-backed formulas |
-| Barbell breakeven calculation | Derived from Tuckman barbell/bullet framework using algebra |
-| P&L scenario table | Computed from Taylor expansion with barbell/bullet convexities |
-| Jensen's Inequality numerical example | Arithmetic application of Tuckman Ch 10 framework |
-| Symmetry of convexity term for $\pm\Delta y$ | Follows from $(\Delta y)^2$ dependence |
-| Duration-only error scaling as $(\Delta y)^2$ | Taylor expansion remainder analysis |
-| DV01-neutral portfolio with positive net convexity profits both ways | Second-order term always positive for $C > 0$ |
-| Extension risk mechanism | Negative convexity implies rising duration as rates rise |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| Callable bond numerical convexity values | The specific numbers (-120, -223, -147) in the callable example are illustrative. Actual values depend on call schedule, option model, and volatility assumptions. |
-| MBS convexity dynamics | MBS convexity is path-dependent and model-sensitive; numerical values require prepayment models not specified in the sources. |
-| Optimal bump size | Sources agree on 1-5 bp as typical, but optimal choice depends on instrument and curve smoothness. |
-| Historical event magnitudes | The descriptions of 1994, 2003, 2020 events are qualitative; precise convexity-driven P&L attribution would require detailed historical analysis. |
-| Convexity cost rule of thumb | The "1-2bp per 100 units" varies significantly by market regime; this is approximate guidance only. |
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today's Markets* (convexity definition, Taylor approximation, numerical estimation, barbell vs bullet, callable/negative convexity, mortgage hedging discussion).
+- Hull, *Risk Management and Financial Institutions* (duration/convexity approximation, dollar convexity and portfolio aggregation, immunization with convexity).
+- Hull, *Options, Futures, and Other Derivatives* (bond convexity and interest-rate Greeks connections).
+- Luenberger, *Investment Science* (immunization and convexity considerations).
