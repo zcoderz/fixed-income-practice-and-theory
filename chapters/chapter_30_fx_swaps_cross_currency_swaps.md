@@ -4,11 +4,11 @@
 
 ## Introduction
 
-An FX swap looks like two FX forwards—but it is really a funding instrument. This distinction explains why FX swaps constitute the world's largest derivatives market, with average daily turnover exceeding $3 trillion according to BIS surveys. When a European bank needs dollars to fund its U.S. operations, it does not necessarily borrow in the dollar market; instead, it might use an FX swap to convert euro funding into dollar funding at a locked-in exchange rate. When a Japanese pension fund hedges its U.S. Treasury holdings back to yen, it executes FX forwards or swaps that implicitly embed interest rate differentials between the two currencies.
+An FX swap looks like two FX forwards—but it is really a funding instrument. This distinction helps explain why FX swaps are among the most heavily traded derivatives instruments globally. When a European bank needs dollars to fund its U.S. operations, it does not necessarily borrow in the dollar market; instead, it might use an FX swap to convert euro funding into dollar funding at a locked-in exchange rate. When a Japanese pension fund hedges its U.S. Treasury holdings back to yen, it executes FX forwards or swaps that implicitly embed interest rate differentials between the two currencies.
 
 Understanding these instruments requires keeping several related-but-distinct products straight. An **FX swap** combines a spot exchange with an opposite-direction forward—economically equivalent to borrowing one currency while lending another, with the exchange rate locked at both ends. The market is highly liquid at maturities out to one year. A **cross-currency swap** (XCCY) is a longer-dated instrument where two parties exchange floating-rate payments in different currencies, typically with notional exchanges at inception and maturity. Hull describes a currency swap as a contract where "two principals (one in each currency) are exchanged at the beginning and at the end of the swap's life." A **cross-currency basis swap** specifically refers to the floating-for-floating exchange where one leg pays a reference rate flat (say, USD SOFR) while the other pays its local reference rate plus or minus a spread—the **basis**. Andersen & Piterbarg define these as contracts "where floating Libor payments in one currency are exchanged for floating Libor payments in another currency, plus or minus a spread."
 
-Why does the basis exist at all? Under textbook Covered Interest Parity (CIP), borrowing in one currency and converting to another should cost the same as borrowing directly in the target currency—any difference would create arbitrage. Yet in practice, persistent basis spreads of 20-50 basis points or more routinely appear. Andersen & Piterbarg document that "in the late 1990s, the CRX yield spread reached somewhere around -40 basis points in JPY as Japanese banks were perceived as being in economic trouble" and that "in early 2008 the CRX basis spread became significantly positive (up to +60 basis points) as hedging demands of long-dated FX books increased rapidly." These persistent deviations reflect credit differences between banking systems, balance sheet constraints that prevent arbitrage, and funding demand imbalances.
+Why does the basis exist at all? Under textbook Covered Interest Parity (CIP), borrowing in one currency and converting to another should cost the same as borrowing directly in the target currency—any difference would create arbitrage. Yet in practice, persistent basis spreads can appear and remain for long periods. Andersen & Piterbarg document that "in the late 1990s, the CRX yield spread reached somewhere around -40 basis points in JPY as Japanese banks were perceived as being in economic trouble" and that "in early 2008 the CRX basis spread became significantly positive (up to +60 basis points) as hedging demands of long-dated FX books increased rapidly." These persistent deviations reflect credit differences between banking systems, balance sheet constraints that prevent arbitrage, and funding demand imbalances.
 
 This chapter covers the **structure** of these instruments and the **valuation dependencies**—which curves price which legs, how FX conversion enters, and what risks emerge. We will:
 
@@ -245,35 +245,29 @@ The persistence of the basis is not a market inefficiency in the usual sense—i
 
 > **The Crisis Indicator: The Vacuum Cleaner**
 >
-> A negative Cross-Currency Basis (e.g., EUR/USD Basis = -50bp) is one of the most widely watched "Fear Gauges" in global finance.
+> A negative cross-currency basis is often watched as a "fear gauge" for USD funding stress in global markets.
 >
 > *   **What it means**: Non-US banks are willing to pay a premium (receive *less* interest on their lending) just to get their hands on USD.
-> *   **Why**: In a crisis (e.g., 2008, Covid 2020), the world rushes to buy USD assets (Safe Haven). Global banks desperately need USD to fund these purchases or roll over existing USD debt.
+> *   **Why**: In a crisis, the world can rush to USD assets and USD liquidity. Global banks may need USD to fund purchases or roll over USD liabilities.
 > *   **The Vacuum**: The demand sucks all the USD liquidity out of the system. The Basis widens (becomes more negative) as everyone tries to "Rent Dollars" at the same time.
 >
 > When the Basis blows out, Central Banks often step in with "Swap Lines" to flood the market with USD and normalize the spread.
 
 #### Central Bank Swap Lines: The Crisis Response Mechanism
 
-> **Practitioner Note (market history, not from books/):**
+> **Practitioner Note (market history, not from the textbooks cited here):**
 >
 > **What are swap lines?** The U.S. Federal Reserve has standing arrangements with major central banks (ECB, BOJ, BOE, SNB, BOC, and others) allowing them to borrow U.S. dollars in exchange for their local currency. The foreign central bank then lends these dollars to local commercial banks experiencing dollar funding stress.
 >
 > **How they work:**
-> 1. ECB borrows USD from Fed at OIS + 25bp (historically; rate varies)
+> 1. ECB borrows USD from the Fed at a spread over an overnight benchmark (terms vary by program/date)
 > 2. ECB provides EUR as collateral
 > 3. ECB lends USD to European banks via weekly auctions
 > 4. At maturity, flows reverse
 >
-> **Impact on basis:** Swap line activation floods the market with dollar liquidity, compressing the basis. Key episodes:
+> **Impact on basis:** Swap line activation can alleviate dollar funding stress and compress the basis.
 >
-> | Crisis | Peak Basis | After Swap Lines |
-> |--------|-----------|------------------|
-> | **2008 Financial Crisis** | EUR/USD hit -120bp | Normalized to -30bp within weeks |
-> | **2011 Euro Debt Crisis** | EUR/USD hit -100bp | Reduced after coordinated CB action |
-> | **March 2020 COVID** | EUR/USD hit -80bp intraday | Compressed to -20bp after Fed enhanced swap lines |
->
-> **Trading implication:** Basis blowouts are often short-lived once central banks act. Traders monitor Fed swap line usage (published weekly) as a real-time stress indicator. When swap line usage spikes, it signals stress; when it declines, the crisis is easing.
+> NOT SURE: The exact pricing, tenors, and the quantitative impact on a given currency pair depend on the specific swap line program and market regime. Use central-bank documentation and market data if you need precise historical magnitudes.
 
 ### 30.3.4 Mark-to-Market (MTM) Cross-Currency Swaps
 
@@ -328,6 +322,8 @@ paid in domestic currency to the party whose notional decreased.
 |-----------|---------------------------|
 | Fixed Notional 5Y | ~15-20% of notional |
 | MTM Reset Quarterly | ~3-5% of notional |
+
+These PFE numbers are illustrative; the magnitude depends on model assumptions, vol/correlation, netting/CSA terms, and the swap’s reset frequency.
 
 The MTM structure dramatically reduces counterparty credit exposure, which is why it has become standard for multi-year XCCY swaps.
 
@@ -912,7 +908,7 @@ $$\text{XCCY Basis Swap} + \text{EUR IRS (receive float)} + \text{USD IRS (pay f
 
 ### 30.8.4 Settlement Mechanics and Operational Workflow
 
-> **Practitioner Note (operational details, not from books/):**
+> **Practitioner Note (operational details, not from the textbooks cited here):**
 
 #### Settlement Timing
 
@@ -932,7 +928,7 @@ Most bilateral CSAs include payment netting provisions:
 
 #### Fails and Fails Charges
 
-**I'm not sure** about the exact fails charge formula for XCCY swaps—this varies by currency, market, and bilateral agreement. In general:
+NOT SURE: Fails charge conventions for cross-currency cashflows are jurisdiction- and agreement-specific (and can vary by currency, venue, and settlement framework). In general:
 
 - A "fail" occurs when one party does not deliver on settlement date
 - The failing party may owe compensation (overnight rate on the failed amount)
@@ -990,7 +986,7 @@ Most bilateral CSAs include payment netting provisions:
 |---------|------------|----------------|
 | FX Forward | Agreement to exchange currencies at future date at agreed rate | Building block for FX swaps; prices embed interest differentials |
 | CIP (Discount Factor Form) | $F = X \cdot P_f/P_d$ | Links FX forwards to yield curves; deviations signal funding stress |
-| FX Swap | Spot + opposite forward exchange | Largest derivatives market; primary tool for cross-currency funding |
+| FX Swap | Spot + opposite forward exchange | One of the most heavily traded instruments; primary tool for cross-currency funding |
 | Cross-Currency Swap | Exchange of floating payments in two currencies with notional exchange | Transforms currency and rate basis of assets/liabilities |
 | Cross-Currency Basis | Spread added to one floating leg to make swap par | Prices relative funding costs between currency markets |
 | MTM Reset | Periodic notional adjustment to current FX | Reduces counterparty credit exposure for long-dated swaps |
@@ -1008,7 +1004,7 @@ Most bilateral CSAs include payment netting provisions:
 | 2 | Write Hull's continuous-compounding CIP formula | $F_0 = S_0 e^{(r-r_f)T}$ |
 | 3 | What does an FX swap combine? | Spot FX exchange + opposite-direction forward exchange |
 | 4 | Funding interpretation: spot-buy foreign + forward-sell foreign | Borrow foreign currency, lend domestic currency |
-| 5 | Why are FX swaps the largest derivatives market? | Primary tool for cross-currency funding; clean credit exposure |
+| 5 | Why are FX swaps so heavily traded? | Primary tool for cross-currency funding and liquidity management |
 | 6 | What's the typical maturity limit for liquid FX forwards? | About 1 year (per Andersen & Piterbarg) |
 | 7 | Define cross-currency basis swap | Exchange floating rates in two currencies, one leg plus/minus a spread |
 | 8 | Why does the basis exist if CIP should make it zero? | Credit differences, balance sheet constraints, demand imbalances |
@@ -1027,8 +1023,8 @@ Most bilateral CSAs include payment netting provisions:
 | 21 | What is an MTM cross-currency swap? | XCCY where notional is reset periodically to current spot FX |
 | 22 | How is notional reset in MTM swaps? | $N_f^{\text{new}} = N_d / X(t_{\text{reset}})$; compensation payment exchanged |
 | 23 | What is a "box" trade in XCCY context? | XCCY + offsetting IRS in both currencies to isolate basis exposure |
-| 24 | Which leg typically carries the basis in EUR/USD? | EUR leg (pays €STR/EURIBOR + basis vs SOFR flat) |
-| 25 | What did Fed swap lines do to EUR/USD basis in March 2020? | Compressed from -80bp peak to -20bp within days |
+| 24 | Which leg carries the basis in a given market? | Convention-dependent; check confirmations (often quoted on the non-USD leg) |
+| 25 | How can central bank swap lines affect the basis during stress? | By providing USD liquidity, they can reduce funding stress and compress the basis |
 
 ---
 
@@ -1116,66 +1112,11 @@ Most bilateral CSAs include payment netting provisions:
 
 **Q19:** An MTM swap has quarterly resets. The spot moved 5% since last reset. Estimate the compensation payment relative to notional.
 
-**Q20:** The EUR/USD basis is at -50bp, vs a 5-year average of -25bp. Describe a relative value trade and its risks.
+**Q20:** The EUR/USD basis is significantly more negative than its recent average. Describe a relative value trade and its risks.
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Source-Backed
-
-| Fact | Source |
-|------|--------|
-| FX forward parity $F_0 = S_0 e^{(r-r_f)T}$ | Hull, *Options, Futures, and Other Derivatives*, Ch 5, Eq 5.9 |
-| "A foreign currency has the property that the holder can earn interest at the risk-free rate prevailing in the foreign country" | Hull, Ch 5 |
-| Forward FX in discount factor form $F = X \cdot P_f/P_d$ | Andersen & Piterbarg, Vol 1, Ch 6.5.2, Eq 6.38 |
-| Currency swap structure: "two principals (one in each currency) are exchanged at the beginning and at the end" | Hull, Ch 7.8 |
-| Floating-for-floating swap valuation: "assume forward interest rates in each currency will be realized and discount at risk-free rates" | Hull, Ch 7.10 |
-| Bond approach: $V_{\text{swap}} = B_D - S_0 B_F$ | Hull, Ch 7.9 |
-| Cross-currency basis swap definition: "floating Libor payments in one currency are exchanged for floating Libor payments in another currency, plus or minus a spread" | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3 |
-| Forward rate from projection curve | Andersen & Piterbarg, Vol 1, Ch 6.5.2.2, Eq 6.40 |
-| One-period basis swap = FX forward | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3 |
-| FX forwards rarely liquid beyond 1 year | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3 |
-| Collateralized discounting ties to OIS | Andersen & Piterbarg, Vol 1, Ch 6.5.3 |
-| CRX spread reached -40bp JPY late 1990s | Andersen & Piterbarg, Vol 1, Ch 6.5.2.2 |
-| CRX spread reached +60bp early 2008 | Andersen & Piterbarg, Vol 1, Ch 6.5.2.2 |
-| XCCY-PV formula with explicit curve roles | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3, Eq 6.41-6.42 |
-| Separation of projection and discount curves for swap valuation | Andersen & Piterbarg, Vol 1, Ch 6.5.2.2 |
-| Zero-cost scheme demonstrating arbitrage from inconsistent curves | Andersen & Piterbarg, Vol 1, Ch 6.5.2.3 |
-| Hull Example 7.2: currency swap valuation with forward rates | Hull, Ch 7.9 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| FX Swap vs XCCY Swap comparison table | Extends A&P liquidity comment with practical product differentiation |
-| Basis sign convention table by currency pair | Market convention; extends A&P's general basis definition |
-| MTM reset swap mechanics and formulas | Market standard not detailed in academic sources |
-| Central bank swap line mechanism and crisis response | Market history; extends A&P's crisis basis observations |
-| Collateral currency discount curve selection table | Extends A&P Ch 6.5.3 with practical CSA configurations |
-| Settlement mechanics and fails | Operational practice not in academic sources |
-| Box trade structure and rationale | Trading strategy extending XCCY valuation framework |
-| Crisis basis data (2011, 2020) | Market history extending A&P historical examples |
-
-### (C) Reasoned Inference — Derived
-
-| Inference | Derivation |
-|-----------|------------|
-| CIP at $t=0$ in DF form | Specialization of A&P forward formula |
-| FX forward PV formula | Replication with ZCBs: long foreign bond + short domestic bond |
-| FX delta = $-\text{PV}_f^{(f)}$ | Differentiation of PV formula $\text{PV} = \text{PV}_d - X \cdot \text{PV}_f$ with respect to $X$ |
-| Basis DV01 linear structure | Differentiation of XCCY-PV by basis spread $b$ |
-| Par basis formula | Setting PV = 0 and solving for $b$ |
-| Equivalence of two FX conversion methods | Algebraic substitution of CIP formula |
-| MTM notional reset formula | From definition of keeping USD notional fixed and recalculating EUR |
-| Box trade net exposure | Algebraic cancellation of floating legs |
-
-### (D) Flagged Uncertainties
-
-| Uncertainty | What Would Be Needed |
-|-------------|----------------------|
-| Universal sign convention for basis across all pairs | Counterparty-specific confirmation; ISDA definitions |
-| Exact fails charge formulas for XCCY | Market-specific bilateral agreements |
-| Spot settlement conventions by currency pair | Market practice varies; sources do not comprehensively specify |
-| Multi-currency collateral discount curve when optionality exists | Cheapest-to-deliver analysis; specific CSA terms |
-| Calendar/rolling conventions for specific pairs | Product documentation, ISDA schedule specifics |
+- Hull, *Options, Futures, and Other Derivatives* (FX forwards; FX swaps; currency swaps)
+- Andersen & Piterbarg, *Interest Rate Modeling* (cross-currency basis swaps; valuation dependencies; multi-curve framework)

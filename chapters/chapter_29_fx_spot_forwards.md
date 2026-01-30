@@ -306,7 +306,7 @@ Hull provides market evidence: "For all the currencies considered in the table, 
 
 ### 29.5.3 Quoting Conventions: Pips and Points
 
-> **Practitioner Note:** The following quoting conventions are standard market practice. I'm not sure of the exact specifications from Hull or Andersen for pip quoting, so this section is marked as Category B.
+> **Practitioner Note:** Forward points are typically quoted in **pips**. For most major pairs, 1 pip = 0.0001 (the 4th decimal). For JPY pairs, 1 pip = 0.01 (the 2nd decimal). Always confirm the convention for the specific pair and venue.
 
 Forward points are typically quoted in **pips** (percentage in point). For most currency pairs:
 
@@ -1056,62 +1056,9 @@ You pay USD 6,010 (you locked in a weaker KRW rate; actual KRW is stronger).
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| CIP: $F_0 = S_0 e^{(r - r_f)T}$ | Hull, *Options, Futures, and Other Derivatives*, Ch 5, eq. 5.9 |
-| "Interest rate parity relationship from international finance" | Hull Ch 5 |
-| Foreign currency as asset with yield $r_f$ | Hull Ch 5 |
-| "A foreign currency can be regarded as an investment asset paying a known yield" | Hull Ch 5 |
-| Two-strategy replication argument for CIP | Hull Ch 5, Figure 5.1 |
-| Numerical arbitrage example (USD/AUD) | Hull Ch 5, Example 5.6 |
-| Corporate hedging example (ImportCo/ExportCo) | Hull Ch 1 |
-| Forward value formula $f = S_0 e^{-qT} - K e^{-rT}$ | Hull Ch 5, eq. 5.7 |
-| Forward delta for asset with yield $q$: $e^{-qT}$ | Hull Ch 19 |
-| "For the delta of a forward foreign exchange contract, it is set equal to the foreign risk-free rate" | Hull Ch 19 |
-| FX forwards link discount curves via arbitrage | Andersen & Piterbarg, *Interest Rate Modeling*, Vol 1 Ch 6 |
-| "The market for foreign exchange (FX) forwards and cross-currency basis swaps imposes certain arbitrage constraints" | Andersen & Piterbarg Vol 1 |
-| FX forward market "rarely liquid beyond maturities of one year" | Andersen & Piterbarg Vol 1 |
-| One-period xccy basis swap = FX forward | Andersen & Piterbarg Vol 1 |
-| Currency carry = overnight rate differential | Taleb, *Dynamic Hedging* |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| Settlement conventions (T+2, T+1) | Standard FX market practice |
-| Value date calculation protocol | Standard FX market practice |
-| Forward points quoting in pips | Standard FX market practice |
-| Bid-ask conventions for forward points | Standard FX market practice |
-| NDF mechanics, currencies, and fixing risk | Standard NDF market practice |
-| P&L attribution decomposition | Standard trading desk practice |
-| Tom/Next swap mechanics | Standard FX funding practice |
-| "Big figure" and quote conventions | Standard FX desk terminology |
-| Cross rate and triangular arbitrage | Extends Hull's arbitrage discussion |
-| Desk Reality boxes throughout | Practical application of theoretical concepts |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| DF-form CIP: $F = S \cdot P_F / P_D$ | Direct translation from Hull's rate form using $P = e^{-rT}$ |
-| PV formula: $V = N_F(S P_F - K P_D)$ | Discount each currency leg separately, apply Andersen's ZCB valuation |
-| Quote inversion inverts DF ratio | Algebraic inversion of CIP formula |
-| Forward points = $S(P_F/P_D - 1)$ | Subtract spot from CIP-derived forward |
-| Hedged foreign bond earns domestic rate | CIP + hedge construction |
-| NDF settlement formula | Cash-equivalent derivation of forward payoff |
-
-### (D) Flagged Uncertainties
-
-| Item | Note |
-|------|------|
-| Exact pip quoting conventions by pair | Market conventions vary; verify with desk standards |
-| NDF fixing sources by currency | Vary by market; EMTA standards apply but check current practice |
-| Tom/Next vs FX swap boundary | Brief treatment here; full coverage in Chapter 30 |
-
----
+- Hull, *Options, Futures, and Other Derivatives* (FX forward pricing; covered interest parity; hedging examples)
+- Andersen & Piterbarg, *Interest Rate Modeling* (FX forwards and cross-currency arbitrage constraints)
 
 *Cross-references: Ch 2 (discount factors), Ch 3 (zero/forward rates), Ch 21 (cross-currency curves), Ch 30 (FX swaps and cross-currency swaps), Ch 31 (multi-currency risk)*

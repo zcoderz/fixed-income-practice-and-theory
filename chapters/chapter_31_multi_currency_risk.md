@@ -38,7 +38,7 @@ For example, with $d$ = USD and $f$ = EUR, $S_0 = 1.10$ means 1.10 USD per 1 EUR
 
 > **Desk Reality: Quote Direction Traps**
 >
-> The market quotes EUR/USD as "dollars per euro" (currently ~1.10), but USD/JPY as "yen per dollar" (currently ~150). A careless sign error when inputting FX delta can mean your "hedge" doubles your risk instead of eliminating it. Always verify: when spot goes *up*, does your domestic-currency P&L go *up* or *down*?
+> The market quotes EUR/USD as "dollars per euro" (e.g., around 1.10), but USD/JPY as "yen per dollar" (e.g., around 150). A careless sign error when inputting FX delta can mean your "hedge" doubles your risk instead of eliminating it. Always verify: when spot goes *up*, does your domestic-currency P&L go *up* or *down*?
 
 ### 31.1.2 Discount Factors and Forward Curves
 
@@ -95,7 +95,7 @@ The formula above assumes we know which discount curves to use. In practice, thi
 2. **CSA terms**: Different Credit Support Annexes may specify different eligible collateral
 3. **Clearing vs bilateral**: Cleared trades have standardized margin arrangements
 
-Hull notes that "after the 2007–08 crisis, institutions switched from LIBOR/swap rates to OIS rates as proxies for risk-free rates" for discounting. I'm not sure about the exact discounting curve choice without knowing your CSA/collateral currency and whether trades are cleared or bilateral.
+Hull notes that "after the 2007–08 crisis, institutions switched from LIBOR/swap rates to OIS rates as proxies for risk-free rates" for discounting. In practice, the discount curve is determined by the CSA/collateral currency and whether the trade is cleared or bilateral—without those details, you can only discuss the mechanics qualitatively.
 
 ---
 
@@ -210,7 +210,7 @@ In practice, risk systems often report:
 - **Rates gamma/convexity** ($\partial^2 PV / \partial r^2$): how rates PV01 changes with rates
 - **Cross-gamma** ($\partial^2 PV / \partial S \partial r$): the interaction term
 
-I'm not sure about the exact cross-gamma reporting conventions across different risk systems without additional specification. The numerical magnitudes depend heavily on the bump sizes used.
+NOT SURE: Cross-gamma reporting conventions vary across risk systems (spot vs forward bumps, which curve is bumped, bump sizes). Always confirm the definition and the bump methodology before comparing cross-gamma numbers across systems.
 
 ### 31.4.5 Quanto Derivatives: When Currency Mismatch Affects Pricing
 
@@ -1070,74 +1070,9 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Directly Source-Backed
-
-| Content | Source |
-|---------|--------|
-| FX forward formula $F_0 = S_0 e^{(r_d - r_f)T}$ and quote direction warning | Hull OFD Ch 5 |
-| Delta as $\partial V / \partial X$ | Hull OFD Ch 19 |
-| Gamma definition as second partial derivative | Hull OFD Ch 19 |
-| For delta-neutral portfolio: $\Delta\Pi \approx \Theta\Delta t + \frac{1}{2}\Gamma\Delta S^2$ | Hull OFD Ch 19 |
-| Multi-curve separation of discount and forward curves | Andersen & Piterbarg Vol 1 |
-| Sensitivity via perturbations to funding/index/basis instruments | Andersen & Piterbarg Vol 1 |
-| Cross-currency basis swap PV form and par basis definition | Andersen & Piterbarg Vol 1 |
-| Interest rate risk "more difficult to manage" due to term structure complexity | Hull RM Ch 9 |
-| VaR aggregation formula $\sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$ | Hull RM Ch 12 (Eq 12.10) |
-| Component VaR and Euler's theorem | Hull RM Ch 12 |
-| Post-crisis shift from LIBOR to OIS for discounting | Hull RM Ch 9 |
-| PCA for interest rates: "typical changes in term structure shape" | Tuckman Ch 13 |
-| PCA explains ~98% variance with 3 factors | Tuckman Ch 13, Hull RM Ch 9 |
-| Factor model for correlation $U_i = a_i F + \sqrt{1-a_i^2} Z_i$ | Hull RM Ch 11 |
-| "Correlations always increase in stressed markets" | Hull RM Ch 22 |
-| Stressed VaR calculation requirement | Hull RM Ch 13 |
-| Quanto definition: "underlying measured in one currency, payoff in another" | Hull OFD Ch 30 |
-| Quanto adjustment formula $E_X(V_T) = E_Y(V_T) e^{\rho \sigma_V \sigma_W T}$ | Hull OFD Ch 30 (Eq 30.5) |
-| Quanto adjustment derivation via change of numeraire | Hull OFD Ch 30 |
-| Wrong-way risk definition | Hull RM Ch 20 |
-| Tail dependence in stress periods | McNeil *Quantitative Risk Management* |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| "Global bond fund" paradigm and FX hedge creating domestic rate exposure | Extends Hull OFD forward pricing with portfolio management application |
-| Iterative hedging workflow with convergence criteria | Extends Andersen's risk decomposition with operational desk practice |
-| P&L attribution template for multi-currency books | Standard industry practice extending Taylor expansion |
-| Correlation stress quantitative example (75% collapse in diversification benefit) | Extends Hull RM stress concepts with numerical illustration |
-| Wrong-way risk in EM xccy context | Extends Hull RM Ch 20 with specific EM application |
-| "Desk Reality" boxes throughout | General fixed income desk practice |
-| Quote direction traps and FX delta sign errors | Common practitioner experience |
-| Tolerance bands for iterative hedging | Standard desk practice |
-| Product control P&L attribution investigation thresholds | Standard operations practice |
-
-### (C) Reasoned Inference — Derived in This Chapter
-
-| Content | Derivation Logic |
-|---------|------------------|
-| Multi-currency PV decomposition $PV_d = \sum C_d P_d + S \sum C_f P_f$ | Standard discounting + FX conversion |
-| FX01 conversion $= 0.01 \cdot S \cdot \Delta_{FX}$ | Algebra from delta definition |
-| Forward creates rate PV01 | Differentiate $V_{\text{fwd}} = N(K P_d - S P_f)$ w.r.t. curves |
-| Cross-gamma Taylor expansion | Extension of Hull's single-asset gamma to multi-factor |
-| Iterative hedging necessity | Hedges create secondary exposures; must re-measure |
-| PCA application to multi-currency | Apply single-currency PCA separately, then correlate factors |
-| Stressed VaR = \$114.8mm in Example | Direct application of Hull's aggregation formula with elevated correlations |
-| Quanto Nikkei example calculation | Application of Hull Ch 30 formulas |
-
-### (D) Flagged Uncertainties
-
-| Topic | Note |
-|-------|------|
-| Cross-currency basis quoting/sign conventions | I'm not sure without currency pair, trade direction, and desk conventions |
-| Collateral currency/CSA-driven discounting | I'm not sure without CSA and clearing details |
-| Exact FX swap settlement conventions | I'm not sure without pair/market specification |
-| Cross-gamma magnitude in specific products | I'm not sure without product-specific model details |
-| Risk system bump conventions | I'm not sure without system specification |
-| Quanto correlation estimation in practice | Historical correlation may not reflect future; this creates model risk |
-| Factor model calibration procedures | I'm not sure without institutional context |
-| Specific crisis correlation values | 2008 and 2020 behavior varied by asset class; examples are illustrative |
-
----
-
-*Last Updated: January 2026*
+- Hull, *Options, Futures, and Other Derivatives* (FX forwards; delta/gamma; quanto definitions and adjustments)
+- Hull, *Risk Management and Financial Institutions* (risk aggregation/VaR; stressed correlations; wrong-way risk; OIS discounting shift)
+- Andersen & Piterbarg, *Interest Rate Modeling* (multi-curve framework; cross-currency valuation and basis risk)
+- Tuckman & Serrat, *Fixed Income Securities* (PCA factors for yield curves)
