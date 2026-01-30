@@ -318,7 +318,7 @@ O'Kane provides the spread ordering by clause in Chapter 5:
 
 $$\boxed{S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}}$$
 
-**Numerical impact:** If constituent spreads average 100 bp under Mod-Re, the No-Re equivalent is roughly 95 bp. This alone can create a 5 bp intrinsic-vs-quoted discrepancy if one doesn't adjust.
+**Illustrative impact:** If constituent spreads average 100 bp under Mod-Re and No-Re spreads are ~5% lower (O'Kane's rule-of-thumb), the No-Re equivalent is roughly 95 bp. This alone can create a few bp of intrinsic-vs-quoted discrepancy if one doesn't adjust.
 
 > **Important caveat:** O'Kane notes a complexity: "While the European iTraxx indices include a restructuring credit event, the North American CDX index protection leg is only triggered by a bankruptcy or failure to pay." When computing intrinsic for CDX using standard Mod-Re single-name quotes, you must adjust for the documentation mismatch. The exact adjustment depends on the specific contract terms—always verify against current index documentation.
 
@@ -330,7 +330,7 @@ O'Kane identifies two liquidity-related basis drivers:
 
 2. **Index leads in stress:** "As the CDS index is more liquid, it tends to be the preferred instrument used by market participants to express a changing view about the credit market as a whole, or even one specific name in the index. As a result, the CDS index may be considered to lead the CDS market. This is especially true in a widening market where investors use long protection positions in the index to hedge illiquid long credit positions."
 
-In stressed markets, investors seeking protection pile into the liquid index, pushing its spread wider than constituents (positive basis). In benign markets, the opposite may occur—the index can trade tight to intrinsic as liquidity seekers prefer its tight bid-ask spread.
+In stressed markets, hedging demand can concentrate in the liquid index and quoted index spreads can move faster than constituent quotes, creating basis moves. In benign markets, the index can trade tighter than a constituent-based intrinsic measure due to liquidity and technicals. The sign depends on how intrinsic is measured (mid vs executable), documentation alignment, and market microstructure.
 
 **Bid-ask dispersion effect:** Even in calm markets, intrinsic computed from mid-market quotes may not be executable. If constituent bid-ask spreads are wide, the "executable intrinsic" (using bids or asks consistently) can differ from mid-intrinsic by several basis points.
 
@@ -373,26 +373,22 @@ The ETF analogy suggests that if the index trades at a premium to intrinsic, you
 > **Desk Reality: Basis Arbitrage in Practice**
 >
 > Dedicated basis arbitrage desks exist, but they operate with tight risk limits and accept that:
-> - Small basis (1-3 bp) is typically not tradeable after costs
+> - Small basis moves can be hard to monetize after costs (bid-ask, execution, capital)
 > - Basis can widen before converging
-> - Crisis-period basis can remain wide for months
+> - Basis can remain wide for extended periods in stress
 >
 > The basis is more like a "soft" arbitrage than a hard one—it rewards patient capital that can weather mark-to-market swings.
 
 ### 46.3.6 Basis Dynamics in Stress Periods
 
-> **Practitioner Note (extended):** O'Kane mentions that the index "leads" single-names in widening markets but doesn't provide specific crisis data. Based on general market knowledge, here is how basis typically behaves during stress.
+> **Practitioner Note:** O'Kane notes that the index can "lead" single-names in widening markets. A practical way to think about this is liquidity and measurement: indices are often the fastest macro hedge to trade, while single-name quotes can be stale or widen unevenly.
 
-**2008 Financial Crisis:** Index basis widened dramatically as investors rushed to buy index protection to hedge credit exposure. The index became the "first responder" instrument—liquid when single-names weren't. Basis for CDX IG reportedly widened to double-digit basis points (I'm not sure of exact levels without historical data verification). The directional effect—index leading constituents—is well-documented by O'Kane.
+**Stylized pattern (not a rule):**
+- In sell-offs, the quoted index spread can move faster than computed intrinsic (especially if intrinsic is built from mid quotes in less-liquid names), producing basis moves.
+- As liquidity returns and single-name markets re-open, basis can narrow, but convergence timing is uncertain.
+- The sign and size of the basis are path-dependent: documentation mismatches (No-Re vs Mod-Re), bid-ask dispersion, and roll effects can dominate.
 
-**2011 European Sovereign Crisis:** iTraxx Main and Crossover indices showed similar dynamics. Sovereign names and financials drove index widening faster than single-name markets could absorb.
-
-**March 2020 (COVID-19):** CDX IG and HY widened aggressively in the initial panic. Basis blew out as hedging demand concentrated in the liquid index. Subsequently, Fed intervention (including indirect support via credit ETFs) helped normalize basis—but the episode demonstrated that basis can move 10+ bp intraday during crisis.
-
-**Pattern recognition:**
-- In stress: Index widens first → positive basis (index cheap)
-- As stress abates: Single-names catch up → basis normalizes
-- Mean-reversion is NOT guaranteed in any specific timeframe
+**NOT SURE:** To quantify "typical" stress-period basis magnitudes for a specific index family and date range, we need a historical time series (quoted index, constituent quotes, and the exact intrinsic calculation rule).
 
 > **Desk Reality: Basis During a Sell-Off**
 >
@@ -836,7 +832,7 @@ $$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} =
 **Key differences between series:**
 - Series 37 has 3 names that were replaced in Series 38 (fallen angels/upgrades)
 - Series 38 has 6-month longer maturity (curves may slope)
-- Liquidity: Series 38 bid-ask ~0.5 bp; Series 37 bid-ask ~2 bp
+- Liquidity: On-the-run bid-ask is typically tighter; off-the-run can be materially wider (illustrative)
 
 **Hedge design:**
 - Match CS01: Both series have RPV01 ≈ 4.1 years
@@ -1037,9 +1033,9 @@ Before computing intrinsic and basis:
 
 **15.** Why must tranche models apply PSA before calibrating correlation?
 
-**16.** Given historical data showing basis was -2 bp before a crisis and +8 bp during the crisis, what driver dominated?
+**16.** Suppose basis is -2 bp before a sell-off and +8 bp during the sell-off. What driver could explain this move?
 
-*Sketch:* The 10 bp widening of basis (from -2 to +8) indicates the index widened faster than constituents. This is the "index leads in stress" dynamic—hedging demand concentrated in the liquid index, pushing it wider. Liquidity/technical flows dominated.
+*Sketch:* The 10 bp widening of basis (from -2 to +8) is consistent with the index widening faster than the constituent-based intrinsic measure. A plausible driver is liquidity/technical hedging demand concentrating in the index while single-name quotes lag or become stale.
 
 **17.** Compute the PSA adjustment ratio for a 4-name index: quoted spread 45 bp, constituent spreads [30, 40, 50, 60] bp, RPV01s [4.5, 4.2, 3.9, 3.6] years.
 
@@ -1053,67 +1049,10 @@ Spreads must be scaled UP by 2.1% to match the quoted spread. Adjusted spreads: 
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Intrinsic value formula: $V_I(t) = \frac{1}{M}\sum_m (S_m - C) \cdot \text{RPV01}_m$ | O'Kane Ch 10, Eq 10.6 |
-| Intrinsic spread approximation: $S_I \approx \sum_m S_m \cdot \text{RPV01}_m / \sum_m \text{RPV01}_m$ | O'Kane Ch 10, Eq 10.9 |
-| Exact intrinsic definition via PV matching | O'Kane Ch 10, Eq 10.8 |
-| Index basis = quoted − intrinsic; can be positive or negative | O'Kane Ch 10, Section 10.5.2, Table 10.6 |
-| Restructuring clause differences (No-Re vs Mod-Re); No-Re ~5% lower | O'Kane Ch 5, Section 5.4.4; Ch 10, Section 10.5.2 |
-| CDX excludes restructuring (No-Re), iTraxx includes restructuring | O'Kane Ch 10, Section 10.5.2 |
-| "Index spread embeds a lower liquidity risk premium than the less liquid CDS spreads" | O'Kane Ch 10, Section 10.5.2 |
-| "CDS index may be considered to lead the CDS market" in widening markets | O'Kane Ch 10, Section 10.5.2 |
-| Portfolio swap adjustment: proportional spread/survival multiplier | O'Kane Ch 10, Sections 10.6.1-10.6.3 |
-| Survival probability adjustment ~50x faster than spread multiplier | O'Kane Ch 10, Section 10.6.3 |
-| "The exact nature of the adjustment is somewhat arbitrary" | O'Kane Ch 10, Section 10.6 |
-| Default removes name from index; notional reduces by 1/M | O'Kane Ch 10 |
-| Approximation error: <0.1 bp for IG, ~1.5 bp for HY | O'Kane Ch 10, Table 10.4 |
-| Intrinsic vs average spread data for CDX/iTraxx | O'Kane Ch 10, Table 10.5 |
-| RPV01 definition as "time $t$ present value of a credit risky \$1 annuity" | O'Kane Ch 10 notation table |
-| "RPVOI-weighted average spread... is a concave function and so its average is less than the simple average" | O'Kane Ch 10, footnote 3 |
-| CDS-Cash basis drivers: funding, delivery option, technical default, loss on default, premium accrued | O'Kane Ch 5, Section 5.6.1 |
-| CDS-Cash basis market factors: relative liquidity, CDO technical short, new issuance, demand for protection | O'Kane Ch 5, Section 5.6.2 |
-| PSA is "prerequisite for those who wish to build models for products including options on CDS indices and especially the standard tranches" | O'Kane Ch 10, Section 10.8 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Context |
-|---------|---------|
-| Jensen's inequality derivation for concavity effect | O'Kane notes the concavity result but doesn't provide the full Jensen's argument |
-| Basis dynamics during specific crises (2008, 2011, 2020) | O'Kane mentions directional effects; specific crisis behavior from general market knowledge |
-| Limits to basis arbitrage (execution friction, capital constraints, timing risk) | Extended from O'Kane's bond-CDS basis discussion in Section 5.6 |
-| Cross-series and on/off-the-run basis dynamics | Extended from O'Kane's roll discussion |
-| Recovery rate sensitivity example | Extended from O'Kane's general recovery discussion |
-| Data sourcing and staleness considerations | General practitioner knowledge |
-| "What happens if you skip PSA" failure mode example | Derived from O'Kane's calibration requirement statement |
-| Middle-office P&L break context in introduction | Added for target audience connection |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Logic |
-|-----------|-------|
-| Bid/ask dispersion creates mechanical apparent basis | If intrinsic uses mid but execution uses bid/ask, difference emerges |
-| CS01 formula from RPV01 and notional | Direct multiplication per definition: CS01 = N × 10⁻⁴ × RPV01 |
-| Basis P&L decomposition | First-order Taylor expansion of PV functions |
-| Documentation adjustment of ~5% explains most CDX vs Mod-Re intrinsic gap | Direct application of O'Kane's "~5% lower" estimate |
-| Higher spread dispersion → larger intrinsic vs average gap | O'Kane's explanation that RPV01-weighted average is concave |
-| Series basis risk from composition differences | Logical extension of composition-driven intrinsic differences |
-
-### (D) Flagged Uncertainties
-
-| Topic | Note |
-|-------|------|
-| Exact restructuring clause for specific index series | O'Kane notes differences; verify against current index documentation |
-| Specific basis levels during 2008, 2011, 2020 crises | I'm not sure of exact historical levels without data verification; directional effects are documented |
-| Typical basis range in normal vs stressed markets | Inferred from examples (~±1-5 bp for IG normal; can be 10+ bp in stress) but ranges vary |
-| Current standard coupons for specific index series | Operational details evolve with market practice; verify against current documentation |
-| Precise recovery rates for specific subordinated names | Depends on deal terms and seniority; examples use illustrative values |
-
----
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (intrinsic spread, basis drivers, portfolio swap adjustment / calibration)
+- John C. Hull, *Risk Management and Financial Institutions* (credit indices and standardized CDS mechanics)
 
 ## Cross-References
 

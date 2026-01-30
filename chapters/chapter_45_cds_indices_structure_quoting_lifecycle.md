@@ -37,9 +37,9 @@ When a trader says they're "buying CDX," they're entering a single contract that
 | $f$ | Index factor: $f = (M - D) / M$ |
 | $C$ or $c$ | Annualized running coupon rate in decimal (e.g., 100 bp $= 0.01$) |
 | $S_I(t,T)$ | Market-quoted flat index spread at time $t$ for maturity $T$ |
-| $U_I$ | Upfront payment (percent of notional; can be negative) |
+| $U_I$ | Upfront as percent of notional (positive = paid by protection buyer; negative = received) |
 | $\text{RPV01}_I$ | Risky PV01 of the index (PV of 1 bp running premium) |
-| $P_{\text{bond}}$ | Bond-price quote (as percent of notional, e.g., 102.18%) |
+| $P_{\text{bond}}$ | Bond-price quote (percent of notional); $U_I = 100 - P_{\text{bond}}$ |
 | $FP$ | Auction final price (value per 100 of deliverable) used for cash settlement |
 | $S_I^{\text{intr}}$ | Intrinsic spread (RPV01-weighted average of constituent spreads) |
 
@@ -140,9 +140,9 @@ O'Kane enumerates several advantages of portfolio CDS indices that explain their
 > 2. **iTraxx Europe Main 5Y** — European benchmark; comparable liquidity
 > 3. **CDX.NA.HY** — Deep market but wider spreads than IG
 > 4. **iTraxx Crossover** — European high-yield proxy
-> 5. **Off-the-run series** — Significantly less liquid; bid-offer widens 5-10×
+> 5. **Off-the-run series** — Less liquid; bid-offer can widen materially
 >
-> This hierarchy matters for execution: a $500mm CDX.IG trade executes in minutes; the same notional in off-the-run Series 35 may take days.
+> Execution note: on-the-run indices can absorb very large risk quickly; off-the-run series can be markedly harder to trade, especially in stressed markets.
 
 > **Tradable vs. benchmark indices:** O'Kane distinguishes CDS portfolio indices from benchmark indices: "While the CDS indices are designed with the primary aim of tradability, benchmark indices are more concerned with providing an accurate reflection of the performance of the 'market'."
 
@@ -151,9 +151,8 @@ O'Kane enumerates several advantages of portfolio CDS indices that explain their
 O'Kane explains that "most CDS indices are issued or rolled semi-annually with a coupon which is fixed for the lifetime of the issue." Each issuance creates a new **series** with a fixed constituent list (except for default removals).
 
 **Series numbering:**
-- CDX.NA.IG Series 35 was defined in September 2020 (per Hull)
-- iTraxx Europe Series 34 was defined in September 2020
-- The series number indicates how many times the index has been "refreshed" since inception
+- The series number increments each roll for a given index family.
+- The exact "current" series depends on the date; always book the series specified on the confirmation (or the official index documentation).
 
 **On-the-run vs. off-the-run:**
 - **On-the-run:** The most recently issued series — "from the time a new index is issued to the time that the next series of the index is issued, this index is known as the on-the-run index" (O'Kane)
@@ -199,23 +198,23 @@ O'Kane describes the bifurcation clearly: "Most investors prefer to trade the in
 
 However, "other lower credit quality indices such as the EM and HY indices are quoted using the **bond price convention** ... in which the upfront value is computed simply by subtracting 100."
 
-**Table 45.3: Quoting Convention by Index Family**
+**Table 45.3: Quoting Convention by Index Family (Coupon is Series-Specific)**
 
 | Index Family | Typical Quoting Convention | Fixed Coupon | Reason |
 |--------------|---------------------------|--------------|--------|
-| CDX.NA.IG | Spread | 100 bp | Low PV01 dispute risk |
-| iTraxx Europe | Spread | 100 bp | Low PV01 dispute risk |
-| CDX.NA.HY | Bond Price | 500 bp | Avoids PV01 disputes |
-| CDX.EM | Bond Price | 500 bp | Avoids PV01 disputes |
-| iTraxx Crossover | Bond Price | 500 bp | Higher credit risk |
+| CDX.NA.IG | Spread | Fixed at series inception | PV01 conversion is manageable |
+| iTraxx Europe | Spread | Fixed at series inception | PV01 conversion is manageable |
+| CDX.NA.HY | Bond Price | Fixed at series inception | Avoid PV01 disputes by quoting price |
+| CDX.EM | Bond Price | Fixed at series inception | Avoid PV01 disputes by quoting price |
+| iTraxx Crossover | Bond Price | Fixed at series inception | Avoid PV01 disputes by quoting price |
 
 > **Desk Reality: "Points Upfront" Language**
 >
-> When traders say "CDX is 50 over," they mean the current spread is 150 bp — that is, 50 bp above the 100 bp fixed coupon. This implies the protection buyer pays upfront (index trades below par).
+> When traders say "CDX is 50 over," they mean the current spread is 50 bp above the fixed coupon (e.g., if coupon is 100 bp, current spread is 150 bp). This implies the protection buyer pays upfront (index trades below par).
 >
-> Conversely, "CDX is 20 under" means the spread is 80 bp — 20 bp below the coupon. The protection buyer receives upfront (index trades above par).
+> Conversely, "CDX is 20 under" means the spread is 20 bp below the coupon (e.g., if coupon is 100 bp, spread is 80 bp). The protection buyer receives upfront (index trades above par).
 >
-> For HY indices with a 500 bp coupon, "HY is 200 over" means the spread is 700 bp. The much larger coupon means HY upfronts are larger in dollar terms.
+> For HY indices with a high fixed coupon (e.g., 500 bp), "HY is 200 over" means the spread is 700 bp. The larger coupon means upfronts are larger in dollar terms.
 
 ### 45.2.2 Spread Quoting (Investment Grade)
 
@@ -224,8 +223,8 @@ When an index quotes by spread, the **upfront payment** is derived from the diff
 $$\boxed{U_I = (S_I - C) \times \text{RPV01}_I}$$
 
 **Interpretation:**
-- If $S_I > C$: Spread has widened since issuance → investor entering receives upfront (index "trades below par")
-- If $S_I < C$: Spread has tightened → investor entering pays upfront (index "trades above par")
+- If $S_I > C$: Spread has widened since issuance → protection buyer **pays** upfront (index "trades below par")
+- If $S_I < C$: Spread has tightened → protection buyer **receives** upfront (index "trades above par")
 
 **The flat curve convention:** O'Kane explains that "market convention dictates that the index curve used to value an index has a flat term structure. So if we wish to value the 7Y CDX NA Investment Grade index, we would simply use a flat CDS curve at a level of 44 bp." This is important: the $\text{RPV01}_I$ in the formula above is computed using a flat spread assumption, not a term structure.
 
@@ -236,7 +235,7 @@ $$\boxed{U_I = (S_I - C) \times \text{RPV01}_I}$$
 | CDX.NA.IG | 7 | 40 | 34 | 100.27% |
 | iTraxx Europe | 6 | 30 | 24 | 100.28% |
 
-The CDX.NA.IG spread (34 bp) is below the coupon (40 bp), meaning credit quality has improved since issuance. An investor entering must pay upfront (reflected in the bond price above 100).
+The CDX.NA.IG spread (34 bp) is below the coupon (40 bp), meaning credit quality has improved since issuance. A protection buyer entering receives upfront (reflected in the bond price above 100).
 
 ### 45.2.3 Bond Price Quoting (High Yield / EM)
 
@@ -244,15 +243,15 @@ O'Kane explains the rationale: "this convention has the advantage that it avoids
 
 **The conversion is simple:**
 
-$$\boxed{U_{\%} = P_{\text{bond}} - 100\%}$$
+$$\boxed{U_{\%} = 100\% - P_{\text{bond}}}$$
 
 **Examples:**
-- Bond price = 102.18% → Pay 2.18% upfront
-- Bond price = 99.50% → Receive 0.50% upfront
+- Bond price = 102.18% → Receive 2.18% upfront (so $U_{\%} = -2.18\%$)
+- Bond price = 99.50% → Pay 0.50% upfront (so $U_{\%} = +0.50\%$)
 
 **Dollar upfront from bond price:**
 
-$$\boxed{U_{\$} = N \times (P_{\text{bond}}/100 - 1)}$$
+$$\boxed{U_{\$} = N \times (1 - P_{\text{bond}}/100)}$$
 
 **Why bond price avoids disputes:**
 
@@ -343,12 +342,12 @@ O'Kane explains that at roll, "investors who hold the existing on-the-run index 
 >
 > Imagine a train (Liquidity) that switches tracks every 6 months.
 >
-> *   **On-the-Run (Series 42)**: The train is here. Spreads are tight (0.5bp). Everyone is trading.
+> *   **On-the-Run (e.g., Series 42)**: The train is here. Bid-offer is tight and there are more two-way markets.
 > *   **The Roll (Mar 20)**: The train switches to the Series 43 track.
 > *   **The Choices**:
 >     1.  **Roll**: Jump to Series 43 (Pay transaction costs). Stay liquid.
->     2.  **Stay**: You are now "Off-the-Run." The station is empty. Spreads widen (5bp). You are stuck with an illiquid position.
-> *   **The Force**: Traders *must* roll to maintain the ability to exit. This creates massive volume on Mar 20/Sep 20.
+>     2.  **Stay**: You are now "Off-the-Run." The station is emptier. Bid-offer is wider and exits can be more costly.
+> *   **The Force**: Traders *must* roll to maintain the ability to exit. This concentrates volume around Mar 20/Sep 20.
 
 > **Desk Reality: The Roll Period Frenzy**
 >
@@ -548,13 +547,13 @@ O'Kane discusses why the basis can be positive or negative:
 | CDX | Index family | North American CDS index family |
 | NA | Region | North America |
 | HY | Credit quality | High Yield |
-| 7 | Series | 7th vintage (issued ~2007) |
+| 7 | Series | 7th vintage (series numbering; date depends on index family) |
 | 5Y | Tenor label | 5-year maturity contract |
 
 **Additional facts from Table 45.1:**
 - Number of credits: 100 (standard for CDX.NA.HY)
 - Quoting convention: Bond price (not spread)
-- Fixed coupon: 500 bp
+- Fixed coupon: Fixed at series inception (series-specific; do not assume)
 - Roll dates: March 20 and September 20
 
 ---
@@ -578,7 +577,7 @@ $$U_{\%} = (-0.0006) \times 4.447 = -0.002668 = -0.2668\%$$
 
 $$P_{\text{bond}} = 100\% - (-0.2668\%) = 100.27\%$$
 
-**Interpretation:** The negative upfront means the investor entering receives this amount (or equivalently, the index trades above par at 100.27%). This matches Hull's Example 25.1 and O'Kane's Table 10.2.
+**Interpretation:** The negative upfront means the protection buyer receives this amount (or equivalently, the index trades above par at 100.27%). This matches Hull's Example 25.1 and O'Kane's Table 10.2.
 
 **Unit check:** bp × years = dimensionless (percent of notional) ✓
 
@@ -684,8 +683,10 @@ $$\text{Net} = \$200,000 - \$125,000 = +\$75,000 \text{ (received)}$$
 **What's the error?**
 
 **Correct (price convention):**
-$$U_{\%} = 102.18\% - 100\% = +2.18\%$$
-$$U_{\$} = 100,000,000 \times 0.0218 = \$2,180,000 \text{ paid}$$
+$$U_{\%} = 100\% - 102.18\% = -2.18\%$$
+$$U_{\$} = 100,000,000 \times 0.0218 = \$2,180,000 \text{ received}$$
+
+If you mistakenly treat the bond price as an upfront quote, you might book +2.18% paid instead of -2.18% received — a $4.36mm cashflow difference on $100mm notional.
 
 **If spread were misinterpreted:**
 Suppose the trader thought "102.18" was a spread in bp and applied spread mechanics with a different result — the error could be millions of dollars.
@@ -719,7 +720,7 @@ $$\text{Actual DV01} = \text{Full DV01} \times f = 47,000 \times 0.976 = \$45,87
 - [ ] **Tenor:** 3Y/5Y/7Y/10Y (note actual maturity is ±3 months from label)
 - [ ] **On-the-run vs. off-the-run:** Affects liquidity and roll timing
 - [ ] **Quoting convention:** Spread (IG) vs. price (HY/EM)
-- [ ] **Fixed coupon:** 100 bp (IG) or 500 bp (HY/Crossover)
+- [ ] **Fixed coupon:** Series-specific; confirm from confirmation/reference data
 - [ ] **Upfront:** Amount and direction (pay/receive)
 - [ ] **Settlement date:** Typically T+3 from trade date
 - [ ] **Current index factor:** Number of names removed and current factor
@@ -743,7 +744,7 @@ $$\text{Actual DV01} = \text{Full DV01} \times f = 47,000 \times 0.976 = \$45,87
 
 ### 45.7.3 Verification Tests
 
-1. **Price-spread consistency:** $P_{\text{bond}} = 100 + (S_I - C) \times \text{RPV01}_I$ should match market quote
+1. **Price-spread consistency:** $P_{\text{bond}} = 100 - 100 \\times \\text{RPV01}_I \\times (S_I - C)$ should match market quote
 
 2. **Factor bounds:** $f = (M - D)/M$ must be in range $(0, 1]$
 
@@ -761,7 +762,7 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 
 1. **Naming conventions** encode geography, credit quality, series (vintage), and tenor — each component affects liquidity and pricing
 
-2. **Quoting conventions** differ by index family: investment grade quotes by spread (100 bp coupon), high yield/EM quote by bond price (500 bp coupon) — confusion causes booking errors
+2. **Quoting conventions** differ by index family: investment grade often quotes by spread; high yield/EM often quote by bond price — confusion causes booking errors
 
 3. **The ±3 month rule** means a "5Y" index at issuance is actually ~5.25 years to maturity
 
@@ -813,10 +814,10 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 | 7 | How does CDX.NA.IG quote in the market? | By spread (not price) |
 | 8 | How does CDX.NA.HY quote in the market? | By bond price (not spread) |
 | 9 | Why do HY indices use bond price quoting? | To avoid disputes about index PV01 for spread-to-upfront conversion |
-| 10 | Convert bond price 102.18% to upfront | Upfront = 102.18% - 100% = +2.18% (you pay) |
-| 11 | Convert bond price 99.50% to upfront | Upfront = 99.50% - 100% = -0.50% (you receive) |
+| 10 | Convert bond price 102.18% to upfront | Upfront = 100% - 102.18% = -2.18% (you receive) |
+| 11 | Convert bond price 99.50% to upfront | Upfront = 100% - 99.50% = +0.50% (you pay) |
 | 12 | Formula: Upfront from spread | $U_I = (S_I - C) \times \text{RPV01}_I$ |
-| 13 | If spread < coupon, what happens to upfront? | Upfront is negative (investor receives payment) |
+| 13 | If spread < coupon, what happens to upfront? | Upfront is negative (protection buyer receives payment) |
 | 14 | What happens to index notional when a constituent defaults? | Reduced by 1/M (e.g., 0.8% for 125-name index) |
 | 15 | Cash settlement payment per default formula | Payment = $(N/M) \times (1 - FP/100)$ |
 | 16 | If auction final price = 35, what is LGD percentage? | 65% (protection payment = 65% of per-name notional) |
@@ -838,7 +839,7 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 | 32 | By how much are No-Re spreads typically lower than Mod-Re? | ~5% lower (per O'Kane) |
 | 33 | What is intrinsic spread? | RPV01-weighted average of constituent single-name spreads |
 | 34 | What is index basis? | Quoted index spread minus intrinsic spread |
-| 35 | What is the fixed coupon for CDX.NA.IG? | 100 bp |
+| 35 | What is the fixed coupon for CDX.NA.IG? | Series-specific (fixed at inception); confirm on confirmation/reference data |
 
 ---
 
@@ -852,11 +853,11 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 
 **2.** CDX.NA.IG Series 7: Coupon = 40 bp, spread = 48 bp, RPV01 = 4.0. Calculate upfront % and whether you pay or receive.
 
-> **Sketch:** $U = (0.0048 - 0.0040) \times 4.0 = 0.0032 = 0.32\%$. Spread > coupon → you receive 0.32% to enter long protection.
+> **Sketch:** $U = (0.0048 - 0.0040) \times 4.0 = 0.0032 = 0.32\%$. Spread > coupon → you pay 0.32% to enter long protection.
 
 **3.** CDX.NA.HY bond price = 103.50%. Calculate dollar upfront on $50mm notional.
 
-> **Sketch:** $U_{\%} = 103.50 - 100 = 3.50\%$. $U_{\$} = 50,000,000 \times 0.035 = \$1,750,000$ paid.
+> **Sketch:** $U_{\%} = 100 - 103.50 = -3.50\%$. $U_{\$} = 50,000,000 \times 0.035 = \$1,750,000$ received.
 
 **4.** An index has notional $100mm, 125 names, coupon 80 bp, quarterly α = 0.25. After 3 defaults, what is the index factor and quarterly coupon payment?
 
@@ -866,9 +867,9 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 
 > **Sketch:** LGD = 1 - 0.22 = 0.78. Payment = $800,000 \times 0.78 = \$624,000$.
 
-**6.** At issuance on March 20, 2024, a "5Y" CDX.NA.IG matures on what date? How many months to maturity?
+**6.** At issuance on March 20 (an IMM date), a "5Y" CDX.NA.IG matures on what date? How many months to maturity at issuance?
 
-> **Sketch:** Matures June 20, 2029. Months = 63 (5 years + 3 months).
+> **Sketch:** Matures June 20 five years later. Months = 63 (5 years + 3 months).
 
 **Questions 7-12: No sketches**
 
@@ -886,71 +887,10 @@ CDS indices provide efficient exposure to diversified credit portfolios through 
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Index families (CDX.NA.IG, iTraxx Europe, etc.) and constituent counts | O'Kane Ch. 10, Table 10.1 |
-| "CDS portfolio indices have transformed the credit derivatives markets" | O'Kane Ch. 10, Section 10.1 |
-| Roll dates (March 20, September 20) and IMM alignment | O'Kane Ch. 10; Hull Ch. 25 |
-| "T-year" indices have T±3 months actual maturity | O'Kane Ch. 10 |
-| IG indices quote by spread; HY/EM quote by bond price | O'Kane Ch. 10 |
-| Bond price convention avoids PV01 disputes | O'Kane Ch. 10 |
-| Upfront = (Spread - Coupon) × RPV01 | O'Kane Eq. 10.7 |
-| Default reduces notional by 1/M | O'Kane Ch. 10 |
-| Accrued premium paid at default | O'Kane Ch. 10 |
-| CDX = No-Re; iTraxx = Mod-Re (restructuring clause difference) | O'Kane Ch. 10 |
-| No-Re spreads "typically about 5% lower than Mod-Re spreads" | O'Kane Ch. 10 |
-| ISDA 2005 auction protocol for cash settlement | O'Kane Ch. 10 |
-| Liquidity drops after roll; expiries beyond 6 months rare for options | O'Kane Ch. 10-11 |
-| Example price calculation (CDX.NA.IG = 100.27%) | O'Kane Table 10.2; Hull Example 25.1 |
-| Bid-offer spread of 0.25 bp for IG indices, ~4 bp for HY | O'Kane Ch. 10 |
-| Markit as index administrator | O'Kane Ch. 10 |
-| Index coupon set as multiple of 5 bp | O'Kane Ch. 10 |
-| Flat curve convention for index pricing | O'Kane Ch. 10 |
-| Five advantages of index products (diversification, shorting, capital efficiency, derivatives underlying, sector trading) | O'Kane Ch. 10 |
-| Off-the-run hedge mismatch due to constituent differences | O'Kane Ch. 10 |
-| Intrinsic spread formula (RPV01-weighted average) | O'Kane Ch. 10, Eq. 10.9 |
-| Index basis drivers (No-Re/Mod-Re mismatch, liquidity) | O'Kane Ch. 10, Section 10.5.2 |
-| 100 bp fixed coupon for IG, 500 bp for HY | O'Kane Ch. 10 |
-
-### (B) Claude-Extended Content (Practitioner Knowledge)
-
-| Content | Context |
-|---------|---------|
-| Bloomberg ticker conventions (CDX IG CDSI, etc.) | Standard terminal conventions |
-| "Points upfront" trader language ("50 over") | Common desk parlance |
-| Liquidity tier ranking (CDX.IG > iTraxx Main > HY) | Market observation |
-| Roll period volume surge | Practitioner knowledge (not quantified in O'Kane) |
-| Index factor tracking in risk systems | Operational practice |
-| Middle office roll rebooking issues | Operational practice |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Index factor formula $f = (M-D)/M$ | Direct from notional reduction mechanics in O'Kane |
-| Coupon payment formula after defaults | Linear scaling of coupon × outstanding notional from mechanics |
-| Roll P&L from composition + maturity | Direct from O'Kane's two listed drivers |
-| Booking error magnitude from quoting confusion | Arithmetic consequence of formula differences |
-| DV01 scales with factor | From notional reduction affecting all risk measures |
-| No-Re/Mod-Re basis creates hedging mismatch | From credit event definition differences |
-
-### (D) Flagged Uncertainties
-
-| Item | Reason |
-|------|--------|
-| **Exact current series numbers** | Series numbers increment with each roll; specific numbers depend on date |
-| **Exact constituent lists** | Require index rulebook (Markit documentation) for current series |
-| **Precise settlement conventions** | May vary; verify against trade confirmation and ISDA definitions |
-| **Desk-specific PV01/MTM conventions** | Require valuation policy documentation |
-| **Current bid-offer spreads** | O'Kane's figures are from ~2006-2007; current spreads may differ |
-| **Roll period volume percentages** | Practitioner knowledge; not precisely documented in O'Kane |
-| **Post-ISDA 2014 credit event changes** | O'Kane predates ISDA 2014 Definitions; some conventions may have evolved |
-
----
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (CDS portfolio indices: quoting, roll mechanics, default handling)
+- John C. Hull, *Options, Futures, and Other Derivatives* (credit indices and bond-price/intuitive pricing examples)
 
 ## Cross-References
 

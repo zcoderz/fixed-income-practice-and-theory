@@ -8,7 +8,7 @@ A corporate's 3-year CDS trades at 80bp, its 5-year at 120bp. Is that steep or f
 
 These questions sit at the heart of CDS relative value trading. Unlike directional credit positions that simply bet on spreads widening or tightening, relative value (RV) trades attempt to exploit mispricings between related instruments while hedging out broader market exposure. The appeal is obvious: if you can identify a temporary dislocation between the 3-year and 5-year CDS curve, why take outright default risk when you can trade the relationship instead?
 
-The danger lies in what appears market-neutral but is not. O'Kane emphasizes in his treatment of CDS risk management that a CDS position carries multiple, distinct risks: "sensitivities to changes in the credit spread curve, changes in the Libor rate curve, changes in the recovery rate, the passage of time, and the risk of a default event." A curve trade that neutralizes total CS01 may still carry massive jump-to-default risk. A basis trade that looks like pure arbitrage may blow up when funding markets seize. The 2008 financial crisis provided brutal lessons in how "market-neutral" positions can generate catastrophic losses when correlations spike and liquidity evaporates.
+The danger lies in what appears market-neutral but is not. O'Kane emphasizes in his treatment of CDS risk management that a CDS position carries multiple, distinct risks: "sensitivities to changes in the credit spread curve, changes in the Libor rate curve, changes in the recovery rate, the passage of time, and the risk of a default event." A curve trade that neutralizes total CS01 may still carry massive jump-to-default risk. A basis trade that looks like pure arbitrage may blow up when funding markets seize. Stress episodes (e.g., the global financial crisis) are reminders that "market-neutral" can turn into correlation + liquidity + funding risk very quickly.
 
 This chapter takes a risk-first approach to CDS relative value. Building on the CDS mechanics from Chapter 38, the pricing framework from Chapter 41, and the risk measures from Chapter 43, we develop a systematic framework for translating any RV idea into explicit risk exposures, designing hedges that target specific risks, identifying failure modes before they materialize, and constructing verification tests that expose hidden vulnerabilities. The framework applies equally to curve trades (steepeners and flatteners), cash-CDS basis trades, capital structure trades (senior versus subordinated), equity-credit arbitrage (Merton-based trades), and index versus single-name relative value. For index-specific mechanics, we connect to Chapter 45's treatment of CDS indices.
 
@@ -165,10 +165,10 @@ O'Kane concludes: "All of these fundamental and market factors are reasons why t
 >
 > This is one of the most famous RV trades.
 >
-> *   **The Setup**:
->     *   Buy the Bond (Yields L + 150bp).
->     *   Buy CDS Protection (Pay 120bp).
->     *   **Net**: You earn L + 30bp *risk-free* (theoretically).
+> *   **The Setup** (illustrative numbers):
+>     *   Buy the Bond (yields roughly L + 150bp).
+>     *   Buy CDS Protection (pay roughly 120bp).
+>     *   **Net**: you earn roughly L + 30bp *risk-free* (theoretically).
 > *   **Why does it exist?**: Usually because "cash is king." In a crisis, people sell bonds to raise cash, driving bond yields up. They don't sell CDS because it generates no cash.
 > *   **The Catch**: You need to fund the bond purchase (Repo). If Repo rates spike, your 30bp profit vanishes.
 
@@ -184,7 +184,7 @@ O'Kane concludes: "All of these fundamental and market factors are reasons why t
 
 The basis trade appears to offer near-arbitrage: buy a cheap bond, hedge with CDS, collect the positive carry from the basis. The risks are:
 
-1. **Funding blowout:** If repo markets seize (as in 2008), the funding leg of the trade can become prohibitively expensive or impossible to roll.
+1. **Funding blowout:** If repo markets seize, the funding leg of the trade can become prohibitively expensive or impossible to roll.
 
 2. **Correlation breakdown:** The bond and CDS may not move together. A liquidity shock can widen bond spreads while CDS spreads remain stable, or vice versa.
 
@@ -198,9 +198,13 @@ The basis trade appears to offer near-arbitrage: buy a cheap bond, hedge with CD
 
 The economics of a basis trade depend critically on funding levels. Consider how changes in repo rates affect trade viability:
 
-**Table 44.3: Funding Level vs Required Basis for Positive Carry**
+In a simple carry decomposition (ignoring haircuts and mark-to-market effects), the net carry is approximately:
 
-| Repo Funding Cost | Bond Spread (L+X) | CDS Premium | Required Basis |
+$$\\text{Net carry (bp)} \\approx \\text{Bond spread} - \\text{Repo funding cost} - \\text{CDS premium}$$
+
+**Table 44.3: Funding Level vs Net Carry (Illustrative)**
+
+| Repo Funding Cost | Bond Spread (L+X) | CDS Premium | Net Carry (bp) |
 |-------------------|-------------------|-------------|----------------|
 | L + 10bp | 150bp | 120bp | +20bp positive |
 | L + 25bp | 150bp | 120bp | +5bp positive |
@@ -208,7 +212,7 @@ The economics of a basis trade depend critically on funding levels. Consider how
 | L + 100bp | 150bp | 120bp | -70bp (losing) |
 | L + 150bp | 150bp | 120bp | -120bp (severely losing) |
 
-The table reveals the funding cliff: a trade that earns carry at normal funding levels can become deeply negative as funding costs rise. The 2008 crisis saw funding costs spike from L+25bp to L+200bp or more for stressed counterparties, turning "risk-free" basis trades into massive losers.
+The table reveals the funding cliff: a trade that earns carry at normal funding levels can become deeply negative as funding costs rise. In a funding stress, repo levels and haircuts can move sharply and financing can become unavailable precisely when you want to hold the hedge.
 
 > **Practitioner Note: The Funding Trap**
 >
@@ -354,10 +358,9 @@ Events that affect the senior-sub spread:
 > - Cash flow available for debt service is stretched across more claims
 > - Covenants may be weakened or removed
 >
-> **Spread Reactions:**
-> - Senior spreads typically widen 50-200bp on LBO announcement
-> - Subordinated spreads widen even more (often 100-400bp)
-> - The sub/senior ratio typically increases (decompression)
+> **Spread Reactions (stylized):**
+> - Senior spreads can widen materially on an LBO announcement (magnitude depends on leverage, structure, and market regime)
+> - Subordinated spreads often widen more, so the sub/senior ratio can increase (decompression)
 >
 > **The "LBO Trade":**
 > Before LBO announcements, event-driven funds identify likely targets based on:
@@ -566,55 +569,41 @@ Sizing requires matching the overall CS01, typically by scaling constituent posi
 
 Understanding past failures is essential for risk management. These case studies illustrate how "hedged" positions can produce catastrophic losses.
 
-### 44.7.1 Case Study: Basis Trade Failures in 2008
+### 44.7.1 Case Study: Funding-Liquidity Unwind in a Stress Episode
 
-> **Practitioner Note: The 2008 Basis Trade Disaster**
+> **Practitioner Note: The Basis Trade Failure Mode**
 >
-> **The Setup:** Through 2007, negative basis trades were considered "money machines." Hedge funds borrowed at L+25bp to buy investment-grade bonds yielding L+80bp, then bought CDS protection at 50bp. Net carry: +5bp "risk-free."
+> **The Setup (stylized):** Negative basis trades can look like "money machines." You buy a bond that screens cheap versus CDS, buy CDS protection, and expect to earn carry plus basis convergence.
 >
-> **What Happened:**
-> - September 2008: Lehman bankruptcy triggers funding crisis
-> - Repo markets freeze; funding costs spike from L+25bp to L+300bp or more
-> - Many funds cannot roll their repo financing at any price
-> - Banks demand additional collateral on CDS positions as counterparty risk rises
-> - Forced liquidation of bond positions into illiquid markets
+> **What goes wrong in stress:**
+> - **Financing deteriorates:** repo rates and/or haircuts rise and funding may not roll.
+> - **Liquidity vanishes in cash bonds:** selling the bond can become costly; marks gap out; bid-ask widens.
+> - **Margin and risk limits shorten the holding period:** interim losses trigger margin calls and position cuts.
+> - **Hedge effectiveness is not enough:** even if CDS hedges default risk, P&L can be dominated by funding and liquidity.
 >
-> **The Damage:**
-> - Basis trades that were earning 5bp annualized suddenly showed losses of 20-40% of capital
-> - The basis—supposed to converge—actually blew out further as distressed selling continued
-> - Funds that thought they were market-neutral discovered they were massively exposed to liquidity and funding risk
+> **Lesson:** Basis trades are not just credit trades. They are funding/liquidity trades disguised as arbitrage. Always decompose P&L into (1) basis/spread, (2) carry/theta, and (3) funding.
 >
-> **Lesson:** The basis trade demonstrates that "arbitrage" in credit markets is never truly risk-free. Funding risk, counterparty risk, and liquidity risk can overwhelm any theoretical spread.
->
-> **What Risk Reports Showed vs Reality:**
-> - Risk reports showed: CS01 neutral, small VaR, positive carry
-> - Reality: massive exposure to funding cliff, liquidity spiral, forced unwind at worst prices
+> **What risk reports often show vs reality:**
+> - Reports: CS01 neutral, small VaR, positive carry
+> - Reality: exposure to haircuts, funding roll risk, and liquidity spirals
 
-### 44.7.2 Case Study: The Hertz Anomaly (2020)
+### 44.7.2 Case Study: Equity–Credit Disconnect in Bankruptcy (Illustrative)
 
-> **Practitioner Note: When Equity and Credit Completely Disconnect**
+> **Practitioner Note: Timing Risk in Equity–Credit RV**
 >
-> In 2020, Hertz filed for bankruptcy protection in May. The bonds immediately collapsed to recovery values around 20-40 cents on the dollar. According to Merton, equity should be worthless—when a firm defaults, equity (the residual claim) is wiped out.
+> It can happen that a company's credit trades at distressed levels while its equity price rallies sharply. At first glance this looks like a free arbitrage ("equity must be worthless if the debt is impaired"), but in practice the trade can be dangerous.
 >
-> **What Actually Happened:**
-> - Hertz stock *rallied* from $0.50 to over $5 in June 2020
-> - Retail traders on Robinhood and other platforms bought the stock aggressively
-> - The company even attempted (unsuccessfully) to issue new equity into this rally
-> - Meanwhile, bonds remained at deeply distressed levels (20-40 cents)
+> **Why equity can rally while credit stays distressed:**
+> - Equity is a residual claim with limited liability; in structural models it is option-like.
+> - Technicals matter: borrow constraints, squeezes, and flow-driven markets.
+> - Restructuring outcomes are uncertain; headline risk can move equity faster than credit.
 >
-> **The Disconnect:**
-> - Bonds implied: company is insolvent, equity worth zero
-> - Equity implied: significant chance of recovery, company worth billions
-> - These cannot both be right under any rational model
+> **Why the trade can lose money even if equity ultimately goes to zero:**
+> - Mark-to-market on the short equity leg can be very adverse.
+> - Borrow and funding costs can rise; margin calls can force exit.
+> - **Convergence timing** dominates: you must survive to see terminal value.
 >
-> **What Happened to Equity-Credit Trades:**
-> Traders who shorted the stock and sold CDS protection (expecting convergence to bankruptcy values) faced significant mark-to-market losses as the stock rallied. The "arbitrage" took months to converge—Hertz equity eventually went to zero in bankruptcy, but traders needed funding to survive the interim.
->
-> **Lessons:**
-> 1. Equity-credit convergence can take much longer than expected
-> 2. Retail flows can create irrational prices that persist
-> 3. The Merton model assumes rational, informed participants—reality differs
-> 4. Funding and margin calls can force exits before convergence
+> **Lesson:** Treat equity–credit RV as a multi-leg, path-dependent trade. Size for interim volatility, not just terminal payout.
 
 ---
 
@@ -944,7 +933,7 @@ The most common failure modes:
 3. **Correlation spikes:** "Hedged" positions that become correlated in stress
 4. **Liquidity evaporation:** Inability to rebalance or exit
 5. **Model error:** Analytics that don't match market pricing conventions
-6. **Convergence timing:** Arbitrage takes longer than funding allows (Hertz, equity-credit)
+6. **Convergence timing:** Arbitrage takes longer than funding allows (equity-credit RV, basis trades)
 7. **Correlation breakdown:** Equity-credit relationship deviates from Merton predictions
 
 ---
@@ -967,7 +956,7 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 
 7. **Capital structure arbitrage exploits equity-credit mispricings:** But model risk, correlation breakdown, and convergence timing can cause failures.
 
-8. **Historical case studies teach essential lessons:** The 2008 basis trade failures (funding crisis) and the 2020 Hertz anomaly (equity-credit disconnect) illustrate how "hedged" positions can fail catastrophically.
+8. **Historical and structural examples teach essential lessons:** Funding/liquidity stress and equity-credit disconnects illustrate how "hedged" positions can fail catastrophically.
 
 9. **Failure modes must be identified before entering trades:** Default, basis blowout, funding shock, liquidity evaporation, recovery surprise, correlation breakdown.
 
@@ -1052,11 +1041,11 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 | 29 | What is CreditGrades? | Extension of Merton with uncertain default barrier, generates short-dated spreads |
 | 30 | What is the LBO trade? | Buying protection anticipating leverage event that widens spreads |
 | 31 | Why did capital structure arbitrage fail for some? | Model risk, correlation breakdown, jump risk, convergence timing |
-| 32 | What happened to basis trades in 2008? | Funding markets froze, repo costs spiked, trades became deeply unprofitable |
+| 32 | Why can basis trades fail in stress? | Funding/haircut shocks and bond illiquidity can dominate even if the CDS hedge behaves as designed |
 | 33 | How does convertible arb affect the CDS basis? | Creates natural buying of CDS protection (to hedge converts), can tighten basis |
 | 34 | What is event risk in credit? | Risk of M&A, LBO, or other corporate action that affects credit quality |
 | 35 | How does equity volatility relate to credit spreads (Merton)? | $\sigma_E E = N(d_1) \sigma_V V$ — higher equity vol implies higher asset vol and wider spreads |
-| 36 | What was the Hertz anomaly in 2020? | Bankrupt company's stock rallied while bonds traded at distressed levels — equity-credit disconnect |
+| 36 | How can equity-credit RV fail? | Equity can rally/squeeze while credit stays distressed; timing and margin/funding can force exit |
 
 ---
 
@@ -1120,84 +1109,15 @@ CDS relative value trading requires a disciplined risk-first framework. The key 
 
 **15.** A basis trade is entered at -30bp negative basis. Over the next month, repo funding goes from L+25bp to L+175bp. The basis remains at -30bp. Explain the P&L impact.
 
-> **Solution sketch:** Monthly carry shifts: previously earning +\$X from basis minus L+25 funding; now losing from L+175 funding. Even though basis hasn't moved, the trade becomes unprofitable due to funding cost increase. This is the 2008 failure mode.
+> **Solution sketch:** Monthly carry shifts: previously earning +\$X from basis minus low funding; now losing due to high funding. Even though basis hasn't moved, the trade becomes unprofitable due to funding cost increase. This is the funding-stress failure mode.
 
-**16.** The Hertz stock rallied from \$0.50 to \$5 after bankruptcy while bonds traded at 30 cents. Explain why a trader who shorted equity and sold CDS protection might have lost money, even though bankruptcy eventually wiped out equity.
+**16.** In a bankruptcy situation, equity can rally sharply even while bonds trade at distressed levels. Explain why a trader who shorted equity and sold CDS protection might have lost money, even if equity is eventually wiped out.
 
-> **Solution sketch:** The stock rally created mark-to-market losses on the short equity position. Margin calls and funding costs forced some traders to exit before the stock eventually went to zero. The "arbitrage" existed in the long run but couldn't be held due to short-term losses. Convergence timing risk.
-
----
-
-## Source Map
-
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| CDS mark-to-market identity | O'Kane Ch 6, Eq 6.2 |
-| Credit DV01 definition with sign convention | O'Kane Ch 8.3.2 |
-| VOD formula | O'Kane Ch 8.3.7 |
-| VOD as "measure of unexpected shock" | O'Kane Ch 8.3.7 |
-| RPV01 discrete approximation | O'Kane Ch 6.4 |
-| CDS basis definition | O'Kane Ch 5.6 |
-| Fundamental factors driving basis (funding, delivery option, technical default, loss on default, premium accrued) | O'Kane Ch 5.6.1 |
-| Market factors driving basis (liquidity, CDO technical, demand for protection, funding risk) | O'Kane Ch 5.6.2 |
-| Senior/sub spread ratio approximation ("very rough in practice") | O'Kane Ch 8 |
-| Recovery rate empirical data by seniority | O'Kane Table 3.2, Altman et al. |
-| Credit triangle approximation ($h \approx S/(1-R)$) | O'Kane Ch 3.10 |
-| Intrinsic spread calculation (RPV01-weighted) | O'Kane Ch 10.5 |
-| Index basis definition | O'Kane Ch 10.6 |
-| Theta dynamics and components | O'Kane Ch 8.3.5 |
-| Risk sensitivity table structure | O'Kane Table 8.3 |
-| Broad standard deviation of recovery distributions | O'Kane Ch 3, discussion of Table 3.2 |
-| APR violations in US bankruptcy | O'Kane Ch 3 |
-| Merton model: equity as call option on firm assets | Hull RM Ch 19, Eq 19.4-19.5 |
-| Distance-to-default definition | Hull RM Ch 19 |
-| Equity-asset volatility link | Hull RM Ch 19, Eq 19.5 |
-| Merton model Example (E=3, σE=80%, D=10) | Hull RM Example 19.4 |
-| KMV and CreditGrades as practical implementations | Hull RM Ch 19 |
-| Merton model credit spread formula | Hull RM Ch 19 (Problem 19.17) |
-| Capital structure arbitrage definition | Volatility Surface Ch 6 |
-| Put-call parity under default risk | Volatility Surface Ch 6 |
-| CreditGrades model with uncertain barrier | Volatility Surface Ch 6 |
-| CreditGrades survival probability formula | Volatility Surface Ch 6, Eq 6.3 |
-| GT (Goodyear Tire) example with fitted Merton parameters | Volatility Surface Table 6.2 |
-| Hedge fund losses from steep skews | Volatility Surface Ch 6 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Context |
-|---------|---------|
-| LBO trade mechanics and spread reactions | Extended from general credit market knowledge |
-| Event risk vs credit deterioration distinction | Extended from general trading knowledge |
-| 2008 basis trade failure mechanics | Extended from financial crisis knowledge |
-| Funding cliff quantification table | Inference from O'Kane funding discussion |
-| Hertz 2020 anomaly case study | Extended from 2020 market events |
-| GM/Ford 2005 correlation trade | Extended from credit market history |
-| Why capital structure arbitrage failed | Extended from hedge fund performance knowledge |
-| Robinhood/retail trading effects on equity-credit | Extended from 2020 market knowledge |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| Bucket CS01 from RPV01 intervals | Partition RPV01 integral by time bucket |
-| CS01-neutral hedge ratio | Linear CS01 neutrality condition |
-| Three-leg JTD + CS01 neutrality | Two linear constraints, three unknowns |
-| Net JTD with different recoveries | Apply VOD formula to each leg |
-| Intrinsic vs simple average spread difference | Algebraic comparison of weighting schemes |
-| Carry days to offset 1bp move | Ratio of CS01 to daily theta |
-| Funding break-even calculations | Linear carry decomposition |
-| Merton example extensions | Application of Hull RM formulas |
-
-### (D) Flagged Uncertainties
-
-- **Recovery swaps:** I'm not sure about contract mechanics. The sources discuss recovery sensitivity but not recovery swap instruments.
-- **Exact historical basis levels in 2008:** The mechanics are well-understood but specific numbers (how wide basis went) would need time-series data not in the sources.
-- **Exact curve inversion dynamics:** The sources discuss curve shape generally but do not provide specific examples of credit curve inversions.
-- **Hertz stock price specifics:** The general pattern is accurate but exact prices may differ from stated values.
-- **GM/Ford correlation trade details:** General dynamics are correct but specific hedge fund losses not verified.
+> **Solution sketch:** The equity rally creates mark-to-market losses on the short. Margin calls, borrow costs, and risk limits can force exit before terminal convergence. The "arbitrage" can be correct on terminal value but untradeable due to interim MTM and financing constraints (timing risk).
 
 ---
 
-*Last Updated: January 2026*
+## References
+
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (CDS risk measures, basis, indices)
+- John C. Hull, *Risk Management and Financial Institutions* (structural model intuition and credit risk mechanics)
