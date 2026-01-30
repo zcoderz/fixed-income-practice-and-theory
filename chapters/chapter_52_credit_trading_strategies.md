@@ -21,6 +21,24 @@ The concepts build on foundations from earlier chapters: CDS mechanics (Chapter 
 
 O'Kane emphasizes throughout his treatment of credit derivatives that stress testing and scenario analysis are not optional add-ons but core components of risk management. The "perfect storm"—multiple adverse moves coinciding—is precisely when hedges are most likely to fail and when understanding residual risk becomes most valuable. Our Strategy Card framework operationalizes this insight.
 
+### How to Use This Chapter (Especially if You're New)
+
+This chapter is intentionally "desk-like": it mixes instruments, risk measures, and execution realities. If you are not yet fluent in fixed income jargon, use this roadmap rather than trying to read Chapter 52 straight through.
+
+- **If CDS is new:** read Chapter 38 (CDS mechanics) and Chapters 39–40 (credit events + auctions) first.
+- **If Greeks / risk reports are new:** read Chapter 43 (CS01/RPV01, VOD/JTD, recovery risk, theta) before Section 52.2.
+- **If indices are new:** skim Chapters 45–47, then return to Sections 52.5 and Examples 5–10.
+- **If tranches/correlation are new:** read Chapters 49–51 first. On a first pass, you can skip Section 52.6 and still get a lot of value from the basis/roll/capital-structure sections.
+
+A good first-pass route through Chapter 52:
+
+1. **Section 52.2** (risk-measure vocabulary) and **Section 52.3** (Strategy Card discipline)
+2. **Examples 1–4** (basis packages, proxy hedges, curve trades)
+3. **Examples 6–10** (index carry/rolldown/roll + a desk-style P&L explain)
+4. Return to **Section 52.6** (tranches) once the earlier pieces feel natural
+
+As you read, keep one goal in mind: when P&L surprises you, you want a short, checkable list of residual risks to investigate (funding, liquidity, recovery/final price, basis, correlation/tail).
+
 ---
 
 ## Conventions & Notation
@@ -47,6 +65,8 @@ All numbers are educational toy examples (no real market data; no trade recommen
 $$\text{Clean MTM} = \text{Full MTM} - \text{Accrued}$$
 
 Accrued premium sign convention (between coupon dates): positive for short protection, negative for long protection (because short receives, long pays).
+
+**Desk note:** clean MTM will often show jumps around coupon dates; the cash coupon/accrual flows offset this in the “full” P&L. When a hedge looks “right” in risk but “wrong” in P&L, this clean-vs-full distinction is one of the first checks.
 
 ### CS01 Sign Convention (Explicit)
 
@@ -89,6 +109,13 @@ $$V(t,T) = (S(t,T) - S_0) \cdot \text{RPV01}(t,T)$$
 - **Default handling for index:** on a constituent credit event, the protection seller pays loss on the defaulted name and the index notional is reduced proportionally (simplified as $1/M$ per default in these notes, consistent with the cited mechanics).
 - **Scaling:** when we report CS01/JTD/RecSens, we always state "per $1mm" or "per $10mm".
 
+**Mental model (important):** CDS indices trade with a *fixed coupon* and an *upfront* (similar to a bond trading with a fixed coupon and a price). The market still quotes a spread (analogous to a bond’s yield). At trade time, the present value of the difference between paying the **quoted spread** and paying the **fixed coupon** is exchanged as an upfront so the trade is fair on day one:
+
+- If the quoted spread is **above** the fixed coupon, a **protection buyer** (long protection) typically pays an upfront to the protection seller.
+- If the quoted spread is **below** the fixed coupon, the protection buyer typically receives an upfront.
+
+If that sign convention feels confusing, re-check the CDS MTM identity in Chapter 43 and the index quoting mechanics in Chapters 45–46.
+
 ### Notation Glossary
 
 | Symbol | Definition |
@@ -114,6 +141,25 @@ $$V(t,T) = (S(t,T) - S_0) \cdot \text{RPV01}(t,T)$$
 ---
 
 ## 52.2 Core Risk Measures
+
+Before we go strategy-by-strategy, align on the risk measures that show up in nearly every desk conversation. They answer different "what if" questions:
+
+- **Small moves (linear):** CS01 (credit spreads), DV01 (rates)
+- **Jump events:** JTD/VOD (default today), recovery/final price
+- **Model/regime knobs:** index basis (quoted vs intrinsic), correlation (tranches)
+
+If you already know these, skim this section and jump to Section 52.3.
+
+#### Quick Desk Translation (What Each Number Really Means)
+
+| Measure | Plain-English question it answers | Units | What it captures (and what it misses) | Deep dive |
+|---------|-----------------------------------|-------|----------------------------------------|-----------|
+| CS01 | “If the quoted spread moves +1 bp, how much does my PV move?” | USD/bp | Great for small spread moves; does **not** capture default jumps or nonlinearities | Chapter 43 |
+| Rates DV01 | “If the risk-free curve moves +1 bp, how much does my PV move?” | USD/bp | Matters for cash bonds and swaps; does **not** hedge credit spread moves | Chapters 12 and 14 |
+| JTD (VOD) | “If the name defaults right now, what is my instantaneous PV jump?” | USD | Captures the discontinuity at default; cannot be hedged by a small CS01 match | Chapters 39–40 and 43 |
+| Rec01 | “If recovery/final price is 1% higher, what happens to PV (especially in default scenarios)?” | USD per 1% | Recovery assumptions dominate default P&L; often needs scenario sweeps | Chapter 43 |
+| Index basis (quoted vs intrinsic) | “If the index moves but my constituents don’t (or vice versa), what breaks?” | bp or USD | Key for proxy hedges and index-vs-single-name P&L explains | Chapters 46–47 |
+| Tranche PV01 / systemic DV01 / Corr01 | “If tranche spreads / all-name spreads / correlation move, how does tranche PV change?” | USD/bp or USD per 1% | Useful but model-dependent; must be stress-tested for clustering and convexity | Chapters 50–51 |
 
 ### 1.1 CS01 / Spread DV01 (and What "Spread" Is Being Bumped)
 
@@ -150,6 +196,14 @@ CS01 is the "linear spread risk": how much PV changes for small spread moves.
 #### How It Appears in Practice
 
 Risk systems compute $\text{RPV01}$ and CS01 by maturity; traders/risk managers size hedges to neutralize CS01 (or bucketed CS01).
+
+**Common beginner mistakes (worth watching for in P&L explains):**
+
+- Treating “CS01” as a universal object without specifying what was bumped (single-name par spread vs index quoted spread vs tranche quote).
+- Matching *total* CS01 but leaving big *curve-shape* exposure (bucketed CS01 mismatch).
+- Declaring a position “hedged” because CS01 is matched while ignoring JTD/recovery/funding/basis (the usual sources of overnight surprises).
+
+If these distinctions feel unfamiliar, Chapter 43 is the prerequisite for the rest of this chapter.
 
 ---
 
@@ -193,6 +247,8 @@ $$\text{VOD} = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot \text{RPV
 
 CS01 is "small move"; JTD is the discontinuity when default happens.
 
+**Concrete intuition:** If you are long protection on $5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \\times 5{,}000{,}000 = \\$3{,}000{,}000$ (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
+
 #### Practice
 
 Hedging CS01 does not hedge JTD (especially single-name default vs index hedge).
@@ -215,6 +271,8 @@ A recovery rate sensitivity can be expressed in terms of the CDS value and $(1 -
 
 CDS protection leg can be cash-settled with payment based on final price of the reference obligation, determined by dealer poll/auction; payoff is based on face value minus recovery price.
 
+If the auction/final-price process is unfamiliar, Chapter 40 is the practical reference.
+
 #### Intuition
 
 Recovery is a second key state variable in default scenarios; many "basis" and "hedge" surprises come from mismatched recovery assumptions.
@@ -222,6 +280,13 @@ Recovery is a second key state variable in default scenarios; many "basis" and "
 ---
 
 ### 1.5 (For Indices) Series/Roll Basis and "Intrinsic vs Quoted" Basis
+
+If you only remember one thing about CDS indices: there are two consistent ways to talk about “the index level,” and mixing them creates P&L confusion.
+
+- **Quoted (top-down) view:** treat the index like a single CDS and quote a flat “index spread” (a market convention).
+- **Intrinsic (bottom-up) view:** price the index as the sum/average of its constituents’ CDS values.
+
+The gap between these is the **index basis** (Chapters 46–47 cover this in depth). It matters because many desks hedge single-name or portfolio risk with an index. If the index basis moves, a hedge that was “CS01 matched” can still produce P&L breaks.
 
 #### Intrinsic Value vs Market Value
 
@@ -242,6 +307,7 @@ The **index basis** is the gap between what the market quotes for the index (via
 Key source-backed drivers to keep in mind:
 
 1. **Contract differences (e.g., restructuring clause):** for example, the North American CDX index protection leg historically excluded restructuring (a “No‑Re” style trigger), while many US single‑name CDS contracts used Modified Restructuring (“Mod‑Re”). If the index and single‑name contracts do not have identical credit‑event terms, you should expect a mechanical basis component.
+   If restructuring clauses are new, see Chapter 39.
 
 2. **Liquidity and price discovery:** the index market is often more liquid than many single names. The literature notes that the index can embed a different liquidity premium and can “lead” single‑name spreads, especially in widening markets when investors hedge illiquid cash credit.
 
@@ -250,6 +316,15 @@ Key source-backed drivers to keep in mind:
 #### The Portfolio Swap Adjustment
 
 To reconcile intrinsic and quoted index views, O’Kane describes a **portfolio swap adjustment**: adjust the individual issuer curves so that the portfolio‑implied index matches the market‑quoted index. The book emphasizes that the exact adjustment is somewhat arbitrary, but highlights practical desiderata like preserving each issuer’s term‑structure shape and relative ranking and avoiding arbitrage artifacts.
+
+**How to think about this (beginner-friendly):**
+
+1. Start with your best estimate of each constituent’s CDS curve.
+2. Price the index bottom-up to get an intrinsic upfront (or intrinsic spread).
+3. Compare that to the market-quoted index level (top-down).
+4. Apply an adjustment rule to the constituent curves so the bottom-up price matches the top-down quote.
+
+This is primarily a **model consistency** step (important for tranche pricing and some risk decompositions). From a trading/risk perspective, the takeaway is simpler: *index vs constituent hedges contain an extra moving part*, and you should monitor it explicitly (see Chapters 46–47).
 
 NOT SURE: which portfolio swap adjustment method your desk/system uses (spread multipliers vs hazard‑rate scaling; whether it is done per maturity point; and what constraints are enforced).
 
@@ -267,6 +342,14 @@ Indices roll every six months; on-the-run liquidity and maturity reset can creat
 
 ### 1.6 (For Tranches) Tranche PV01, Correlation Sensitivity, and Tail/Default Clustering Scenario Risk
 
+If tranches are new, pause here and read Chapters 49–51 first. The rest of this chapter assumes you are comfortable with:
+
+- attachment/detachment and the tranche loss function (Chapter 49),
+- what “correlation” means in tranche pricing (Chapter 50),
+- systemic vs idiosyncratic deltas/gammas, Corr01, and VOD/JTD thinking for tranches (Chapter 51).
+
+**Why this is hard (and why it matters):** in single-name CDS, “delta” usually means CS01. In tranches, there are multiple deltas depending on *what you bump* (tranche quote vs all-name spreads vs one name vs correlation). Many strategy mistakes start with mixing these objects.
+
 #### Tranche PV01
 
 The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using expected discounted outstanding tranche notional; the source gives a tranche $\text{RPV01}$ expression and defines tranche PV01 as the sensitivity to 1 bp spread change.
@@ -275,11 +358,15 @@ The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using exp
 
 "Correlation 01" is defined as PV change for a 1% increase in correlation parameter, with sign depending on tranche (equity vs senior behave differently).
 
+**Intuition (words, not math):** correlation changes *how losses arrive* (scattered defaults vs clustered waves). In the extreme of very high correlation, outcomes look more “all-or-nothing,” which tends to make senior riskier (more tail exposure) and equity less risky (less “death by a thousand cuts”). That is why equity and senior tranches can have opposite Corr01 signs.
+
 #### Tail/Clustering Risk
 
 Tranche risk is nonlinear in portfolio loss. Tranche loss fraction:
 
 $$\boxed{L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)}$$
+
+**Interpretation:** tranche loss is 0 until portfolio loss reaches $A$; it ramps linearly between $A$ and $B$; and it is fully written down (loss fraction 1) once portfolio loss exceeds $B$.
 
 Clustering scenarios can swamp small-spread hedges (PV01 hedges fail because payoff is driven by realized losses).
 
@@ -299,6 +386,8 @@ O’Kane defines (for tranches, and the idea carries over to indices):
 - **Theta:** the daily change in the **full price** holding spreads/curves fixed and assuming no default over the day. For a long protection position, theta is the change in the protection leg minus the change in the premium leg.
 
 Qualitative risk-report pattern from the source: for a **protection buyer**, carry is typically **negative** (you pay premium), and the absolute carry tends to be largest for the most junior tranche because it has the highest contractual spread. Theta for long protection is often negative because (i) there is one day less of protection remaining and (ii) the premium leg cashflows are one day closer (higher PV).
+
+If “theta” still feels abstract, read the CDS theta discussion in Chapter 43; for tranche carry/theta intuition in a risk-report format, Chapter 51 is the best companion chapter.
 
 #### Rolldown Component
 
@@ -324,6 +413,7 @@ The CDS–cash basis is defined as:
 $$\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread}$$
 
 with discussion that the bond spread choice is typically asset swap spread for fixed-rate bonds near par.
+See Chapter 27 for asset swap spread mechanics and why "premium bonds" create basis traps.
 
 **Drivers for persistence include:** funding differences (unfunded CDS vs funded bonds), delivery option, technical default, loss-on-default mismatch, premium accrued at default, and market liquidity/supply-demand factors.
 
@@ -364,6 +454,8 @@ This is consistent with the risk management emphasis on stress/scenario thinking
 ---
 
 ## 52.4 Strategy Family A: Basis Strategies
+
+If you want the longer “cash vs swap vs CDS” foundations behind these trades, Chapter 27 is the companion chapter (asset swaps, swap spreads, CDS-bond basis, and the premium-bond trap). Chapter 43 is the prerequisite for the risk-measure language (CS01/JTD/recovery/theta).
 
 ### A1) Bond–CDS Basis Framework (Cash vs Synthetic)
 
@@ -410,6 +502,11 @@ O'Kane lists six market factors that create basis dynamics:
 O'Kane's practical point is that these interacting effects can make CDS and cash spreads diverge, and it is hard to assign a single dominant cause in real time.
 
 #### Strategy Card: A1 — Bond–CDS Basis Package (Risk-First Framing)
+
+> **In desk language:** A1 is “cash vs synthetic.” You try to hedge away the obvious risks (rates DV01, sometimes CS01), so the P&L that remains is usually about **basis + funding + event mechanics**, not about day-to-day spread noise.
+>
+> - If the package “mysteriously” loses money, first ask: did **funding/repo** move (Example 1B), did the **basis** move, or did a **default/auction/recovery** assumption change?
+> - A CS01 match is not enough: the default payoff depends on bond price vs recovery ($P-R$) versus CDS payoff ($1-R$).
 
 ##### Objective (Conceptual; No Forecasts)
 
@@ -514,6 +611,11 @@ The dangerous scenario is the **positive basis squeeze**: a trader who is short 
 
 #### Strategy Card: A2 — Proxy Hedge: Single-Name CDS Hedged by an Index
 
+> **In desk language:** A2 is “hedge the tape.” You keep the single-name view but try to remove broad-market drift with an index hedge.
+>
+> - What remains is usually **idiosyncratic/default jump risk** (a single default is huge for the name and small for the index), plus **index-vs-name basis** and **roll/series** effects.
+> - If you want an intuition check, read Example 3 before you worry about any math: it shows how a clean CS01 match can still leave a big default scenario.
+
 ##### Objective (Conceptual; No Forecasts)
 
 Reduce broad-market credit spread exposure of a single-name position using an index, leaving mainly idiosyncratic risk (and default jump risk).
@@ -592,9 +694,14 @@ O'Kane derives an arbitrage lower bound for inverted curves. For a curve startin
 
 $$S_m \gtrsim S_{m-1} \left(\frac{T_{m-1}}{T_m}\right)$$
 
-Table 7.3 in O'Kane gives the exact bounds: a 1Y spread cannot fall below ~419 bp if 6M trades at 800 bp (assuming 40% recovery). Any inverted curve breaching these bounds is arbitrageable through calendar-spread strategies.
+O'Kane works out the exact bounds in his examples; the takeaway is that a severely inverted curve can violate no-arbitrage constraints implied by the CDS payoff structure and the non-negativity of survival probabilities. If you see “impossible” forward/default-implied behavior in a curve build, treat it as a red-flag for curve construction inputs (quotes, recovery, interpolation) before you treat it as tradable edge.
 
 #### Strategy Card: A3 — CDS Curve Steepener/Flattener
+
+> **In desk language:** A3 is “trade the curve shape, not the level.” You make money if the front end and back end move *differently* (steepen/flatten), and you try to remove pure “parallel spread” risk with CS01 matching.
+>
+> - The most common surprise is **default/JTD mismatch**: CS01-neutral sizing usually requires unequal notionals, so a default can create a large residual jump even when day-to-day spread P&L is near zero.
+> - If you’re new to credit curves and hazard rates, Chapter 42 is the prerequisite; if you’re new to CDS risk measures, Chapter 43 is.
 
 ##### Objective (Conceptual; No Forecasts)
 
@@ -652,11 +759,15 @@ $$N_{5Y} = N_{3Y} \times \frac{2.8}{4.5} = 0.622 \times N_{3Y}$$
 
 ## 52.5 Strategy Family B: Carry, Rolldown, and Roll in CDS Indices
 
+If CDS indices are new, Chapters 45–47 (index structure, intrinsic vs quoted, hedging) are the prerequisites. The goal here is not to “predict spreads,” but to build a clean desk-style decomposition of what moved and why.
+
 ### Definitions (Index-Specific, Risk-First)
 
 #### Index Upfront Mechanics (Source-Backed)
 
 Index trades with a fixed coupon $C$ and an upfront payment at settlement; coupon is paid quarterly on Actual/360; index rolls every six months.
+
+**Beginner intuition:** the coupon is standardized (like a bond coupon), while the market quotes a “spread” that moves every day (like a yield). The upfront is the one-time cash amount that reconciles the fixed coupon with the current market spread so the trade is fair on day one. This is why you will often hear traders talk about an index “price” as well as an index “spread.”
 
 #### Carry (Index)
 
@@ -671,6 +782,10 @@ In this chapter, "carry" means the deterministic premium accrual/coupon cashflow
 ### B1) Index Carry/Rolldown Holding-Period P&L (Risk Decomposition, Not a Recommendation)
 
 #### Strategy Card: B1 — Index Holding-Period Decomposition ("Carry + Rolldown + Spread Move + Events")
+
+> **In desk language:** B1 is the desk’s default “P&L explain” for an index position. Every day you want to be able to say: *how much was carry (accrual), how much was rolldown (aging along the curve), how much was the spread move (curve shift), and what was event-driven (defaults, roll, execution)?*
+>
+> If you’re new, start with Examples 6–10. They are less about “trading” and more about learning to read a credit P&L like a desk.
 
 ##### Objective (Conceptual; No Forecasts)
 
@@ -750,6 +865,11 @@ The difference between the old (off-the-run) and new (on-the-run) series creates
 
 #### Strategy Card: B2 — Index Roll/Series Switch (Mechanics + Risk)
 
+> **In desk language:** B2 is “stay on-the-run.” You are paying (or receiving) something to switch from an old series to the new, more liquid series.
+>
+> - Two sources of confusion: (i) **notional scaling** (CS01 changes because maturity changes) and (ii) **series/composition basis** (the contract you’re switching into is not identical).
+> - If you want intuition, read Examples 8 and 8B before worrying about hedge ratios.
+
 ##### Objective (Conceptual; No Forecasts)
 
 Understand P&L drivers when switching between series, focusing on the three key elements O'Kane identifies: composition changes, maturity reset, and liquidity/on-the-run premium.
@@ -796,6 +916,8 @@ $$N_{\text{new}} = N_{\text{old}} \cdot \frac{\text{CS01}_{\text{old}}}{\text{CS
 
 ## 52.6 Strategy Family C: Correlation and Tranche Relative Value
 
+> **If tranches are not yet intuitive:** read Chapters 49–51 first. On a first pass through Chapter 52, it is completely reasonable to skip to Section 52.7. The basis/roll/capital-structure strategies stand on their own.
+
 Tranches are fundamentally different from single-name CDS and indices. Their value depends not just on spread levels but on the *distribution* of portfolio losses—and that distribution is shaped by correlation. O'Kane provides a comprehensive risk framework that reveals why tranche positions often behave counter-intuitively.
 
 ### 52.6.1 Tranche PV Decomposition and Why Correlation Matters
@@ -818,6 +940,8 @@ Rather than relying on any single numeric “risk report snapshot,” focus on t
 - **Leverage tends to be highest for equity and falls with seniority.** A small notional slice can embed large exposure to portfolio-wide spread moves.
 - **Systemic gamma often flips sign across the stack.** Published examples show equity can have negative systemic gamma (unfavorable convexity in parallel spread moves), while more senior tranches can have positive systemic gamma.
 - **Correlation sensitivity (Corr01) can flip sign.** In a one-factor setting, increasing correlation reallocates probability mass between “few scattered defaults” and “large clusters,” which can benefit one part of the capital structure and hurt another.
+
+**Plain-English picture:** equity protection (0–3%) is like insuring the *first* slice of portfolio loss. It is sensitive to “lots of small/medium bad outcomes.” Senior protection (e.g., 15–30%) is closer to catastrophe insurance: it only starts paying in severe clustered-default outcomes. When correlation rises, the world becomes more “all-or-nothing,” which can reduce the frequency of small scattered losses while increasing the probability of big clustered loss scenarios. That is the core reason equity and senior tranches can react in opposite directions to correlation changes.
 
 #### Correlation/Dependence Affects Tail
 
@@ -842,6 +966,12 @@ Key structural identity: a $[K_1, K_2]$ tranche can be represented as a linear c
 ---
 
 ### Strategy Card: C1 — Tranche RV / Correlation Exposure with Explicit Hedge Map
+
+> **In desk language:** C1 is “trade the loss distribution.” You are not just trading a spread level; you are trading *where losses land* in the capital structure.
+>
+> - A PV01 hedge can make the book look stable for small spread moves, but **clustering/tail scenarios** can dominate tranche P&L.
+> - When you hedge a tranche with an index, make sure you know whether you are matching **tranche PV01** (tranche quote) or **systemic DV01** (all-name spread bump). Mixing them is a common beginner error.
+> - Chapters 50–51 are the deep dive on what these risk measures mean in practice.
 
 ##### Objective (Conceptual; No Forecasts)
 
@@ -870,6 +1000,14 @@ Compare tranches by which risk dominates:
 | Corr01 | USD per 1% corr | dependence sensitivity |
 | Tail/clustering | scenario USD | nonlinear loss jump risk |
 | Recovery sensitivity | USD/1% | recovery impacts losses and settlement |
+
+**Beginner check (common confusion):**
+
+- **Tranche PV01** here means sensitivity to the *tranche’s own quoted spread* (a market quote).
+- **Systemic DV01** means sensitivity to a *parallel bump to all underlying issuer curves* (a portfolio-wide credit move).
+- **Systemic delta** is often a *derived hedge notional* (e.g., “how much index CDS would hedge the systemic DV01”), so it is a number with **$ notional** units, not USD/bp.
+
+If these objects feel interchangeable, pause and review Chapter 51 — this is where tranche “Greek” language diverges from single-name CDS.
 
 ##### Hedge Set and Hedge Ratios (Show Math)
 
@@ -1027,6 +1165,8 @@ START: What is your primary view?
 
 ## 52.7 Strategy Family D: Capital Structure Arbitrage
 
+This section is where “trading strategies” touch legal/documentation reality. If terms like restructuring clauses, deliverables, and auction final price are fuzzy, Chapters 39–40 are worth reading before you size anything.
+
 Capital structure arbitrage exploits mispricings between different levels of a firm's debt (senior vs subordinated) or between debt and equity. These strategies draw on the structural relationship between seniority, recovery, and spread—and on the Merton model's insight that equity and debt are both claims on the same underlying asset value.
 
 ### 52.7.1 Recovery Rates by Seniority
@@ -1101,6 +1241,11 @@ Despite these limitations, O’Kane connects the intuition to correlation models
 
 ### Strategy Card: D1 — Senior vs Subordinated CDS
 
+> **In desk language:** D1 is “same firm, different place in the capital structure.” You are effectively trading **relative recovery / relative protection value** (with market technicals on top).
+>
+> - The simple spread-ratio formula is a *consistency check*, not a guarantee. Real trades live and die on documentation, deliverables, liquidity, and the recovery distribution.
+> - If you want background: Chapter 39 (documentation and restructuring) and Chapter 40 (auction/final price) are the operational prerequisites.
+
 ##### Objective (Conceptual; No Forecasts)
 
 Exploit deviations of the senior-sub spread ratio from its theoretical value, or express a view on relative recovery rates across the capital structure.
@@ -1154,6 +1299,11 @@ $$\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}
 ---
 
 ### Strategy Card: D2 — Equity-CDS Relative Value (Merton-Inspired)
+
+> **In desk language:** D2 is a cross-asset relative value trade: “is equity pricing a different credit story than CDS?” You are trying to isolate that disagreement.
+>
+> - The hard part is that the hedge is imperfect: equity brings delta/vega and discrete corporate actions; CDS brings default/settlement mechanics.
+> - If you are new to this, read Section 52.7.3 for the structural intuition and then go straight to Example 19 (LBO toy) to see why sizing is nontrivial.
 
 ##### Objective (Conceptual; No Forecasts)
 
@@ -1278,6 +1428,8 @@ When conditions warrant reducing or exiting a position:
 
 ## 52.11 Mathematical Foundations
 
+This section is here so you can sanity-check what a risk system is doing under the hood. If you do not like calculus, skip to Section 52.12 — the worked examples are the real learning tool. For a full CDS risk-measure derivation (CS01/RPV01, VOD/JTD, recovery risk, theta), Chapter 43 is the canonical reference in this book.
+
 ### 52.11.1 CS01 for a Standard CDS from the MTM Identity
 
 **Source-backed starting point:**
@@ -1379,6 +1531,13 @@ $$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry
 ## 52.12 Worked Examples
 
 **Reminder:** all examples use toy inputs; magnitudes are chosen to look plausible but are not market data.
+
+**How to read these (recommended):**
+
+1. Track **units** aggressively (USD/bp vs USD vs USD per 1% recovery).
+2. Do a quick **sign check** (long protection CS01 should be positive; long bonds lose on spread widening).
+3. Separate **small-move hedging** (CS01/DV01) from **event risk** (JTD/recovery/final price) and from **regime risk** (basis, correlation).
+4. If a step feels unfamiliar, jump back to the prerequisite chapter: CDS risk measures (Chapter 43), indices and basis (Chapters 45–47), or tranches (Chapters 49–51).
 
 ---
 
@@ -2615,6 +2774,7 @@ $$\\Delta PV_{\\rho} \\approx \\frac{0 + 8{,}625}{2} \\times 15 \\approx +\\$64{
 ## References
 
 - Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bond-CDS basis drivers; CDS indices and index basis; roll mechanics; tranche risk measures/correlation; capital structure and recovery; LCDS)
+- John C. Hull, *Risk Management and Financial Institutions* (fixed-coupon CDS/index quoting; CDS-bond basis; tranche correlation intuition)
 
 ## Inputs Needed (NOT SURE)
 
