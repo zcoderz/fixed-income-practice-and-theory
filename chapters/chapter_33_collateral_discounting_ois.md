@@ -349,9 +349,9 @@ When the collateral currency is uncertain, the discount rate becomes the **maxim
 
 $$c(t) = \max\left(c^{\text{USD}}(t), c^{\text{EUR}}(t) + \text{FX basis adjustment}\right)$$
 
-**Example: USD vs. EUR collateral during negative rate periods**
+**Example: USD vs. EUR collateral during negative-rate periods**
 
-When EUR rates were deeply negative (2015-2021), posting EUR collateral meant *receiving* a negative rate—effectively paying to post collateral. Counterparties with USD/EUR optionality would post USD, where rates were positive.
+In periods when EUR overnight rates are deeply negative, posting EUR collateral means earning a negative overnight rate—effectively paying to post collateral. Counterparties with USD/EUR optionality will tend to post the cheaper-to-deliver collateral currency (often USD when USD overnight rates are higher).
 
 **The cross-currency basis complication**
 
@@ -393,7 +393,7 @@ The collateral poster will always choose the currency that maximizes their effec
 >
 > Most dealer desks use approach (2) for risk management and approach (1) for day-to-day pricing, with manual overrides when rates are near switching thresholds.
 
-> **I'm not sure** the provided excerpts contain a complete CTD collateral model. *Interest Rate Modeling* mentions "index-discounting basis" and multi-currency curve construction but does not spell out a full CTD collateral pricing framework with explicit optionality valuation. In practice, some desks model this via an additional basis spread; others use scenario analysis.
+NOT SURE: A complete CTD-collateral optionality model requires specifying CSA terms and a joint stochastic model for the eligible collateral rates and FX/basis dynamics. The textbook excerpts here discuss multi-currency curve construction and discounting effects, but do not provide a single canonical CTD-collateral option pricing framework. In practice, desks often handle this via scenario analysis and/or additional basis adjustments.
 
 ---
 
@@ -945,7 +945,7 @@ The net CVA may increase even with lower threshold because default probability i
 **Setup:**
 - Cleared USD swap
 - VM balance (we hold): $+\$25{,}000{,}000$
-- SOFR today: 5.30%
+- Assume SOFR = 5.30% (illustrative)
 - Day count: ACT/360
 
 **Daily PAI we owe:**
@@ -1196,56 +1196,10 @@ $$\text{PAI} = \$50{,}000{,}000 \times 0.0480 \times \frac{1}{360} = \$6{,}666.6
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Directly Supported by Sources
-
-| Fact | Source |
-|------|--------|
-| CSA is an annex requiring collateral; specifies thresholds, MTAs, haircuts | Hull RM Ch 18-20 |
-| Fed funds is contractual rate for collateral remuneration in USD | *Interest Rate Modeling* Section 5.1 |
-| Fed funds–LIBOR spread reached 275 bp post-crisis | *Interest Rate Modeling* Section 6.5.3 |
-| OIS definition: fixed vs geometric average of overnight rates | Hull OFD Ch 7 |
-| OIS rates used as proxies for risk-free rates in derivatives valuation | Hull OFD Ch 7, Glossary |
-| Multiple yield curves: OIS for discounting, separate projection | Hull OFD Ch 7; *Interest Rate Modeling* Section 6.5 |
-| Cure period (MPOR) typically 10-20 days; creates residual exposure | Hull RM Ch 20, Example 20.1 |
-| CVA formula: $\sum(1-R)q_i v_i$ | Hull RM Ch 20 |
-| Rehypothecation: using received collateral to meet other demands | Hull RM Ch 18 |
-| Post-Lehman: clauses limiting rehypothecation became common | Hull RM Ch 18, Business Snapshot 18.1 |
-| EONIA, SONIA as overnight proxies for EUR, GBP | *Interest Rate Modeling* Section 5.1 |
-| Downgrade triggers can require additional collateral posting | Hull RM Ch 18-20 |
-| AIG's collapse accelerated by downgrade triggers | Hull RM (credit crisis discussion) |
-| Change of numeraire theorem | *Interest Rate Modeling* Theorem 1.4.2 |
-| Cross-currency basis swaps reveal cost of switching funding currencies | *Interest Rate Modeling* |
-
-### (B) Claude-Extended Content — Practitioner Knowledge
-
-| Content | Context |
-|---------|---------|
-| PAI mechanics and daily calculation | Extended from general derivatives operations knowledge; operationalizes the funding argument |
-| CTD collateral valuation framework | Extended from cross-currency basis principles; practical approaches used on dealer desks |
-| Hybrid discounting for partial collateralization | Extended from CVA/FVA principles; practical approximation approach |
-| Downgrade trigger liquidity risk discussion | Extended from AIG example; broader implications for risk management |
-| P&L reconciliation issues with PAI | Extended from operations knowledge; common desk issues |
-
-### (C) Reasoned Inference — Derived from (A) or (B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Collateral rate $c(t)$ determines discount rate for perfectly collateralized trades | No-arbitrage: if hedge funded at $c(t)$, replication cost uses $c(t)$; using other rate creates arbitrage |
-| Numerical examples (swap PV, discount PV01, PAI) | Direct arithmetic from sourced rate/curve relationships |
-| Multi-currency CTD effect | Combining collateral remuneration facts with covered interest parity logic |
-| Downgrade trigger impact calculation | Direct application of threshold mechanics under rating change |
-
-### (D) Flagged Uncertainties
-
-| Uncertainty | Reason |
-|-------------|--------|
-| Complete proof of "perfect collateralization ⇒ collateral numeraire discounting" | Sources establish market practice and motivation; don't provide full theorem covering all CSA legal details |
-| Cheapest-to-deliver collateral framework with explicit optionality valuation | *Interest Rate Modeling* mentions index-discounting basis but doesn't spell out complete CTD model with option pricing |
-| Exact SOFR CSA amendment mechanics | Sources predate full LIBOR transition |
-| FVA framework when rehypothecation is prohibited | Sources note FVA controversy but don't provide complete pricing model for this case |
-
----
+- Hull, *Risk Management and Financial Institutions* (collateral, netting, MPOR; CVA basics; rehypothecation; downgrade triggers)
+- Hull, *Options, Futures, and Other Derivatives* (OIS mechanics; OIS discounting motivation)
+- Andersen & Piterbarg, *Interest Rate Modeling* (multi-curve discounting; cross-currency basis; change of numeraire tools)
 
 *Chapter 33 establishes why collateral terms determine discount rates. Chapter 34 develops the XVA framework (CVA, DVA, FVA) for trades with imperfect collateralization.*

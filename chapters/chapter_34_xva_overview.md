@@ -454,7 +454,7 @@ Hull (OFD Chapter 9) observes: "This argument is over 50 years old in the financ
 
 ### 34.6.5 Worked Example: FVA from Expected Funding Requirement
 
-> **Note:** The sources define FCA/FBA conceptually but do not provide a single canonical discrete-sum formula for FVA in terms of a "funding requirement profile." I'm not sure what exact formula your desk should use without knowing your funding policy (what constitutes "funding requirement," whether FBA is recognized, what discounting curve is used, and whether funding is computed at trade, netting-set, or bank level). The following illustrative mapping is commonly used:
+> **NOT SURE:** The sources define FCA/FBA conceptually but do not provide a single canonical discrete-sum formula for FVA in terms of a desk-ready "funding requirement profile." The right implementation depends on your funding policy (what constitutes "funding requirement," whether FBA is recognized, what curve is used for discounting, and whether funding is computed at trade, netting-set, or bank level). The following mapping is **illustrative**:
 
 $$\text{FCA} \approx \sum_{i=1}^{N} D(0, t_i^*) \cdot s_f \cdot F(t_i^*) \cdot \Delta t$$
 
@@ -511,23 +511,22 @@ Hull (OFD Chapter 9) provides another dialogue:
 >
 > Every derivative consumes regulatory capital under Basel III. The calculation involves:
 >
-> 1. **Exposure at Default (EAD):** Under SA-CCR (Standardized Approach for Counterparty Credit Risk), EAD = alpha × (RC + PFE), where alpha = 1.4, RC = replacement cost, and PFE = potential future exposure based on regulatory formulas.
+> 1. **Exposure at Default (EAD):** A supervisory measure of counterparty exposure based on replacement cost (today's MTM after collateral) plus an add-on meant to capture potential future exposure (PFE). The exact formula depends on the regulatory approach (e.g., SA-CCR vs internal models) and your jurisdiction/bank implementation.
 >
-> 2. **Risk-Weighted Assets (RWA):** EAD × Counterparty Risk Weight (from 20% for AAA to 150% for below BB-)
+> 2. **Risk-Weighted Assets (RWA):** Apply a counterparty risk weight to EAD (how the risk weight is set depends on the approach: standardized vs IRB, rating vs internal PD/LGD).
 >
-> 3. **Required Capital:** RWA × 8% (Basel minimum) × buffers (typically 10-13% all-in)
+> 3. **Required Capital:** Multiply RWA by the capital ratio required by regulation + buffers (your bank typically uses an internal “all-in” ratio).
 >
-> 4. **KVA:** Required Capital × Cost of Capital × Duration
+> 4. **KVA:** Convert required capital into a pricing charge by applying a cost of capital over the horizon (in practice often via a discounted sum/integral across future capital profiles).
 >
-> **Example:** A 5-year $100M interest rate swap with a BBB corporate:
-> - EAD under SA-CCR ≈ $5M (simplified)
-> - Risk weight for BBB = 100%
-> - RWA = $5M × 100% = $5M
-> - Required capital at 12% = $600K
-> - If cost of capital = 15%, annual KVA ≈ $90K
-> - Over 5 years (discounted) ≈ $350K
+> **Toy example (illustrative numbers):** A 5-year $100M interest rate swap with a BBB corporate:
+> - Assume EAD (per your capital model) = $5M
+> - Assume risk weight = 100%
+> - Assume all-in capital ratio = 12% → required capital = $600K
+> - If cost of capital = 15%, annual capital cost ≈ $90K
+> - Over 5 years (discounted) → on the order of a few hundred thousand dollars
 >
-> This is why banks are **exiting low-margin businesses**: the return doesn't cover the KVA. It's not that the trades lose money—they don't earn enough to justify the capital consumption.
+> This is why desks care about capital consumption: even if mid-market NPV is near zero, the “all-in” economics after KVA can change whether the trade clears the hurdle.
 
 ### 34.7.3 KVA Formula
 
@@ -1026,7 +1025,7 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 3. **DVA** = present value of expected gain from own default; increases value but is "phantom equity"—excluded from regulatory capital
 4. **Bilateral CVA** = $f_{nd} - \text{CVA} + \text{DVA}$
 5. **FVA, MVA, KVA** address funding, margin, and capital costs; theory vs practice debate on whether they should exist, but practitioners charge them
-6. **KVA is increasingly important** post-Basel III; consumes a large fraction of gross NPV on capital-intensive trades
+6. **KVA** reflects the cost of regulatory capital; on capital-intensive trades it can be economically material
 7. **Wrong-way risk** occurs when exposure and default probability are positively correlated; must be modeled or adjusted
 8. **The XVA desk** centralizes these calculations and charges trading desks at inception
 9. **Implementation** requires Monte Carlo simulation of all market variables and trades; machine learning helps speed real-time pricing
@@ -1044,7 +1043,7 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 | Bilateral CVA | $f_{nd} - \text{CVA} + \text{DVA}$ | Two-sided credit adjustment |
 | FVA | Adjustment for funding costs/benefits | Captures asymmetric collateralization |
 | MVA | Cost of funding initial margin | Growing with margin requirements |
-| KVA | Cost of regulatory capital | Links capital to pricing; often largest charge |
+| KVA | Cost of regulatory capital | Links capital to pricing; can be economically material |
 | Wrong-way risk | Positive correlation of exposure and PD | CVA understated if ignored |
 | Cure period | Time between last margin call and close-out | Creates residual exposure |
 | $v_i$ | PV of expected exposure at time $t_i$ | Key input to CVA formula |
@@ -1198,92 +1197,11 @@ Survival probability ≈ 88.25%. Default probability ≈ 11.75%.
 
 ---
 
-## Source Map
-
-### (A) Verified Facts (Source-Backed)
-
-| Fact | Source |
-|------|--------|
-| CVA is the bank's estimate of PV of expected cost from counterparty default | Hull OFD Ch 9, Hull RM Ch 20 |
-| CVA formula: $\text{CVA} = \sum (1-R) q_i v_i$ | Hull RM equation (20.1), Hull OFD equation (9.1) |
-| DVA is the counterparty's CVA; a benefit to the bank | Hull OFD Ch 9, Hull RM Ch 20 |
-| Bilateral value = $f_{nd} - \text{CVA} + \text{DVA}$ | Hull OFD Ch 9, Hull RM Ch 20 |
-| $q_i$ calculated from counterparty credit spreads using hazard rate formula | Hull RM equations (20.2), (20.3) |
-| Average hazard rate $\bar{\lambda}_i = s_i/(1-R)$ | Hull RM equation (20.2) |
-| $v_i$ computed via Monte Carlo simulation in risk-neutral world | Hull RM Section 20.2 |
-| Cure period effect: collateral at default reflects old MTM | Hull RM Example 20.1 |
-| FVA = FCA - FBA; adjusts for funding costs | Hull OFD Section 9.2 |
-| MVA adjusts for initial margin costs | Hull OFD Section 9.2 |
-| KVA adjusts for capital requirements | Hull OFD Section 9.3 |
-| Wrong-way risk: positive correlation of exposure and default | Hull RM Section 20.5 |
-| Alpha multiplier for wrong-way risk: floor 1.2, default 1.4 (Basel) | Hull RM Section 20.5 |
-| Bank estimates of alpha range from 1.07 to 1.10 | Hull RM Section 20.5 |
-| CVAs are complex derivatives that dealers hedge | Hull RM Section 20.4 |
-| CVA sensitivity to credit spread changes: equation (20.5) | Hull RM Section 20.4 |
-| Debate on FVA: average vs marginal funding costs | Hull OFD Section 9.2 |
-| DVA excluded from CET1 by regulators | Hull RM Section 20.6, Hull OFD Ch 9 |
-| Some banks reported billions in DVA gains in Q3 2011 | Hull RM Section 20.6 |
-| Gold forward CVA example calculation | Hull RM Example 20.3 |
-| Interest rate swaps have hump-shaped exposure profile | Hull RM Section 20.7 |
-| Currency swaps have rising exposure profile due to principal exchange | Hull RM Section 20.7 |
-| Incremental CVA via stored Monte Carlo paths | Hull RM Section 20.3 |
-| Neural networks used for XVA approximation | Hull OFD Section 9.4 |
-| Modigliani-Miller argument on funding costs | Hull OFD Section 9.2 (citing MM 1958, 1963) |
-| Dealers may have 1.5 million transactions with thousands of counterparties | Hull RM Section 20.2 (citing Lehman) |
-| Financial economist vs practitioner dialogues on FVA and KVA | Hull OFD Sections 9.2, 9.3 |
-| KVA as charge for incremental capital requirements | Hull OFD Section 9.3 |
-| Accounting standards recognize both CVA and DVA | Hull RM Section 20.6 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| "Manufacturing cost" analogy for XVA | Extended from Hull's XVA framework with practical desk framing |
-| "Phantom equity" description of DVA | Extends Hull RM Section 20.6 DVA discussion with practitioner language |
-| FVA asymmetry in practice (charge but don't pay) | Extends Hull OFD Section 9.2 with commercial reality |
-| KVA connection to SA-CCR and Basel III capital mechanics | Extends Hull OFD Section 9.3 with regulatory detail |
-| Deal Ticket comprehensive example (Example 34.6) | Constructed to illustrate Hull's XVA framework |
-| Collateral effect on CVA (Example 34.2) | Constructed from CVA formula with toy collateral profiles |
-| FCA calculation (Example 34.5) | Illustrates FCA formula from Hull OFD Section 9.2 concepts |
-| Wrong-way risk two-state model (Example 34.7) | Conceptual illustration of exposure–PD correlation from Hull RM Section 20.5 |
-| CVA01 sensitivity (Example 34.8) | Bump-and-recompute applied to CVA formula with hazard-spread link |
-| Implementation workflow (9-step map) | Synthesizes guidance across Hull RM Ch 20 and Hull OFD Ch 9 |
-| Validation and sanity checks | Derived from CVA discrete-sum monotonicity properties |
-| XVA desk organization and transfer pricing | General industry practice extending Hull's discussion |
-| "Three perspectives on value" table | Structured from Hull's accounting vs economic discussion |
-| Sales vs Trading conflict example | Illustrates Hull's theory vs practice debate |
-| Wrong-way risk desk practices (multipliers) | Extends Hull RM Section 20.5 with implementation detail |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-- Example 34.4 (DVA from spread widening) derives from applying the verified DVA formula to illustrative inputs
-- Example 34.9 (IRS CVA) derives from applying the verified CVA formula to illustrative inputs
-- Connection to Chapter 32 exposure framework follows from the shared definition of $E = \max(V-C, 0)$
-- Connection to Chapter 36/42 survival probabilities follows from the hazard rate formulas
-- Unit check analysis follows from dimensional analysis of the CVA formula
-- Cleared vs bilateral comparison table synthesizes Hull's discussions
-
-### (D) Flagged Uncertainties
-
-- **I'm not sure** about the exact implementation of FVA in production systems—the theory vs practice debate suggests significant variation across desks
-- **I'm not sure** whether MVA/KVA formulas are standardized or desk-specific—the sources note ongoing debate and variation
-- The optimal treatment of wrong-way risk beyond the alpha multiplier is not fully specified in the sources; Hull (RM Section 20.5) notes that "more sophisticated approaches" exist but details are limited
-- Specific neural network architectures for XVA approximation are not detailed in the sources
-- The exact SA-CCR formulas for specific trade types involve regulatory detail beyond what the sources cover; readers should consult Basel III documentation
-
----
-
 ## References
 
-- Hull, J.C. *Options, Futures, and Other Derivatives*, 11th ed., Chapter 9: "XVAs"
-- Hull, J.C. *Risk Management and Financial Institutions*, 5th ed., Chapter 20: "CVA and DVA"
-- Gregory, J. *The XVA Challenge: Counterparty Credit Risk, Funding, Collateral, and Capital*. Wiley, 2015.
-- Hull, J.C. and A. White. "CVA and Wrong Way Risk," *Financial Analysts Journal* 68, no. 5 (2012).
-- Hull, J.C. and A. White. "The FVA Debate," *Risk*, 25th anniversary edition (July 2012).
-- Andersen, L.B.G., D. Duffie, and Y. Song. "Funding Value Adjustments," Working Paper, SSRN 2746010.
-- Modigliani, F. and M.H. Miller. "The Cost of Capital, Corporation Finance, and the Theory of Investment," *American Economic Review* 48, no. 3 (1958).
-- Basel Committee on Banking Supervision. "Standardised Approach for Counterparty Credit Risk (SA-CCR)," 2014.
+- Hull, *Risk Management and Financial Institutions* (CVA/DVA, exposure simulation, wrong-way risk)
+- Hull, *Options, Futures, and Other Derivatives* (CVA/DVA and the “FVA debate” overview)
+- Gregory, *The XVA Challenge: Counterparty Credit Risk, Funding, Collateral, and Capital*
+- Basel Committee on Banking Supervision, *The Standardised Approach for Counterparty Credit Risk (SA-CCR)* (capital mechanics background)
 
----
-
-*Chapter verified against Hull OFD Chapter 9 and Hull RM Chapter 20. All formulas and examples trace to source material. Practitioner content clearly marked.*
+*Chapters 32–33 cover exposure and collateral mechanics that feed into CVA/FVA; this chapter focuses on the XVA adjustment stack and desk economics.*

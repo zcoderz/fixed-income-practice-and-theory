@@ -4,7 +4,7 @@
 
 ## Introduction
 
-When Lehman Brothers filed for bankruptcy on September 15, 2008, it had approximately 1.5 million derivatives transactions outstanding with about 8,000 counterparties. Each of those counterparties faced an immediate question: *How much do they owe us, and how much of that will we ever recover?*
+When Lehman Brothers filed for bankruptcy on September 15, 2008, it had over a million derivatives transactions outstanding with about 8,000 counterparties. Each of those counterparties faced an immediate question: *How much do they owe us, and how much of that will we ever recover?*
 
 This question—the *exposure* question—is the foundation of counterparty credit risk. Before you can price CVA, stress-test a portfolio, or set a credit limit, you must first answer: what is the potential loss if the counterparty defaults tomorrow? And critically: how does that exposure evolve over time as markets move?
 
@@ -1234,79 +1234,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Exposure without collateral: $\max(V, 0)$ where $V$ is net MTM | Hull RM Ch 20 |
-| Exposure with collateral: $E = \max(V - C, 0)$ | Hull RM Ch 20 (Eq. 20.4) |
-| Netting treats covered trades as single transaction | Hull RM Ch 15, Ch 20 |
-| Without netting: $\sum \max(V_i, 0)$; with netting: option on portfolio vs. portfolio of options | Hull RM Ch 15, Ch 20 |
-| Cure period/MPOR typically 10-20 days | Hull RM Ch 20 |
-| Collateral at default reflects value $c$ days earlier | Hull RM Ch 20 (Example 20.1) |
-| Peak exposure is high percentile of simulated exposures | Hull RM Ch 20 |
-| Peak exposure conceptually uses real-world simulation | Hull RM Ch 20 |
-| CVA formula: $\sum (1-R) q_i v_i$ | Hull RM Ch 20 (Eq. 20.1) |
-| IM for bilateral: 10-day stressed 99% confidence | Hull RM Ch 18 |
-| CCP operates like exchange clearing house | Hull RM Ch 18 |
-| CCP default waterfall: IM → default fund → other members → equity | Hull RM Ch 18 |
-| Central clearing increases netting across counterparties | Hull RM Ch 18 |
-| Multiple CCPs reduce netting benefit (fragmentation) | Hull RM Ch 18 |
-| CSA specifies thresholds, MTAs, independent amounts | Hull RM Ch 18, Ch 20 |
-| Haircut definition: percentage reduction in securities value | Hull RM Ch 18 |
-| IRS exposure hump-shaped; currency swap increasing | Hull RM Ch 20 (Figure 20.1) |
-| Forward contract exposure formula | Hull RM Ch 20 (Eq. 20.10) |
-| Wrong-way risk: speculating counterparties | Hull RM Ch 20 |
-| Right-way risk: hedging counterparties | Hull RM Ch 20 |
-| Alpha multiplier for wrong-way risk (Basel: 1.4, floor 1.2) | Hull RM Ch 20 |
-| Group of Thirty: assess current and potential future exposure | Hull RM Ch 15 |
-| Aggregate exposures reflecting enforceable netting | Hull RM Ch 15 |
-| Basel credit equivalent = max(V,0) + add-on factor × L | Hull RM Ch 15 (Eq. 15.1) |
-| Add-on factors by product type and maturity | Hull RM Ch 15 (Table 15.2) |
-| DVA is counterparty's CVA; bilateral value = $f_{nd} - CVA + DVA$ | Hull RM Ch 20.6 |
-| DVA increases when dealer's credit spread increases | Hull RM Ch 20 |
-| Incremental CVA: new trade effect depends on correlation with existing | Hull RM Ch 20.3 |
-| Efficient incremental CVA: store simulation paths | Hull RM Ch 20.3 |
-| Rehypothecation definition | Hull RM Ch 18 |
-| Lehman rehypothecation problems for hedge fund clients | Hull RM Ch 18 |
-| Downgrade triggers and their risks | Hull RM Ch 20 |
-| AIG downgrade trigger example (September 15, 2008) | Hull RM Ch 20 |
-| Lehman had 1.5M derivatives with 8,000 counterparties | Hull RM Ch 20 (footnote 5) |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Desk Reality: Why Exposure Metrics Matter for Capital" box | Extends Hull RM Ch 15 Basel content |
-| "Desk Reality: Cheapest-to-Deliver Collateral" box | Extends Hull RM Ch 18 haircut discussion |
-| "Practitioner Note: The Daily Margin Call Workflow" box | Operational extension of collateral mechanics |
-| "Desk Reality: Why Clearing Matters for Credit Limits" box | Extends Hull RM Ch 18 CCP discussion |
-| "Desk Reality: What the Quant Team Actually Does" box | Extends Hull RM Ch 20 simulation discussion |
-| "Analogy: The Stale GPS" for MPOR | Pedagogical extension |
-| Typical haircut schedule table | Standard market practice, not verbatim from Hull |
-| Option exposure profile discussion | Logical extension of Hull's derivative-positive-value example |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| EE as $\mathbb{E}[E(t)]$ | Consistent with "expected exposure" terminology in Hull |
-| ENE as $\mathbb{E}[\max(-V, 0)]$ | Mirror of EE for counterparty side; consistent with DVA definition |
-| PFE as quantile of $E(t)$ | Matches "high percentile of simulated exposures" |
-| Netting benefit inequality | Mathematical consequence of max subadditivity |
-| EPE as time-average of EE | Common desk convention; sources don't fix single definition |
-| CVA preview approximation | Reinterpretation of Hull's $(1-R) q_i v_i$ structure |
-| Incremental exposure formula: $\Delta E = E_{\text{combined}} - E_{\text{existing}}$ | Direct consequence of netting mechanics |
-| Effective collateral formula with haircut | Direct application of haircut definition |
-
-### (D) Flagged Uncertainties
-
-| Topic | Uncertainty |
-|-------|-------------|
-| EPE/ENE exact definitions | Desks vary (time grids, discounting, collateral inclusion) |
-| Settlement-lag vs MPOR | Sources don't separate intraday mechanics from MPOR |
-| Specific haircut percentages | Vary by institution and CSA; table shows typical values only |
-| Operational margin call timing | Call cutoffs, settlement cycles, dispute resolution procedures vary by institution |
-| Wrong-way risk modeling details | Hull provides conceptual framework; specific implementation varies |
+- Hull, *Risk Management and Financial Institutions* (netting, collateral, exposures; CCPs; MPOR; exposure profiles)
+- Hull, *Options, Futures, and Other Derivatives* (Lehman bankruptcy snapshot; OTC derivatives market context)
