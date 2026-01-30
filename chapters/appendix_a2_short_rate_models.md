@@ -18,6 +18,13 @@ This appendix progresses through three canonical short-rate models, each represe
 
 We then cover **bond option pricing** (Section 5), including the Jamshidian decomposition that allows swaptions to be valued as portfolios of zero-coupon bond options. Section 6 presents the **Hull-White trinomial tree** construction essential for pricing American and Bermudan structures. Section 7 provides a **model comparison table**, and Section 8 addresses **calibration** to cap/floor and swaption markets. Throughout, we emphasize practical implementation alongside mathematical rigor.
 
+**How to use this appendix (reading paths):**
+
+- **If you’re here for Bermudans / callable structures:** start with Sections 4–6 (Hull–White + tree), then Sections 8 and 11 (calibration + QA), and refer to Section 5.4 (Jamshidian) as needed.
+- **If you want the “why” behind desk model choices:** read Sections 1–4, then Section 7 (comparison) and Section 8 (practitioner workflow).
+- **If measure changes are the stumbling block:** read Appendix A1 first (numeraires, forward/swap measures), then come back to Sections 1–2 here.
+- **If you want the forward-rate viewpoint:** Section 9.6 connects short-rate models to HJM (see Appendix A3), and market models/LMM are in Appendix A4.
+
 **Prerequisites:** Familiarity with stochastic calculus (Itô's lemma, Girsanov's theorem), risk-neutral pricing, and basic bond mathematics from earlier chapters.
 
 ---
@@ -33,7 +40,7 @@ We then cover **bond option pricing** (Section 5), including the Jamshidian deco
 | $Q$ | Risk-neutral (bank-account) measure |
 | $W_t$ | Brownian motion under $Q$ |
 | $P(t,T)$ | Zero-coupon bond price at $t$ for maturity $T$ |
-| $D(t,T)$ | Stochastic discount factor, $D(t,T) = \exp\left(-\int_t^T r_u \, du\right)$ |
+| $D(t,T)$ | Money-market discount factor, $D(t,T) = \exp\left(-\int_t^T r_u \, du\right)$ |
 | $P^M(0,t)$ | Initial ("market") discount curve observed at time 0 |
 | $f^M(0,t)$ | Market instantaneous forward rate, $f^M(0,t) = -\frac{\partial \ln P^M(0,t)}{\partial t}$ |
 
@@ -51,7 +58,7 @@ We then cover **bond option pricing** (Section 5), including the Jamshidian deco
 $$B(t) = \exp\left(\int_0^t r_u \, du\right)$$
 
 **Risk-neutral pricing** for payoff $H$ at $T$:
-$$\pi_t = \mathbb{E}^Q\left[D(t,T) H \mid \mathcal{F}_t\right]$$
+$$V(t) = \mathbb{E}^Q\left[D(t,T) H \mid \mathcal{F}_t\right]$$
 
 **Zero-coupon bond price:**
 $$P(t,T) = \mathbb{E}^Q\left[D(t,T) \mid \mathcal{F}_t\right]$$
@@ -72,7 +79,7 @@ $$P(t,T) = \mathbb{E}^Q\left[D(t,T) \mid \mathcal{F}_t\right]$$
 |--------|------------|-------|
 | $r_t$ | Short rate at time $t$ | 1/year |
 | $B(t)$ | Money-market account numeraire | dimensionless |
-| $D(t,T)$ | Stochastic discount factor from $t$ to $T$ | dimensionless |
+| $D(t,T)$ | Money-market discount factor from $t$ to $T$ | dimensionless |
 | $P(t,T)$ | ZCB price at $t$ for maturity $T$ | dimensionless |
 | $Q$ | Bank-account (risk-neutral) measure | — |
 | $W_t$ | Brownian motion under $Q$ | — |
@@ -109,7 +116,7 @@ $P(t,T)$ is the time-$t$ price of a claim paying 1 at time $T$.
 **Risk-Neutral Pricing Assumption (state clearly)**
 
 Under an equivalent martingale measure associated with the bank-account numeraire, a payoff $H$ at time $T$ has time-$t$ price:
-$$\pi_t = \mathbb{E}^Q\left[D(t,T) H \mid \mathcal{F}_t\right], \quad D(t,T) = \exp\left(-\int_t^T r_u \, du\right)$$
+$$V(t) = \mathbb{E}^Q\left[D(t,T) H \mid \mathcal{F}_t\right], \quad D(t,T) = \exp\left(-\int_t^T r_u \, du\right)$$
 
 Taking $H = 1$ gives:
 $$\boxed{P(t,T) = \mathbb{E}^Q\left[D(t,T) \mid \mathcal{F}_t\right]}$$
@@ -1402,7 +1409,7 @@ The calibration limitations create model risk:
 
 For payoff $H$ at $T$, price at $t$ is:
 
-$$\pi_t = \mathbb{E}^Q\left[\exp\left(-\int_t^T r_u \, du\right) H \;\Big|\; \mathcal{F}_t\right]$$
+$$V(t) = \mathbb{E}^Q\left[\exp\left(-\int_t^T r_u \, du\right) H \;\Big|\; \mathcal{F}_t\right]$$
 
 which implies for a ZCB ($H = 1$):
 
@@ -2280,7 +2287,7 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 **17. For Hull-White with $a = 0.05$, $\sigma = 0.01$, compute $\sigma_p$ for a ZCB option with $T = 2$, $S = 5$.**
 
-*Sketch:* $B(T,S) = \frac{1-e^{-0.05 \times 3}}{0.05} = 2.77$; variance term $= \frac{1-e^{-0.2}}{0.1} = 1.81$; $\sigma_p = 0.01 \times 2.77 \times \sqrt{1.81}/0.05 = 0.0745$.
+*Sketch:* $B(T,S) = \frac{1-e^{-0.05 \times 3}}{0.05} = 2.77$; variance term $= \frac{1-e^{-0.2}}{0.1} = 1.81$; $\sigma_p = 0.01 \times 2.77 \times \sqrt{1.81} \approx 0.0373$.
 
 ---
 
@@ -2339,56 +2346,18 @@ Conditional mean: $\mathbb{E}[\ln r(t) | r(s)] = \ln r(s) e^{-a(t-s)} + \int_s^t
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Source-Backed
+- John C. Hull, *Options, Futures, and Other Derivatives* (Vasicek/CIR/Hull–White; bond options; trinomial trees; curve fitting)
+- Damiano Brigo & Fabio Mercurio, *Interest Rate Models: Theory and Practice* (short-rate model families; calibration; Jamshidian decomposition; tree/MC implementation)
+- Leif B. G. Andersen & Vladimir V. Piterbarg, *Interest Rate Modeling* (curve-fitting frameworks; shifted models; simulation schemes; practical modeling trade-offs)
+- Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (simulation accuracy/stability; exact and approximate sampling for common diffusions)
+- Bruce Tuckman & Angel Serrat, *Fixed Income Securities* (rates-model intuition and practical framing)
 
-- Vasicek/CIR/Hull–White SDEs, bond pricing formulas, and $A(t,T)$, $B(t,T)$ expressions: **Hull, *Options, Futures, and Other Derivatives***
-- Feller positivity condition for CIR ($2ab \geq \sigma^2$): **Hull; Andersen & Piterbarg, *Interest Rate Modeling***
-- Hull–White curve-fit formula for $\theta(t)$: **Hull**
-- Risk-neutral pricing framework and bank-account numeraire: **Hull; Brigo & Mercurio, *Interest Rate Models: Theory and Practice***
-- Limitations of time-homogeneous models for initial curve fit: **Hull**
-- Deterministic shift extensions (Vasicek++/CIR++): **Andersen & Piterbarg; Brigo & Mercurio**
-- Zero-coupon bond option formula (ZBO) for Gaussian models: **Jamshidian (1989); Hull, *OFOD***
-- Jamshidian decomposition for coupon bond options and swaptions: **Jamshidian (1989); Brigo & Mercurio, Ch 3**
-- Cap/floor pricing as ZCB option portfolios: **Hull, *OFOD***; **Brigo & Mercurio**
-- CIR bond option pricing via non-central chi-squared: **Cox, Ingersoll, Ross (1985); Hull, *OFOD***
-- CIR transition density (scaled non-central chi-squared): **Hull; Oosterlee & Grzelak, Ch 11**
-- Hull-White trinomial tree construction (two-stage procedure): **Hull & White (1994); Hull, *OFOD***
-- Arrow-Debreu pricing on trees: **Hull, *OFOD***
-- Calibration objective functions and Levenberg-Marquardt: **Hull; Brigo & Mercurio**
-- Real-world vs risk-neutral Vasicek dynamics and market price of risk: **Brigo & Mercurio, Section 3.2.1**
-- Maximum likelihood estimators for Vasicek parameters (eq. 3.14-3.16): **Brigo & Mercurio, Section 3.2.1**
-- Ho-Lee model SDE and bond pricing ($a = 0$ limit of Hull-White): **Tuckman, Ch 11; Brigo & Mercurio**
-- CIR++ model construction $r(t) = x(t) + \varphi(t)$ and shift function: **Brigo & Mercurio, Section 3.9**
-- CIR++ forward rate formula $f^{CIR}(0,t;\alpha)$: **Brigo & Mercurio, eq. 3.77**
-- Trinomial tree probability derivation (moment-matching): **Brigo & Mercurio, Section 3.3.3, eq. 3.50**
-- Black-Karasinski model SDE $d\ln r = [\theta(t) - a\ln r]dt + \sigma dW$: **Brigo & Mercurio, Section 3.5; Tuckman, Ch 12**
-- Black-Karasinski lognormal distribution and tree construction: **Black & Karasinski (1991); Brigo & Mercurio**
-- G2++ two-factor model dynamics and bond pricing formula: **Brigo & Mercurio, Chapter 4.2, eq. 4.12-4.17**
-- G2++ correlation structure and factor interpretation: **Brigo & Mercurio, Section 4.2.2**
-- QE (Quadratic-Exponential) scheme for CIR simulation: **Andersen (2008); Andersen & Piterbarg, Ch 10**
-- CIR exact simulation via non-central chi-squared: **Glasserman, *Monte Carlo Methods in Financial Engineering***
-- Euler scheme with reflection for CIR: **Brigo & Mercurio; Glasserman**
-- One-factor model calibration limitations (swaption cube): **Brigo & Mercurio, Section 3.14**
-- Hull-White as separable HJM special case: **Andersen & Piterbarg, Proposition 10.1.7**
-- Co-terminal vs diagonal swaption calibration strategies: **Brigo & Mercurio, Section 6.15**
+## Inputs Needed (NOT SURE)
 
-### (B) Reasoned Inference — Derived from (A)
+- None.
 
-- Limiting-case behavior ($\sigma \to 0$, $a \to 0$, $T \to t$): derived from closed-form expressions
-- Unit checks on formulas: dimensional analysis applied to sourced formulas
-- Worked examples: numeric calculations using sourced formulas
-- Branching probability formulas: derived from moment-matching conditions on the discretized SDE
-- Connection between Feller condition and chi-squared degrees of freedom: algebraic relationship $\nu = 4ab/\sigma^2$
-- Model selection decision tree: derived from sourced trade-offs and practitioner guidance in Brigo & Mercurio
-- QE scheme $\psi_c$ threshold choice ($\psi_c \approx 1.5$): derived from moment-matching accuracy vs stability analysis
-- G2++ interpretation as "level + slope" factors: derived from correlation structure and principal component analogy
+---
 
-### (C) Specification Notes
-
-- Multi-curve treatment: single-curve formulas apply directly when discount = projection; guidance provided for OIS-discounted multi-curve setup (see Chapter 19 for full treatment)
-- Calibration workflow: representative procedure based on Hull's descriptions; specific numerical tolerances and solver choices vary by implementation
-- Model selection guidance: general recommendations based on product type; specific choices depend on desk requirements, computational budget, and product mix
-- Calibration quality diagnostics: suggested residual thresholds (1-2bp) are representative industry standards; actual tolerances vary by application and risk appetite
-- Black-Karasinski vs Hull-White choice: guidance based on qualitative trade-offs; optimal choice depends on rate environment and product portfolio
+*Appendix A2 of Fixed Income: Practice and Theory*
