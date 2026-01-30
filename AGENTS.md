@@ -48,6 +48,7 @@ Rules:
 - Cite the **exact excerpt** that states the definition/formula/assumption (not a nearby discussion).
 - If sources disagree, present the discrepancy and ask which convention to adopt.
 - Never claim “current market practice today” without a dated authoritative source in the corpus.
+- Avoid long verbatim quotes from textbooks; paraphrase in your own words. If you include a direct quote, keep it **under ~25 words**.
 
 ## Beginner-First Clarity (do not over-summarize)
 
@@ -71,6 +72,7 @@ When working a batch of chapters:
 - Do a full read-through and **fix** any errors in math, units, sign conventions, and timelines.
 - Improve unclear explanations (especially where a middle-office reader might misunderstand “what the desk means”).
 - Tighten examples and sanity checks; if you change a worked example, update the corresponding problem/solution if present.
+- Remove legacy sections like `## Source Map` and any `Last Updated` lines; use `## References` instead.
 
 ## Uncertainty & External Lookup Policy
 
