@@ -302,7 +302,7 @@ $$\boxed{\text{Accrued Premium} = N \cdot s \cdot \alpha}$$
 
 This is separate from the protection payout and represents the buyer's obligation for protection coverage during the partial period.
 
-> **I'm not sure** about the exact day-count convention for accrued premium at default without the specific contract documentation. The sources confirm the existence and direction of this payment but do not fully specify conventions in the excerpts retrieved.
+> **Note:** In standard CDS contracts, accrued premium uses the premium-leg day count (commonly ACT/360), so $\alpha = \text{DayDiff}/360$. Always verify your confirmation/ISDA definitions for the exact convention on your trade.
 
 ---
 
@@ -620,7 +620,7 @@ Before modeling settlement outcomes, verify:
 
 12. **Accrued premium at default** is owed by the buyer for the partial period—handled as part of the premium leg.
 
-13. Always verify the specific contract documentation; conventions evolve and "I'm not sure" is appropriate when sources don't specify.
+13. Always verify the specific contract documentation; if a convention is not specified in your sources, mark it `NOT SURE:` rather than guessing.
 
 ---
 
@@ -755,62 +755,8 @@ Before modeling settlement outcomes, verify:
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Credit event is the legal trigger for protection leg; differs from rating-agency default | O'Kane 5.4.1 |
-| Credit event types table (six events with hard/soft classification) | O'Kane Table 5.1 |
-| Restructuring is the only soft credit event | O'Kane 5.4.1 |
-| After restructuring, debt trades with term structure of prices | O'Kane 5.4.1 |
-| Physical settlement: deliver face value, receive par in cash | O'Kane 5.4 |
-| Cash settlement: seller pays $(\text{face} - \text{recovery price})$; recovery determined by poll/auction | O'Kane 5.4 |
-| Deliverable obligations must be pari passu or senior to reference obligation | O'Kane 5.4 |
-| Delivery option: buyer can choose which deliverable to deliver | O'Kane 5.4.3 |
-| O'Kane delivery option example: $43 asset, $37 CTD → $6 profit | O'Kane 5.4.3 |
-| Conseco restructuring (Sept 2000): banks delivered deep-discount bonds (65-80) for par | O'Kane 5.4.3 |
-| Restructuring clauses: Old-Re, Mod-Re, Mod-Mod-Re, No-Re with descriptions | O'Kane Table 5.2 |
-| Spread ordering: $S_{\text{Old-Re}} > S_{\text{Mod-Mod-Re}} > S_{\text{Mod-Re}} > S_{\text{No-Re}}$ | O'Kane 5.4.4 |
-| CDX uses No-Re; iTraxx includes restructuring | O'Kane Ch 10 |
-| Physical settlement timeline: up to 72 calendar days | O'Kane 5.4.2 |
-| Credit Event Notice requires two sources of Publicly Available Information | O'Kane 5.4.2 |
-| Notice of Physical Settlement: within 30 calendar days, can be updated until delivery | O'Kane 5.4.2 (ISDA 2003) |
-| Short squeeze when CDS notional exceeds deliverable supply | O'Kane 5.4.2 |
-| Cash settlement auction targets "mid-market value of cheapest deliverable bond" | Hull Ch 25 |
-| Lehman: $400B CDS, $155B debt; auction payout 91.375% (8.625% recovery) | Hull Ch 25 |
-| Accrued premium at default paid by buyer to seller | O'Kane 5.4, Hull Ch 25 |
-| Technical default as CDS-bond basis driver | O'Kane 5.6 |
-| Funding cost as basis driver | O'Kane 5.6.1 |
-| Delivery option as basis driver | O'Kane 5.6.1 |
-| Loss on default timing as basis factor | O'Kane 5.6.2 |
-| Premium accrued at default as basis factor | O'Kane 5.6.2 |
-
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| Big Bang Protocol details (April 2009, fixed coupons 100/500bp, hardwired auctions) | Extended from general CDS market knowledge; post-dates O'Kane's book |
-| Determinations Committee structure and role | Extended from ISDA market practice |
-| Lookback provision (60/90 day windows) | Extended from standard CDS documentation |
-| Succession event framework | Extended from ISDA definitions |
-| Hovnanian manufactured default case (2018) | Extended from market events post-dating sources |
-| Desk Reality boxes on grace period, upfront convention, basis monitoring | Practitioner perspective extending source material |
-| Formal delivery option framework with boxed formula | Formalized from O'Kane's example |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-- **CTD payoff formula:** $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$ — derived from physical settlement mechanics (buyer delivers cheapest, receives par)
-- **Cash/physical alignment condition:** When $P_{\text{final}} = P_{\text{CTD}}$, both methods yield same payout — follows from payoff formulas
-- **Delivery option value formula:** $V_{\text{DO}} = N \times (P_{\text{hedged}} - P_{\text{CTD}})/100$ — formalized from O'Kane's numerical example
-- **Payout bounds:** $0 \leq \Pi \leq N$ for $0 \leq P \leq 100$ — arithmetic from payoff formula
-- **Delivery option properties (non-negative, bounded)** — derived from formula constraints
-
-### (D) Flagged Uncertainties
-
-- **Auction operational details:** I'm not sure about the precise two-stage auction mechanics, bidding rules, timing, and Determinations Committee procedures from the excerpts retrieved. Chapter 40 covers auctions in more detail; for complete protocol, the specific ISDA documentation is required.
-- **Complete deliverability criteria:** I'm not sure of all eligibility criteria beyond "pari passu or senior" without the precise ISDA Definitions and confirmation terms.
-- **Accrual day-count conventions:** I'm not sure of the exact day-count convention for accrued premium at default without specific contract documentation.
-- **Current Determinations Committee rules:** The sources reference ISDA 2003 definitions; current procedures may have evolved.
-- **Anti-manipulation provisions:** I'm not sure about the specific contractual language developed post-Hovnanian or its effectiveness.
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (credit events, restructuring clauses, delivery option and CTD)
+- Hull, *Options, Futures, and Other Derivatives* (cash vs physical settlement and auction intuition; Lehman example)
+- ISDA Credit Derivatives Definitions / Big Bang & auction documentation (definitive contractual terms)

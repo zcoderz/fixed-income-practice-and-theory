@@ -19,7 +19,7 @@ This chapter explains what the CDS auction accomplishes and why it exists. We fo
 7. **Index constituent default treatment** — how auctions apply to CDX/iTraxx positions
 8. **What remains uncertain** — operational details requiring ISDA documentation
 
-We are explicit about what the reference books cover and what requires additional documentation. Where operational details are not specified in Hull or O'Kane, we use practitioner knowledge clearly marked as such, and we say "I'm not sure" rather than speculate.
+We are explicit about what the reference books cover and what requires additional documentation. Where operational details are not specified in Hull or O'Kane, we use practitioner knowledge clearly marked as such, and we mark gaps as `NOT SURE:` rather than speculate.
 
 ---
 
@@ -225,7 +225,7 @@ The auction walks down from 35.00:
 >
 > 5. **Regulatory oversight:** Post-2008, regulators have increased scrutiny of CDS auction conduct
 >
-> **I'm not sure** about specific documented manipulation cases or regulatory enforcement actions without additional verification. The safeguards described reflect auction design principles.
+> **NOT SURE:** Specific documented manipulation cases or regulatory enforcement actions are not covered by the excerpts used here; treat the safeguards above as design principles and consult ISDA/regulatory sources for case studies.
 
 > **Desk Reality: Why Manipulation is Difficult**
 >
@@ -420,7 +420,7 @@ This is paid by the protection buyer to the seller and is separate from the prot
 >
 > **DC membership** includes major CDS dealers and buy-side representatives. Decisions require supermajority votes and are binding on all market participants who adhere to the relevant ISDA protocols.
 >
-> **I'm not sure** about current DC membership, voting thresholds, or specific procedural rules without consulting the ISDA DC Rules documentation.
+> **NOT SURE:** DC membership, voting thresholds, and procedural rules are documentation-specific and can evolve; consult the relevant ISDA DC Rules / auction terms for the exact current procedures.
 
 ---
 
@@ -906,63 +906,8 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Lehman: $400B CDS, $155B debt outstanding; 91.375% payout | Hull Ch 25 |
-| "Not uncommon for the volume of CDSs on a company to be greater than its debt" | Hull Ch 25 |
-| "As is now usual, an ISDA-organized auction process is used to determine the mid-market value of the cheapest deliverable bond several days after the credit event" | Hull Ch 25 |
-| "In situations where the outstanding notional of derivative contracts exceeds the supply of deliverable obligations, a new protocol was introduced by ISDA in 2005 which allows a fallback to cash settlement in which case an auction method is used to determine a cash settlement price" | O'Kane Ch 10 |
-| "The payoff from a CDS is $L(1-R)$, where $L$ is the notional principal and $R$ is the recovery rate" | Hull Ch 25 |
-| "The regular payments from the buyer of protection to the seller of protection cease when there is a credit event. However, because these payments are made in arrears, a final accrual payment by the buyer is usually required" | Hull Ch 25 |
-| Cash settlement: "The protection seller pays the protection buyer the face value of the protection minus the recovery price of the reference obligation in cash. The recovery price is determined by a dealer poll or auction process" | O'Kane Ch 5 |
-| Physical settlement: "The protection buyer delivers face value of deliverable obligations to the protection seller. In return, the protection seller makes a simultaneous payment of the face value in cash to the protection buyer" | O'Kane Ch 5 |
-| Same-seniority bonds "may not sell for the same percentage of face value immediately after a default" due to "accrued interest differences and differing expectations" | Hull Ch 25 (footnote) |
-| Physical settlement timeline can extend "up to 72 calendar days after initial notification" | O'Kane Ch 5 |
-| Short squeeze: "demand can increase the price of the defaulted assets, thereby reducing the value of the loss payment" | O'Kane Ch 5 |
-| Recovery rates show large variability: senior unsecured mean 34.89%, median 42.27% | O'Kane Ch 3.2 |
-| Conseco restructuring example with delivery option exploitation | O'Kane Ch 5.4 |
-| Index default mechanics: "the buyer pays $1/M$ of the face value... in situations where outstanding notional exceeds supply, an auction method is used" | O'Kane Ch 10 |
-| Coupon accrued at default: "In the standard contract, following a credit event, the protection buyer must pay the fraction of the premium which has accrued since the previous premium payment date" | O'Kane Ch 5.3 |
-
-### (B) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| Two-stage auction framework (Stage 1/Stage 2 mechanics) | Extends Hull's "two-stage" mention with practitioner understanding of auction design |
-| Open interest calculation and clearing direction | General knowledge of Dutch auction mechanics applied to CDS context |
-| Touchable quotes and manipulation safeguards | Extends O'Kane's short-squeeze discussion with auction design principles |
-| Ramping definition and constraints | General market microstructure principles applied to CDS auctions |
-| Historical auction results table | Public ISDA auction data (requires verification against official records) |
-| Big Bang Protocol (2009) | Industry knowledge of post-crisis CDS standardization |
-| Determinations Committee role | General ISDA governance understanding |
-| Auction day timeline | Illustrative timeline based on typical auction structure |
-
-### (C) Reasoned Inference (Derived from A and B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Cash settlement payout formula $N(1-R) = N(1-FP_{100}/100)$ | Direct from Hull's payoff statement |
-| Physical/cash equivalence when $FP_{100} = P_{CTD}$ | Algebraic comparison of settlement payoffs |
-| Payout sensitivity = $0.01 \times N$ per point | Differentiation of payout formula |
-| Short squeeze risk reduces effective protection | CDS > debt supply creates buying pressure; reasoned from scarcity economics |
-| Auctions eliminate short squeeze by removing need to source deliverables | Logical implication of cash settlement mechanics |
-| Index payout = $(N/M) \times (1-R)$ | Direct application of O'Kane's index mechanics description |
-| OI > 0 implies walking prices down to attract sellers | Standard Dutch auction clearing logic |
-
-### (D) Flagged Uncertainties
-
-- **Full auction operational mechanics:** I'm not sure about the exact bid-offer constraints, price cap formulas, adjustment amount calculations, or clearing algorithm specifics. Hull mentions "two-stage" but does not detail the mechanics. The definitive rules are in ISDA's Credit Derivatives Auction Settlement documentation.
-
-- **Exact timing conventions:** I'm not sure about the precise number of days between credit event and auction, specific hour windows, or settlement dates without the specific auction protocol.
-
-- **How final price relates to CTD across all protocols:** I'm not sure whether every auction protocol targets CTD specifically or uses different pricing approaches. Hull's description of "mid-market value of the cheapest deliverable bond" is suggestive but not a complete protocol specification.
-
-- **Determinations Committee procedures:** I'm not sure about current DC membership, voting thresholds, or procedural rules without the relevant ISDA DC Rules documentation.
-
-- **Historical auction figures:** The auction results table reflects commonly cited outcomes but I'm not sure about exact figures without verifying against ISDA's official auction history. Market participants should verify current data.
-
-- **Specific regulatory enforcement:** I'm not sure about documented manipulation cases or regulatory actions related to CDS auctions without additional verification.
+- Hull, *Options, Futures, and Other Derivatives* (CDS auction motivation and the Lehman example)
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (settlement mechanics, deliverable scarcity, and why auctions exist)
+- ISDA Credit Derivatives Auction Settlement Terms / DC Rules (definitive operational mechanics and governance)

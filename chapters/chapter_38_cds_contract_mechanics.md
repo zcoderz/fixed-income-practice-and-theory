@@ -230,6 +230,7 @@ $$\text{Effect} \approx \frac{(0.05)^2}{2 \times 0.60 \times 4} = \frac{0.0025}{
 O'Kane's Figure 6.1 shows this relationship graphically: "The effect of incorporating the accrued premium at default is to lower the breakeven spread." The effect is quadratic in the spread level—negligible for investment grade but meaningful for high-yield credits.
 
 > **Practitioner Note:** For IG credits trading at 50-100 bp, the effect is less than 0.5 bp—essentially negligible. But for distressed names trading at 1000+ bp, the effect can be 10-20 bp. Quant systems should include the accrued-at-default term; quick estimates can use the approximation.
+> **Practitioner Note:** Because the effect scales roughly with $S^2$, it is tiny for tight spreads and can become material for very wide/distressed spreads. Production systems should include the accrued-at-default term explicitly; quick estimates can use the approximation above.
 
 ---
 
@@ -439,7 +440,7 @@ When a credit becomes severely distressed, the market switches from the standard
 **Why distressed names trade upfront:**
 
 Consider a credit trading at 2000 bp (20%). At this spread level:
-1. The expected default probability is high (perhaps 30%+ per year)
+1. The implied default intensity is very high under standard credit-triangle intuition (even allowing for recovery and risk premia)
 2. The protection seller faces significant risk that they'll have to pay out $N(1-R)$ soon
 3. The premium stream is highly uncertain—if default occurs in 3 months, the seller receives only a fraction of the expected premiums
 
@@ -454,7 +455,7 @@ O'Kane provides Tables 6.1 and 6.2 comparing P&L under different scenarios. The 
 
 **When does the market switch to upfront?**
 
-There's no fixed rule, but O'Kane notes that when spreads exceed approximately **1000 bp**, the market often switches to pure upfront trading. At these levels:
+There's no fixed rule. In practice, once spreads are very wide (often discussed on the order of **1000 bp+**), trading convention tends to shift toward quoting in upfront terms. At these levels:
 - The RPV01 becomes very uncertain (sensitive to hazard rate assumptions)
 - Price discovery works better in upfront terms
 - The "certain money now vs. risky stream later" tradeoff strongly favors upfront
@@ -534,7 +535,7 @@ O'Kane notes this is "fundamentally different from the first two since there is 
 
 **Settlement Timing:**
 
-O'Kane notes that CDS unwinds settle **T+3 business days**, similar to bond settlement. The "mark-to-market must be based on exchanging the unwind value in two days' time" (the settlement date).
+O'Kane notes that CDS unwinds settle in a few business days (the exact lag is documentation/market dependent). The key operational point is that the mark-to-market amount exchanged should be computed consistently for the settlement date.
 
 > **Desk Reality: Why Method 3 Isn't the Same as a True Unwind**
 >
@@ -845,61 +846,8 @@ Before booking a CDS trade, verify:
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts — Source Attribution
-
-| Content | Source |
-|---------|--------|
-| CDS definition | O'Kane Ch 5: "bilateral contract that transfers the credit risk" |
-| Premium leg mechanics, ACT/360 | O'Kane Ch 5 |
-| Roll dates 20 Mar/Jun/Sep/Dec, not same as IMM | O'Kane Ch 5 (footnotes 3, 4) |
-| Schedule construction algorithm (4 steps) | O'Kane Ch 5 (Section 5.3) |
-| Premium leg cash flow schedule | O'Kane Ch 5 (Figure 5.3) |
-| Effective date T+1 calendar, weekend coverage rationale | O'Kane Ch 5 |
-| Physical vs cash settlement mechanics | O'Kane Ch 5, Hull Ch 25 |
-| Accrued premium at default | O'Kane Ch 5, Ch 6 |
-| Effect of accrued on breakeven spread (quadratic) | O'Kane Ch 6 (Figure 6.1 and text) |
-| RPV01 formula derivation (Equations 6.2-6.4) | O'Kane Ch 6 |
-| RPV01 approximation for accrued at default | O'Kane Ch 6 (after Eq 6.3) |
-| Premium Leg PV = $S_0 \cdot \text{RPV01}$ | O'Kane Ch 6 (Eq 6.2) |
-| MTM formula: $(S_t - S_0) \times \text{RPV01}$ | O'Kane Ch 6 |
-| Three methods to realize MTM value | O'Kane Ch 6.6 |
-| Clean vs full MTM convention | O'Kane Ch 6 (after Eq 6.4) |
-| Upfront CDS for distressed | O'Kane Ch 6.7 |
-| Upfront price formula $P = 100 - 100 \times D \times (s - c)$ | Hull Ch 25.4 |
-| Standard coupon conventions (100 bp IG, 500 bp HY) | Hull Ch 25.4 |
-| CDS unwind settles T+3 business | O'Kane Ch 6.6 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Desk Reality" boxes on schedule mismatches, weekend coverage, distressed trading | Extended from O'Kane's mechanics to practical trading context |
-| Approximation that market switches to upfront at ~1000 bp | Practitioner convention; O'Kane discusses distressed upfront but doesn't specify threshold |
-| Comparison of offsetting trade vs true unwind economics | Extended from O'Kane's three methods discussion |
-
-### (C) Reasoned Inference — Derivation Logic
-
-| Content | Derivation |
-|---------|------------|
-| Unit checks on all formulas | Dimensional analysis from definitions |
-| Sanity bounds on accrued and protection | Algebraic manipulation of source formulas |
-| Physical/cash settlement equivalence | Arbitrage argument from source mechanics |
-| Sign symmetry between buyer and seller | Bilateral contract structure |
-| RPV01 worked example calculations | Applied O'Kane formula to specific numbers |
-
-### (D) Flagged Uncertainties
-
-The following items require trade-specific documentation:
-
-- **I'm not sure** about exact settlement-day lags and operational sequences without the specific ISDA Definitions vintage and confirmation terms
-- **I'm not sure** about full legal eligibility criteria for deliverable obligations without the CDS confirmation
-- **I'm not sure** about exact intraday start time and front-end protection rules
-- **I'm not sure** about regional variations in standard coupon conventions (North America vs Europe may differ)
-- The Big Bang (2009) and Small Bang (2009) protocol changes introduced standardized coupons, but O'Kane (2008) predates these; exact implementation details require additional sources
-- The threshold for switching to pure upfront (~1000 bp) is approximate market practice, not a formal rule
-
----
-
-*Last Updated: January 2026*
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (contract mechanics, schedules, RPV01, MTM and unwinds)
+- Hull, *Options, Futures, and Other Derivatives* (CDS overview, cash vs physical settlement, auction intuition and examples)
+- ISDA Credit Derivatives Definitions / Auction Settlement Terms (definitive documentation and operational rules)
