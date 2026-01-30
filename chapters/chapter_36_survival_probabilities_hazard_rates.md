@@ -175,23 +175,29 @@ O'Kane provides a powerful Monte Carlo intuition: we can simulate default using 
 
 This "per unit time" interpretation—the hazard rate remains finite even as the time step shrinks—is what makes reduced-form models generate positive short-dated spreads.
 
-### 36.3.3 Typical Hazard Rate Ranges by Credit Quality
+### 36.3.3 Order-of-Magnitude Hazard Levels (Credit Triangle Intuition)
 
-Understanding typical hazard rate magnitudes helps build intuition. Based on Hull's Table 24.2 and market observations:
+To build intuition for magnitudes, practitioners often use the **credit triangle** approximation:
 
-| Credit Quality | Rating Proxy | Typical Risk-Neutral Hazard Range |
-|---------------|--------------|-----------------------------------|
-| Prime | AAA/AA | 0.05% – 0.3% per year |
-| High Investment Grade | A | 0.3% – 1.0% per year |
-| Lower Investment Grade | BBB | 1.0% – 3.0% per year |
-| High Yield | BB/B | 3.0% – 10% per year |
-| Distressed | CCC or lower | 10% – 50%+ per year |
+$$S \\approx \\lambda(1-R) \\quad \\Rightarrow \\quad \\lambda \\approx \\frac{S}{1-R}$$
 
-> **Desk Reality: Why Traders Care About Hazard Rate Ranges**
+For an illustrative recovery assumption of $R = 40\\%$ (so $1-R = 60\\%$), the mapping from CDS spread to (risk-neutral) hazard is:
+
+| 5Y CDS Spread (bp) | Implied Hazard $\\lambda$ (%/year) |
+|-------------------|-----------------------------------|
+| 50 | $\\approx 0.83$ |
+| 150 | $\\approx 2.50$ |
+| 500 | $\\approx 8.33$ |
+| 1000 | $\\approx 16.67$ |
+
+> **Desk Reality: Quick Sanity Checks**
 >
-> When a credit desk quotes you a 5Y CDS at 150bp with 40% recovery, the implied hazard rate is approximately $0.015 / 0.60 = 2.5\%$ per year (using the credit triangle). That's solidly in BBB territory.
+> The triangle is a back-of-envelope tool, not a rating model. Still, it is useful for spotting obvious issues:
+> - Wrong ticker / tier / currency / documentation.
+> - Recovery assumption mismatch (40% vs name-specific or distressed recoveries).
+> - A spread that moved but your hazard curve did not (or vice versa) due to stale inputs.
 >
-> If someone tries to sell you that name's CDS at 50bp, you'd immediately suspect a data error—50bp with 40% recovery implies only 0.83% hazard, which would be A-rated territory. Either the spread is wrong, the rating is wrong, or there's news you don't know about.
+> Also remember: the hazard inferred this way is a *risk-neutral* intensity used for pricing, and it can differ materially from historical default-frequency intuition.
 
 ### 36.3.4 The Fundamental Relationship: Hazard Rate and Survival ODE
 
@@ -1296,59 +1302,8 @@ Before trusting any survival curve, run these checks:
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Source-Backed
-
-| Fact | Source |
-|------|--------|
-| Reduced-form models based on Poisson process first arrival time | O'Kane Ch 3.5–3.6, citing Jarrow-Turnbull (1995), Lando (1998) |
-| Hazard rate definition as instantaneous conditional default probability | O'Kane eq. 3.5, Hull Ch 24 |
-| "Default is always a surprise" in reduced-form models | O'Kane Ch 3.6, explicit statement |
-| Survival ODE $Q'(t) = -\lambda(t)Q(t)$ and exponential solution | O'Kane Ch 3.6.1, Hull Ch 24 |
-| Structural models: "credit spread tends to zero as $T-t \to 0$" | O'Kane Ch 3.4, explicit statement |
-| Credit triangle $S = \lambda(1-R)$ derivation | O'Kane Ch 3.10 |
-| Risk-neutral vs real-world hazard distinction | Hull Ch 24.5, O'Kane Ch 3.11 |
-| Hull Table 24.2: historical vs spread-implied hazard ratios | Hull Ch 24, Table 24.2 |
-| Analogy between discount factors and survival probabilities (table) | O'Kane Ch 7, explicit table |
-| Piecewise constant hazard interpolation | O'Kane Ch 7.4 |
-| No-arbitrage requires $\lambda(t) \geq 0$ | O'Kane Ch 7.7 |
-| Three canonical curve shapes (flat, upward, inverted) | O'Kane Ch 7.2, Table 7.2 |
-| Arbitrage bounds on inverted curves | O'Kane Ch 7.7, Table 7.3 |
-| Expected default time for constant hazard is $1/\lambda$ | O'Kane Ch 3.9.3 |
-| Default density $f(t) = \lambda(t)Q(t)$ | O'Kane pricing derivations, standard probability theory |
-| Independence assumption is "market standard" for CDS pricing | O'Kane Ch 6.3 |
-| CDS pricing follows Duffie (1998), Hull-White (2000a), O'Kane-Turnbull (2003) | O'Kane Ch 6.4 |
-| Doubly stochastic (Cox process) definition | McNeil Ch 9.2.3, Definition 9.11 |
-| Threshold simulation algorithm | McNeil Ch 9, Lemma 9.12, Algorithm 9.14 |
-| Multivariate threshold simulation | McNeil Ch 9, Algorithm 9.34 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Desk Reality" boxes on measure confusion, curve interpretation | Extended from O'Kane/Hull concepts with practical trading context |
-| Typical hazard rate ranges by rating | Based on Hull Table 24.2 with interpolation for intermediate ratings |
-| Decision tree for when to use constant hazard | Synthesized from O'Kane guidance with practical formatting |
-| Back-of-envelope multipliers for credit triangle | Derived from credit triangle formula with standard recovery assumptions |
-| Simulation worked examples | Constructed to illustrate McNeil algorithms with specific numbers |
-
-### (C) Reasoned Inference — Derived from (A)
-
-| Fact | Derivation |
-|------|------------|
-| Piecewise hazard inversion $\lambda_i = -(1/\Delta t)\ln(Q_i/Q_{i-1})$ | Direct integration of constant hazard over interval, inverted |
-| Interval default probability $Q(t_1) - Q(t_2)$ | Probability algebra from survival definition |
-| Cumulative hazard $H(t)$ properties | Integration of hazard rate definition |
-| Unit checks for all formulas | Dimensional analysis applied to definitions |
-| Memoryless property verification | Direct calculation from exponential survival formula |
-| Half-life formula $t_{1/2} = \ln(2)/\lambda$ | Standard exponential decay derivation |
-
-### (D) Flagged Uncertainties
-
-| Item | Uncertainty |
-|------|-------------|
-| Recovery convention (par vs market-value vs face value) | Multiple conventions exist; not specified without contract/ISDA details |
-| Exact spread component decomposition (risk premium, liquidity premium, etc.) | O'Kane mentions components qualitatively; exact magnitudes are market-specific and time-varying |
-| Typical hazard ranges for specific ratings in current markets | I'm not sure about current market levels; values provided are illustrative based on historical patterns |
-| Precise CDS-bond basis drivers | Multiple factors cited in sources; relative importance varies by name and market conditions |
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (hazard rates, survival curves, credit triangle, curve shapes and bounds)
+- Hull, *Options, Futures, and Other Derivatives* (hazard rate definitions; risk-neutral vs real-world default probabilities)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (Cox processes and default-time simulation algorithms)

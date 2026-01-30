@@ -76,11 +76,11 @@ When bonds collapse to 20–50, the trading paradigm shifts entirely. The market
 > - *Par trading*: "I'm bid at 250 over, offered at 245"
 > - *Distressed trading*: "I'm bid at 35 cents, offered at 37"
 >
-> The transition typically occurs when spreads exceed 1000 bp and bond prices fall below 70. At this point, yield calculations become meaningless—a bond trading at 30 cents with a 5% coupon has a "yield" that tells you nothing useful.
+> **Rule of thumb (not a hard rule):** once spreads are extremely wide and prices are far below par, many desks stop talking in yield/spread language and start talking in price/recovery language ("cents on the dollar"). At that point, yield-to-maturity can become a poor guide to economics: a bond trading at 30 cents with a 5% coupon has a "yield" that is mathematically computable but not operationally useful for distressed decision-making.
 
 **CDS Upfront Convention for Distressed Names**
 
-For distressed credits, CDS also shifts from running spread to upfront pricing. The **standard market coupon** (100 bp for investment grade, 500 bp for high yield in North America) remains fixed, and the market quotes the upfront payment required to enter the contract.
+For distressed credits, CDS also shifts from running spread to upfront pricing. A standardized coupon (often 100 bp for investment grade and 500 bp for high yield in North America, depending on contract terms) remains fixed, and the market quotes the upfront payment required to enter the contract.
 
 | Quoting Regime | Bond Quote | CDS Quote | Investor Focus |
 |----------------|------------|-----------|----------------|
@@ -914,74 +914,8 @@ This illustrates the "doubly bad" phenomenon: when you most need diversification
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| Credit event is legal trigger for CDS protection, similar to but not identical to default | O'Kane Ch 5 |
-| Credit event taxonomy (bankruptcy, failure to pay, restructuring, etc.) | O'Kane Ch 5, Table 5.1 |
-| Restructuring is the only soft credit event | O'Kane Ch 5 |
-| Hard credit events cause debt to trade at single price | O'Kane Ch 5 |
-| Recovery rate definition: bond price shortly after default as % of face | Hull Ch 24, O'Kane Ch 3 |
-| Recovery rate statistics by seniority (Table 3.2) | O'Kane Ch 3 (Altman et al. 2003b) |
-| Mean recovery for senior unsecured bonds = 34.89% | O'Kane Ch 3 |
-| Average assumed recovery rate of 40% | Hull Ch 24 |
-| Negative correlation between recovery and default rates | O'Kane Ch 3, Hull Ch 24 |
-| Regression: $y = 0.51 - 2.6x$, $R^2 = 0.51$ | O'Kane Ch 3, Figure 3.2 (Altman et al. 2003a) |
-| Credit derivatives recovery price determined within ~72 days | O'Kane Ch 3 |
-| Physical vs cash settlement mechanics | O'Kane Ch 5, Hull Ch 25 |
-| Delivery option example ($43 vs $37 bonds) | O'Kane Ch 5 |
-| Restructuring clause variations (Old-Re, Mod-Re, Mod-Mod-Re, No-Re) | O'Kane Ch 5, Table 5.2 |
-| Spread ordering by restructuring clause | O'Kane Ch 5 |
-| Merton model: equity as call on firm value | O'Kane Ch 3, Hull Ch 24 |
-| Merton model limitations | O'Kane Ch 3 |
-| Merton model determines recovery endogenously | O'Kane Ch 3 |
-| Moody's definition of default | O'Kane Ch 3 |
-| Technical default not included in rating agency statistics | O'Kane Ch 3 |
-| Historical cumulative default rates by rating (Table 3.1) | O'Kane Ch 3 (Hamilton et al. 2005) |
-| Lehman payout 91.375% of principal (recovery ~8.6%) | Hull Ch 25 |
-| Risk-neutral hazard rates higher than historical (Baa: ~5× ratio) | Hull Ch 24, Table 24.2 |
-| Default clustering creates systematic risk | Hull Ch 24 |
-| Accrued premium paid at default; accrued coupon lost | O'Kane Ch 5 |
-| Grace period in failure to pay definition | O'Kane Ch 5 |
-| ISDA auction process for CDS settlement | Hull Ch 25 |
-| APR not always obeyed; subordinated may recover more than senior | O'Kane Ch 3 |
-
-### (B) Claude-Extended Content (Practitioner Knowledge)
-
-| Content | Context |
-|---------|---------|
-| Par vs distressed trading conventions and quote shift | Extended from general fixed income knowledge; standard market practice |
-| Upfront CDS quoting convention for distressed names | Standard market practice post-Big Bang protocol |
-| ISDA Determinations Committee structure and voting | Post-2009 market infrastructure; not detailed in O'Kane (pre-dates) |
-| Two-stage auction mechanism (IMM + open auction) | Extended from Hull's description; standard ISDA auction protocol |
-| Credit event timeline with day-by-day operational detail | Synthesized from O'Kane's settlement description + market practice |
-| Coverage ratio table by rating | Derived from Hull Table 24.2 with interpretation |
-| Gray zone P&L risk example | Practical illustration of basis risk concept from O'Kane |
-| APR violation mechanisms (negotiated settlements, option value) | Extended from O'Kane's APR discussion |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-| Inference | Derivation |
-|-----------|------------|
-| Physical/cash settlement equivalence when settlement price = market price | Direct from mechanics: both yield $N(1 - P/100)$ |
-| Delivery option value = spread between deliverables | Follows from cheapest-to-deliver principle |
-| LGD = 1 - R | Definition |
-| Accrued premium formula $N \cdot S \cdot \alpha$ | Follows from day-count mechanics described |
-| Bad default year is "doubly bad" | Combines high default rate with negative recovery correlation |
-| Coverage ratio formula and interpretation | Derived from Hull's risk-neutral vs historical comparison |
-| Upfront ≈ (S - C) × Risky Duration | Standard approximation from CDS pricing theory |
-
-### (D) Flagged Uncertainties
-
-- **Exact ISDA DC voting thresholds:** The 80% (12/15) supermajority requirement is current standard but may evolve with ISDA protocol updates. Practitioners should verify current rules.
-
-- **Current standard coupons:** The 100bp IG / 500bp HY standard coupons are North American conventions as of 2009 Big Bang. Other regions and future protocol changes may differ.
-
-- **ISDA Definitions evolution:** O'Kane explicitly notes that definitions evolve; practitioners should verify current contract language for their specific trades.
-
-- **Current market conventions:** Recovery assumptions, standard coupons, and index compositions evolve with market practice. The statistics cited reflect historical data through approximately 2005-2008.
-
-- **Auction settlement operational details:** The general mechanism is described, but specific procedures (timing windows, participant eligibility, cap rules) should be verified against current ISDA auction settlement terms.
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (credit events, recovery concepts, default definitions and historical context)
+- Hull, *Options, Futures, and Other Derivatives* (credit risk, CDS basics, recovery and hazard-rate intuition)
+- Altman et al. on empirical recovery statistics and recovery–default correlation (as cited in O'Kane)

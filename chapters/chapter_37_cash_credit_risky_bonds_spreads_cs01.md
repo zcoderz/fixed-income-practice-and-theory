@@ -427,7 +427,7 @@ where $D(0,T) = -\int_0^T Z(0,s) \, dQ(0,s)$.
 
 - If $R = 0$, recovery term vanishes and bond PV is just survival-weighted discounted cashflows.
 - If $Q(0,t) = 1$ for all $t$, bond PV reduces to risk-free PV (recovery term becomes 0 because $dQ = 0$).
-- **If you need a different recovery convention (RT or RMV):** I'm not sure how your desk defines recovery cashflows without an explicit convention choice. You must specify RT vs RFV vs RMV (and whether coupons/accrual are recovered). QRM explicitly distinguishes these conventions.
+- **If you need a different recovery convention (RT or RMV):** NOT SURE: pricing and CS01 outputs depend on the chosen convention and on what is assumed to be recovered (face vs Treasury value vs market value; treatment of coupon and accrued). To proceed, specify RT vs RFV vs RMV and the cashflow rule at default. QRM explicitly distinguishes these conventions.
 
 ---
 
@@ -1955,62 +1955,9 @@ $$U = (S - S_{\text{std}}) \times RPV01$$
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Cite Specific Sources
-
-- Risky ZCB factorization $\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$ under independence (O'Kane Ch 3)
-- Payment-at-default PV $D(0,T) = -\int_0^T Z \, dQ$ (O'Kane Ch 3)
-- Z-spread (ZVS) definition (O'Kane Ch 4.2.9)
-- Credit triangle $S = \lambda(1-R)$ (O'Kane Ch 3.6)
-- Spread duration expansion $dP/P \approx -D_s \, ds$ (O'Kane Ch 4.2.7)
-- Spread duration = interest rate duration for fixed-rate bonds (O'Kane Ch 4.2.7)
-- Credit DV01 sign convention (O'Kane Ch 4.2.7)
-- DV01 scaling $DV01 = PD/10{,}000$ (Tuckman Ch 5)
-- Recovery conventions RT/RFV/RMV (QRM)
-- Clean/dirty price relationship (Tuckman Ch 1-4)
-- Par floater spread definition (O'Kane Ch 4.3)
-- FRN pricing mechanics (O'Kane Ch 4.3)
-- Par asset swap spread formula (O'Kane Ch 4.4, Equation 4.37)
-- Market asset swap (O'Kane Ch 4.5)
-- CDS basis definition: CDS spread - Bond Libor spread (O'Kane Ch 5.6)
-- Six fundamental basis factors (O'Kane Ch 5.6.1): funding, delivery option, technical default, loss on default, premium accrued, spread floor
-- Six market basis factors (O'Kane Ch 5.6.2): liquidity, synthetic CDO, new issuance, convertible issuance, protection demand, funding risk
-- Credit risk premium decomposition (O'Kane Ch 3.11)
-- Coverage ratio = market spread / actuarial spread (O'Kane Ch 3.11)
-- Upfront CDS format for distressed credits (O'Kane Ch 6.7)
-- Inverted credit curves for distressed names (O'Kane Ch 7.4)
-- Correlation correction $\Theta$ for rates-hazard dependence (O'Kane Ch 3.8.1)
-- Merton model spread term structure and limitations (O'Kane Ch 3.4, Figure 3.4)
-- Coverage ratio/spread premium empirical data (O'Kane Ch 3.11 Table 3.4)
-- Risk-neutral vs historical hazards (Hull OFD Ch 24.5, O'Kane Ch 3.11)
-- Risk-neutral excess return table (Hull OFD Ch 24.5 Table 24.3)
-- CDS-bond basis definition and historical behavior (Hull RM Ch 19.5)
-
-### (B) Claude-Extended Content
-
-- "Desk Reality" boxes providing practitioner perspective on:
-  - Why asset swaps are used (isolating credit from rates)
-  - FRN credit duration misconceptions
-  - Negative basis trade failures in 2008-2009
-  - Carry trade dynamics in high-yield
-  - Pull-to-par vs. pull-to-recovery
-- Coverage ratio interpretation by rating
-- Examples M-O constructed from principles using O'Kane framework
-- Basis driver summary table synthesizing O'Kane's taxonomy
-
-### (C) Reasoned Inference — Note Derivation Logic
-
-- Bond PV decomposition into survival PV + recovery PV derived from building blocks
-- CS01 ≈ $PD_s/10{,}000$ follows from spread duration definition and DV01 analogy
-- Portfolio additivity of CS01 follows from PV additivity
-- FRN price approximation from par floater spread formula
-- Upfront payment calculation from O'Kane formula
-
-### (D) Flagged Uncertainties
-
-- Specific funding cost levels during 2008-2009 crisis — O'Kane written before crisis fully resolved; marked as practitioner note
-- Current basis levels and trends — books data is dated; not included as fact
-- Coverage ratio data sourced from O'Kane Table 3.4 (2002 CDS data); current market levels may differ
-- Correlation correction $\Theta$ calibration is desk-specific; O'Kane provides formula but I'm not sure about current market practice
-
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (Z-spread/ZVS, spread duration/CS01, asset swaps, CDS-bond basis taxonomy)
+- Tuckman & Serrat, *Fixed Income Securities* (clean/dirty pricing, DV01/duration conventions)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (recovery conventions and reduced-form building blocks)
+- Hull, *Risk Management and Financial Institutions* (CDS-bond basis discussion and historical context)
