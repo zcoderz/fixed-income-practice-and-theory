@@ -4,15 +4,15 @@
 
 ## Introduction
 
-When a swaption trader at a major dealer quotes a volatility smile across strikes, the number they show you is intimately connected to a pricing model—but which one? The answer, for most rates desks since the mid-1990s, has been some variant of a **market model**: either the LIBOR Market Model (LMM, also called BGM after Brace, Gatarek, and Musiela) for caps and floors, or the Swap Market Model (LSM) for swaptions. These models took the rates world by storm because they price caps and swaptions using the same Black formula that traders already used for quoting, while providing an internally consistent arbitrage-free framework for exotic derivatives.
+When a swaption trader at a major dealer quotes a volatility smile across strikes, the number they show you is intimately connected to a pricing model—but which one? The answer, for most rates desks since the mid-1990s, has been some variant of a **market model**: either the LIBOR Market Model (LMM, also called BGM after Brace, Gatarek, and Musiela) for caps and floors, or the Swap Market Model (SMM) for swaptions. These models took the rates world by storm because they price caps and swaptions using the same Black formula that traders already used for quoting, while providing an internally consistent arbitrage-free framework for exotic derivatives.
 
-But the story doesn't end with Black's formula. The post-2008 world brought negative interest rates to Europe and Japan, breaking the assumption that forward rates are strictly positive. It brought the SABR model as the dominant volatility smile framework. And it brought multi-curve pricing, where the discount curve (OIS) differs from the projection curve (SOFR, €STR). A modern rates quant must navigate all of these layers.
+But the story doesn't end with Black's formula. In modern rates markets you often have to navigate additional layers: volatility *smiles* (SABR-style parameterizations), near-zero / sometimes-negative rate regimes (normal vs shifted-lognormal conventions), and multi-curve pricing (discounting and projection curves can differ). A desk quant needs to be fluent in the model layer *and* in the quoting/convention layer.
 
 This appendix provides a comprehensive treatment of market models suitable for practitioners moving from middle office to front office roles. We cover:
 
 - **Section A4.1**: Notation conventions used throughout
 - **Section A4.2**: LMM (BGM) fundamentals—forward rate dynamics, measure changes, and the drift calculation
-- **Section A4.3**: Swap Market Model (LSM)—swap rate dynamics and the Rebonato approximation
+- **Section A4.3**: Swap Market Model (SMM)—swap rate dynamics and the Rebonato approximation
 - **Section A4.4**: Connection to the HJM framework
 - **Section A4.5**: SABR model for volatility smiles—the dominant framework for swaption quoting
 - **Section A4.6**: Negative rate handling—Bachelier/Normal model and shifted lognormal approaches
@@ -25,6 +25,15 @@ This appendix provides a comprehensive treatment of market models suitable for p
 - **Section A4.13**: Summary
 
 The material draws primarily from Brigo & Mercurio's *Interest Rate Models: Theory and Practice* and Andersen & Piterbarg's *Interest Rate Modeling*, with practitioner insights from desk experience.
+
+**How to use this appendix (reading paths):**
+
+- **If you’re here for caps/floors:** Sections A4.1–A4.2 (LMM setup + measure changes), then skim A4.9–A4.10 for calibration/simulation.
+- **If you’re here for swaptions:** Section A4.3 (swap market model + Rebonato approximation), then Sections A4.5–A4.6 (SABR / normal vs shifted conventions).
+- **If you keep getting lost in measures:** Read Appendix A1 (numeraires) and Appendix A3 (HJM drift restriction) first, then return to A4.2.2 and A4.4 here.
+- **If you’re implementing Monte Carlo + Greeks:** Sections A4.8–A4.10 (Greeks + calibration + simulation).
+
+**Prerequisites:** Appendix A1 (change of numeraire) and Appendix A3 (HJM viewpoint), plus comfort with basic swap PV/annuity algebra from Chapters 18–25.
 
 ---
 
@@ -64,7 +73,8 @@ Market models use specific probability measures chosen so that particular numera
 |---------|-----------|--------------|
 | $\mathbb{Q}^j$ (Forward measure) | $P(t, T_j)$ | $L_j(t)$ is a martingale |
 | $\mathbb{Q}^{a,b}$ (Swap measure) | $A_{a,b}(t)$ | $S_{a,b}(t)$ is a martingale |
-| $\mathbb{Q}^d$ (Spot/Terminal measure) | Bank account or terminal bond | Used for simulation |
+| $\mathbb{Q}^{\mathrm{spot}}$ (Spot-LIBOR measure) | Discretely compounded bank account $B_d(t)$ | Convenient single measure for simulating the full tenor |
+| $\mathbb{Q}^n$ (Terminal measure) | $P(t, T_n)$ | Alternative simulation measure (useful in some Bermudan setups) |
 
 ### A4.1.4 Black's Formula
 
@@ -103,13 +113,15 @@ which is lognormal, and Black's formula applies exactly for caplets.
 
 The challenge arises when we want to simulate *multiple* forward rates jointly. Under a single measure, only one rate is a martingale; the others acquire drifts.
 
-Suppose we work under the spot measure $\mathbb{Q}^d$ (associated with the discretely-compounded bank account). Brigo & Mercurio derive the drift adjustment using the Girsanov theorem. For $j > d$:
-$$\boxed{dL_j(t) = \mu_j(t) L_j(t) dt + \sigma_j(t) L_j(t) \, dW_j^d(t)}$$
+Suppose we work under the **spot-LIBOR measure** $\mathbb{Q}^{\mathrm{spot}}$, associated with a **discretely compounded bank account** (often denoted $B_d(t)$ in the literature). Brigo & Mercurio derive the drift adjustment via the change-of-numeraire / Girsanov toolkit.
+
+To state the drift cleanly, define $\beta(t)$ as the index of the **first forward rate that is still stochastic at time $t$** (intuitively: the next reset date on the tenor schedule). Then, for $j \ge \beta(t)$:
+$$\boxed{dL_j(t) = \mu_j(t) L_j(t) \, dt + \sigma_j(t) L_j(t) \, dW_j^{\mathrm{spot}}(t)}$$
 
 where the drift is:
-$$\mu_j(t) = \sum_{k=d+1}^{j} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)}$$
+$$\mu_j(t) = \sum_{k=\beta(t)}^{j} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)}$$
 
-and $\rho_{jk}$ is the instantaneous correlation between $dW_j$ and $dW_k$.
+and $\rho_{jk}$ is the instantaneous correlation between the Brownian drivers of $L_j$ and $L_k$.
 
 **The Coupled Drift Problem:** Notice that $\mu_j(t)$ depends on *other* forward rates $L_k(t)$. This creates a system of coupled SDEs that cannot be solved in closed form. Simulation is required for exotic pricing.
 
@@ -118,7 +130,7 @@ and $\rho_{jk}$ is the instantaneous correlation between $dW_j$ and $dW_k$.
 Alternatively, under the terminal measure $\mathbb{Q}^n$ (numeraire $P(t, T_n)$), forward rates with $j < n$ have *negative* drifts:
 $$dL_j(t) = -\sum_{k=j+1}^{n} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)} L_j(t) dt + \sigma_j(t) L_j(t) \, dW_j^n(t)$$
 
-> **Practitioner Note:** Terminal measure is often preferred for Bermudan swaption pricing because the numeraire $P(t, T_n)$ remains positive and the drift expression is simpler (no "look-forward" terms).
+> **Practitioner Note:** Terminal measure is sometimes used for Bermudan-style simulations because the numeraire is a fixed final bond and you have a single measure for all rates. Note that the drift typically depends on later-maturity rates, so “simplicity” is relative—choose the simulation measure that best matches your implementation and payoff structure.
 
 ### A4.2.4 Volatility and Correlation Structures
 
@@ -161,7 +173,7 @@ $$\text{Cap} = \sum_{j=1}^{n} \text{Caplet}_j$$
 
 ## A4.3 Swap Market Model Essentials
 
-While the LMM is natural for caps/floors, swaptions are more directly handled by the **Swap Market Model (LSM)**, which models swap rates directly.
+While the LMM is natural for caps/floors, swaptions are more directly handled by the **Swap Market Model (SMM)**, which models swap rates directly.
 
 ### A4.3.1 Swap Rate Dynamics Under the Swap Measure
 
@@ -180,12 +192,10 @@ This is known as the **co-terminal swaption problem**. The swap market model is 
 ### A4.3.3 Rebonato's Swaption Approximation: The Freezing Technique
 
 Rebonato provides a powerful approximation that connects LMM dynamics to swaption volatilities. The key insight is that swap rates are complicated functions of forward rates:
-$$S_{a,b}(t) = \frac{\sum_{j=a+1}^{b} \tau_j P(t, T_j) L_j(t)}{\sum_{j=a+1}^{b} \tau_j P(t, T_j)} \cdot \frac{P(t, T_a) - P(t, T_b)}{P(t, T_a) - P(t, T_b)}$$
+$$S_{a,b}(t) = \frac{P(t, T_a) - P(t, T_b)}{A_{a,b}(t)} = \sum_{j=a+1}^{b} w_j(t)\,L_j(t)$$
 
-More directly, using the relationship between forward rates and bond prices:
-$$S_{a,b}(t) = \frac{\sum_{j=a+1}^{b} w_j(t) L_j(t)}{1}$$
-
-where the weights $w_j(t)$ depend on bond prices.
+where the weights $w_j(t)$ are annuity-normalized discount factors:
+$$w_j(t) = \frac{\tau_j P(t, T_j)}{A_{a,b}(t)}, \qquad \sum_{j=a+1}^{b} w_j(t) = 1.$$
 
 **The Freezing Approximation:** Freeze the weights at their time-0 values:
 $$w_j(t) \approx w_j(0) = \frac{\tau_j P(0, T_j)}{A_{a,b}(0)}$$
@@ -197,7 +207,7 @@ where $v_{a,b}$ is the swaption implied volatility.
 
 > **Desk Reality: How Good Is Freezing?**
 >
-> Brigo & Mercurio (Ch. 8) report freezing tests showing errors typically under 1-2% in swaption prices for reasonable parameterizations. The approximation works best for short-dated swaptions and flattish rate environments. It degrades when:
+> Freezing is a **workhorse approximation** for relating an LMM calibration to a swaption surface. It is often a decent first pass for vanilla products, but it can degrade when:
 > - Forward rates move significantly from initial values
 > - Volatility is highly time-dependent
 > - The swap has very long tenor
@@ -254,7 +264,7 @@ V(0) &= \alpha
 
 where:
 - $Z$ and $W$ are correlated Brownian motions with $dZ \cdot dW = \rho \, dt$
-- $\beta \in (0, 1]$ controls the CEV-like skew
+- $\beta \in [0, 1]$ controls the CEV-like backbone (with $\beta = 0$ corresponding to a normal/Bachelier-style backbone)
 - $\alpha > 0$ is the initial volatility level
 - $\nu > 0$ is the volatility-of-volatility ("vol-of-vol")
 - $\rho \in [-1, 1]$ is the correlation between forward and volatility
@@ -278,12 +288,12 @@ $$\boxed{\sigma^{\text{ATM}} = \frac{\alpha}{F^{1-\beta}} \left\{1 + \left[\frac
 
 Each SABR parameter has intuitive meaning for the shape of the volatility smile:
 
-| Parameter | Effect on Smile | Typical Range |
-|-----------|-----------------|---------------|
-| $\alpha$ | Overall volatility level (ATM vol) | 0.1 – 1.0 |
-| $\beta$ | Backbone slope; determines how ATM vol moves with forward | 0 – 1 (often 0.5 or 1) |
-| $\rho$ | Skew direction; negative $\rho$ creates downward-sloping smile | −0.8 to 0.3 |
-| $\nu$ | Smile curvature (wings); higher $\nu$ means fatter tails | 0.1 – 1.0 |
+| Parameter | What it does | Practical notes |
+|-----------|--------------|-----------------|
+| $\alpha$ | Overall level (pins ATM vol once $\beta$ is chosen) | Usually calibrated per expiry/tenor |
+| $\beta$ | Backbone: how vol scales with the rate level | Often fixed to reduce instability; changing $\beta$ materially changes how ATM vol responds when rates move |
+| $\rho$ | Skew direction and slope | Negative $\rho$ typically produces a downward-sloping smile (higher vol for low strikes) |
+| $\nu$ | Curvature / wing strength (vol-of-vol) | Larger $\nu$ typically fattens wings (more curvature) |
 
 **The skew decomposition:** Brigo & Mercurio show that the skew comes from two sources:
 1. **Beta skew:** Proportional to $(1 - \beta)$; a pure CEV effect
@@ -291,7 +301,7 @@ Each SABR parameter has intuitive meaning for the shape of the volatility smile:
 
 > **Desk Reality: SABR Calibration Practice**
 >
-> On most rates desks, SABR calibration follows a specific recipe:
+> A common desk approach to SABR calibration is:
 > 1. **Fix $\beta$:** Often set $\beta = 0.5$ (square-root) or $\beta = 1$ (lognormal). The choice is usually made once and held constant across the surface.
 > 2. **Calibrate $\alpha$ to ATM:** For each expiry-tenor pair, find $\alpha$ that matches ATM vol.
 > 3. **Calibrate $\rho, \nu$ to smile:** Fit the remaining parameters to OTM quotes.
@@ -313,7 +323,7 @@ The Hagan formula applies directly with $F \to S_{a,b}(0)$ and $T \to T_a$ (swap
 The SABR model, while practical, has known issues:
 
 1. **Arbitrage at extreme strikes:** The Hagan approximation can produce negative implied densities for very OTM options
-2. **Long-dated maturities:** The approximation degrades for $T > 10$ years
+2. **Very long-dated maturities:** The approximation can degrade as $T$ grows large
 3. **Negative rates:** Standard SABR assumes $F > 0$; see Section A4.6 for extensions
 4. **No term structure of parameters:** Each expiry is calibrated independently; no dynamic consistency
 
@@ -321,7 +331,7 @@ The SABR model, while practical, has known issues:
 
 ## A4.6 Negative Rate Handling
 
-The European Central Bank's negative rate policy (2014–2022) and similar policies in Japan and Switzerland broke a fundamental assumption of Black's formula: that rates are positive. Markets needed new approaches.
+Strict Black/log-normal models assume the underlying rate stays positive. When rates are near zero (and can plausibly go negative), desks typically switch to models and quoting conventions that remain well-defined around zero: **normal (Bachelier)** pricing, or **shifted/displaced** log-normal constructions, often combined with SABR-style smiles.
 
 ### A4.6.1 The Bachelier (Normal) Model
 
@@ -338,6 +348,8 @@ $$d = \frac{F - K}{\sigma_N\sqrt{T-t}}$$
 
 and $\Phi(\cdot)$, $\phi(\cdot)$ are the standard normal CDF and PDF.
 
+**PV conversion:** This is the option price in forward units. Multiply by the appropriate numeraire/discount factor to get PV (e.g., caplet PV uses $\tau_j P(t,T_j)$; swaption PV uses the annuity $A_{a,b}(t)$).
+
 **Key properties:**
 - The forward rate can go negative
 - Volatility is quoted in absolute terms (bp), not relative terms (%)
@@ -345,7 +357,7 @@ and $\Phi(\cdot)$, $\phi(\cdot)$ are the standard normal CDF and PDF.
 
 > **Desk Reality: Normal Vol Quoting**
 >
-> When rates went negative in Europe, the market shifted to quoting swaption volatilities in normal (bp) terms. A trader saying "the 10y10y is at 60 bp vol" means $\sigma_N = 0.60\%$ per year. This convention persists even as rates returned to positive territory, creating a dual-quoting regime.
+> In some markets, swaptions are quoted in **normal (bp) vol** terms, especially when rates are low/near-zero. A trader saying “the 10y10y is at 60 bp vol” means $\sigma_N = 0.60\\%$ per year in the Bachelier model. Always confirm whether a quote is Black vol (%) or normal vol (bp).
 
 ### A4.6.2 Shifted Lognormal (Displaced Diffusion)
 
@@ -361,10 +373,11 @@ $$\boxed{c_{\text{DLN}}(t, F; T, K; \sigma, s) = (F + s)\Phi(d_+) - (K + s)\Phi(
 where:
 $$d_\pm = \frac{\ln\frac{F + s}{K + s} \pm \frac{1}{2}\sigma^2(T-t)}{\sigma\sqrt{T-t}}$$
 
+**PV conversion:** As with Black, this is a forward-measure style expression. Multiply by the relevant discount factor/annuity for caplets/swaptions.
+
 **The shift parameter:**
-- Common choices: $s = 1\%$, $s = 2\%$, $s = 3\%$
 - Must be large enough that $F + s > 0$ for all scenarios
-- Different desks use different shifts, creating translation headaches
+- Different desks can use different shifts; always confirm $s$ when comparing “implied vols” across systems
 
 ### A4.6.3 Shifted SABR
 
@@ -378,7 +391,7 @@ Apply the standard SABR formula with $F \to F + s$ and $K \to K + s$.
 
 > **Desk Reality: The Shift Coordination Problem**
 >
-> When Europe went negative, different desks chose different shifts (1%, 2%, 3%). This created reconciliation nightmares—two desks could agree on a swaption price but disagree on the "implied vol" because they used different shifts. The eventual convention settled on $s = 1\%$ or $s = 2\%$ for EUR, but always confirm the shift when comparing quotes.
+> Different desks can agree on a swaption price but disagree on the “implied vol” if they use different shifts. When you reconcile quotes, always bring the discussion back to **price** (or vega) and explicitly state the shift convention used.
 
 ### A4.6.4 Normal SABR
 
@@ -394,10 +407,10 @@ This is essentially SABR with $\beta = 0$. The Hagan approximation gives normal 
 
 | Model | Handles Negative Rates? | Smile? | Common Usage |
 |-------|------------------------|--------|--------------|
-| Black (lognormal) | No | Via SABR | USD, legacy |
-| Bachelier (normal) | Yes | Limited | EUR quoting, spread options |
-| Shifted lognormal | Yes | Via shifted SABR | EUR, JPY |
-| Normal SABR | Yes | Yes | EUR primary |
+| Black (lognormal) | No | Via SABR | Log-normal quoting conventions; positive-rate setups |
+| Bachelier (normal) | Yes | Limited (by itself) | Low/near-zero rate environments; spread-style payoffs |
+| Shifted lognormal | Yes | Via shifted SABR | Keep a Black-style backbone while allowing modest negatives |
+| Normal SABR | Yes | Yes | Smile modeling when rates can go negative (Bachelier backbone) |
 
 ---
 
@@ -420,14 +433,9 @@ A perennial question from junior quants moving to the desk: "Which model should 
 
 Brigo & Mercurio include a fascinating appendix interviewing rates traders about model choice. Key insights:
 
-**On simple vs. complex models:**
-> "We use Black's model for vanilla swaptions. For exotics, we simulate. The model complexity should match the product complexity."
-
-**On SABR:**
-> "SABR is for quoting and risk management, not pricing. For exotic pricing, we use a calibrated LMM and check SABR-implied vols as a sanity check."
-
-**On negative rates:**
-> "When rates went negative, we switched to normal vol quoting almost overnight. The shifted models came later as people wanted to preserve their Black-based infrastructure."
+- **Match complexity to the product:** vanilla books often rely on fast closed-form pricing (Black-style formulas under the right measure), while exotics require simulation.
+- **Separate “quoting model” from “pricing dynamics”:** SABR-like parameterizations are often used to fit/interpolate a volatility surface, while a calibrated multi-rate dynamics model (e.g., LMM) is used to generate paths and price path-dependent payoffs.
+- **Be explicit about conventions near zero:** normal vs shifted-lognormal quoting and parameter choices can materially affect “implied vols” even when prices agree. Always confirm what the desk/system uses.
 
 ### A4.7.3 Use Case Matrix
 
@@ -592,10 +600,10 @@ This produces a lower-rank correlation structure that is more stable.
 
 ### A4.9.5 The Freezing Approximation: Error Analysis
 
-Brigo & Mercurio (Ch. 8) test the accuracy of the freezing approximation. Key findings:
+The freezing approximation is a practical shortcut, not a theorem. Its accuracy depends on how much the weights $w_j(t)$ move away from their time-0 values.
 
 **When freezing works well:**
-- Short-dated swaptions (< 5 years)
+- Short-dated swaptions
 - Low volatility environments
 - Moderate rate levels
 
@@ -605,12 +613,7 @@ Brigo & Mercurio (Ch. 8) test the accuracy of the freezing approximation. Key fi
 - Extreme rate levels
 - Steeply sloped yield curves
 
-**Quantitative tests:** For typical parameterizations, freezing errors are:
-- < 1% for 1y-into-5y swaptions
-- 1-3% for 5y-into-10y swaptions
-- Potentially > 5% for 10y-into-20y swaptions
-
-> **Practitioner Note:** If freezing errors concern you, consider using Monte Carlo to validate the Rebonato approximation for your specific calibration. Some desks run a "freezing check" as part of model validation.
+> **Practitioner Note:** If freezing errors concern you, validate the approximation on your product set via Monte Carlo (or via a higher-fidelity numerical scheme) and treat Rebonato as a diagnostic, not as ground truth.
 
 ### A4.9.6 CMS Convexity Adjustment
 
@@ -634,7 +637,7 @@ For practical CMS pricing, desks often use replication arguments—expressing th
 
 ### A4.10.1 Euler Discretization
 
-For simulation, we discretize the LMM SDE. Under the spot measure with time steps $\Delta t$:
+For simulation, we discretize the LMM SDE. Under the spot-LIBOR measure $\mathbb{Q}^{\mathrm{spot}}$ with time steps $\Delta t$:
 $$L_j(t + \Delta t) = L_j(t) \exp\left[\left(\mu_j(t) - \frac{1}{2}\sigma_j(t)^2\right)\Delta t + \sigma_j(t)\sqrt{\Delta t} \, Z_j\right]$$
 
 where $Z_j$ are correlated standard normals: $\mathbb{E}[Z_j Z_k] = \rho_{jk}$.
@@ -672,7 +675,7 @@ Bermudan swaptions allow exercise at multiple dates. Pricing requires solving an
 > **Desk Reality: LSM Noise and Bias**
 >
 > LSM is notoriously noisy for Bermudans. Desks typically use:
-> - Large path counts (100,000+)
+> - Large path counts
 > - Antithetic variates
 > - Control variates (European swaption as control)
 > - Boundary smoothing techniques
@@ -681,28 +684,25 @@ Bermudan swaptions allow exercise at multiple dates. Pricing requires solving an
 
 ### A4.10.4 SOFR Adaptation: The Multi-Curve Framework
 
-Post-LIBOR transition, the LMM must be adapted for SOFR and other RFRs (risk-free rates).
+In an RFR (risk-free rate) world, market-model implementations need to respect **multi-curve reality**: discounting and projection can use different curves (see Chapters 18–22 for curve construction and multi-curve plumbing).
 
-**Key differences from LIBOR:**
-1. **Backward-looking:** SOFR is observed in arrears, not forward-looking
-2. **Daily compounding:** SOFR compounds daily over the accrual period
-3. **No term rate:** SOFR Term exists but has limited liquidity
+**Key conceptual difference vs LIBOR-style forwards:** many RFR floating coupons are **compounded in arrears** (built from daily overnight fixings) rather than being a single forward-looking fixing.
 
-**SOFR forward rate definition:**
-$$L_j^{\text{SOFR}}(t) = \frac{1}{\tau_j}\left(\prod_{d \in [T_{j-1}, T_j)} (1 + \delta_d r_d) - 1\right)$$
+**Compounded-in-arrears coupon (illustrative form):**
+$$R_{j}(T_{j-1},T_j)=\frac{1}{\tau_j}\left(\prod_{d \in [T_{j-1}, T_j)} (1 + \delta_d r_d) - 1\right)$$
 
 where $r_d$ is the daily SOFR and $\delta_d$ is the daily accrual.
 
-**Modeling approach:** Treat SOFR as approximately equal to the daily-compounded average of the short rate over the period. Under certain assumptions, the LMM dynamics carry over with minor modifications.
+**Modeling approach (high level):** You have several consistent choices, depending on product and system:
+1. **Market-model proxy:** model a simply-compounded forward-like rate on the tenor grid (LMM-style) and map it to the compounded coupon.
+2. **Short-rate/HJM viewpoint:** model the short rate (or instantaneous forwards) and build the compounded coupon as an integral/product functional.
+3. **Direct modeling:** treat the compounded rate itself as the primitive (less common, but conceptually clean).
 
 **Two-curve framework:**
 - **Discount curve:** OIS curve (based on overnight rates)
 - **Projection curve:** SOFR curve (for floating payments)
 
-Prices are computed as:
-$$V = \mathbb{E}^{\mathbb{Q}^d}\left[\sum_j D(0, T_j) \cdot \text{Cashflow}_j\right]$$
-
-where $D(0, T_j)$ uses the OIS discount curve and SOFR rates project the floating cashflows.
+**Practical reminder:** even when you simulate under a convenient measure (spot/terminal), the discounting curve used for PV should be consistent with the collateral/CSA assumptions of the trade.
 
 ---
 
@@ -710,23 +710,21 @@ where $D(0, T_j)$ uses the OIS discount curve and SOFR rates project the floatin
 
 ### A4.11.1 Derivation of the LMM Drift
 
-Under the spot measure $\mathbb{Q}^d$, we derive the drift of $L_j(t)$ using Girsanov's theorem.
+Under the spot-LIBOR measure $\mathbb{Q}^{\mathrm{spot}}$, we derive the drift of $L_j(t)$ using the change-of-numeraire / Girsanov toolkit.
 
 **Setup:** Under $\mathbb{Q}^j$, $L_j$ is a martingale:
 $$dL_j(t) = \sigma_j(t) L_j(t) \, dW_j^j(t)$$
 
-**Measure change:** The Radon-Nikodym derivative from $\mathbb{Q}^d$ to $\mathbb{Q}^j$ is:
-$$\frac{d\mathbb{Q}^j}{d\mathbb{Q}^d}\bigg|_t = \frac{P(t, T_j)/P(0, T_j)}{B(t)/B(0)}$$
+**Key idea:** changing measures changes drifts by a covariance term involving the relative volatility of the numeraire ratio.
 
-where $B(t)$ is the bank account numeraire.
-
-**Applying Girsanov:** The drift adjustment for $L_j$ under $\mathbb{Q}^d$ is:
+**Applying Girsanov (high level):** The drift adjustment for $L_j$ under $\mathbb{Q}^{\mathrm{spot}}$ can be written schematically as
 $$\mu_j(t) = \frac{d\langle L_j, M \rangle_t}{L_j(t) \, dt}$$
 
-where $M$ is the martingale part of $\ln(B(t)/P(t, T_j))$.
+where $M$ is the martingale part coming from the numeraire change (details in the references).
 
-**Result:** After careful computation (see Brigo & Mercurio Ch. 6):
-$$\mu_j(t) = \sum_{k=d+1}^{j} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)}$$
+**Result (spot-LIBOR measure drift):** Define $\beta(t)$ as the index of the first forward rate still stochastic at time $t$. Then the spot-measure drift of $L_j$ is
+$$\boxed{\mu_j(t) = \sum_{k=\beta(t)}^{j} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)}}$$
+which is the coupled-drift term used in LMM simulation.
 
 ### A4.11.2 Derivation of the Rebonato Formula
 
@@ -1062,13 +1060,13 @@ This approximation is used as a starting point for LSM regression.
 
 ### Key Takeaways
 
-1. **Market models (LMM, LSM) are designed for Black-formula compatibility:** The genius of market models is that they ensure vanilla options price exactly via Black's formula under the appropriate measure.
+1. **Market models (LMM, SMM) are designed for Black-formula compatibility:** The genius of market models is that they ensure vanilla options price exactly via Black's formula under the appropriate measure.
 
 2. **The drift adjustment is the complexity:** Under any common measure, most rates acquire drifts that depend on other rates, creating coupled dynamics that require simulation.
 
 3. **SABR is the smile standard:** For capturing volatility smiles in caplets and swaptions, SABR has become the industry standard due to its tractable approximation and intuitive parameters.
 
-4. **Negative rates require model adaptation:** The post-2014 world uses Normal (Bachelier) volatility quoting, shifted lognormal models, or shifted SABR to handle negative rates.
+4. **Near-zero/negative rates require convention-aware modeling:** Normal (Bachelier) quoting, shifted/displaced lognormal models, or normal/shifted SABR are common toolkits when strict log-normal assumptions break down near zero.
 
 5. **Calibration is an art:** Matching market prices requires regularization, careful parameter choices, and validation of approximations like freezing.
 
@@ -1093,7 +1091,7 @@ This approximation is used as a starting point for LSM regression.
 |---------|------------|----------------|
 | **Forward measure $\mathbb{Q}^j$** | Measure with numeraire $P(t, T_j)$; $L_j$ is martingale | Enables Black formula for caplets |
 | **Swap measure $\mathbb{Q}^{a,b}$** | Measure with numeraire $A_{a,b}(t)$; $S_{a,b}$ is martingale | Enables Black formula for swaptions |
-| **LMM drift** | $\mu_j = \sum_k \frac{\tau_k \rho_{jk} \sigma_j \sigma_k L_k}{1 + \tau_k L_k}$ | Coupled dynamics require simulation |
+| **LMM drift (spot measure)** | $\mu_j = \sum_{k=\beta(t)}^{j} \frac{\tau_k \rho_{jk} \sigma_j \sigma_k L_k}{1 + \tau_k L_k}$ | Coupled dynamics require simulation |
 | **Rebonato approximation** | Freezes weights in swap-rate expansion | Connects LMM to swaption vols |
 | **SABR** | Stochastic volatility model for smile | Industry standard for vol surface |
 | **$\beta$ (SABR)** | CEV exponent controlling backbone | Often fixed at 0.5 or 1 |
@@ -1121,6 +1119,9 @@ This approximation is used as a starting point for LSM regression.
 | $\rho_{jk}$ | Correlation between $L_j$ and $L_k$ |
 | $\mathbb{Q}^j$ | $T_j$-forward measure |
 | $\mathbb{Q}^{a,b}$ | Swap measure |
+| $\mathbb{Q}^{\mathrm{spot}}$ | Spot-LIBOR measure (single simulation measure on the tenor grid) |
+| $\mathbb{Q}^n$ | Terminal measure (numeraire $P(t,T_n)$) |
+| $\beta(t)$ | Index of first forward rate still stochastic at time $t$ |
 | $\alpha, \beta, \rho, \nu$ | SABR parameters |
 | $\sigma_N$ | Normal (Bachelier) volatility |
 | $s$ | Shift parameter for shifted lognormal |
@@ -1135,7 +1136,7 @@ This approximation is used as a starting point for LSM regression.
 |---|----------|--------|
 | 1 | What does LMM stand for? | LIBOR Market Model (also called BGM: Brace-Gatarek-Musiela) |
 | 2 | Why is the forward measure $\mathbb{Q}^j$ special for $L_j$? | Under $\mathbb{Q}^j$, $L_j$ is a martingale, so Black's formula applies directly |
-| 3 | What is the LMM drift under the spot measure? | $\mu_j = \sum_{k \leq j} \frac{\tau_k \rho_{jk} \sigma_j \sigma_k L_k}{1 + \tau_k L_k}$ |
+| 3 | What is the LMM drift under the spot measure? | $\mu_j = \sum_{k=\beta(t)}^{j} \frac{\tau_k \rho_{jk} \sigma_j \sigma_k L_k}{1 + \tau_k L_k}$, where $\beta(t)$ is the first still-stochastic forward index |
 | 4 | Why can't multiple swap rates all be lognormal? | Different swap rates are ratios of different bond portfolios; making one lognormal makes others non-lognormal |
 | 5 | What is the Rebonato approximation? | Freeze the weights $w_j$ at time 0 to derive swaption vol from LMM parameters |
 | 6 | What does SABR stand for? | Stochastic Alpha Beta Rho |
@@ -1145,8 +1146,8 @@ This approximation is used as a starting point for LSM regression.
 | 10 | Why is $\beta$ often fixed in calibration? | Parameters are poorly identified; fixing $\beta$ breaks degeneracy |
 | 11 | What is Normal (Bachelier) volatility? | Volatility in absolute (bp) terms, assuming arithmetic Brownian motion |
 | 12 | How do you handle negative rates in Black's model? | Use shifted lognormal: $F \to F + s$, $K \to K + s$ |
-| 13 | What is the typical shift for EUR rates? | 1% or 2% |
-| 14 | What is the freezing approximation error magnitude? | Typically < 1-2% for short-dated swaptions; can exceed 5% for long-dated |
+| 13 | What is a “typical” shift? | NOT SURE: there is no universal shift; it is a desk/system convention. Always confirm $s$ from the quoting rulebook or risk system settings. |
+| 14 | How accurate is the freezing approximation? | Often useful as a first approximation/diagnostic, but accuracy depends on expiry/tenor/vol regime; validate on your product set. |
 | 15 | What is pathwise differentiation? | Differentiating through simulation paths to compute Greeks |
 | 16 | When does pathwise differentiation fail? | For discontinuous payoffs (barriers, digitals) |
 | 17 | What is the likelihood ratio method? | Using the density score function to compute Greeks; works for any payoff |
@@ -1160,7 +1161,7 @@ This approximation is used as a starting point for LSM regression.
 | 25 | What is the "backbone" in SABR? | How ATM implied vol changes as the forward rate moves |
 | 26 | What is "vanna skew" in SABR? | Skew component from $\rho$ (forward-vol correlation), proportional to $\rho\nu$ |
 | 27 | What does terminal measure mean? | Numeraire is the final bond $P(t, T_n)$; forward rates $j < n$ have negative drift |
-| 28 | Why prefer terminal measure for Bermudans? | Numeraire stays positive; drift expression is simpler (no look-forward terms) |
+| 28 | Why use terminal measure for Bermudans? | It can be convenient because the numeraire is a fixed final bond and the drift has a clean summation form; the best choice depends on implementation details. |
 | 29 | What is the ATM SABR vol formula (leading term)? | $\sigma^{\text{ATM}} \approx \alpha / F^{1-\beta}$ |
 | 30 | What is predictor-corrector in LMM simulation? | Two-step method: predict with current drift, correct using averaged drift |
 | 31 | How does correlation affect swaption vol in LMM? | Higher correlation increases swaption vol (more coordinated rate moves) |
@@ -1177,7 +1178,7 @@ This approximation is used as a starting point for LSM regression.
 | 42 | What is "volga" in SABR context? | Smile curvature from vol-of-vol, proportional to $\nu^2$ |
 | 43 | Why calibrate to swaptions not just caps? | Swaptions contain information about rate correlations |
 | 44 | What is the standard correlation structure in LMM? | Exponential decay: $\rho_{jk} = e^{-\beta|j-k|}$ |
-| 45 | How does SOFR differ from LIBOR for LMM? | Backward-looking, daily compounded, no forward-looking term |
+| 45 | How do RFR coupons differ from LIBOR-style forwards? | Many are compounded in arrears from daily overnight fixings; your model must map its state variables to that coupon definition. |
 
 ---
 
@@ -1230,7 +1231,7 @@ $$v_{a,b}^2 T_a = \sum_{j,k} w_j w_k \text{Cov}^{a,b}[\ln L_j(T_a), \ln L_k(T_a)
 
 **Problem 15.** In a two-curve framework, the floating leg of a swap pays SOFR-linked coupons discounted at OIS rates. Derive the formula for the par swap rate $S_{a,b}^{\text{2-curve}}$ in terms of OIS discount factors and SOFR forward rates.
 
-**Problem 16.** A rates desk uses SABR with $\beta = 0.5$ for EUR swaptions. After a 100 bp rally in rates, the trader notices ATM vol has increased. Explain how this is consistent with the SABR backbone. What would happen if $\beta = 1$?
+**Problem 16.** A rates desk uses SABR with $\beta = 0.5$ for swaptions. After a 100 bp rally in rates, the trader notices ATM vol has increased. Explain how this is consistent with the SABR backbone. What would happen if $\beta = 1$?
 
 **Problem 17.** Compare and contrast pathwise differentiation and the likelihood ratio method for computing caplet delta in Monte Carlo. Include:
    a) When each method is applicable
@@ -1297,52 +1298,19 @@ Therefore $v_{a,b} = \sigma$.
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
+- Damiano Brigo & Fabio Mercurio, *Interest Rate Models: Theory and Practice* (LMM/SMM dynamics, measure changes, Rebonato approximation, SABR overview)
+- Leif B. G. Andersen & Vladimir V. Piterbarg, *Interest Rate Modeling* (option pricing under different backbones; displaced diffusion; simulation/Greeks techniques)
+- Patrick S. Hagan, Deep Kumar, Andrew Lesniewski, & Diana Woodward (2002), “Managing Smile Risk” (SABR model and asymptotic implied-vol approximations)
+- Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (Monte Carlo estimation, variance reduction, and simulation-based Greeks)
 
-| Fact | Source |
-|------|--------|
-| LMM dynamics under forward measure | Brigo & Mercurio Ch 6 |
-| Drift calculation via Girsanov theorem | Brigo & Mercurio Ch 6 |
-| SABR model and Hagan approximation | Brigo & Mercurio Ch 11.4 |
-| SABR parameter roles (α, β, ρ, ν) | Brigo & Mercurio Ch 11.4 |
-| Rebonato swaption volatility formula | Brigo & Mercurio Ch 8 |
-| Freezing approximation tests | Brigo & Mercurio Ch 8 |
-| Trader insights on model choice | Brigo & Mercurio Appendix ("Talking to the Traders") |
-| Bachelier/Normal option formula | Andersen & Piterbarg Remark 7.2.9 |
-| Displaced diffusion/shifted lognormal | Andersen & Piterbarg Section 7.2.4, Prop 7.2.12 |
-| Pathwise differentiation method | Andersen & Piterbarg Section 3.3.2 |
-| Likelihood ratio method | Andersen & Piterbarg Section 3.3.3 |
-| LMM-HJM connection | Brigo & Mercurio Ch 6 |
-| CEV regularization | Andersen & Piterbarg Section 7.2.3 |
+## Inputs Needed (NOT SURE)
 
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| Model selection guide tables | Extended from general desk practice |
-| Desk reality boxes on SABR calibration | Practitioner experience synthesis |
-| Shift coordination problem (EUR) | Post-2014 market practice |
-| AAD mention for Greeks | Modern computational practice |
-| Model risk hierarchy (Tier 1/2/3) | Standard risk management practice |
-| Two-curve SOFR framework details | Post-LIBOR transition practice |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| Correlation impact on swaption vol | From Rebonato formula structure |
-| Black-to-Normal vol conversion | From limiting ATM behavior |
-| CMS convexity adjustment direction | From measure change and correlation structure |
-
-### (D) Flagged Uncertainties
-
-- **Exact shift conventions by currency:** Market practice varies; 1% or 2% common for EUR, but always confirm
-- **SOFR compounding timing details:** Varies by contract; generic framework described
-- **LSM basis function choice:** Many variations in practice; no single "best" choice
-- **Regularization parameter $\lambda$:** Problem-specific; no universal value
+- Shift conventions: if you rely on shifted/displaced models, confirm the desk/system’s shift $s$ and quoting standard (price vs implied vol) before comparing across sources.
+- RFR coupon details: for compounded-in-arrears legs, confirm the exact compounding convention (lookbacks/lockouts/payment lags) from the contract.
+- LSM implementation: confirm which state variables and basis functions your desk’s library uses for regression (results can be sensitive to these choices).
 
 ---
 
-*This appendix provides a comprehensive treatment of market models suitable for practitioners transitioning from middle office to trading desk roles. The material integrates rigorous theory from Brigo & Mercurio and Andersen & Piterbarg with practical insights from desk experience.*
+*Appendix A4 of Fixed Income: Practice and Theory*
