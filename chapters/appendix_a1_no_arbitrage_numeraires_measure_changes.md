@@ -30,6 +30,12 @@ This appendix covers the essential toolkit:
 
 6. **Derivations and worked examples** (Sections 7–8): Step-by-step mathematics and 16 numeric examples including caplet and swaption pricing, wrong-measure errors, and simulation validation.
 
+**How to use this appendix (reading paths):**
+
+- **Practitioner path (get intuition fast):** Section 0 → Sections 1.3–1.8 → Section 2 → Sections 3.1, 3.4, 3.5 → Section 4 → Section 6 → Examples 11–12 (caplet/swaption) and Example 15 (implementation diagnostics).
+- **Quant / implementer path (debug-friendly):** Add Section 3.2 (Radon–Nikodym derivation) and Section 7 (derivations) when you need to chase down a drift, a measure change, or a martingale failure.
+- **Term-structure path (HJM + market models):** Read Section 5 in parallel with Appendix A3 (HJM essentials) and Appendix A4 (market models / LMM).
+
 **Prerequisites:** Familiarity with stochastic calculus (Ito's lemma, Brownian motion), basic bond mathematics (Chapter 2–3), and swap mechanics (Chapter 25). We reference Duffie's *Dynamic Asset Pricing Theory*, Brigo-Mercurio's *Interest Rate Models*, and Glasserman's *Monte Carlo Methods* throughout.
 
 ---
@@ -154,17 +160,21 @@ Replication cost: $0.5 \times 100 - 42.86 = 7.14$. ✓
 
 ### 1.1 Arbitrage and No-Arbitrage
 
-**Formal definition:** In a finite-state setting, Duffie defines an *arbitrage* as a portfolio $\theta$ with $q \cdot \theta \leq 0$ and $D^\top \theta > 0$, or $q \cdot \theta < 0$ and $D^\top \theta \geq 0$—where $q$ is the vector of security prices and $D$ is the payoff matrix. In Duffie's words, "an arbitrage is a portfolio offering 'something for nothing.'" In continuous time, an arbitrage is a self-financing trading strategy that generates strictly positive wealth from zero initial investment with no possibility of loss.
+**A clean one-period definition (Cochrane):** If a payoff $x$ satisfies $x \\ge 0$ (almost surely) and $x>0$ with positive probability, then its price must satisfy $p(x)>0$. Equivalently, an *arbitrage* is a portfolio/strategy with **nonpositive cost** and a payoff that is **never negative**, with some chance of being strictly positive.
 
-*No-arbitrage* is the absence of such strategies. In Duffie's development, no-arbitrage is equivalent to the existence of a *state-price vector* (or deflator).
+**Desk definition (operational):** Traders tend to use “arbitrage” as shorthand for *a riskless win*, or a violation of the law of one price. In day-to-day rates work, you usually *detect* arbitrage (or “near-arbitrage”) by checking **internal consistency** between instruments that should be linked by replication or parity (bond stripping, swap replication, cap/floor parity, curve monotonicity constraints, etc.).
 
-**The Fundamental Theorem of Asset Pricing (finite-state version):**
+**No-arbitrage is a consistency rule:** If two self-financing strategies generate the same future cashflows, they must have the same price today. Otherwise you could buy the cheaper replication and sell the expensive one, locking in profit.
 
-$$\boxed{\text{No arbitrage} \iff \text{Existence of a state-price vector } \psi \gg 0 \text{ with } q = D\psi}$$
+**Finite-state version (the “state prices” picture):** In a one-period model with finitely many states, no-arbitrage is equivalent to the existence of strictly positive *state prices* (a state-price vector). Writing $q$ for the vector of traded prices and $D$ for the payoff matrix, the condition can be expressed as:
 
-Duffie proves this using the Separating Hyperplane Theorem: if no arbitrage exists, the cone of non-negative payoffs and the linear subspace of portfolio payoffs intersect only at zero, which implies a separating hyperplane exists. This hyperplane corresponds to the state-price vector. Geometrically, the state prices define a "pricing plane" orthogonal to all arbitrage-free portfolio directions.
+$$\boxed{\text{No arbitrage} \iff \text{there exists } \psi \gg 0 \text{ such that } q = D\psi}$$
 
-**Intuition:** Arbitrage is the proverbial "free lunch"—a way to lock in profit "by algebra" through clever combinations of traded instruments. The fundamental theorem says that if no such free lunch exists, there must be a consistent way to assign positive values to each state of the world (state prices). These state prices enforce internal consistency: any two replicating strategies for the same payoff must have the same cost.
+This $\psi$ assigns a positive “present value” to \$1 delivered in each state. It is the simplest way to see why arbitrage-free pricing is linear and why replication enforces a single price.
+
+**Continuous-time version (the “martingale measure” picture):** In realistic models, the analogous statement is: absence of arbitrage (under standard technical conditions) corresponds to the existence of at least one *equivalent martingale measure* under which suitably discounted traded prices are martingales. This is the bridge from “no free lunch” to “risk-neutral pricing.”
+
+> **You do not need the proof.** The formal proofs use convex-geometry / separation arguments in discrete time and more technical “no free lunch with vanishing risk” conditions in continuous time. The important desk takeaway is the *consequence*: once you choose a numeraire and enforce no-arbitrage, **drifts are not free parameters**.
 
 **Practice:** Detecting potential arbitrage is a consistency check. For example:
 - If your curve construction implies that a 5-year bond can be replicated two ways with different prices, you have broken no-arbitrage.
@@ -175,33 +185,33 @@ Duffie proves this using the Separating Hyperplane Theorem: if no arbitrage exis
 
 ### 1.2 State-Price Deflator (SDF) / Pricing Kernel
 
-**Formal definition:** A *state-price deflator* $\pi(t)$ is a strictly positive adapted process that prices payoffs via:
+**Formal definition:** A *state-price deflator* $\pi(t)$ (often also called the *pricing kernel* in asset pricing) is a strictly positive adapted process that prices payoffs via:
 
 $$\boxed{V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]}$$
 
-This is Duffie's fundamental pricing equation. He explicitly notes naming variations: "state-price deflator," "state-price density," and links to "pricing kernel" and "marginal rate of substitution" from consumption-based asset pricing.
+This is Duffie’s fundamental pricing equation. It says: *one* positive process $\pi(\cdot)$ can be used to price *all* traded payoffs. In other words, you can keep the real-world measure $\mathbb{P}$ and push all “risk adjustments” into the state-dependent factor $\pi(T)$ inside the expectation.
 
 **Connection to Arrow-Debreu securities:** Cochrane's *Asset Pricing* emphasizes that the SDF can be understood through contingent claims. An Arrow-Debreu security pays \$1 in exactly one state $\omega$ and zero otherwise. If $\psi(\omega)$ is the price today of this security, then for any payoff $H$:
 
 $$V(0) = \sum_{\omega} \psi(\omega) H(\omega) = \mathbb{E}^{\mathbb{P}}[m \cdot H]$$
 
-where $m(\omega) = \psi(\omega)/\pi(\omega)$ is the pricing kernel. Cochrane writes: "The state-price density $m$ gives the value of a dollar in each state of nature, adjusted for probability." In continuous time, this becomes $\pi(t)$.
+where $m(\omega) \equiv \psi(\omega)/p(\omega)$ is the pricing kernel (and $p(\omega)$ is the physical probability of state $\omega$). Cochrane writes: "The state-price density $m$ gives the value of a dollar in each state of nature, adjusted for probability." In continuous time, this is exactly what $\pi(t)$ is doing: it rescales payoffs by “how expensive a dollar is in that state.”
 
-**Connection to marginal utility and risk premia:** In equilibrium models, Duffie shows that the SDF equals the representative agent's intertemporal marginal rate of substitution:
+**Connection to marginal utility (optional):** In consumption-based models, a common discrete-time form is that the pricing kernel is proportional to discounted marginal utility (marginal rate of substitution). This is useful intuition, but you do *not* need this equilibrium story to use no-arbitrage pricing on a desk.
 
-$$\pi(t) = e^{-\rho t} \frac{u'(c_t)}{u'(c_0)}$$
+**Risk premia from SDF covariance (optional):** If $m$ is a one-period pricing kernel and $R$ is a *gross* return, the pricing restriction is:
 
-where $\rho$ is the subjective discount rate and $u'(c)$ is marginal utility of consumption. This explains why the SDF discounts more heavily in "bad states" (low consumption, high marginal utility) and less in "good states."
+$$1 = \mathbb{E}[mR] = \mathbb{E}[m]\,\mathbb{E}[R] + \mathrm{Cov}(m, R)$$
 
-**Risk premia from SDF covariance:** From the SDF pricing equation, one can derive that the expected excess return on any asset depends on its covariance with the SDF:
+Using $R_f = 1/\mathbb{E}[m]$, this implies:
 
-$$\mathbb{E}[R_i - R_f] = -\frac{\text{Cov}(R_i, m)}{\mathbb{E}[m]}$$
+$$\mathbb{E}[R] - R_f = -R_f\,\mathrm{Cov}(m, R)$$
 
-Assets that pay off well when $m$ is low (good times) must offer higher expected returns—the essence of risk premia.
+Assets that tend to pay off when $m$ is high (“bad states”) are valuable hedges and can have lower expected returns; assets that pay mainly in good states must offer a premium.
 
 **CAPM as a special case:** Duffie and Cochrane both show that when the SDF is linear in the market return ($m = a - b R_M$), the SDF framework reduces to CAPM. The beta of an asset measures its covariance with $m$, rescaled. See Example 14 for a worked numerical example.
 
-**Practice:** In rates/credit, the SDF viewpoint explains why "risk premia" exist under $\mathbb{P}$ (real-world measure) and why pricing is naturally expressed under a measure $\mathbb{Q}$ where discounted prices are martingales. The SDF reweights states—under $\mathbb{Q}$, we've already incorporated the risk adjustment into probabilities.
+**Practice:** On a desk we rarely write everything in $\mathbb{P}$ with an explicit $\pi(t)$. Instead we usually move to a pricing measure $\mathbb{Q}$ (and often further to a forward or swap measure) because it makes many payoffs “look like” simple martingale expectations. But conceptually, these are two ways of saying the same thing: **no-arbitrage forces a common state-dependent discounting rule** for all traded assets.
 
 ---
 
@@ -223,7 +233,7 @@ Assets that pay off well when $m$ is low (good times) must offer higher expected
 | Zero-coupon bond | $P(t,T)$ | $\mathbb{Q}^T$ (T-forward) | Forward prices for delivery at $T$ are martingales |
 | Swap annuity | $A(t) = \sum_i \tau_i P(t,T_i)$ | $\mathbb{Q}^A$ (swap) | Forward swap rates are martingales |
 
-**Why numeraire choice matters:** Brigo-Mercurio's "Fact One" states: "The price of any asset divided by a reference positive non-dividend-paying asset (called numeraire) is a martingale (no drift) under the measure associated with that numeraire." This is the core insight: choosing your numeraire strategically can make the key underlying rate or price a martingale, enabling tractable pricing formulas.
+**Why numeraire choice matters:** Brigo-Mercurio's "Fact One" is the operational rule: under the measure associated with a chosen numeraire, any traded price expressed in units of that numeraire is a martingale (has zero drift). This is the core insight: choosing your numeraire strategically can make the key underlying rate or price a martingale, enabling tractable pricing formulas.
 
 **Practice:** Pick the numeraire that makes your payoff's underlying "simple" (i.e., a martingale). For a caplet paying $(L_T - K)^+$ at $T$, using $P(t,T)$ as numeraire makes $L_T$ a martingale—hence Black's formula. For a swaption, using the annuity makes the swap rate a martingale—hence the swaption Black formula.
 
@@ -367,7 +377,7 @@ $$V(t) = A(t)\, \mathbb{E}_t^A\!\left[(S(T) - K)^+\right]$$
 - Under $B(t)$ (money-market numeraire): $P(t,T)/B(t)$ is a martingale under $\mathbb{Q}^B$. This is the "risk-neutral" world where all assets earn the short rate on average.
 - Under $P(t,T)$ (bond numeraire): $S(t)/P(t,T)$ is a martingale under $\mathbb{Q}^T$ for any traded asset $S$. This is the "forward" world where forward prices are martingales.
 
-**Connection to discounting:** The stochastic discount factor $D(t,T) = B(t)/B(T) = \exp(-\int_t^T r(s)\, ds)$ satisfies $P(t,T) = \mathbb{E}_t^{\mathbb{Q}^B}[D(t,T)]$—the bond price is the expected discount factor under the risk-neutral measure.
+**Connection to discounting:** The money-market discount factor $D(t,T) = B(t)/B(T) = \exp(-\int_t^T r(s)\, ds)$ satisfies $P(t,T) = \mathbb{E}_t^{\mathbb{Q}^B}[D(t,T)]$—the bond price is the expected discount factor under the risk-neutral measure.
 
 ---
 
@@ -400,7 +410,7 @@ $$V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]
 - $\pi(T)$ has units $1/\text{currency}$ so $\pi(T) H_T$ is dimensionless.
 - $\frac{1}{\pi(t)}$ returns currency. ✓
 
-**Arrow-Debreu interpretation (Cochrane):** Think of $\pi(T)/\pi(t)$ as the "price per unit probability per dollar payoff" in each state. States where $\pi$ is high (bad times, high marginal utility) are expensive—payoffs there are valued more.
+**Arrow-Debreu interpretation (Cochrane):** Think of $\pi(T)/\pi(t)$ as a *state-dependent discount factor* between $t$ and $T$. States where $\pi$ is high (bad times, high marginal utility) are expensive—payoffs there are valued more.
 
 ---
 
@@ -414,7 +424,7 @@ Setting $N = B$ (money-market account):
 
 $$V(t) = B(t)\, \mathbb{E}_t^{\mathbb{Q}^B}\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\!\left[D(t,T)\, H_T\right]$$
 
-where $D(t,T) = B(t)/B(T)$ is the stochastic discount factor.
+where $D(t,T) = B(t)/B(T)$ is the money-market discount factor.
 
 This is the classic risk-neutral valuation formula: prices are discounted expectations under $\mathbb{Q}^B$.
 
@@ -1413,55 +1423,19 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
+- Darrell Duffie, *Dynamic Asset Pricing Theory* (no-arbitrage, state-price deflators, equivalent martingale measures, completeness/uniqueness)
+- John H. Cochrane, *Asset Pricing* (pricing kernel intuition; Arrow–Debreu/state-price density viewpoint)
+- Damiano Brigo & Fabio Mercurio, *Interest Rate Models: Theory and Practice* (numeraires, forward/swap measures, and practical applications in rates)
+- Leif B. G. Andersen & Vladimir V. Piterbarg, *Interest Rate Modeling* (measure changes and term-structure modeling perspective)
+- Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (martingale measures, implementation diagnostics and simulation sanity checks)
+- John C. Hull, *Options, Futures, and Other Derivatives* (delta-hedging intuition and replication-based pricing)
 
-| Fact | Source |
-|------|--------|
-| Formal arbitrage definition (finite-state) | Duffie, *Dynamic Asset Pricing Theory* Ch. 1 |
-| Fundamental Theorem (Separating Hyperplane proof) | Duffie, *Dynamic Asset Pricing Theory* Ch. 1 |
-| SDF definition, no-arbitrage equivalence | Duffie, *Dynamic Asset Pricing Theory* Ch. 1-2 |
-| SDF as marginal rate of substitution | Duffie Ch. 1–2; Cochrane Ch. 1 |
-| Arrow-Debreu interpretation | Cochrane, *Asset Pricing* Ch. 1–4 |
-| Numeraire definition (Geman et al. 1995) | Brigo-Mercurio, *Interest Rate Models* Ch. 2, Def. 2.2.1 |
-| Self-financing definition | Brigo-Mercurio Ch. 2, Def. 2.1.1 |
-| Self-financing invariance under numeraire change | Brigo-Mercurio Ch. 2 (Geman et al. 1995) |
-| Numeraire theorem, change-of-numeraire formula | Brigo-Mercurio, *Interest Rate Models* Ch. 2 |
-| "Three Facts" for numeraire changes | Brigo-Mercurio Ch. 2 |
-| Attainability and replication | Brigo-Mercurio Ch. 2, Def. 2.1.2 |
-| Forward measure pricing | Brigo-Mercurio Ch. 2 |
-| Complete markets ↔ unique EMM | Duffie, *Dynamic Asset Pricing Theory* Ch. 2, Section G |
-| Diffusion invariance principle | Andersen-Piterbarg, *Interest Rate Modeling* Vol. 1, §1.5 |
-| HJM drift restriction | Brigo-Mercurio Ch. 5; Andersen-Piterbarg Vol. 1 |
-| HJM drift under forward measure | Glasserman, *Monte Carlo Methods* Ch. 3 |
-| Black caplet/swaption formulas | Brigo-Mercurio Ch. 6 |
-| Delta hedging argument | Hull, *Options, Futures, and Other Derivatives* Ch. 19 |
+## Inputs Needed (NOT SURE)
 
-### (B) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| "Risk-neutral = hedged" intuition box | Extended from Cochrane's hedging interpretation and standard Black-Scholes derivation |
-| P vs Q side-by-side table | Extended from Girsanov; numerical values computed from standard formulas |
-| Trader language translation table | Practitioner knowledge from desk conventions |
-| Measure choice and risk reporting (Section 6.4) | Practitioner knowledge; connects VaR vs Greeks discussion |
-| Beginner on-ramp (Section 0) | Pedagogical extension using discrete-state example |
-
-### (C) Reasoned Inference
-
-- Step-by-step HJM derivation (§7.2) follows from applying Ito to $P = e^{-A}$ and enforcing martingale condition
-- Replication derivation (§7.3) follows from standard Black-Scholes delta-hedge argument
-- Unit checks throughout from dimensional analysis
-- "Why the integral appears" intuition synthesized from multiple sources
-- Example 2.5 (three-state incompleteness) derived from Duffie's completeness theorem
-- Example 16 (wrong-measure error) derived from convexity adjustment formulas
-- Connection between bond/money-market numeraires and risk-neutral vs forward measures (§1.8) derived from standard martingale theory
-
-### (D) Flagged Uncertainties
-
-- None; all content is source-backed, derived via standard algebra, or clearly marked as practitioner extension
+- None.
 
 ---
 
-*Appendix A1 — Last Updated: January 2026*
+*Appendix A1 of Fixed Income: Practice and Theory*
