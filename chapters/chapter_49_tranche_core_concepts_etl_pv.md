@@ -6,7 +6,14 @@
 
 How much of the 3–7% tranche do we expect to lose over five years? This deceptively simple question lies at the heart of tranche pricing. The answer—the Expected Tranche Loss (ETL)—is the central object that drives both the protection leg and the premium leg of any CDO tranche. Get the ETL wrong, and tranche pricing collapses entirely: you misjudge the fair spread, misprice the protection value, and create arbitrage opportunities across the capital structure.
 
-Chapter 48 introduced the tranche product structure: attachment points, detachment points, and the nonlinear mapping from portfolio losses to tranche losses. This chapter takes the next step by showing how to compute the expected value of that tranche loss—the ETL—and use it to price the two legs of a tranche trade. The key insight, as O'Kane emphasizes in his treatment of synthetic CDOs, is that "there is an exact mapping between pricing a CDS and pricing an STCDO tranche. We replace the issuer survival curve with the tranche survival curve $Q(t, K_1, K_2)$ and assume a zero recovery rate in the CDS." This elegant reduction means that once we have the tranche survival curve (which derives directly from the ETL), we can leverage all our single-name CDS pricing machinery.
+Chapter 48 introduced the tranche product structure: attachment points, detachment points, and the nonlinear mapping from portfolio losses to tranche losses. This chapter takes the next step by showing how to compute the expected value of that tranche loss—the ETL—and use it to price the two legs of a tranche trade.
+
+The key insight (developed clearly in O’Kane’s treatment of synthetic CDOs) is that tranche pricing can be written with essentially the same algebra as CDS pricing:
+
+- Replace the issuer survival probability with a **tranche survival curve** $Q(t;A,D)$ (the expected surviving fraction of tranche notional).
+- Treat the tranche as having **zero recovery** in the CDS analogy, because tranche “default losses” show up directly as reductions in outstanding notional.
+
+Once you have $Q(t;A,D)$ (or equivalently the ETL term structure), the CDS PV machinery carries over almost verbatim.
 
 For middle-office professionals transitioning to trading desks, understanding ETL computation bridges two worlds. Your valuation reports already show tranche fair values, but now you'll understand how those numbers are derived. When spreads move and P&L changes, you'll trace the chain from loss distribution shifts to ETL changes to tranche value adjustments. This knowledge transforms you from a report consumer into someone who can diagnose pricing discrepancies and anticipate how model changes flow through to the trading book.
 
@@ -18,11 +25,17 @@ The chapter proceeds as follows. Section 49.1 establishes the core definitions: 
 
 ### 49.1.1 Portfolio Loss as the State Variable
 
-The foundation of tranche pricing is a single state variable: the portfolio cumulative loss fraction $L(t)$. O'Kane defines this precisely in Chapter 12:
+The foundation of tranche pricing is a single state variable: the portfolio cumulative loss fraction $L(t)$.
 
-$$L(t) = \frac{1}{N_c} \sum_{i=1}^{N_c} (1-R_i) \mathbf{1}_{\tau_i \leq t}$$
+A general (weighted) definition is:
 
-where $N_c$ is the number of credits in the portfolio, $R_i$ is the recovery rate for credit $i$, and $\mathbf{1}_{\tau_i \leq t}$ is the default indicator. The portfolio loss is bounded: $0 \leq L(t) \leq L_{\max}$, where $L_{\max} = 1 - \bar{R}$ if all credits have the same recovery rate $\bar{R}$.
+$$L(t) = \sum_{i=1}^{N_c} w_i (1-R_i)\mathbf{1}_{\tau_i \le t}, \qquad \sum_{i=1}^{N_c} w_i = 1$$
+
+If exposures are equal ($w_i = 1/N_c$), this reduces to the familiar equal‑weight formula:
+
+$$L(t) = \frac{1}{N_c} \sum_{i=1}^{N_c} (1-R_i) \mathbf{1}_{\tau_i \le t}$$
+
+The portfolio loss is bounded: $0 \le L(t) \le L_{\max}$, where $L_{\max} = \sum_i w_i(1-R_i)$ (and equals $1-\bar R$ in the common‑recovery simplification).
 
 **Why this matters for tranche pricing:** The tranche loss function $\text{TL}(L)$ is a deterministic function of $L(t)$. Any model that produces the distribution of $L(t)$—whether a simple binomial, a Gaussian copula, or a sophisticated dynamic model—immediately implies the distribution of tranche losses. The modeling challenge reduces to characterizing one state variable rather than tracking defaults credit-by-credit.
 
@@ -34,7 +47,7 @@ where $N_c$ is the number of credits in the portfolio, $R_i$ is the recovery rat
 >
 > For the **0-3% equity tranche** (width 3%), this single default consumes 16% of the tranche width! For the **15-30% senior tranche**, this same default produces *zero* tranche loss—the senior tranche doesn't start losing until portfolio losses exceed 15%, requiring roughly 32 defaults.
 >
-> This asymmetric exposure explains why equity tranches trade at spreads of 1000+ bp while seniors trade at 30-50 bp despite referencing the same portfolio.
+> This asymmetric exposure is why equity and senior tranches can trade with radically different risk profiles (and therefore very different pricing) despite referencing the same portfolio.
 
 ### 49.1.2 Tranche Loss Function: The Nonlinear Mapping
 
@@ -85,7 +98,7 @@ The leverage inherent in tranching becomes vivid when we tabulate tranche losses
 | 20 | 9.60% | **3.00%** | **4.00%** | 2.60% | 0.00% | 0.00% |
 | 32 | 15.36% | **3.00%** | **4.00%** | **3.00%** | 5.00% | 0.36% |
 
-The **cliff effect** is stark: the equity tranche is wiped out by just 7 defaults (bold entries show capped losses), while the super-senior 15-30% tranche doesn't begin losing until 32 defaults occur.
+The **cliff effect** is stark: under this simplified arithmetic (equal weights, 40% recovery), the 0–3% equity tranche is exhausted after ~7 defaults (bold entries show capped losses), while the 15–30% super‑senior doesn’t begin losing until ~32 defaults.
 
 ### 49.1.4 Expected Tranche Loss: The Central Object
 
@@ -113,9 +126,14 @@ The **tranche survival probability** $Q(t; A, D)$ measures the expected survivin
 
 $$Q(t; A, D) = E[1 - L_{\text{tr}}(t)] = \frac{\text{EON}(t)}{W}$$
 
-where $L_{\text{tr}}(t) = \text{TL}(L(t))/W$ is the normalized tranche loss. O'Kane emphasizes the importance of this quantity: "There is a clear analogy between these pricing equations and those of a CDS. If we write the tranche survival probability as $Q(t, K_1, K_2) = E[1 - L(t, K_1, K_2)]$, then the premium leg value can be rewritten" using standard CDS formulas.
+where $L_{\text{tr}}(t) = \text{TL}(L(t))/W$ is the normalized tranche loss. A key observation (made explicitly in O’Kane’s derivations) is that tranche pricing admits a clean CDS analogy once you express everything in terms of the tranche survival curve $Q(t;A,D)$.
 
-This analogy means that **once we have the tranche survival curve**, we can apply CDS pricing machinery directly (with zero recovery). The tranche survival curve encapsulates all information needed for pricing—making ETL computation the critical modeling task.
+The CDS analogy is:
+
+- Use $Q(t;A,D)$ in place of the issuer survival probability.
+- Set “recovery” to zero in the CDS pricing algebra because tranche losses are literally reductions in outstanding notional.
+
+So **once we have the tranche survival curve** (or equivalently the ETL term structure), we can reuse CDS‑style premium/protection leg PV formulas with minimal changes. That is why ETL computation is the critical modeling task.
 
 ---
 
@@ -206,11 +224,11 @@ For k = 1 to N_c:
 
 ### 49.2.5 Loss Unit Granularity and Recovery Effects
 
-The choice of loss unit significantly impacts computational cost. O'Kane notes in Chapter 18.4 that "changing the recovery rate from 40% to 37% increases the number of loss units from 125 to 7501," a factor of 60 increase. Even dropping to a "round number" like 35% yields 1500 loss units—still a 12x increase in computational time.
+The choice of loss unit can significantly impact computational cost when you discretize losses. O’Kane shows that the “loss unit” grid can **blow up discontinuously** when recoveries (or notionals) are not aligned.
 
-**Why this happens:** The loss unit must be the greatest common divisor (GCD) of all possible loss amounts. For homogeneous portfolios with recovery $R$:
-- $R = 40\%$: Each default produces $(1-0.40)/125 = 0.48\%$, which divides evenly → $N_U = 125$
-- $R = 37\%$: Each default produces $(1-0.37)/125 = 0.504\%$, requiring finer granularity
+One illustrative experiment: take 125 credits, set 124 recoveries to 40%, and vary the recovery of the remaining name. A seemingly small change (e.g., one name moving from 40% to 39% recovery) can increase the required number of loss units from 125 to 7501; even moving to 35% can imply around 1500 loss units. The inner loop then becomes much more expensive because it runs over loss units.
+
+**Why this happens:** In the recursion method, you want a discretization unit $u$ such that each name’s loss amount $l_i$ is an integer multiple of $u$ (so you can represent the loss distribution on an integer grid). If all names share identical notionals and recoveries, this is easy and the grid size is modest. But if one name has a slightly different recovery/weight, the effective “GCD” of the loss amounts can become very small, and the number of grid points (loss units) can jump dramatically.
 
 **The Andersen et al. algorithm:** O'Kane describes an adaptive approach that caps the discretization error at a tolerance $\epsilon$ while minimizing the number of loss units. The algorithm searches for the smallest loss unit $u$ such that:
 
@@ -220,7 +238,7 @@ for all credits, where $l_j = F_j(1-R_j)$ is the loss amount for credit $j$.
 
 > **Desk Reality: "Round Number" Recoveries**
 >
-> Practitioners often assume recoveries of 40% for investment grade and 25% for high yield—not because these are empirically precise, but because they produce clean loss unit counts. A 40% recovery on 125 names yields exactly 125 loss units. This computational convenience is worth remembering when you see "assumed 40% recovery" in model documentation.
+> Practitioners often use stylized recovery assumptions (e.g., 40% on IG indices) in tranche models. One pragmatic reason is computational convenience in discretized loss‑distribution methods: “nice” recoveries can keep loss grids manageable. Exact recovery conventions are desk‑ and model‑specific.
 
 ### 49.2.6 LHP Model: Closed-Form ETL Formulas
 
@@ -375,7 +393,9 @@ A fundamental arbitrage constraint relates tranche ETLs to the portfolio expecte
 
 $$\text{Total expected loss} = \sum_{m=1}^M (K_m - K_{m-1}) \cdot E[L(T, K_{m-1}, K_m)] = E[L(T)]$$
 
-The sum of the tranche expected losses (weighted by width) equals the portfolio expected loss. This conservation property must hold for any valid pricing model—it's a no-arbitrage constraint. As O'Kane notes, "the present value of the protection legs of the STCDOs, summed across the capital structure, is identical to owning the protection legs of all of the CDS in the reference portfolio."
+The sum of the tranche expected losses (weighted by width) equals the portfolio expected loss. This conservation property must hold for any valid pricing model—it's a no-arbitrage constraint.
+
+Desk interpretation: if you buy protection on **all** contiguous tranches (covering the full loss range), you have bought protection on the whole portfolio loss process. The protection legs therefore add up consistently across the capital structure (ignoring premium‑timing differences).
 
 ---
 
@@ -405,7 +425,7 @@ O'Kane improves accuracy using the average of bounds:
 
 $$PV_{\text{prot}} \approx \frac{1}{2} \sum_{i=1}^N (Z(t_{i-1}) + Z(t_i)) \cdot \Delta\text{ETL}_i \cdot N_{\text{port}}$$
 
-This averages the discount factors at the interval endpoints, reducing discretization error. O'Kane notes that this "average of bounds" approach reduces protection leg pricing error to $O(10^{-5})$ in typical cases.
+This averages the discount factors at the interval endpoints, reducing discretization error. In practice it can materially improve accuracy for a given time grid.
 
 **Worked Example 49.3 (Protection Leg PV):**
 
@@ -428,7 +448,7 @@ $$PV_{\text{prot}} = (0.00194 + 0.00540 + 0.00328) \times \$100\text{mm} = \$1.0
 
 The premium leg pays spread $s$ on the outstanding tranche notional. The challenge is that losses can occur at any time within a coupon period, not just at the endpoints. If a credit defaults mid-quarter, the tranche notional shrinks immediately, but the premium payment at quarter-end should reflect this reduced notional.
 
-O'Kane addresses this: "A more accurate pricing formula for the premium leg would take into account the fact that the spread is paid on the pro-rated tranche notional since the previous coupon date. A useful and accurate approximation is to assume that the spread is paid on the average tranche notional since the previous coupon payment date."
+A common and useful approximation is to assume the spread is paid on the **average tranche notional** over the coupon period (average of start and end notionals). This captures, in a simple way, the fact that losses can occur inside the period.
 
 ### 49.4.2 The Average-Notional Formula
 
@@ -446,7 +466,7 @@ $$\boxed{PV_{\text{prem}}(\$) = s \, N_{\text{port}} \sum_{i=1}^N \alpha_i Z(t_i
 
 ### 49.4.3 Accuracy of the Approximation
 
-This mid-period approximation assumes losses occur uniformly throughout each accrual period. For CDS, O'Kane notes the error is $O(10^{-5})$ in the RPV01, translating to $O(10^{-7})$ in PV for typical spread levels. For tranches, the approximation is similarly accurate when coupon periods are short (quarterly) and losses don't arrive in concentrated bursts.
+This mid-period approximation is generally accurate when coupon periods are short (e.g., quarterly) and losses don’t arrive in highly concentrated bursts. It can be less accurate in distressed scenarios with clustered defaults.
 
 **When the approximation may be less accurate:**
 - Very distressed portfolios where multiple defaults cluster in time
@@ -479,13 +499,20 @@ $$PV_{\text{prem}} = 0.05 \times \$15.003\text{mm} = \$0.750\text{mm}$$
 
 ### 49.5.1 Tranche Risky PV01
 
-The tranche RPV01 is the present value of paying $\$1$ per year on the premium leg. O'Kane defines it as:
+The tranche RPV01 is the present value of paying \$1 per year on the premium leg **per \$1 of tranche face notional**. Using the average‑notional approximation:
 
 $$\boxed{\text{RPV01}(0) = \frac{1}{2} \sum_{n=1}^{N_T} \Delta(t_{n-1}, t_n) Z(t_n) \left(Q(t_{n-1}, K_1, K_2) + Q(t_n, K_1, K_2)\right)}$$
 
 where $Z(t_n)$ is the discount factor and $Q(t, K_1, K_2)$ is the tranche survival probability.
 
-O'Kane emphasizes the interpretation: "Since the notional of the tranche falls if the tranche takes losses, the RPV01 reflects the credit risk of the tranche in the same way as the RPV01 of a CDS reflects the credit risk of the reference entity. For senior tranches which are usually low risk, the RPV01 is close to the risk-free Libor PV01. However, for riskier tranches, the RPV01 will be much lower."
+Interpretation: tranche RPV01 behaves like CDS RPV01. For a very safe tranche, expected notional stays close to full, so RPV01 is near a risk‑free PV01. For a riskier tranche, expected notional amortizes, so RPV01 is materially smaller.
+
+**Units and desk usage:**
+
+- The formula above returns **years per \$1 tranche face**.
+- To convert to dollars on a position, multiply by tranche face notional $N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}}$.
+- Traders often quote “RPV01” in **dollars per 1 bp**:
+  $$\text{RPV01}_{\text{bp}} = 10^{-4} \times N_{\text{tr}}^{\text{face}} \times \text{RPV01}$$
 
 **Comparison to single-name CDS RPV01:** The tranche RPV01 has the same mathematical structure as the CDS RPV01 in Chapter 41, but with the issuer survival curve replaced by the tranche survival curve. This reinforces the CDS-tranche analogy: once you have the survival curve, pricing follows the same formulas.
 
@@ -533,7 +560,7 @@ $$\boxed{V = (s^* - s_0) \times \text{RPV01}}$$
 A trader sold protection on the 3-7% tranche at 500 bp (contractual spread). Today's par spread is 708 bp, and RPV01 = \$15.003mm per \$100mm notional.
 
 Value to protection seller:
-$$V = (s_0 - s^*) \times \text{RPV01} = (0.05 - 0.0708) \times \$15.003\text{mm} = -\$3.12\text{mm}$$
+$$V = (s_0 - s^*) \times \text{RPV01} = (0.05 - 0.0708) \times \$15.003\text{mm} \approx -\$0.31\text{mm}$$
 
 The position is underwater: spreads widened, so the protection seller owes more in expected losses than they receive in premium.
 
@@ -549,20 +576,17 @@ The position is underwater: spreads widened, so the protection seller owes more 
 
 ### 49.5.4 Upfront Payment Conventions for Equity Tranches
 
-Equity tranches are so risky that trading them on a "spread only" basis is impractical. A 2000+ bp running spread creates massive counterparty credit risk—if the protection seller defaults, the buyer loses enormous expected future premiums.
-
-**The solution:** Equity tranches trade with a **fixed running coupon** (typically 500 bp) plus an **upfront payment**.
+In some tranche markets (especially equity tranches), quotes are standardized using a **fixed running coupon** plus an **upfront payment**. This is analogous to standard CDS index quoting: you trade a fixed coupon and settle the difference to par with an upfront amount.
 
 **Upfront conversion formula:**
 
 $$\boxed{\text{Upfront} = (s^* - s_{\text{fixed}}) \times \text{RPV01}}$$
 
-where $s^*$ is the par spread and $s_{\text{fixed}}$ is the fixed running coupon (typically 500 bp for CDX/iTraxx equity tranches).
+where $s^*$ is the par spread and $s_{\text{fixed}}$ is the fixed running coupon set by convention for that product. Here $\text{RPV01}$ is in “years per \$1 notional” terms (so the product of spread and RPV01 is a fraction of notional).
 
 **Market quoting conventions:**
 
-O'Kane notes in Chapter 19 (Table 19.1) that equity tranches are quoted as follows:
-- An investor in a \$10 million notional of the 0-3% equity tranche would receive an **upfront payment** of \$X million followed by an annualized **running spread of 500 bp** paid quarterly using Actual/360.
+O’Kane documents historical market quotes where equity tranches were quoted with a 500 bp running coupon plus an upfront amount (e.g., his CDX/iTraxx tranche snapshot from October 2004).
 
 **Price vs Points Upfront:**
 - **Quote = 60 points** means price is 60% of notional
@@ -582,15 +606,11 @@ On \$10mm notional: upfront payment = \$3.64mm
 
 The protection buyer pays \$3.64mm at inception and then receives 500bp running on the surviving notional.
 
-**Why 500 bp became standard:** O'Kane explains that a fixed running coupon caps the counterparty credit exposure. If the coupon were at-the-money (matching the par spread), virtually no premium would be exchanged over the life of the trade, concentrating all value in the protection leg. A 500bp fixed coupon balances the cash flows while keeping counterparty risk manageable.
+**Why fixed coupons exist:** standardizing coupons (and settling to par via upfront) makes quotes easier to compare and can change the cashflow profile of counterparty exposure and collateralization. The exact “why this coupon level” is convention- and era-dependent.
 
-> **Desk Reality: IG vs HY Equity Conventions**
+> **Desk reality: confirm the quote format**
 >
-> - **Investment Grade equity (CDX IG 0-3%):** Always quoted with 500bp running + upfront
-> - **High Yield equity (CDX HY 0-15%):** May quote running spread only at lower spreads, switch to upfront at higher spreads
-> - **Super-senior tranches:** Quote running spread only (risk is low, no upfront needed)
->
-> When receiving marks from dealers, always confirm: "Is that 35 points upfront, or 35 points price?"
+> Always confirm *both* the fixed coupon and the quoting style: “Is that **price** or **points upfront**? What’s the **running coupon**? What’s the **day count / pay frequency**?”
 
 ### 49.5.5 Spread-ETL Convexity
 
@@ -960,7 +980,7 @@ Total = 3.5% = Portfolio expected loss ✓
 | 10 | What is tranche RPV01? | PV of paying $\$1$/year on the premium leg |
 | 11 | Formula for par spread? | $s^* = PV_{\text{prot}} / \text{RPV01}$ |
 | 12 | Formula for mark-to-market value? | $V = (s^* - s_0) \times \text{RPV01}$ (for protection buyer) |
-| 13 | How do equity tranches quote upfront? | Upfront = $(s^* - 500\text{bp}) \times \text{RPV01}$ |
+| 13 | How do equity tranches quote upfront? | Upfront = $(s^* - s_{\text{fixed}}) \times \text{RPV01}$ (fixed coupon is a market convention) |
 | 14 | What is conservation of expected loss? | Sum of tranche ETLs = portfolio expected loss |
 | 15 | Why are senior tranches tail-sensitive? | ETL depends on $\Pr(L \geq A)$, a tail probability |
 | 16 | What does concavity of ETL in strike ensure? | Non-negative implied loss density |
@@ -1031,64 +1051,14 @@ Total = 3.5% = Portfolio expected loss ✓
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
+- Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (ETL / tranche survival curve; recursion methods; LHP formulas; tranche quoting examples)
 
-| Fact | Source |
-|------|--------|
-| Portfolio loss definition $L(t) = \frac{1}{N_c}\sum (1-R_i)\mathbf{1}_{\tau_i \leq t}$ | O'Kane Ch 12 Eq 12.2 |
-| Tranche loss function max-max definition | O'Kane Ch 12 |
-| ETL definition $\psi(T,K) = E[\min(L(T),K)]$ | O'Kane Ch 12, 19 |
-| Tranche survival $Q(t,K_1,K_2)$ definition | O'Kane Ch 12 |
-| CDS-tranche mapping with zero recovery | O'Kane Ch 12 |
-| Tranche RPV01 formula | O'Kane Ch 17 |
-| Average-notional approximation for premium leg | O'Kane Ch 12 |
-| Approximation error $O(10^{-5})$ | O'Kane Ch 6.5 |
-| Conservation of expected loss across capital structure | O'Kane Ch 12.7.1 |
-| ETL no-arbitrage conditions (concavity, monotonicity) | O'Kane Ch 19.5 |
-| Gaussian approximation (Shelton 2004) | O'Kane Ch 18.5.1 |
-| Adjusted binomial approximation | O'Kane Ch 18.5.3 |
-| FFT methods for loss distribution | O'Kane Ch 18.4 |
-| Conditional loss distribution binomial form | O'Kane Ch 13.5 |
-| Adjusted binomial approximation accuracy (~1 bp) | O'Kane Ch 18.6 |
-| Recursion algorithm $P_{k+1}(j) = (1-p_{k+1})P_k(j) + p_{k+1}P_k(j-\ell_{k+1})$ | O'Kane Ch 18.3.1 |
-| LHP loss distribution $F(K) = 1 - \Phi(A(K))$ | O'Kane Ch 16 |
-| LHP conditional loss formula $L(T|Z) = (1-R)\Phi(\cdot)$ | O'Kane Ch 16 |
-| LHP ETL formula with bivariate normal | O'Kane Ch 16 |
-| In-place recursion processing order (high to low) | O'Kane Ch 18.3.1 |
-| Loss unit granularity: 40% to 37% recovery increases N_U by factor of 60 | O'Kane Ch 18.4.2 |
-| Monte Carlo direct vs indirect approach | O'Kane Ch 14.7 |
-| Standard error of breakeven spread formula | O'Kane Ch 14.8 |
-| Upfront CDS valuation formula | O'Kane Ch 6.7 |
-| Equity tranche quoted with upfront + 500bp | O'Kane Ch 19.2, Table 19.1 |
-| LHP spread error is $O(1/N_c)$ | O'Kane Ch 16.4 |
+## Inputs Needed (NOT SURE)
 
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| "Hockey stick" scenario table (defaults → tranche losses) | Extended from O'Kane Table 12.3 with systematic presentation |
-| Mark-to-market formula presentation | Derived from O'Kane protection/premium PV formulas |
-| Accuracy comparison table (Gaussian, binomial, LHP) | Synthesized from O'Kane Ch 18.5-18.6 discussions |
-| Implementation validation checklist | Derived from O'Kane no-arbitrage conditions + practitioner practices |
-| "Desk Reality" boxes on P&L decomposition | Extended from standard trading desk practice |
-| "When to use what" method selection guide | Practitioner synthesis of O'Kane recommendations |
-| Beginner bridge explanations (conditional independence) | Pedagogical extension for target audience |
-
-### (C) Reasoned Inference
-
-| Inference | Logic |
-|-----------|-------|
-| Unit conversions between portfolio fraction and dollars | Algebraic consistency with O'Kane notation |
-| Tail sensitivity of senior vs body sensitivity of equity | Follows from tranche loss function shape |
-| Spread-ETL convexity | Both numerator increase and denominator decrease widen spread |
-| ETL term structure patterns | Derived from loss distribution evolution |
-
-### (D) Flagged Uncertainties
-
-- **Exact clearing house conventions for tranche margining:** I'm not sure without specific CCP documentation—varies by clearinghouse
-- **Day count conventions for non-standard bespoke tranches:** I'm not sure—may vary by dealer and deal documentation
-- **Numerical precision requirements in production systems:** I'm not sure—varies by institution
-- **Pay-as-you-go vs standard settlement nuances beyond what sources state:** I'm not sure without trade documentation
-- **Accuracy of approximations in distressed scenarios with clustered defaults:** I'm not sure—the cited errors assume benign market conditions
+- NOT SURE: exact CCP clearing / margining conventions for tranche products — needs the specific CCP rulebook.
+- NOT SURE: day count and coupon conventions for a specific bespoke tranche — confirm via term sheet / confirmations.
+- NOT SURE: numerical precision / tolerances required by your production stack — depends on risk system and controls.
+- NOT SURE: pay‑as‑you‑go vs other settlement nuances for the specific index/tranche — needs trading documentation.
+- NOT SURE: how accurate the “average‑notional” premium approximation remains under highly clustered defaults — needs stress testing on the chosen model/data.
