@@ -620,7 +620,7 @@ Before modeling settlement outcomes, verify:
 
 12. **Accrued premium at default** is owed by the buyer for the partial period—handled as part of the premium leg.
 
-13. Always verify the specific contract documentation; if a convention is not specified in your sources, mark it `NOT SURE:` rather than guessing.
+13. Always verify the specific contract documentation; if a convention is not specified in your sources, state the missing input explicitly (day count, recovery convention, settlement terms, deliverables, etc.) rather than guessing.
 
 ---
 

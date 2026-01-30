@@ -2354,10 +2354,6 @@ Conditional mean: $\mathbb{E}[\ln r(t) | r(s)] = \ln r(s) e^{-a(t-s)} + \int_s^t
 - Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (simulation accuracy/stability; exact and approximate sampling for common diffusions)
 - Bruce Tuckman & Angel Serrat, *Fixed Income Securities* (rates-model intuition and practical framing)
 
-## Inputs Needed (NOT SURE)
-
-- None.
-
 ---
 
 *Appendix A2 of Fixed Income: Practice and Theory*

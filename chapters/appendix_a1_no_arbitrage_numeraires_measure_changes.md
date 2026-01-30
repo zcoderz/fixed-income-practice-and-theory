@@ -1432,10 +1432,6 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 - Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (martingale measures, implementation diagnostics and simulation sanity checks)
 - John C. Hull, *Options, Futures, and Other Derivatives* (delta-hedging intuition and replication-based pricing)
 
-## Inputs Needed (NOT SURE)
-
-- None.
-
 ---
 
 *Appendix A1 of Fixed Income: Practice and Theory*

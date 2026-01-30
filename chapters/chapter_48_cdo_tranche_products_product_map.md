@@ -1222,11 +1222,6 @@ $\text{EL}(7\text{-}100\%) = (3\% - 0.95\%) / 93\% = 2.05\% / 93\% \approx 0.022
 - John C. Hull, *Risk Management and Financial Institutions* (ABS and ABS CDO illustration; crisis-era lessons)
 - McNeil, Frey, Embrechts, *Quantitative Risk Management* (option-like representations of tranche payoffs)
 
-## Inputs Needed (NOT SURE)
-
-- Current standard tranche grids and settlement/accrual conventions for a specific index series: check the relevant index rulebook / trading docs.
-- Exact collateral/margin mechanics and triggers for a specific leveraged super‑senior structure: term sheet + CSA.
-
 ---
 
 ## Cross-References

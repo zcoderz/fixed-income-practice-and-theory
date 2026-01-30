@@ -1914,14 +1914,5 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 - Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (tranche risk measures: systemic/idiosyncratic deltas and gammas; Corr01; VOD; base correlation and hedging)
 - McNeil, Frey, Embrechts, *Quantitative Risk Management* (copulas and tail dependence; Gaussian vs t‑copula tail behavior)
 
-## Inputs Needed (NOT SURE)
-
-- NOT SURE: discount curve conventions for your CSA/currency setup (OIS/CSA vs other) — confirm with desk methodology.
-- NOT SURE: tranche quote regime for your specific index series/vintage (running spread vs fixed coupon + upfront) — confirm trading docs.
-- NOT SURE: base correlation construction and interpolation used in your system for non‑standard strikes — check implementation docs.
-- NOT SURE: recovery definition and settlement timing (auction final price vs assumed recovery; accrual cutoffs) — confirm product documentation.
-- NOT SURE: any specific numeric t‑copula joint‑default probabilities used in a worked example — requires explicit numerical integration under the chosen parameters.
-
----
 
 *Chapter 51 of Fixed Income: Practice and Theory*

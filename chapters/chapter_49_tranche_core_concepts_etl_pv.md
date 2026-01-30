@@ -1055,10 +1055,4 @@ Total = 3.5% = Portfolio expected loss ✓
 
 - Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (ETL / tranche survival curve; recursion methods; LHP formulas; tranche quoting examples)
 
-## Inputs Needed (NOT SURE)
 
-- NOT SURE: exact CCP clearing / margining conventions for tranche products — needs the specific CCP rulebook.
-- NOT SURE: day count and coupon conventions for a specific bespoke tranche — confirm via term sheet / confirmations.
-- NOT SURE: numerical precision / tolerances required by your production stack — depends on risk system and controls.
-- NOT SURE: pay‑as‑you‑go vs other settlement nuances for the specific index/tranche — needs trading documentation.
-- NOT SURE: how accurate the “average‑notional” premium approximation remains under highly clustered defaults — needs stress testing on the chosen model/data.

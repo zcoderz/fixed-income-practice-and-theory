@@ -517,7 +517,7 @@ Luenberger concludes: "The expectations theory is the most analytical of the thr
 > - **Curve trades:** A view on “forwards are too high/low” implicitly includes a view on term premia, not just policy expectations.
 > - **Carry/rolldown:** Roll-down intuition often assumes rates don’t jump around; term premia and risk aversion can dominate realized outcomes.
 >
-> `NOT SURE: If you want this book to use a specific numerical term-premium model/estimator (and typical magnitudes), specify which framework and data source to adopt.`
+> **Putting numbers on term premia requires a choice:** you must pick an estimator and a data source. A common public choice is the New York Fed’s Adrian–Crump–Moench (ACM) term premium series. Absent an explicit choice, this book treats term premia qualitatively (forward ≠ expected future spot) and avoids “typical magnitude” claims.
 
 ---
 
@@ -922,3 +922,4 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 - Bruce Tuckman, *Fixed Income Securities* (discount factors; spot/forward rates; coupon effect).
 - John C. Hull, *Options, Futures, and Other Derivatives* (zero/forward rates; FRAs; par yields; discounting discussion).
 - David G. Luenberger, *Investment Science* (expectations hypothesis; liquidity preference intuition).
+- Federal Reserve Bank of New York, Adrian–Crump–Moench (ACM) term premium estimates (example public term-premium series).

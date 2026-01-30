@@ -1146,7 +1146,7 @@ This approximation is used as a starting point for LSM regression.
 | 10 | Why is $\beta$ often fixed in calibration? | Parameters are poorly identified; fixing $\beta$ breaks degeneracy |
 | 11 | What is Normal (Bachelier) volatility? | Volatility in absolute (bp) terms, assuming arithmetic Brownian motion |
 | 12 | How do you handle negative rates in Black's model? | Use shifted lognormal: $F \to F + s$, $K \to K + s$ |
-| 13 | What is a “typical” shift? | NOT SURE: there is no universal shift; it is a desk/system convention. Always confirm $s$ from the quoting rulebook or risk system settings. |
+| 13 | What is a “typical” shift? | There is no universal shift; it is a desk/system convention (often chosen to handle negative rates and fit quotes). Confirm $s$ from the quoting rulebook or risk system settings. |
 | 14 | How accurate is the freezing approximation? | Often useful as a first approximation/diagnostic, but accuracy depends on expiry/tenor/vol regime; validate on your product set. |
 | 15 | What is pathwise differentiation? | Differentiating through simulation paths to compute Greeks |
 | 16 | When does pathwise differentiation fail? | For discontinuous payoffs (barriers, digitals) |
@@ -1305,12 +1305,5 @@ Therefore $v_{a,b} = \sigma$.
 - Patrick S. Hagan, Deep Kumar, Andrew Lesniewski, & Diana Woodward (2002), “Managing Smile Risk” (SABR model and asymptotic implied-vol approximations)
 - Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (Monte Carlo estimation, variance reduction, and simulation-based Greeks)
 
-## Inputs Needed (NOT SURE)
-
-- Shift conventions: if you rely on shifted/displaced models, confirm the desk/system’s shift $s$ and quoting standard (price vs implied vol) before comparing across sources.
-- RFR coupon details: for compounded-in-arrears legs, confirm the exact compounding convention (lookbacks/lockouts/payment lags) from the contract.
-- LSM implementation: confirm which state variables and basis functions your desk’s library uses for regression (results can be sensitive to these choices).
-
----
 
 *Appendix A4 of Fixed Income: Practice and Theory*

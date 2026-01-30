@@ -267,7 +267,7 @@ The persistence of the basis is not a market inefficiency in the usual sense—i
 >
 > **Impact on basis:** Swap line activation can alleviate dollar funding stress and compress the basis.
 >
-> NOT SURE: The exact pricing, tenors, and the quantitative impact on a given currency pair depend on the specific swap line program and market regime. Use central-bank documentation and market data if you need precise historical magnitudes.
+> **Concrete example (dated):** In March 2020, major central banks enhanced USD liquidity swap line operations. For example, the Fed and partner central banks reduced the pricing to OIS + 25 bp and offered both 7‑day and 84‑day operations. Exact pricing/tenors vary by program and episode—use the relevant central‑bank release if you need to tie a specific basis move to a specific date.
 
 ### 30.3.4 Mark-to-Market (MTM) Cross-Currency Swaps
 
@@ -928,7 +928,12 @@ Most bilateral CSAs include payment netting provisions:
 
 #### Fails and Fails Charges
 
-NOT SURE: Fails charge conventions for cross-currency cashflows are jurisdiction- and agreement-specific (and can vary by currency, venue, and settlement framework). In general:
+Fails charges are set by the settlement discipline regime and the relevant legal/operational framework. Before you model (or dispute) a fails charge, identify:
+
+- **Which settlement regime applies** (jurisdiction/venue/currency) — rules differ materially across markets (e.g., U.S. Treasury fails charge conventions vs EU CSDR settlement discipline).
+- **What your documentation says** about late-payment compensation, cutoffs, and netting (confirmation/CSA/settlement agreement).
+
+In general:
 
 - A "fail" occurs when one party does not deliver on settlement date
 - The failing party may owe compensation (overnight rate on the failed amount)
@@ -1120,3 +1125,5 @@ NOT SURE: Fails charge conventions for cross-currency cashflows are jurisdiction
 
 - Hull, *Options, Futures, and Other Derivatives* (FX forwards; FX swaps; currency swaps)
 - Andersen & Piterbarg, *Interest Rate Modeling* (cross-currency basis swaps; valuation dependencies; multi-curve framework)
+- Federal Reserve / major central banks, USD liquidity swap line announcements (example: March 2020 pricing relative to OIS; 7‑day and 84‑day operations).
+- Treasury Market Practices Group (TMPG) fails charge materials and EU CSDR settlement discipline materials (contrasting settlement fails charge / cash penalty regimes).

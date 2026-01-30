@@ -210,7 +210,7 @@ In practice, risk systems often report:
 - **Rates gamma/convexity** ($\partial^2 PV / \partial r^2$): how rates PV01 changes with rates
 - **Cross-gamma** ($\partial^2 PV / \partial S \partial r$): the interaction term
 
-NOT SURE: Cross-gamma reporting conventions vary across risk systems (spot vs forward bumps, which curve is bumped, bump sizes). Always confirm the definition and the bump methodology before comparing cross-gamma numbers across systems.
+Cross-gamma reporting conventions vary across risk systems (spot vs forward bumps, which curve(s) are bumped/rebuilt, bump sizes, and whether other market inputs are held fixed). Always record the bump methodology before comparing cross-gamma numbers across systems.
 
 ### 31.4.5 Quanto Derivatives: When Currency Mismatch Affects Pricing
 

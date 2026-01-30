@@ -19,7 +19,7 @@ This chapter explains what the CDS auction accomplishes and why it exists. We fo
 7. **Index constituent default treatment** — how auctions apply to CDX/iTraxx positions
 8. **What remains uncertain** — operational details requiring ISDA documentation
 
-We are explicit about what the reference books cover and what requires additional documentation. Where operational details are not specified in Hull or O'Kane, we use practitioner knowledge clearly marked as such, and we mark gaps as `NOT SURE:` rather than speculate.
+We are explicit about what the reference books cover and what requires additional documentation. Where operational details are not specified in Hull or O'Kane, we use practitioner knowledge clearly marked as such, and we flag any remaining gaps by stating the missing input explicitly rather than speculating.
 
 ---
 
@@ -225,7 +225,7 @@ The auction walks down from 35.00:
 >
 > 5. **Regulatory oversight:** Post-2008, regulators have increased scrutiny of CDS auction conduct
 >
-> **NOT SURE:** Specific documented manipulation cases or regulatory enforcement actions are not covered by the excerpts used here; treat the safeguards above as design principles and consult ISDA/regulatory sources for case studies.
+> **Case studies / further reading:** The excerpts used here do not include detailed case studies of attempted auction manipulation or enforcement actions. If you want real-world examples and official framing, consult ISDA materials on transaction types / credit event design, and regulator statements on manufactured or problematic credit-event structures.
 
 > **Desk Reality: Why Manipulation is Difficult**
 >
@@ -420,7 +420,7 @@ This is paid by the protection buyer to the seller and is separate from the prot
 >
 > **DC membership** includes major CDS dealers and buy-side representatives. Decisions require supermajority votes and are binding on all market participants who adhere to the relevant ISDA protocols.
 >
-> **NOT SURE:** DC membership, voting thresholds, and procedural rules are documentation-specific and can evolve; consult the relevant ISDA DC Rules / auction terms for the exact current procedures.
+> DC membership, voting thresholds, and procedural rules are documentation-specific and can evolve; consult the relevant ISDA DC Rules / auction terms for the exact current procedures.
 
 ---
 
@@ -911,3 +911,4 @@ O'Kane documents that physical settlement "can extend up to 72 calendar days aft
 - Hull, *Options, Futures, and Other Derivatives* (CDS auction motivation and the Lehman example)
 - O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (settlement mechanics, deliverable scarcity, and why auctions exist)
 - ISDA Credit Derivatives Auction Settlement Terms / DC Rules (definitive operational mechanics and governance)
+- ISDA consultations and regulator statements on “manufactured” / engineered credit events and auction integrity (case-study pointers beyond the core textbooks).

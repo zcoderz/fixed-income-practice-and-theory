@@ -393,7 +393,7 @@ The collateral poster will always choose the currency that maximizes their effec
 >
 > Most dealer desks use approach (2) for risk management and approach (1) for day-to-day pricing, with manual overrides when rates are near switching thresholds.
 
-NOT SURE: A complete CTD-collateral optionality model requires specifying CSA terms and a joint stochastic model for the eligible collateral rates and FX/basis dynamics. The textbook excerpts here discuss multi-currency curve construction and discounting effects, but do not provide a single canonical CTD-collateral option pricing framework. In practice, desks often handle this via scenario analysis and/or additional basis adjustments.
+A complete CTD-collateral optionality model requires specifying CSA terms and a joint stochastic model for the eligible collateral rates and FX/basis dynamics. The sources used here provide key ingredients (multi-currency curve construction, discounting effects) but not a single canonical end-to-end CTD-collateral option pricing framework. In practice, this is often handled via scenario analysis and/or additional basis adjustments.
 
 ---
 

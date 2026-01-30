@@ -510,13 +510,13 @@ Following O'Kane's taxonomy, we organize alternative approaches into four catego
 - O'Kane describes hybrid models inspired by structural "firm value" dynamics but used as reduced-form models calibrated to market prices (no capital-structure interpretation)
 - Correlate firm-value-like state variables to induce default dependence; use rich dynamics to fit skew
 
-> **NOT SURE:** Hybrid structural–reduced-form models come in many variants. To write a concrete pricing/calibration recipe (not just a schematic description), we need the exact model equations and calibration targets adopted by your desk (or a specific reference section to follow).
+> **Implementation note (model-choice dependent):** Hybrid structural–reduced-form models come in many variants. To write a concrete pricing/calibration recipe (not just a schematic description), we need the exact model equations and calibration targets you want this book to follow (desk model spec or a specific reference section).
 
 **D5. Credit migration Markov chains (ratings transitions)**
 - Hull discusses rating transition matrices and notes that independence across periods is an approximation; "ratings momentum" can violate strict independence
 - Use: Risk models (CreditMetrics-style) that incorporate downgrades and default as multi-state Markov processes
 
-> **NOT SURE:** This appendix focuses on default dependence. If you need *correlated migrations* (multi-name rating dynamics), you need an explicit multi-name transition model (or a correlation structure on latent drivers) beyond the one-name transition-matrix setup.
+> **Scope note:** This appendix focuses on default dependence. If you need *correlated migrations* (multi-name rating dynamics), you need an explicit multi-name transition model (or a correlation structure on latent drivers) beyond the one-name transition-matrix setup.
 
 ### A6.3.5 Industry Models: CreditRisk+
 
@@ -934,7 +934,7 @@ where $\delta_{ji}$ is the contagion impact.
 
 McNeil et al. in QRM discuss "default contagion and default dependence," noting that "default dependence can arise through direct contagion mechanisms where the default of one firm increases the default probability of others."
 
-> **About Hawkes processes (NOT SURE):** Some contagion models can be written as self-exciting (Hawkes-style) intensities. NOT SURE: whether the specific sources used in this book include an explicit Hawkes formulation; if you want to adopt one, specify the exact intensity form (or provide a reference excerpt) so the notation and calibration targets are unambiguous.
+> **About Hawkes processes (optional extension):** Some contagion models can be written as self-exciting (Hawkes-style) intensities. This appendix does not fix a specific Hawkes specification; if you want to include one, specify the exact intensity form (or provide a reference excerpt) and calibration targets so the notation is unambiguous.
 
 ### A6.6.4 The Markov Chain Approach
 
@@ -1309,7 +1309,7 @@ $$C_M(u_1, \ldots, u_N) = \min(u_1, \ldots, u_N)$$
 
 **Contagion shocks:**
 
-> **NOT SURE (interacting intensities):** the exact parametric form depends on the chosen interacting-intensity specification. For stress testing, a simple schematic is to apply a post-default jump $\\lambda_i(t^+) = \\lambda_i(t^-) + \\delta_{ji}$ to surviving names’ intensities. If you need a specific parametric form (to calibrate, not just to stress), provide the exact model equations/convention you want to use.
+> **Interacting intensities (specification-dependent):** the exact parametric form depends on the chosen interacting-intensity model. For stress testing, a simple schematic is to apply a post-default jump $\\lambda_i(t^+) = \\lambda_i(t^-) + \\delta_{ji}$ to surviving names’ intensities. If you need a specific parametric form (to calibrate, not just to stress), provide the exact model equations/convention you want to use.
 
 ### A6.11.3 Sensitivity Outputs
 
@@ -1933,12 +1933,5 @@ A correlation desk prices the same [3-7%] tranche using three models:
 - Philipp J. Schönbucher, *Credit Derivatives Pricing Models* (top-down loss models, Markov chain approaches, and credit derivatives modeling frameworks)
 - John C. Hull, *Risk Management and Financial Institutions* (credit risk measurement and regulatory capital context)
 
-## Inputs Needed (NOT SURE)
-
-- Current desk practice: which dynamic credit portfolio model families (if any) are “standard” depends on the desk and product set; confirm your desk’s model stack and calibration targets before operationalizing a dynamic model section.
-- Contagion calibration: to calibrate infectious-default / interacting-intensity models, you need a clear parameterization and calibration targets (index options? tranche options? historical clustering metrics?).
-- RFR/contract conventions do not apply here, but **credit contract conventions do**: for bespoke tranches, confirm index mapping conventions, recovery assumptions, and settlement conventions from your desk’s rulebook.
-
----
 
 *Appendix A6 of Fixed Income: Practice and Theory*

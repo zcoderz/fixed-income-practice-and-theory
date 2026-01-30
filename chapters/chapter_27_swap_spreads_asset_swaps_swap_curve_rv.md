@@ -756,7 +756,7 @@ A full multi-curve ASW calculation requires specifying:
 - Collateral/CSA terms
 - The instrument set used to build each curve
 
-NOT SURE: A fully specified multi-curve ASW number depends on the exact curve-building inputs and CSA terms used by the pricing system. Without those conventions, this chapter can only give the single-curve formulas and qualitative sensitivities.
+A fully specified multi-curve ASW number depends on the exact curve-building inputs and CSA terms used by the pricing system. Without those conventions, this chapter focuses on the single-curve formulas and qualitative sensitivities.
 
 ### 27.9.2 Sensitivity to Discounting Assumptions
 

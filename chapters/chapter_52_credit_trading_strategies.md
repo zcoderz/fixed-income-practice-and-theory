@@ -326,7 +326,7 @@ To reconcile intrinsic and quoted index views, O’Kane describes a **portfolio 
 
 This is primarily a **model consistency** step (important for tranche pricing and some risk decompositions). From a trading/risk perspective, the takeaway is simpler: *index vs constituent hedges contain an extra moving part*, and you should monitor it explicitly (see Chapters 46–47).
 
-NOT SURE: which portfolio swap adjustment method your desk/system uses (spread multipliers vs hazard‑rate scaling; whether it is done per maturity point; and what constraints are enforced).
+Portfolio swap adjustment is implemented differently across systems (e.g., spread multipliers vs hazard‑rate scaling; global vs tenor‑by‑tenor; and varying constraints). Confirm your system’s method before using intrinsic/quoted decompositions or hedge weights operationally.
 
 #### Series/Roll Basis
 
@@ -1317,7 +1317,7 @@ Exploit divergences between equity-implied credit risk and CDS-priced credit ris
 
 **Desk note (LBO/leverage events):** an LBO is a discrete capital‑structure shock. It can change leverage, covenant package, and expected recoveries, so both senior and subordinated CDS can reprice sharply. Some desks express an LBO view as an outright **credit‑widening** position (buying protection), while others express a **relative** senior vs sub view. The direction and sizing depend on the specific deal structure and which obligations are effectively being referenced by each CDS contract.
 
-NOT SURE: the precise senior vs sub recovery/settlement mechanics under all LBO structures (depends on documentation, guarantees, and the post‑deal capital structure).
+Senior vs sub recovery and settlement mechanics in LBO situations are documentation-dependent (guarantees, obligation characteristics, and the post‑deal capital structure). Before sizing a senior-vs-sub expression, confirm the relevant contract terms, deliverables/obligations, and the recovery/settlement assumptions used in your risk system.
 
 ##### Exposure Decomposition
 
@@ -1348,7 +1348,7 @@ $$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\te
 
 O'Kane also highlights that LCDS trigger definitions can differ across products/regions and that cancellable LCDS introduces a cancellation feature. In O’Kane’s treatment, valuing cancellable LCDS introduces both a default survival curve $Q_D$ and a cancellation curve $Q_C$.
 
-NOT SURE: current LCDS market conventions and liquidity for the names/indices you care about (trigger definitions, cancellation/refinancing, standard quoting).
+LCDS conventions and liquidity are contract- and time-dependent. Before trading or marking LCDS, confirm the relevant trigger definitions, any cancellation/refinancing feature, the quoting regime (spread vs coupon+upfront), and execution liquidity for the specific name/index you care about.
 
 ---
 
@@ -1388,7 +1388,7 @@ Useful monitoring signals (exact thresholds are desk policy):
 - Funding terms for the cash leg (repo availability/terms) and margin requirements.
 - Bid/offer and market depth (liquidity regime).
 
-NOT SURE: the precise thresholds and escalation playbook your desk uses (varies by institution, risk appetite, and market regime).
+Thresholds and escalation playbooks are set by each desk (risk appetite, governance, and market regime). Use the signal list above as generic categories, then plug in your desk’s specific thresholds and escalation actions.
 
 ---
 
@@ -1413,7 +1413,7 @@ Possible trigger categories (thresholds are desk‑specific):
 - **Recovery / settlement assumptions:** recovery/final‑price inputs move materially; re-run JTD/VOD.
 - **Correlation/tail regime:** tranche marks move in a way inconsistent with the hedge map; re-run clustered default scenarios.
 
-NOT SURE: exact numeric trigger thresholds and escalation actions (set by desk playbooks).
+Exact numeric trigger thresholds and escalation actions are set by desk playbooks; treat them as an input to this framework rather than a universal rule.
 
 ### 52.10.3 Unwind Playbook
 
@@ -1524,7 +1524,7 @@ Then:
 
 $$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry}} + \underbrace{(PV_{\text{roll}}(t + \Delta t; S_t) - PV(t; S_t))}_{\text{rolldown/theta}} + \underbrace{(PV(t + \Delta t; S_{t + \Delta t}) - PV_{\text{roll}}(t + \Delta t; S_t))}_{\text{spread move}} + \text{events}.$$
 
-**NOT SURE (carry formula):** an exact closed‑form “carry” formula depends on the quoting regime (par spread vs fixed coupon + upfront), day count, clean vs full price, and your desk’s carry definition. To make this section fully operational, we need the index rulebook conventions and the desk’s P&L attribution definition.
+**Implementation note:** an exact closed‑form “carry” formula depends on the quoting regime (par spread vs fixed coupon + upfront), day count, clean vs full price, and your desk’s carry definition. To make this section fully operational, use the index rulebook conventions and your desk’s P&L attribution definition.
 
 ---
 
@@ -1725,7 +1725,7 @@ If the single name defaults, single-name JTD is large; index hedge only absorbs 
 
 **Important:** The sources show intrinsic index valuation as a sum/average of constituent CDS values and discuss portfolio swap adjustment. A full "bottom-up hedge" method depends on how you allocate index basis and curve adjustments; details are desk-convention dependent.
 
-**NOT SURE (hedge weights):** there is no single canonical hedge-weight formula without specifying the portfolio swap adjustment rule (and the risk system’s definition of “intrinsic” vs “quoted” objects). Below is a clearly labeled approximation.
+**Important:** there is no single canonical hedge-weight formula without specifying the portfolio swap adjustment rule (and the risk system’s definition of “intrinsic” vs “quoted” objects). The example below is a clearly labeled approximation and is best treated as a diagnostic (CS01 matching) rather than a production hedge recipe.
 
 #### Approximation Used
 
@@ -2775,15 +2775,5 @@ $$\\Delta PV_{\\rho} \\approx \\frac{0 + 8{,}625}{2} \\times 15 \\approx +\\$64{
 
 - Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bond-CDS basis drivers; CDS indices and index basis; roll mechanics; tranche risk measures/correlation; capital structure and recovery; LCDS)
 - John C. Hull, *Risk Management and Financial Institutions* (fixed-coupon CDS/index quoting; CDS-bond basis; tranche correlation intuition)
-
-## Inputs Needed (NOT SURE)
-
-- NOT SURE: which portfolio swap adjustment method your desk/system uses (spread multipliers vs hazard-rate scaling; whether it is done per maturity point; and what constraints are enforced).
-- NOT SURE: current LCDS market conventions and liquidity for the names/indices you care about (trigger definitions, cancellation/refinancing, standard quoting).
-- NOT SURE: the precise senior vs sub recovery/settlement mechanics under all LBO structures (depends on documentation, guarantees, and the post-deal capital structure).
-- NOT SURE: the precise thresholds and escalation playbook your desk uses (varies by institution, risk appetite, and market regime).
-- NOT SURE: exact numeric trigger thresholds and escalation actions (set by desk playbooks).
-
----
 
 *Chapter 52 of Fixed Income: Practice and Theory*

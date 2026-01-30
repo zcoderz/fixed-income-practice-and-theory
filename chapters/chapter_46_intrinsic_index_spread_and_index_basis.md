@@ -388,7 +388,7 @@ The ETF analogy suggests that if the index trades at a premium to intrinsic, you
 - As liquidity returns and single-name markets re-open, basis can narrow, but convergence timing is uncertain.
 - The sign and size of the basis are path-dependent: documentation mismatches (No-Re vs Mod-Re), bid-ask dispersion, and roll effects can dominate.
 
-**NOT SURE:** To quantify "typical" stress-period basis magnitudes for a specific index family and date range, we need a historical time series (quoted index, constituent quotes, and the exact intrinsic calculation rule).
+There is no universal “typical” stress-period basis magnitude. To quantify basis behavior for a specific index family and date range, you need a historical time series (quoted index, constituent quotes, and the exact intrinsic calculation rule) and then summarize the resulting distribution (levels, tails, and persistence).
 
 > **Desk Reality: Basis During a Sell-Off**
 >

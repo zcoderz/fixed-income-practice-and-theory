@@ -1717,10 +1717,6 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 - Mike Giles (2008), “Multilevel Monte Carlo Path Simulation” (MLMC estimator and complexity results)
 - C. W. Oosterlee & C. Grzelak, *Mathematical Modeling and Computation in Finance* (COS method; Fourier pricing implementations)
 
-## Inputs Needed (NOT SURE)
-
-- None.
-
 ---
 
 *Appendix A5 of Fixed Income: Practice and Theory*

@@ -454,7 +454,7 @@ Hull (OFD Chapter 9) observes: "This argument is over 50 years old in the financ
 
 ### 34.6.5 Worked Example: FVA from Expected Funding Requirement
 
-> **NOT SURE:** The sources define FCA/FBA conceptually but do not provide a single canonical discrete-sum formula for FVA in terms of a desk-ready "funding requirement profile." The right implementation depends on your funding policy (what constitutes "funding requirement," whether FBA is recognized, what curve is used for discounting, and whether funding is computed at trade, netting-set, or bank level). The following mapping is **illustrative**:
+> **Implementation note (policy-dependent):** The sources define FCA/FBA conceptually but do not give a single canonical discrete-sum formula for FVA in terms of a desk-ready “funding requirement profile.” The right implementation depends on your funding policy (what constitutes “funding requirement,” whether FBA is recognized, what curve is used for discounting, and whether funding is computed at trade, netting-set, or bank level). The following mapping is **illustrative**:
 
 $$\text{FCA} \approx \sum_{i=1}^{N} D(0, t_i^*) \cdot s_f \cdot F(t_i^*) \cdot \Delta t$$
 

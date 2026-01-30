@@ -1609,10 +1609,6 @@ $$\boxed{\sigma(t,T) = \eta(t) \exp\!\left(-\int_t^T \kappa(x)\,dx\right)}$$
 - Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (HJM discretization and simulation considerations)
 - Darrell Duffie, *Dynamic Asset Pricing Theory* (term-structure modeling and the Musiela/SPDE viewpoint)
 
-## Inputs Needed (NOT SURE)
-
-- None.
-
 ---
 
 *Appendix A3 of Fixed Income: Practice and Theory*

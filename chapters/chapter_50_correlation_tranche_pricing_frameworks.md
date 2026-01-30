@@ -1441,13 +1441,6 @@ For extreme events (worst 1%), the joint probability is approximately:
 - John C. Hull, *Options, Futures, and Other Derivatives* (CDO / tranche modeling overview and examples)
 - David X. Li (2000), “On Default Correlation: A Copula Function Approach” (copula approach in credit)
 
-## Inputs Needed (NOT SURE)
-
-- NOT SURE: current market quoting conventions (fixed coupons, upfront vs running, standard grids) for your specific index series — verify with current trading docs / rulebooks.
-- NOT SURE: which interpolation space your desk system uses for base correlation (linear corr, ETL-space, etc.) — check implementation docs.
-- NOT SURE: multi-factor model calibration in implied-correlation language — depends on the chosen model and desk conventions.
-- NOT SURE: current regulatory capital requirements affecting correlation trading — use the applicable current Basel/jurisdiction rulebook.
-
 ---
 
 ## 50.21 Cross-References

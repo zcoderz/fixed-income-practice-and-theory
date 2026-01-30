@@ -427,7 +427,7 @@ where $D(0,T) = -\int_0^T Z(0,s) \, dQ(0,s)$.
 
 - If $R = 0$, recovery term vanishes and bond PV is just survival-weighted discounted cashflows.
 - If $Q(0,t) = 1$ for all $t$, bond PV reduces to risk-free PV (recovery term becomes 0 because $dQ = 0$).
-- **If you need a different recovery convention (RT or RMV):** NOT SURE: pricing and CS01 outputs depend on the chosen convention and on what is assumed to be recovered (face vs Treasury value vs market value; treatment of coupon and accrued). To proceed, specify RT vs RFV vs RMV and the cashflow rule at default. QRM explicitly distinguishes these conventions.
+- **If you need a different recovery convention (RT or RMV):** Pricing and CS01 outputs depend on the chosen convention and on what is assumed to be recovered (face vs Treasury value vs market value; treatment of coupon and accrued). To proceed, specify RT vs RFV vs RMV and the cashflow rule at default, then re-derive the recovery leg accordingly. QRM explicitly distinguishes these conventions.
 
 ---
 

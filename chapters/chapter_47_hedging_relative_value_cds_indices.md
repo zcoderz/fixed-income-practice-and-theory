@@ -31,7 +31,7 @@ This chapter builds directly on Chapter 46 (Intrinsic Index Spread and Index Bas
 
 This chapter is **risk-first**: we describe exposures, hedges, residuals, and validation—not trade recommendations.
 
-No index rulebook specifics (standard coupons, exact roll calendars, operational settlement mechanics) are asserted unless supported by the provided sources. Where a statement depends on your exact confirmation / rulebook / valuation policy, we flag it as **NOT SURE** and state the missing input.
+No index rulebook specifics (standard coupons, exact roll calendars, operational settlement mechanics) are asserted unless supported by the provided sources. Where a statement depends on your exact confirmation / rulebook / valuation policy, we flag the dependency explicitly and state the missing input.
 
 All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decimal rate per year).
 
@@ -444,7 +444,7 @@ subject to constraints such as:
 - Maximum notional per name
 - Trade only top $K$ names for efficiency
 
-**NOT SURE:** The exact optimization constraints are desk-specific (liquidity universe, concentration limits, minimum clip sizes, restricted names, and whether you can short protection). Provide your risk policy / execution constraints to turn this into an implementable optimization.
+The exact optimization constraints are desk-specific (liquidity universe, concentration limits, minimum clip sizes, restricted names, and whether you can short protection). Provide your risk policy / execution constraints to turn this into an implementable optimization.
 
 ### 47.3.4 Systemic vs Idiosyncratic Delta: The O'Kane Framework
 
@@ -725,7 +725,7 @@ While this chapter focuses on credit-to-credit hedging, credit indices are somet
 > - Equity put skew is expensive relative to credit spreads
 > - Investor accepts that protection only "works" in severe stress
 
-**NOT SURE:** The “right” hedge ratio depends on your equity benchmark, sector mix, horizon, and hedge objective (tail-loss protection vs day-to-day tracking). Provide those inputs (and preferred calibration window) to compute a desk-usable ratio.
+There is no universal “right” hedge ratio: it depends on your equity benchmark, sector mix, horizon, and hedge objective (tail-loss protection vs day-to-day tracking). Estimate it via stress-scenario sizing and/or a regression/backtest over a chosen window, then monitor tracking error and regime drift.
 
 ---
 
