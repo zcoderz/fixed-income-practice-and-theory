@@ -12,6 +12,15 @@ We then develop each method in detail. **Section A5.4** covers binomial and trin
 
 By the end of this appendix, you should be able to look at a derivative specification and immediately know which numerical approach to reach for, what pitfalls to avoid, and how to verify that your implementation is actually converging to the right answer.
 
+**How to use this appendix (reading paths):**
+
+- **If you price Bermudans / callable structures:** start with A5.4 (trees) and A5.5 (FD/PDE), then A5.6.4 (LSMC/Longstaff–Schwartz) and A5.10 (verification + production bugs).
+- **If you’re implementing PDE/FD solvers:** focus on A5.5 (schemes, stability, boundary conditions) and A5.5.9 (ADI for multi-factor).
+- **If you’re implementing Monte Carlo + Greeks:** focus on A5.6 (variance reduction + Greeks) and A5.6.7 (MLMC), then A5.10.5–A5.10.6 (validation + bugs).
+- **If you price vanilla Europeans fast (calibration loops):** focus on A5.7 (Fourier/COS) and the worked COS examples in A5.9.
+
+**Prerequisites:** comfort with risk-neutral valuation, basic PDE intuition (Feynman–Kac), and SDE simulation basics (Itô calculus). Appendix A1 is useful for measure/numeraire context.
+
 ---
 
 ## A5.1 Framework and Notation
@@ -189,17 +198,12 @@ For well-posed linear problems, **consistency + stability ⇒ convergence**.
 - MC: $n$ paths and $N_t$ time steps per path (time-discretized simulation).
 - Fourier: $N$ grid points for FFT.
 
-**Source-Backed Anchors:**
+**Rules of thumb (what explodes, what scales well):**
 
-- A standard tridiagonal (1D) $\theta$-scheme with $m$ spatial points and $n$ time steps has complexity $O(mn)$ (Andersen–Piterbarg).
-- Finite differences are "suitable for 1, 2 and possibly 3 factors" and beyond that Monte Carlo is typical (Andersen–Piterbarg).
-- Monte Carlo time grows roughly linearly with dimension, but early exercise is difficult in "original formulation" (Andersen–Piterbarg).
-- FFT-based methods achieve $O(N \log N)$ complexity for European option pricing (Carr–Madan).
-
-**Reasoned Inference (Transparent):**
-
-- FD curse of dimensionality: number of grid points scales like $N_x^d$.
-- MC scaling: runtime $\propto n\times N_t\times(\text{cost per step})$, typically linear in $d$ for factor simulations.
+- **1D finite differences:** a tridiagonal $\theta$-scheme is typically $O(N_t \cdot N_x)$.
+- **FD curse of dimensionality:** in $d$ dimensions, grid points scale like $N_x^d$ (memory and runtime can blow up fast). In practice, FD is most comfortable in low dimensions (often $d \le 3$).
+- **Monte Carlo:** runtime is roughly $O(n \cdot N_t \cdot \text{cost-per-step})$ and typically scales close to linearly in factor dimension for many models. The challenge is variance (slow $1/\\sqrt{n}$ convergence) and early exercise (needs LSMC/other techniques).
+- **Fourier/FFT:** when applicable (European payoffs + known characteristic function), methods can be very fast, often scaling like $O(N)$ or $O(N\\log N)$ depending on the implementation (single strike vs strike grid).
 
 ---
 
@@ -1093,14 +1097,16 @@ Fourier methods are **not appropriate** for:
 
 ### A5.8.3 Computational Cost Estimates
 
-| Method | Typical Cost for Vanilla European | Notes |
-|--------|----------------------------------|-------|
-| Black–Scholes closed-form | < 1 μs | When available |
-| Fourier (COS, $N=128$) | ~ 10 μs | Heston, VG |
-| Binomial tree ($N=500$) | ~ 100 μs | American options |
-| Implicit FD ($M=100, N=100$) | ~ 1 ms | Good for Americans |
-| Monte Carlo ($n=10^5$) | ~ 10 ms | European; more for path-dependent |
-| LSMC ($n=10^5$, 50 exercise dates) | ~ 100 ms | Bermudan options |
+Raw wall-clock times vary wildly by language (Python vs C++), hardware (CPU vs GPU), and implementation details. A more robust way to think about “cost” is: **what does runtime scale with** as you increase resolution?
+
+| Method (vanilla European) | Typical scaling driver | Rough relative speed |
+|---------------------------|------------------------|----------------------|
+| Closed-form (when available) | $O(1)$ | Fastest |
+| Fourier (COS/FFT) | $O(N)$ to $O(N\log N)$ | Very fast |
+| Recombining tree | $O(N^2)$ nodes | Fast–moderate |
+| 1D finite differences | $O(N_t \cdot N_x)$ | Moderate |
+| Monte Carlo | $O(n \cdot N_t)$ | Moderate–slow (variance-limited) |
+| LSMC (Bermudan) | $O(n \cdot N_t)$ + regressions | Slower (exercise + regression) |
 
 ### A5.8.4 Hybrid Approaches
 
@@ -1118,9 +1124,10 @@ Fourier methods are **not appropriate** for:
 **Setup:** $S_0 = 50$, $K = 50$, $T = 5$ months, $r = 10\%$, $\sigma = 40\%$, $q = 0$
 
 **Step 1: Compute parameters**
-$$\Delta t = 5/12 = 0.4167 \text{ years (using 2 steps, so } \Delta t = 0.2083\text{)}$$
+Convert maturity to years: $T = 5/12$.
 
-Let's use $N = 5$ monthly steps, so $\Delta t = 1/12$:
+Choose $N = 5$ time steps (monthly), so:
+$$\Delta t = \frac{T}{N} = \frac{5/12}{5} = \frac{1}{12}.$$
 
 $$u = e^{0.40\sqrt{1/12}} = e^{0.1155} = 1.1224$$
 $$d = 1/u = 0.8909$$
@@ -1542,6 +1549,12 @@ Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} =
 > 5. **NaN propagation:** One NaN in a grid infects the entire backward induction. Always check inputs.
 >
 > 6. **Thread safety:** Random number generators that aren't thread-safe produce correlated "independent" paths.
+>
+> 7. **Fourier branch cuts:** Characteristic-function pricing (e.g., Heston) uses complex $\log$ and $\sqrt{\cdot}$; inconsistent branch choices can create discontinuities or wrong prices. Validate against known benchmarks and alternative formulations.
+>
+> 8. **LSMC regression overfit:** Too many basis functions (or poorly scaled state variables) can produce unstable exercise boundaries and noisy Greeks. Treat LSMC as a model in its own right and validate out-of-sample.
+>
+> 9. **QMC “fake precision”:** Low-discrepancy sequences can reduce variance but do not automatically give a CLT-style error bar. Use randomized QMC (scrambling) if you need error estimates.
 
 ---
 
@@ -1695,85 +1708,19 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
+- John C. Hull, *Options, Futures, and Other Derivatives* (trees; finite differences; variance reduction basics)
+- Paul Glasserman, *Monte Carlo Methods in Financial Engineering* (MC convergence; variance reduction; Greeks; LSMC; strong vs weak convergence)
+- Leif B. G. Andersen & Vladimir V. Piterbarg, *Interest Rate Modeling* (numerical methods for fixed income models; FD/ADI techniques; implementation framing)
+- Daniel J. Duffy, *Finite Difference Methods in Financial Engineering* (stability/consistency; boundary conditions; practical FD pitfalls)
+- Mike Giles (2008), “Multilevel Monte Carlo Path Simulation” (MLMC estimator and complexity results)
+- C. W. Oosterlee & C. Grzelak, *Mathematical Modeling and Computation in Finance* (COS method; Fourier pricing implementations)
 
-| Fact | Source |
-|------|--------|
-| Risk-neutral pricing identity | Andersen–Piterbarg Vol 1 |
-| Black–Scholes call formula with dividend yield | Standard derivation |
-| CRR binomial parameters and risk-neutral probability | Hull Ch 13 |
-| Binomial tree convergence to BSM | Hull Ch 13 Appendix |
-| Trinomial tree probabilities | Hull Section 21.4 |
-| Explicit FD equivalent to trinomial tree | Hull Section 21.8 |
-| Implicit FD coefficients $a_j$, $b_j$, $c_j$ | Hull Section 21.8 |
-| Explicit FD coefficients $a_j^*$, $b_j^*$, $c_j^*$ | Hull Section 21.8 |
-| Crank–Nicolson as average of implicit/explicit | Hull Section 21.8 |
-| Crank–Nicolson oscillation issues | Duffy, Andersen–Piterbarg |
-| Rannacher stepping (2–4 implicit steps near maturity) | Andersen–Piterbarg Vol 1 Section 2.9 |
-| ADI methods (Peaceman–Rachford, Douglas–Rachford) | Andersen–Piterbarg Vol 1 Sections 2.10–2.12 |
-| ADI complexity $O(m_1 m_2)$ vs direct C-N $O((m_1 m_2)^{5/4})$ | Andersen–Piterbarg Vol 1 |
-| Craig–Sneyd, Hundsdorfer–Verwer schemes | Andersen–Piterbarg Vol 1 Section 2.11 |
-| Stability definition | Duffy |
-| Consistency definition | Duffy |
-| Convergence definition | Andersen–Piterbarg |
-| Lax equivalence theorem | Andersen–Piterbarg Vol 1 |
-| Strong convergence definition and orders | Glasserman Ch 6 pp. 339-365 |
-| Weak convergence definition and orders | Glasserman Ch 6 pp. 339-365 |
-| Euler-Maruyama: strong order 1/2, weak order 1 | Glasserman Ch 6 |
-| Milstein: strong order 1, weak order 1 | Glasserman Ch 6 |
-| Tridiagonal $\theta$-scheme complexity $O(mn)$ | Andersen–Piterbarg |
-| FD suitable for 1-3 factors | Andersen–Piterbarg |
-| MC difficulty with early exercise | Andersen–Piterbarg |
-| MC convergence rate $O(1/\sqrt{n})$ | Standard MC theory |
-| Antithetic variates technique | Hull Section 21.7, Glasserman Ch 4 |
-| Control variate technique | Hull Section 21.7, Glasserman Ch 4 |
-| Importance sampling | Glasserman Ch 4 |
-| Stratified sampling | Glasserman Ch 4 |
-| Quasi-Monte Carlo (Sobol, Halton sequences) | Glasserman Ch 5 |
-| QMC convergence rate $O((\log n)^d / n)$ | Glasserman Ch 5 |
-| Effective dimension concept | Glasserman Ch 5 |
-| LSMC algorithm and bias properties | Glasserman Ch 8, Longstaff–Schwartz (2001) |
-| Pathwise method for Greeks | Glasserman Ch 7 |
-| Likelihood ratio method | Glasserman Ch 7 |
-| COS method formula and exponential convergence | Oosterlee & Grzelak Ch 6 |
-| Carr–Madan FFT method | Carr & Madan (1999) |
-| MLMC telescoping estimator | Giles (2008), Oosterlee Ch 8 |
-| Broadie–Glasserman–Kou barrier correction | Glasserman Ch 6 |
-| American put free boundary constraint | Standard references |
+## Inputs Needed (NOT SURE)
 
-### (B) Claude-Extended Content (Priority 2)
-
-| Content | Context |
-|---------|---------|
-| Production implementation bugs section | Extended from general software engineering and quantitative finance knowledge |
-| Testing and verification strategies | Extended from general numerical methods practice |
-| Performance optimization tips | Extended from computational finance practice |
-| "Desk Reality" boxes throughout | Practitioner color added from general fixed income/derivatives knowledge |
-| When strong vs weak convergence matters (hedging vs pricing) | Extended from Glasserman's treatment with practical interpretation |
-| MLMC practical notes | Extended from Giles and Oosterlee with implementation guidance |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-- FD curse of dimensionality ($N_x^d$ scaling) derived from grid structure
-- MC linear scaling in dimension derived from simulation structure
-- Stability condition $\Delta t < 1/(\sigma^2 j^2)$ derived from requiring positive probabilities in explicit FD
-- LSMC low bias follows from suboptimality of approximate continuation values
-- ADI unconditional stability inherited from implicit method structure (with caveats for cross-derivatives)
-- COS method comparison with Carr–Madan derived from their respective properties
-- Richardson extrapolation formula derived from Taylor expansion analysis
-
-### (D) Flagged Uncertainties
-
-- **Cross-derivative treatment in ADI:** The standard ADI schemes require modification for mixed partial derivatives arising from correlation. The exact formulation (Craig–Sneyd, Hundsdorfer–Verwer, etc.) depends on the specific problem. I'm not certain about the optimal choice without further source verification for specific model types.
-
-- **Randomized QMC error estimation:** The precise variance formulas for scrambled Sobol sequences depend on the scrambling method used. The general principle is well-established in Glasserman, but implementation details vary by library.
-
-- **MLMC complexity constants:** The Giles complexity theorem states asymptotic behavior, but the constants and crossover points depend on the specific problem. I'm not sure about exact efficiency thresholds for when MLMC beats standard MC.
-
-- **Heston characteristic function branch cut:** The Heston characteristic function involves complex logarithms and square roots, which can have branch cut issues for certain parameter combinations. The exact handling varies by implementation.
+- None.
 
 ---
 
-*Last Updated: January 2026*
+*Appendix A5 of Fixed Income: Practice and Theory*
