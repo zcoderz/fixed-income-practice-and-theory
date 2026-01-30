@@ -787,17 +787,17 @@ Europe followed with the "Small Bang" protocol in June 2009, implementing simila
 
 > **Practitioner Note:** Regulatory requirements vary by jurisdiction. The following describes general principles; specific rules require consultation of current regulatory texts.
 
-Following Dodd-Frank (US) and EMIR (Europe), standard CDS index trades are subject to mandatory clearing:
+Following Dodd-Frank (US) and EMIR (Europe), many standard CDS index trades are cleared at CCPs (subject to clearing mandates, eligibility, and jurisdiction):
 
 **US clearing (ICE Clear Credit):**
-- Mandatory for CDX.NA.IG and CDX.NA.HY indices
-- Initial margin required (varies with portfolio composition, typically 2-5% for IG)
+- Standard CDX indices are commonly eligible/cleared
+- Initial margin is required and depends on the CCP model and your portfolio
 - Variation margin exchanged daily
 - Settlement through ICE Clear Credit
 
 **European clearing (LCH.Clearnet, ICE Clear Europe):**
-- Mandatory for iTraxx Europe indices
-- Similar margin framework to US
+- Standard iTraxx indices are commonly eligible/cleared
+- Similar margin framework to US (IM + daily VM), with details depending on CCP and portfolio
 
 **Impact on trading:**
 - Reduced counterparty risk (CCP becomes counterparty to all cleared trades)
@@ -807,15 +807,15 @@ Following Dodd-Frank (US) and EMIR (Europe), standard CDS index trades are subje
 
 **Table 41.8: Pre-Big Bang vs. Post-Big Bang Conventions**
 
-| Aspect | Pre-Big Bang (Pre-2009) | Post-Big Bang (Current) |
+| Aspect | Pre-Big Bang (Pre-2009) | Post-Big Bang (Standardized) |
 |--------|------------------------|------------------------|
 | **Coupon** | Quoted at-market spread | Fixed 100bp (IG) or 500bp (HY) |
 | **Upfront** | Small or zero at trade | Upfront points = (Spread - Coupon) × RPV01 |
 | **Accrual start** | Trade date | Previous IMM date |
 | **Settlement** | Primarily physical | ISDA auction (hardwired) |
-| **Clearing** | Bilateral | Mandatory for standard indices |
+| **Clearing** | Bilateral | Commonly cleared (subject to mandates) |
 
-> **I'm not sure** about the exact current initial margin percentages for index trades—these are set by the CCPs and vary with market conditions and portfolio composition. Consult CCP rulebooks for current requirements.
+> **Practical note:** Initial margin for cleared index trades is set by CCPs and varies with market conditions and portfolio composition. Consult the relevant CCP rulebook for the latest requirements.
 
 ---
 
@@ -988,60 +988,11 @@ Post-2009, the Big Bang/Small Bang protocols standardized coupons (100/500 bp), 
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts (Source-Backed)
-
-| Fact | Source |
-|------|--------|
-| Index families, composition, number of names | O'Kane Table 10.1; Hull Section 25.3 |
-| Semi-annual roll, IMM dates, maturity conventions | O'Kane Section 10.2; Hull Section 25.3 |
-| CDX excludes restructuring; iTraxx includes it | O'Kane Section 10.2.1; Hull Section 25.3 footnote |
-| Coupon paid quarterly on Actual/360 | O'Kane Section 10.2.1; Hull Section 25.4 |
-| Default handling: settlement, accrued, notional reduction | O'Kane Section 10.2, Figure 10.2 |
-| Upfront-spread conversion formula $U = (S-C) \times \text{RPV01}$ | O'Kane Equation 10.7; Hull Section 25.4 |
-| Quoting conventions (spread vs. price) by index type | O'Kane Section 10.2.1 |
-| Intrinsic value and intrinsic spread formulas | O'Kane Sections 10.3-10.5, Equations 10.5, 10.9 |
-| Intrinsic spread is RPV01-weighted, below arithmetic average | O'Kane Section 10.5.1; Hull Section 25.3 |
-| Index basis explanations and empirical data | O'Kane Section 10.5.2, Tables 10.5, 10.6 |
-| Roll P&L drivers (composition, maturity) | O'Kane Section 10.2.2 |
-| Liquidity concentration in on-the-run; bid-ask ~1 cent | O'Kane Section 10.2; footnote on bid-offer |
-| Hedging off-the-run with on-the-run creates mismatch | O'Kane Section 10.5.3 |
-| Black's model limitations for index options | O'Kane Section 11.3, points 1-3 |
-| Arbitrage-free index option pricing framework | O'Kane Section 11.4, Pedersen (2003), Andersen (2006a) |
-| Front-end protection formula | O'Kane Section 9.3.8, Equation 11.6 |
-| Portfolio swap adjustment algorithm | O'Kane Section 10.6, Equations 10.11 |
-| Fixed-point iteration for adjustment | O'Kane Section 10.6.1-10.6.3, algorithm steps |
-| Adjustment ratio empirical data | O'Kane Table 10.7 |
-| LCDX and LevX indices | O'Kane Sections 10.7.2-10.7.3 |
-| Hull's price calculation example (100.27) | Hull Example 25.1 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| Big Bang/Small Bang protocol details (Section 41.10) | Extends O'Kane's pre-2009 framework with post-crisis standardization |
-| Central clearing mechanics | Post-2009 regulatory requirements (Dodd-Frank, EMIR) |
-| P&L attribution framework (Section 41.9.4) | Standard trading desk practice; extends O'Kane's risk measures |
-| Table 41.8: Pre/Post Big Bang comparison | Synthesized from multiple practitioner sources |
-
-### (C) Reasoned Inference (Derived from A)
-
-- Premium payment formula $N \cdot C \cdot \Delta$ is direct implementation of O'Kane's described mechanics
-- CS01 approximation follows from differentiating the upfront formula
-- Roll P&L worked example applies O'Kane's drivers quantitatively
-- Intrinsic value worked example applies O'Kane's summation formula
-- Default impact on spread follows from removing high-spread name from weighted average
-- Exercise payoff derivation follows O'Kane's framework with explicit formula
-
-### (D) Flagged Uncertainties
-
-- **Exact bid-ask spread magnitudes for off-the-run:** O'Kane notes qualitative widening but doesn't quantify the ratio
-- **Business day conventions and holiday calendars:** Require rulebook verification for specific index families
-- **Whether index options "switch" underlying series at roll:** Requires ISDA confirmation language review
-- **Current standard coupons:** Vary by series and evolve with market conditions
-- **Exact CCP initial margin percentages:** Set by CCPs and vary with market conditions—consult current rulebooks
-- **Specific clearing rulebook details:** Require CCP documentation verification
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (index mechanics, rolls, intrinsic value, options, and portfolio swap adjustment)
+- Hull, *Options, Futures, and Other Derivatives* (index pricing and coupon/upfront conventions)
+- ISDA / index rulebooks and CCP documentation (definitive contract terms, index rules, and clearing mechanics)
 
 ---
 

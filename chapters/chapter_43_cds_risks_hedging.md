@@ -6,7 +6,7 @@
 
 You've sold CDS protection on a single-name corporate. What exactly are you exposed to? The obvious answer—credit spread movements—captures only part of the picture. A protection seller faces a constellation of risks: the continuous mark-to-market swings as spreads move (CS01), the discrete catastrophe if default actually occurs (jump-to-default), the uncertainty about what recovery rate will materialize at auction, and the subtle curve-shape exposures that arise because a 5-year CDS loads on default probabilities across the entire term structure.
 
-The 2008 financial crisis demonstrated painfully that CS01 alone misses critical exposures. Traders who hedged spread risk but ignored jump-to-default found themselves facing unlimited losses when counterparties defaulted. The Lehman bankruptcy showed that even "hedged" books could sustain massive P&L shocks from recovery uncertainty—the auction final price of 8.625 cents on the dollar was far below most recovery assumptions. These events transformed how desks think about CDS risk: from a single CS01 number to a full taxonomy encompassing spread, default, recovery, curve, and basis dimensions.
+The 2008 financial crisis demonstrated painfully that CS01 alone misses critical exposures. A CS01-neutral book can still take large losses when **reference entities** default, because the P&L jump at default is not captured by small-spread-move hedges. The Lehman bankruptcy also highlighted recovery uncertainty: the auction final price (8.625 cents on the dollar in Hull's example) was far below common heuristic recovery assumptions (e.g., 40%). These events transformed how desks think about CDS risk: from a single CS01 number to a full taxonomy encompassing spread, default, recovery, curve, and basis dimensions.
 
 O'Kane provides a comprehensive framework in his treatment of CDS risk management, covering "sensitivities to changes in the credit spread curve, changes in the Libor rate curve, changes in the recovery rate, the passage of time, and the risk of a default event." This chapter develops that complete framework systematically. We begin with CS01 and its close relative RPV01 (Section 43.1), then examine jump-to-default risk and O'Kane's Value on Default decomposition (Section 43.2). Section 43.3 addresses recovery risk—both the sensitivity to assumed recovery and the uncertainty around auction outcomes. Section 43.4 covers curve-shape risk and the "credit key-rate" approach analogous to rates bucket exposures from Chapter 14. Section 43.5 introduces spread convexity (gamma), often neglected but material for large moves. Section 43.6 discusses basis risk when hedging CDS with bonds or indices. Finally, Section 43.7 provides the risk management framework: limits, stress testing, counterparty risk, and wrong-way risk considerations.
 
@@ -203,7 +203,12 @@ While spread movements produce continuous P&L, default is a discontinuous event 
 > *   **Jump-to-Default (JTD)**: The risk that the dynamite inside the shack explodes.
 > *   **The Lesson**: Bracing the walls (hedging CS01) does nothing if the shack explodes. You need a specific hedge for the explosion (buying protection on that specific name).
 
-O'Kane makes this concrete: "A short protection position with a notional of \$10 million and with a contractual spread of 200 bp with a risky PV01 of 4.0 (roughly five years to maturity) will lose a maximum of approximately \$10m × 200bp × 4.0 = \$800,000 if the spread tightens to zero and the protection buyer defaults." But the default of the *reference entity* can cause a loss of \$6 million (assuming 40% recovery)—nearly ten times larger.
+Using the MTM identity $V(t) = \bigl(S(t,T) - S_0\bigr)\cdot \text{RPV01}(t,T)$, a long-protection position's MTM loss from spread tightening is **bounded** because spreads cannot go below zero. If $S(t,T) \\to 0$, then $V(t) \\to -S_0\\cdot \\text{RPV01}\\times N$.
+
+**Example:** With $N=\\$10\\text{mm}$, $S_0 = 200$ bp, and $\\text{RPV01} \\approx 4.0$, the maximum MTM loss from spread tightening is about:
+$$10{,}000{,}000 \\times 0.02 \\times 4.0 = \\$800{,}000$$
+
+By contrast, for a **protection seller**, a reference-entity default creates a discrete loss of roughly $(1-R)N$ (e.g., $\\$6\\text{mm}$ at 40% recovery). This scale difference is why a CS01 hedge can look “tight” in daily P&L yet fail catastrophically on default.
 
 
 
@@ -1050,58 +1055,7 @@ CDS risk management requires a multi-dimensional framework that extends far beyo
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts (Source-Backed)
-
-| Fact | Source |
-|------|--------|
-| CDS MTM formula $V = (S-S_0) \times \text{RPV01}$ | O'Kane Ch 6 |
-| RPV01 definition as "credit risky \$1 annuity" | O'Kane Ch 6 |
-| RPV01 trapezoidal approximation formula | O'Kane Eq 6.4 |
-| Credit DV01 definition with sign convention | O'Kane Section 8.3.2 |
-| "Credit DV01 equals RPV01 times 1bp" when at par | O'Kane Section 8.3.2 |
-| VOD formula and three-component decomposition | O'Kane Section 8.3.7 |
-| VOD as "measure of unexpected shock" | O'Kane Section 8.3.7 |
-| Recovery Rate DV01 definition | O'Kane Section 8.3.6 |
-| CDS equivalent notional formula | O'Kane Eq 8.7 |
-| Spread convexity formula and sign | O'Kane Section 8.3.3 |
-| "98.8% explained by first-order sensitivity" | O'Kane Section 8.3.3 example |
-| "Steeply inverted curve implying distressed credit" | O'Kane Ch 7 (curve interpolation) |
-| CDS-cash basis definition | O'Kane Section 5.6 |
-| Fundamental and market basis factors | O'Kane Sections 5.6.1-5.6.2 |
-| "Relative value trading" of basis | O'Kane Section 5.6 |
-| "Distressed credit" switches to upfront format | O'Kane Ch 6 |
-| Portfolio-level hedging workflow | O'Kane Section 8.7 |
-| Counterparty risk asymmetry | O'Kane Section 8.8 |
-| "Protection buyer has the most counterparty risk" | O'Kane Section 8.8.3 |
-| Auction settlement mechanism | O'Kane Ch 5, Hull Ch 25 |
-| CDS spread cannot be negative | O'Kane Section 5.6.1 |
-
-### (B) Claude-Extended Content (Priority 2)
-
-| Content | Context |
-|---------|---------|
-| CS01 vs JTD distinction as "continuous vs binary" | Extended from O'Kane's separate treatments; pedagogical framing |
-| "The Friday Night Downgrade" scenario | Practitioner scenario illustrating CS01/JTD mismatch; not directly from O'Kane |
-| Credit curve shape interpretation (inverted = distress signal) | Extended from O'Kane's inverted curve example; standard practitioner knowledge |
-| Curve trade structures (1s5s steepener/flattener) | Standard practitioner terminology; follows from O'Kane's curve risk treatment |
-| "Betting on survival with a safety net" (steepener characterization) | Pedagogical framing based on the mathematics of curve trades |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-- Risk taxonomy organization follows from CDS payoff structure (premium vs protection legs) and O'Kane's systematic treatment
-- CS01 ambiguity follows from observation that different bump methods produce different survival perturbations (O'Kane discusses par-spread and parallel bumps)
-- P&L attribution formula follows standard Taylor expansion applied to CDS PV function, consistent with O'Kane's first and second-order derivative analysis
-- Gamma sign (negative for buyer) follows from RPV01 decreasing with spread, which O'Kane demonstrates via the convexity formula
-- JTD importance for distressed names follows from VOD formula—when spreads are high, CS01 moves are small relative to default loss
-- Steepener trade being "long JTD" follows from net notional: more protection bought than sold, so net positive payment upon default
-- Inverted curve interpretation follows from hazard rate extraction: high front-end spreads → high near-term default probability
-
-### (D) Flagged Uncertainties
-
-- Exact ISDA standard-coupon regime details and specific desk CS01 conventions not fully specified in sources; industry practice may vary
-- Recovery swap mechanics not explicitly covered in O'Kane; dedicated instruments for hedging recovery risk are limited
-- Wrong-way risk quantification requires correlation modeling beyond the scope of O'Kane's CDS chapters; Hull's CVA treatment provides conceptual framework
-- Specific historical auction prices (Lehman 8.625%, etc.) are widely reported but not directly verified from attached sources
-- Curve trade terminology (1s5s, 2s10s) is standard practitioner language but not explicitly defined in O'Kane; conventions may vary by desk
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (CS01, VOD/JTD, recovery risk, curve risk, and hedging frameworks)
+- Hull, *Options, Futures, and Other Derivatives* (CDS settlement/auction context and examples)

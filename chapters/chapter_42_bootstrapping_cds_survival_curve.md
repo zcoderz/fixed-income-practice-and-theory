@@ -1062,7 +1062,12 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 **17.** Given two dealers with different recovery assumptions, explain why their survival curves differ.
 
-**Solution sketch:** Dealer A uses R=40%, Dealer B uses R=30%. For the same quoted spread S, Dealer B infers higher hazard (since $\lambda \approx S/(1-R)$ and $1-0.3 > 1-0.4$). Actually, $\lambda_B = S/0.7 < \lambda_A = S/0.6$—wait, let me recalculate. $\lambda_A = S/0.6$, $\lambda_B = S/0.7$. Since $0.6 < 0.7$, we have $\lambda_A > \lambda_B$. So Dealer A (higher recovery) implies higher hazard.
+**Solution sketch:** Dealer A uses R=40%, Dealer B uses R=30%. Using the credit-triangle approximation $\lambda \approx S/(1-R)$ for a fixed spread quote $S$:
+
+- $\lambda_A = S/0.60$
+- $\lambda_B = S/0.70$
+
+So $\lambda_A > \lambda_B$. Intuition: if you assume a higher recovery (lower LGD), you need a higher hazard rate to produce the same observed spread.
 
 ---
 
@@ -1072,60 +1077,8 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 ---
 
-## Source Map
+## References
 
-### (A) Book-Verified Facts
-
-| Fact | Source |
-|------|--------|
-| CDS valuation framework (premium/protection leg split, risky discount factors) | O'Kane Ch 6-7 |
-| Bootstrap algorithm (sequential solve, no-arbitrage bounds) | O'Kane Ch 7.5 |
-| Piecewise-constant hazard interpolation derivation | O'Kane Ch 7.4 |
-| Interpolation alternatives and stability warnings (saw-tooth, arbitrage risk) | O'Kane Ch 7.4, 7.6 |
-| Desirable curve properties (exact fit, locality, speed, smoothness trade-off) | O'Kane Ch 7.2 |
-| Arbitrage detection and boundary computation | O'Kane Ch 7.7 |
-| Arbitrage boundary table (Table 7.3) | O'Kane Ch 7.7 |
-| Recovery sensitivity formula and Rec01 definition | O'Kane Ch 8.3.6 |
-| Rec01 quadratic dependence on spread level | O'Kane Ch 8.3.6 |
-| Sensitivity matrix diagonal structure | O'Kane Ch 8.5 (Equations 8.5-8.6, Table 8.5) |
-| Risk-neutral vs. physical default probabilities | McNeil QRM Ch 9.3, Hull OFD Ch 24.5 |
-| Regression equation for RN vs physical | McNeil Ch 9.3 (Equation 9.12) |
-| Ratio of RN to physical probabilities (~2-3x or higher) | McNeil Ch 9.3, Hull Ch 24.5 |
-| "Hazard rates implied from credit spreads are risk-neutral estimates" | Hull Ch 24 |
-| Parallel between IR and credit curve construction | O'Kane Ch 7.3 (Table 7.1) |
-| Day count conventions (Actual/360 for CDS) | Hull OFD Ch 4, 6; O'Kane Ch 6 |
-| Recovery rate consensus (40% for IG senior unsecured) | O'Kane Ch 7.7.1 |
-| Root-finding methods (bisection, Newton-Raphson, Brent) | O'Kane Ch 7.5 |
-
-### (B) Claude-Extended Content
-
-| Content | Basis |
-|---------|-------|
-| ISDA Standard Model section (42.9) | Extends O'Kane's methodology to post-2009 standardization practice |
-| "Desk Reality" troubleshooting workflow | Extends O'Kane's calibration failure discussion with operational practice |
-| "Court-appointed ruler" analogy for ISDA model | Pedagogical extension to explain standardization |
-| Time variation in risk premium (1x-6x range) | Extends McNeil's Figure 9.6 discussion |
-
-### (C) Reasoned Inference
-
-| Inference | Derivation |
-|-----------|------------|
-| Equivalence of bootstrapping $Q(T_k)$ vs. $h_k$ | Integration of $Q(t) = \exp(-\int h)$ |
-| Locality follows from sequential structure | Earlier curve segments fixed in later steps |
-| Higher recovery requires higher hazard | From credit triangle $S = \lambda(1-R)$ |
-| Arbitrage boundary approximation | Protection leg = RPV01 × spread at boundary (O'Kane Eq 7.5) |
-| Diagonal Jacobian implies simple hedge computation | Matrix inversion becomes trivial |
-
-### (D) Flagged Uncertainties
-
-| Uncertainty | Note |
-|-------------|------|
-| ISDA Standard Model details | Post-2009 standardization not covered in reference books; marked as Practitioner Note |
-| OIS vs. Libor discounting in modern practice | Modern practice uses OIS for collateralized CDS; sources written in Libor era |
-| Exact ISDA standardization details | Depends on ISDA definitions vintage (2003 vs 2014) and currency |
-| Specific liquidity premium magnitude | Sources discuss conceptually but don't quantify |
-| Current market recovery conventions by sector | May vary from the 40% standard discussed in sources |
-
----
-
-*Last Updated: January 26, 2026*
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bootstrap algorithm, interpolation, and no-arbitrage constraints)
+- Hull, *Options, Futures, and Other Derivatives* (risk-neutral vs physical default probabilities; CDS curve intuition)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (risk-neutral vs real-world probabilities in reduced-form credit)
