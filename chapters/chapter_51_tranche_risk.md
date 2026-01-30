@@ -8,9 +8,11 @@ A trader hedges a mezzanine tranche position using an index CDS, matching spread
 
 The answer lies in a fundamental truth about tranche risk: **the sensitivities that matter most are not the ones that appear in a standard first-order risk report.** Single-name CDS and even index CDS respond to spread movements in roughly linear fashion. Tranches do not. The nonlinear mapping from portfolio losses to tranche losses—the "hockey stick" function that clips losses at attachment and caps them at detachment—creates risk characteristics that confound conventional hedging intuition.
 
-O'Kane's treatment of synthetic tranche risk management (Ch 17) distinguishes two fundamentally different types of spread sensitivity: *systemic delta*, which measures exposure to parallel movements in all portfolio spreads, and *idiosyncratic delta*, which measures exposure to a single name widening in isolation. For a 0–3% equity tranche on a 125-name portfolio, these two numbers can differ by a factor of five. A trader who hedges only systemic risk leaves massive idiosyncratic exposure; one who hedges only idiosyncratic risk may be overhedged for market-wide moves. As O'Kane emphasizes, "the actual hedge will lie somewhere between the systemic and the idiosyncratic" depending on the trader's view of whether spread moves will be market-driven or name-specific.
+O’Kane’s treatment of synthetic tranche risk management (Ch 17) distinguishes two fundamentally different types of spread sensitivity: *systemic delta*, which measures exposure to parallel movements in all portfolio spreads, and *idiosyncratic delta*, which measures exposure to a single name widening in isolation. For equity tranches, these two risk measures can be very different in magnitude. A trader who hedges only systemic risk can be left with large idiosyncratic exposure; one who hedges only idiosyncratic risk can be poorly hedged for market-wide moves.
 
-This chapter develops the complete risk framework for synthetic tranches. Section 1 establishes the core definitions: tranche loss mapping, expected tranche loss, and the "tranche survival curve" that enables CDS-style valuation. Section 2 provides the practitioner's P&L decomposition—spread, correlation, jump-to-default, and recovery terms. Sections 3–5 develop each risk measure in detail: tranche PV01 and the systemic/idiosyncratic distinction (Section 3), correlation risk and the Corr01 measure (Section 4), and jump-to-default clustering with its tail dependence implications (Section 5). Section 6 presents the hedging map—what instruments address which risks, and crucially, why PV01 hedges fail under default clustering. Throughout, we draw on O'Kane's real-world risk report examples (Table 17.2) to ground the theory in desk practice.
+Practical takeaway: the “right” hedge ratio often lies somewhere between the pure systemic and pure idiosyncratic extremes, depending on whether you expect the next move to be market‑driven (systemic) or name‑specific (dispersion).
+
+This chapter develops the complete risk framework for synthetic tranches. Section 1 establishes the core definitions: tranche loss mapping, expected tranche loss, and the tranche survival curve that enables CDS-style valuation. Section 2 provides the practitioner's P&L decomposition—spread, correlation, jump-to-default, and recovery terms. Sections 3–5 develop each risk measure in detail: tranche PV01 and the systemic/idiosyncratic distinction (Section 3), correlation risk and the Corr01 measure (Section 4), and jump-to-default clustering with its tail dependence implications (Section 5). Section 6 presents the hedging map—what instruments address which risks, and crucially, why PV01 hedges fail under default clustering. Throughout, we use published tranche risk report patterns (e.g., O’Kane Ch 17) to keep the discussion desk‑grounded without relying on any single numeric snapshot.
 
 ---
 
@@ -58,7 +60,7 @@ This chapter develops the complete risk framework for synthetic tranches. Sectio
 - All tranche strikes $[A, D]$ are expressed as fractions of portfolio notional $F$.
 - Tranche width: $W = D - A$ (fraction of portfolio; unitless).
 - Running premium $s$ is quoted in bp/year; $s_{\text{dec}} = s / 10{,}000$.
-- Discounting uses $Z(t)$. (In practice: OIS/CSA, etc. I'm not sure which curve your desk uses; this depends on collateral, currency, and CSA.)
+- Discounting uses $Z(t)$. In practice, use the discount curve consistent with collateral/CSA and currency (often OIS in collateralized setups).
 - Payment dates: $0 = t_0 < t_1 < \cdots < t_N = T$ with accruals $\Delta_i = \Delta(t_{i-1}, t_i)$.
 - Perspective: PV is from protection buyer (long protection):
 
@@ -187,7 +189,7 @@ where $s$ is the contractual tranche spread quote (bp/year).
 
 **Units:** USD per 1bp.
 
-**2. Underlying portfolio spread risk (systemic/idiosyncratic spread deltas)** — PV sensitivity to issuer CDS curve moves. The primary source develops systemic vs idiosyncratic delta concepts for hedging tranche spread risk to issuer spreads (not the tranche contractual spread).
+**2. Underlying portfolio spread risk (systemic/idiosyncratic spread DV01 + deltas)** — DV01-style PV changes (and corresponding hedge notionals) under issuer CDS curve moves. The primary source develops systemic vs idiosyncratic concepts for hedging tranche spread risk to issuer spreads (not the tranche contractual spread).
 
 This chapter's "Tranche PV01" is item (1) unless explicitly stated otherwise.
 
@@ -206,7 +208,7 @@ Used to:
 
 Some tranche quotes are upfront + fixed coupon rather than pure running spread. For example, the reference notes that quotes are in bp except for a $0$–$3\%$ tranche where the quote equals an upfront percent of tranche principal plus 500 bp/year running premium.
 
-I'm not sure what tranche quote regime you want assumed for each tranche in this chapter (index-vintage dependent). To be certain we'd need: the product (CDX/iTraxx), series, vintage, maturity, running coupon conventions, and premium accrual convention.
+Quote conventions vary by index, series, vintage, and clearing/settlement conventions. In this chapter we use generic notation (running spread, fixed coupon + upfront) and highlight the conversion formulas; confirm the exact quoting conventions for the specific product you trade.
 
 ---
 
@@ -304,7 +306,7 @@ A desk "risk report" view (conceptual) should include:
 | **JTD / VOD** | USD jump under specified default scenario |
 | **Recovery sensitivity** | USD per 1% recovery change |
 
-I'm not sure how your desk defines recovery sensitivity (recovery of defaulted name? portfolio average recovery? auction final price conventions?). The source discusses recovery and its relationship with default rates in modeling loss distribution tails.
+Recovery sensitivity is convention-dependent: it may refer to recovery on the defaulted name(s), a portfolio recovery assumption, or “final price” from an auction settlement mechanism. Always confirm which definition your risk system uses.
 
 ---
 
@@ -499,11 +501,15 @@ $$\text{PV01}_{\text{upfront}} = \frac{\partial \text{PV}}{\partial U} \times 1\
 
 The reference gives an example where the $0$–$3\%$ tranche is quoted as upfront percent plus 500 bp/year running, while other tranches are quoted in bp.
 
-I'm not sure how to convert "1% upfront" to "bp-equivalent" for your specific tranche set without:
-- the fixed coupon $c$,
-- accrual convention on default,
-- whether upfront is paid on tranche notional or remaining outstanding,
-- settlement/standard docs assumptions.
+**Upfront ↔ spread conversion (CDS-style):** In the fixed-coupon quote convention, the upfront (as a fraction of tranche notional) converts to par spread via:
+
+$$\boxed{\text{Upfront} = (s^* - c_{\text{fixed}})\times \text{RPV01}}$$
+
+So:
+
+$$\boxed{s^* = c_{\text{fixed}} + \frac{\text{Upfront}}{\text{RPV01}}}$$
+
+As a quick rule of thumb, “1% upfront” corresponds to roughly $\frac{100}{\text{RPV01}}$ bp of spread difference from the fixed coupon (with RPV01 in years). Always confirm the product’s conventions (fixed coupon, accrual-on-default, and whether quotes are given as price vs points upfront).
 
 ---
 
@@ -527,25 +533,14 @@ $\Delta$ in years, $Z$ unitless, expected outstanding in fraction of portfolio; 
 
 The source's systemic risk report indicates tranche RPV01 is lowest for the riskiest equity tranche and rises for more senior tranches (with caveats for super-senior amortization).
 
-#### O'Kane Table 17.2: Real-World RPV01 Data
+#### Practical Risk Report Patterns (RPV01, Delta, Leverage)
 
-From O'Kane's Chapter 17 risk report example for long protection positions on standard tranches. The reference portfolio has 125 credits, each \$10 million notional (total \$1,250 million), with an average spread of 60 bp and correlation ρ = β² = 25%:
+Rather than relying on any single numeric “risk report snapshot,” focus on the robust qualitative patterns (seen in published tranche risk examples, e.g., O’Kane Ch 17):
 
-| Tranche | Breakeven Spread (bp) | RPV01 | Systemic Delta (\$m) | Leverage Ratio | Corr01 (\$) |
-|---------|----------------------|-------|---------------------|----------------|-------------|
-| 0–3% (Equity) | 1,790.2 | 2.95 | 691 | 18.37 | −433,553 |
-| 3–7% (Mezz) | 405.3 | 4.15 | 461 | 9.20 | +23,214 |
-| 7–10% (Senior) | 148.4 | 4.39 | 170 | 4.52 | +78,274 |
-| 10–15% (Senior) | 58.1 | 4.47 | 133 | 2.12 | +103,158 |
-| 15–30% (Super-Sr) | 8.6 | 4.50 | 73 | 0.39 | +93,228 |
-
-*Source: O'Kane Table 17.2, exact values*
-
-**Key observations from Table 17.2:**
-- **RPV01 increases with seniority:** 2.95 for equity → 4.50 for super-senior (1.5× increase). This reflects expected outstanding—equity tranches are expected to be written down early, reducing the premium leg duration.
-- **Systemic delta decreases dramatically:** \$691m for equity → \$73m for super-senior (~9.5× decrease). The equity tranche captures roughly half the spread risk of the entire \$1,250m portfolio.
-- **Leverage ratio falls from 18.37× (equity) to 0.39× (super-senior):** Equity tranches amplify portfolio spread moves; super-senior tranches de-lever them.
-- **Corr01 sign flips:** Negative for equity (−\$433,553), positive for senior tranches. This confirms that equity is short correlation while senior is long correlation.
+- **RPV01 tends to increase with seniority.** Equity is expected to amortize earlier (losses eat notional), reducing premium‑leg duration.
+- **Systemic delta tends to decrease with seniority.** Equity can carry a very large share of portfolio spread sensitivity; super‑senior often carries much less (until the market is distressed).
+- **Leverage falls as you go up the capital structure.** Small notional slices can embed large spread exposure.
+- **Correlation sensitivity can flip sign.** Equity is often “long correlation” when short protection, while senior tranches are often the opposite.
 
 #### Intuition
 
@@ -582,19 +577,14 @@ For a portfolio of $N$ names, the **aggregate idiosyncratic gamma** is the sum:
 
 $$\Gamma_{\text{idio, total}} = \sum_{i=1}^{N} \Gamma_i$$
 
-### 3.5.3 O'Kane Table 17.2: Gamma Data Across Capital Structure
+### 3.5.3 Gamma Sign Patterns Across the Capital Structure
 
-From O'Kane's Chapter 17 risk report example (same 125-name portfolio as the delta table above):
+Published tranche risk report examples show a useful qualitative pattern:
 
-| Tranche | Systemic Gamma ($) | Idiosyncratic Gamma × 125 ($) |
-|---------|-------------------|------------------------------|
-| 0–3% (Equity) | −4,013 | +1,202 |
-| 3–7% (Mezz) | +47 | −66 |
-| 7–10% (Senior) | +667 | −187 |
-| 10–15% (Senior) | +901 | −200 |
-| 15–30% (Super-Sr) | +805 | −118 |
+- **Equity:** systemic gamma tends to be **negative**, while aggregate idiosyncratic gamma can be **positive**.
+- **Senior:** systemic gamma tends to be **positive**, while idiosyncratic gamma can be **negative**.
 
-*Source: O'Kane Table 17.2*
+The exact magnitudes depend on the calibration and the market state; the sign pattern is the key hedging intuition.
 
 ### 3.5.4 The Gamma Sign Pattern
 
@@ -608,11 +598,11 @@ The gamma signs exhibit a striking pattern that has profound hedging implication
 - **Positive systemic gamma** means senior tranches benefit from convexity in large market-wide moves—they are "long volatility" in the systemic dimension.
 - **Negative idiosyncratic gamma** reflects increasing marginal sensitivity as the tranche approaches attachment from individual name deterioration.
 
-> **Desk Reality: The Gamma Squeeze**
+> **Desk Note: Negative Gamma and Re‑Hedging Costs**
 >
-> The negative systemic gamma on equity tranches creates what traders call a "gamma squeeze." In volatile markets with large parallel spread moves, an equity tranche protection seller experiences accelerating losses beyond what the delta hedge suggests. This is why equity tranche trading desks must actively manage gamma exposure—either through dynamic delta hedging (which has execution costs in volatile markets) or through offsetting positions in other tranches.
+> When systemic gamma is negative (a common pattern for equity tranches in published examples), a delta hedge can become stale quickly in volatile, market‑wide spread moves. Keeping the position hedged can require frequent rebalancing, and that rebalancing has real costs (bid/offer, liquidity, execution).
 >
-> The rule of thumb from O'Kane: "Equity tranches are short gamma on systemic moves but long gamma on idiosyncratic moves." This creates a hedging asymmetry: index hedges fail to offset the gamma, but single-name hedges can.
+> A useful rule of thumb is that equity can be **short systemic gamma** but **long idiosyncratic gamma**, creating a hedging asymmetry: an index hedge targets systemic risk, while single‑name hedges target idiosyncratic risk.
 
 ### 3.5.5 Gamma's Impact on Delta Hedging
 
@@ -623,9 +613,17 @@ Why does gamma matter for hedging? Consider a delta-neutral position hedged at c
 3. **Rebalancing costs real money** (transaction costs, bid-offer spreads)
 4. **With negative gamma, rebalancing is always costly** (you buy high, sell low)
 
-For equity tranches with systemic gamma of −$4,013 per (bp)², a 10bp parallel spread move creates a gamma P&L of:
+In the source, systemic gamma is computed via a 1bp second difference:
 
-$$\text{Gamma P&L} \approx \frac{1}{2} \times \Gamma_s \times (\Delta S)^2 = \frac{1}{2} \times (-4{,}013) \times 100 = -\$200{,}650$$
+$$\Gamma_s^{(1\text{bp})} = V(S+1\text{bp}) - 2V(S) + V(S-1\text{bp}).$$
+
+If you treat $\Gamma_s^{(1\text{bp})}$ as the “gamma‑01” (units: USD per $(1\text{bp})^2$), then a rough second‑order approximation for a $\Delta S$ move is:
+
+$$\Delta V_{\Gamma} \approx \frac{1}{2}\,\Gamma_s^{(1\text{bp})}\left(\frac{\Delta S}{1\text{bp}}\right)^2.$$
+
+For an equity tranche with $\Gamma_s^{(1\text{bp})} \\approx -4{,}000$ (USD), a 10bp parallel spread move gives:
+
+$$\Delta V_{\Gamma} \approx \frac{1}{2} \times \Gamma_s^{(1\text{bp})}\left(\frac{10\text{bp}}{1\text{bp}}\right)^2 = \frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$$
 
 This is *in addition to* any delta slippage from hedge rebalancing.
 
@@ -649,15 +647,7 @@ Let $\alpha$ be the trader's view on the fraction of spread variance that is sys
 
 $$\Delta_{\text{hedge}} = \alpha \cdot \Delta_{\text{systemic}} + (1-\alpha) \cdot \Delta_{\text{idio, total}}$$
 
-From O'Kane Table 17.2 for equity (0–3%):
-- Systemic delta = $691mm
-- Idiosyncratic delta × 125 ≈ $3,450mm (each name ≈ $27.6mm)
-
-With $\alpha = 0.5$ (equal systemic/idiosyncratic weighting):
-
-$$\Delta_{\text{hedge}} = 0.5 \times 691 + 0.5 \times 3{,}450 = \$2{,}070.5\text{mm}$$
-
-This is roughly 3× the pure systemic hedge—a massive difference that explains why equity tranche hedging is notoriously difficult.
+This $\alpha$‑blend is a simple heuristic for “between the extremes.” The key point from the source is qualitative: real spread moves are a mix of systemic and idiosyncratic components, and the hedge that works best depends on which component is likely to dominate.
 
 ---
 
@@ -666,8 +656,7 @@ This is roughly 3× the pure systemic hedge—a massive difference that explains
 ### 4.1 Why Dependence Changes Tranche PV
 
 Dependence changes the distribution of the number/timing of defaults and therefore the distribution of portfolio loss $L(t)$. The reference text (derivatives book) highlights:
-
-> As default correlation increases, probability of "one or more defaults" can decline while probability of "many defaults" increases; junior protection becomes less valuable and more senior protection becomes more valuable.
+In words: higher default clustering can reduce the probability of “a few scattered defaults” while increasing the probability of “a big cluster.” That tends to make **junior** protection less valuable and **senior** protection more valuable (all else equal, and for a fixed marginal default level).
 
 That is the core mechanism:
 - **Equity** cares about "at least some defaults" → correlation can reduce that likelihood (equity can become safer).
@@ -709,7 +698,7 @@ The source explicitly notes this creates a contradiction (different base tranche
 
 **Source-supported statement:** a $[K_1, K_2]$ tranche value is only sensitive to $\rho(K_1)$ and $\rho(K_2)$ within the base correlation framework.
 
-I'm not sure which base correlation construction variant your desk uses for non-standard strikes and interpolation (the source warns linear interpolation can generate arbitrage-like behavior).
+Desk implementations differ for non‑standard strikes and interpolation (e.g., interpolating in correlation vs ETL space, enforcing shape constraints). The source warns that naive linear interpolation can generate arbitrage‑like behavior; confirm what your system does.
 
 ---
 
@@ -751,7 +740,7 @@ The source's VOD definition is explicit that:
 - attachment/detachment are adjusted after default to reflect consumed subordination,
 - if tranche is hit, an immediate loss payment $G$ is made and VOD includes $\pm G$.
 
-In practice, "recovery" may be implemented via auction final price or a recovery assumption. I'm not sure which convention you want; we need the product documentation/desk convention.
+In practice, “recovery” may be implemented via auction final price (for CDS-style settlement) or via an assumed recovery input in the model. Confirm which convention your desk and risk system use.
 
 ---
 
@@ -800,22 +789,17 @@ where $t_{\nu+1}$ is the CDF of a Student-t distribution with $\nu+1$ degrees of
 
 **Key property:** As $\nu \to \infty$, the t-copula converges to the Gaussian copula and $\lambda_t \to 0$. But for finite $\nu$, tail dependence is strictly positive for any $\rho > -1$.
 
-#### QRM Table 5.1: Tail Dependence Coefficients
+#### What the Tail-Dependence Numbers Say (Without a Table)
 
-From QRM Table 5.1, the upper tail dependence coefficient $\lambda$ for the t-copula:
+QRM tabulates $\\lambda$ values for different $(\\rho, \\nu)$ pairs. The robust takeaways are:
 
-| ρ | ν = 1 | ν = 2 | ν = 4 | ν = 10 | ν = 25 | ν = 50 | Gaussian |
-|---|-------|-------|-------|--------|--------|--------|----------|
-| 0.00 | 0.250 | 0.181 | 0.106 | 0.039 | 0.013 | 0.005 | 0 |
-| 0.25 | 0.310 | 0.237 | 0.152 | 0.066 | 0.026 | 0.011 | 0 |
-| 0.50 | 0.391 | 0.317 | 0.223 | 0.115 | 0.054 | 0.027 | 0 |
-| 0.75 | 0.500 | 0.431 | 0.338 | 0.210 | 0.122 | 0.073 | 0 |
-| 0.90 | 0.608 | 0.553 | 0.468 | 0.339 | 0.231 | 0.161 | 0 |
-| 0.95 | 0.687 | 0.641 | 0.565 | 0.442 | 0.326 | 0.245 | 0 |
+- For fixed $\\rho$, tail dependence is **stronger** when $\\nu$ is **smaller** (heavier tails).
+- For fixed $\\nu$, tail dependence is **stronger** when $\\rho$ is **larger**.
+- The Gaussian copula has $\\lambda = 0$ for $|\\rho|<1$ (asymptotic tail independence).
 
-*Source: QRM Table 5.1*
-
-**Reading the table:** With correlation $\rho = 0.75$ and $\nu = 4$ degrees of freedom, the tail dependence coefficient is 0.338. This means that conditional on one credit defaulting in an extreme scenario, there's a 33.8% probability the correlated credit also defaults—*in the limit*. The Gaussian copula says this probability goes to zero.
+If you want a concrete feel, you can plug into the closed‑form formula. For example, with $\\rho=0.5$:
+- $\\nu=4 \\Rightarrow \\lambda_t \\approx 0.25$
+- $\\nu=10 \\Rightarrow \\lambda_t \\approx 0.08$
 
 #### Implications for Senior Tranche Risk
 
@@ -823,15 +807,9 @@ From QRM Table 5.1, the upper tail dependence coefficient $\lambda$ for the t-co
 
 1. **Senior tranches are exposed to tail states:** The 15–30% super-senior tranche only suffers losses when portfolio losses exceed 15%—an extreme event requiring multiple defaults.
 
-2. **Gaussian copula underestimates clustering:** With λ = 0, the Gaussian copula says extreme joint defaults become negligible. This underprices senior tranche protection.
+2. **Gaussian copula can understate clustering risk:** With $\\lambda = 0$, the Gaussian copula implies that *asymptotically* extreme joint-default behavior is weaker than under tail-dependent copulas. For senior strikes, that can translate into materially different PVs versus tail-dependent alternatives.
 
-3. **Model risk is largest for senior tranches:** The ratio of t-copula to Gaussian tail probability can be infinite in the limit—a discontinuous model risk.
-
-> **Desk Reality: The 2008 Lesson**
->
-> The 2008 financial crisis demonstrated the practical consequences of tail dependence model risk. Senior tranches priced under Gaussian copula assumptions experienced far more losses than models suggested. The correlation "smile" (implied correlations higher for equity and super-senior than mezzanine) emerged partly as the market repriced tail dependence.
->
-> Post-crisis, many desks switched to t-copula or mixed/regime-switching models for senior tranche risk management, even if Gaussian copula remained the standard for pricing and hedging. The gap between pricing models and risk models reflects the lesson: **senior tranche risk requires fat-tailed thinking**.
+3. **Model risk is largest for senior tranches:** small differences in how a model treats clustered defaults can translate into large PV differences for senior strikes, because senior protection only “turns on” in the far tail.
 
 #### Worked Example: Tail Dependence Impact on Joint Default Probability
 
@@ -840,15 +818,15 @@ Consider a 2-name portfolio where each name has 5% marginal default probability.
 **Under independence:**
 $$P(\text{both default}) = 0.05 \times 0.05 = 0.25\%$$
 
-**Under Gaussian copula with ρ = 0.5:**
-Using the bivariate normal formula with correlation 0.5:
-$$P(\text{both default}) \approx 0.78\%$$
+**Under Gaussian copula with $\\rho = 0.5$ (exact):**
+Let $a = \\Phi^{-1}(0.05) \\approx -1.645$. Then the joint default probability is
+$$P(\\text{both default}) = \\Phi_2(a, a; \\rho) \\approx 1.22\\%.$$
 
-**Under t-copula with ρ = 0.5, ν = 4:**
-From simulation or numerical integration:
-$$P(\text{both default}) \approx 0.95\%$$
+**Under t-copula with $\\rho = 0.5$, $\\nu = 4$ (approx):**
+Using the same 5% marginal default probability under the t‑copula construction, a quick Monte Carlo estimate gives
+$$P(\\text{both default}) \\approx 1.7\\%.$$
 
-The t-copula increases joint default probability by roughly 22% compared to Gaussian copula—a material difference for portfolios where many such pairs exist.
+In this toy setup, the t‑copula joint default probability is about **40% higher** than the Gaussian‑copula number. The specific percentages depend on $(\\rho,\\nu)$ and on the marginal default level; the takeaway is that tail‑dependent models allocate more probability mass to “both extreme” states.
 
 ---
 
@@ -858,45 +836,23 @@ The t-copula increases joint default probability by roughly 22% compared to Gaus
 
 **Goal:** reduce sensitivity to small spread-like changes.
 
-#### The Systemic vs Idiosyncratic Distinction (O'Kane Ch 17)
+#### The Systemic vs Idiosyncratic Distinction (O’Kane Ch 17)
 
-O'Kane's risk management framework distinguishes two fundamentally different spread sensitivities:
+The source distinguishes **PV changes** from **hedge notionals**:
 
-**Systemic Delta:** The change in tranche value if all portfolio spreads widen by 1bp simultaneously. This measures exposure to market-wide spread movements.
+1. **Systemic DV01 (PV change):** bump *all* issuer curves up by 1bp (a parallel “portfolio‑wide” spread move) and reprice. The change in tranche PV is the systemic DV01.
 
-**Idiosyncratic Delta:** The change in tranche value if a single name's spread widens by 1bp while others remain unchanged. This measures exposure to name-specific credit deterioration.
+2. **Systemic delta (hedge notional):** convert the tranche’s systemic DV01 into an amount of CDS protection to sell on the reference portfolio. In the source this is done by valuing the reference portfolio under the same 1bp bump (the portfolio is on‑market so it starts at PV = 0) and scaling so the CDS hedge offsets the tranche PV change.
 
-For a standard 125-name portfolio with 0–3% equity tranche, O'Kane's Table 17.2 shows:
-- Systemic delta: $691 million (leverage ratio 18.37×)
-- Per-name idiosyncratic delta: approximately $5.5 million
+3. **Idiosyncratic DV01\_i (PV change):** bump only issuer $i$ by 1bp and reprice; the tranche PV change is the idiosyncratic DV01 for name $i$.
 
-The ratio is roughly 5:1—hedging systemic risk alone would leave massive idiosyncratic exposure.
+4. **Idiosyncratic delta\_i (hedge notional):** convert idiosyncratic DV01\_i into CDS notional on name $i$ using that name’s CDS RPV01 to maturity. The source writes this as a simple ratio: PV change divided by CDS RPV01.
 
-#### Practical Hedge Construction
+**How this shows up on a desk:** a systemic hedge tends to be “equal‑weight” across names in a homogeneous portfolio (the source’s example uses a 125‑name portfolio so the per‑name hedge is $1/125$ of the total), while idiosyncratic hedges can be name‑dependent when spreads, recoveries, or factor loadings differ.
 
-**Systemic hedge with index CDS:**
+**Practical takeaway (source‑backed):** a systemic hedge works well only when moves are close to parallel; in practice, spreads move as a mixture of systemic and idiosyncratic components, so the “right” hedge lies between the systemic and idiosyncratic extremes and often requires judgement (and/or an explicit factor model).
 
-$$n_{\text{index}} = -\frac{\text{Systemic Delta}_{\text{tranche}}}{\text{DV01}_{\text{index}}}$$
-
-**Idiosyncratic hedge with single names:**
-
-If hedging against name $i$ specifically:
-
-$$n_i = -\frac{\text{Idiosyncratic Delta}_i}{\text{DV01}_{\text{CDS}_i}}$$
-
-**The key insight from O'Kane:** "The actual hedge will lie somewhere between the systemic and the idiosyncratic." A trader expecting correlation-driven moves (systemic) uses the lower hedge ratio; one expecting dispersion (idiosyncratic) uses the higher ratio.
-
-#### Worked Example: Equity Tranche Hedge Sizing
-
-Consider a 0–3% equity tranche (long protection) with:
-- Systemic delta = –$691 million (per the source's Table 17.2 example)
-- Index DV01 = $50,000 per bp
-
-**Systemic hedge:**
-
-$$n_{\text{index}} = -\frac{-691{,}000{,}000}{50{,}000} = 13{,}820 \text{ index contracts}$$
-
-But if spreads move idiosyncratically rather than in parallel, this hedge is too small by roughly 5×. The practical solution: hedge somewhere between systemic and idiosyncratic based on market view.
+> **Desk note (market impact):** hedging a tranche by selling single‑name protection can mechanically tighten those CDS spreads (the source calls this a “synthetic bid”), which can also affect observed CDS‑cash basis. This is one reason a “perfect hedge” in a model can look imperfect in real P&L.
 
 #### Failure Modes / Residual Risks
 
@@ -1009,9 +965,9 @@ Understanding tranche risk requires visualizing the nonlinear relationships that
 
 **What it shows:** Tranche RPV01 (risky PV01) as a function of attachment point.
 
-**Typical shape (from O'Kane Table 17.2):**
-- Equity: RPV01 ≈ 2.95 (low, due to expected early write-down)
-- Senior: RPV01 ≈ 4.50 (high, expected to survive)
+**Typical shape (qualitative):**
+- Equity: RPV01 is often **lower** (expected notional amortizes earlier)
+- Senior: RPV01 is often **higher** (expected to survive longer)
 
 **Why it matters:** Premium-leg exposure varies dramatically across tranches. A senior tranche holder collects premium for longer, creating higher duration-like exposure.
 
@@ -1804,10 +1760,10 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 | 33 | Why is complete-capital-structure not perfectly correlation neutral? | Premium leg correlation exposures don't offset exactly. |
 | 34 | What's a key proxy for clustering/tail risk? | Multi-default clustered default scenario ($k$-name default). |
 | 35 | What should always accompany tranche risk numbers? | Clear definition of bumps, parameterization, and scenario assumptions. |
-| 36 | What is systemic delta? | PV change if all portfolio spreads widen by 1bp simultaneously. |
-| 37 | What is idiosyncratic delta? | PV change if a single name's spread widens by 1bp while others remain unchanged. |
-| 38 | How do systemic and idiosyncratic deltas typically compare for equity tranches? | Systemic delta is often ~5× larger than per-name idiosyncratic delta (per O'Kane Table 17.2). |
-| 39 | Where does "the actual hedge" lie per O'Kane? | "Somewhere between the systemic and the idiosyncratic" depending on expected spread move type. |
+| 36 | What is systemic delta (source convention)? | CDS hedge notional that offsets tranche PV change under a 1bp parallel bump to all issuer curves. |
+| 37 | What is idiosyncratic delta (source convention)? | CDS hedge notional in a specific name $i$ that offsets the tranche PV change under a 1bp bump to that name. |
+| 38 | How do systemic and idiosyncratic deltas compare for equity tranches? | They can differ materially; in practice the “right” hedge often lies between the pure systemic and pure idiosyncratic extremes and depends on regime/portfolio heterogeneity. |
+| 39 | Where should the hedge ratio lie in practice? | Often between the pure systemic and pure idiosyncratic extremes, depending on whether you expect market-wide moves or dispersion. |
 | 40 | What is RPV01 for a tranche? | Risky PV01 — the discounted expected outstanding that determines premium leg sensitivity. |
 | 41 | Why is RPV01 lower for equity tranches? | Expected early write-down reduces expected outstanding and thus premium duration. |
 | 42 | What does the "hockey stick" shape of TL(L) create? | Nonlinear risk characteristics — PV01 hedges fail for large moves and defaults. |
@@ -1819,8 +1775,8 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 | 48 | What sign is systemic gamma for senior tranches? | Positive—senior tranches benefit from convexity in large market-wide moves (long volatility). |
 | 49 | What is the Gaussian copula tail dependence coefficient? | Zero ($\lambda = 0$) for any correlation $\rho < 1$—asymptotically tail independent. |
 | 50 | What is the t-copula tail dependence formula? | $\lambda_t = 2t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$ where $\nu$ is degrees of freedom. |
-| 51 | Why does Gaussian copula underestimate senior tranche risk? | Zero tail dependence means extreme joint defaults become negligible—underpricing tail clustering. |
-| 52 | What is the "gamma squeeze" on equity tranches? | Negative systemic gamma causes accelerating losses in volatile markets beyond what delta hedges suggest. |
+| 51 | Why can Gaussian copula understate senior tranche risk? | Zero tail dependence means joint extreme events can be understated relative to tail-dependent dependence structures. |
+| 52 | What does negative systemic gamma imply operationally? | Delta hedges become stale quickly in volatile parallel moves; frequent re-hedging can create a “bleed” via execution costs and convexity. |
 | 53 | What is the hedging decision parameter $\alpha$ in the blended hedge framework? | Trader's view on fraction of spread variance that is systemic; $\alpha = 1$ means all parallel, $\alpha = 0$ means all idiosyncratic. |
 | 54 | How do you compute systemic gamma via finite differences? | $\Gamma_s = V(S + 1\text{bp}) - 2V(S) + V(S - 1\text{bp})$. |
 | 55 | What is the approximate gamma P&L for a 10bp spread move with systemic gamma = −$4,000? | $\frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$ loss. |
@@ -1953,57 +1909,19 @@ $$\text{VOD} = V'(t) - V(t) \pm G.$$
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Cite Specific Sources
+- Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (tranche risk measures: systemic/idiosyncratic deltas and gammas; Corr01; VOD; base correlation and hedging)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (copulas and tail dependence; Gaussian vs t‑copula tail behavior)
 
-**Core Valuation Framework:**
-- Tranche loss mapping $\text{TL}(L)$, expected loss $\text{ETL}(t)$, tranche survival curve $Q(t)$ — O'Kane Ch 11–12
-- CDS-style tranche valuation with trapezoidal premium leg — O'Kane Ch 12
-- RPV01 (risky PV01) concept and profile across capital structure — O'Kane Ch 17
+## Inputs Needed (NOT SURE)
 
-**Risk Measures (First-Order):**
-- Systemic delta vs idiosyncratic delta distinction — O'Kane Ch 17
-- "The actual hedge will lie somewhere between the systemic and the idiosyncratic" — O'Kane Ch 17
-- Correlation 01 definition (1% absolute bump) — O'Kane Ch 14, Ch 17 (risk report framework)
-- VOD (Value-on-Default) definition with $\pm G$ — O'Kane Ch 14, Ch 17
-- Table 17.2 risk report example data (equity RPV01=2.95, systemic delta=$691mm, leverage=18.37) — O'Kane Ch 17
+- NOT SURE: discount curve conventions for your CSA/currency setup (OIS/CSA vs other) — confirm with desk methodology.
+- NOT SURE: tranche quote regime for your specific index series/vintage (running spread vs fixed coupon + upfront) — confirm trading docs.
+- NOT SURE: base correlation construction and interpolation used in your system for non‑standard strikes — check implementation docs.
+- NOT SURE: recovery definition and settlement timing (auction final price vs assumed recovery; accrual cutoffs) — confirm product documentation.
+- NOT SURE: any specific numeric t‑copula joint‑default probabilities used in a worked example — requires explicit numerical integration under the chosen parameters.
 
-**Risk Measures (Second-Order / Gamma):**
-- Systemic gamma definition: $\Gamma_s = \frac{\partial^2 V}{\partial S^2}(1\text{bp})^2$ — O'Kane Ch 17
-- Idiosyncratic gamma definition: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}(1\text{bp})^2$ — O'Kane Ch 17
-- Table 17.2 gamma data: equity systemic gamma = −$4,013, senior = +$805 — O'Kane Ch 17
-- Idiosyncratic gamma × 125: equity = +$1,202, senior tranches negative — O'Kane Ch 17
-- Gamma sign pattern across capital structure — O'Kane Ch 17
+---
 
-**Dependence and Tail Risk:**
-- Tail dependence coefficient $\lambda_u$ and Gaussian copula asymptotic independence ($\lambda = 0$ for $\rho < 1$) — QRM Ch 5, Example 5.32
-- t-copula tail dependence formula: $\lambda_t = 2t_{\nu+1}(-\sqrt{(\nu+1)(1-\rho)/(1+\rho)})$ — QRM Eq. 5.31
-- Table 5.1 tail dependence coefficients by $\rho$ and $\nu$ — QRM Ch 5
-- Base correlation decomposition and expected loss relationship — O'Kane Ch 13–14
-- Empirical negative correlation between default rates and recovery rates — O'Kane Ch 3, QRM
-
-**Hedging Framework:**
-- Skew hedging procedure using base correlation — O'Kane Ch 17
-- "Complete the capital structure" for correlation hedging — O'Kane Ch 17
-- Base correlation interpolation artifacts and arbitrage issues — O'Kane Ch 13–14
-
-### (B) Reasoned Inference — Note Derivation Logic
-
-- PV01 is essentially discounted expected outstanding — follows from premium leg linearity in $s$
-- Equity tranches have lower PV01 than senior — follows from expected outstanding patterns and confirmed by O'Kane Table 17.2
-- PV01-neutral hedges fail under jump events — demonstrated via Examples 13–14
-- Systemic/idiosyncratic hedge ratio difference of ~5× for equity — derived from O'Kane Table 17.2 data
-- Correlation hedge using capital structure combination — derived from Corr01 offset principle
-- Blended hedge ratio formula $\Delta_{\text{hedge}} = \alpha \cdot \Delta_{\text{systemic}} + (1-\alpha) \cdot \Delta_{\text{idio}}$ — derived from O'Kane's qualitative guidance
-- Gamma P&L approximation $\frac{1}{2}\Gamma(\Delta S)^2$ — standard Taylor expansion applied to O'Kane's gamma framework
-- Negative systemic gamma implies "short volatility" for equity tranches — inferred from sign and convexity economics
-
-### (C) Speculation — Flag Uncertainties
-
-- I'm not sure which discount curve your desk uses for tranche valuation (OIS/CSA depends on collateral, currency, CSA)
-- I'm not sure what tranche quote regime (spread vs upfront+coupon) applies to each tranche without product/series specification
-- I'm not sure which base correlation construction variant and interpolation method your desk uses
-- I'm not sure how your desk defines recovery sensitivity (defaulted name vs portfolio average vs auction final price)
-- I'm not sure about the exact timing of auction settlement relative to tranche premium accrual cutoffs without product documentation
-- I'm not sure about the exact t-copula joint default probabilities stated in the worked example without explicit numerical integration (directional comparison is verified but exact percentages may vary)
+*Chapter 51 of Fixed Income: Practice and Theory*
