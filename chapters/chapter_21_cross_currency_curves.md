@@ -149,6 +149,7 @@ Given a strip of FX forwards and a domestic discount curve, we can construct the
 > **Example 21.2: FX-Implied EUR Curve from USD Curve**
 >
 > **Given:**
+>
 > - Domestic = USD, Foreign = EUR
 > - Spot $X(0) = 1.1000$ USD/EUR
 > - USD discount curve: $P_d(0,0.5) = 0.985112$, $P_d(0,1) = 0.970446$, $P_d(0,2) = 0.941765$
@@ -199,11 +200,12 @@ Constraint: F = X · (P_f / P_d)
 > **The Triangle Check**
 >
 > 1.  **Spot Market**: Current Exchange.
+>
 > 2.  **Interest Rates**: Cost of Time (Domestic vs Foreign).
+>
 > 3.  **Forward Market**: Future Exchange.
 >
 > If you know any two, you *must* satisfy the third. If your curve construction uses Independent Domestic Swaps and Independent Foreign Swaps, it will almost certainly fail to match the Forward Market, breaking the triangle.
-```
 
 In multi-currency trading, all three sides of this triangle are liquid markets. The curve construction problem is to ensure the triangle closes exactly—or, more realistically, to decide which market to treat as the "anchor" and derive the others.
 
@@ -412,6 +414,7 @@ When foreign banks can access these markets cheaply, they need fewer xccy swaps,
 > A European bank needs $1bn USD funding for 3 months. Options:
 >
 > **Option A: Swap from EUR**
+>
 > - EUR deposit rate: 3.50% (EURIBOR)
 > - 3M EUR/USD basis: -40bp
 > - All-in USD cost: USD SOFR + (-40bp) basis = SOFR - 40bp? No!
@@ -421,9 +424,11 @@ When foreign banks can access these markets cheaply, they need fewer xccy swaps,
 > - Net cost: SOFR flat, but synthetically funded
 >
 > **Option B: Issue 3M USD CD**
+>
 > - If the bank can issue at SOFR + 20bp, this is cheaper than swapping at wide basis
 >
 > **Option C: Borrow from central bank swap line (crisis only)**
+>
 > - Fed-ECB swap line: OIS + 25bp (penalty rate)
 > - Only available when lines are activated
 
@@ -514,6 +519,7 @@ They conclude: "If the JPY discount curve is inconsistent with the basis-swap ma
 > **Example 21.3: Solving for Par Basis Spread**
 >
 > **Setup:** 2-period toy basis swap (domestic USD, foreign JPY)
+>
 > - Spot $X(0) = 0.0091$ USD/JPY
 > - Payment dates: $t_1 = 0.5$, $t_2 = 1.0$; accrual $\tau = 0.5$
 > - Foreign discount curve: $P_f(0,0.5) = 0.9950$, $P_f(0,1) = 0.9900$
@@ -612,6 +618,7 @@ Andersen and Piterbarg describe the iteration: "The iteration is initiated... wi
 > We build a simplified 2-point EUR discount curve using the Andersen-Piterbarg algorithm.
 >
 > **Given:**
+>
 > - USD OIS curve (discount = index by bedrock assumption):
 >   - $P_\$(0,1) = 0.9600$, $P_\$(0,2) = 0.9200$
 > - Spot EUR/USD: $X(0) = 1.10$ USD/EUR
@@ -733,6 +740,7 @@ This linkage arises because the posted collateral earns the overnight rate. The 
 > **Example 21.6: Same Swap, Different Collateral, Different Value**
 >
 > Consider a 5Y USD interest rate swap (pay fixed, receive SOFR):
+>
 > - Notional: $100mm
 > - Fixed rate: 4.00%
 > - Current USD OIS rate: 4.20%
@@ -914,6 +922,7 @@ where:
 ### Example 21.9: CIP Forward from Zero Rates (Continuous Compounding)
 
 **Given:**
+
 - Domestic = USD, Foreign = EUR
 - Spot $S(0) = 1.1000$ USD/EUR
 - $r_d = 3.00\%$, $r_f = 1.00\%$ (continuous)
@@ -943,6 +952,7 @@ $$F(0,0.5) = S(0) \times \frac{P_f}{P_d} = 1.1000 \times \frac{0.995012}{0.98511
 **Scenario:** Compare FX-implied EUR curve against independently-built EUR OIS curve.
 
 **Given:**
+
 - USD discount: $P_d(0,2) = 0.941765$
 - Spot: $S(0) = 1.1000$
 - Market FX forward: $F_{mkt}(0,2) = 1.1500$ (hypothetical "rich" forward)
@@ -969,6 +979,7 @@ A consistent multi-curve framework would calibrate to *both* the OIS market and 
 ### Example 21.12: Hedged Foreign Bond Valuation
 
 **Given:**
+
 - Domestic = USD, Foreign = JPY
 - Spot $X(0) = 0.0091$ USD/JPY
 - JPY ZCB: ¥100,000,000 payoff at $T = 1$
@@ -1174,6 +1185,7 @@ Explain qualitatively why building USD and EUR curves independently can create a
 
 ### Problem 7 (Advanced)
 Build a 3-point FX-implied EUR curve from:
+
 - USD curve: $P_d(0.5) = 0.99$, $P_d(1) = 0.97$, $P_d(2) = 0.93$
 - Spot: $X = 1.15$
 - Forwards: $F(0.5) = 1.16$, $F(1) = 1.18$, $F(2) = 1.22$
@@ -1181,6 +1193,7 @@ Build a 3-point FX-implied EUR curve from:
 Verify discount factors are monotonically decreasing.
 
 **Solution:**
+
 - $P_f(0.5) = (1.16/1.15) \times 0.99 = 0.9986$
 - $P_f(1) = (1.18/1.15) \times 0.97 = 0.9956$
 - $P_f(2) = (1.22/1.15) \times 0.93 = 0.9866$
@@ -1223,6 +1236,7 @@ Attribute the P&L.
 
 ### Problem 11 (Intermediate — Issuance Arbitrage)
 A corporate can issue:
+
 - USD bonds at T+90bp = 4.90%
 - EUR bonds at Bunds+70bp = 3.70%
 
@@ -1231,6 +1245,7 @@ EUR 5Y swap rate is 3.00%, USD 5Y swap rate is 4.00%, basis is -25bp on EUR leg.
 Calculate the all-in USD funding cost via EUR issuance + swap.
 
 **Solution:**
+
 - EUR spread: 70bp over swaps
 - Swap EUR for USD: pay USD SOFR, receive EUR EURIBOR
 - Basis: receive -25bp on EUR (i.e., pay EUR EURIBOR - 25bp)
@@ -1242,6 +1257,7 @@ Calculate the all-in USD funding cost via EUR issuance + swap.
 A 5Y USD IRS (pay fixed 4.00%, receive SOFR) has PV01 of $48,000/bp. USD OIS is 4.20%. If the swap is collateralized in EUR instead of USD, and EUR/USD basis is -30bp, estimate the PV difference between EUR-collateral and USD-collateral.
 
 **Solution:**
+
 - EUR collateral effectively discounts at ~30bp lower rate (basis benefit)
 - Duration ≈ 4.8 years (from PV01/$100mm)
 - PV impact ≈ $\frac{0.0030 \times 4.8 \times \$100mm}{1} = \$1.44mm$

@@ -365,7 +365,7 @@ Here is a fundamental insight that risk reports often obscure: **a DV01 hedge do
 
 When you hedge a bond with a swap, your P&L is no longer driven by rate levels. Instead, it's driven by the *relative movement* of bond yields vs swap rates—the swap spread.
 
-$$\boxed{\text{Residual P&L} \approx DV01 \times (\Delta y_{\text{bond}} - \Delta y_{\text{swap}})}$$
+$$\boxed{\text{Residual P\&L} \approx DV01 \times (\Delta y_{\text{bond}} - \Delta y_{\text{swap}})}$$
 
 If Treasury yields rise 10bp and swap rates rise 10bp, your hedged position is flat. But if Treasury yields rise 10bp and swap rates rise only 6bp (a 4bp spread widening), you lose money.
 
@@ -501,7 +501,7 @@ This residual arises from "key-rate mismatch"—the instruments have different e
 
 **Quantifying curve risk:** The P&L from a curve twist can be expressed in terms of key-rate exposures:
 
-$$\text{P&L}_{\text{twist}} = \sum_i KR01_i^{\text{portfolio}} \times \Delta y_i$$
+$$\text{P\&L}_{\text{twist}} = \sum_i KR01_i^{\text{portfolio}} \times \Delta y_i$$
 
 where $KR01_i$ is the key-rate exposure to tenor $i$ and $\Delta y_i$ is the rate change at that tenor. For a DV01-neutral portfolio, $\sum_i KR01_i = 0$, but individual $KR01_i$ values can be large with opposite signs—creating twist exposure.
 

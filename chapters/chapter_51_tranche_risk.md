@@ -816,15 +816,20 @@ If you want a concrete feel, you can plug into the closed‑form formula. For ex
 Consider a 2-name portfolio where each name has 5% marginal default probability. What is the probability that both default?
 
 **Under independence:**
+
 $$P(\text{both default}) = 0.05 \times 0.05 = 0.25\%$$
 
-**Under Gaussian copula with $\\rho = 0.5$ (exact):**
-Let $a = \\Phi^{-1}(0.05) \\approx -1.645$. Then the joint default probability is
-$$P(\\text{both default}) = \\Phi_2(a, a; \\rho) \\approx 1.22\\%.$$
+**Under Gaussian copula with $\rho = 0.5$ (exact):**
 
-**Under t-copula with $\\rho = 0.5$, $\\nu = 4$ (approx):**
-Using the same 5% marginal default probability under the t‑copula construction, a quick Monte Carlo estimate gives
-$$P(\\text{both default}) \\approx 1.7\\%.$$
+Let $a = \Phi^{-1}(0.05) \approx -1.645$. Then the joint default probability is
+
+$$P(\text{both default}) = \Phi_2(a, a; \rho) \approx 1.22\%.$$
+
+**Under t-copula with $\rho = 0.5$, $\nu = 4$ (approx):**
+
+Using the same 5% marginal default probability under the t-copula construction, a quick Monte Carlo estimate gives
+
+$$P(\text{both default}) \approx 1.7\%.$$
 
 In this toy setup, the t‑copula joint default probability is about **40% higher** than the Gaussian‑copula number. The specific percentages depend on $(\\rho,\\nu)$ and on the marginal default level; the takeaway is that tail‑dependent models allocate more probability mass to “both extreme” states.
 

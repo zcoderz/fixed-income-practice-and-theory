@@ -738,7 +738,7 @@ This is the seller's loss upon immediate default—nearly \$6mm on a \$10mm noti
 
 **Rec01:**
 
-$$\text{Rec01} = \frac{-181{,}273 - 181{,}273}{40\%} \times 1\% = -\$9{,}064 \text{ per +1% recovery}$$
+$$\text{Rec01} = \frac{-181{,}273 - 181{,}273}{40\%} \times 1\% = -\$9{,}064 \text{ per +1\% recovery}$$
 
 ### Example 43.5: Curve-Shape Exposure
 

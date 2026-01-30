@@ -1015,7 +1015,7 @@ If these objects feel interchangeable, pause and review Chapter 51 — this is w
 
 If you hedge portfolio‑wide spread risk with an index CDS, size the index notional to offset the tranche’s **systemic DV01** (not the tranche’s contractual spread PV01):
 
-$$N_{\text{index}} \\approx -\\frac{\\text{SystemicDV01}_{\\text{tranche}}}{\\text{CS01}_{\\text{index per }\\$\\text{ notional}}}$$
+$$N_{\text{index}} \approx -\frac{\text{SystemicDV01}_{\text{tranche}}}{\text{CS01}_{\text{index per \$ notional}}}$$
 
 **Adjacent tranche PV01 hedge:**
 
@@ -1064,7 +1064,7 @@ These signs encode the intuition: higher correlation can make equity safer (hurt
 
 To target Corr01 neutrality at the current point:
 
-$$N_{\\text{equity}} \\approx N_{\\text{senior}}\\times \\frac{|\\text{Corr01}_{\\text{senior}}|}{|\\text{Corr01}_{\\text{equity}}|} = N_{\\text{senior}}\\times \\frac{150}{80} = 1.875\\,N_{\\text{senior}}.$$
+$$N_{\text{equity}} \approx N_{\text{senior}}\times \frac{|\text{Corr01}_{\text{senior}}|}{|\text{Corr01}_{\text{equity}}|} = N_{\text{senior}}\times \frac{150}{80} = 1.875\,N_{\text{senior}}.$$
 
 #### Residual Exposures (Why “Corr01-Neutral” ≠ “Risk-Neutral”)
 
@@ -2458,29 +2458,29 @@ These post‑event levels are **toy numbers** for sizing intuition only. Actual 
 
 ### Example 20: Correlation Shock on Equity-Senior Combo
 
-**Setup (toy):** you build a Corr01‑neutral package at $\\rho=25\\%$ using two tranches with opposite Corr01 signs.
+**Setup (toy):** you build a Corr01‑neutral package at $\rho=25\%$ using two tranches with opposite Corr01 signs.
 
-Assume (per $\\$10$mm tranche notional):
-- Equity tranche (0–3%, **long protection**): Corr01 $= -\\$8{,}000$ per +1% corr
-- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +\\$15{,}000$ per +1% corr
+Assume (per $\$10$mm tranche notional):
+- Equity tranche (0–3%, **long protection**): Corr01 $= -\$8{,}000$ per +1% corr
+- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +\$15{,}000$ per +1% corr
 
-To Corr01‑neutralize locally, take $\\$10$mm senior long protection and $\\$18.75$mm equity long protection:
+To Corr01‑neutralize locally, take $\$10$mm senior long protection and $\$18.75$mm equity long protection:
 
-$$+15{,}000 \\; + \\; 1.875\\times(-8{,}000) \\approx 0.$$
+$$+15{,}000 \; + \; 1.875\times(-8{,}000) \approx 0.$$
 
 **Scenario:** correlation jumps from 25% to 40% (a +15% shock).
 
-Corr01 itself is not constant; suppose at $\\rho=40\\%$ the sensitivities become:
-- Equity Corr01 $= -\\$5{,}000$ per +1%
-- Senior Corr01 $= +\\$18{,}000$ per +1%
+Corr01 itself is not constant; suppose at $\rho=40\%$ the sensitivities become:
+- Equity Corr01 $= -\$5{,}000$ per +1%
+- Senior Corr01 $= +\$18{,}000$ per +1%
 
 Then the package is no longer Corr01‑neutral at the new level:
 
-$$\\text{Net Corr01}_{40\\%} \\approx 18{,}000 + 1.875\\times(-5{,}000) = 8{,}625\\;\\text{USD per 1\\%}.$$
+$$\text{Net Corr01}_{40\%} \approx 18{,}000 + 1.875\times(-5{,}000) = 8{,}625 \text{ USD per 1\%}.$$
 
 A crude convexity estimate uses the average net Corr01 over the move:
 
-$$\\Delta PV_{\\rho} \\approx \\frac{0 + 8{,}625}{2} \\times 15 \\approx +\\$64{,}700.$$
+$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$$
 
 **Takeaway:** Corr01‑neutralization is a *local* hedge; large correlation moves introduce convexity/hedge‑ratio drift. Validate correlation packages with stressed moves, not just +/‑1% bumps.
 

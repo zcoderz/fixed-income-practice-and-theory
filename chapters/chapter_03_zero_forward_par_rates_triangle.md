@@ -299,19 +299,19 @@ where $F$ is the forward rate for $[T_1,T_2]$ under the relevant compounding con
 
 **Trader's view:** Expects the 1-year rate in one year to be 4.20%, below the 4.80% forward.
 
-**Trade:** Receive fixed at 4.80% on a 1y1y forward swap with $\$50$ million notional. The swap starts in 1 year and runs for 1 year.
+**Trade:** Receive fixed at 4.80% on a 1y1y forward swap with \$50 million notional. The swap starts in 1 year and runs for 1 year.
 
 **If the trader is correct:**
-When the swap starts, the 1-year rate is 4.20%. The trader receives 4.80% and pays 4.20%, a gain of 60bp on $\$50$ million for 1 year:
+When the swap starts, the 1-year rate is 4.20%. The trader receives 4.80% and pays 4.20%, a gain of 60bp on \$50 million for 1 year:
 
-$$\text{P&L} \approx \$50{,}000{,}000 \times 0.0060 \times 1 = \$300{,}000$$
+$$\text{P\&L} \approx \$50{,}000{,}000 \times 0.0060 \times 1 = \$300{,}000$$
 
 (Exact P&L depends on discounting and day counts, but this gives the magnitude.)
 
 **If the trader is wrong:**
 If rates rise to 5.50%, the trader receives 4.80% but pays 5.50%, losing 70bp:
 
-$$\text{P&L} \approx -\$50{,}000{,}000 \times 0.0070 \times 1 = -\$350{,}000$$
+$$\text{P\&L} \approx -\$50{,}000{,}000 \times 0.0070 \times 1 = -\$350{,}000$$
 
 The forward rate is the breakeven. Beat it, you profit. Miss it, you lose.
 

@@ -8,9 +8,9 @@ A client asks you to price a 10-year zero-coupon bond. The trade seems simple—
 
 This question has consumed economists for centuries, and the answer—the **discount factor**—is the single most fundamental concept in fixed income. Get it right, and you can price any deterministic cash flow stream: bonds, swaps, loans, structured products. Get it wrong, and every valuation you produce becomes suspect.
 
-To see why desk teams care: the PV of a single cash flow $N$ paid at time $T$ is $PV = N\\,P(0,T)$. If rates shift and $P(0,T)$ moves, the dollars move. Under continuous compounding with $P(0,T)=e^{-z(T)T}$, a small change $\\Delta z$ changes PV by about:
-$$\\Delta PV \\approx -N\\,T\\,P(0,T)\\,\\Delta z$$
-So a 1bp move ($\\Delta z=0.0001$) on a 10-year $N=\\$100$mm cash flow can easily be a **tens-of-thousands of dollars** PV move. Multiply that across a trading book and you get the “mystery P&L” that product control spends nights reconciling.
+To see why desk teams care: the PV of a single cash flow $N$ paid at time $T$ is $\text{PV} = N \cdot P(0,T)$. If rates shift and $P(0,T)$ moves, the dollars move. Under continuous compounding with $P(0,T)=e^{-z(T)T}$, a small change $\Delta z$ changes PV by about:
+$$\Delta \text{PV} \approx -N \cdot T \cdot P(0,T) \cdot \Delta z$$
+So a 1bp move ($\Delta z=0.0001$) on a 10-year $N=\$100\text{mm}$ cash flow can easily be a **tens-of-thousands of dollars** PV move. Multiply that across a trading book and you get the “mystery P&L” that product control spends nights reconciling.
 
 This chapter establishes the foundational machinery for pricing deterministic cash flows:
 

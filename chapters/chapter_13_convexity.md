@@ -85,7 +85,7 @@ $$\boxed{\text{Dollar Convexity} = P \times C = \frac{d^2P}{dy^2}}$$
 
 **Why Dollar Convexity Matters:** Even when a system does not report it directly, dollar convexity is a natural object for P&L attribution because curvature P&L can be written as:
 
-$$\text{Convexity P&L} = \frac{1}{2} \times \text{Dollar Convexity} \times (\Delta y)^2$$
+$$\text{Convexity P\&L} = \frac{1}{2} \times \text{Dollar Convexity} \times (\Delta y)^2$$
 
 Hull (RM Ch 9) confirms: "The dollar convexity for a portfolio worth $P$ can be defined as $P$ times the convexity. This is a measure of the gamma of the portfolio with respect to interest rates."
 
@@ -96,7 +96,7 @@ If you want to plug in a yield move in **basis points** (instead of decimal yiel
 
 Then the convexity P&L can be written as:
 
-$$\boxed{\text{Convexity P\&L}=\underbrace{\left[\frac{1}{2}\times \text{Dollar Convexity}\times (0.0001)^2\right]}_{\text{Convexity01 (\\$/bp}^2\text{)}}\times (\Delta y_{\text{bp}})^2}$$
+$$\boxed{\text{Convexity P\&L}=\underbrace{\left[\frac{1}{2}\times \text{Dollar Convexity}\times (0.0001)^2\right]}_{\text{Convexity01 } (\$/\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
 
 This is often the most desk-friendly way to compute convexity P&L because it takes the move in bps and makes the quadratic scaling explicit.
 
@@ -265,7 +265,7 @@ Where:
 > - **Stale convexity** (hasn't been recalculated as yields moved)
 > - **Missing optionality** (callable bonds need effective convexity, not modified)
 >
-> A 50bp move on $100mm with convexity of 100: Convexity P&L = $\frac{1}{2} \times 100 \times 0.005^2 \times \$100mm = \$125,000$. If this isn't in your explain, you have a $125k hole.
+> A 50bp move on \$100mm with convexity of 100: Convexity P\&L = $\frac{1}{2} \times 100 \times 0.005^2 \times \$100\text{mm} = \$125,000$. If this isn't in your explain, you have a \$125k hole.
 
 ---
 

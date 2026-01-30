@@ -400,7 +400,7 @@ In response to concerns that a widely used forward-looking term benchmark could 
 
 A bank has $1 billion in Term SOFR loans and hedges with Compound SOFR swaps. If the Term SOFR / Compound SOFR basis widens by 5 bps:
 
-$$\text{Basis P&L Impact} \approx \$1B \times 0.0005 \times \text{Average Duration} \approx \$1B \times 0.0005 \times 3 = \$1.5\text{mm}$$
+$$\text{Basis P\&L Impact} \approx \$1B \times 0.0005 \times \text{Average Duration} \approx \$1B \times 0.0005 \times 3 = \$1.5\text{mm}$$
 
 This is unhedged risk that exists purely because of the regulatory constraint on hedge instruments.
 
@@ -708,7 +708,7 @@ When $F_k > F_d$ (projection rate > discount rate), the coupons are "rich" relat
 A bank has $500mm in Term SOFR loans (3-year average life) and hedges with Compound SOFR swaps. The Term SOFR / Compound SOFR basis widens by 3 bps. Estimate the unhedged P&L impact.
 
 **Solution:**
-$$\text{Basis P&L} \approx \$500\text{mm} \times 0.0003 \times 3 \text{ years} = \$450,000$$
+$$\text{Basis P\&L} \approx \$500\text{mm} \times 0.0003 \times 3 \text{ years} = \$450,000$$
 
 This is an unhedged loss if the bank is receiving Term SOFR (on loans) and paying Compound SOFR (on hedges) — the basis widening means their received rate rises less than their paid rate.
 
