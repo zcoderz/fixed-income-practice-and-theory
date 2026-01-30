@@ -233,36 +233,25 @@ The market upfront value using a flat index curve is:
 
 $$\boxed{U_I(t) = (S_I(t,T) - C(T)) \cdot \text{RPV01}_I(t,T)}$$
 
-O'Kane explains: "We call this the intrinsic value since we have calculated the value of the index swap as the sum of the values of its constituent parts."
+O’Kane calls this the **intrinsic** view because it prices the index as the sum (average) of its constituent CDS values.
 
 #### Index Basis
 
-The index basis is the gap between quoted index spread and CDS-implied intrinsic spread. O'Kane provides empirical examples from Table 10.6:
+The **index basis** is the gap between what the market quotes for the index (via a flat index curve) and what you would infer if you valued the index as the sum of its constituents (the **intrinsic** view). In the literature, this basis can be positive or negative and can vary by maturity and index.
 
-| Index | Term | Quoted (bp) | Intrinsic (bp) | Basis (bp) |
-|-------|------|-------------|----------------|------------|
-| CDX NA IG S7 | 5Y | 34 | 33.1 | +0.9 |
-| CDX NA IG S7 | 10Y | 55 | 55.3 | -0.3 |
-| CDX NA HY S7 | 5Y | 276 | 275 | +1.0 |
-| CDX NA HY S7 | 10Y | 315 | 324 | -9.0 |
-| iTraxx Europe S6 | 5Y | 24 | 26.9 | -2.9 |
-| iTraxx Europe S6 | 10Y | 42 | 45.8 | -3.8 |
+Key source-backed drivers to keep in mind:
 
-O'Kane lists specific drivers of index basis:
+1. **Contract differences (e.g., restructuring clause):** for example, the North American CDX index protection leg historically excluded restructuring (a “No‑Re” style trigger), while many US single‑name CDS contracts used Modified Restructuring (“Mod‑Re”). If the index and single‑name contracts do not have identical credit‑event terms, you should expect a mechanical basis component.
 
-1. **Restructuring clause**: "In the case of the North American CDX index, the payment of protection on the index protection leg is only triggered when the credit event is a bankruptcy or failure to pay... However, the market standard for CDS in the US is based on the use of the Mod-Re restructuring clause. Since No-Re spreads are typically about 5% lower than Mod-Re spreads, we have an immediate basis."
+2. **Liquidity and price discovery:** the index market is often more liquid than many single names. The literature notes that the index can embed a different liquidity premium and can “lead” single‑name spreads, especially in widening markets when investors hedge illiquid cash credit.
 
-2. **Liquidity premium**: "The considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium than the less liquid CDS spreads."
-
-3. **Index leads the market**: "The CDS index may be considered to lead the CDS market. This is especially true in a widening market where investors use long protection positions in the index to hedge illiquid long credit positions."
+3. **Replication vs quoting conventions:** the intrinsic view requires all constituent curves; the quoted index view uses a flat index curve. Even if you model everything perfectly, you can still get a basis because the quoting object (index curve) is not the same object as the set of single‑name curves.
 
 #### The Portfolio Swap Adjustment
 
-O'Kane describes the portfolio swap adjustment as the mechanism to reconcile intrinsic and quoted values: "One way to ensure that the index swap spread equals the intrinsic swap spread is to see if there is an adjustment that can be made to the individual issuer curves which can enforce [equality]."
+To reconcile intrinsic and quoted index views, O’Kane describes a **portfolio swap adjustment**: adjust the individual issuer curves so that the portfolio‑implied index matches the market‑quoted index. The book emphasizes that the exact adjustment is somewhat arbitrary, but highlights practical desiderata like preserving each issuer’s term‑structure shape and relative ranking and avoiding arbitrage artifacts.
 
-The adjustment is "somewhat arbitrary" but typically proportional: "we would rather increase all spreads by 1% than add say 5 bp to all spreads which would have a large effect on the credit risk of a name trading at 10 bp and a much smaller effect on another trading at 200 bp."
-
-**I'm not sure** about exact portfolio swap adjustment algorithms beyond the proportional approach O'Kane describes—implementations vary by desk and system.
+NOT SURE: which portfolio swap adjustment method your desk/system uses (spread multipliers vs hazard‑rate scaling; whether it is done per maturity point; and what constraints are enforced).
 
 #### Series/Roll Basis
 
@@ -304,29 +293,16 @@ For a bond portfolio, carry is the coupon accrual minus financing cost; rolldown
 
 #### CDS / Index / Tranche Carry and Theta
 
-O'Kane provides precise definitions for tranches that apply equally to indices:
+O’Kane defines (for tranches, and the idea carries over to indices):
 
-> "**Carry**: This is the daily coupon which is accrued. Although coupons are only paid on the quarterly payment dates, we effectively accrue a risk-free coupon each day. This is because the coupon which was accrued since yesterday will be sure to be paid whether or not default occurs since it will be part of the premium accrued at default."
+- **Carry:** the daily accrual of the contractual coupon/premium (even though it is paid quarterly). A key intuition is that premium accrued since the last payment date is still owed if a default occurs before the next payment date, so it is sensible to think in “daily accrual” terms.
+- **Theta:** the daily change in the **full price** holding spreads/curves fixed and assuming no default over the day. For a long protection position, theta is the change in the protection leg minus the change in the premium leg.
 
-> "**Theta**: This is the daily change in the full price of the tranche. For a long protection position it is the change in the value of the protection leg minus the change in the value of the premium leg."
-
-O'Kane explains why theta is typically negative for long protection positions: "As we move one day forward, the value of the protection leg falls as we have one day less of protection. Over the same period, the value of the premium leg increases as the future cash flows move one day closer to today and so their time value increases."
-
-From O'Kane's Table 17.2, representative daily values for a $1,250mm reference portfolio:
-
-| Tranche | Daily Carry ($) | Daily Theta ($) |
-|---------|-----------------|-----------------|
-| 0-3% | -18,229 | -16,632 |
-| 3-7% | -5,556 | -7,553 |
-| 7-10% | -1,563 | -2,583 |
-| 10-15% | -1,042 | -1,971 |
-| 15-30% | -417 | -1,068 |
-
-O'Kane notes: "The magnitude of the daily carry is largest for the 0-3% tranche which is paying the highest spread. It is negative as a protection buyer has to pay the premium."
+Qualitative risk-report pattern from the source: for a **protection buyer**, carry is typically **negative** (you pay premium), and the absolute carry tends to be largest for the most junior tranche because it has the highest contractual spread. Theta for long protection is often negative because (i) there is one day less of protection remaining and (ii) the premium leg cashflows are one day closer (higher PV).
 
 #### Rolldown Component
 
-Theta includes the rolldown effect. O'Kane explains: "If the CDS spread curves are upward sloped, as time passes we roll down the curve with the effect of reducing the average portfolio spread."
+Theta includes a **rolldown** component: if the spread curve is upward sloping, as time passes you effectively move to a shorter maturity point on the curve, which (all else equal) tends to reduce the implied par spread.
 
 For a position with unchanged spreads and curve shape:
 - **Carry** = coupon accrual component (deterministic)
@@ -395,23 +371,23 @@ The bond-CDS basis—the spread difference between a CDS and the equivalent cash
 
 $$\boxed{\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread}}$$
 
-where "for a fixed rate bond, the natural choice is the asset swap spread of a bond trading close to par." A positive basis means CDS protection is more expensive than the bond spread suggests; a negative basis means protection is cheap relative to cash.
+where the "bond Libor spread" is typically measured using the bond's asset swap spread when the bond is close to par (for fixed-rate bonds). A positive basis means CDS protection is more expensive than the bond spread suggests; a negative basis means protection is cheap relative to cash.
 
-The basis can persist for extended periods because CDS and bonds are fundamentally different contracts. O'Kane divides the drivers into **fundamental factors** (contractual differences) and **market factors** (trading dynamics). Understanding both is essential for any basis strategy.
+The basis can persist for extended periods because CDS and bonds are fundamentally different contracts. O'Kane divides the drivers into **fundamental factors** (contractual differences) and **market factors** (trading dynamics). Treat this list as a checklist when a "fully hedged" basis position surprises you.
 
 #### 3.1.1 Fundamental Factors Driving the Basis
 
 O'Kane identifies six fundamental factors that create structural differences between CDS and bond spreads:
 
-1. **Funding**: "Default swaps are unfunded transactions and bonds are funded. For the same spread, CDS are favoured by investors who have funding costs above Libor while bonds are favoured by those who fund below." This creates a natural clientele effect—investors sort themselves into CDS or bonds based on their funding costs, and the basis reflects the marginal participant's funding level.
+1. **Funding**: CDS is economically unfunded (no bond principal to finance), while holding a bond requires financing/balance sheet. Investors with different funding costs (relative to Libor) naturally prefer one market over the other, and the basis reflects the marginal funding level.
 
-2. **The delivery option**: "In a CDS contract, the protection buyer is able to choose which physical asset out of a basket of obligations to deliver following a credit event." O'Kane provides a concrete example: if the protection buyer holds an asset trading at 43% and another deliverable trades at 37%, they can sell the first, buy the second, and deliver it for par, capturing a $6 profit from the option. This optionality makes long protection more valuable, widening the CDS spread and the basis.
+2. **The delivery option (physical settlement)**: With physically settled CDS, the protection buyer can choose which deliverable obligation to deliver after a credit event. This cheapest-to-deliver option makes protection more valuable. O'Kane gives a concrete intuition: if one deliverable trades at 43 and another at 37, the buyer can capture the 6-point difference by delivering the cheaper bond.
 
-3. **Technical default**: "The standard credit events may be viewed as being broader than those which constitute default on a bond." CDS can trigger on restructuring or other events that don't technically default the bond, so protection sellers demand compensation for this additional risk.
+3. **Technical default / credit-event definition**: CDS credit events can be broader than plain bond payment default (for example, restructuring depending on documentation). That extra trigger risk affects CDS pricing relative to cash.
 
-4. **Loss on default**: "The protection payment on a CDS following a credit event is a fraction $(1-R)$ of the face value of the contract. The default risk on a bond (or asset swap) purchased at a full price of $P$ is to a loss of $P-R$." This is the **loss-on-default mismatch**: if you buy a bond at 105 and it defaults with 40% recovery, you lose $65; but CDS protection pays only $60 (per 100 notional). This asymmetry affects how much CDS protection to buy.
+4. **Loss-on-default mismatch**: CDS protection pays $(1-R)$ of notional (per 100), while the loss on a cash bond purchased at full price $P$ is $P-R$. If $P \\neq 100$, notional matching by CS01 can leave a JTD mismatch; JTD matching is a separate sizing problem.
 
-5. **Premium accrued at default**: "Following a credit event, a CDS pays the protection seller the premium which has accrued since the previous payment date. However, when a bond defaults, the owner's claim is on the face value, and so any accrued coupons are lost." This difference slightly lowers the CDS spread relative to bonds.
+5. **Accrued premium/coupon around default**: In CDS, accrued premium is typically settled at default; in cash bonds, coupon cashflows stop and accrued can be lost. This small difference matters in tight "basis carry" calculations and in default P&L explain.
 
 6. **CDS spreads cannot be negative**: Unlike asset swap spreads (which can go negative for very high-quality credits like Treasuries), CDS spreads must be positive to compensate for default risk and transaction costs.
 
@@ -419,25 +395,25 @@ O'Kane identifies six fundamental factors that create structural differences bet
 
 O'Kane lists six market factors that create basis dynamics:
 
-1. **Relative liquidity**: "The CDS market has its liquidity points at fixed term points with most liquidity concentrated at the three-, five-, seven- and 10-year maturity 'IMM' dates," while bonds have liquidity at their specific issue maturities. Maturity mismatches create basis effects.
+1. **Relative liquidity**: CDS liquidity clusters at standard tenors (3/5/7/10Y, often quoted on IMM dates) while bonds are liquid in specific issues. Liquidity and maturity mismatches can move basis.
 
-2. **Synthetic CDO technical short**: "When dealers issue synthetic CDOs, they then hedge their spread risk by selling CDS credit protection on each of the 100 or more credits in the reference portfolio. CDO issuance is therefore usually accompanied by a tightening (reduction) in CDS spreads."
+2. **Synthetic CDO technical**: When dealers issue synthetic CDO risk, they can hedge by trading CDS on many constituents, creating mechanical spread pressure.
 
-3. **New issuance/loans**: "When bonds are newly issued by a corporate, CDS spreads often widen... Banks who have assumed large credit exposures to corporates by granting them loans, hedge this risk in the CDS market."
+3. **New issuance/loans**: Corporate bond issuance and bank loan origination can lead to CDS hedging flows that move CDS spreads and cash spreads differently.
 
-4. **Convertible issuance**: "The issuance of convertible bonds often results in a demand to buy protection on the issuer" as convertible arbitrage funds isolate equity volatility risk.
+4. **Convertible issuance**: Convertible arbitrage and hedging can create protection-buying pressure in CDS.
 
-5. **Demand for protection**: "It is much easier to go short a credit by buying protection in the CDS market than by shorting a cash bond. As a result, if there is negative news on a credit, it will tend to result in a flurry of protection buying."
+5. **Demand for protection / shorting asymmetry**: It is operationally easier to get short credit via CDS (buy protection) than short a cash bond, so CDS can move "first" on negative news.
 
-6. **Funding risk**: "Since the CDS is unfunded, it effectively locks in a funding rate of Libor flat until maturity or a credit event... There is therefore no funding risk."
+6. **Funding and liquidity regimes**: Even if CDS is economically unfunded, the cash-bond leg is exposed to financing and balance-sheet constraints; when that regime shifts, basis can gap.
 
-O'Kane concludes: "All of these fundamental and market factors are reasons why the CDS and cash market spreads should diverge. It is difficult to assign degrees of importance to the individual factors as it is hard to tease them apart empirically."
+O'Kane's practical point is that these interacting effects can make CDS and cash spreads diverge, and it is hard to assign a single dominant cause in real time.
 
 #### Strategy Card: A1 — Bond–CDS Basis Package (Risk-First Framing)
 
 ##### Objective (Conceptual; No Forecasts)
 
-Isolate and measure the CDS–cash basis while understanding which factors are driving any observed divergence. As O'Kane notes, basis trading has become "a new relative value opportunity" for market participants who understand the risk decomposition.
+Isolate and measure the CDS–cash basis while understanding which factors are driving any observed divergence. In O’Kane’s framing, the basis can be actively traded as a relative‑value position once you are explicit about the residual risks.
 
 ##### Instruments and Position Construction
 
@@ -488,24 +464,24 @@ $$N_{\text{CDS}} = -\frac{\text{CS01}_{\text{bond}}}{\text{CS01}_{\text{CDS per 
 The basis trade can fail in multiple ways, corresponding to the fundamental and market factors O'Kane identifies:
 
 **Funding-Related Failures:**
-- **Funding/repo shocks**: The bond leg is funded; CDS is unfunded. O'Kane notes: "Since the CDS is unfunded, it effectively locks in a funding rate of Libor flat until maturity or a credit event." If your funding costs spike (e.g., during a credit crisis), the bond leg becomes increasingly expensive to carry while the CDS leg is unaffected. This asymmetry can overwhelm a small positive carry.
+- **Funding/repo shocks**: The bond leg is funded; CDS is (economically) unfunded. In the source’s framing, a CDS position does not require financing the cash bond, so a bond‑CDS package carries an embedded **funding asymmetry**. If your funding costs spike, the bond leg becomes expensive to carry while the CDS leg does not “feel” the same repo stress in the same way. That asymmetry can overwhelm a small positive carry.
 - **Repo fails or specials**: If the specific bond becomes hard to finance (goes "special"), carrying the cash leg becomes punitive. This is a funding risk that CDS does not face.
 
 **Contract-Related Failures:**
-- **Delivery option exercise**: O'Kane's example shows a $6 profit from delivery option when the cheapest deliverable trades 6 points below the hedged asset. If you're short protection and a restructuring occurs, the protection buyer will deliver the cheapest asset—not the one you expected.
-- **Restructuring clause mismatch**: O'Kane notes that "the choice of restructuring clause should affect the CDS spread for that contract." Trading a Mod-Re CDS against a No-Re index (or vice versa) creates basis risk to restructuring events.
-- **Loss-on-default mismatch**: O'Kane emphasizes: "The protection payment on a CDS following a credit event is a fraction $(1-R)$ of the face value... The default risk on a bond purchased at a full price of $P$ is to a loss of $P-R$." If your bond is at 105 and defaults at 40% recovery, you lose 65 points but CDS only pays 60. If your bond is at 95, you lose 55 but CDS pays 60—now you're over-hedged.
+- **Delivery option / cheapest-to-deliver**: after certain credit events (especially restructuring), the protection buyer can choose which deliverable obligation to settle with. If you are hedging a specific bond, this creates a mismatch: the delivered asset may not be the one you expected, so the CDS leg can realize a different loss than the cash bond you are hedging.
+- **Restructuring clause mismatch**: CDS spreads depend on the restructuring clause because it changes the trigger set and the deliverable set. Trading a Mod‑Re single‑name CDS against a No‑Re index (or vice versa) creates basis risk to restructuring‑related events.
+- **Loss-on-default mismatch**: CDS pays $(1-R)$ on notional; a cash bond bought at a full price $P$ has loss $P-R$. If your bond is at 105 and defaults at 40% recovery, you lose 65 points but CDS only pays 60 per 100 notional. If your bond is at 95, you lose 55 but CDS pays 60—now you are over‑hedged in default.
 
 **Market-Related Failures:**
-- **CDO issuance waves**: O'Kane notes that "CDO issuance is therefore usually accompanied by a tightening (reduction) in CDS spreads" as dealers hedge by selling protection. A sudden wave of CDO issuance can compress the basis against a long-basis position.
-- **Convertible issuance**: "The issuance of convertible bonds often results in a demand to buy protection on the issuer" as hedge funds isolate equity volatility. This widens the CDS leg without affecting bonds.
-- **Liquidity divergence**: In stress, "it is much easier to go short a credit by buying protection in the CDS market than by shorting a cash bond." CDS spreads can gap wider than bond spreads, creating violent basis moves.
+- **Synthetic CDO technicals**: dealer hedging of synthetic CDO issuance can involve selling protection on many names, mechanically tightening CDS spreads and compressing the basis.
+- **New issuance and hedging flows**: new bond issuance and loan hedging flows can push CDS and cash markets in different directions over short horizons.
+- **Convertible issuance**: convertible hedging flows can drive protection buying and widen CDS spreads without an immediate, matching move in cash bonds.
+- **Liquidity divergence**: CDS is often the easier instrument to go short credit quickly. In stress, that can make CDS spreads gap wider than bond spreads, producing large basis moves.
 
-**Quantitative Failure Indicators:**
-- CS01 mismatch exceeds 10% after hedge
-- JTD mismatch exceeds 5% due to bond price ≠ 100
-- Repo rate volatility > 50bp annualized
-- Bid-offer > expected carry over holding period
+**Monitoring checks (thresholds are desk-specific):**
+- CS01 drift after execution and after spread moves (hedge staleness).
+- JTD mismatch driven by bond price ≠ par and recovery/final-price assumptions.
+- Funding and liquidity regime shifts (repo terms changing, bid/offer widening).
 
 ##### Implementation Checklist + Verification Tests
 
@@ -518,15 +494,7 @@ The basis trade can fail in multiple ways, corresponding to the fundamental and 
 
 A "negative basis" means the CDS spread trades *inside* (below) the bond asset-swap spread: the synthetic market prices credit risk cheaper than the cash market. This seemingly arbitrageable condition can persist for extended periods because of structural demand dynamics.
 
-> **Desk Reality: The CLO Bid and Bank Funding Arbitrage**
->
-> O'Kane identifies the key mechanism: "Default swaps are unfunded transactions and bonds are funded. For the same spread, CDS are favoured by investors who have funding costs above Libor while bonds are favoured by those who fund below."
->
-> This creates a natural clientele separation. Banks that fund below Libor have a structural advantage in owning cash bonds—they earn the full bond spread while paying below-Libor funding, capturing excess carry. Meanwhile, investors who fund above Libor prefer the unfunded CDS, which locks in Libor-flat funding.
->
-> **The CLO demand channel** reinforces this. Collateralized Loan Obligations need floating-rate spread exposure and are natural buyers of bonds and loans. Their demand pushes bond spreads tighter relative to CDS, creating systematic negative basis. When CLO issuance is strong, negative basis tends to compress further.
->
-> **Practitioner Note (Claude-extended):** In practice, the negative basis trade—buying the bond and buying CDS protection—is a carry trade that earns the spread differential minus funding costs. Banks with low funding costs can earn positive carry on this package even when the CDS spread is below the bond spread, because their all-in funding cost is below Libor. This creates a structural floor for negative basis: it persists until bank balance sheet capacity is exhausted or funding conditions change.
+**Desk intuition (source-aligned):** CDS is unfunded while a bond position must be financed. That creates a clientele effect: participants with cheaper funding can prefer cash bonds, while those with more expensive funding can prefer CDS. In addition, technical flows like synthetic CDO issuance can tighten single‑name CDS spreads via dealer hedging, which can contribute to a more negative basis.
 
 #### Positive Basis: The Squeeze
 
@@ -534,11 +502,11 @@ A "positive basis" means CDS spreads trade *outside* (above) bond spreads. O'Kan
 
 The dangerous scenario is the **positive basis squeeze**: a trader who is short the basis (short CDS, long bond) faces losses when the basis widens further. In stress:
 
-1. **Protection demand surges**: O'Kane notes that "if there is negative news on a credit, it will tend to result in a flurry of protection buying in the CDS market"—widening CDS but not necessarily bonds.
+1. **Protection demand surges**: if negative news hits a credit, it is often operationally easier to express a bearish view via **buying CDS protection** than by shorting cash bonds. That flow can push CDS wider faster than cash bonds, widening the basis.
 2. **Repo funding spikes**: The bond leg becomes expensive to carry as repo rates rise (Example 1B illustrates this).
 3. **Forced unwinds**: Margin calls on the CDS leg force liquidation at the worst time, crystallizing losses.
 
-> **Practitioner Note (Claude-extended):** During the 2008 financial crisis and the COVID-19 shock in March 2020, CDS-bond basis dislocated dramatically. Negative basis positions that appeared profitable under normal conditions faced funding stress as repo markets seized and mark-to-market losses triggered margin calls. The key lesson: basis trades are funding-contingent strategies. A trader must model the worst-case funding scenario, not just the base case. I'm not sure about exact basis magnitudes during these episodes without additional data sources; the qualitative pattern is well-established but specific numbers require market data verification.
+**Stress-test mindset:** basis trades are funding- and liquidity-contingent. When funding terms or market liquidity shift, the P&L distribution changes qualitatively; a “CS01‑matched” package can still experience large adverse moves.
 
 ---
 
@@ -607,14 +575,12 @@ Credit curve trades express a view on the *shape* of a single name's CDS spread 
 
 #### 3.3.1 Curve Shapes and What They Signal
 
-O'Kane provides three representative curve shapes (Table 7.2): (i) a flat curve, (ii) an upward-sloping curve, and (iii) a steeply inverted curve. The inverted curve is particularly important for high-yield names:
+The source discusses three representative CDS curve shapes: flat, upward‑sloping, and steeply inverted. The inverted curve case is especially relevant for stressed/high‑yield names:
 
 - **Upward-sloping (typical IG):** Long-term default probability exceeds short-term. The hazard rate increases with tenor. This is normal for investment-grade credits where the risk of eventual deterioration exceeds near-term default risk.
-- **Inverted (distressed HY):** Short-term default probability dominates long-term. O'Kane notes that for a name with very high short-term spreads, "it would not be possible to redeem the bond if it matured immediately." If the firm survives the near term, it is likely to survive longer—hence spreads decline at longer tenors.
+- **Inverted (distressed HY):** The market prices near‑term default as the dominant risk. Conditional on surviving the near term, the longer‑dated hazard can be perceived as lower, which can pull longer‑dated spreads below the front end.
 
-> **Desk Reality: Why HY Curves Invert**
->
-> **Practitioner Note (Claude-extended):** When a credit is in distress, the market prices near-term default as the dominant risk. A name trading at 800 bp in 1Y but 500 bp in 5Y is telling you: "If this company survives the next year, it's probably OK." This creates a natural curve steepener trade—buy short-dated protection (expensive but high expected payoff) and sell long-dated protection (cheaper, and you bet on survival). The key risk: if the name defaults, both legs trigger and the net depends on recovery and premium accrual differences.
+**Desk intuition:** an inverted curve is often interpreted as a “survival bet.” For example (toy numbers), a name trading 800bp in 1Y and 500bp in 5Y is saying the market is heavily focused on near‑term default risk. A curve steepener (long short‑dated protection, short longer‑dated protection) can monetize normalization *if the name survives*, but if the name defaults, both legs trigger and the net depends on notional sizing, premium accrual, and recovery assumptions.
 
 #### 3.3.2 Forward CDS Curves
 
@@ -763,15 +729,15 @@ If hedging with constituents, see strategy A2/Example 4 and note basis complicat
 
 ### B2) Roll / Series Switch Mechanics (On-the-Run vs Off-the-Run)
 
-The index roll is a critical event in CDS index markets. O'Kane explains: "The indices roll every six months and investors who hold the existing on-the-run index will generally try to roll into the new on-the-run index by selling the old index contract and buying the new one."
+The index roll is a critical event in CDS index markets: indices roll every six months, and investors who want to stay “on‑the‑run” typically sell the old series and buy the new one.
 
 #### 3.4.1 What Drives Roll P&L
 
 O'Kane identifies two primary sources of P&L impact during the roll:
 
-1. **Composition changes**: "Any changes in the composition of the index which change its perceived credit quality. For example, the new index will not contain any names which have been downgraded below investment grade or whose liquidity has declined." However, this does not guarantee the new index trades tighter: "liquidity requirements may result in some names being replaced with wider spread names."
+1. **Composition changes**: the new series can differ because names are removed and replaced based on credit-quality and liquidity criteria. This can improve or worsen perceived credit quality; liquidity-driven replacements are not guaranteed to tighten spreads.
 
-2. **Maturity extension**: "The new index has a longer maturity, by six months, than the previous index. As credit curves tend to be upward sloping, this would tend to cause the new index spread to be wider, all other things being the same."
+2. **Maturity extension**: the new series is about six months longer maturity than the previous series. With upward-sloping credit curves, longer maturity tends to imply a wider fair spread, all else equal.
 
 These two effects can work in opposite directions. A credit-upgraded new index with a longer maturity may trade at the same spread as the old index if the composition improvement offsets the curve steepness.
 
@@ -840,56 +806,38 @@ A tranche behaves like a credit derivative on the portfolio loss distribution: P
 
 #### Systemic vs Idiosyncratic Risk
 
-O'Kane distinguishes two types of spread risk for tranches:
+O’Kane distinguishes two types of spread moves for tranche risk:
 
-1. **Systemic risk**: "the risk to a parallel movement of all of the CDS spreads in the portfolio" (measured by systemic delta and systemic gamma)
-2. **Idiosyncratic risk**: "the risk to the spread movements of one credit" holding other credits fixed
+1. **Systemic (portfolio‑wide) move:** bump *all* issuer curves together (parallel shift).
+2. **Idiosyncratic (single‑name) move:** bump one issuer’s curve holding others fixed.
 
-These risks behave very differently across the capital structure. Table 17.2 from O'Kane shows representative values for a 125-name portfolio with 60 bp average spread:
+These lead to different deltas/gammas and, therefore, different hedge notions (systemic vs name‑specific hedges).
 
-| Tranche | Systemic Delta ($mm) | Leverage | Systemic Gamma ($) | Corr01 ($) |
-|---------|---------------------|----------|-------------------|------------|
-| 0-3% | 691 | 18.37 | -4,013 | -433,553 |
-| 3-7% | 461 | 9.20 | 47 | 23,214 |
-| 7-10% | 170 | 4.52 | 667 | 78,274 |
-| 10-15% | 133 | 2.12 | 901 | 103,158 |
-| 15-30% | 73 | 0.39 | 805 | 93,228 |
+Rather than relying on any single numeric “risk report snapshot,” focus on the robust qualitative patterns (see Chapter 51 for definitions):
 
-The table reveals key structural features:
-- **Equity tranches are highly leveraged** (18× for 0-3%) with negative systemic gamma
-- **Senior tranches are deleveraged** (0.39× for 15-30%) with positive systemic gamma
-- **Correlation sensitivity reverses**: equity tranches lose on correlation increases; senior tranches gain
+- **Leverage tends to be highest for equity and falls with seniority.** A small notional slice can embed large exposure to portfolio-wide spread moves.
+- **Systemic gamma often flips sign across the stack.** Published examples show equity can have negative systemic gamma (unfavorable convexity in parallel spread moves), while more senior tranches can have positive systemic gamma.
+- **Correlation sensitivity (Corr01) can flip sign.** In a one-factor setting, increasing correlation reallocates probability mass between “few scattered defaults” and “large clusters,” which can benefit one part of the capital structure and hurt another.
 
 #### Correlation/Dependence Affects Tail
 
-Higher correlation increases the probability of clustered defaults (tail events), which redistributes expected losses across attachment points. O'Kane explains: "The correlation 01 of the 0-3% tranche is negative, resulting in a loss of over $400,000 for a 1% increase in correlation. The correlation 01 of the 15-30% tranche is positive."
+Higher correlation increases the probability of clustered defaults (tail events), which redistributes expected losses across attachment points. In the source’s example risk report, Corr01 is negative for the equity tranche (long protection loses as correlation rises) while a senior tranche can have Corr01 of the opposite sign.
 
 This creates a natural tension: equity and senior tranches have *opposite* correlation exposures. A correlation trader can exploit this by combining tranches to isolate or neutralize correlation risk.
 
 #### Gamma Trading
 
-O'Kane describes how market participants "use the gamma risk profile of tranches as a way to express a view on systemic versus idiosyncratic credit scenarios, while remaining more or less credit spread neutral."
+In the source’s discussion, traders can use a tranche’s systemic vs idiosyncratic gamma profile to express a view on “market‑wide” vs “name‑specific/dispersion” scenarios, while attempting to reduce first‑order spread exposure.
 
-The key insight from Table 17.5 in O'Kane:
-
-| Tranche | Long Protection | Short Protection |
-|---------|-----------------|------------------|
-| Equity | I.Gamma > 0, S.Gamma < 0 | I.Gamma < 0, S.Gamma > 0 |
-| Senior | I.Gamma < 0, S.Gamma > 0 | I.Gamma > 0, S.Gamma < 0 |
-
-This means:
-- Long protection on equity **benefits** from idiosyncratic spread moves but **loses** on systemic moves
-- Long protection on senior tranches has the opposite profile
-
-O'Kane notes: "Once we have put on an idiosyncratic delta hedge to every credit in the portfolio, we typically find that there is a net carry which may be positive or negative... We typically find that a positive gamma position is associated with a negative carry."
+Published examples emphasize a useful sign intuition: **idiosyncratic gamma often has the opposite sign to systemic gamma** for a given tranche, reflecting the difference between “one-name deteriorates” vs “everything widens.” The source also highlights a common trade-off: positions that are “long convexity” (positive gamma) can come with an adverse carry/theta profile, so you must evaluate **carry vs convexity** together, not in isolation.
 
 #### Base Correlation Framework
 
-O'Kane describes base correlation as "the standard convention for quoting implied correlation" that "has since become the standard convention for quoting implied correlation and is also widely used for pricing and risk managing synthetic CDOs."
+Base correlation is a widely discussed market convention for quoting “implied correlation” across strikes and for building a surface used in tranche pricing/risk.
 
-The key insight: "any tranche can be represented as a linear combination of equity tranches." A 3-7% tranche can be replicated as long $7 face of 0-7% base tranche and short $3 face of 0-3% base tranche.
+Key structural identity: a $[K_1, K_2]$ tranche can be represented as a linear combination (difference) of two equity tranches $[0,K_2]$ and $[0,K_1]$ (see Chapter 50 for the construction and Chapter 51 for the risk implications).
 
-**Warning on base correlation interpolation**: O'Kane shows that "a direct linear interpolation of the base correlation curve is not guaranteed to produce prices for non-standard tranches which are arbitrage free." The interpolation scheme matters significantly for pricing non-standard strikes.
+**Interpolation warning:** linear interpolation of base correlation is not guaranteed to be arbitrage‑free for non‑standard strikes. The interpolation scheme is part of the model.
 
 ---
 
@@ -917,16 +865,19 @@ Compare tranches by which risk dominates:
 | Exposure | Units | Meaning |
 |----------|-------|---------|
 | Tranche PV01 | USD/bp | linear tranche spread risk |
-| Systemic delta | USD/bp | sensitivity to "systemic" spread move |
+| Systemic DV01 | USD/bp | PV change under a 1bp parallel bump to all issuer curves (portfolio‑wide spread move) |
+| Systemic delta | $ notional | CDS hedge notional implied by the source’s systemic‑hedge definition |
 | Corr01 | USD per 1% corr | dependence sensitivity |
 | Tail/clustering | scenario USD | nonlinear loss jump risk |
 | Recovery sensitivity | USD/1% | recovery impacts losses and settlement |
 
 ##### Hedge Set and Hedge Ratios (Show Math)
 
-**PV01 hedge with index:**
+**Systemic spread hedge (conceptual DV01 match):**
 
-$$N_{\text{index}} = -\frac{\text{PV01}_{\text{tranche}}}{\text{CS01}_{\text{index}}}$$
+If you hedge portfolio‑wide spread risk with an index CDS, size the index notional to offset the tranche’s **systemic DV01** (not the tranche’s contractual spread PV01):
+
+$$N_{\text{index}} \\approx -\\frac{\\text{SystemicDV01}_{\\text{tranche}}}{\\text{CS01}_{\\text{index per }\\$\\text{ notional}}}$$
 
 **Adjacent tranche PV01 hedge:**
 
@@ -956,40 +907,36 @@ $$N_{\text{hedge tranche}} = -\frac{\text{PV01}_{\text{target tranche}}}{\text{P
 
 ### 52.6.2 Tranche Example: Equity vs Senior Correlation Trade
 
-To illustrate the opposing correlation exposures, consider a stylized equity-senior structure:
+This is a **toy** illustration of how you might combine two tranches to reduce (not eliminate) correlation exposure.
 
-#### Setup
+#### Setup (Toy Numbers)
 
-- **Reference portfolio**: 125 names, $10mm each, total $1,250mm
-- **Equity tranche**: 0-3% ($37.5mm), long protection
-- **Senior tranche**: 15-30% ($187.5mm), short protection
-- **Average portfolio spread**: 60 bp
-- **Correlation**: 25%
+- Reference portfolio: $N=125$ names (equal-weight), total $F = \\$1{,}250$mm.
+- Equity tranche: 0–3% (long protection).
+- Senior tranche: 15–30% (long protection).
+- Current implied correlation parameter: $\\rho_0$ (exact model details omitted).
 
-From O'Kane's Table 17.2:
-- Equity Corr01 = -$433,553 per 1% correlation (long protection)
-- Senior Corr01 = +$93,228 per 1% correlation (short protection)
+Assume your risk system reports (per $\\$10$mm tranche notional):
+- Equity Corr01 (long protection): $-\\$80{,}000$ per +1% correlation bump
+- Senior Corr01 (long protection): $+\\$150{,}000$ per +1% correlation bump
 
-But note we are *short* protection on senior, so our Corr01 is *negative* $93,228.
+These signs encode the intuition: higher correlation can make equity safer (hurting long‑protection equity) while making senior tail riskier (helping long‑protection senior).
 
-#### Correlation-Neutral Sizing
+#### Correlation-Neutral Sizing (Local)
 
-To neutralize correlation exposure:
+To target Corr01 neutrality at the current point:
 
-$$N_{\text{senior}} = \frac{|\text{Corr01}_{\text{equity}}|}{|\text{Corr01}_{\text{senior}}|} = \frac{433,553}{93,228} = 4.65$$
+$$N_{\\text{equity}} \\approx N_{\\text{senior}}\\times \\frac{|\\text{Corr01}_{\\text{senior}}|}{|\\text{Corr01}_{\\text{equity}}|} = N_{\\text{senior}}\\times \\frac{150}{80} = 1.875\\,N_{\\text{senior}}.$$
 
-So we need 4.65× the notional on senior short protection relative to equity long protection to be correlation-neutral.
+#### Residual Exposures (Why “Corr01-Neutral” ≠ “Risk-Neutral”)
 
-#### Residual Exposures
+Even if Corr01 is near zero locally, you still retain:
+- **Systemic spread risk** (systemic DV01 / systemic delta): the two tranches generally do not offset the same way for parallel spread moves.
+- **Gamma/convexity**: systemic and idiosyncratic gamma profiles differ across the stack; hedge ratios drift in large moves.
+- **Jump / clustering risk**: realized defaults and clustered-default scenarios can dominate small-move hedges.
+- **Model risk**: Corr01 depends on parameterization and calibration (compound vs base correlation, interpolation rules).
 
-Even with correlation neutralized:
-- **Systemic delta remains**: equity has $691mm delta, senior has $73mm × 4.65 = $340mm in opposite direction; net delta ~$350mm
-- **Gamma profile differs**: equity has negative systemic gamma, senior has positive; the combination has mixed gamma depending on spread level
-- **Default clustering**: actual defaults will hit equity first; the hedge only works for small correlation moves, not actual clustered defaults
-
-#### Interpretation
-
-O'Kane's framework reveals that correlation-neutral is not risk-neutral. The trade still has substantial spread delta, gamma profile that changes with spread levels, and nonlinear exposure to actual default clusters.
+Practical takeaway: treat “Corr01‑neutral” as a *local* risk reduction, then validate the trade under stress scenarios (spread shocks, correlation shocks, clustered defaults, recovery/final price).
 
 ---
 
@@ -1064,7 +1011,7 @@ START: What is your primary view?
 ├─ View on CORRELATION / TAIL
 │   ├─ Correlation increase → Short equity / Long senior
 │   ├─ Correlation decrease → Long equity / Short senior
-│   └─ Dispersion view → Gamma trade per O'Kane Table 17.5
+│   └─ Dispersion view → Gamma-driven tranche trade (see Chapter 51)
 │
 ├─ View on CAPITAL STRUCTURE / SENIORITY
 │   ├─ Senior vs sub mispricing → Strategy D1 (Senior-Sub CDS)
@@ -1084,22 +1031,17 @@ Capital structure arbitrage exploits mispricings between different levels of a f
 
 ### 52.7.1 Recovery Rates by Seniority
 
-O'Kane provides empirical recovery data (Table 3.2, sourced from Altman et al. 2003b) that anchors capital structure relationships:
+Empirical studies summarized by O’Kane (sourced to Altman et al.) emphasize three desk‑relevant facts:
 
-| Seniority | Debt Type | Median Recovery (%) | Mean Recovery (%) | Std Dev (%) |
-|-----------|-----------|--------------------|--------------------|-------------|
-| Senior secured | Loans | 73.00 | 68.50 | 24.4 |
-| Senior unsecured | Loans | 50.50 | 55.00 | 28.4 |
-| Senior secured | Bonds | 54.49 | 52.84 | 23.1 |
-| Senior unsecured | Bonds | 42.27 | 34.89 | 26.6 |
-| Senior subordinated | Bonds | 32.35 | 30.17 | 25.0 |
-| Subordinated | Bonds | 31.96 | 29.03 | 22.5 |
+1. **Seniority matters:** senior claims tend to recover more on average than subordinated claims.
+2. **Recoveries are noisy:** the dispersion of recoveries is wide; “one number” recoveries are dangerous in stress tests.
+3. **Absolute priority is not guaranteed:** realized recoveries do not always obey a strict absolute‑priority ordering.
 
-O'Kane notes: "The most important driver of the recovery rate is the position of the debt in the capital structure of the firm, i.e. senior debt recovers more on average than subordinated debt." He also observes that "the standard deviation of the recovery rate distributions is rather broad" and that the absolute priority rule (APR) "is not always obeyed."
+For intuition, the dataset summarized in the book shows materially higher mean recovery for senior secured loans (around the high‑60%s) than for senior unsecured bonds (around the mid‑30%s).
 
 > **Desk Reality: Why Recovery Matters More Than You Think**
 >
-> The ~20 percentage point gap between senior unsecured (35%) and subordinated (29%) mean recovery may seem small, but it drives large spread differences. When a name widens to distressed levels, the market reprices recovery aggressively—and senior vs sub recovery assumptions diverge further. A trader who assumes identical recovery across the capital structure will misprice hedges and underestimate P&L breaks.
+> Differences in expected recovery across the capital structure can translate into large spread differences in distressed regimes. If you assume the same recovery for senior and subordinated debt, you can mis-size hedges and understate jump and scenario P&L.
 
 ### 52.7.2 The Senior-Subordinated Spread Relationship
 
@@ -1111,7 +1053,7 @@ Dividing:
 
 $$\boxed{\frac{S_{\text{sub}}}{S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
 
-O'Kane cautions: "In practice, this relationship is only a rough guide. Market technicals will often mean that it is not obeyed exactly. However, it does remind us that we should take care to price different levels of the capital structure consistent with their expected recovery rates."
+O’Kane emphasizes that this ratio is only a rough guide: market technicals and contract specifics can push observed spreads away from the simple relationship. The main use is as a consistency check: spreads across seniority should be broadly aligned with expected recovery differences.
 
 **Worked Example:** If senior unsecured recovery is 40% and subordinated recovery is 20%:
 
@@ -1131,7 +1073,7 @@ At maturity, the payoffs are:
 $$E(T) = \max[A(T) - F, 0] \quad \text{(equity = call option on firm assets)}$$
 $$D(T) = F - \max[F - A(T), 0] \quad \text{(debt = cash minus put option)}$$
 
-O'Kane explains: "The equity payoff at time $T$ has the same payoff as a call option on the asset value of the firm with a strike price at the face value of the outstanding debt."
+In the Merton model, equity has the same payoff as a call option on firm assets with strike equal to the face value of debt due at $T$.
 
 Using the Black-Scholes framework with asset volatility $\sigma_A$:
 
@@ -1143,23 +1085,19 @@ O'Kane derives the relationship between equity and asset volatility:
 
 $$\sigma_E = \sigma_A \Phi(d_1) \frac{A(t)}{E(t)}$$
 
-This equation "can then be used to calibrate the asset volatility parameter in the Merton model using the volatility of equity prices."
+This relationship can be inverted to back out an implied asset volatility from observed equity volatility and leverage (one of the model's practical uses).
 
 #### Limitations (O'Kane Section 3.4.1)
 
-O'Kane lists key limitations:
-- "The highly simplified capital structure is unrealistic"
-- "The model only allows default at a single time $T$"
-- "There is limited transparency regarding the value of the assets of a company"
-- "The credit spread for firms for which $A(t) > F$ always tends to zero as $T - t \to 0$"
+O'Kane lists key limitations that matter for desk intuition:
+- The simplified capital structure is unrealistic.
+- Default is only allowed at a single time $T$ in the basic setup.
+- There is limited transparency regarding the value of a company's assets.
+- Short-dated credit spreads can be understated when assets are well above debt (the model pushes spreads toward zero as $T-t \\to 0$ in that region).
 
-Despite these limitations, O'Kane notes: "The Merton model has been the inspiration behind one of the main correlation pricing models"—the Gaussian copula model uses a latent variable $A_i$ "in the spirit of Merton's structural model."
+Despite these limitations, O’Kane connects the intuition to correlation models: in one‑factor copula models, defaults are often driven by a latent “asset” variable in the same broad spirit as structural models.
 
-> **Desk Reality: How Equity Vol and CDS Spreads Connect**
->
-> **Practitioner Note (Claude-extended):** While the Merton model has limited direct pricing application, it provides powerful trading intuition. When equity volatility spikes without a corresponding CDS move (or vice versa), traders look for convergence opportunities. The relationship $\sigma_E \propto \sigma_A \cdot A/E$ means that as a firm's equity value drops (leverage increases), equity vol should rise and CDS spreads should widen. A persistent divergence between implied equity vol and CDS spreads signals a potential relative value trade.
->
-> Commercial implementations like Moody's KMV operationalize this by computing "distance to default" from equity prices and balance sheet data. Desk traders often watch CDS-equity implied correlations as a signal for capital structure trades.
+**Desk note (intuition, not a pricing formula):** the Merton linkage $\\sigma_E = \\sigma_A\\,\\Phi(d_1)\\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
 
 ### Strategy Card: D1 — Senior vs Subordinated CDS
 
@@ -1204,7 +1142,7 @@ $$\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}
 
 - **Recovery uncertainty dominates:** The trade's JTD depends critically on the difference $R_{\text{sen}} - R_{\text{sub}}$. If recovery turns out to be 20% for both (APR violation), the trade loses its structural advantage.
 - **Liquidity asymmetry:** Sub CDS may be significantly less liquid than senior; execution costs can exceed the theoretical edge.
-- **Market technicals:** O'Kane notes the ratio is "only a rough guide." Supply-demand for sub protection (e.g., from structured product hedging) can push the ratio far from theoretical for extended periods.
+- **Market technicals:** supply/demand and positioning can push the ratio far from the simple recovery-implied relationship for extended periods.
 
 ##### Implementation Checklist
 
@@ -1227,14 +1165,9 @@ Exploit divergences between equity-implied credit risk and CDS-priced credit ris
 - **Equity leg:** equity options or equity shares used to hedge the equity-implied credit component.
 - The trade exploits the link: when equity volatility implies a default probability different from what CDS spreads imply, one of them may be mispriced.
 
-> **Desk Reality: LBO Protection Trades**
->
-> **Practitioner Note (Claude-extended):** One classic capital structure trade involves anticipating leveraged buyouts (LBOs). When a private equity firm acquires a company using debt, the capital structure changes dramatically:
->
-> - **Senior debt:** Often *worsens* slightly (more leverage in the structure)
-> - **Subordinated debt:** Can *improve* if the sub moves from the bottom of a deep capital structure to a relatively more senior position in the restructured entity, or if the LBO price validates firm value
->
-> Traders who anticipate LBOs may buy sub CDS protection (betting on sub tightening relative to senior) before the announcement. The key risk: if the LBO doesn't happen, sub CDS may widen. I'm not sure about the precise mechanics of sub recovery treatment in all LBO scenarios—the outcome depends on the specific deal structure and documentation.
+**Desk note (LBO/leverage events):** an LBO is a discrete capital‑structure shock. It can change leverage, covenant package, and expected recoveries, so both senior and subordinated CDS can reprice sharply. Some desks express an LBO view as an outright **credit‑widening** position (buying protection), while others express a **relative** senior vs sub view. The direction and sizing depend on the specific deal structure and which obligations are effectively being referenced by each CDS contract.
+
+NOT SURE: the precise senior vs sub recovery/settlement mechanics under all LBO structures (depends on documentation, guarantees, and the post‑deal capital structure).
 
 ##### Exposure Decomposition
 
@@ -1255,21 +1188,17 @@ Exploit divergences between equity-implied credit risk and CDS-priced credit ris
 
 ## 52.8 Loan CDS vs Standard CDS
 
-O'Kane discusses Loan CDS (LCDS) in Section 5.7 as a variant that references loans rather than bonds. The key difference is recovery:
+O'Kane discusses Loan CDS (LCDS) in Section 5.7 as a variant that references loans rather than bonds. A key intuition is recovery: secured loans have historically recovered more than senior unsecured bonds, so the same default intensity can imply a tighter spread for loan CDS.
 
-O'Kane states: "In general, loan CDS trade at a tighter (lower) credit default spread than standard CDS on the same name. This effect can be ascribed to the generally superior recovery rates of secured loans as opposed to the recovery rates of the bond and loan deliverable obligations of traditional CDS."
-
-From Table 3.2, senior secured loans have a mean recovery of 68.5% vs 34.9% for senior unsecured bonds. Using the senior-sub spread relationship:
+From the recovery dataset summarized in the book (Altman et al.), mean recoveries are roughly 68.5% for senior secured loans and 34.89% for senior unsecured bonds. In a toy "equal hazard rate" world where spread scales like $(1-R)$:
 
 $$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\text{loan}}} = \frac{1 - 0.35}{1 - 0.685} = \frac{0.65}{0.315} = 2.06$$
 
-So standard CDS should trade at roughly 2× the LCDS spread for the same name, reflecting the lower loss-given-default on secured loans.
+**Interpretation:** higher expected recovery on loans implies lower loss-given-default and therefore a lower fair spread, all else equal. **Caveat:** LCDS contracts can embed additional features (deliverable definitions, and in some forms a cancellation/refinancing feature), so you should not treat the ratio as a universal rule.
 
-O'Kane also notes an important structural difference: "The European LCDS can only be triggered by the default of the reference obligation, which is a loan. The US LCDS can be triggered by all borrowings of the reference entity." Additionally, LCDS incorporates a **cancellation feature**—if the loan is refinanced, the LCDS cancels with payment of accrued coupon only.
+O'Kane also highlights that LCDS trigger definitions can differ across products/regions and that cancellable LCDS introduces a cancellation feature. In O’Kane’s treatment, valuing cancellable LCDS introduces both a default survival curve $Q_D$ and a cancellation curve $Q_C$.
 
-**Index products:** The LCDX.NA index references 100 first-lien leveraged loans. The LevX index covers the European LCDS market with senior and subordinated sub-indices.
-
-> **Practitioner Note (Claude-extended):** The LCDS-CDS basis is a tradeable relative value. When the ratio diverges from the recovery-implied level, it may signal a shift in loan recovery expectations or LCDS-specific supply-demand dynamics. The cancellation feature of LCDS makes its valuation more complex—O'Kane derives a two-curve model with both default probability $Q_D$ and cancellation probability $Q_C$.
+NOT SURE: current LCDS market conventions and liquidity for the names/indices you care about (trigger definitions, cancellation/refinancing, standard quoting).
 
 ---
 
@@ -1279,65 +1208,62 @@ The strategies described in this chapter are designed for normal market conditio
 
 ### 52.9.1 Basis Strategies in Crisis
 
-O'Kane's framework reveals why basis trades are particularly vulnerable to systemic stress. Several of his market factors amplify simultaneously:
+In O’Kane’s framing, basis trades are vulnerable in stress because multiple basis drivers can move in the same adverse direction:
 
-1. **Funding risk crystallizes:** O'Kane notes that "the CDS is unfunded, it effectively locks in a funding rate of Libor flat." During a crisis, the bond leg faces repo funding spikes while CDS funding is unaffected. The funding asymmetry—a theoretical basis driver in normal times—becomes the dominant P&L factor.
+1. **Funding asymmetry dominates:** the cash bond leg must be financed, while CDS is economically unfunded. When repo/funding terms tighten, the cash leg can become very expensive to carry.
 
-2. **Protection demand surges:** "It is much easier to go short a credit by buying protection in the CDS market than by shorting a cash bond." CDS spreads gap wider as market participants rush to hedge, while bond markets may freeze entirely.
+2. **CDS becomes the “fast” short:** it is often operationally easier to go short credit via CDS than via cash bonds, so protection‑buying flows can push CDS wider faster than cash spreads.
 
-3. **CDO unwind flows:** Normally, "CDO issuance is accompanied by a tightening in CDS spreads" (negative basis compression). When CDO structures unwind in stress, the reverse occurs—protection buying widens CDS spreads relative to bonds.
+3. **Technical flows can reverse:** dealer hedging of structured‑credit flows (e.g., synthetic CDO issuance and unwind) can mechanically tighten or widen CDS spreads relative to cash.
 
-> **Practitioner Note (Claude-extended):** The 2008 crisis demonstrated that "hedged" basis positions could lose multiples of their expected annual carry in a single week. The mechanism: repo funding on the bond leg spiked (or became unavailable), CDS spreads gapped wider than bond spreads, and margin calls forced liquidation of both legs at the worst possible time. The lesson is not that basis trades are bad, but that they are *funding-contingent*—their risk profile changes qualitatively when funding conditions shift.
->
-> I'm not sure about exact basis spread magnitudes during specific crisis episodes without market data sources. The qualitative pattern—funding-driven basis blowouts during systemic stress—is well-documented in practitioner literature.
+Stress‑test takeaway: a basis package that looks low‑risk under “small moves” can suffer large, discontinuous losses when funding and liquidity regimes shift.
 
 ### 52.9.2 Correlation and Tranche Trades in Crisis
 
-O'Kane's Table 17.2 shows that equity tranches have ~18× leverage with negative systemic gamma. In a crisis:
+Published tranche risk examples highlight that equity tranches can be highly leveraged and can carry negative systemic gamma. In stress regimes:
 
 - **Correlation spikes:** Defaults cluster, losses concentrate in equity and mezzanine tranches.
 - **Equity tranche losses accelerate:** The negative systemic gamma means large spread moves *amplify* equity tranche losses beyond the linear (delta) approximation.
 - **Senior tranches initially benefit, then face tail risk:** Senior tranches have positive systemic gamma (they gain on large moves initially), but if defaults actually cluster and breach attachment points, losses can be sudden and severe.
 
-O'Kane notes that "even this approach is not practical" for exact correlation hedging—dealers use approximations that break down precisely when accuracy matters most.
+Correlation hedges are inherently model‑dependent and tend to be least reliable precisely in the states where tail risk dominates. Treat correlation and clustering as scenario‑driven risks, not just a single Corr01 number.
 
 ### 52.9.3 Early Warning Indicators
 
-> **Practitioner Note (Claude-extended):** While O'Kane's framework doesn't prescribe specific monitoring metrics, the risk decomposition suggests watching:
->
-> | Indicator | What It Signals | Threshold for Concern |
-> |-----------|----------------|-----------------------|
-> | CDS-bond basis widening | Funding stress beginning | Basis exceeds 2× normal range |
-> | Index basis (quoted vs intrinsic) widening | Index liquidity premium shifting | Basis exceeds historical 95th percentile |
-> | Implied correlation rising | Default clustering fear | Correlation 01 P&L exceeds 5× daily carry |
-> | Repo rate on specific names spiking | Funding for cash bonds under stress | Repo rate > Libor + 100bp for IG names |
-> | Bid-offer widening in CDS | Liquidity deteriorating | Bid-offer > 2× normal |
->
-> These are practitioner-level guidelines, not derived from the textbook sources. Specific threshold levels will depend on market regime and desk risk tolerance.
+Useful monitoring signals (exact thresholds are desk policy):
+
+- CDS–bond basis and its rate of change.
+- Index “quoted vs intrinsic” basis (and any portfolio‑swap adjustment changes).
+- Implied correlation / tranche marks (and Corr01 P&L vs carry/theta).
+- Funding terms for the cash leg (repo availability/terms) and margin requirements.
+- Bid/offer and market depth (liquidity regime).
+
+NOT SURE: the precise thresholds and escalation playbook your desk uses (varies by institution, risk appetite, and market regime).
 
 ---
 
 ## 52.10 Execution and Position Management
 
-> **Practitioner Note (Claude-extended):** The following execution guidance extends the mathematical hedge ratio framework in this chapter with desk-level practice. It is sourced from general credit trading knowledge, not from the textbook sources.
+Execution and position management are where “model hedges” meet market microstructure. The details are desk‑specific, but the general risk‑first discipline is consistent with the book’s stress‑testing emphasis.
 
 ### 52.10.1 Position Sizing Considerations
 
 For any strategy in this chapter, position size should reflect:
 
 1. **Risk budget allocation:** Express maximum loss tolerance in JTD and CS01 terms, not just notional.
-2. **Carry-to-risk ratio:** The expected carry should compensate for the worst-case scenario P&L. A rule of thumb: expected annual carry should be at least 2-3× the worst historical weekly P&L for the strategy.
-3. **Liquidity-adjusted sizing:** Scale position size inversely with bid-offer cost as a fraction of expected P&L. If round-trip execution cost exceeds 20% of expected 3-month P&L, the position may be too large for the available liquidity.
+2. **Carry-to-risk trade-off:** Carry only matters if you can survive the stress scenario. Size so that plausible stress losses and funding/liquidity shocks fit within the desk’s risk limits.
+3. **Liquidity-adjusted sizing:** Expected edge should dominate round‑trip costs and expected slippage, especially for instruments that gap in stress.
 
 ### 52.10.2 Monitoring Triggers
 
-| Trigger | Action |
-|---------|--------|
-| CS01 hedge drift > 15% of target | Rebalance hedge |
-| Basis P&L exceeds 50% of 6-month carry (adverse) | Review position; prepare unwind plan |
-| Recovery assumption changes by > 5% | Recalculate JTD and hedge ratios |
-| Funding cost exceeds carry on basis trade | Escalate; consider reducing or unwinding |
-| Correlation shock > 3% in one day | Stress-test tranche positions immediately |
+Possible trigger categories (thresholds are desk‑specific):
+
+- **Hedge drift:** CS01 / bucketed CS01 no longer near target.
+- **Funding regime change:** cash-leg financing terms change materially versus the strategy’s carry.
+- **Recovery / settlement assumptions:** recovery/final‑price inputs move materially; re-run JTD/VOD.
+- **Correlation/tail regime:** tranche marks move in a way inconsistent with the hedge map; re-run clustered default scenarios.
+
+NOT SURE: exact numeric trigger thresholds and escalation actions (set by desk playbooks).
 
 ### 52.10.3 Unwind Playbook
 
@@ -1446,7 +1372,7 @@ Then:
 
 $$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry}} + \underbrace{(PV_{\text{roll}}(t + \Delta t; S_t) - PV(t; S_t))}_{\text{rolldown/theta}} + \underbrace{(PV(t + \Delta t; S_{t + \Delta t}) - PV_{\text{roll}}(t + \Delta t; S_t))}_{\text{spread move}} + \text{events}.$$
 
-**If you need an exact closed-form carry formula:** I'm not sure, because it depends on the contract quoting regime (par spread vs fixed coupon + upfront), day count, and whether you use clean vs full price. What is needed: the desk's carry definition and the index rulebook conventions.
+**NOT SURE (carry formula):** an exact closed‑form “carry” formula depends on the quoting regime (par spread vs fixed coupon + upfront), day count, clean vs full price, and your desk’s carry definition. To make this section fully operational, we need the index rulebook conventions and the desk’s P&L attribution definition.
 
 ---
 
@@ -1550,7 +1476,7 @@ If CDS and bond spreads move together (basis unchanged, no spread P&L):
 - Funding shock: $-3{,}156.25$
 - **Net P&L**: $-3{,}156.25$ loss
 
-**Lesson**: O'Kane's point about "funding risk" is concrete—the unfunded CDS "effectively locks in a funding rate of Libor flat" while the bond leg is exposed to repo market dynamics.
+**Lesson:** The bond leg's financing is a first-class risk. Even if your CS01/JTD look hedged, a change in repo/funding can dominate short-horizon P&L; CDS does not require financing the bond principal.
 
 ---
 
@@ -1640,7 +1566,7 @@ If the single name defaults, single-name JTD is large; index hedge only absorbs 
 
 **Important:** The sources show intrinsic index valuation as a sum/average of constituent CDS values and discuss portfolio swap adjustment. A full "bottom-up hedge" method depends on how you allocate index basis and curve adjustments; details are desk-convention dependent.
 
-**So:** I'm not sure there is a single canonical hedge-weight formula without specifying the portfolio swap adjustment rule. Below is a clearly labeled approximation.
+**NOT SURE (hedge weights):** there is no single canonical hedge-weight formula without specifying the portfolio swap adjustment rule (and the risk system’s definition of “intrinsic” vs “quoted” objects). Below is a clearly labeled approximation.
 
 #### Approximation Used
 
@@ -1909,7 +1835,7 @@ $$61{,}500 - 53{,}360 = \$8{,}140 \text{ received}$$
 
 #### Key Lesson
 
-O'Kane notes that "this does not mean that the new index will be issued at a tighter spread than the current market spread of the old index since liquidity requirements may result in some names being replaced with wider spread names." The composition effect can work either way, and traders must analyze both components to understand roll P&L.
+O’Kane emphasizes that roll composition cuts both ways: the new series may drop downgraded/less‑liquid names, but liquidity requirements can also lead to replacement by wider names. In practice, roll P&L decomposes into (i) maturity/curve effects and (ii) composition effects, and you need both to explain the move.
 
 ---
 
@@ -2190,13 +2116,13 @@ This chapter is an educational risk framework. It does not provide recommendatio
 | **Bond–CDS Basis** | CDS spread − Bond Libor spread (typically asset swap spread) | Twelve drivers (6 fundamental + 6 market) per O'Kane; a persistent tradeable phenomenon |
 | **Loss-on-Default Mismatch** | Bond loss = $P - R$; CDS loss = $1 - R$; difference when bond price ≠ 100 | A basis driver that causes hedge ratios to differ from par assumptions |
 | **Intrinsic vs Quoted Basis** | Gap between index's quoted spread and RPV01-weighted average of constituent spreads | Driven by restructuring clause, liquidity, and "index leads the market" effects |
-| **Portfolio Swap Adjustment** | Adjusting constituent curves so intrinsic index value = quoted value | Required for tranche pricing; O'Kane notes it is "somewhat arbitrary" |
+| **Portfolio Swap Adjustment** | Adjusting constituent curves so intrinsic index value = quoted value | Often required for tranche/correlation analytics; the specific adjustment rule is a modeling choice |
 | **Index Roll P&L** | P&L from switching series due to (1) composition changes and (2) maturity extension | The two effects can offset or compound; crucial for roll timing decisions |
-| **Systemic Delta** | Tranche sensitivity to parallel portfolio spread move | Equity tranches are highly leveraged (~18×); senior tranches are deleveraged (~0.4×) |
+| **Systemic DV01 / Delta** | PV change under a parallel portfolio spread move, and the hedge notional implied by the source definition | Leverage tends to be highest for equity and lower for senior; hedge ratios are regime/model dependent |
 | **Systemic Gamma** | Second-order tranche sensitivity to parallel spread moves | Negative for equity (large moves hurt), positive for senior (large moves help) |
 | **Corr01** | PV change per +1% correlation increase | *Opposite* sign for equity vs senior: negative for equity, positive for senior (long protection) |
 | **Tranche Loss Fraction** | $L_{[A,B]} = \frac{1}{B-A}(\max(L-A,0) - \max(L-B,0))$ | Translates portfolio loss to tranche-specific loss; highly nonlinear for equity |
-| **Gamma vs Carry Trade-off** | Positive gamma ↔ negative carry; negative gamma ↔ positive carry | O'Kane: "a positive gamma position is associated with a negative carry" |
+| **Gamma vs Carry Trade-off** | Convexity exposures can come with adverse carry/theta | Always evaluate carry and convexity together under scenarios; avoid “carry-only” thinking |
 | **Strategy Card Discipline** | Exposures + Hedges + Failure Modes | Every strategy must enumerate residual risks and scenarios where hedges break |
 | **Idiosyncratic Delta** | Tranche sensitivity to single-name spread move | Differs from systemic delta; reveals name-specific risk concentration |
 | **Delivery Option** | CDS protection buyer's right to choose cheapest deliverable bond | Widens CDS spreads relative to bonds; source of basis |
@@ -2205,9 +2131,9 @@ This chapter is an educational risk framework. It does not provide recommendatio
 | **Positive Basis** | CDS spread > bond spread; protection demand exceeds cash supply | Tends to emerge during distress; squeeze dynamics |
 | **Senior-Sub Spread Ratio** | $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$ under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
 | **Merton Model (Credit)** | Equity = call on firm assets; debt = cash − put on assets | Links equity and credit markets; basis for equity-CDS RV trades |
-| **LCDS** | Loan CDS referencing senior secured loans with higher recovery | Trades at ~50% of standard CDS spread due to recovery difference |
+| **LCDS** | Loan CDS referencing loans and embedding a cancellation feature | Often trades tighter than vanilla CDS due to higher expected recovery; conventions and liquidity matter |
 | **CDS Curve Inversion** | Short-dated spreads exceed long-dated (common in HY distressed) | Signals near-term default risk; curve trades carry JTD mismatch |
-| **Corr01 Convexity** | Corr01 itself changes with correlation level (second-order) | "Neutral" positions can have large global P&L; local ≠ global |
+| **Corr01 Convexity** | Corr01 itself changes with correlation level (second-order) | Corr01-neutral is local; large moves require full revaluation and scenario testing |
 
 ---
 
@@ -2337,7 +2263,7 @@ The "free lunch" of $-30$ bp basis is consumed by $-50$ bp funding cost, leaving
 
 $$\Delta PV \approx -90 \text{ bp} \times \text{RPV01}_{\text{bond}} \times \text{Notional} \approx -90 \times 4.0 \times 10^{-4} \times 10{,}000{,}000 = -\$360{,}000$$
 
-> **Practitioner Note (Claude-extended):** This is why bank-affiliated desks with cheap balance sheet funding (LIBOR + 20bp) can run negative basis books profitably while hedge funds at LIBOR + 80bp cannot. The "same" trade has different economics for different institutions. The 2008 crisis demonstrated this violently: funding costs spiked from ~30bp to 200+bp, annihilating negative basis P&L for leveraged investors even though the basis eventually converged.
+**Desk note:** funding and balance-sheet costs are institution-specific. The same “basis” package can be positive carry for one participant and negative carry for another, and funding terms can change rapidly in stress—so always stress the financing leg, not just the spread leg.
 
 ---
 
@@ -2367,37 +2293,37 @@ CDS gain: $(350 - 90) \times 4.3 \times 10^{-4} \times 5{,}000{,}000 = +\$559{,}
 
 > **Desk Reality:** LBO trades are notoriously difficult to size correctly. The equity move is discontinuous (tender premium), while CDS moves are large but capped. Professional desks often use options on equity (puts) rather than short stock to limit downside, and overweight the CDS leg. The key insight from the Merton model is that equity is effectively a call option—its sensitivity to leverage events can dwarf CDS sensitivity.
 
-I'm not sure about exact post-LBO CDS spread levels — these are illustrative. Actual levels depend on leverage ratios, sector, and market conditions.
+These post‑event levels are **toy numbers** for sizing intuition only. Actual moves depend on the deal structure, leverage, sector, and market regime.
 
 ---
 
 ### Example 20: Correlation Shock on Equity-Senior Combo
 
-**Setup:** You hold a correlation trade: short $10mm equity tranche (0-3%) protection + long $30mm senior tranche (7-10%) protection, sized to be Corr01-neutral at current correlation of 25%.
+**Setup (toy):** you build a Corr01‑neutral package at $\\rho=25\\%$ using two tranches with opposite Corr01 signs.
 
-From O'Kane Table 17.2 (illustrative sensitivities per $10mm):
-- Equity tranche (short prot): Corr01 = $+\$6{,}000$/1% (positive because short protection *gains* when correlation rises)
-- Senior tranche (long prot): Corr01 = $+\$2{,}000$/1% (positive because long protection gains when correlation rises)
+Assume (per $\\$10$mm tranche notional):
+- Equity tranche (0–3%, **long protection**): Corr01 $= -\\$8{,}000$ per +1% corr
+- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +\\$15{,}000$ per +1% corr
 
-Net Corr01: $-6{,}000 + 3 \times 2{,}000 = \$0$ (by construction)
+To Corr01‑neutralize locally, take $\\$10$mm senior long protection and $\\$18.75$mm equity long protection:
 
-**Scenario: Correlation jumps from 25% to 40% (15% shock, e.g., during a crisis):**
+$$+15{,}000 \\; + \\; 1.875\\times(-8{,}000) \\approx 0.$$
 
-Linear estimate: Net P&L $= 0 \times 15 = \$0$
+**Scenario:** correlation jumps from 25% to 40% (a +15% shock).
 
-But Corr01 is *not* constant — it changes with correlation level. At $\rho = 40\%$:
-- Equity Corr01 shrinks to $+\$3{,}500$/1% (the tranche is now deeper in the money)
-- Senior Corr01 increases to $+\$3{,}200$/1%
+Corr01 itself is not constant; suppose at $\\rho=40\\%$ the sensitivities become:
+- Equity Corr01 $= -\\$5{,}000$ per +1%
+- Senior Corr01 $= +\\$18{,}000$ per +1%
 
-The *convexity* of the correlation exposure means your hedge ratio drifted during the move. Approximate P&L using average Corr01 over the path:
+Then the package is no longer Corr01‑neutral at the new level:
 
-- Equity leg: $-\frac{6{,}000 + 3{,}500}{2} \times 15 = -\$71{,}250$
-- Senior leg: $+3 \times \frac{2{,}000 + 3{,}200}{2} \times 15 = +\$117{,}000$
-- **Net: $+\$45{,}750$**
+$$\\text{Net Corr01}_{40\\%} \\approx 18{,}000 + 1.875\\times(-5{,}000) = 8{,}625\\;\\text{USD per 1\\%}.$$
 
-The "Corr01-neutral" position actually *makes* money on a large correlation shock because the senior leg's convexity dominates.
+A crude convexity estimate uses the average net Corr01 over the move:
 
-> **Practitioner Note (Claude-extended):** This is why tranche traders distinguish between "local" hedge ratios (valid for small moves) and "global" risk profiles (how P&L behaves over large moves). A position that is locally neutral can have significant global exposure. O'Kane's gamma framework (Table 17.5) captures this: the sign and magnitude of gamma determine whether large moves help or hurt.
+$$\\Delta PV_{\\rho} \\approx \\frac{0 + 8{,}625}{2} \\times 15 \\approx +\\$64{,}700.$$
+
+**Takeaway:** Corr01‑neutralization is a *local* hedge; large correlation moves introduce convexity/hedge‑ratio drift. Validate correlation packages with stressed moves, not just +/‑1% bumps.
 
 ---
 
@@ -2480,7 +2406,7 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 24. **Q:** What is the key unit check for CS01? **A:** USD/bp.
 
-25. **Q:** What scenario suite is mandatory for strategy validation? **A:** Parallel, dispersion, default, roll basis, tail/correlation.
+25. **Q:** What scenario suite should you run to validate a "hedged" strategy? **A:** Parallel/systemic moves, dispersion, default/JTD, recovery/final price, roll/basis, funding/liquidity, and (for tranches) tail/correlation.
 
 26. **Q:** What is series/roll basis? **A:** Price/spread difference between index series due to roll, maturity reset, liquidity, composition.
 
@@ -2496,7 +2422,7 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 32. **Q:** What are O'Kane's six market basis factors? **A:** Relative liquidity, CDO technical short, new issuance/loans, convertible issuance, demand for protection, funding risk.
 
-33. **Q:** Why does CDO issuance affect CDS spreads? **A:** Dealers hedge by selling protection on portfolio credits, which tightens CDS spreads and reduces the basis.
+33. **Q:** How can structured-credit issuance affect CDS spreads? **A:** Through technical flows and hedging that change net demand/supply for buying vs selling protection; the direction is deal- and market-dependent.
 
 34. **Q:** What does O'Kane mean by "the index leads the market"? **A:** The CDS index is more liquid and is the preferred instrument for expressing market-wide credit views, especially for hedging.
 
@@ -2504,9 +2430,9 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 36. **Q:** What is systemic gamma for a senior tranche? **A:** Positive (for long protection)—large parallel spread moves increase PV.
 
-37. **Q:** What carry profile is typical for a positive gamma position? **A:** Negative carry—O'Kane notes "a positive gamma position is associated with a negative carry."
+37. **Q:** What carry profile is typical for a positive gamma position? **A:** Often negative carry: you tend to “bleed” in calm markets and earn when volatility/large moves arrive.
 
-38. **Q:** How many times leverage does a 0-3% equity tranche typically have? **A:** About 18× according to O'Kane's Table 17.2.
+38. **Q:** Why are equity tranches described as “leveraged”? **A:** Because attachment/detachment concentrates portfolio loss into a thin slice, making PV extremely sensitive to small changes in expected loss and dispersion.
 
 39. **Q:** What is the portfolio swap adjustment? **A:** Adjusting individual CDS curves so that intrinsic index value equals quoted market value.
 
@@ -2522,7 +2448,7 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 45. **Q:** What is a "negative basis" in bond-CDS terms? **A:** When CDS spread < bond asset swap spread, i.e., synthetic protection is cheaper than cash credit risk.
 
-46. **Q:** Why does CLO demand compress negative basis? **A:** CLO vehicles buy bonds (pushing spreads tighter) and buy CDS protection (pushing CDS spreads wider), narrowing the gap.
+46. **Q:** How can technical flows move bond–CDS basis? **A:** If one leg is easier/harder to hold or trade (funding, balance-sheet, liquidity), cash-bond spreads and CDS spreads can decouple, compressing or widening basis.
 
 47. **Q:** What is the "positive basis squeeze"? **A:** When CDS spreads widen above bond spreads—often during distress when protection demand surges and bond liquidity dries up.
 
@@ -2532,15 +2458,15 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 50. **Q:** Why are HY CDS curves often inverted? **A:** Near-term default probability is high; if the issuer survives, forward default rates decline. Survival selection effect.
 
-51. **Q:** What is LCDS? **A:** Loan CDS—credit protection on senior secured loans, which trade tighter than standard CDS due to higher recovery (~65-70% vs ~35-40%).
+51. **Q:** What is LCDS? **A:** Loan CDS—credit protection on senior secured loans; higher expected recovery than senior unsecured bonds often implies lower spreads under similar default-intensity assumptions.
 
-52. **Q:** What is the theoretical LCDS-to-CDS spread ratio? **A:** $S_{\text{LCDS}} / S_{\text{CDS}} = (1 - R_{\text{loan}}) / (1 - R_{\text{bond}})$ — typically around 0.5× for investment-grade names.
+52. **Q:** What is the theoretical LCDS-to-CDS spread ratio under equal hazard rates? **A:** $S_{\text{LCDS}} / S_{\text{CDS}} \\approx (1 - R_{\text{loan}}) / (1 - R_{\text{bond}})$; the result is recovery-driven and sensitive to contract conventions.
 
 53. **Q:** What happens to negative basis trades in a funding crisis? **A:** Funding costs spike, eroding or reversing carry. Leveraged holders face margin calls and forced unwinds, driving basis wider.
 
-54. **Q:** What happens to base correlation during a crisis? **A:** It typically spikes (e.g., from 20-30% to 50-70%), driven by systemic contagion expectations.
+54. **Q:** What can happen to base correlation in a stress scenario? **A:** It can move sharply and change shape across strikes; treat correlation as a state variable and stress-test beyond small Corr01 bumps.
 
-55. **Q:** Name three early warning indicators for credit strategy stress. **A:** (1) Funding market stress (repo/CP spreads), (2) Bid-ask widening in CDS, (3) CDS-cash basis divergence.
+55. **Q:** Name three early warning indicators for credit strategy stress. **A:** (1) Funding/balance-sheet stress, (2) Liquidity deterioration (bid–ask widening), (3) Breakdown of historically stable relationships (basis/roll/correlation).
 
 56. **Q:** Why does CS01-neutral sizing create a JTD mismatch in curve trades? **A:** Matching spread risk requires unequal notionals (short-dated leg is larger), so default produces a net loss on the excess notional.
 
@@ -2686,77 +2612,18 @@ The "Corr01-neutral" position actually *makes* money on a large correlation shoc
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Cite Specific Sources
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bond-CDS basis drivers; CDS indices and index basis; roll mechanics; tranche risk measures/correlation; capital structure and recovery; LCDS)
 
-| Fact | Source |
-|------|--------|
-| CDS MTM identity, RPV01, CS01 definitions | O'Kane Ch 6–8 |
-| CDS basis definition: CDS spread - Bond Libor spread | O'Kane Ch 5, Section 5.6 |
-| Six fundamental basis factors (funding, delivery option, technical default, loss-on-default, premium accrued, CDS non-negative) | O'Kane Ch 5, Section 5.6.1 |
-| Six market basis factors (relative liquidity, CDO technical short, new issuance, convertible issuance, demand for protection, funding risk) | O'Kane Ch 5, Section 5.6.2 |
-| Delivery option example ($6 profit from cheapest-to-deliver) | O'Kane Ch 5, Section 5.4.3 |
-| Index upfront mechanics, roll mechanics | O'Kane Ch 10, Section 10.2 |
-| Intrinsic vs quoted index basis | O'Kane Ch 10, Sections 10.3, 10.5 |
-| Index basis examples (Table 10.6: CDX IG, HY, iTraxx) | O'Kane Ch 10, Section 10.5.2 |
-| Index basis drivers (restructuring clause, liquidity, index leads market) | O'Kane Ch 10, Section 10.5.2 |
-| Portfolio swap adjustment mechanics | O'Kane Ch 10, Section 10.6 |
-| Roll P&L drivers (composition changes, maturity extension) | O'Kane Ch 10, Section 10.2.2 |
-| Tranche loss function, correlation sensitivity, base correlation | O'Kane Ch 11–14, 17, 20 |
-| Systemic delta, systemic gamma, idiosyncratic gamma (Table 17.2) | O'Kane Ch 17, Section 17.2 |
-| Carry and theta definitions for tranches (daily values) | O'Kane Ch 17, Section 17.2.6 |
-| Gamma trading framework (Table 17.5) | O'Kane Ch 17, Section 17.5.3 |
-| Correlation hedging via completing capital structure | O'Kane Ch 17, Section 17.5.4 |
-| Base correlation framework and interpolation | O'Kane Ch 20 |
-| VOD/JTD framework | O'Kane Ch 8 |
-| Recovery rates by seniority (Table 3.2): senior unsecured 36.4%, subordinated 31.4%, senior secured bonds 54.5%, senior secured loans 68.5% | O'Kane Ch 3, Table 3.2 |
-| Senior-sub spread ratio: $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$ | O'Kane Ch 3, Section 3.3 |
-| Merton model: equity as call option on firm assets, debt as cash minus put | O'Kane Ch 3, Section 3.4 |
-| Three CDS curve shapes (steep upward, moderate upward, steeply inverted) | O'Kane Ch 7, Table 7.2 |
-| Arbitrage bounds on CDS spreads from inverted curves | O'Kane Ch 7, Table 7.3 |
-| Forward CDS curves implied from CDS term structure | O'Kane Ch 9, Table 9.1 |
-| LCDS mechanics: references senior secured loans, higher recovery | O'Kane Ch 5, Section 5.7 |
-| LCDS spread ratio to standard CDS via recovery differential | O'Kane Ch 6, Section 6.9 |
-| Negative basis: six fundamental factors including funding | O'Kane Ch 5, Section 5.6.1 |
-| Twelve basis drivers (6 fundamental + 6 market) | O'Kane Ch 5, Sections 5.6.1-5.6.2 |
+## Inputs Needed (NOT SURE)
 
-### (B) Reasoned Inference — Note Derivation Logic
+- NOT SURE: which portfolio swap adjustment method your desk/system uses (spread multipliers vs hazard-rate scaling; whether it is done per maturity point; and what constraints are enforced).
+- NOT SURE: current LCDS market conventions and liquidity for the names/indices you care about (trigger definitions, cancellation/refinancing, standard quoting).
+- NOT SURE: the precise senior vs sub recovery/settlement mechanics under all LBO structures (depends on documentation, guarantees, and the post-deal capital structure).
+- NOT SURE: the precise thresholds and escalation playbook your desk uses (varies by institution, risk appetite, and market regime).
+- NOT SURE: exact numeric trigger thresholds and escalation actions (set by desk playbooks).
 
-- CS01 hedge ratio derivation: algebraic from CS01 definition and O'Kane's MTM identity
-- P&L explain template: summation of first-order sensitivities plus events (consistent with O'Kane's risk framework)
-- Tranche loss fraction computation: direct application of tranche loss formula from O'Kane Ch 12
-- Strategy decision tree: synthesized from O'Kane's discussion of when each risk measure dominates
-- Equity-senior correlation trade sizing: direct application of Corr01 values from Table 17.2
-- Funding shock P&L example: application of O'Kane's funding risk discussion to concrete scenario
-- Roll P&L decomposition (Example 8): direct application of O'Kane's two roll drivers (composition + maturity extension)
-- CS01-adjusted notional for roll: algebraic derivation from CS01 matching to maintain spread-neutral exposure
-- Example 8B composition effect: calculated using O'Kane's framework applied to hypothetical 3-name replacement scenario
-- Senior-sub worked example (Example 16): direct application of O'Kane's spread ratio formula with hypothetical recovery values
-- Curve steepener sizing (Example 17): algebraic from RPV01 matching; JTD mismatch derived from notional imbalance
-- Negative basis carry decomposition (Example 18): application of O'Kane's funding cost discussion to concrete P&L
-- LBO scenario (Example 19): application of Merton model logic from O'Kane Section 3.4 to a hypothetical event
-- Correlation convexity (Example 20): extension of O'Kane's gamma framework (Table 17.5) to show local vs global hedge behavior
+---
 
-### (B2) Claude-Extended Content
-
-| Content | Context |
-|---------|---------|
-| CLO demand as driver of negative basis compression | Extended from general structured credit knowledge; O'Kane discusses CDO issuance effects but not CLO-specific mechanics |
-| Bank funding arbitrage in negative basis (LIBOR + 20bp vs + 80bp) | Extended from O'Kane's funding discussion; specific spread levels are illustrative |
-| 2008 crisis impact on negative basis trades | General market knowledge; O'Kane discusses funding stress conceptually but not specific crisis data |
-| LBO trade construction and equity-CDS sizing challenges | Extended from Merton model discussion; specific LBO mechanics from general practitioner knowledge |
-| Early warning indicators table (funding, bid-ask, basis divergence) | Synthesized from O'Kane's risk framework; specific indicators from practitioner experience |
-| Position sizing and monitoring triggers | General risk management practice; not specifically from O'Kane |
-| Unwind playbook and liquidity hierarchy | General desk practice; O'Kane discusses liquidity conceptually |
-
-### (C) Speculation — Flag Uncertainties
-
-- Exact closed-form carry formula for indices: depends on desk conventions and rulebook; flagged as "I'm not sure"
-- Portfolio swap adjustment implementation details: O'Kane describes as "somewhat arbitrary" and notes "we choose to adjust the individual issuer curves rather than the index swap since the index swap is substantially more liquid"; exact algorithms vary by desk
-- Historical basis behavior during 2008: O'Kane mentions funding and liquidity effects but does not provide specific numerical examples from that period; any such examples would require additional sources
-- Correlation hedging effectiveness in practice: O'Kane notes "even this approach is not practical" for exact offsetting and describes approximations dealers use
-- Post-LBO CDS spread levels in Example 19: illustrative only; actual levels depend on leverage ratios, sector, and market conditions
-- Exact LCDS spread levels and trading conventions: O'Kane discusses LCDS but market conventions have evolved since publication; I'm not sure about current LCDS market liquidity
-- Crisis correlation spike magnitudes (20-30% to 50-70%): general market knowledge, not sourced from O'Kane with specific numbers
-- Specific recovery rate thresholds triggering capital structure trades: depends on issuer, sector, and market conditions
+*Chapter 52 of Fixed Income: Practice and Theory*
