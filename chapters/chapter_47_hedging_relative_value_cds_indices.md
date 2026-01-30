@@ -31,7 +31,7 @@ This chapter builds directly on Chapter 46 (Intrinsic Index Spread and Index Bas
 
 This chapter is **risk-first**: we describe exposures, hedges, residuals, and validation—not trade recommendations.
 
-No index rulebook specifics (standard coupons, exact roll calendars, operational settlement mechanics) are asserted unless supported by the provided sources. Where needed, we say "I'm not sure."
+No index rulebook specifics (standard coupons, exact roll calendars, operational settlement mechanics) are asserted unless supported by the provided sources. Where a statement depends on your exact confirmation / rulebook / valuation policy, we flag it as **NOT SURE** and state the missing input.
 
 All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decimal rate per year).
 
@@ -47,7 +47,7 @@ All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decim
 | $S_m(t,T)$ | Market spread for name $m$ to $T$ |
 | $S_I(t,T)$ | Quoted index spread (market "index curve" level) to $T$ |
 | $C(T)$ | Contractual index coupon (fixed for the series; typically chosen to be a multiple of 5 bp) |
-| $U_I(t)$ | Market upfront payment for the index at time $t$ |
+| $U_I(t)$ | Upfront as percent of notional (positive = paid by protection buyer; negative = received) |
 | $V_I(t)$ | Intrinsic value of the index (constituent-implied) |
 | $\text{RPV01}(t,T)$ | Risky PV01 (PV of premium leg per unit spread; includes accrued-at-default) |
 | CS01 / Credit DV01 | Spread sensitivity; O'Kane's definition uses sign convention so short-protection CS01 is positive |
@@ -133,9 +133,9 @@ where the sign depends on buyer/seller convention.
 
 Even with perfect spread hedging, a sudden default creates discrete P&L. Chapter 43 defines Value on Default (VOD) for a single-name CDS using O'Kane's formula:
 
-$$\text{VOD} = 1 - R - \Delta_0 S_0$$
+$$\text{VOD}_{\\text{buy protection}} = -V(t) + (1-R) - \\Delta_0 S_0$$
 
-reflecting the protection payment $(1-R)$ minus accrued premium $\Delta_0 S_0$.
+where $V(t)$ is the CDS mark-to-market immediately before default and $\\Delta_0 S_0$ is the accrued premium at default. For a par position with $V(t) \\approx 0$, VOD per unit notional is approximately $(1-R) - \\Delta_0 S_0$.
 
 For indices, VOD concepts extend with portfolio scaling. A constituent default:
 
@@ -235,7 +235,7 @@ $$N_I = -\frac{\text{CS01}_m}{\beta_{m,I} \cdot \text{CS01}_I(1)}$$
 >
 > *   **$\beta$ (Systematic)**: What you hedge.
 > *   **$\epsilon$ (Idiosyncratic)**: What you keep.
-> *   **$R^2$**: The quality of the hedge. If $R^2 < 0.5$, your hedge is mostly noise. Don't beta hedge low-correlation names.
+> *   **$R^2$**: How much of the name's spread variance is explained by the index move. Low $R^2$ means large residual tracking error—an index hedge may still reduce macro exposure, but it will not make the position "quiet."
 
 ### 47.2.4 Estimating Spread Beta in Practice
 
@@ -279,7 +279,7 @@ This decomposition shows that $R^2$ measures *what fraction of the name's spread
 > **Desk Reality: Beta Estimation Workflow**
 >
 > **Data requirements:**
-> - **History length**: 60–120 trading days is typical; shorter windows are more responsive to regime changes but noisier
+> - **History length**: Use enough observations to get a stable estimate, but short enough to reflect the current regime. Many desks use a rolling window of daily changes and monitor stability across short vs long windows.
 > - **Frequency**: Daily spread changes preferred over weekly for CDS (weekly loses information)
 > - **Data quality**: Stale quotes are the enemy—exclude days where the name didn't trade
 >
@@ -299,17 +299,13 @@ This decomposition shows that $R^2$ measures *what fraction of the name's spread
 > - **Regime changes**: Beta estimated in calm markets may not hold during stress
 > - **Survivorship**: Only surviving names are in the sample—beta of eventual defaulters may differ
 
-**When Beta Hedging Works and When It Fails**
+**When Beta Hedging Helps (and When It Doesn't)**
 
-| Condition | Beta Hedge Effectiveness |
-|-----------|-------------------------|
-| $R^2 > 0.6$ | Good—index captures majority of variance |
-| $0.3 < R^2 < 0.6$ | Marginal—consider whether hedge adds value |
-| $R^2 < 0.3$ | Poor—hedge may add noise rather than reduce risk |
-| Correlation unstable | Dangerous—beta estimate may be stale |
-| Stress period | Correlation typically increases, but so does volatility |
-
-**Rule of thumb:** If $R^2 < 0.3$, the beta hedge is capturing less than 30% of the variance. In this case, the idiosyncratic component dominates, and index hedging may create the illusion of protection without the substance.
+| Condition | What It Usually Means |
+|-----------|------------------------|
+| High $R^2$ | Index explains a large fraction of spread variance; hedge can materially reduce day-to-day P&L swings |
+| Low $R^2$ | Large residual idiosyncratic component; hedge will still leave meaningful tracking error |
+| Unstable correlation / regime shift | Historical beta may be stale; hedge ratios can drift when you need them most |
 
 > **Practitioner Note: Beta Instability in Stress**
 >
@@ -360,27 +356,20 @@ $$\text{Hit Ratio} = \frac{\text{\# days position and hedge have opposite-sign P
 
 A perfect hedge has hit ratio = 100%. A random hedge has hit ratio ≈ 50%.
 
-> **Desk Reality: Hedge Effectiveness Thresholds**
+> **Desk Reality: HE Thresholds Are Desk-Specific**
 >
-> | Hedge Type | Excellent | Acceptable | Poor |
-> |------------|-----------|------------|------|
-> | Index → constituents (replication) | HE > 0.95 | HE > 0.85 | HE < 0.85 |
-> | Single-name → same-family index | HE > 0.60 | HE > 0.40 | HE < 0.40 |
-> | Single-name → different index (proxy) | HE > 0.40 | HE > 0.25 | HE < 0.25 |
-> | Cross-asset (credit for equity) | HE > 0.30 | HE > 0.15 | HE < 0.15 |
->
-> **Action triggers:**
-> - HE drops below "Acceptable" threshold → escalate to trading desk
-> - HE drops below "Poor" threshold → consider hedge removal or restructuring
-> - HE trending downward over 30 days → investigate regime change
+> Different desks set different action thresholds depending on mandate (market-making vs prop), instruments used, and risk limits. A robust approach is:
+> - Compute HE on a P&L series that matches how you actually mark (including carry/accrual, slippage assumptions, and factor updates).
+> - Backtest HE across multiple regimes and pick thresholds that align with risk governance (when to resize, when to add single-name overlays, when to stop using the proxy).
+> - Monitor *deterioration* (trend breaks) as well as absolute levels.
 
 **Rolling Window Approach**
 
 Hedge effectiveness should be monitored continuously:
 
-1. Compute HE over trailing 30–60 day window
-2. Track HE time series for trend detection
-3. Alert when HE falls below threshold or declines significantly
+1. Compute HE over a rolling window (short and long)
+2. Track the HE time series for trend detection
+3. Alert when HE deteriorates materially or persistently
 
 > **Practitioner Note: When Hedge Effectiveness Metrics Mislead**
 >
@@ -455,7 +444,7 @@ subject to constraints such as:
 - Maximum notional per name
 - Trade only top $K$ names for efficiency
 
-**I'm not sure** what exact optimization constraints your desk uses; this requires your risk policy and execution constraints.
+**NOT SURE:** The exact optimization constraints are desk-specific (liquidity universe, concentration limits, minimum clip sizes, restricted names, and whether you can short protection). Provide your risk policy / execution constraints to turn this into an implementable optimization.
 
 ### 47.3.4 Systemic vs Idiosyncratic Delta: The O'Kane Framework
 
@@ -499,12 +488,12 @@ O'Kane summarizes: "In practice, the delta hedging of these risks is often as mu
 
 | Market Condition | Weight Toward | Rationale |
 |------------------|---------------|-----------|
-| Macro event expected (Fed, recession) | Systemic | All spreads will move together |
-| Idiosyncratic event expected (earnings, legal, sector-specific) | Idiosyncratic | One name moves, others stay |
-| Large-cap name in diversified portfolio | Blend 50/50 | Uncertain which dominates |
-| Small-cap or distressed name | Idiosyncratic | Name-specific factors dominate |
-| Credit cycle turning (risk-off) | Systemic (increase) | Correlation rises in stress |
-| Benign market, low volatility | Historical model-based | Factor model appropriate |
+| Broad macro catalyst expected | More systemic | Many spreads can move together |
+| Name-specific catalyst expected (earnings, legal, M&A) | More idiosyncratic | One name can gap relative to peers |
+| Large benchmark issuer in diversified book | Blend | Can be both macro and name-driven |
+| Small/illiquid or distressed issuer | More idiosyncratic | Name-level dynamics dominate |
+| Stress / risk-off regime | More systemic | Correlations and co-movement often rise |
+| Calm / stable regime | Data-driven | Factor models and historical betas tend to be more stable |
 
 **Application to index hedging:**
 
@@ -592,7 +581,7 @@ $$V_I(t) = \frac{1}{M} \sum_{m=1}^{M} \bigl(C(T) - S_m(t,T)\bigr) \cdot \text{RP
 START: What is your primary exposure?
   │
   ├─ Systematic credit spread → USE INDEX HEDGE
-  │   └─ Is idiosyncratic concentration > 10%?
+  │   └─ Is idiosyncratic concentration material?
   │       ├─ No → Index hedge sufficient
   │       └─ Yes → Add single-name overlays
   │
@@ -607,17 +596,12 @@ START: What is your primary exposure?
 
 ### 47.4.4 Cost Comparison
 
-Transaction costs often determine hedge choice:
-
-| Approach | Typical Bid-Ask | Trade Count | Operational Burden |
-|----------|-----------------|-------------|-------------------|
-| Index hedge | 0.25–0.50 bp | 1 | Minimal |
-| Full replication | 1.5–3.0 bp aggregate | 125 | High |
-| Top-5 names only | 0.5–1.0 bp per name | 5 | Moderate |
+Transaction costs often determine hedge choice. As a rule of thumb, the index is usually cheaper to trade (one line item, tighter markets), while replicating with many single names is operationally heavier and exposes you to many bid-ask spreads.
 
 O'Kane notes that liquidity differences contribute to index basis: "The considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium than the less liquid CDS spreads."
 
-For a \$50mm position with CS01 of \$22,500/bp, a 0.25 bp index bid-ask costs approximately \$5,600 to execute, while constituent replication at 1.5 bp aggregate costs approximately \$33,750—a 6x difference.
+**Illustrative arithmetic:** execution cost (USD) ≈ bid-ask (bp) × CS01 (USD/bp).
+Example: for a CS01 of \$22,500/bp, a 0.25 bp bid-ask costs ≈ \$5,625. If the effective all-in replication cost were 1.5 bp, that would be ≈ \$33,750. Plug in your own bid-ask and CS01.
 
 ### 47.4.5 Investment Grade vs High Yield Hedge Differences
 
@@ -632,39 +616,27 @@ The dramatic difference in spread dispersion between IG and HY indices has profo
 | CDX NA HY | 5Y | 275 | 340 |
 | CDX NA HY | 10Y | 324 | 412 |
 
-**Key observation:** HY spread dispersion is **10–17× higher** than IG. At 5Y, HY std dev (340 bp) is 17× IG std dev (20 bp).
+**Key observation (O'Kane example data):** HY spread dispersion is **10–17× higher** than IG. At 5Y in his table, HY std dev (340 bp) is 17× IG std dev (20 bp).
 
-**Implications for Hedging:**
+**Implications for Hedging (Qualitative):**
 
-| Metric | IG (CDX.IG, iTraxx) | HY (CDX.HY) |
-|--------|---------------------|-------------|
-| Spread dispersion | ~20–50 bp std dev | ~200–400 bp std dev |
-| Intrinsic vs quoted gap | 1–3 bp typical | 10–50 bp typical |
-| Hedge rebalancing frequency | Weekly acceptable | Daily often necessary |
-| Beta stability | Moderate—changes slowly | Low—can shift rapidly |
-| Distressed credit impact | Minimal—rare in IG | Severe—common in HY |
-| $R^2$ of name-to-index regression | 0.5–0.8 typical | 0.2–0.5 typical |
+| Feature | IG Indices | HY Indices |
+|---------|------------|-----------|
+| Spread dispersion | Lower | Much higher (driven by distressed names) |
+| Hedge residuals (tracking error) | Often lower | Often higher (more idiosyncratic moves) |
+| Sensitivity to outliers | Lower | Higher (a few wide names can dominate dispersion) |
+| Beta stability | Tends to be more stable | Can shift quickly as names become distressed or recover |
 
 > **Desk Reality: HY Hedging Is Fundamentally Noisier**
 >
 > O'Kane explains the HY dispersion: "The very high standard deviation of the high-yield index spreads can be explained by a number of distressed credits with spreads greater than 1000 bp which were in this index on the date these spreads were quoted."
 >
 > **Practical consequences:**
-> 1. **Expect larger residuals**: An HY position hedged with CDX.HY will show 5–10× the P&L volatility of an equivalent IG hedge
-> 2. **Beta estimates are unstable**: A name trading at 400 bp today and 800 bp next month has different beta characteristics
-> 3. **Distressed names dominate**: A single stressed credit can drive 50%+ of index moves
-> 4. **Rebalance more frequently**: Weekly rebalancing that works for IG may be inadequate for HY
+> 1. **Expect larger residuals:** HY index hedges often leave more idiosyncratic tracking error than IG hedges.
+> 2. **Beta can be unstable:** When a name transitions into/out of distress, its relationship to the index can change.
+> 3. **Outliers matter:** A small set of very wide names can dominate dispersion measures and drive hedge residuals.
 
-**Hedge Effectiveness Implications:**
-
-For an HY name hedged with CDX.HY:
-- Residual variance $\propto$ dispersion$^2$
-- If IG dispersion = 20 bp and HY dispersion = 340 bp, the ratio of residual variances is $(340/20)^2 = 289×$
-
-This doesn't mean HY hedges are worthless—they still capture systematic credit risk. But practitioners should:
-1. Set realistic expectations for P&L volatility
-2. Monitor hedge effectiveness more frequently
-3. Consider overlaying single-name hedges for concentrated exposures
+This doesn't mean HY hedges are worthless—they can still capture systematic credit risk. But expectations should be set by *measurement*: estimate beta and residual volatility on your own history, and re-check during regime changes.
 
 ### 47.4.6 Proxy Hedging Across Index Families
 
@@ -687,16 +659,16 @@ When hedging with a different index family, introduce the *index-to-index beta*:
 
 $$\beta_{\text{position, hedge}} = \frac{\text{Cov}(\Delta S_{\text{position}}, \Delta S_{\text{hedge index}})}{\text{Var}(\Delta S_{\text{hedge index}})}$$
 
-**Proxy Hedge Menu:**
+**Proxy Hedge Menu (Qualitative):**
 
-| Position Type | Natural Hedge | Proxy Hedge | Typical Beta | Key Basis Risk |
-|---------------|---------------|-------------|--------------|----------------|
-| US IG corporate | CDX.NA.IG | iTraxx Europe | 0.8–1.2 | Regional spread differences |
-| US HY corporate | CDX.NA.HY | CDX.NA.IG | 2.0–4.0 | Rating migration, defaults |
-| EM sovereign | CDX.EM | — | 1.0 | Country-specific |
-| EM corporate | CDX.EM.Div | CDX.EM | 1.0–1.5 | Corporate vs sovereign |
-| European HY | iTraxx Crossover | iTraxx Europe | 1.5–3.0 | Rating migration |
-| Single BB name | CDX.HY | CDX.IG | 2.5–4.0 | Name-specific, sector |
+| Position Type | Natural Hedge | Proxy Hedge | What You Must Estimate | Key Residual Risks |
+|---------------|---------------|-------------|------------------------|-------------------|
+| US IG corporate | CDX.NA.IG | iTraxx Europe | Cross-index beta | Regional and sector differences |
+| US HY corporate | CDX.NA.HY | CDX.NA.IG | IG↔HY beta | Rating/distress dynamics, dispersion |
+| EM sovereign | CDX.EM | — | — | Country-specific and event risk |
+| EM corporate | CDX.EM.Div | CDX.EM | Corporate↔sovereign beta | Composition mismatch |
+| European HY | iTraxx Crossover | iTraxx Europe | Crossover↔Main beta | Rating migration and dispersion |
+| Single BB name | CDX.NA.HY | CDX.NA.IG | Name↔index beta | Sector mismatch and idiosyncratic events |
 
 > **Practitioner Note: When Proxy Hedges Break**
 >
@@ -707,7 +679,7 @@ $$\beta_{\text{position, hedge}} = \frac{\text{Cov}(\Delta S_{\text{position}}, 
 > 3. **EM-specific crises**: CDX.EM may spike while developed market indices are calm
 > 4. **Liquidity divergence in stress**: Proxy may become illiquid precisely when you need to adjust
 >
-> **Rule of thumb**: Expect 2–3× the residual volatility when using a proxy hedge vs the natural index. If that's unacceptable, you need single-name hedges.
+> **Practical expectation**: Proxy hedges often leave materially larger residual volatility than the natural hedge. Quantify this via backtests (beta + residual volatility) before relying on the proxy.
 
 **Sizing a Proxy Hedge**
 
@@ -735,25 +707,25 @@ While this chapter focuses on credit-to-credit hedging, credit indices are somet
 > The theoretical basis for credit-equity linkage is the Merton model: equity is a call option on firm assets, and credit spreads reflect the probability that assets fall below the debt threshold. In practice:
 >
 > **Why it can work:**
-> - HY credit spreads correlate ~0.6–0.8 with equity drawdowns
-> - Credit protection can be cheaper than equity puts for tail hedging
-> - During severe stress (2008, 2020), correlation approaches 1.0
+> - In equity sell-offs, credit spreads often widen and CDS protection gains value, so credit can provide crash convexity.
+> - Indices can be operationally simpler than managing a large basket of single-name CDS as a hedge overlay.
 >
 > **Why it's imperfect:**
 > - **Asymmetric response**: Credit widens when equity falls, but doesn't tighten proportionally when equity rises—you're paying for protection that doesn't participate in upside
-> - **Day-to-day basis noise**: Daily correlation is much lower than crisis correlation
-> - **Sector mismatch**: HY credit has different sector weights than equity indices
+> - **Time-varying relationship**: The equity–credit linkage is not stable; correlations and betas move with regime, sector mix, and liquidity
+> - **Sector mismatch**: Credit indices and equity benchmarks can have different sector weights and factor exposures
 >
-> **Sizing heuristic:**
-> - Typical hedge ratio: \$1mm of HY protection per \$5–10mm of equity exposure
-> - This is a *tail* hedge, not a delta-one hedge—expect significant tracking error in normal markets
+> **Sizing approach (recommended):**
+> - Treat this as a *tail* hedge, not a delta-one hedge.
+> - Pick a stress scenario (equity drawdown and credit spread widening) and size notional so the credit hedge offsets a chosen fraction of the tail loss.
+> - Validate with a backtest/regression of equity P&L vs credit hedge P&L and monitor tracking error.
 >
 > **When to use:**
 > - Portfolio has significant equity exposure and seeks crash protection
 > - Equity put skew is expensive relative to credit spreads
 > - Investor accepts that protection only "works" in severe stress
 
-**I'm not sure** about the exact hedge ratio for credit-equity hedges—this depends heavily on sector composition, market regime, and investor objectives. The sources don't specify precise parameters.
+**NOT SURE:** The “right” hedge ratio depends on your equity benchmark, sector mix, horizon, and hedge objective (tail-loss protection vs day-to-day tracking). Provide those inputs (and preferred calibration window) to compute a desk-usable ratio.
 
 ---
 
@@ -1127,12 +1099,12 @@ Per-name notional $N_m = \$10$mm.
 **Old series:** Quoted spread 95 bp, coupon 100 bp, RPV01 ≈ 4.5 years.
 **New series:** Quoted spread 100 bp (longer maturity + curve slope), same coupon.
 
-**Upfront (conceptual):** $U = (S - C) \times \text{RPV01}$
+**Upfront PV in dollars (conceptual):** $U_{\$} = (S - C) \times \text{RPV01} \times N$
 
 - Old: $(0.0095 - 0.0100) \times 4.5 \times \$100\text{mm} = -\$225{,}000$
 - New: $(0.0100 - 0.0100) \times 4.5 \times \$100\text{mm} = \$0$
 
-**Rolling from old to new costs approximately \$225,000** (you pay the upfront difference).
+**If you are long protection and roll by closing the old and entering the new**, the net cash exchanged is approximately the upfront difference: about \$225,000 in this example.
 
 ---
 
@@ -1140,7 +1112,7 @@ Per-name notional $N_m = \$10$mm.
 
 **Basis-neutral position:** \$50mm index vs \$50mm constituent replication, net CS01 ≈ 0.
 
-**Bid-ask half-spreads:**
+**Illustrative bid-ask half-spreads (assumptions):**
 - Index: 0.25 bp
 - Constituents (aggregate): 1.50 bp
 
@@ -1272,7 +1244,7 @@ $\text{Var}(\Delta S_{\text{Ford}}) = 11.21$
 
 $$R^2 = \frac{\beta^2 \cdot \text{Var}(Y)}{\text{Var}(X)} = \frac{1.23^2 \times 3.96}{11.21} = 0.53$$
 
-**Interpretation:** Ford has beta of 1.23 to CDX.IG, with $R^2$ = 0.53. The index explains 53% of Ford's spread variance—acceptable but not excellent for beta hedging.
+**Interpretation:** Ford has beta of 1.23 to CDX.IG, with $R^2$ = 0.53. The index explains about half of Ford's spread variance in this sample; the remaining half is residual idiosyncratic risk. Whether that is “good enough” depends on your hedge objective.
 
 ---
 
@@ -1284,7 +1256,7 @@ $$R^2 = \frac{\beta^2 \cdot \text{Var}(Y)}{\text{Var}(X)} = \frac{1.23^2 \times 
 
 $$\text{HE} = 1 - \frac{120{,}000{,}000}{400{,}000{,}000} = 1 - 0.30 = 0.70$$
 
-**Interpretation:** The hedge removes 70% of the variance—within "Acceptable" range for a single-name → index hedge.
+**Interpretation:** The hedge removes 70% of the variance over this measurement window. Whether that is acceptable depends on mandate and risk limits; if your goal is tail protection rather than day-to-day tracking, you may accept lower HE.
 
 ---
 
@@ -1334,7 +1306,7 @@ Before relying on any hedge:
 
 5. **Basis attribution**: If basis is hedged, verify basis P&L near-zero; if unhedged, verify it matches basis move × basis CS01
 
-6. **Beta stability check**: Compare trailing 30-day beta to trailing 90-day beta; if they differ by >20%, investigate
+6. **Beta stability check**: Compare short-window vs long-window beta estimates; if they differ materially, investigate (regime change, stale quotes, event risk)
 
 7. **Hedge effectiveness monitoring**: Track HE over rolling windows; alert on decline
 
@@ -1388,7 +1360,10 @@ $$\text{HE} = 1 - \frac{\text{Var}(\text{hedged P\&L})}{\text{Var}(\text{unhedge
 $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 **Default cash settlement payout:**
-$$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
+- Single-name (or per-default name share) notional $N_{\text{name}}$:
+  $$\text{Payout} = N_{\text{name}} \left(1 - \frac{FP}{100}\right)$$
+- Index trade notional $N_I$ with $M$ names (equal-weight per-name notional $N_I/M$):
+  $$\text{Payout per default} = \frac{N_I}{M}\left(1 - \frac{FP}{100}\right)$$
 
 **Systemic vs idiosyncratic (O'Kane):**
 - Systemic delta: all spreads move together
@@ -1452,8 +1427,8 @@ $$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
 | 20 | Best scenario to reveal dispersion risk? | High-dispersion moves with unchanged average |
 | 21 | What is spread beta? | Slope from regressing name spread changes on index spread changes |
 | 22 | Formula for spread beta? | $\beta = \text{Cov}(\Delta S_m, \Delta S_I) / \text{Var}(\Delta S_I)$ |
-| 23 | What does $R^2 < 0.3$ mean for beta hedging? | Hedge captures <30% of variance—may add noise rather than reduce risk |
-| 24 | How does HY dispersion compare to IG? | HY is 10–17× higher (340 bp vs 20 bp at 5Y per O'Kane) |
+| 23 | What does a low $R^2$ mean for beta hedging? | The index explains little of the name’s spread variance; hedge leaves large residual tracking error |
+| 24 | How does HY dispersion compare to IG (O'Kane example data)? | Much higher; O'Kane reports HY spread dispersion far larger than IG at comparable maturities |
 | 25 | What is hedge effectiveness (HE)? | $1 - \text{Var(hedged)}/\text{Var(unhedged)}$; measures variance reduction |
 
 ---
@@ -1498,7 +1473,7 @@ $$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
 
 ---
 
-**7.** Cash-settled default: $N = 5$ mm, $FP = 35$. Payout?
+**7.** Cash-settled default on a single name (or on an index per-name share): $N_{\\text{name}} = 5$ mm, $FP = 35$. Payout?
 
 **Sketch:** $5{,}000{,}000 \times (1 - 0.35) = 3{,}250{,}000$.
 
@@ -1518,7 +1493,7 @@ $$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
 
 **10.** Given 5 days of data: $\Delta S_{\text{name}}$ = [+4, -2, +6, +1, -3] bp, $\Delta S_{\text{index}}$ = [+2, -1, +4, 0, -2] bp. Calculate beta and $R^2$.
 
-**Sketch:** Cov = 8.5, Var(index) = 5.2, $\beta = 8.5/5.2 = 1.63$. Var(name) = 12.7, $R^2 = 1.63^2 \times 5.2 / 12.7 = 1.09$ (cap at 1.0 due to small sample noise).
+**Sketch:** Using sample moments (demean both series): Cov ≈ 9.10, Var(index) ≈ 5.80, so $\beta \\approx 9.10/5.80 = 1.57$. The sample correlation is ≈ 0.986, so $R^2 \\approx 0.986^2 \\approx 0.97$.
 
 ---
 
@@ -1548,7 +1523,7 @@ $$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
 
 **17.** If HE = 0.45 for a single-name → index hedge, is this acceptable? What action would you take?
 
-**Sketch:** 0.45 is in the "Acceptable" range (>0.40) for single-name → same-family index per the threshold table. Continue monitoring but no immediate action required.
+**Sketch:** HE = 0.45 means the hedge reduced variance by about 45% over the measurement window. Whether this is “acceptable” depends on mandate and risk limits. Next actions: review residual drivers (idiosyncratic moves, basis, event risk), check beta stability, and consider adding single-name overlays if tracking error is too large.
 
 ---
 
@@ -1558,84 +1533,22 @@ $$\text{Payout} = N \left(1 - \frac{FP}{100}\right)$$
 
 ---
 
-**19.** CDX.HY has spread std dev of 340 bp; CDX.IG has 20 bp. If hedge residual variance scales with dispersion$^2$, what is the ratio of HY to IG residual variance?
+**19.** O'Kane reports example dispersion where HY constituent spreads have much higher standard deviation than IG (e.g., 340 bp vs 20 bp at 5Y in his data). What is the ratio of variance proxies $(\\sigma^2)$?
 
-**Sketch:** $(340/20)^2 = 17^2 = 289×$.
+**Sketch:** $(340/20)^2 = 17^2 = 289$.
 
 ---
 
 **20.** You hedge a \$100mm equity portfolio with long HY protection. Describe two scenarios where this hedge (a) works well and (b) fails.
 
-**Sketch:** (a) Works: 2008-style crash—credit and equity fall together, correlation spikes to ~0.9. (b) Fails: slow equity grind higher—credit doesn't tighten proportionally; you pay premium for protection that provides no offset.
+**Sketch:** (a) Works: sharp equity sell-off where credit spreads widen broadly and liquidity demand concentrates in credit hedges; the CDS protection gains value and offsets part of the equity loss. (b) Fails: equities grind higher or rotate by sector while credit is stable/tightens slowly; you keep paying premium and the hedge provides little day-to-day offset (tracking error).
 
 ---
 
-## Source Map
+## References
 
-### (A) Verified Facts — Source-Backed
-
-| Fact | Source |
-|------|--------|
-| Index mechanics, intrinsic valuation, basis drivers, PSA methodology | O'Kane, *Modeling Single-Name and Multi-Name Credit Derivatives*, Ch 9-10 |
-| CS01 / Credit DV01 definition and sign convention | O'Kane, Ch 8 |
-| VOD decomposition and jump-to-default risk | O'Kane, Ch 8 |
-| Systemic vs idiosyncratic delta distinction | O'Kane, Ch 17.5 |
-| Total systemic and idiosyncratic delta examples | O'Kane, Ch 17.5 (Table 17.2, 17.3) |
-| VOD calculation for tranches (attachment point adjustment) | O'Kane, Ch 17.4.4 |
-| Tranche VOD numerical examples | O'Kane, Ch 17 (Table 17.4) |
-| Index roll mechanics and liquidity considerations | O'Kane, Ch 10 |
-| Cash settlement and auction protocol | O'Kane, Ch 5; ISDA 2005 protocol |
-| Index leading single-name market in stress | O'Kane, Ch 10.5 |
-| Premium leg reduction by $1/M$ after defaults | O'Kane, Ch 10.2 |
-| Liquidity premium in index vs single names | O'Kane, Ch 10.5 |
-| "Delta hedging is as much an art as it is a science" | O'Kane, Ch 17.5 |
-| Index families: CDX.NA.IG, CDX.NA.HY, CDX.EM, iTraxx | O'Kane, Ch 10 (Table 10.1) |
-| IG vs HY spread dispersion (20 bp vs 340 bp) | O'Kane, Ch 10 (Table 10.5) |
-| Minimum variance hedge ratio: $h^* = \rho \sigma_S / \sigma_F$ | Hull OFD, Ch 3 |
-| Hedge ratio = regression slope | Hull OFD, Ch 3 |
-| Beta = slope of regression, equals $\hat{h}$ | Hull OFD, Ch 3 (equation 3.5) |
-
-### (B) Reasoned Inference — Derived from (A)
-
-| Inference | Derivation |
-|-----------|------------|
-| Hedge ratio algebra (CS01 matching, two-factor, least-squares) | Linear algebra applied to CS01 definitions |
-| P&L decomposition template | Aggregation of spread, event, and basis components |
-| Execution cost impact calculation | Bid-ask × CS01 relationship |
-| Scenario test residual analysis | Applying CS01 formula to non-parallel moves |
-| Beta-adjusted proxy hedge | Scaling hedge by spread regression coefficient (Hull + O'Kane) |
-| Index VOD simplification from tranche VOD | Tranche framework applied to 0-100% "tranche" (full index) |
-| $R^2$ = systematic variance / total variance | Standard OLS identity |
-| HY residual variance scaling by dispersion$^2$ | Variance is quadratic in standard deviation |
-
-### (C) Claude-Extended Content (Practitioner Notes)
-
-| Content | Basis |
-|---------|-------|
-| Beta estimation workflow (60-120 days, daily data, outlier handling) | Extends Hull's regression framework to credit-specific practice |
-| Hedge effectiveness thresholds table | Extends variance ratio concept with practical thresholds |
-| $R^2 < 0.3$ rule of thumb | Extends hedge effectiveness logic |
-| IG vs HY hedge characteristic comparison table | Extends O'Kane dispersion data to hedging implications |
-| Proxy hedge menu table | Extends O'Kane index family data to practical hedge selection |
-| Cross-asset credit-equity hedging | Merton model logic applied to hedge design; not in books/ |
-| Beta instability in stress discussion | Extends correlation/volatility dynamics |
-| Decision heuristics for systemic vs idiosyncratic | Extends O'Kane's qualitative guidance with structured framework |
-| Hedge effectiveness monitoring approach | Extends variance ratio concept to continuous monitoring |
-
-### (D) Flagged Uncertainties
-
-| Uncertainty | Reason |
-|-------------|--------|
-| Exact beta estimation methods by desk | Desk-specific; sources don't specify protocol |
-| Exact index weighting schemes | Rulebook-dependent; varies by index family |
-| Operational netting/timing of default cashflows | ISDA version and index-dependent |
-| Front-end protection mechanics | Not fully specified in sources |
-| Standard coupons and roll calendars | Market practice evolves; verify current conventions |
-| Optimal blend of systemic vs idiosyncratic hedge | O'Kane states it requires "judgement and experience" |
-| Cross-asset hedge ratios and correlations | Time-varying, crisis-dependent; no fixed parameters |
-| Hedge effectiveness threshold values | No universal standard; values provided are practitioner guidance |
-
----
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (indices, basis, PSA, systemic vs idiosyncratic deltas)
+- John C. Hull, *Options, Futures, and Other Derivatives* (minimum-variance hedge ratio; regression hedging)
 
 ## Cross-References
 
