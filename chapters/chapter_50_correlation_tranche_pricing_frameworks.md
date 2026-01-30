@@ -8,7 +8,7 @@ Why do equity and senior tranches respond in *opposite directions* to changes in
 
 Consider a portfolio of 125 investment-grade names backing a synthetic CDO. A risk manager bumps the correlation parameter from 30% to 35% and observes something counterintuitive: the equity tranche *gains* value (for a protection seller) while the super-senior tranche *loses* value. Both tranches reference the same portfolio, yet they respond with opposite signs to the same parameter change. Understanding why requires grasping how dependence reshapes the *entire distribution* of portfolio losses, not just its mean.
 
-The Gaussian copula framework—sometimes called "the formula that killed Wall Street" after its role in the 2007-2008 crisis—remains the market's standard language for quoting tranche prices. Despite its well-documented limitations (no tail dependence, calibration instabilities, base correlation pathologies), it persists because it provides a common vocabulary for traders, a tractable calibration framework, and a starting point for more sophisticated models. As O'Kane emphasizes, "the one-factor Gaussian copula model has become the market standard for pricing and hedging synthetic CDO tranches."
+The Gaussian copula framework remains a common **quoting language** for tranche prices. Despite well‑known limitations (e.g., no tail dependence, calibration instabilities, base correlation interpolation pathologies), it persists because it provides a shared vocabulary for traders, a tractable calibration workflow, and a baseline that more sophisticated models can be compared against.
 
 > **Why You Need This (For Middle Office Readers)**
 >
@@ -93,7 +93,7 @@ In the one-factor Gaussian copula framework, correlation controls how much portf
 > *   **High Correlation (Strong Magnet)**: A magnet underneath pulls them together.
 >     *   **Scenario A**: The magnet holds them ALL on the table (Survival).
 >     *   **Scenario B**: The magnet pulls them ALL off the edge (Systemic Collapse).
-> *   **Who loves the Magnet?**: The Equity Tranche. Why? Because in Scenario A, Equity survives! With zero correlation, Equity *always* dies. With high correlation, Equity has a "fighting chance" to survive.
+> *   **Who loves the Magnet?**: The Equity Tranche. Why? Because in Scenario A, Equity survives. With low correlation, it’s harder for equity to have a “clean run” with no defaults; with high correlation, the probability of very low loss can increase.
 > *   **Who hates the Magnet?**: The Senior Tranche. Why? Because Scenario B is the *only* way Senior loses money.
 
 **The critical insight:** Changing correlation doesn't change the *expected* portfolio loss (which depends only on marginal default probabilities), but it dramatically changes the *shape* of the loss distribution.
@@ -113,15 +113,13 @@ This distributional reshaping affects tranches differently based on their positi
 | $\rho \to 0$ | Bad (idiosyncratic defaults eat carry) | Good (diversification works) | Independent defaults |
 | $\rho \to 1$ | Good (all-or-nothing; if you survive, you survive) | Bad (fat tail, Armageddon risk) | Clustered defaults |
 
-O'Kane quantifies this with "correlation 01" values—the change in tranche PV for a 1% increase in correlation:
+Practitioners often summarize this sensitivity with a “correlation 01” (Corr01): the change in tranche PV for a 1% increase in the quoted correlation parameter. The **sign pattern** is the key takeaway; the magnitude is model‑ and calibration‑dependent.
 
-| Tranche | Correlation 01 (bps running) |
-|---------|------------------------------|
-| 0–3% Equity | −148 |
-| 3–7% Junior Mezz | −17 |
-| 7–10% Senior Mezz | +35 |
-| 10–15% Senior | +66 |
-| 15–30% Super-Senior | +43 |
+| Tranche | Corr01 sign (short protection) | Intuition |
+|---------|-------------------------------|-----------|
+| Equity (low attachment) | Typically **negative** | More probability of low-loss outcomes |
+| Mezzanine | Can flip sign | Depends on where attachment sits vs mean/tail |
+| Senior / super-senior | Typically **positive** | More tail mass where seniors get hit |
 
 The sign flip between equity and senior is not an anomaly—it's the fundamental signature of tranche correlation sensitivity.
 
@@ -166,19 +164,13 @@ If the marginals are continuous, $C$ is unique.
 
 **Intuition:** Think of $C$ as a "coupling device." It takes $N$ uniform random variables (the probability-transformed marginals) and produces their joint distribution. The copula captures *how* the marginals are coupled—whether they tend to move together, opposite, or independently—while remaining agnostic about the marginals themselves.
 
-McNeil, Frey, and Embrechts in *Quantitative Risk Management* emphasize why this matters for credit: "The copula approach allows us to study the dependence structure of random vectors in a scale-free way, independently of the marginal distributions."
+McNeil, Frey, and Embrechts emphasize this core point: copulas let you study **dependence** separately from the marginals, in a way that is invariant to monotone re-parameterizations of the marginals.
 
 ### 50.2.3 The David Li Moment: Historical Context
 
-> **Historical Note: The Formula That Changed Finance**
->
-> In March 2000, David X. Li published "On Default Correlation: A Copula Function Approach" in the *Journal of Fixed Income*. This paper gave the industry a tractable way to price multi-name credit derivatives. For the first time, you could calibrate a single parameter (correlation) to market prices.
->
-> Hull cites this as a foundational reference: "Li, D. X., 'On Default Correlation: A Copula Approach,' Journal of Fixed Income, March 2000: 43-54."
->
-> The adoption was rapid—perhaps too rapid given the model's limitations. Within five years, base correlation had become the industry standard. By 2006, hundreds of billions in synthetic CDO tranches were being priced using Li's framework.
->
-> **The tragedy:** The model's limitations were known from the start. Li himself warned about using it for extreme scenarios. But the combination of mathematical tractability and regulatory acceptance created a self-reinforcing adoption cycle that ended badly in 2008.
+David X. Li’s 2000 paper popularized the copula approach to default dependence in credit portfolios. The appeal is straightforward: calibrate **marginal** default behavior from CDS curves, then choose a **dependence** structure to price multi‑name payoffs such as CDO tranches.
+
+The post‑crisis lesson is equally straightforward: tractable calibration is not the same thing as accurate tail risk. Treat “implied correlation” as a quoting convention and stress the dependence assumptions.
 
 ### 50.2.4 Common Copulas
 
@@ -207,16 +199,16 @@ For synthetic CDOs, the copula approach is natural:
 
 3. **Separation enables calibration:** We can calibrate marginals to single-name CDS, then calibrate the copula to tranche prices.
 
-As O'Kane notes, this separation means "we can use the copula function to vary the correlation between obligors without having to change the cumulative default time distributions."
+In other words: the copula lets you change the **dependence structure** (how defaults co‑move) without changing the **marginal** default distributions implied by single‑name CDS curves.
 
 > **Limitation Awareness: What the Model Can't Do**
 >
 > The Gaussian copula has zero tail dependence (see Section 50.3.5). This means:
-> - Defaults cluster more in crises than Gaussian predicts
-> - Joint extreme events are underestimated
-> - Senior tranches are systematically underpriced for tail risk
+> - It cannot generate the kind of tail‑dependent clustering observed in many stress episodes
+> - Joint extreme events can be understated relative to models with positive tail dependence
+> - Senior tranche tail risk can therefore look “too small” under Gaussian assumptions
 >
-> **The model was known to be wrong; it was used because it was tractable.** This is not unique to credit—Black-Scholes has similar known limitations for equity options, yet remains the quoting convention.
+> Treat the model as a **quoting convention** and a starting point — then stress test what happens when dependence becomes more tail‑heavy.
 
 ---
 
@@ -333,7 +325,7 @@ $$\lambda_L = \lim_{u \to 1^-} \Pr(U_2 \le 1-u \mid U_1 \le 1-u)$$
 
 **The Gaussian copula has zero tail dependence:** $\lambda_U = \lambda_L = 0$ for all $\rho < 1$.
 
-McNeil, Frey, and Embrechts in *Quantitative Risk Management* explain the implication: "In the Gaussian case, extreme joint events are asymptotically independent... This means that if we observe that $X_1$ takes a very extreme value, this conveys relatively little information about whether $X_2$ is also extreme."
+Interpretation (as emphasized in QRM): in the Gaussian case, extremes are **asymptotically independent** — seeing one name in a very extreme state conveys relatively little about another name also being extreme, unless $\rho$ is literally 1.
 
 **Why this matters for senior tranches:** Senior tranches are tail-driven instruments. They only suffer losses in extreme scenarios where many names default together. A model with no tail dependence may systematically underestimate senior tranche risk.
 
@@ -342,16 +334,6 @@ McNeil, Frey, and Embrechts in *Quantitative Risk Management* explain the implic
 $$\boxed{\lambda_U = \lambda_L = 2 t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)}$$
 
 where $t_{\nu+1}(\cdot)$ is the CDF of the Student's t-distribution with $\nu+1$ degrees of freedom.
-
-**Numerical values from McNeil Table 5.1 (t-copula tail dependence):**
-
-| $\nu \backslash \rho$ | 0.5 | 0.7 | 0.9 |
-|-----------------------|-----|-----|-----|
-| 1 | 0.39 | 0.50 | 0.67 |
-| 4 | 0.18 | 0.28 | 0.47 |
-| 10 | 0.08 | 0.14 | 0.32 |
-| 25 | 0.03 | 0.06 | 0.19 |
-| $\infty$ (Gaussian) | 0 | 0 | 0 |
 
 **Key observations:**
 - As $\nu \to \infty$, the t-copula converges to Gaussian and tail dependence vanishes
@@ -512,9 +494,9 @@ where the sum is over contiguous tranches covering the capital structure and $w_
 
 **The problem:** If we use *different* compound correlations $\rho_k$ for each tranche (as implied by market prices), we're using *different models* for each tranche. The expected losses computed under these different models will not sum to $E$.
 
-O'Kane emphasizes: "Violation of this no-arbitrage requirement is a serious problem for those who wish to use compound correlation as a method for pricing and hedging to the correlation smile."
+Practically, this violates a basic consistency requirement: tranche expected losses (weighted by width) should add up to portfolio expected loss when tranches span the capital structure. Using different compound correlations tranche‑by‑tranche breaks that add‑up property.
 
-This inconsistency motivated the development of base correlation.
+This inconsistency motivated the development of base correlation as a more coherent quoting framework.
 
 ---
 
@@ -576,11 +558,11 @@ where the tranche PV uses the base correlation formula with $\rho(K_1)$ and $\rh
 > 3. **No interpolation method**: You can't price a 4-5% tranche from 0-3% and 3-7%
 >
 > Base correlation solved all three:
-> - **Monotonic**: Higher $K$ always corresponds to higher $\rho(K)$
-> - **Unique**: One-to-one mapping from strike to correlation
-> - **Interpolatable**: Smooth curve can be drawn through calibration points
+> - **More stable than compound corr**: base tranche PV is typically monotonic in $\rho$, so each $K$ has a well-defined implied correlation
+> - **Quotable**: you can talk about “correlation at strike $K$” just like “implied vol at strike”
+> - **Interpolatable (with caveats)**: you can draw a curve through calibration points (and then deal with interpolation pathologies in Section 50.8)
 >
-> By 2005, base correlation was the industry standard for quoting correlation. O'Kane confirms: "Base correlation has become the market standard for pricing synthetic CDO tranches."
+> In practice, base correlation became a widely used market standard for quoting synthetic tranche prices.
 
 ### 50.6.5 Conservation of Expected Loss
 
@@ -596,23 +578,15 @@ However, when computing ETL for a mezzanine tranche $[A, D]$ using two different
 
 ### 50.6.6 The Base Correlation Skew
 
-Market data consistently shows that base correlation *increases* with detachment:
+Market quotes often show a **base correlation skew**: implied base correlation tends to rise with detachment (though the curve can have kinks and even local inversions depending on the day and the interpolation method).
 
-| Detachment $K$ | Typical Base Correlation |
-|----------------|-------------------------|
-| 3% | 15–25% |
-| 7% | 25–35% |
-| 10% | 35–45% |
-| 15% | 50–60% |
-| 30% | 60–75% |
-
-Hull Table 25.8 shows iTraxx Europe base correlations on January 31, 2007:
+Hull (Table 25.8) provides one illustrative iTraxx Europe snapshot (January 31, 2007):
 
 | Tranche | 0-3% | 0-6% | 0-9% | 0-12% | 0-22% |
 |---------|------|------|------|-------|-------|
 | Base Correlation | 17.7% | 28.4% | 36.5% | 43.2% | 60.5% |
 
-**Interpretation:** To match market prices, the model needs "more dependence" for senior tranches than for equity. This is the market's way of compensating for model deficiencies (particularly the lack of tail dependence).
+**Interpretation (one way to think about it):** senior tranche pricing is driven by tail scenarios. A rising base-correlation curve is a market way of expressing “more dependence in the tail” within a Gaussian-copula quoting language.
 
 ---
 
@@ -639,7 +613,7 @@ For CDX and iTraxx indices, standard tranches are:
 | CDX.NA.IG | 0–3% | 3–7% | 7–10% | 10–15% | 15–30% |
 | iTraxx Europe | 0–3% | 3–6% | 6–9% | 9–12% | 12–22% |
 
-Equity tranches typically trade with upfront + 500bp running; others trade as running spread.
+Equity tranches are often quoted with an upfront plus a fixed running coupon (e.g., 500 bp in some documented index tranche quotes), while more senior tranches are often quoted as running spread only. Always confirm current conventions for the specific index/series and clearing/settlement setup.
 
 ### 50.7.3 Calibration Objective
 
@@ -700,7 +674,7 @@ Then back out the implied correlation from interpolated ETL.
 - Linear ETL interpolation preserves monotonicity of tranchelet ETL
 - Avoids some (but not all) density pathologies
 
-Hull confirms: "It can be shown that for no arbitrage the expected losses when calculated as in Figure 25.3 must increase with $X$ at a decreasing rate. If base correlations are interpolated and then used to calculate expected losses, this no-arbitrage condition is often not satisfied."
+Hull notes a key no‑arbitrage shape restriction: expected loss as a function of strike should increase at a **decreasing** rate (a concavity condition). Interpolating in base‑correlation space and then converting back to ETL can violate this shape condition.
 
 **Remaining issues:** ETL-space interpolation can still produce:
 - Non-smooth implied densities
@@ -740,14 +714,13 @@ O'Kane notes that the 0–3% tranche's implied correlation already reflects the 
 
 ### 50.9.2 The t-Copula: Adding Tail Dependence
 
-Hull discusses alternatives: "The one-factor Gaussian copula model is a particular model of the correlation between times to default. Many other one-factor copula models have been proposed. These include the Student t copula..."
+Hull notes that the one‑factor Gaussian copula is only one possible dependence model; many alternatives have been proposed, including the Student‑t copula.
 
 **t-Copula calibration guidance:**
 
 1. **Choose degrees of freedom $\nu$:**
    - Lower $\nu$ = fatter tails = more tail dependence
-   - Typical choices: $\nu = 4$ to $\nu = 10$
-   - $\nu = 4$ gives substantial tail dependence (see Table 5.1 above)
+   - Small $\nu$ (e.g., 4) is often used as a “stressy” example; $\nu \to \infty$ recovers Gaussian
 
 2. **Tail dependence coefficient:**
    $$\lambda = 2 t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$$
@@ -759,7 +732,7 @@ Hull discusses alternatives: "The one-factor Gaussian copula model is a particul
 
 ### 50.9.3 Random Recovery and Factor Loadings
 
-Hull notes: "Andersen and Sidenius have suggested a model where the copula correlation $\rho$ in equation (25.5) is a function of $F$ and the recovery rate is negatively related to the default rate."
+Hull discusses extensions where correlation (or factor loadings) can be state‑dependent and recovery can be negatively related to default rates (ideas associated with Andersen and Sidenius), reflecting that “bad states” tend to feature both higher clustering and lower recoveries.
 
 This addresses two realities:
 1. **Correlation is state-dependent**: Higher in bad states
@@ -798,7 +771,7 @@ This addresses two realities:
 - Early defaults hit equity before correlation can rise
 - Spread moves without correlation (basis risk)
 
-O'Kane confirms: "The short protection equity tranche holder is long correlation since increasing correlation makes it more likely that all of the credits in the portfolio will survive."
+Intuition: being short equity protection is often **long correlation** because increasing correlation can increase the probability of very low portfolio loss outcomes (helping equity).
 
 ### 50.10.2 Short Correlation Position
 
@@ -816,7 +789,7 @@ O'Kane confirms: "The short protection equity tranche holder is long correlation
 
 **Risks:**
 - Correlation spikes in crisis (2008 scenario)
-- Senior tranche hits (historically "impossible")
+- Senior tranche losses that were priced as very remote become much more plausible
 - Jump-to-default on concentrated names
 
 ### 50.10.3 Delta-Neutral Correlation Trades
@@ -824,8 +797,8 @@ O'Kane confirms: "The short protection equity tranche holder is long correlation
 To isolate correlation exposure from spread exposure, traders construct **delta-neutral** positions:
 
 **Step 1:** Calculate tranche deltas (spread sensitivity to index)
-- Equity delta: typically 15-25x
-- Senior delta: typically 1-3x
+- Equity delta can be an order of magnitude larger than the index
+- Senior delta is often much smaller on a per‑notional basis
 
 **Step 2:** Size positions to offset index spread exposure
 - For every $1 of equity sold, buy $k$ of senior (where $k$ = equity delta / senior delta)
@@ -926,7 +899,7 @@ The correlation smile implies that **delta hedging with single-names is incomple
 
 Traders often hedge correlation exposure by trading tranches against each other (equity vs. mezzanine), but this introduces **basis risk** if the correlation smile shifts.
 
-O'Kane explains: "If we want an exact offset for the correlation exposure of a long protection tranche, the only solution is to sell protection on the exact same tranche - same subordination, width, reference portfolio and maturity... However, it is typically very difficult to find a counterparty who will buy protection from the dealer at the required spread."
+In principle, the only “perfect” correlation hedge for a tranche is the **same tranche** (same strikes, maturity, and reference portfolio) in the opposite direction. In practice that hedge is often unavailable or illiquid, so desks use imperfect cross‑tranche hedges and manage the residual model/basis risk.
 
 ---
 
@@ -934,16 +907,9 @@ O'Kane explains: "If we want an exact offset for the correlation exposure of a l
 
 ### 50.12.1 Regulatory Response
 
-Following the crisis, regulators imposed significant new requirements on correlation trading:
+Post‑crisis, correlation trading and bespoke tranches faced increased scrutiny. Bank capital, risk governance, and model validation expectations tightened, and liquidity shifted toward more standardized products.
 
-**Basel Requirements:**
-- Comprehensive Risk Measure (CRM) for correlation trading books
-- Higher capital charges for senior tranches
-- Stress testing requirements
-
-**Reduced appetite for exotic tranches:**
-- Bespoke CDO market contracted significantly
-- Focus shifted to standardized indices
+The exact regulatory capital and risk‑management requirements are jurisdiction‑specific and have evolved over time; treat “regulatory impacts” here as qualitative unless you are working from a current rulebook.
 
 ### 50.12.2 Market Structure Changes
 
@@ -975,7 +941,7 @@ Following the crisis, regulators imposed significant new requirements on correla
 
 For portfolios that are not standard indices, practitioners use **mapping techniques** to borrow correlation from liquid index tranches.
 
-O'Kane (Chapter 20) describes the approach: "The purpose of the mapping is to determine the value of the standard strike $K_s^*$ whose standard base correlation $\rho_s(K_s^*)$ is to be used to price the bespoke base tranche with width $K_B$."
+The purpose of mapping is to choose a “standard” strike $K_s^*$ on a liquid index so that its base correlation $\rho_s(K_s^*)$ can be used as an input when pricing a bespoke tranche.
 
 **Key mapping approaches:**
 
@@ -992,7 +958,7 @@ O'Kane (Chapter 20) describes the approach: "The purpose of the mapping is to de
 
 ### 50.12.5 Bespoke Risk Management
 
-O'Kane details the hedge methodology: "Hedging the correlation risk for a tranche on a standard index can be done in a variety of ways. Essentially, the aim should be to express the correlation sensitivity of a non-standard tranche in terms of equivalent notionals of hedges in the standard tranches."
+Bespoke correlation risk is often hedged by expressing the bespoke tranche’s correlation sensitivity in terms of **equivalent notionals** of liquid standard tranches (the hedge is only as good as the mapping).
 
 **Hedge calculation:**
 1. Calculate base correlation sensitivity of bespoke tranche
@@ -1460,7 +1426,7 @@ For extreme events (worst 1%), the joint probability is approximately:
 
 **19)** (Crisis Scenario) A portfolio has 5% expected loss. Compare ETL for 0-3% tranche under ρ = 0.2 (normal) vs ρ = 0.6 (crisis). Explain why super-senior losses emerged in 2008.
 
-> **Solution sketch:** At ρ = 0.6, more mass moves to tails. Equity ETL decreases, but super-senior ETL increases dramatically. In 2008, correlation spiked, causing "impossible" super-senior losses.
+> **Solution sketch:** At ρ = 0.6, more probability mass moves into tail scenarios. Equity ETL can decrease, while super‑senior ETL can rise sharply. In crisis regimes, dependence repricing can make previously “remote” senior losses become much more plausible.
 
 **20)** (Model Comparison) For the same portfolio, compute 0-3% tranche value using Gaussian copula (ρ = 0.3) and t-copula (ρ = 0.3, v = 4). Discuss which is more conservative for senior tranches.
 
@@ -1468,60 +1434,19 @@ For extreme events (worst 1%), the joint probability is approximately:
 
 ---
 
-## 50.20 Source Map
+## References
 
-### (A) Verified Facts — Source-Backed
+- Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (Gaussian copula; compound/base correlation; calibration and mapping; hedging)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (copulas; tail dependence; t‑copula properties)
+- John C. Hull, *Options, Futures, and Other Derivatives* (CDO / tranche modeling overview and examples)
+- David X. Li (2000), “On Default Correlation: A Copula Function Approach” (copula approach in credit)
 
-| Fact | Source |
-|------|--------|
-| Tranche loss mapping formula | O'Kane Ch 12, Hull Ch 24 |
-| Sklar's theorem statement | McNeil QRM Ch 5, O'Kane Ch 13 |
-| One-factor Gaussian construction | O'Kane Ch 13, Hull Ch 24 |
-| Conditional default probability formula | O'Kane Ch 13 |
-| Zero tail dependence of Gaussian copula | McNeil QRM Ch 5, Example 5.32 |
-| Positive tail dependence of t-copula | McNeil QRM Ch 5, Example 5.33 |
-| t-copula tail dependence formula | McNeil QRM Ch 5, Example 5.33 |
-| t-copula tail dependence values (Table 5.1) | McNeil QRM Ch 5, Table 5.1 |
-| Compound correlation definition | O'Kane Ch 13 |
-| Base correlation definition and bootstrap | O'Kane Ch 14, Ch 20 |
-| Conservation of expected loss property | O'Kane Ch 20 |
-| Interpolation pathologies (spreads, density) | O'Kane Ch 14, Ch 20 |
-| Correlation 01 values and sign patterns | O'Kane Ch 14, Ch 17 |
-| ETL-space interpolation improvement | O'Kane Ch 14, Ch 20, Hull Ch 25 |
-| LHP model (Vasicek limit) | O'Kane Ch 16, Vasicek (1987) |
-| LHP closed-form ETL via bivariate normal | O'Kane Ch 16 |
-| Li (2000) paper reference | Hull Ch 25 Further Reading |
-| Base correlation quotes (Table 25.8) | Hull Ch 25, Table 25.8 |
-| Long/short correlation position definitions | O'Kane Ch 15, Ch 17, Ch 19 |
-| Bespoke tranche pricing (TLP mapping) | O'Kane Ch 20 |
-| Correlation hedging with standard tranches | O'Kane Ch 20 |
-| Alternative copula models (t, double-t) | Hull Ch 25 |
+## Inputs Needed (NOT SURE)
 
-### (B) Practitioner Notes (Claude-Extended)
-
-| Content | Context |
-|---------|---------|
-| "Magnet" analogy for correlation | Pedagogical extension to explain equity vs senior intuition |
-| Trading language ("22 correlation on 0-3") | Desk practice from industry knowledge |
-| Carry-correlation tradeoff table | Synthesized from O'Kane correlation 01 patterns |
-| Crisis lessons ("model is quotation convention") | Industry consensus post-2008 |
-| Terminology decoder table | Practitioner translation of academic terms |
-| Career bridge content | Guidance for middle office → front office transition |
-
-### (C) Reasoned Inference (Derived from A or B)
-
-- Opposite correlation sensitivities for equity vs. senior derived from loss distribution reshaping under one-factor model
-- Worked examples derive numeric results from source-backed formulas
-- Example 8 (tail dependence comparison) applies McNeil's formula to illustrative parameters
-- Crisis scenario (Example 10) applies model mechanics to historical context
-- Delta-neutral trade sizing (Example 9) applies O'Kane delta concepts
-
-### (D) Flagged Uncertainties
-
-- **I'm not sure** about exact current market quoting conventions for specific index tranches—conventions evolve. Verify for your desk.
-- **I'm not sure** whether your implementation uses linear correlation or ETL-space interpolation—implementations vary.
-- **I'm not sure** about multi-factor model calibration in the same implied correlation language—sources focus on one-factor.
-- **I'm not sure** about current regulatory capital requirements for correlation trading—Basel rules have evolved post-2008.
+- NOT SURE: current market quoting conventions (fixed coupons, upfront vs running, standard grids) for your specific index series — verify with current trading docs / rulebooks.
+- NOT SURE: which interpolation space your desk system uses for base correlation (linear corr, ETL-space, etc.) — check implementation docs.
+- NOT SURE: multi-factor model calibration in implied-correlation language — depends on the chosen model and desk conventions.
+- NOT SURE: current regulatory capital requirements affecting correlation trading — use the applicable current Basel/jurisdiction rulebook.
 
 ---
 
@@ -1534,25 +1459,4 @@ For extreme events (worst 1%), the joint probability is approximately:
 - **Appendix A6:** Credit portfolio models, factor models, copula mathematics
 
 ---
-
-## Resolution of Open Questions
-
-**Q1: Should base correlation be the primary market language, or present compound correlation first?**
-
-**Recommendation:** Present compound correlation first pedagogically (it's simpler), but emphasize that **base correlation is the market standard**. O'Kane confirms: base correlation "has become the market standard for pricing synthetic CDO tranches."
-
-**Q2: Should we cover t-copula or alternative copulas?**
-
-**Recommendation:** Include t-copula as the primary alternative, given its positive tail dependence and coverage in McNeil. Full treatment belongs in Appendix A6; here we note the limitation and point to the alternative.
-
-**Q3: Should LHP model be included?**
-
-**Recommendation:** Yes, LHP provides important analytical tractability and is the foundation of many risk management approaches (including Basel IRB). O'Kane Chapter 16 provides the treatment.
-
-**Q4: Should correlation trading strategies be a separate section?**
-
-**Recommendation:** Yes, added as Section 50.10. This is essential desk-level content for the target audience.
-
----
-
-> *"Generated from O'Kane, McNeil QRM, Hull, and related sources. Verify tranche quoting conventions for your specific market."*
+*Chapter 50 of Fixed Income: Practice and Theory*
