@@ -247,7 +247,7 @@ $$\text{VOD} = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot \text{RPV
 
 CS01 is "small move"; JTD is the discontinuity when default happens.
 
-**Concrete intuition:** If you are long protection on $5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \\times 5{,}000{,}000 = \\$3{,}000{,}000$ (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
+**Concrete intuition:** If you are long protection on $5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \times 5{,}000{,}000 = \$3{,}000{,}000$ (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
 
 #### Practice
 
@@ -477,7 +477,7 @@ O'Kane identifies six fundamental factors that create structural differences bet
 
 3. **Technical default / credit-event definition**: CDS credit events can be broader than plain bond payment default (for example, restructuring depending on documentation). That extra trigger risk affects CDS pricing relative to cash.
 
-4. **Loss-on-default mismatch**: CDS protection pays $(1-R)$ of notional (per 100), while the loss on a cash bond purchased at full price $P$ is $P-R$. If $P \\neq 100$, notional matching by CS01 can leave a JTD mismatch; JTD matching is a separate sizing problem.
+4. **Loss-on-default mismatch**: CDS protection pays $(1-R)$ of notional (per 100), while the loss on a cash bond purchased at full price $P$ is $P-R$. If $P \neq 100$, notional matching by CS01 can leave a JTD mismatch; JTD matching is a separate sizing problem.
 
 5. **Accrued premium/coupon around default**: In CDS, accrued premium is typically settled at default; in cash bonds, coupon cashflows stop and accrued can be lost. This small difference matters in tight "basis carry" calculations and in default P&L explain.
 
@@ -1049,14 +1049,14 @@ This is a **toy** illustration of how you might combine two tranches to reduce (
 
 #### Setup (Toy Numbers)
 
-- Reference portfolio: $N=125$ names (equal-weight), total $F = \\$1{,}250$mm.
+- Reference portfolio: $N=125$ names (equal-weight), total $F = \$1{,}250$mm.
 - Equity tranche: 0–3% (long protection).
 - Senior tranche: 15–30% (long protection).
-- Current implied correlation parameter: $\\rho_0$ (exact model details omitted).
+- Current implied correlation parameter: $\rho_0$ (exact model details omitted).
 
-Assume your risk system reports (per $\\$10$mm tranche notional):
-- Equity Corr01 (long protection): $-\\$80{,}000$ per +1% correlation bump
-- Senior Corr01 (long protection): $+\\$150{,}000$ per +1% correlation bump
+Assume your risk system reports (per $\$10$mm tranche notional):
+- Equity Corr01 (long protection): $-\$80{,}000$ per +1% correlation bump
+- Senior Corr01 (long protection): $+\$150{,}000$ per +1% correlation bump
 
 These signs encode the intuition: higher correlation can make equity safer (hurting long‑protection equity) while making senior tail riskier (helping long‑protection senior).
 
@@ -1233,11 +1233,11 @@ O'Kane lists key limitations that matter for desk intuition:
 - The simplified capital structure is unrealistic.
 - Default is only allowed at a single time $T$ in the basic setup.
 - There is limited transparency regarding the value of a company's assets.
-- Short-dated credit spreads can be understated when assets are well above debt (the model pushes spreads toward zero as $T-t \\to 0$ in that region).
+- Short-dated credit spreads can be understated when assets are well above debt (the model pushes spreads toward zero as $T-t \to 0$ in that region).
 
 Despite these limitations, O’Kane connects the intuition to correlation models: in one‑factor copula models, defaults are often driven by a latent “asset” variable in the same broad spirit as structural models.
 
-**Desk note (intuition, not a pricing formula):** the Merton linkage $\\sigma_E = \\sigma_A\\,\\Phi(d_1)\\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
+**Desk note (intuition, not a pricing formula):** the Merton linkage $\sigma_E = \sigma_A\,\Phi(d_1)\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
 
 ### Strategy Card: D1 — Senior vs Subordinated CDS
 
@@ -2619,7 +2619,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 51. **Q:** What is LCDS? **A:** Loan CDS—credit protection on senior secured loans; higher expected recovery than senior unsecured bonds often implies lower spreads under similar default-intensity assumptions.
 
-52. **Q:** What is the theoretical LCDS-to-CDS spread ratio under equal hazard rates? **A:** $S_{\text{LCDS}} / S_{\text{CDS}} \\approx (1 - R_{\text{loan}}) / (1 - R_{\text{bond}})$; the result is recovery-driven and sensitive to contract conventions.
+52. **Q:** What is the theoretical LCDS-to-CDS spread ratio under equal hazard rates? **A:** $S_{\text{LCDS}} / S_{\text{CDS}} \approx (1 - R_{\text{loan}}) / (1 - R_{\text{bond}})$; the result is recovery-driven and sensitive to contract conventions.
 
 53. **Q:** What happens to negative basis trades in a funding crisis? **A:** Funding costs spike, eroding or reversing carry. Leveraged holders face margin calls and forced unwinds, driving basis wider.
 
