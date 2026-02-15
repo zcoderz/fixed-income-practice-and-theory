@@ -145,6 +145,8 @@ $$\boxed{s \equiv r_{GC} - r_{sp}}$$
 
 A bond “trading special” has \(r_{sp} < r_{GC}\) and therefore \(s>0\). Intuitively, the bond owner enjoys a financing advantage (they can finance the bond more cheaply), while a short position in the bond faces a financing drag (it must source the bond in a tight collateral market).
 
+**Check (desk-scale financing wedge):** Specialness is a *rate* difference, but it shows up as dollars. For a one-day horizon, the financing wedge is roughly \(\text{Invoice cash}\times s/360\). If you are financing \(\$100\text{mm}\) of collateral and the bond is 150 bp special versus GC (\(s=0.015\)), the daily wedge is about \(\$100\text{mm}\times 0.015/360 \approx \$4{,}167\). That is why small-looking repo spreads can matter in RV trades and short economics.
+
 ### 10.4.2 Empirical Magnitudes
 
 Table 10.1 shows an illustrative snapshot of repo rates for settlement on February 15, 2001, highlighting the range of special spreads.
@@ -286,6 +288,8 @@ $$\boxed{\text{FinAdv}_{100} = (P + AI) \times s \times \frac{d}{360}}$$
 
 where $P$ is the clean price and $AI$ is accrued interest (both per 100 par).
 
+**Check (units and desk scale):** \(s\) is an annualized rate difference (in decimals) and \(d/360\) is a year fraction, so \(s\cdot d/360\) is dimensionless. Multiplying by \((P+AI)\) (price points per 100) gives a result in **price points per 100**. For \(N=\$100\text{mm}\) face, 1 price point is \(\$1{,}000{,}000\), so small-looking point values can still matter in dollars. Example: if \((P+AI)=102.90\), \(s=100\) bp \(=0.01\), and \(d=1\) day, then \(\text{FinAdv}_{100}\approx 102.90\times 0.01/360 \approx 0.00286\) points \(\approx \$2{,}860\) per day on \(\$100\text{mm}\).
+
 **Step 2: Convert to yield-equivalent**
 
 Define the (yield-bumped) DV01 used in this chapter as:
@@ -301,6 +305,8 @@ Then the financing advantage can be expressed in yield-equivalent basis points b
 $$\boxed{\text{FinAdv}_{\text{bp}} = \frac{\text{FinAdv}_{100}}{DV01_y}}$$
 
 The same calculation can be read as a **financing drag** for a short position in the special bond: being short forces you to source the bond in the specials market, which can materially reduce (or even dominate) the expected convergence P&L.
+
+**Check (bp conversion):** \(DV01_y\) is in points per 1bp, so dividing points by points-per-bp gives bp. If \(\text{FinAdv}_{100}=0.20\) points and \(DV01_y=0.04\) points/bp, then \(\text{FinAdv}_{\text{bp}}=0.20/0.04=5\) bp. That is the “yield-equivalent” financing wedge you should compare to the observed rich/cheap in yield terms.
 
 ### 10.8.2 Worked Example: Is the Benchmark Worth It?
 
@@ -515,6 +521,8 @@ $$\boxed{P_{fwd} = P(0) - \text{Carry}}$$
 
 The forward price equals the spot price minus carry. If carry is positive (income exceeds financing), the forward clean price is below spot. If carry is negative, the forward price is above spot.
 
+**Check (toy numbers; clean vs invoice):** Take \(P(0)=102.50\), \(AI(0)=0.40\) so \(I(0)=102.90\). With \(r=5.00\%\) and \(d=30\) days (and ignoring intermediate coupons), the invoice amount grows to \(102.90\times(1+0.05\times 30/360)\approx 103.33\). If accrued interest at the horizon is \(AI(d)=1.20\), then the implied forward clean price is \(P_{fwd}\approx 103.33-1.20=102.13\), which is below the spot clean price because part of the horizon return is earned mechanically through accrued interest and financing.
+
 ### 10.15.2 The Repo Rate in Forward Pricing
 
 The repo rate $r$ in these formulas is the rate at which *that specific bond* can be financed. For a special bond, $r = r_{sp} < r_{GC}$, so carry is higher and the forward price is lower than for an otherwise identical bond financing at GC.
@@ -557,6 +565,10 @@ The weights are typically chosen to be **DV01-neutral** (net DV01 \(\approx 0\))
 If $DV01_2$, $DV01_5$, $DV01_{10}$ are the DV01s, the hedge ratios solve:
 
 $$\alpha \cdot DV01_2 + DV01_5 + \beta \cdot DV01_{10} = 0$$
+
+**Mechanics (what DV01-neutral does and does not do):** This construction targets *first-order* neutrality to a **parallel** yield move in the chosen bump object (here, the issue yields used to compute \(DV01_y\)). It does not make the trade riskless: you are still exposed to curve shape changes (key-rate DV01), convexity differences, repo/specialness differences across legs, and microstructure-driven rich/cheap movements.
+
+**Check (sanity test):** Bump the yields of all three bonds down by 1bp and reprice (or use the DV01 approximation). The net price change should be close to zero. If it is not, the hedge ratios are likely using inconsistent DV01 definitions/units (per-100 vs currency DV01, or different yield conventions across legs).
 
 With one degree of freedom, a common convention is to allocate **equal DV01 to each wing** (so each wing offsets half the body DV01). With the body notionals normalized to \(+1\):
 

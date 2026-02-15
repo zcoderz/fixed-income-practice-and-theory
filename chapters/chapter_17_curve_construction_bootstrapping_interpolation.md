@@ -109,6 +109,8 @@ A deposit earning a simple rate $L$ over time $\tau$ pays $(1 + L\tau)$ at matur
 
 $$\boxed{P(\tau) = \frac{1}{1 + L\tau}}$$
 
+**Check (units and limiting cases):** \(L\) is a per-year rate, \(\tau\) is a year-fraction, so \(L\tau\) is dimensionless. Sanity checks: if \(L=0\), then \(P(\tau)=1\); if \(L>0\), then \(0<P(\tau)<1\) and \(P(\tau)\) decreases as \(\tau\) increases. If \(L<0\) (possible in some regimes), then \(P(\tau)>1\); that is not a bug—it is the arithmetic consequence of being paid to borrow.
+
 **Par Swaps**
 
 A standard fixed-for-floating swap is quoted at a fixed rate $c$ that makes the NPV zero. Since the floating leg is worth par at inception (by the standard replication argument), the fixed leg plus principal repayment must also equal 1:
@@ -118,6 +120,8 @@ $$1 = c \sum_{j=1}^n \tau_j P(t_j) + P(t_n)$$
 If we already know the discount factors for all previous coupons $P(t_1), \ldots, P(t_{n-1})$, we can rearrange to solve for the final discount factor:
 
 $$\boxed{P(t_n) = \frac{1 - c \sum_{j=1}^{n-1} \tau_j P(t_j)}{1 + c \tau_n}}$$
+
+**Check (does the last discount factor look plausible?):** For positive rates, you should typically get \(0<P(t_n)<P(t_{n-1})<1\). If the algebra produces a negative discount factor or a discount factor greater than 1 in a positive-rate environment, it is almost always a unit mistake (e.g., using \(c\) in percent instead of decimal, or mixing \(\tau\) day-count conventions). A quick internal check is to recompute the fixed-leg PV at the solved \(P(t_n)\) and verify it sums to 1 with the final principal term (the “reprice test”).
 
 ### 17.2.3 The Stub Rate: Handling the First Period
 
@@ -372,6 +376,8 @@ $$\boxed{f(T) = y(T) + T y'(T)}$$
 
 This is the key equation. The forward rate equals the zero rate plus a term proportional to the *slope* of the zero rate curve times the maturity.
 
+**Check (directionality):** If the zero curve is locally flat (\(y'(T)=0\)), then \(f(T)=y(T)\). If the zero curve is locally upward sloping (\(y'(T)>0\)), then \(f(T)>y(T)\); if the zero curve is downward sloping (\(y'(T)<0\)), then \(f(T)<y(T)\). This is a useful mental model: forwards “amplify” the local slope of the zero curve by a factor of \(T\).
+
 ### 17.4.2 The Saw-Tooth Pattern
 
 When yields are piecewise linear, $y(T)$ has constant slope within each interval:
@@ -518,6 +524,8 @@ For instance, perturbing a short-dated FRA price should not cause noticeable mov
 
 Global smoothness conditions (e.g., some \(C^2\) spline choices) can create **non-local perturbations**: a single-quote bump produces oscillations that spread into distant forwards and deltas. This is a property of the interpolation algorithm, not a market signal.
 
+**Check (a fast ringing diagnostic):** Pick one short-dated benchmark quote, bump it by 1bp, rebuild the curve, and plot (or tabulate) the change in instantaneous forwards across the whole maturity axis. If a short bump produces alternating “up/down” ripples far out the curve (or materially moves long-dated forwards), you are seeing spline non-locality. This matters because a par-point risk report can then suggest implausible hedges (e.g., “hedge a 20Y swap with a 1M instrument”) even though the base curve reprices perfectly.
+
 ### 17.5.5 Managing the Trade-Off
 
 - If you need locality (risk reports and hedging), prefer methods designed to be local (bootstrapped \(C^0\), Hermite \(C^1\), or tension splines with enough tension).
@@ -624,6 +632,12 @@ $$P(T)=e^{-\int_0^T f(u)\,du}=e^{-\int_0^T \varepsilon_{f}(u)\,du}\,e^{-\int_0^T
 
 Once the curve \(P^{*}(t)\) is constructed, any subsequent use of the curve for cash flow discounting requires a multiplicative adjustment of time-\(t\) discount factors by the quantity \(P_{\varepsilon}(t)\).
 
+**Check (toy magnitude):** Suppose you model a short “turn” window as an overlay of \(+200\)bp for 3 calendar days and zero elsewhere (purely illustrative). Under continuous compounding, the multiplicative factor for any maturity beyond the window is
+\[
+P_{\varepsilon} \approx e^{-0.02\times 3/365}\approx 0.999836,
+\]
+which is a \(0.0164\%\) PV hit (about 0.0164 price points per 100) applied uniformly to all cashflows beyond the window. The point of the overlay is not that it is “large” in PV terms, but that it localizes a calendar premium to the short window rather than forcing the fitted curve to twist in unrelated maturities.
+
 ### 17.7.2 Event Dates and Step-Like Forwards
 
 For overnight-indexed curves, scheduled policy meetings and other known event dates can justify allowing **step changes** in the short forward curve. A practical pattern is to include the event dates as knots and allow piecewise-constant (or piecewise-smooth) forwards between them.
@@ -674,6 +688,13 @@ Written in terms of \(\mathbf{d}\) and \(\mathbf{J}\), the normal equations beco
 $$(\mathbf{J}^\top \mathbf{W}^2 \mathbf{J} + \mathbf{U}^2)\hat{\mathbf{p}} = -\mathbf{J}^\top \mathbf{W}^2 \mathbf{d}$$
 
 Interpretation: \(\mathbf{W}\) prioritizes matching some buckets more than others; \(\mathbf{U}\) discourages overly large notionals (a ridge penalty).
+
+**Check (dimensions and units):** \(\mathbf{J}\mathbf{p}\) lives in bucket space (\(\mathbb{R}^K\)), so it can be compared directly to \(-\mathbf{d}\). A practical way to keep units straight is:
+- \(\mathbf{d}\): currency per bp (per portfolio)
+- \(\mathbf{J}\): currency per bp **per unit notional** of each hedge instrument (state the unit, e.g., per \(\$1\)mm)
+- \(\mathbf{p}\): hedge notionals (in the same units used for \(\mathbf{J}\))
+
+After solving, compute the residual bucket vector \(\mathbf{r}=\mathbf{J}\hat{\mathbf{p}}+\mathbf{d}\). If \(\mathbf{r}\) is large in a particular bucket, the hedge instruments you allowed cannot span that exposure (or you intentionally down-weighted it via \(\mathbf{W}\)).
 
 ### 17.8.3 Worked Example: Simple Hedge Calculation
 

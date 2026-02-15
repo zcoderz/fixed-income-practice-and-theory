@@ -179,6 +179,15 @@ An average overnight rate over a period is typically computed by compounding the
 
 This distinction matters for basis calculations between Fed Funds futures and compounded SOFR.
 
+**Expand (why they differ):** arithmetic averaging adds up rates; geometric averaging multiplies **growth factors**. The difference is “interest-on-interest.” If day fractions are tiny (overnight accruals), the gap is usually small—but it is systematic: with positive rates, compounding makes the geometric return slightly larger than the simple sum of daily interest.
+
+> **Check (toy numbers):** take two equal subperiods of length 0.5 years with simple rates 10% then 20%.
+>
+> - **Geometric/compounded return:** $(1+0.10\times 0.5)(1+0.20\times 0.5)-1 = 1.05\times 1.10 - 1 = 15.5\%$ over the full year.
+> - **Arithmetic-average rate:** the average rate is $(10\%+20\%)/2 = 15\%$, which would imply $15\%$ simple interest over one year.
+>
+> Same underlying daily rates, different aggregation rules → different “period rate” numbers. This is one reason a futures contract on an **arithmetic average** is not the same object as a compounded-in-arrears RFR leg.
+
 ---
 
 ## 4.3 Instruments at the Short End: What Is Quoted and What It Pins Down
@@ -433,6 +442,11 @@ Historically, the fed funds effective rate and the fed funds target can be very 
 $$r_{\text{turn}} = \left(\frac{P(0, \text{Dec 30})}{P(0, \text{Jan 2})} - 1\right)\times \frac{360}{d}$$
 
 where $d$ is the number of calendar days (typically 3 for a weekend).
+
+**Expand (scaling intuition):** because $d$ is small, the annualization factor $360/d$ is large (for a 3-day stub it is 120). That means *tiny* differences in discount factors across the stub can translate into “large” annualized turn quotes. When sanity-checking a turn, look first at the stub growth factor $\frac{P(0,\text{Dec 30})}{P(0,\text{Jan 2})}$ or the implied dollar interest over the stub—not the annualized percent alone.
+
+> **Check (toy number):** if $P(0,\text{Dec 30})=0.99990$ and $P(0,\text{Jan 2})=0.99950$, then the 3-day stub return is $(0.99990/0.99950-1)\approx 0.0400\%$. Annualized, $r_{\text{turn}}\approx 0.000400\times 120\approx 4.8\%$. On \$100mm notional, that is about \$40k of interest over the 3-day stub:
+> $$100{,}000{,}000\times 0.048\times \frac{3}{360} \approx 40{,}000.$$
 
 **Trading the turn:**
 - **Long turn:** Lend over the stub if you think the realized rate will be higher than what the curve implies

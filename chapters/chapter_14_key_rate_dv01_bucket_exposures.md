@@ -44,6 +44,8 @@ $$
 
 A “parallel DV01” implicitly assumes a particular curve move: every relevant maturity shifts by the same \(\Delta y\). That makes DV01 a useful one-number summary, but it cannot describe non-parallel moves.
 
+**Check (units and signs):** \(\Delta y\) is in **bp** in the formula above. If \(\mathrm{DV01}=+\$50{,}000/\text{bp}\) and rates sell off by \(+12\)bp under the stated bump object, then \(\Delta PV\approx -50{,}000\times 12=-\$600{,}000\). If your DV01 is reported “per 100 notional” (price points per bp), convert to dollars by multiplying by notional/100 before doing this calculation.
+
 ### 14.1.2 What Parallel DV01 Misses
 
 Consider two portfolios constructed to have identical parallel DV01s:
@@ -99,6 +101,8 @@ $$
 $$
 
 If the key-rate shifts sum to a parallel shift, then the key-rate 01s add up (approximately) to the parallel DV01 computed under the same bump design.
+
+**Mechanics (why a “single key” bump moves more than one maturity):** A key-rate shift is implemented by (i) shocking one key input and (ii) re-interpolating/rebuilding the full curve. Even if you “bump the 5y key,” the implied shock \(\text{Shift}_k(t)\) typically affects a whole maturity *region* between neighboring keys. That is why KR01s are exposure to a **shock shape + rebuild rule**, not exposure to an infinitesimal point on a continuous curve.
 
 ### 14.2.2 Arbitrariness and Comparability
 
@@ -170,6 +174,8 @@ $$
 | 10y | 0.0733 | 86.3% |
 | **Sum** | **0.0849** | **100.0%** |
 
+**Check (scale to dollars):** In this example, \(\mathrm{KR01}_{10y}=0.0733\) is in **price points per 100 per 1bp**. On \(N=\$100\text{mm}\) face, that is \((0.0733/100)\times 100\text{mm} \approx \$73{,}300/\text{bp}\). The total parallel DV01 of \(0.0849\) points per 100 corresponds to about \(\$84{,}900/\text{bp}\) on \(\$100\text{mm}\).
+
 **Step-by-step**
 1. Cashflows: yearly coupon \(=N\cdot c\cdot 1.0=5\). Final cashflow at maturity \(=105\).
 2. Build discount factors from the interpolated zero curve.
@@ -195,6 +201,8 @@ $$
 - Intermediate nodes matter because coupons are discounted by intermediate maturities; a “10y-only hedge” can leave residual exposure in the belly.
 - If the key rates move by \(\Delta r_k\) (bp), the first-order P&L per 100 is \(\Delta PV \approx -\sum_k \mathrm{KR01}_k\,\Delta r_k\).
   - Example twist: if \(r_{2y}\) rises by \(+5\)bp and \(r_{10y}\) falls by \(-5\)bp (others unchanged), then \(\Delta PV \approx -(0.0024)(+5) -(0.0733)(-5) \approx +0.3546\) price points per 100.
+
+**Check (twist P&L in dollars):** \(+0.3546\) price points per 100 is \(0.3546\%\) of face. On \(\$100\text{mm}\) notional, that is about \(0.003546\times 100\text{mm}=\$354{,}600\).
 
 **Sanity Checks**
 - Units check: \(\mathrm{KR01}\) is “price points per 100 per 1bp” in this setup; scaling to a notional \(N^\$\) uses \(N^\$/100\).

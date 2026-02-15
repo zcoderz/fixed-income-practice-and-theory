@@ -194,6 +194,8 @@ $$\frac{\Delta P}{P} \approx -D_{\text{Mod}} \times \Delta y$$
 
 Interpretation: \(D_{\text{Mod}}\) is the approximate percentage change in price for a **100bp (1.00%)** change in yield (holding cashflows fixed and using the stated yield/compounding convention).
 
+**Check (bp-to-decimal and dollars):** \(25\text{bp}=0.0025\). If a bond has \(D_{\text{Mod}}=7.8\) and is priced at 100 (per 100 face), the first-order estimate is \(\Delta P/P\approx -7.8\times 0.0025=-1.95\%\), i.e. \(\Delta P\approx -1.95\) price points. On \(N=\$10\text{mm}\) face, 1 price point is \(\$100{,}000\), so this is about \(-\$195{,}000\).
+
 ### 12.4.2 The Derivation
 
 The factor \((1+y/m)\) comes from the chain rule when differentiating the discount factor.
@@ -323,6 +325,8 @@ Throughout this chapter, prices are per 100 notional. For a position with notion
 \[
 V := \frac{N}{100}\,P_{\text{dirty}}.
 \]
+
+**Check (points \(\leftrightarrow\) dollars):** If prices are quoted “per 100,” then 1.00 price point is \(1\%\) of face value. So a 0.01-point move is \(0.01\%\) of face. Example: if \(N=\$100\text{mm}\), then 1.00 point is \(\$1{,}000{,}000\) and 0.01 point is \(\$10{,}000\). This is the quickest way to sanity-check whether a reported DV01 magnitude is plausible.
 
 Using the duration approximation \(\Delta P/P \approx -D_{\text{Mod}}\,\Delta y\) and scaling by the position size gives:
 \[
@@ -726,6 +730,8 @@ where:
 - $P_0$ = current price
 - $P_{+}$ = price after upward curve shift of $\Delta y$
 - $P_{-}$ = price after downward curve shift of $\Delta y$
+
+**Check (bp vs decimal):** In this formula, \(\Delta y\) is in **decimal yield units**. A 1bp bump is \(\Delta y=10^{-4}\); a 10bp bump is \(\Delta y=10^{-3}\). Forgetting this conversion is an easy way to be off by 10,000× in an “effective duration” calculation.
 
 This "bump and reprice" approach captures how the full price function responds to curve changes.
 

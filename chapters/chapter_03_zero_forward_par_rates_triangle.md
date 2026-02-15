@@ -304,6 +304,14 @@ $$\boxed{DV01_{F}\approx P(0,T_1)\,\frac{N\,\tau}{1+F\tau}\times 10^{-4}}$$
 With the book-wide sign convention $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, $DV01_F$ is **positive** for “receive fixed, pay floating.”
 Using the same forward identity, this first-order approximation can be written as $DV01_F\approx N\,\tau\,P(0,T_2)\times 10^{-4}$.
 
+**Expand (what $DV01_F$ is measuring):** an at-market FRA has $PV(0)=0$, but it still has rate risk because you are effectively “long” a fixed spread over the accrual period. The approximation
+$$DV01_F\approx N\,\tau\,P(0,T_2)\times 10^{-4}$$
+is exactly the PV today of receiving **1bp** on notional $N$ over year fraction $\tau$, discounted to today.
+
+**Check (toy magnitude):** if $N=\$100\text{mm}$, $\tau=0.25$, and $P(0,T_2)=0.95$, then
+$$DV01_F\approx 100{,}000{,}000\times 0.25\times 0.95\times 10^{-4}\approx \$2{,}375\text{/bp}.$$
+So a 10bp move in the forward is on the order of $\$24\text{k}$ PV for this notional/tenor (before convexity and curve-shape effects).
+
 ### 3.4.3 Trading the Forward: A Worked Example
 
 **Setup:**
@@ -432,6 +440,15 @@ So the PV of a **+1bp coupon bump** on notional $N$ is:
 $$\Delta PV_{\text{coupon }+1bp} = N \cdot A(0) \cdot 10^{-4}.$$
 
 Some systems call $N\cdot A(0)\cdot 10^{-4}$ “PV01” or “PVBP.” Because naming and sign conventions vary across systems, we will state (i) the bump object and (ii) the currency-per-bp scaling explicitly whenever we quote an “01.”
+
+**Expand (what a “par rate” depends on):** $A(0)$ depends on the **payment schedule** (the $T_i$ and $\tau_i$). So a “par rate to maturity $T_n$” is not a function of $T_n$ alone: change the payment frequency, stub structure, day count, or business-day rolls and you change $A(0)$, hence you change the par rate implied by the *same* discount curve.
+
+> **Check (toy schedule effect):** take a flat continuously compounded zero curve at 5% so $P(0,T)=e^{-0.05T}$ and consider a 2-year par bond with \$1 notional.
+>
+> - **Annual coupons:** $T_i\in\{1,2\}$, $\tau_i=1$, so $A\approx e^{-0.05}+e^{-0.10}=0.9512+0.9048=1.8560$. Then $C_{par}\approx (1-0.9048)/1.8560=5.13\%$.
+> - **Semiannual coupons:** $T_i\in\{0.5,1.0,1.5,2.0\}$, $\tau_i=0.5$, so $A\approx 0.5\,(e^{-0.025}+e^{-0.05}+e^{-0.075}+e^{-0.10})=1.8794$. Then $C_{par}\approx (1-0.9048)/1.8794=5.06\%$.
+>
+> Same curve, same maturity, different cashflow schedules → different par coupon numbers. That is not a contradiction; it is convention.
 
 ### 3.6.4 Par Swap Rates
 

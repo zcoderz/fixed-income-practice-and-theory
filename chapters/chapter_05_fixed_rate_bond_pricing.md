@@ -49,6 +49,8 @@ The coupon payment each period is:
 
 $$\boxed{\text{Cpn} = \frac{Fc}{m}}$$
 
+**Expand (what’s “fixed” vs what varies):** for a standard fixed-coupon bond with regular periods, the coupon cash amount is mechanically fixed at $Fc/m$ each period. The **day count convention** mainly shows up in (i) accrued interest between coupon dates and (ii) any **stub** period where the first/last coupon may be prorated. When you see a coupon cash amount that is not $Fc/m$, it is often a stub-period effect (we cover stub coupons in Section 5.8).
+
 And the cashflow schedule is:
 
 $$\text{CF}_i = \begin{cases}
@@ -174,6 +176,13 @@ Then the computed dirty price (at a coupon date, so AI = 0) should be exactly 10
 > *   **Discount Bond**: You paid less upfront. You "gain" slightly every day as price rises to 100. This gain supplements the low coupon.
 >
 > **Result (with a caveat):** Under a constant-yield assumption (and reinvestment at that yield), total return is approximately the yield regardless of coupon—the price “pull to par” offsets coupon differences. Chapter 6 explains why realized return can still differ when yields move or reinvestment rates change.
+
+> **Check (one-step pull-to-par arithmetic):** use a toy annual-coupon bond with 2 years to maturity, face 100, and a flat 5% yield (annual comp) held for 1 year.
+>
+> - **Premium bond (8% coupon):** price today is $8/1.05 + 108/1.05^2 = 105.58$. One year later (just after receiving the \$8 coupon), the remaining cashflow is \$108 in one year so the bond’s price is $108/1.05 = 102.86$. Total value at $t=1$ is $8 + 102.86 = 110.86 = 105.58\times 1.05$.
+> - **Discount bond (2% coupon):** price today is $2/1.05 + 102/1.05^2 = 94.42$. One year later (after receiving the \$2 coupon), price is $102/1.05 = 97.14$. Total value is $2 + 97.14 = 99.14 = 94.42\times 1.05$.
+>
+> Same yield, different coupons: the higher coupon comes with a larger premium amortization (price fall), and the lower coupon comes with discount accretion (price rise).
 
 ### 5.3.4 Price Trajectory: Pull to Par Over Time
 

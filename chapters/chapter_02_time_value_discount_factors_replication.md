@@ -89,6 +89,15 @@ $$102.0334 = 107.125 \times d(1)$$
 
 $$d(1) = 0.95247$$
 
+**Anchor (price \(\leftrightarrow\) rate):** discount factors are *prices*. If you want to express the same information as a rate, you are just re-parameterizing the same object. For example, under continuous compounding:
+$$y(0,T)=-\frac{1}{T}\ln P(0,T)=-\frac{1}{T}\ln d(T).$$
+
+**Check (translate the numbers):** the extracted discount factors translate into annualized rates. Using the formula above:
+- \(y(0,0.5)\approx -\ln(0.97557)/0.5 \approx 4.95\%\)
+- \(y(0,1.0)\approx -\ln(0.95247)/1.0 \approx 4.87\%\)
+
+This “translation” is useful operationally: if a discount factor looks suspicious, convert it into a rate you can sanity-check. Conversely, if someone gives you a rate quote, convert to \(P(0,T)\) before mixing instruments with different compounding and day-count conventions.
+
 ### 2.1.3 Sequential Extraction (Bootstrapping Preview)
 
 **Continuing sequentially**, each additional bond with a longer maturity provides one more equation to solve for one more discount factor. An illustrative set of extracted discount factors out to 2.5 years is:
@@ -496,6 +505,10 @@ A **Credit Support Annex (CSA)** specifies the collateral arrangements for an OT
 In many modeling frameworks, a common simplifying assumption is: variation margin is posted in **cash**, and the collateral balance is **remunerated** at an overnight/OIS rate. One argument for using overnight rates as discounting anchors for collateralized trades is that many inter-dealer transactions are collateralized, with the rate paid on collateral being the overnight Fed funds rate (for USD; analogous overnight rates such as EONIA and SONIA are used in other currencies).
 
 Using the wrong discounting assumptions is a common source of valuation differences between systems. In practice, you need to know the collateral terms (CSA/clearing) before you can say what “risk‑free discounting” means for a given trade.
+
+**Mechanics (intuition):** in a fully collateralized trade with frequent variation margin, the position is continuously “reset” by cash collateral. If you are out-of-the-money you post cash and earn the CSA’s collateral remuneration rate on that balance; if you are in-the-money you receive cash and pay interest at that same rate. In that idealized setting, the collateral remuneration rate is the natural “carry rate” for the position, so discounting at some other curve is equivalent to assuming a different interest-on-collateral rule and will show up as a systematic PV difference.
+
+> **Check (toy number):** suppose a collateralized trade pays \$1 in one year and the collateral remuneration rate is 5% (continuous compounding, toy). Discounting at 5% gives \(PV\approx e^{-0.05}=0.9512\). Discounting at 6% gives \(PV\approx e^{-0.06}=0.9418\). The gap is about 0.94 cents per \$1 notional—around \$9.4mm per \$1bn notional—before any convexity or curve-shape effects. This is why “which curve?” is not a detail.
 
 > **Desk Reality: “Which Curve Are You Using?”**
 >

@@ -2,23 +2,58 @@
 
 This repo is a fixed income / rates / credit textbook written as markdown chapters under `chapters/`.
 
+Don't let perfect be the enemy of the good. Move efficiently through this work while still not compromising on quality of the content generated.
+
 There are multiple agents working on this project. 
 Multiple agents may work **in parallel** on different chapters/appendices.
-- Do not modify chapters which you are not assigned.
-- Do not revert/“clean up” other agents’ changes (even if you disagree). Only touch your target file(s) and the explicitly-required shared artifacts.
+- Only edit the chapter/appendix you are assigned (plus explicitly-required shared artifacts).
+- Do not revert/“clean up” other agents’ changes (even if you disagree).
 - Do not run `git restore`, `git checkout -- <file>`, `git reset`, or other rollback commands.
-- Don't commit into git.
-refactor_plan/ directory is deliberately under git ignore. Don't change .gitignore.
+- Do not commit.
+- `refactor_plan/` is deliberately gitignored (but still used); do not change `.gitignore`.
+- Do not change the ToC structure in `CONTENTS.md` unless explicitly instructed.
 
 ## Mission
 
 - Produce **publication-ready** chapters with **grounded correctness**.
 - Prefer grounding **non-trivial claims** (definitions, conventions, algorithm steps, “desk reality” practices) in evidence from `books_rag`. When needed, supplement with authoritative online primary sources (ISDA/ARRC/CCP rulebooks, central banks, regulators).
-- Use your own knowledge to improve **clarity and intuition**, but avoid asserting time-varying market practice without a authoritative source. If something remains unclear, mark it inline as `NOT SURE: ...` with the precise ambiguity.
+- Use your own knowledge to improve **clarity and intuition**, but avoid asserting time-varying market practice without an authoritative source. If something remains unclear, mark it inline as `NOT SURE: ...` with the precise ambiguity.
+
+## Quick Chapter Workflow (Default)
+
+When you are assigned a chapter/appendix, follow `refactor_plan/overall_plan.md` end-to-end. Typical loop:
+
+1. Skim `CONTENTS.md` notes + target chapter to find gaps.
+2. Run initial lint (`python refactor_plan/chapter_lint.py --paths <TARGET_FILE>`) and record the output.
+3. Create the per-target plan file from `refactor_plan/chapter_plan_template.md` (scope boundaries + conventions + evidence plan + cross-links).
+4. Evidence-first discovery: 5–10 targeted `rg` queries in the book corpus + 2–3 `books_rag.answer()` variants + 1 `search_structured()` + `fetch_chunk()` for any definition/formula/convention you will rely on.
+5. Edit for depth + correctness: learning objectives, intro cross-links, quote → cashflows → PV → risk, ≥1 worked example, ≥1 Pitfall + ≥1 Desk Reality, end-matter headings/order per `refactor_plan/end_matter_templates.md`.
+6. Run `books_rag.verify_draft()` on **claim packets** (≤30 sentences) and rewrite anchors or mark `NOT SURE: ...`.
+7. Re-run lint; fix remaining issues; do LaTeX hygiene.
+8. Append-only shared logs as required (e.g., `refactor_plan/book_usage_log.md`, `refactor_plan/concept_coverage_matrix.md`).
+
+## Depth & Intuition (Keep the Chapter “Teachable”)
+
+Evidence-first should not translate into “delete anything you can’t cite.” The goal is **grounded correctness + human intuition**.
+
+Use an “evidence sandwich” pattern for important ideas:
+1. **Anchor (evidence-backed):** 1–3 sentences stating the definition/formula/convention precisely.
+2. **Expand (your explanation):** unpack the terms, units, and what is held fixed. Add a mental model, diagram-in-words, or replication story.
+3. **Check (reader validation):** include at least one of: unit check, sign check, limiting case, or a small toy numeric example (clearly labeled hypothetical).
+
+When removing/shortening unsupported material, replace it with one of:
+- A **timeless mechanism-level** explanation (what must be true, what can vary, and why).
+- A **worked toy example** that builds intuition without claiming time-varying “typical” levels.
+- A precise `NOT SURE: ...` placeholder stating the missing input/source needed.
+
+`books_rag.verify_draft()` can be strict about paraphrases. To avoid losing depth:
+- Run it on **claim packets** (definitions/conventions/time-varying factual claims), not on pure intuition text.
+- Keep the **anchor** sentences closest to the source excerpt; keep the **expand/check** text as reasoning and sanity checks.
+See also: `refactor_plan/depth_intuition_playbook.md`.
 
 ## Evidence-First Rules (books_rag MCP)
 
-Use these MCP tools (do not write prose before Step A is done):
+Do not draft/replace **substantive** chapter content until you have collected evidence for the key claims you plan to make (definitions, pricing equations, conventions, risk measures). Use these tools:
 
 - `answer(query, alpha=0.3, rerank=true, limit=8)` → evidence pack (chunks + neighbor expansion)
 - `search_structured(query, ..., limit=20–50)` → targeted hunting (filters, path scoping)
@@ -34,6 +69,7 @@ When `books_rag` retrieval clusters or misses a key definition/convention:
 - Use local text search (`rg`, `grep`, filename search, etc.) against the **book corpus** and existing chapters to find the right terms/headings:
   - Book corpus root: `books/`.
   - Chapters live under `chapters/`.
+  - If `rg` seems to skip the corpus because it is ignored, use `rg -uuu 'pattern' books/`.
 - Then use what you found (exact wording, headings, file paths) to re-query `books_rag.search_structured()` (often with `source_path_like`) and/or `books_rag.fetch_chunk()` for the specific excerpt you rely on.
 
 Local search is a **discovery** tool; publication output still follows house style:
@@ -71,7 +107,7 @@ Sometimes retrieval clusters or misses key conventions. Do not try to “fix” 
 Instead:
 1. Vary query phrasing (synonyms, instrument name, convention name, “definition”, “pricing equation”, “day count”, etc.).
 2. Force source diversity using `search_structured()` with `source_path_like` filters.
-3. Use local discovery (`rg`) against `/home/usman/work/books/books` to find candidate headings, then pull those via `books_rag`.
+3. Use local discovery (`rg`) against `books/` (or `/home/usman/work/books/books` if this repo has no local corpus) to find candidate headings, then pull those via `books_rag`.
 4. If evidence is still weak/conflicting: decide a convention explicitly for the chapter (and align with `refactor_plan/notation_registry.md`), or mark `NOT SURE` with the missing input.
 
 ### References (required)
@@ -135,7 +171,7 @@ If something is unclear or you can’t retrieve strong evidence from `books_rag`
 
 - **Clarity**: define notation before use; unit checks and sign conventions; state assumptions.
 - **Practicality**: include “desk reality” failure modes (but only when evidence exists; otherwise request inputs).
-- **Consistency**: reuse the same definitions across chapters (DV01 sign, clean/dirty, day counts, etc.).
+- **Consistency**: reuse the same definitions across chapters (DV01 sign, clean/dirty, day counts, etc.). When introducing DV01/PV01/CS01, always state bump object, bump size, units, and sign.
 
 ## Skills (session-level instructions)
 

@@ -113,6 +113,8 @@ This is often the most desk-friendly way to compute convexity P&L because it tak
 - **DV01 (sign + units):** \(DV01 := PV(y-1\text{bp})-PV(y)\). For a long non-callable bond, \(DV01>0\). Units: currency per 1bp (often per 100 price points and then scaled by notional).
 - **Second-order P&L (consistent units):** \(\Delta PV \approx -DV01\cdot \Delta y_{\text{bp}} + Convexity01\cdot (\Delta y_{\text{bp}})^2\).
 
+**Check (turn \(Cvx\) into a desk-usable \(Convexity01\)):** If your system reports normalized convexity \(Cvx\) (per yield\(^2\)) and you know the position PV \(V\) (in dollars), then position dollar convexity is \(C_{\$}=V\cdot Cvx\) and \(Convexity01=\tfrac{1}{2}C_{\$}(10^{-4})^2\) in \(\$/\text{bp}^2\). Toy scale: if \(V=\$100\text{mm}\) and \(Cvx=50\), then \(C_{\$}=5{,}000\text{mm}\) and \(Convexity01\approx \tfrac{1}{2}\times 5{,}000\text{mm}\times 10^{-8}=\$25/\text{bp}^2\). A 50bp move has \((\Delta y_{\text{bp}})^2=2{,}500\), so convexity P&L is about \(25\times 2{,}500=\$62{,}500\) (directionally helpful for long positive-convexity).
+
 ### 13.2.3 Computing Convexity Numerically
 
 In practice, analytic formulas are not always available for complex instruments. In such cases, convexity is estimated using the same "bump and reprice" logic used for DV01. Instead of measuring a single slope, we estimate the *change* in slope using a **central difference method**:
@@ -253,6 +255,8 @@ Including the quadratic term makes the approximation dramatically more accurate 
 Scaling to notional \(N\):
 - \(\Delta PV_{dur} \approx (-2.800/100)\times 100{,}000{,}000 = -\$2.800\text{mm}\)
 - \(\Delta PV_{cvx} \approx (+0.0466/100)\times 100{,}000{,}000 = +\$46.6\text{k}\)
+
+**Check (reconcile to DV01 and \(Convexity01\)):** From the duration estimate, the position DV01 is approximately \(DV01\approx \$2.800\text{mm}/100 \approx \$28{,}000/\text{bp}\) (because the duration-only term is \(-DV01\times 100\)). From the convexity estimate, \(Convexity01\approx \$46.6\text{k}/100^2\approx \$4.66/\text{bp}^2\). Plugging these into \(\Delta PV\approx -DV01\cdot \Delta y_{\text{bp}} + Convexity01\cdot (\Delta y_{\text{bp}})^2\) reproduces the same \(-\$2.80\text{mm} + \$46.6\text{k}\) decomposition.
 
 **What breaks in practice:** if the bond is callable/MBS-like, cashflows change with rates and you need **effective** (option-adjusted) duration/convexity rather than the “hold cashflows fixed” measures.
 
@@ -403,6 +407,8 @@ Mixing positive- and negative-convexity instruments in one hedge can be unstable
 
 This phenomenon is known as "extension risk."
 
+**Check (how to see extension risk in your own numbers):** Compute DV01 at two yield levels using the *same* model and bump design (e.g., \(DV01(y)\) and \(DV01(y+50\text{bp})\)). For a negative-convexity instrument, it is common to see \(DV01(y+50\text{bp})>DV01(y)\) (risk “extends” in sell-offs). If you are running a DV01 hedge, this means a sell-off can make you under-hedged unless you rebalance.
+
 It explains why MBS hedging is difficult: as rates move, the duration (and DV01) of the underlying instrument can change materially, which means yesterday's hedge ratio can be wrong today. When many participants must rebalance in the same direction, this can amplify volatility.
 
 ### 13.6.4 The MBS Convexity "Death Spiral"
@@ -544,6 +550,8 @@ $$P(E[r]) = \frac{100}{1.05} = 95.238$$
 
 **Step 3: Convexity value:**
 $$\text{Convexity Value} = 95.272 - 95.238 = 0.034 \text{ (3.4 cents per 100 face)}$$
+
+**Check (translate cents to dollars):** 3.4 cents per 100 is 0.034 price points. On \(N=\$100\text{mm}\) face, 1.00 price point is \(\$1{,}000{,}000\), so 0.034 points is about \(\$34{,}000\). The convexity value in this toy example is small, but it scales with both notional and rate volatility.
 
 **Volatility Scaling:** Now double the volatility—rates are either 2% or 8%:
 $$E[P] = 0.5 \times \frac{100}{1.02} + 0.5 \times \frac{100}{1.08} = 0.5 \times 98.039 + 0.5 \times 92.593 = 95.316$$

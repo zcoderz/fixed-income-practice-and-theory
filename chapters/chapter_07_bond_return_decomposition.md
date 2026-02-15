@@ -71,6 +71,10 @@ $$\text{P\&L}_{\text{unfunded}} = \underbrace{\left(P_{\text{clean}}(h) - P_{\te
 
 This decomposition is useful because it separates the mark-to-market component (clean price change) from the mechanical income component (coupon accrual and payments).
 
+**Mechanics (two equivalent bookkeepings):** In cash terms, the trade is: pay the *dirty* price at entry, receive the *dirty* price at exit, and receive any coupons in between. Writing the same P&L in terms of *clean* prices forces you to explicitly add (i) coupon cashflows and (ii) the change in accrued interest. Accrued interest is not “extra” profit; it is the portion of the next coupon that has been earned but not yet paid.
+
+**Check (sign and units):** For a long position, \(AI(h)-AI(0)\) enters with a **plus** sign: if accrued interest rises over the holding period, the dirty price is mechanically higher. P&L measured in “price points” is per 100 face; to convert to dollars on notional \(N\), multiply by \(N/100\). A quick sanity check: if the clean price falls by 0.30 points while accrued interest rises by 1.00 point and no coupon is paid, then the dirty price rises by 0.70 points and the identity gives \(\text{P\&L}=+0.70\) points.
+
 The **horizon return** on an unfunded (cash) position is:
 
 $$R_{0 \to h} = \frac{\text{P\&L}}{P_{\text{dirty}}(0)}$$
@@ -133,6 +137,16 @@ The carry term has three components:
 Note that the financing term is written as \(r\,d/360\) in this formulation. In practice, repo accrual uses a stated money-market day-count convention; always document it, because carry can differ slightly across systems that make different day-count assumptions.
 
 **Intuition:** Carry tends to be positive when the bond's coupon rate exceeds its financing rate, but two nuances matter: (i) coupon income accrues on face value while repo interest is paid on the full (dirty) price, and (ii) the day count used for coupon accrual can differ from the day count used for repo interest.
+
+**Check (toy scaling; points vs dollars):** Suppose you own \(N=\$100\text{mm}\) face of a 6% coupon bond priced at a dirty price of 103.30 (so you financed about \(\$103.3\text{mm}\)). Over a 30-day horizon with no coupon date, approximate coupon accrual (using a simple 30/360-style fraction for the toy calculation) is
+\[
+\text{Income} \approx \$100\text{mm}\times 6\% \times \frac{30}{360}=\$500{,}000,
+\]
+while repo interest at \(r=4.50\%\) (Act/360 in this toy) is
+\[
+\text{Financing} \approx \$103.3\text{mm}\times 4.50\% \times \frac{30}{360}\approx \$387{,}375.
+\]
+Net carry is about \(\$112{,}625\). Converting that to **price points per 100**: one price point is \(1\%\) of face, i.e., \(\$1{,}000{,}000\) per \(\$100\text{mm}\) notional, so \(\$112{,}625\) is about \(0.1126\) points.
 
 ### 7.2.3 Breakeven Price Moves
 
@@ -237,6 +251,12 @@ $$\boxed{\text{Rolldown} := P_h^{\text{uc}} - P_0^{\text{clean}}}$$
 3. Reprice the bond (clean) at the horizon date using the unchanged curve/spread
 
 This is an exact repricing calculation, not an approximation.
+
+**Mechanics (what is held fixed):** Rolldown is defined on the **clean** price and holds the *pricing inputs* fixed (the benchmark curve and the spread definition/level), while updating only the *clock* (valuation date) and therefore the times-to-cashflows. In implementation terms: you regenerate the cashflow times from the horizon date, keep the original \(z_0(\cdot)\) and \(s_0\) objects, and reprice. If you instead compute “rolldown” on the dirty price, you will mechanically pick up accrued-interest accretion and risk double-counting carry.
+
+**Check (limiting cases):**
+- If the curve is flat and the bond is priced at par at time 0 (and remains option-free), pure “curve-shape” rolldown is small; most of the predictable component over short horizons should show up as carry.
+- If \(z_0(\cdot)\) is steeply upward sloping, rolldown is typically positive for intermediate maturities because the same bond ages into a lower-yield point on the curve.
 
 ### 7.3.4 Rolldown vs Pull-to-Par: Are They Different?
 
@@ -431,6 +451,8 @@ With the sign convention above, a parallel *up* move of \(\Delta z_{\text{bp}}>0
 
 $$\boxed{\Delta P_{\text{curve}} \approx -\text{DV01}_z \cdot \Delta z_{\text{bp}}}$$
 
+**Check (toy desk-scale number):** If \(\text{DV01}_z=0.08\) price points per bp per 100 notional and the curve sells off by \(+12\)bp, then \(\Delta P_{\text{curve}}\approx -0.08\times 12=-0.96\) points. On \(N=\$50\text{mm}\) face, that is about \(-0.96\times (50\text{mm}/100)=-\$480{,}000\). The sign matches intuition: rates up \(\Rightarrow\) price down for a long bond.
+
 ### 7.4.3 Second-Order Approximation: Convexity
 
 For larger moves, the linear approximation understates gains and overstates losses (for positive-convexity bonds). A standard second-order approximation is:
@@ -466,6 +488,8 @@ Units: **price points per 1bp per 100 notional** (multiply by \(N/100\) for curr
 With \(\Delta s_{\text{bp}}>0\) meaning *spread widening*, the first-order approximation is:
 
 $$\boxed{\Delta P_{\text{spread}} \approx -\text{DVOAS} \cdot \Delta s_{\text{bp}}}$$
+
+**Check (toy desk-scale number):** If \(\text{DVOAS}=0.06\) points per bp per 100 notional and spreads widen by \(+25\)bp, then \(\Delta P_{\text{spread}}\approx -0.06\times 25=-1.50\) points. On \(N=\$20\text{mm}\) face, this is about \(-1.50\times (20\text{mm}/100)=-\$300{,}000\).
 
 ### 7.5.3 Which Spread? Why Definitions Matter
 
@@ -525,6 +549,8 @@ This residual captures:
 3. **Non-parallel moves**: DV01 assumes parallel shifts; actual curve changes may twist or butterfly
 
 A second-order expansion explains why the residual tends to shrink for smaller shocks and grow with longer duration, higher convexity, and larger rate/spread moves.
+
+**Check (debug your explain):** A quick implementation test is to scale the shocks down and see if the residual behaves as expected. If you divide both the curve and spread moves by 10, the first-order terms (DV01/DVOAS \(\times\) bp) should shrink by about 10, while purely second-order pieces (convexity and cross-terms) should shrink by about \(10^2\). If your residual does not shrink materially when shocks are made small, it is often a sign of a bookkeeping bug (clean/dirty mismatch, wrong day count, or inconsistent curve/spread bump objects).
 
 ### 7.6.3 When Decomposition Breaks Down: Crisis Behavior
 

@@ -296,6 +296,18 @@ $$P_{\text{shifted}}(0,t) = e^{-(z(t) + 0.0001) \times t}$$
 
 and reprice the instrument.
 
+**Mechanics (discount-factor view):** A parallel +1bp shift in continuously compounded zero rates multiplies every discount factor by the same maturity-dependent factor:
+\[
+P_{\text{shifted}}(0,t)=P(0,t)\,e^{-0.0001\,t}.
+\]
+Longer-dated cashflows are hit more because the exponential factor depends on \(t\).
+
+**Check (duration-style scaling):** For small bumps, \(e^{-0.0001 t}\approx 1-0.0001 t\), so the PV change is approximately
+\[
+\Delta V \approx -0.0001\sum_i t_i\,CF_i\,P(0,t_i),
+\]
+which is why curve DV01 is closely related to a PV-weighted average maturity. As a rough desk check: if \(V\approx 100\) (per 100 face) and the PV-weighted time is about 4 years, then a 1bp parallel shift should move value by roughly \(100\times 4/10{,}000 \approx 0.04\) price points per 100.
+
 ### 11.3.2 Worked Example: Curve DV01 via Zero-Curve Bump
 
 > **Example 11.4: Curve DV01 via a Parallel Zero-Curve Bump**
@@ -472,6 +484,8 @@ averages the upward and downward sensitivities, effectively canceling the convex
 >
 > **Observation:** The (small) asymmetry between one-sided up and down estimates reflects positive convexity: the bond gains slightly more when rates fall than it loses when rates rise by the same amount.
 
+**Check (bump size is part of the definition):** DV01 is a derivative concept implemented with finite differences. For highly convex or path-dependent instruments, the reported “DV01” can change depending on whether you use a 1bp, 0.5bp, or 5bp bump, and whether you use a central or one-sided scheme. For plain-vanilla bonds the dependence is usually tiny at 1bp, but you should still treat **bump size + bump scheme** as part of the risk number’s specification.
+
 ### 11.5.3 Explicit Derivative Formula
 
 For simple bonds, we can derive the analytical derivative directly. Starting from:
@@ -580,6 +594,8 @@ The algorithm is:
 4. Reprice the instrument
 5. The change in value is the Quote PV01 to instrument $n$
 
+**Mechanics (rebuild makes the bump non-local):** When you bump a par quote and rebuild the curve, you typically change *many* underlying curve nodes/discount factors—not just “the 5-year point.” So Quote PV01 is a sensitivity to a **market quote instrument** (something you can actually trade), not a pure key-rate sensitivity. That is why Quote PV01 is often a better hedging coordinate system, while key-rate DV01 is often a better exposure/interpretation coordinate system.
+
 The operational appeal is that the sensitivity is reported in the same “coordinates” as liquid hedging instruments (the quotes you actually trade).
 
 > **Example 11.9: Quote PV01 and the Recipe Concept**
@@ -672,6 +688,11 @@ Full treatment of key-rate analysis is in **Chapter 14**.
 - **Rates-up DV01:** \(DV01^{(+)} := PV(\text{rates up }1\text{bp})-PV(\text{base})\).
 
 For symmetric \(\pm 1\text{bp}\) bumps, \(DV01^{(+)} \approx -DV01\).
+
+**Check (quick sign sanity):** Under the “rates down 1bp” convention in this book:
+- A long option-free fixed-rate bond typically has \(DV01>0\) (rates down \(\Rightarrow\) price up).
+- A receiver fixed swap (receive fixed, pay float) typically has \(DV01>0\); a payer swap typically has \(DV01<0\).
+If your report shows the opposite sign, first check whether the system is using a “rates up” convention or reporting a loss-on-up number as “DV01” without the sign flip.
 
 > **Example: Sign Convention Translation**
 >

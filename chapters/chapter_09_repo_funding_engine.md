@@ -190,6 +190,8 @@ $$\boxed{\text{Carry}_{100} = (AI(d)-AI(0)) - (P(0)+AI(0))\left(r\frac{d}{360}\r
 
 To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/100$.
 
+**Mechanics (what changes with a haircut):** The formulas above assume you finance the full invoice amount. With a haircut \(h\), you typically borrow only \((1-h)\times\) invoice cash and post the remaining \(h\times\) invoice cash as equity. That means the repo-interest term applies to the *borrowed cash* \(L_0\), while the equity portion has its own funding/opportunity rate. A good desk habit is to write carry as “bond income” minus “repo interest on \(L_0\)” minus “equity funding cost (if any)” so you do not accidentally apply the repo rate to the full invoice amount when a haircut is present.
+
 > **Pitfall — "per 100" vs "%" vs decimals:** Bond prices and accrued interest are usually quoted **per 100** of face (price "points"), while rates like repo are quoted in **% per year**, and \(1\text{ bp}=10^{-4}\).
 > **Why it matters:** Mixing these units is a common way to be off by 100× or 10,000× in carry/financing P&L.
 > **Quick check:** If \(I(0)=102.90\) per 100 and \(N=\$100\text{mm}\), invoice cash should be \((N/100)\,I(0)=\$102.9\text{mm}\), not \(\$10.29\text{bn}\).
@@ -323,6 +325,10 @@ In this book:
 
 Because it is a secured rate, a repo rate is theoretically very slightly below the corresponding fed funds rate.
 
+**Expand (mechanism):** In an unsecured loan, the lender’s payoff depends primarily on the borrower’s credit. In a secured loan (repo), the lender also has a claim on collateral, and the haircut/marking process is designed to keep the collateral value comfortably above the cash lent. All else equal, that reduces expected loss for the lender and therefore reduces the rate the lender demands.
+
+**Check (don’t over-interpret):** “Secured tends to be lower than unsecured” is a useful intuition, not a law of nature. Repo levels can be pushed around by collateral scarcity (specials), operational frictions, and balance-sheet constraints. When you use this intuition, always say what is being held fixed: same term, same counterparty credit, same collateral set, and the same haircut/margining assumptions.
+
 ### 9.5.3 The Specialness Spread
 
 Define the **specialness spread**:
@@ -382,6 +388,8 @@ Therefore, the special rate cannot fall below 0%, and, equivalently, the special
 $$r_{\text{spec}} \geq 0\% \quad \Rightarrow \quad s \leq r_{\text{GC}}$$
 
 In the fall of 2001, with GC near 2%, the maximum special spread was about 200 basis points.
+
+**Check (what assumption drives the floor):** This “0% floor” comes from comparing borrowing to the alternative of failing delivery when failing is assumed to have no explicit penalty beyond losing the use of sale proceeds for a day. If there is an explicit fails charge or other penalty, the correct comparison changes: replace the “0%” alternative with the effective cost of failing under your market’s rules, and the implied floor on \(r_{\text{spec}}\) (and therefore the bound on \(s\)) moves accordingly.
 
 ---
 
@@ -473,6 +481,14 @@ If the fund lacks \$3mm cash, it must sell—potentially at distressed prices.
 
 A fundamental insight is that buying a bond spot and financing it through repo replicates a **forward position** in the bond: you lock in (most of) the economics of owning the bond over the horizon via the financing rate.
 
+**Mechanics (two paths to the same exposure):**
+- **Path A (spot + repo):** buy the bond today (pay invoice cash), finance that cash borrowing at the repo rate, and unwind at the horizon by selling the bond and repaying the repo.
+- **Path B (forward):** agree today on a forward purchase/sale of the bond for horizon delivery at a forward invoice price.
+
+No-arbitrage says the net cashflows of Path A and Path B must match once you account for coupons and accrued interest, which is why repo rates and forward prices are tightly linked in relative-value trading.
+
+**Check (toy sign/scale):** Suppose the invoice price per 100 today is \(I(0)=102.90\), the repo rate is \(r=5.00\%\), and the horizon is \(d=30\) days. Ignoring intermediate coupons, the invoice amount grows to \(102.90\times(1+0.05\times 30/360)\approx 103.33\). If accrued interest at the horizon is \(AI(d)=1.20\), then the implied **forward clean** price is about \(P_{\text{fwd}}\approx 103.33-1.20=102.13\). The forward clean price is below spot clean when carry is positive because part of the “value” over the horizon shows up as accrued interest and coupon economics rather than as a higher clean price.
+
 ### 9.9.2 Forward Invoice Price (No Intermediate Coupon)
 
 Under no-arbitrage, the forward invoice price equals the terminal value of the repo loan:
@@ -505,6 +521,10 @@ $$\boxed{P_{\text{fwd}} + AI(d) = \left[(P(0) + AI(0))\left(1 + r\frac{d_1}{360}
 The security lender continues to receive coupons, so the borrower must pass through a "manufactured" coupon to the lender.
 
 Intuition: the security lender continues to receive the coupon, so the borrower must pass through a manufactured coupon; it is therefore natural to reduce the repo loan balance by the coupon on the coupon date.
+
+**Mechanics (dividend-style forward logic):** This is the bond analogue of a forward on a dividend-paying stock: coupons paid during the forward period reduce the forward invoice price because the forward buyer is not receiving those interim cashflows. The repo-financed spot position *does* receive them (via the manufactured coupon), so the no-arbitrage forward must reflect that by subtracting the coupon (and then accruing repo interest on the reduced balance).
+
+**Check (toy numbers):** Take \(I(0)=103.00\) per 100, a coupon \(C=2.00\) paid after \(d_1=30\) days, and delivery \(d_2=30\) days later, with \(r=5.00\%\). The balance grows to \(103.00\times(1+0.05\times 30/360)\approx 103.43\), then the coupon reduces it to \(101.43\), and it grows again to \(101.43\times(1+0.05\times 30/360)\approx 101.85\). That is the intuition behind the coupon-term in the forward formula.
 
 **Sanity check:** If $C = 0$, this collapses to the no-coupon formula.
 

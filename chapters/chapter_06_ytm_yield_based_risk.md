@@ -100,6 +100,10 @@ Synonyms: the **dirty** price is also called the **full** or **invoice** price�
 
 Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues about \(5/365 \\approx 1.4\) cents per day per $100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
 
+**Check (desk scale):** “1.4 cents per day per $100 face” sounds tiny until you scale it. On a \$100mm face position, that is roughly
+$$\frac{100{,}000{,}000}{100}\times 0.014 \approx \$14{,}000 \text{ per day}$$
+of mechanical dirty-price drift when the coupon rate is 5%. Clean-vs-dirty separation keeps this accrual from masquerading as trading P&L.
+
 Clean pricing solves this problem. The clean price strips out the mechanical accrual component, so quoted prices better reflect changes in yields and market conditions. If yields are unchanged, the “jump” at a coupon date is (mostly) an accrued-interest reset, not a sudden deterioration in the bond’s economic value.
 
 ### 6.2.3 Computing Accrued Interest
@@ -631,6 +635,8 @@ A 1-bp parallel bump gives:
 $$d_{\Delta}(t) = d(t) \cdot \exp(-\Delta \cdot t)$$
 
 The curve DV01 is then $P_{\text{base}} - P_{\text{bumped}}$.
+
+**Sign convention note:** $P_{\text{base}} - P_{\text{bumped}}$ corresponds to “PV(base) minus PV(rates up 1bp)”, which is positive for a long fixed-rate bond. This book’s DV01 convention is “PV(rates down 1bp) minus PV(base)”. The magnitudes match (for a symmetric design); only the bump direction differs. Always state what was bumped and in which direction.
 
 ### 6.7.3 When Yield DV01 and Curve DV01 Differ
 

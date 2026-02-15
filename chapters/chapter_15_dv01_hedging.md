@@ -66,6 +66,8 @@ where $F$ is the face value of the position.
 
 $$\text{DV01}^{\$} = 10{,}000{,}000 \times \frac{0.08}{100} = \$8{,}000 \text{ per bp}$$
 
+**Check (desk-scale sanity):** The scaling is linear in notional. The same bond DV01 of 0.08 per 100 is \(\$80{,}000/\text{bp}\) on \(\$100\text{mm}\) face, because \(100\text{mm}\times 0.08/100 = 80{,}000\).
+
 The factor-of-100 unit conversion is a notorious source of errors. Traders who confuse "per 100 face" with "per $1 face" will miscalculate hedge sizes by a factor of 100—a catastrophic mistake in practice.
 
 Bond quotes are typically **clean** (excluding accrued interest), while the **settlement cash amount** uses the dirty price:
@@ -102,6 +104,8 @@ $$\boxed{F_{B}=\frac{-F_{A} \times \text{DV01}_{A}}{\text{DV01}_{B}}}$$
 
 The negative sign indicates that if we are long bond A (positive $F_A$), we typically short bond B (negative $F_B$) to offset rate exposure—assuming both DV01s are positive. If one DV01 is negative (possible for some option-like structures), the same algebra applies but the “hedge” can involve long/long or short/short positions.
 
+**Check (toy numbers):** If \(F_A=\$100\text{mm}\), \(\text{DV01}_A=0.05\) per 100, and \(\text{DV01}_B=0.10\) per 100, then \(F_B=-(100\text{mm})\times 0.05/0.10=-\$50\text{mm}\). The dollar DV01s match: \(100\text{mm}\times 0.05/100=\$50{,}000/\text{bp}\) and \(50\text{mm}\times 0.10/100=\$50{,}000/\text{bp}\) with opposite sign, so the net is (approximately) zero under the stated bump.
+
 ### 15.2.2 What "DV01-Neutral" Actually Means
 
 A portfolio is “DV01-neutral” if its first-order PV change is approximately zero under the **specified bump design**. In practice, that usually means “neutral to small parallel shifts in a chosen curve/yield.”
@@ -123,6 +127,8 @@ If the hedge is DV01-neutral (i.e., $\text{DV01}_A^{\$}+\text{DV01}_B^{\$}=0$), 
 $$\Delta PV \approx -\text{DV01}_A^{\$}\,(\Delta bp_A-\Delta bp_B)$$
 
 So the hedge works best when $\Delta bp_A\approx \Delta bp_B$ under the chosen bump object; any divergence shows up as residual P&L.
+
+**Check (residual magnitude):** If your net DV01 is neutral but the realized move differs by \(+3\)bp between the position and hedge rate factors, and \(\text{DV01}_A^{\$}=+\$60{,}000/\text{bp}\), then the residual is roughly \(-60{,}000\times 3=-\$180{,}000\) (first order). This is why “DV01 neutral” is not the same as “riskless.”
 
 ### 15.2.4 Worked Example: Bond-Bond Hedge
 
@@ -183,6 +189,8 @@ $$\boxed{\text{PV01}_{\text{swap}} = N \times \sum_{i} \tau_i P(0, t_i) \times 0
 
 where $N$ is the notional amount, $\tau_i$ is the accrual fraction for period $i$, and $P(0, t_i)$ is the discount factor. The sum $A = \sum_i \tau_i P(0, t_i)$ is the **annuity factor**.
 
+**Mechanics (what PV01 is measuring):** This PV01 is the present value of a 1bp change in the fixed-leg coupon stream (an annuity). It is a convenient building block because many “rates DV01” calculations for swaps reduce to an annuity-scaled number under common bump designs. When you size a bond–swap hedge using DV01/PV01, you are effectively assuming the swap-rate move you care about is the right proxy for the bond’s rate factor under the chosen bump object.
+
 **Sign convention (payer vs receiver).** To hedge a long bond (positive DV01 under the “rates down” convention), you need a hedge instrument with **negative** DV01: it should lose money when rates fall and gain money when rates rise. A **payer** swap (pay fixed, receive floating) typically has that property.
 
 **Worked Example (template): Sizing a payer-swap hedge**
@@ -228,6 +236,8 @@ where $N$ is the notional amount, $\tau_i$ is the accrual fraction for period $i
 4. Size hedge notional:
    - \(N \approx \$22{,}800 / (\$435 \text{ per bp per } \$1\text{mm}) \approx 52.4\text{mm}\).
    - Action: pay fixed on \(\$52.5\)mm notional (rounded).
+
+**Check (PV01 scaling):** At \(\$435/\text{bp}\) per \(\$1\)mm, a \(\$52.5\)mm swap has PV01 magnitude \(\approx 52.5\times 435=\$22{,}838/\text{bp}\), matching the bond DV01 magnitude (up to rounding). The remaining task is getting the **sign** right (payer vs receiver) under the desk’s DV01 convention.
 
 **Cashflows (table)**
 The PV01 is the PV of the incremental fixed-leg cashflows from a 1bp change in fixed rate:

@@ -61,6 +61,10 @@ $$AI = \Delta \cdot \frac{c}{f} \cdot 100$$
 
 **Why this matters for spreads:** Spread engines—whether computing Z-spread or OAS—should be calibrated to match the dirty price, because discounting future cash flows produces the total present value that equals the settlement amount. Yield spreads in market commentary, however, can be ambiguous about which price convention is used. Always confirm.
 
+**Mechanics (quote \(\to\) cash \(\to\) PV target):** Clean price is the *quote language*; dirty price is the *cash language*. A PV engine values contractual cashflows and therefore naturally produces an invoice amount. If your input is a clean quote, you must add accrued interest to get the dirty-price target before solving for a Z-spread/OAS; otherwise, the solver will try to “explain” the missing \(AI\) by shifting the spread.
+
+**Check (timeline in words):** At settlement you pay \(P_{\text{dirty}}(0)\). During the holding period you receive coupon cashflows (if any). If you sell between coupon dates, you receive \(P_{\text{dirty}}(h)\), which includes the accrued interest you earned since the last coupon date. That is why PV-based spreads target dirty price: they are solving for the spread that makes the modeled settlement cash match the actual settlement cash.
+
 **Unit check:** $c/f$ is the coupon per period in decimal form; multiplying by 100 (the notional) gives cash per 100 face value. If $c = 0.06$ (6%) and $f = 2$ (semiannual), then each coupon is $3$ per 100. With $\Delta = 0.40$, we have $AI = 0.40 \times 3 = 1.20$.
 
 ---
@@ -74,6 +78,10 @@ The **yield to maturity** ($y$) is the internal rate of return that equates the 
 $$P = \frac{c}{y}\left(1 - \frac{1}{(1 + y/2)^{2T}}\right) + \frac{100}{(1 + y/2)^{2T}}$$
 
 where $c$ is the annual coupon in dollars per 100 (so a 6% coupon bond has $c = 6$).
+
+**Expand (what is held fixed):** Yield is defined as the single rate (under a stated compounding convention) that discounts the bond’s *contractual* cashflows to the observed price. In that sense, it is an IRR: cashflow timing and amounts are held fixed, and the “one number” \(y\) is whatever makes the PV identity true.
+
+**Check (limiting case):** For a zero-coupon bond (\(c=0\)), the formula collapses to \(P=100/(1+y/2)^{2T}\). A quick sign check follows immediately: increasing \(y\) increases the denominator and reduces \(P\), so yield up \(\Rightarrow\) price down.
 
 This single number $y$ compresses the entire term structure into one rate. It is convenient for quick comparisons but can hide important details. A common simplification is to treat a bond’s yield spread (promised yield minus “risk-free” benchmark yield) as compensation for default risk. However, as we will see, that assumption oversimplifies what spreads actually capture.
 
@@ -163,6 +171,14 @@ where:
 - $CF_k$ is the cash flow at time $t_k$
 - $P_{\text{bench}}(0, t_k)$ is the benchmark discount factor from 0 to $t_k$
 - $s_Z$ is the Z-spread (continuous compounding)
+
+**Mechanics (a discount-factor view):** The spread enters multiplicatively on discount factors:
+\[
+DF^{(s_Z)}(0,t)=P_{\text{bench}}(0,t)\,e^{-s_Z t}.
+\]
+So a higher \(s_Z\) scales down the PV of *every* cashflow, with a larger effect on longer-dated cashflows (because the factor depends on \(t\)).
+
+**Check (1bp intuition):** A \(+1\) bp increase in a continuous spread is \(s_Z \to s_Z+10^{-4}\). For a cashflow at \(t=5\) years, the extra discount factor is \(e^{-10^{-4}\cdot 5}\approx 1-0.0005\), i.e., about a 0.05% PV hit on that cashflow. That “\(t\) times PV weight” intuition is exactly what shows up in spread duration.
 
 **Intuition:** Instead of comparing one yield to one benchmark yield, Z-spread asks: "What constant spread must I apply to the entire benchmark discounting curve so that the present value matches the bond's dirty price?"
 
@@ -360,6 +376,10 @@ In an illustrative example, a TED spread of 15.6 bp would be interpreted as “t
 
 Traders compute the **option-adjusted spread (OAS)** for mortgage-backed securities and other bonds with embedded options. Conceptually, OAS is the constant spread added inside a rate model (tree/Monte Carlo) such that the model price matches the market dirty price. It originated in callable/option-embedded markets to quantify the spread after accounting for option value. In option-free credit contexts, the same computation often behaves like a term-structure-consistent spread (sometimes called a “zero-volatility spread” to emphasize it is not a volatility number).
 
+**Mechanics (why options change the meaning):** For an option-free bullet bond, cashflows are fixed, so “a constant spread that makes PV match price” is just a deterministic repricing exercise (Z-spread-like). With embedded options, the cashflows and/or exercise decision depend on the simulated rate paths, so the same spread parameter is part of a *joint* model: it affects discounting, exercise behavior, and therefore expected cashflows. That is why OAS is inherently model-dependent.
+
+**Check (limiting case):** If a bond has no embedded optionality and you compute both a Z-spread and an OAS using the same benchmark curve and the same compounding conventions, they should be close. If they differ materially, it is often a convention mismatch (clean vs dirty target, curve choice, or compounding basis), not “alpha.”
+
 ### 8.8.2 Model Dependence
 
 OAS is a measure of value **with respect to a particular model**.
@@ -445,6 +465,12 @@ $$CS01 \approx -\frac{\partial P}{\partial s}\cdot 10^{-4} = P \cdot D_s \cdot 1
 This parallels the familiar yield relationship $DV01 \approx \frac{P\times D_{\text{Mod}}}{10{,}000}$: you get an absolute “01” by multiplying a percentage-duration by price and dividing by $10{,}000$.
 
 **Units:** If $P$ is “price points per 100 notional”, then CS01 is “price points per 100 per 1bp”. For currency units, multiply by notional (and by $0.01$ if you convert price points per 100 into a currency amount).
+
+**Check (toy conversion to dollars):** Suppose a bond is priced at \(P=103.30\) (points per 100) with spread duration \(D_s=4.5\) years. Then
+\[
+CS01 \approx P\cdot D_s \cdot 10^{-4} \approx 103.30\times 4.5\times 10^{-4} \approx 0.0465
+\]
+price points per 100 per 1bp. On \(N=\$100\text{mm}\) face, 1 price point is \(\$1{,}000{,}000\), so \(0.0465\) points is about \(\$46{,}500\) per bp (loss on widening; gain on tightening), under the “positive for long credit” convention here. A good implementation cross-check is that a direct repricing at \(s\to s+1\) bp gives roughly the same number.
 
 > **Pitfall — CS01 sign and bump direction drift:** Different systems define CS01 with different bump directions (+1bp widening vs -1bp tightening) and different sign conventions.
 > **Why it matters:** You can hedge the *wrong way* if one report treats “CS01 = +\\$X” as profit-on-widening while another treats it as loss-on-widening.

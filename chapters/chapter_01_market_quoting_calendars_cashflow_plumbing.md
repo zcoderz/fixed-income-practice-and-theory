@@ -434,6 +434,18 @@ Settlement matters for two key reasons:
 
 2. **Discount factors are computed from the settlement date.** When pricing a bond, the "today" in your present value calculation is settlement, not trade date.
 
+**Mechanics (cashflows → PV):** a fixed-income instrument is a schedule of future cashflows. Given discount factors $P(t,T_i)$, the present value at valuation date $t$ is:
+
+$$\boxed{PV(t) = \sum_i CF_i \, P(t, T_i)}$$
+
+Settlement then specifies *when* the invoice cash is exchanged. To reconcile a quoted price to a model PV, be explicit about your valuation date (trade date vs settlement date vs end-of-day) and carry the value between dates consistently. Over a short settlement lag, that adjustment is essentially “interest on the cash you pay/receive because settlement is later,” so it scales with notional and short rates.
+
+> **Check (order of magnitude): settlement lag is funding-sized**
+>
+> Suppose you buy \$100,000,000 face of a bond at a dirty price of 99.30, so the invoice amount is about \$99.30mm. If settlement is 3 calendar days later and you use a hypothetical 5% p.a. discount rate for that lag (ACT/360, simple interest), the time value over the lag is roughly:
+> $$99.30\text{mm}\times 0.05 \times \frac{3}{360} \approx \$41{,}000.$$
+> This is not “alpha”; it’s a mechanical timing effect. If your system prices as of trade date but accrues AI to settlement (or vice versa), this is the kind of reconciliation break you’ll see.
+
 ### 1.4.3 When Settlement Fails
 
 What happens when the seller cannot deliver the bonds on settlement day? This creates a **settlement fail**.
@@ -664,6 +676,10 @@ When marking a bond position to market:
 - If you track **dirty price**, your P&L includes mechanical accrual drift, which must be separated from actual market moves.
 
 Most trading desks quote clean and track accrued interest separately, then reconcile to the full settlement amount.
+
+**Mechanics (clean/dirty is bookkeeping, not economics):** a useful way to think about bond “value through time” is that your total value is clean price plus accrued interest plus any coupon cash received since the last coupon date. When yields are unchanged, clean price should be roughly flat; the dirty price drifts mainly because AI builds up. On coupon date, AI resets but coupon cash arrives, leaving total value continuous.
+
+**Toy numbers (per \$100 face):** suppose a bond pays a \$2.50 semiannual coupon. If yields do not move, take $P_{\text{clean}}=100$ throughout. Halfway through the coupon period, $AI\approx 1.25$ so $P_{\text{dirty}}\approx 101.25$. Just before the coupon, $AI\approx 2.50$ so $P_{\text{dirty}}\approx 102.50$. On coupon date you receive \$2.50 and $AI\to 0$, so $P_{\text{dirty}}\to 100$. Total value: $102.50$ before; $100 + 2.50 = 102.50$ after. The “dirty drop” is a cashflow, not a mark-to-market loss.
 
 > **Desk Reality: P&L Reporting and Clean/Dirty**
 >

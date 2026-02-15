@@ -10,24 +10,39 @@ A portfolio manager calls with a simple question: "I'm down $2 million on my cor
 
 This chapter develops the complete framework for cash credit analytics: pricing risky bonds using survival probabilities and recovery assumptions (building on Chapter 36), defining spread measures that isolate credit risk from rate risk, computing credit sensitivities (CS01/spread duration) that drive P&L attribution, and understanding the relationship between cash bonds and the CDS market through the lens of the cash-CDS basis. We also cover floating rate notes and asset swaps—instruments central to how bank desks view credit exposure.
 
-**Roadmap:** We begin with conventions and notation (Section 0), then develop core definitions including FRN pricing and asset swaps (Section 1). Section 2 derives the mathematical framework for risky bond pricing. Section 3 covers measurement and risk analytics, including spread duration, CS01, credit risk premium decomposition, distressed debt dynamics, and the comprehensive treatment of cash-CDS basis drivers. The chapter concludes with worked examples, practical notes, and a substantial problem set.
+**Roadmap:** We begin with conventions (how to translate a cash-credit quote into a PV object), then define common spread measures used on desks. We then write a risky-bond PV as a survival leg plus a recovery leg, and finally connect those objects to risk measures (DV01 and CS01) and desk-style P&L attribution.
+
+Prerequisites: [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 7 — Bond Return Decomposition](chapters/chapter_07_bond_return_decomposition.md), [Chapter 8 — Spreads 101](chapters/chapter_08_spreads_101.md), [Chapter 11 — DV01/PV01 Definitions & Computation](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 35 — Default, Recovery, and Credit Events](chapters/chapter_35_default_recovery_credit_events.md), [Chapter 36 — Survival Probabilities and Hazard Rates](chapters/chapter_36_survival_probabilities_hazard_rates.md)
+
+Follow-on: [Chapter 38 — CDS Contract Mechanics](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 42 — Bootstrapping CDS Survival Curve](chapters/chapter_42_bootstrapping_cds_survival_curve.md), [Chapter 43 — CDS Risks & Hedging](chapters/chapter_43_cds_risks_hedging.md), [Chapter 28 — Basis Trades](chapters/chapter_28_basis_trades.md)
 
 ---
 
-## Conventions & Notation
+## Learning Objectives
+- Translate a cash-credit quote (clean price, yield spread, Z-spread, asset swap spread) into cashflows, PV, and settlement cash.
+- Write a risky-bond PV as a survival leg plus a recovery leg under an explicit recovery convention.
+- Define and interpret DV01 and CS01 with explicit bump objects, bump size, units, and sign convention.
+- Explain why (for an option-free fixed-rate bond under a simple yield decomposition) spread duration matches rate duration.
+- Diagnose cash–CDS basis as an “assumptions gap” (funding, delivery option, liquidity, counterparty/margin) rather than a free arbitrage.
 
-### Price Units
-Unless stated otherwise, prices/PVs are per $100 face ("per 100"). Dollar PV for notional $N$ is:
+---
+
+## Setup (Prices, Curves, Signs)
+
+### Prices, PVs, and Units
+Unless stated otherwise, prices and PVs are quoted **per 100 face** ("per 100"). For notional \(N\) (in currency), the dollar PV is:
 
 $$PV_{\$} = N \cdot P / 100$$
 
-### Clean vs Dirty
-Dirty (full) price $P$ equals clean price $P_{\text{clean}}$ plus accrued interest $AI$:
+### Clean vs Dirty (Settlement Cash Uses Dirty)
+Dirty (full) price \(P\) equals clean price \(P_{\text{clean}}\) plus accrued interest \(AI\):
 
 $$P = P_{\text{clean}} + AI$$
 
-### Risk-Free Discounting
-Base curve is represented by risk-free discount factors $Z(0,t)$ (e.g., government/OIS). Risk-free PV of deterministic cashflows is:
+When you **buy/sell bonds**, the cash settlement amount is based on the **dirty** price (clean plus accrued), scaled by notional.
+
+### Base Curve and Discount Factors
+The base (risk-free) curve is represented by discount factors \(Z(0,t)\) (e.g., government/OIS). Risk-free PV of deterministic cashflows is:
 
 $$\sum_{i} CF_i \, Z(0, t_i)$$
 
@@ -40,20 +55,13 @@ $Q(0,t) = P(\tau > t)$. Hazard / default intensity $\lambda(t)$ satisfies:
 $$Q(0,T) = \exp\!\left(-\int_0^T \lambda(t) \, dt\right)$$
 
 ### Recovery Rate
-$R \in [0,1]$. In examples we default to fractional recovery of face value (par) unless stated, but we explicitly flag that other recovery conventions exist (see Setup).
+$R \in [0,1]$. You must state the **recovery convention** (RFV/RT/RMV) because it changes the “default-leg” cashflow and therefore the inferred hazard/spread and CS01.
 
-### Z-spread / ZVS
-$z$ is the constant spread added to the base discounting rates so that discounted cashflows match the market price (O'Kane calls this the zero-volatility spread, ZVS).
-
-### DV01
-Interest-rate DV01 is the dollar price change for a 1 bp move in a stated rate measure; Tuckman defines:
-
-$$DV01 = \frac{PD}{10{,}000}$$
-
-when $D$ is modified duration and $P$ is full price.
-
-### CS01 / Credit DV01
-In this chapter, CS01 is defined analogously as the (signed) PV change per 1 bp change in a stated credit spread measure (e.g., Z-spread), with sign convention made explicit in Section 3.
+### Basis Points and Risk Sign
+- \(1\text{ bp} = 10^{-4}\).
+- Throughout this chapter we use the book sign convention (matching `refactor_plan/notation_registry.md`): risk numbers are **positive for a long bond**.
+  - \(DV01 := PV(\text{base rates down }1\text{ bp}) - PV(\text{base})\).
+  - \(CS01 := PV(\text{spread down }1\text{ bp}) - PV(\text{base})\), where you must name what “spread” means and what is held fixed (default in this chapter: constant Z-spread bump holding the base curve fixed).
 
 ---
 
@@ -80,30 +88,7 @@ Multiple recovery assumptions exist in the literature:
 | **RMV** | Recovery of Market Value |
 
 We use **RFV** for numeric examples unless otherwise stated, because it maps directly to "payment at default" building blocks that occur "commonly in bonds as recovery payments."
-
-### Notation Glossary
-
-| Symbol | Meaning |
-|--------|---------|
-| $t$ | Time in years |
-| $t_i$ | Coupon payment dates; $i = 1, \ldots, N$ |
-| $CF_i$ | Contractual cashflow at $t_i$ (coupon, and principal at maturity) |
-| $P$ | Dirty (full) price per 100 |
-| $P_{\text{clean}}$ | Clean price per 100 |
-| $AI$ | Accrued interest per 100 |
-| $Z(0,t)$ | Risk-free discount factor to time $t$ |
-| $\tau$ | Default time |
-| $Q(0,t) = P(\tau > t)$ | Survival probability to $t$ |
-| $\lambda(t)$ | Hazard rate / default intensity; $Q(0,T) = \exp(-\int_0^T \lambda)$ |
-| $R$ | Recovery rate (dimensionless) |
-| $s$ | Yield spread (corporate yield minus reference yield) |
-| $z$ | Z-spread (ZVS) to the base curve (in decimals; 1 bp = $10^{-4}$) |
-| $D$ | Modified duration (rate duration) |
-| $D_s$ | Spread duration (spread sensitivity) |
-| $DV01$ | Rate DV01 (dollars per 1 bp in the chosen rate measure) |
-| $CS01$ | Credit spread DV01 / credit DV01 (dollars per 1 bp in the chosen spread measure) |
-| $F(t)$ | Par floater spread at time $t$ |
-| $F(0)$ | Quoted margin (original spread at issuance) |
+For a full symbol table (units and sign conventions), see `## Notation` at the end of the chapter.
 
 ---
 
@@ -326,11 +311,11 @@ in a decomposition where yield $y = y_T + s$.
 
 Analogously, **credit DV01 / CS01** is the PV change per 1 bp move in the specified spread measure; O'Kane defines "credit DV01" for a spread $F$ with a negative sign so the measure is positive for a typical long-credit position:
 
-$$\text{credit DV01} = -\bigl(P(F + 1\text{ bp}) - P(F)\bigr)$$
+$$\boxed{CS01 := PV(s - 1\text{ bp}) - PV(s) \;\approx\; -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)}$$
 
-**The Key Insight: Spread Duration = Interest Rate Duration**
+**The Key Insight: Spread Duration = Interest Rate Duration (Option-Free Fixed-Rate Bonds)**
 
-O'Kane emphasizes: "For a fixed rate bond, the interest rate duration and the spread duration are exactly the same." This follows directly from the yield decomposition $y = y_T + s$: bumping $y_T$ by 1 bp or bumping $s$ by 1 bp has the identical effect on the yield $y$ and therefore on the bond price.
+For an option-free fixed-rate bond under the simple yield decomposition \(y = y_T + s\), bumping the reference yield \(y_T\) by 1bp or bumping the spread \(s\) by 1bp changes the total yield \(y\) by the same amount. In that sense, the first-order “rate duration” and “spread duration” coincide for this stylized decomposition.
 
 $$\boxed{D_s = D_{y_T} \quad \text{(for fixed-rate bonds)}}$$
 
@@ -378,25 +363,25 @@ $$\boxed{\hat{Z}(0,T) = Z(0,T) \, Q(0,T)}$$
 
 #### The Correlation Correction
 
-The independence assumption is convenient but not always exact. O'Kane shows that when interest rates and hazard rates follow correlated processes, the risky zero-coupon bond price takes the form:
+The factorization \(\hat{Z}(0,T)=Z(0,T)Q(0,T)\) relies on a modeling simplification (often phrased as an “independence” assumption) that makes default timing separable from discounting. If interest rates and hazard rates are modeled jointly and are materially correlated, the risky zero-coupon bond price need not equal \(ZQ\).
 
-$$\hat{Z}(0, T) = Z(0, T) \cdot Q(0, T) \cdot \Theta(0, T, \rho)$$
+In some joint Gaussian specifications, this shows up as a multiplicative correction term of the form
+\[
+\hat{Z}(0,T) = Z(0,T)\,Q(0,T)\,\Theta(0,T,\rho),
+\]
+where \(\Theta\) depends on the joint dynamics and the correlation parameter \(\rho\). The exact form is model-dependent: if you want to include this effect, you must specify the joint rate/hazard model and calibrate its parameters.
 
-where $\Theta$ is a multiplicative correction. For Gaussian dynamics with correlation $\rho$ between rates and hazards:
-
-$$\Theta(0, T, \rho) = \exp\left(\frac{\rho \sigma_r \sigma_\lambda T^3}{3}\right)$$
-
-O'Kane provides numerical examples showing this effect is typically small: "We can see that even for long maturities, the maximum correction to the risky zero coupon bond price is within a few tens of basis points." For a 10-year bond with 50% correlation and typical volatilities, $\Theta \approx 1.007$ (a 0.7% correction). This justifies the market-standard independence assumption for most pricing purposes, though it can matter for long-dated or high-correlation scenarios.
+**Sanity check:** if \(\rho=0\) (or the relevant volatilities are zero), then \(\Theta \to 1\) and you recover \(\hat{Z}=ZQ\).
 
 ---
 
 ### 2.3 Default-Contingent Recovery Cashflow as "Payment at Default"
 
-A standard recovery modeling building block is a claim paying 1 unit at default time if default occurs before $T$. O'Kane gives its PV:
+Define \(D(0,T)\) as the PV of **\$1 paid at the time of default** if default occurs by \(T\) (a “payment-at-default” claim). Under the same independence assumption as above, this PV can be written as:
 
 $$\boxed{D(0,T) = E\!\left[e^{-\int_0^\tau r(s)\,ds} \, \mathbf{1}_{\{\tau \leq T\}}\right] = -\int_0^T Z(0,s) \, dQ(0,s)}$$
 
-He notes such payments "occur commonly in bonds as recovery payments."
+This object is a convenient building block for recovery legs in risky-bond and credit-derivative PV formulas.
 
 **Unit check:** $Z$ and $Q$ are dimensionless; the integral is dimensionless, consistent with a PV-per-1-unit-notional.
 
@@ -406,7 +391,7 @@ He notes such payments "occur commonly in bonds as recovery payments."
 
 **Assumption (explicit):** Recovery is a fixed fraction $R$ of face value $F$ paid at default time $\tau$ if $\tau \leq T$ (RFV). This is one of several recovery conventions; see Section 0 and QRM.
 
-Let contractual cashflows be $CF_i$ at $t_i$, and maturity $T = t_N$. Then the bond PV can be written as:
+Let contractual cashflows be \(CF_i\) at \(t_i\), and maturity \(T=t_N\). Using (i) survival-contingent cashflows and (ii) the payment-at-default building block \(D(0,T)\), one convenient representation of the bond PV is:
 
 $$\boxed{P = \sum_{i=1}^{N} CF_i \, Z(0, t_i) \, Q(0, t_i) \;+\; RF \cdot D(0,T)}$$
 
@@ -437,7 +422,7 @@ Given a base curve with discount rates $r(0, t_i)$, the Z-spread (ZVS) $z$ solve
 
 $$P_{\text{mkt}} = \sum_i CF_i \cdot DF\bigl(r(0, t_i) + z;\, t_i\bigr)$$
 
-with the exact compounding form as in O'Kane's ZVS definition (discrete or continuous).
+with the compounding form matching your curve inputs (discrete or continuous).
 
 **Practical Interpretation:**
 
@@ -447,7 +432,7 @@ The Z-spread is not "the hazard rate." It is the constant spread that prices the
 
 ### 2.6 Spread Duration and CS01
 
-O'Kane decomposes yield $y = y_T + s$ and expands price changes:
+Under a yield decomposition $y = y_T + s$, a small-move expansion gives:
 
 $$\frac{dP}{P} = -D_{r_T} \, dy_T + \frac{1}{2} C_{r_T} \, dy_T^2 - D_s \, ds + \frac{1}{2} C_s \, ds^2 + \cdots$$
 
@@ -455,17 +440,13 @@ For small moves, the first-order approximation is:
 
 $$\frac{dP}{P} \approx -D_s \, ds \quad \Rightarrow \quad \frac{\partial P}{\partial s} \approx -P \, D_s$$
 
-**CS01 Sign Convention (We Will Use):**
+**CS01 Sign Convention (Used Throughout This Chapter):**
 
-In O'Kane's "credit DV01" definition, the measure includes a negative sign so the DV01 is positive for long exposure:
+We define CS01 as the PV change for a **1bp tightening** of the chosen spread measure:
 
-$$\text{credit DV01} = -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)$$
+$$\boxed{CS01 := PV(s - 1\text{ bp}) - PV(s)}$$
 
-We adopt the analogous convention for bonds:
-
-$$\boxed{CS01 \equiv -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)}$$
-
-so that spread widening (+1 bp) implies $P \downarrow$ and $CS01 > 0$.
+Equivalently (to first order), \(CS01 \approx -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)\): if spreads widen, prices fall, so the risk number is positive for a long position.
 
 **Link to Spread Duration (Unit Check):**
 
@@ -544,66 +525,33 @@ But O'Kane also emphasizes that observed spreads can include multiple premia; he
 
 ### 3.B.1) What Credit Spread Contains: The Risk Premium Decomposition
 
-O'Kane presents a framework for decomposing credit spreads into their economic components. The **market spread** exceeds the **actuarial spread** (expected loss) by a margin that reflects risk compensation.
+Observed cash-bond spreads are **price-implied** statistics: they are not “pure expected loss.” Even inside a reduced-form framework, what you call “the spread” typically mixes multiple effects:
 
-**Actuarial Spread:**
+- expected default loss (often called an “actuarial” or “expected loss” component)
+- compensation for bearing credit risk (risk premia)
+- liquidity / financing effects
 
-The actuarial spread is the spread that would compensate exactly for expected loss under risk-neutral probabilities. Using the credit triangle:
+One useful organizing approximation is:
 
-$$S_{\text{actuarial}} = \lambda_{\text{actual}}(1-R)$$
+$$\boxed{S_{\text{market}} \approx S_{\text{EL}} + \Pi_{\text{default}} + \Pi_{\text{volatility}} + \Pi_{\text{liquidity}}}$$
 
-where $\lambda_{\text{actual}}$ is the historical (not risk-neutral) default intensity.
+where \(S_{\text{EL}}\) is an expected-loss spread and the \(\Pi\) terms are premia.
 
-**Credit Risk Premium Decomposition:**
+**Anchor (credit triangle as a check):** under a flat-hazard, continuous-premium, “ignore discounting” approximation,
 
-O'Kane decomposes the excess of market spread over actuarial spread into three components:
+$$\boxed{S_{\text{EL}} \approx \lambda(1-R)}$$
 
-$$\boxed{S_{\text{market}} = S_{\text{actuarial}} + \underbrace{\Pi_{\text{default}} + \Pi_{\text{volatility}} + \Pi_{\text{liquidity}}}_{\text{Credit Risk Premium}}}$$
+This is a *useful sanity check*, not a universal identity.
 
-| Component | Description |
-|-----------|-------------|
-| **Default Risk Premium** $\Pi_{\text{default}}$ | Compensation for bearing the systematic component of default risk that cannot be diversified away |
-| **Volatility Risk Premium** $\Pi_{\text{volatility}}$ | Compensation for uncertainty in the timing and amount of defaults |
-| **Liquidity Risk Premium** $\Pi_{\text{liquidity}}$ | Compensation for illiquidity—difficulty selling in stressed markets |
+**Risk-neutral vs real-world (pricing vs forecasting):** if you calibrate \(\lambda(t)\) (or \(Q(0,t)\)) from traded spreads, you get a pricing-measure object that is appropriate for PV and hedging. It should not be read as a literal forecast of real-world default frequencies.
 
-**Coverage Ratio:**
+**Coverage ratio (a quick diagnostic):**
 
-O'Kane defines the **coverage ratio** as the ratio of market spread to actuarial spread:
+$$\boxed{\text{Coverage Ratio} := \frac{S_{\text{market}}}{S_{\text{EL}}}}$$
 
-$$\boxed{\text{Coverage Ratio} = \frac{S_{\text{market}}}{S_{\text{actuarial}}}}$$
+Large values are common for high-grade credits because \(S_{\text{EL}}\) can be tiny even when spreads are economically meaningful.
 
-This tells you "how many times over" the market charges for expected loss. O'Kane provides empirical evidence using 2002 CDS data:
-
-| Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
-|--------|-------------------|----------------------|----------------|---------------------|
-| AA | 28 | 9 | 3.12 | 19 |
-| A | 61 | 13 | 4.67 | 48 |
-| BBB | 164 | 30 | 5.54 | 134 |
-| BB | 463 | 145 | 3.19 | 318 |
-
-O'Kane observes: "We see that the coverage ratio tends to remain fairly constant as a function of rating... The spread premium increases as we descend the rating spectrum."
-
-This means that inferring hazard rates directly from spreads (via $\lambda = s/(1-R)$) yields **risk-neutral** default intensities that exceed historical rates. Hull reinforces this: "The default probabilities or hazard rates implied from credit spreads are risk-neutral estimates."
-
-Hull's Table 24.3 shows the expected excess return on bonds, further illustrating the wedge between market spreads and historical default experience:
-
-| Rating | Bond Yield Spread (bp) | Spread for Historical Defaults (bp) | Excess Return (bp) |
-|--------|----------------------|--------------------------------------|---------------------|
-| Aaa | 40 | 2 | 38 |
-| A | 77 | 8 | 69 |
-| Baa | 143 | 28 | 115 |
-| Ba | 304 | 144 | 160 |
-
-**Practical implication:** When calibrating survival curves to bond or CDS spreads, you are obtaining $\mathbb{Q}$-measure (pricing) hazards, not $\mathbb{P}$-measure (forecasting) hazards. These are appropriate for pricing and hedging but not for predicting actual default rates.
-
-**Interpreting Coverage Ratios:**
-
-O'Kane's data shows that coverage ratios for investment grade (AA through BBB) range from about 3× to 5.5×, while high-yield (BB) drops to about 3×. For investment-grade credits, the expected loss is small but spreads remain material—the risk premium is relatively large because:
-1. Defaults are rare but catastrophic when they occur (jump-to-default risk)
-2. IG defaults tend to cluster in recessions (systematic risk)
-3. IG bonds are held by investors who value liquidity highly
-
-For high-yield credits, expected loss is larger and the premium shrinks as a multiple—though the absolute spread premium (318 bp for BB) exceeds that of IG names.
+**Check (toy numbers):** if \(R=40\%\) and \(\lambda=0.30\%\)/year, then \(S_{\text{EL}} \approx 0.003 \times 0.60 = 18\) bp. If the bond trades at 90 bp, then only \(\sim 18\) bp is “expected loss” under this toy approximation; the remainder reflects premia/liquidity and model misspecification.
 
 > **Desk Reality: What You're Really Buying**
 >
@@ -613,30 +561,26 @@ For high-yield credits, expected loss is larger and the premium shrinks as a mul
 
 ### 3.B.2) The Merton Model Perspective
 
-O'Kane discusses Merton's structural model, which provides economic intuition for credit spreads. Under Merton's framework:
+Structural (Merton-style) models provide useful *intuition* for why credit spreads behave differently across maturities and across “healthy” vs “distressed” firms.
 
-- The firm's assets follow geometric Brownian motion
-- Debt is a zero-coupon obligation with face value $F$ maturing at time $T$
-- Default occurs only at maturity if assets fall below $F$
+In the simplest version:
 
-The resulting credit spread depends on leverage and asset volatility. O'Kane presents the term structure of Merton spreads with specific examples using $\sigma_A = 20\%$ and $r = 5\%$:
+- The firm's assets \(A(t)\) follow a diffusion.
+- Debt is a single zero-coupon obligation with face value \(F\) at maturity \(T\).
+- Default happens at \(T\) if \(A(T) < F\).
 
-> "When $A(t) = \$120$, we have $A(t) > F$ and so a bond maturing immediately can be repaid in full. As a result, the spread tends to zero as $T - t \to 0$. With increasing maturity, the risk of the asset value falling below $F$ increases and so the credit spread rises."
+This implies a replication story: **equity is a call option on assets** (strike \(F\)), and **risky debt is risk-free debt minus a put** on assets. Credit spreads therefore increase with leverage and asset volatility.
 
-This generates upward-sloping credit spread curves for typical investment-grade issuers. However, for distressed credits where $A(t) < F$:
+**Short-maturity intuition (the “limit check”):**
 
-> "When $A(t) = \$99$ and $F = \$100$, we have $A(t) < F$. In this scenario, it would not be possible to redeem the bond if it matured immediately. As a result, the credit spread as $T - t \to 0$ tends to infinity. However, for longer maturities, there is a finite probability that the asset value will grow to exceed the face value and the bond becomes more likely to be repaid. As a result, the credit spread falls with increasing time to maturity."
+- If \(A(t)\) is comfortably above \(F\), the model’s short-dated default probability is tiny, so the short-dated spread tends toward zero as \(T-t \to 0\).
+- If \(A(t)\) is below \(F\) (distressed), near-term default probability can be large, so short-dated spreads can be very high; longer-dated spreads can be lower because there is time for \(A(t)\) to recover.
 
-**Limitations of Merton's model:** O'Kane notes several reasons why structural models are not widely used for credit derivatives pricing:
+This is one structural way to understand upward-sloping vs inverted credit curves.
 
-1. "The credit spread for firms for which $A(t) > F$ always tends to zero as $T - t \to 0$. This is not consistent with the credit markets in which even corporates with very high credit ratings have a finite spread at very short maturities."
-2. The highly simplified capital structure is unrealistic
-3. The model only allows default at a single time $T$
-4. Limited transparency regarding firm asset values
+**Why reduced-form dominates for pricing/hedging:** the simplest Merton setup is stylized (single default date; simplified capital structure; unobserved assets), and it does not naturally produce strictly positive short-dated spreads for very high-grade issuers. Reduced-form (intensity) models are therefore the default workhorse for credit derivatives valuation and for curve calibration.
 
-O'Kane concludes: "Structural models perform best as a tool for augmenting the traditional balance sheet analysis methods of credit analysts... However, for the reasons listed above, structural models are not widely used in credit derivatives pricing."
-
-Reduced-form models (intensity-based) better fit short-dated spread behavior and dominate in the credit derivatives market. This is why the reduced-form framework developed in Sections 2.1–2.4 above is the standard tool for cash credit analytics.
+For this chapter, the key takeaway is: **use structural models as intuition**, but use **reduced-form PV building blocks** (Section 2) for quotes, risk, and P&L explain.
 
 ---
 
@@ -644,27 +588,25 @@ Reduced-form models (intensity-based) better fit short-dated spread behavior and
 
 **When Does the Market Switch to Upfront?**
 
-For highly distressed credits (typically spreads above 1000 bp), the market switches from **running spread** (periodic premium payments) to **upfront** format. O'Kane explains this occurs because:
+When spreads are very wide (distressed names), quoting CDS as a pure running spread can become awkward. Market conventions often switch to an **upfront** quote plus a **standard running coupon** (the exact standard coupons are contract conventions; check the relevant index/single-name specification in practice).
 
-1. **Protection seller preference:** At wide spreads, the seller prefers a certain upfront payment now rather than a risky stream of premiums that stops at default
-2. **Payment timing:** The risk of default before receiving much premium is high
-3. **Market convention:** CDS on distressed names trade with a standardized "standard coupon" (typically 500 bp) plus upfront
+Mechanically, the switch is about separating “how much spread” from “how much PV”: when default risk is high, a large portion of the premium leg may never be paid, so quoting some value upfront can be clearer.
 
 **Upfront Valuation:**
 
-O'Kane provides the formula relating upfront payment $U$ to running spread $S$:
+A common approximation relates the upfront amount \(U\) to the difference between the par spread \(S\) and the standard coupon \(S_{\text{std}}\):
 
 $$\boxed{U = (S - S_{\text{std}}) \times RPV01}$$
 
-where $S_{\text{std}}$ is the standard coupon (e.g., 500 bp) and $RPV01$ is the risky PV01.
+where \(RPV01\) is the risky PV01 (premium-leg annuity) for the contract maturity under the chosen curve/recovery setup. Who pays \(U\) depends on whether \(S\) is above or below the standard coupon (this is covered carefully in the CDS valuation chapters).
 
 **Inverted Credit Curves:**
 
-Distressed credits often exhibit **inverted credit curves**—short-term spreads higher than long-term spreads. This seems counterintuitive (shouldn't more time mean more default risk?), but reflects the market's view that:
+Distressed credits can exhibit **inverted credit curves**—short-term spreads higher than long-term spreads. Intuitively:
 - Near-term default probability is high
 - If the issuer survives the near term, it may recover and be less risky
 
-O'Kane shows examples where 1-year CDS spreads exceed 5-year spreads for distressed names.
+So “more time” can mean “more time to recover,” which can push longer spreads below shorter spreads.
 
 **Equity-Like Convexity:**
 
@@ -686,39 +628,56 @@ This asymmetric payoff makes distressed bond analysis resemble equity analysis m
 
 ### 3.C) Credit DV01 / Spread Duration / CS01
 
-**Definitions (Precise and Bump-Specific):**
+**Definitions (lock bump objects first):**
 
-**Spread duration** $D_s$: from O'Kane's yield-spread Taylor expansion:
+- Bump size: \(1\text{ bp} = 10^{-4}\).
+- These are **signed** risk scalars, reported in currency per 1bp, and we use the convention “positive for a long bond”.
+
+**Spread duration** \(D_s\) (relative sensitivity to a spread variable \(s\)):
 
 $$\frac{dP}{P} \approx -D_s \, ds$$
 
-**CS01 / credit DV01** (our chapter convention):
+**CS01** (chapter default; “tightening helps longs”):
 
-$$CS01 \equiv -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)$$
+$$\boxed{CS01 := PV(s - 1\text{ bp}) - PV(s)}$$
 
-matching O'Kane's sign convention for credit DV01.
+To first order, this is equivalent to \(CS01 \approx -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)\): widening \(s\) lowers price, so the risk number is positive for a long position.
+
+**DV01** (chapter default; “rates down helps longs”):
+
+$$\boxed{DV01 := PV(r - 1\text{ bp}) - PV(r)}$$
+
+You must state the bump object for \(r\) (zero curve, par curve rebuild, yield-to-maturity, key rates, etc.). In this chapter, the default meaning is a **parallel 1bp shift of the base discount curve** used for PV.
 
 **What Is Being Bumped? (Be Explicit)**
 
-| Bump Type | Description |
-|-----------|-------------|
-| **Constant Z-spread bump** | Hold $Z(0,t)$ fixed and reprice with $z \to z + \Delta z$. This matches the ZVS definition equation. |
-| **Hazard-rate bump** (preview only) | Bump $\lambda(t)$ (or survival $Q$) and reprice using a recovery convention. The link between hazard and spread can be approximated by the credit triangle $S = \lambda(1-R)$ under strong simplifications. |
-| **OAS bump** (not pursued here) | O'Kane notes that for bonds with embedded options, the option-adjusted spread (OAS) is used rather than ZVS for a "correct" valuation. We keep this chapter to non-option cash bonds. |
+| Risk number | Bump object (default in this chapter) | What is held fixed? | Units |
+|---|---|---|---|
+| \(DV01\) | Base discount curve shifted down 1bp (parallel) | Credit inputs (spread/hazard) and cashflow schedule | currency per 1bp |
+| \(CS01\) | Constant Z-spread \(z\) shifted down 1bp (parallel) | Base curve and cashflow schedule | currency per 1bp |
 
-**Risk Interpretation:**
+Alternative “CS01” definitions exist (and can be useful), but they answer different questions:
+- **Hazard bump CS01 (model-based):** bump \(\lambda(t)\) (or \(Q(0,t)\)) under a stated recovery convention and reprice.
+- **OAS bump CS01 (optioned bonds):** bump OAS in a model where cashflows depend on rates.
 
-**Rates DV01 vs CS01:**
-- **Rates DV01** measures PV sensitivity to the base curve/rates.
-- **CS01** measures PV sensitivity to the chosen credit spread measure (e.g., Z-spread).
+> **Pitfall — “What is being bumped?” mismatch:** Two systems can both print “CS01” while bumping different objects (Z-spread vs hazard vs OAS, and/or “hold fixed” vs “recalibrate”).  
+> **Why it matters:** hedge ratios and P&L explains become apples-to-oranges.  
+> **Quick check:** reprice the same bond with two bump definitions and compare magnitudes; if they differ materially, you are not measuring the same risk.
 
-A rates-hedged corporate bond position (DV01-neutral via swaps/Treasuries) can still lose money when credit spreads widen (CS01 exposure remains).
+**First-order P&L explain (when moves are small):**
+
+$$\boxed{\Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} \;-\; CS01 \cdot \Delta s_{\text{bp}}}$$
+
+This equation only makes sense when \(\Delta r\) and \(\Delta s\) match the bump objects used to compute \(DV01\) and \(CS01\).
+
+**Duration scaling (unit check):**
+
+- Per 100 notional, \(DV01 \approx \frac{P \, D_{\text{mod}}}{10{,}000}\).
+- Per 100 notional, \(CS01 \approx \frac{P \, D_s}{10{,}000}\).
 
 **Additivity:**
 
-PV is additive across instruments, so first-order sensitivities in dollars add. Tuckman shows portfolio duration as a value-weighted average of component durations, and DV01 scales with price and duration.
-
-Hence, under a common bump definition, **portfolio DV01** and **portfolio CS01** are the (signed) sums of position DV01/CS01.
+PV is additive across instruments, so (under a common bump definition) **portfolio DV01** and **portfolio CS01** are the signed sums of position DV01/CS01.
 
 ---
 
@@ -745,11 +704,9 @@ The "carry" trade in credit involves:
 - Hoping for no default or rating downgrade
 - Benefiting from spread roll-down if curves are upward-sloping
 
-> **Desk Reality: The Carry Trade**
->
-> A classic trade in high-yield is simply owning the bonds and collecting spread. The math: if you buy a BB bond at +350 bp and hold it for a year with no default and unchanged spreads, you earn roughly 3.5% excess return.
->
-> **The risk:** If defaults spike or spreads widen, you lose more than a year's carry in a day. The 2008 crisis saw high-yield spreads widen from ~300 bp to ~2000 bp in months—wiping out years of accumulated carry.
+> **Desk Reality:** Credit carry is “coupon + rolldown” earned by holding a spready bond when spreads don’t widen and the issuer doesn’t default.  
+> **Common break:** A spread shock (or downgrade/default) can wipe out months (or years) of carry very quickly.  
+> **What to check:** When you quote a carry number, also compute a stress loss estimate like \(CS01 \times 50\text{ bp}\) or \(CS01 \times 100\text{ bp}\) and sanity-check whether the position can survive that move.
 
 ---
 
@@ -818,62 +775,41 @@ Bond spreads can be negative (e.g., supranational bonds trading through Libor), 
 
 #### 3.E.2) Market Factors Affecting the Basis
 
-O'Kane identifies six **market factors** that cause the basis to vary over time:
+In addition to the structural “product differences” above, the basis moves with market frictions and one-sided flows (sometimes called “technicals”):
 
-**1. Relative Liquidity**
+**1. Relative liquidity / shorting constraints**
 
-Whichever market is more liquid tends to be "fairer" priced. In normal times, the CDS market for large issuers is often more liquid than cash bonds, making CDS spreads the "true" credit measure. The less liquid market trades wider.
+If one market is less liquid or harder to short/finance, it can trade wider because investors demand compensation to hold it (or because the “arb” is hard to implement).
 
-**2. Synthetic CDO Technicals**
+**2. One-sided demand for protection (hedging flows)**
 
-Structured products like synthetic CDOs require large amounts of CDS protection. Dealers who create CDOs need to buy protection, pushing CDS spreads wider (positive basis). This was significant in 2005-2007.
+CDS is often the easiest instrument to express “short credit.” Persistent demand to buy protection (macro hedging, issuance hedging, relative-value positioning) can widen CDS spreads relative to bond-implied spreads.
 
-**3. New Issuance / Loan Hedging**
+**3. Funding and balance-sheet constraints**
 
-When companies issue new bonds or loans, underwriters often hedge by buying CDS protection. This temporarily widens CDS spreads (positive basis).
+Even if a cash–CDS trade looks attractive in PV terms, repo terms, haircuts, and internal balance-sheet constraints can prevent investors from holding the position until convergence. This can create basis dislocations that persist.
 
-**4. Convertible Bond Issuance**
+**4. Margin/counterparty/settlement frictions**
 
-Convertible bond arbitrage strategies involve:
-- Long convertible bond (for the equity option)
-- Hedge credit risk by buying CDS protection
+CDS requires margin and has counterparty/settlement mechanics; cash bonds require financing, borrowing, and settlement. These frictions can dominate the theoretical basis for long periods.
 
-Large convertible issuance creates CDS protection demand, widening CDS spreads (positive basis).
+#### 3.E.3) Regime Note: Why the Basis Can Persist
 
-**5. Demand for Protection (Short Positioning)**
-
-CDS is the easiest way to go short credit. When the market is bearish:
-- Investors buy CDS protection to short credit
-- Cash bond shorting is harder (need to borrow bonds)
-
-One-sided protection demand widens CDS spreads (positive basis).
-
-**6. Funding Risk (CDS Locks in Libor Flat)**
-
-CDS premium payments are fixed; the contract doesn't change if funding costs change. Bonds require ongoing financing that may become expensive in stress. This makes CDS more attractive to protection sellers in volatile times.
-
-#### 3.E.3) Basis Regimes: Positive vs. Negative
-
-| Regime | When | Why |
-|--------|------|-----|
-| **Positive Basis** (CDS > Bond) | Pre-2007 "normal" times | Synthetic CDO demand, delivery option, short demand via CDS |
-| **Negative Basis** (Bond > CDS) | 2008-2009 crisis | Funding stress, forced bond selling, cash market dislocation |
-
-Hull RM provides historical context: "Prior to the market turmoil starting in 2007, the basis tended to be positive. For example, De Witt estimates that the average CDS-bond basis in 2004 and 2005 was 16 basis points." During the 2008 crisis, the basis became severely negative as bond prices collapsed while CDS protection became expensive. Hull RM explains: "It was difficult for financial institutions to arbitrage between bonds and CDSs because of a shortage of liquidity and other considerations." Since the crisis, Hull notes that "the magnitude of the CDS-bond basis (sometimes positive and sometimes negative) has become much smaller."
+In calm markets, the basis is often dominated by relative liquidity and supply/demand for protection. In stress, funding/margin constraints and forced selling can dominate, so the basis can gap and remain away from zero even when the “arbitrage” seems obvious on paper.
 
 > **Desk Reality: The "Free Money" Illusion**
 >
-> A negative basis looks like free money: buy the bond, buy CDS protection, earn the basis. But:
+> A negative basis can look like free money: buy the bond, buy CDS protection, earn the basis. Common breaks:
 >
-> 1. **Funding cost:** The trade requires financing the bond position. During the 2008 crisis, repo rates spiked and financing became unavailable at any price.
+> 1. **Funding terms:** The trade requires financing the bond position; repo rates/haircuts can reprice and financing can disappear.
 >
-> 2. **Counterparty risk:** If your CDS counterparty defaults, you lose your protection just when you need it most.
+> 2. **Counterparty risk:** If your CDS counterparty defaults, you lose protection when you need it most.
 >
-> 3. **Margin calls:** Both bond repo and CDS require margin. If spreads widen, you face margin calls before the trade converges.
+> 3. **Margin calls:** Both bond repo and CDS require margin. If spreads widen, margin calls can arrive long before convergence.
 >
-> 4. **Term mismatch:** Bond repo is typically short-term; CDS is 5-year. If repo markets freeze, you're forced to sell the bond at distressed prices.
+> 4. **Term mismatch:** Bond financing is often short-term while CDS is long-dated; rollover risk can force an unwind at the wrong time.
 >
-> Many "negative basis" trades lost money in 2008-2009 despite the theoretical arbitrage.
+> The core message: basis trades are not “free carry” unless you can fund, margin, and survive mark-to-market along the path.
 
 #### 3.E.4) Basis Driver Summary Table
 
@@ -911,7 +847,84 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 
 ---
 
-## 4. Worked Examples (15 Numeric Examples)
+## 4. Worked Examples (Selected Numeric Examples)
+
+### Worked Example (Template): A Dated Corporate Bond (Clean → Dirty Settlement, DV01/CS01, 1-Day P&L)
+
+**Context**
+- You buy a corporate bond at a quoted clean price and want (i) the actual settlement cash amount and (ii) a desk-style “rates vs credit” 1-day P&L explain using DV01 and CS01.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-02-17
+- Settlement date: 2026-02-19 (assume T+2 for this example)
+- Accrual start/end for the current coupon: 2025-12-15 to 2026-06-15
+- Coupon / principal payment dates: 2026-06-15, 2026-12-15, 2027-06-15, 2027-12-15, 2028-06-15 (maturity)
+
+**Inputs**
+- Instrument: USD corporate bond, 6.00% annual coupon, semiannual coupons, maturity 2028-06-15, face 100.
+- Day count for coupons (assumption for this example): 30/360.
+- Market quote (trade): clean price \(P_{\text{clean}} = 100.25\) per 100.
+- Notional: \(N = \$10{,}000{,}000\).
+- Toy discounting setup for the PV/risk demo (to keep arithmetic transparent):
+  - Flat base curve: continuously-compounded zero rate \(r = 4.00\%\).
+  - Z-spread quote: \(z = 180\text{ bp} = 0.0180\) (continuous-compounding interpretation).
+
+**Outputs (What You Produce)**
+- Settlement cash (dirty price × notional).
+- PV per 100 and in dollars.
+- \(DV01\) and \(CS01\) with explicit bump objects, bump size, units, and sign:
+  - \(DV01 := PV(r-1\text{ bp}, z) - PV(r, z)\) (base curve bumped down 1bp, \(z\) held fixed).
+  - \(CS01 := PV(r, z-1\text{ bp}) - PV(r, z)\) (Z-spread bumped down 1bp, base curve held fixed).
+  - Units: dollars per 1bp for the stated notional; sign: positive for a long bond.
+
+**Step-by-step**
+1. **Clean → dirty:** With 30/360, the accrual fraction from 2025-12-15 to 2026-02-19 is \(\tau = 64/360 \approx 0.1778\). Accrued interest per 100 is \(AI = 100 \cdot 0.06 \cdot \tau \approx 1.07\). So \(P_{\text{dirty}} \approx 100.25 + 1.07 = 101.32\).
+2. **Settlement cash:** Cash paid on settlement is \(\frac{N}{100} P_{\text{dirty}} \approx 100{,}000 \times 101.32 = \$10.132\text{ mm}\).
+3. **PV with Z-spread (toy setup):** Approximate ACT/365 year-fractions from settlement to cashflow dates: \(t \approx \{0.318,\,0.819,\,1.318,\,1.819,\,2.318\}\). Price per 100 using
+   \[
+   PV(r,z) = \sum_i CF_i \exp\bigl(-(r+z)t_i\bigr).
+   \]
+   With \(r+z = 5.80\%\), this gives \(PV \approx 101.33\) per 100, consistent with the dirty price.
+4. **DV01 and CS01 (bump-and-reprice):** With continuous discounting, a 1bp down-bump changes PV by approximately
+   \[
+   DV01 \approx CS01 \approx \left(\sum_i CF_i\, t_i\, e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022 \quad \text{per 100 per bp}.
+   \]
+   For \(N=\$10\text{ mm}\), \(DV01 \approx CS01 \approx 0.022 \times 100{,}000 \approx \$2{,}200\) per bp.
+
+**Cashflows (table)**
+| Date | Cashflow (per 100) | Explanation |
+|---|---:|---|
+| 2026-02-19 | \(-101.32\) | Pay dirty price to purchase the bond |
+| 2026-06-15 | \(+3.00\) | Semiannual coupon |
+| 2026-12-15 | \(+3.00\) | Semiannual coupon |
+| 2027-06-15 | \(+3.00\) | Semiannual coupon |
+| 2027-12-15 | \(+3.00\) | Semiannual coupon |
+| 2028-06-15 | \(+103.00\) | Final coupon + principal |
+
+**P&L / Risk Interpretation**
+- A desk-style first-order explain for a long position is:
+  \[
+  \Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} \;-\; CS01 \cdot \Delta z_{\text{bp}},
+  \]
+  where \(\Delta r_{\text{bp}}\) is the base-curve move (in bp) and \(\Delta z_{\text{bp}}\) is the Z-spread move (in bp), both defined consistently with the bump objects above.
+- Example scenario: if rates rise by \(+6\)bp and Z-spread widens by \(+15\)bp, then
+  \[
+  \Delta PV \approx -2{,}200 \times 6 \;-\; 2{,}200 \times 15 \approx -\$46\text{k}.
+  \]
+- What breaks this explain: curve-shape changes (key-rate vs parallel), optionality (OAS vs Z-spread), and “spread” definition changes (Z-spread vs hazard vs asset-swap).
+
+**Sanity Checks**
+- Units check: “per 100” → dollars via \(N/100\); \(1\text{ bp}=10^{-4}\) converts a duration-like number into a price change.
+- Sign check: rates down or spreads tighten \(\Rightarrow\) PV up, so \(DV01>0\) and \(CS01>0\) for a long bond.
+- Reproduction check: you can replicate this with a spreadsheet using columns \(\{t_i, CF_i, DF_i, PV_i\}\).
+
+**Debug Checklist (When Your Result Looks Wrong)**
+- Did you compute accrued interest using the correct day count and the correct settlement date (not trade date)?
+- Did you reprice to the same convention you solved on (clean vs dirty, and the same cashflow schedule)?
+- Are you mixing “Z-spread bump” CS01 with a “hazard bump” CS01 (different objects, different answers)?
+- Are you reporting DV01/CS01 per 100, per \$1mm, or for the full position?
+
+---
 
 ### Common Conventions Across Examples A–F (Unless Stated)
 
@@ -1118,9 +1131,11 @@ Let $z = 84.5$ bp (Example D). Compute:
 | $P(z + 1\text{ bp})$ | $\approx 106.9564$ |
 | $P(z - 1\text{ bp})$ | $\approx 107.0152$ |
 
-**CS01 (Per 100) Using O'Kane-Style Sign Convention:**
+**CS01 (Per 100; Chapter Convention):**
 
-$$CS01 \equiv -\bigl(P(z + 1\text{ bp}) - P(z)\bigr) = P(z) - P(z + 1\text{ bp}) \approx 0.029403$$
+$$CS01 := P(z - 1\text{ bp}) - P(z) \approx 107.0152 - 106.9858 \approx 0.0294$$
+
+Equivalently (to first order), \(CS01 \approx P(z) - P(z+1\text{ bp})\).
 
 **Unit check:** price points per 100 per 1 bp.
 
@@ -1165,7 +1180,7 @@ hold $z$ fixed at 84.5 bp.
 
 Using DV01 sign convention (positive for a long bond):
 
-$$DV01 \equiv -\bigl(P_{\text{rates}+} - P\bigr) = P - P_{\text{rates}+} \approx 0.029403$$
+$$DV01 := PV(r-1\text{ bp}) - PV(r) \approx P - P_{\text{rates}+} \approx 0.0294$$
 
 **Per \$1mm:** $\approx \$294.03$/bp.
 
@@ -1338,7 +1353,7 @@ $$z_{\text{mkt}} - S_{\text{EL}} \approx 4.5\text{ bp}$$
 
 $$\text{Coverage Ratio} = \frac{z_{\text{mkt}}}{S_{\text{EL}}} = \frac{84.5}{80.0} = 1.056$$
 
-This is low compared to typical IG coverage ratios (4-5x), suggesting either the actuarial spread calculation is overstated or this is a relatively risky credit where expected loss dominates.
+Coverage ratio close to 1 means the toy expected-loss estimate is close to the market Z-spread in this constructed example. In practice, coverage ratios can be much larger than 1 because observed spreads embed premia and liquidity; if your toy calculation gives an extreme ratio, revisit assumptions (recovery, mapping from \(Q\) to \(\lambda\), and the spread measure being compared).
 
 **Interpretation (Explicitly Labeled):** O'Kane conceptualizes the difference between market spread and actuarial spread as arising from additional premia (default risk premium, volatility risk premium, liquidity risk premium).
 
@@ -1470,10 +1485,10 @@ Theoretical basis capture: $50 \text{ bp} \times 10\text{mm} \times 5 \text{ yr 
 3. **Margin calls:** Both CDS and repo require margin that increases in stress
 4. **Counterparty risk:** CDS counterparty could fail
 
-> **Practitioner Note:** This example illustrates why "obvious" basis arbitrage often fails. The 50 bp negative basis may be entirely consumed by funding costs and risks. In the 2008 crisis, many negative basis trades lost money because:
-> - Funding costs spiked (repo spreads widened dramatically)
-> - Repo availability collapsed (couldn't roll financing)
-> - Margin calls forced liquidation at worst prices
+> **Practitioner Note:** This example illustrates why "obvious" basis arbitrage often fails. A 50 bp negative basis can be entirely consumed by funding costs and path risks, for example:
+> - Funding terms reprice (repo spread/haircut changes can eat the basis)
+> - Repo availability can disappear (roll risk forces an unwind)
+> - Margin calls can arrive long before convergence
 
 ---
 
@@ -1483,7 +1498,7 @@ Theoretical basis capture: $50 \text{ bp} \times 10\text{mm} \times 5 \text{ yr 
 
 **Distressed Credit:**
 - Running CDS spread: 1500 bp (15%)
-- Standard coupon: 500 bp (market convention for distressed)
+- Standard coupon: 500 bp (hypothetical standard-coupon contract for this example; check current contract conventions in practice)
 - Maturity: 5 years
 
 **Risky PV01 Calculation:**
@@ -1516,28 +1531,24 @@ The upfront format front-loads payment, protecting the seller from early default
 
 ---
 
-### Example O: Coverage Ratio by Rating
+### Example O: Coverage Ratio (Toy Numbers)
 
-**Task:** Verify the coverage ratio framework using O'Kane's empirical data.
+**Task:** Compute a toy “expected-loss spread” via the credit triangle and compare it to a market spread.
 
-From Section 3.B.1, O'Kane's 2002 CDS data shows:
+**Inputs (hypothetical):**
+- Recovery: \(R = 40\%\)
+- Flat hazard (toy): \(\lambda = 0.50\%\)/year
+- Observed market spread quote (any spread measure, for intuition): \(S_{\text{market}} = 150\) bp
 
-| Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
-|--------|-------------------|----------------------|----------------|---------------------|
-| AA | 28 | 9 | 3.12 | 19 |
-| A | 61 | 13 | 4.67 | 48 |
-| BBB | 164 | 30 | 5.54 | 134 |
-| BB | 463 | 145 | 3.19 | 318 |
+**Step 1 — Expected-loss spread (credit triangle check):**
 
-**Verify BBB:** Coverage = 164 / 30 = 5.47 ≈ 5.54 ✓ (small rounding). Premium = 164 − 30 = 134 bp ✓.
+$$S_{\text{EL}} \approx \lambda(1-R) = 0.005 \times 0.60 = 0.003 = 30\text{ bp}$$
 
-**Observations:**
+**Step 2 — Coverage ratio:**
 
-1. **Coverage ratios cluster around 3–5.5× for these ratings**, rather than diverging dramatically
-2. **Absolute spread premium increases with risk:** BB premium (318 bp) >> BBB premium (134 bp)
-3. **Coverage ratio is non-monotonic:** BBB has the highest ratio (5.54×), not the highest-quality AA
+$$\text{Coverage Ratio} = \frac{S_{\text{market}}}{S_{\text{EL}}} = \frac{150}{30} = 5$$
 
-Hull's Table 24.3 reinforces this pattern: Aaa bonds earn 38 bp excess over historical defaults, while Ba bonds earn 160 bp—both reflecting substantial risk premia beyond expected loss.
+**Interpretation (mechanism-level):** in this toy decomposition, only \(30\) bp is “expected loss,” while the remaining \(120\) bp reflects premia/liquidity and model misspecification. This is why “spread \(\neq\) default probability” without specifying assumptions and a calibration target.
 
 ---
 
@@ -1548,7 +1559,7 @@ Hull's Table 24.3 reinforces this pattern: Aaa bonds earn 38 bp excess over hist
 **"Credit DV01" vs "CS01" vs "Spread DV01" vs "Spread Duration"**
 
 This chapter:
-- **CS01** = credit DV01 (PV change per 1 bp of the chosen spread), using O'Kane's negative-sign convention.
+- **CS01** = credit DV01 (PV change for a **1 bp tightening** of the chosen spread measure, with bump object stated; chapter default is a constant Z-spread bump holding the base curve fixed).
 - **Spread duration** $D_s$ = first-order sensitivity in $dP/P \approx -D_s \, ds$.
 
 ### Spread Definition Dependence
@@ -1611,353 +1622,114 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 
 ---
 
-## 6. Summary & Recall
-
-### 12-Bullet Executive Summary
-
-1. Cash credit analytics separates risk-free discounting $Z(0,t)$ from credit risk via survival $Q(0,t)$ and recovery $R$.
-
-2. Survival and hazard relate by $Q(0,T) = \exp(-\int_0^T \lambda)$.
-
-3. Under independence, risky ZCB price factorizes: $\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$.
-
-4. A "payment at default" has PV $D(0,T) = -\int_0^T Z \, dQ$, used for recovery-like cashflows.
-
-5. Recovery must be specified (RFV/RT/RMV); different conventions change implied hazard/spreads.
-
-6. Yield spread is $y = y_T + s$ but is a coarse statistic and can hide curve/coupon effects.
-
-7. Z-spread (ZVS) is the constant spread to the base curve that reprices the bond.
-
-8. Market spreads exceed actuarial spreads due to risk premia (default, volatility, liquidity); coverage ratio quantifies this multiple.
-
-9. Spread duration equals interest rate duration for fixed-rate bonds—corporate bonds are "as much an interest rate play as a credit play."
-
-10. CS01 is the PV change per 1 bp spread move; define precisely what spread is bumped and state sign convention.
-
-11. FRNs have low rate duration but material credit duration; par floater spread measures current vs. issuance credit quality.
-
-12. Cash-CDS basis reflects 12+ fundamental and market factors; negative basis "arbitrage" often fails due to funding and execution risks.
-
----
-
-### Cheat Sheet (Formulas + Unit Checks)
-
-**Clean/Dirty:**
-$$P = P_{\text{clean}} + AI \quad \text{(price per 100)}$$
-
-**Hazard / Survival:**
-$$Q(0,T) = \exp\!\left(-\int_0^T \lambda(t) \, dt\right)$$
-
-**Risky ZCB Under Independence:**
-$$\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$$
-
-**Payment at Default:**
-$$D(0,T) = -\int_0^T Z(0,s) \, dQ(0,s)$$
-
-**Z-Spread (ZVS) Pricing Equation:**
-$$P_{\text{mkt}} = \sum_i CF_i \cdot DF\bigl(r(0, t_i) + z;\, t_i\bigr)$$
-
-**Par Floater Spread:**
-$$F(t) = \frac{1 - P_{\text{risky}}(t,T)}{RPV01(t,T)}$$
-
-**Asset Swap Spread (Par):**
-$$A(0) = \frac{P_{\text{Libor}} - P}{RPV01}$$
-
-**CDS Basis:**
-$$\text{Basis} = S_{\text{CDS}} - S_{\text{Bond,Libor}}$$
-
-**Spread Duration:**
-$$\frac{dP}{P} \approx -D_s \, ds$$
-
-**Key Identity (Fixed-Rate Bonds):**
-$$D_s = D_{y_T}$$
-
-**CS01 Sign Convention (Chapter Default):**
-$$CS01 \equiv -\bigl(P(s + 1\text{ bp}) - P(s)\bigr)$$
-
-**DV01 Scaling (Analogy):**
-$$DV01 = \frac{PD}{10{,}000}$$
-
-**Coverage Ratio:**
-$$\text{Coverage} = \frac{S_{\text{market}}}{S_{\text{actuarial}}}$$
-
-**Upfront CDS:**
-$$U = (S - S_{\text{std}}) \times RPV01$$
-
----
-
-### 46 Flashcards (Q/A)
-
-**Q1:** What is the difference between clean and dirty price?
-**A:** Dirty $P$ includes accrued interest; clean excludes it: $P = P_{\text{clean}} + AI$.
-
-**Q2:** Define survival probability $Q(0,t)$.
-**A:** $Q(0,t) = P(\tau > t)$.
-
-**Q3:** Define hazard rate $\lambda(t)$ in the intensity model.
-**A:** It's the conditional default rate; $Q(0,T) = \exp(-\int_0^T \lambda)$.
-
-**Q4:** What does $Z(0,t)$ represent?
-**A:** Risk-free discount factor to time $t$.
-
-**Q5:** Under independence, what is risky ZCB price?
-**A:** $\hat{Z}(0,T) = Z(0,T) \, Q(0,T)$.
-
-**Q6:** What is $D(0,T)$ in O'Kane's notation?
-**A:** PV of a claim paying 1 at default if default occurs by $T$: $D(0,T) = -\int_0^T Z \, dQ$.
-
-**Q7:** Name three recovery conventions from QRM.
-**A:** Recovery of Treasury, Face Value, and Market Value.
-
-**Q8:** Why must recovery convention be specified?
-**A:** Because different conventions produce different recovery cashflows and implied hazards/spreads.
-
-**Q9:** What is yield spread $s$ in $y = y_T + s$?
-**A:** Corporate yield minus reference Treasury yield.
-
-**Q10:** What is Z-spread (ZVS)?
-**A:** Constant spread $z$ added to base curve so PV matches market price.
-
-**Q11:** What is the key difference between ZVS and OAS?
-**A:** OAS adjusts for embedded option value; ZVS does not (for option-embedded bonds).
-
-**Q12:** Give the credit triangle formula.
-**A:** $S = \lambda(1-R)$.
-
-**Q13:** What is "actuarial spread" in O'Kane's discussion?
-**A:** Spread implied by expected loss only; market spread can exceed it due to premia.
-
-**Q14:** Define spread duration $D_s$.
-**A:** From $dP/P \approx -D_s \, ds$.
-
-**Q15:** What is CS01 in this chapter's sign convention?
-**A:** $CS01 = -(P(s + 1\text{ bp}) - P(s))$.
-
-**Q16:** What is the sign of CS01 for a long credit bond?
-**A:** Positive (widening decreases price, so CS01 defined with negative sign is positive).
-
-**Q17:** DV01 formula in terms of price and duration?
-**A:** $DV01 = \frac{PD}{10{,}000}$.
-
-**Q18:** Why does CS01 depend on spread definition?
-**A:** Because different spreads (yield spread, Z-spread, ASW, OAS) imply different bump directions and repricing rules.
-
-**Q19:** What is a common pitfall when solving spreads?
-**A:** Using clean price in one step and dirty price in another.
-
-**Q20:** How do you verify a solved Z-spread?
-**A:** Reprice the bond with the solved $z$ and confirm PV matches market price.
-
-**Q21:** What does it mean to be DV01-neutral?
-**A:** Portfolio PV is first-order insensitive to the chosen rate bump.
-
-**Q22:** Why can DV01-neutral portfolios still lose money?
-**A:** Because they can retain CS01 exposure; credit spreads can widen.
-
-**Q23:** What is basis risk in cash vs CDS?
-**A:** Cash bond spread and CDS spread can differ; hedging one with the other is imperfect.
-
-**Q24:** What's the practical meaning of $Q(0,t)$ being risk-neutral?
-**A:** It is the survival probability consistent with pricing under the discounting measure.
-
-**Q25:** How does increasing recovery affect implied hazard (credit triangle)?
-**A:** For fixed spread $S$, higher $R$ implies higher $\lambda = S/(1-R)$.
-
-**Q26:** How does increasing recovery affect recovery PV under RFV?
-**A:** It increases linearly in $R$.
-
-**Q27:** What is the key modeling assumption behind $\hat{Z} = ZQ$?
-**A:** Independence of interest rates and default.
-
-**Q28:** What does "payment at default" represent?
-**A:** A payoff that occurs at $\tau$, used to model recovery-like payments.
-
-**Q29:** Why might Z-spread change if you change the base curve?
-**A:** Because $z$ is defined relative to the chosen $Z(0,t)$ / $r(0,t)$.
-
-**Q30:** What does "spread curve steepening" mean?
-**A:** Long-maturity spreads rise relative to short-maturity spreads.
-
-**Q31:** What is a simple P&L approximation using CS01?
-**A:** $\Delta PV \approx -CS01 \cdot \Delta s_{\text{bp}}$.
-
-**Q32:** What is asset swap spread approximately in RMFI?
-**A:** Asset swap spread $\approx$ bond yield spread − swap spread.
-
-**Q33:** What is the key-rate exposure concept?
-**A:** Splitting DV01 across maturity buckets; sum of key-rate 01s equals DV01 under the defined scheme.
-
-**Q34:** Why might market spread exceed actuarial spread?
-**A:** Due to default risk premia, volatility, and liquidity premia (conceptual).
-
-**Q35:** What must be stated to make CS01 interpretable?
-**A:** The spread definition (Z/OAS/ASW/yield spread), the base curve, compounding, and recovery convention.
-
-**Q36:** What is the cash-CDS basis?
-**A:** CDS spread minus bond Libor spread (e.g., par floater spread or asset swap spread).
-
-**Q37:** What is a positive basis? A negative basis?
-**A:** Positive: CDS spread > bond spread. Negative: bond spread > CDS spread.
-
-**Q38:** Name three fundamental factors driving CDS basis.
-**A:** Funding differences, delivery option in CDS, technical default (broader credit events).
-
-**Q39:** Name three market factors driving CDS basis.
-**A:** Synthetic CDO technicals, new issuance hedging, relative liquidity differences.
-
-**Q40:** What is par floater spread?
-**A:** The spread that would make a new FRN trade at par today; measures current credit quality.
-
-**Q41:** What is the quoted margin on an FRN?
-**A:** The fixed spread over Libor that the FRN pays, set at issuance.
-
-**Q42:** What is the par asset swap spread formula?
-**A:** $A = (P_{\text{Libor}} - P) / RPV01$.
-
-**Q43:** Why is spread duration equal to interest rate duration for fixed-rate bonds?
-**A:** Because yield = Treasury yield + spread, so bumping either has identical effect on price.
-
-**Q44:** What is coverage ratio?
-**A:** Market spread divided by actuarial spread; measures how many times expected loss the market charges.
-
-**Q45:** When does the market switch to upfront format for CDS?
-**A:** For distressed credits, typically when spreads exceed 1000 bp.
-
-**Q46:** Why do negative basis trades often lose money?
-**A:** Funding costs consume the basis; term mismatch causes forced liquidation; margin calls in stress.
-
----
-
-## 7. Mini Problem Set (24 Questions)
-
-*Provide brief solution sketches for questions 1–12 only.*
-
----
-
-**1. Risk-Free PV:** A 2y bond with annual coupons has cashflows $5, 5, 105$. Given discount factors $Z(1) = 0.98$, $Z(2) = 0.95$, compute PV.
-
-**Sketch:** $PV = 5 \cdot Z(1) + 105 \cdot Z(2) = 5(0.98) + 105(0.95) = 4.90 + 99.75 = 104.65$.
-
----
-
-**2. Dirty vs Clean:** If quoted clean price is 101.20 and accrued interest is 0.35, what is dirty price?
-
-**Sketch:** $P = P_{\text{clean}} + AI = 101.55$.
-
----
-
-**3. Survival-Weighted PV:** A single cashflow 100 at $T = 3$, $Z(3) = 0.90$, $Q(3) = 0.95$. Compute survival PV.
-
-**Sketch:** $100 \cdot Z(3) \cdot Q(3) = 100(0.90)(0.95) = 85.50$.
-
----
-
-**4. Payment at Default (Discrete Approximation):** Given $Z(1) = 0.98$, $Z(2) = 0.95$, $Q(0) = 1$, $Q(1) = 0.99$, $Q(2) = 0.97$, approximate $D(0,2) \approx \sum Z(t_i)(Q(t_{i-1}) - Q(t_i))$.
-
-**Sketch:** $D \approx 0.98(1 - 0.99) + 0.95(0.99 - 0.97) = 0.98(0.01) + 0.95(0.02) = 0.0098 + 0.019 = 0.0288$.
-
----
-
-**5. Credit Triangle Hazard:** If $S = 150$ bp and $R = 40\%$, estimate $\lambda$.
-
-**Sketch:** $\lambda \approx S/(1-R) = 0.015/0.60 = 0.025 = 2.5\%$/year.
-
----
-
-**6. CS01 Sign:** If $P(z) = 102.00$ and $P(z + 1\text{ bp}) = 101.97$, compute CS01 under chapter convention.
-
-**Sketch:** $CS01 = P(z) - P(z + 1\text{ bp}) = 0.03$ per 100.
-
----
-
-**7. Spread Duration from CS01:** If $P = 100$ and CS01 (per 100) is 0.04, estimate spread duration.
-
-**Sketch:** $D_s \approx 10{,}000 \cdot CS01 / P = 10{,}000 \cdot 0.04 / 100 = 4$ years.
-
----
-
-**8. DV01 Scaling:** A bond has price 98 and modified duration 5.2. Compute DV01 (per 100).
-
-**Sketch:** $DV01 = PD/10{,}000 = 98 \cdot 5.2/10{,}000 = 0.05096$ per 100.
-
----
-
-**9. DV01-Neutral Hedge:** Corporate DV01 is \$300/bp per \$1mm. Treasury DV01 is \$450/bp per \$1mm. What Treasury notional shorts DV01-hedge \$1mm corporate?
-
-**Sketch:** $N_T = 300/450 = 0.6667$ mm short.
-
----
-
-**10. Coverage Ratio:** Market spread is 180 bp, historical default rate is 1%, recovery is 40%. Compute actuarial spread and coverage ratio.
-
-**Sketch:** $S_{\text{actuarial}} = 0.01 \times 0.60 = 60$ bp. Coverage $= 180/60 = 3.0$.
-
----
-
-**11. FRN Price:** An FRN has quoted margin 100 bp, par floater spread is now 150 bp, RPV01 = 4.0. What is the approximate price?
-
-**Sketch:** $P \approx 100 - (150 - 100) \times 0.04 = 100 - 2.0 = 98.00$.
-
----
-
-**12. CDS Basis:** Bond asset swap spread is 200 bp, CDS spread is 175 bp. What is the basis? Is it positive or negative?
-
-**Sketch:** Basis $= 175 - 200 = -25$ bp. Negative basis (bond trades wider than CDS).
-
----
-
-**13. Curve Dependence:** Explain why changing the base curve (OIS vs swaps) can change the solved Z-spread even if price is unchanged.
-
----
-
-**14. Clean/Dirty Pitfall:** Describe what happens if you solve Z-spread on clean price but then reprice using dirty price.
-
----
-
-**15. Recovery Convention:** Compare RFV vs RT in words and state which bond analytics outputs would change.
-
----
-
-**16. Hazard Bump vs Spread Bump:** Give an example where bumping hazard by +10% and bumping Z-spread by +10 bp produce different PV changes.
-
----
-
-**17. Portfolio CS01:** Two corporate bonds have CS01s \$200/bp and \$350/bp per \$1mm. You are long \$2mm of the first and short \$1mm of the second. Compute portfolio CS01.
-
----
-
-**18. Spread Curve Trade:** Design a cash bond steepener/flattener and describe which spread move scenario profits.
-
----
-
-**19. Basis Trade P&L:** You enter a negative basis trade with 30 bp theoretical pickup. Repo spreads widen 40 bp during the trade. Analyze P&L.
-
----
-
-**20. Basis Driver Analysis:** A company announces large bond issuance. Which direction should the basis move and why?
-
----
-
-**21. FRN vs Fixed Credit Duration:** A 5-year FRN and a 5-year fixed-rate bond have the same issuer. Compare their rate durations and credit durations.
-
----
-
-**22. Upfront Calculation:** CDS running spread is 1200 bp, standard coupon is 500 bp, RPV01 is 2.5. What is the upfront payment?
-
----
-
-**23. Distressed Curve Shape:** Explain why distressed credits often have inverted credit curves (short-term spreads higher than long-term).
-
----
-
-**24. Spread Duration = Rate Duration:** Prove that for a fixed-rate bond where $y = y_T + s$, the spread duration equals the rate duration.
-
----
+## Summary
+1. Cash-credit PV separates the **base curve** \(Z(0,t)\) from **credit** inputs (survival \(Q(0,t)\) and a recovery convention).
+2. Bond settlement uses the **dirty price**: \(P = P_{\text{clean}} + AI\) (quoted per 100).
+3. Survival and hazard relate by \(Q(0,T)=\exp\!\left(-\int_0^T \lambda(t)\,dt\right)\).
+4. Under an independence assumption, a risky zero-coupon bond can be written as \(\hat{Z}(0,T)=Z(0,T)\,Q(0,T)\).
+5. Under RFV, a risky coupon bond PV decomposes into a **survival leg** plus a **recovery leg** expressed via a payment-at-default building block.
+6. Yield spread, Z-spread, asset swap spread, and par floater spread are **different quote objects**; they are not interchangeable without stating conventions.
+7. Z-spread is a **constant curve shift** that reprices the bond; it is a pricing statistic, not a default probability by itself.
+8. \(DV01\) and \(CS01\) are bump-and-reprice risk scalars; always state bump object, bump size (1bp), units, and sign.
+9. For option-free fixed-rate bonds under a stylized yield decomposition, “rate duration” and “spread duration” coincide; hedging still differs because the hedge instruments differ.
+10. Cash–CDS basis should be treated as an assumptions gap (funding, delivery, liquidity, counterparty/margin) and a major source of hedge and P&L drift.
+
+## Key Concepts
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Clean vs dirty price | \(P = P_{\text{clean}} + AI\) (per 100); settlement uses dirty | Prevents settlement/P&L errors |
+| Accrued interest \(AI\) | Coupon accrued from last coupon date to settlement | Drives clean↔dirty conversion |
+| Base discount factor \(Z(0,t)\) | Time value of money on the base curve | Separates rates from credit |
+| Default time \(\tau\) | Random default time | Makes cashflows contingent |
+| Survival \(Q(0,t)\) | \(P(\tau>t)\) | Core credit state variable |
+| Hazard \(\lambda(t)\) | Intensity with \(Q=\exp(-\int \lambda)\) | Parametrizes survival |
+| Recovery convention | RT vs RFV vs RMV | Changes recovery leg and sensitivities |
+| Payment-at-default PV | \(D(0,T)=-\int_0^T Z(0,s)\,dQ(0,s)\) | Building block for recovery legs |
+| Yield spread \(s\) | \(y=y_T+s\) (a quoting statistic) | Easy but can mislead across structures |
+| Z-spread \(z\) | Constant spread that reprices the bond to a base curve | Common cash-credit quote |
+| Asset swap spread | Spread on a floating leg that matches swapped bond PV | Bank-desk “spread” language |
+| Par floater spread \(F(t)\) | Spread that makes an FRN trade at par today | Cleaner credit measure for FRNs |
+| Spread duration \(D_s\) | \(dP/P\approx -D_s\,ds\) | Maps spread moves to price changes |
+| \(DV01\) | \(PV(r-1\text{bp})-PV(r)\) for a stated rates bump | Rates risk scalar for hedging |
+| \(CS01\) | \(PV(s-1\text{bp})-PV(s)\) for a stated spread bump | Credit risk scalar for hedging |
+| Cash–CDS basis | \(S_{\text{CDS}}-S_{\text{bond on Libor}}\) | Basis risk / “arbitrage” failure modes |
+
+## Notation
+
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| \(N\) | Notional | currency |
+| \(P, P_{\text{clean}}\) | Dirty / clean price | price per 100 face |
+| \(AI\) | Accrued interest | per 100 face; \(AI\ge 0\) for standard bonds |
+| \(CF_i\) | Contractual cashflow at \(t_i\) | currency per 100 face |
+| \(Z(0,t)\) | Base discount factor to time \(t\) | unitless; \(Z(0,0)=1\) |
+| \(\tau\) | Default time | date or year-fraction (state which) |
+| \(Q(0,t)\) | Survival probability | unitless; decreasing; \(Q(0,0)=1\) |
+| \(\lambda(t)\) | Hazard rate / intensity | per year |
+| \(R\) | Recovery rate | unitless; state RFV/RT/RMV convention |
+| \(s\) | Yield spread variable | per year or bp; must specify definition |
+| \(z\) | Z-spread | per year or bp; compounding must be stated |
+| \(D_s\) | Spread duration | years-like; from \(dP/P\approx -D_s\,ds\) |
+| \(DV01\) | Rates risk scalar | currency per 1bp; \(PV(r-1\text{bp})-PV(r)\) for the stated bump object |
+| \(CS01\) | Spread risk scalar | currency per 1bp; \(PV(s-1\text{bp})-PV(s)\) for the stated spread bump object |
+
+## Flashcards
+
+| # | Question | Answer |
+|---:|---|---|
+| 1 | What price settles on a bond trade: clean or dirty? | Dirty (full) price: \(P=P_{\text{clean}}+AI\). |
+| 2 | What is survival probability \(Q(0,t)\)? | \(Q(0,t)=P(\tau>t)\). |
+| 3 | How do hazard and survival relate? | \(Q(0,T)=\exp(-\int_0^T \lambda(t)\,dt)\). |
+| 4 | Under independence, what is the risky ZCB factorization? | \(\hat{Z}(0,T)=Z(0,T)\,Q(0,T)\). |
+| 5 | What is the “payment at default” PV building block? | \(D(0,T)=-\int_0^T Z(0,s)\,dQ(0,s)\). |
+| 6 | Why must you state a recovery convention? | RT/RFV/RMV imply different default-leg cashflows and different inferred hazards/CS01. |
+| 7 | What is Z-spread in one sentence? | The constant spread added to the base curve so discounted cashflows match the market price. |
+| 8 | What is Z-spread *not*? | Not a default probability by itself; it can include risk premia and liquidity. |
+| 9 | Define DV01 and its sign convention. | \(DV01=PV(r-1\text{bp})-PV(r)\); positive for a long bond. |
+| 10 | Define CS01 and its sign convention. | \(CS01=PV(s-1\text{bp})-PV(s)\); positive for long credit exposure. |
+| 11 | What is the most common “CS01 mismatch” pitfall? | Different systems bump different objects (Z-spread vs hazard vs OAS; hold-fixed vs recalibrate). |
+| 12 | What is spread duration \(D_s\)? | \(dP/P\approx -D_s\,ds\). |
+| 13 | When do rate duration and spread duration coincide (stylized)? | For option-free fixed-rate bonds under \(y=y_T+s\) (same yield bump). |
+| 14 | Why can an FRN have low DV01 but material CS01? | Resets reduce rate sensitivity, but credit exposure persists over maturity. |
+| 15 | What is an asset swap spread in words? | The spread on a floating leg that makes the swapped bond PV match (swap-hedged “credit spread”). |
+| 16 | What is par floater spread? | The spread that makes an FRN trade at par today (current credit quality measure). |
+| 17 | What is cash–CDS basis? | \(S_{\text{CDS}}-S_{\text{bond on Libor}}\). |
+| 18 | Give two drivers of basis risk. | Funding/financing; delivery/settlement options; liquidity; counterparty/margin. |
+| 19 | What is the minimal repricing check for a solved Z-spread? | Reproduce the same dirty price (same schedule/conventions) within tolerance. |
+| 20 | Quick unit check: per-100 CS01 → dollars per \$1mm? | Multiply by \(10{,}000\) (since \(\$1\text{mm}/100=10{,}000\)). |
+
+
+## Mini Problem Set
+
+1. (Compute) **Risk-free PV:** A 2y bond with annual coupons has cashflows \(5, 5, 105\). Given discount factors \(Z(1)=0.98\), \(Z(2)=0.95\), compute PV (per 100).
+2. (Compute) **Dirty vs clean:** If quoted clean price is \(101.20\) and accrued interest is \(0.35\), what is dirty price?
+3. (Compute) **Survival PV:** A single cashflow 100 at \(T=3\), with \(Z(3)=0.90\) and \(Q(3)=0.95\). Compute the survival-weighted PV.
+4. (Compute) **Payment-at-default (discrete):** Given \(Z(1)=0.98\), \(Z(2)=0.95\), \(Q(0)=1\), \(Q(1)=0.99\), \(Q(2)=0.97\), approximate \(D(0,2)\approx \sum_i Z(t_i)\bigl(Q(t_{i-1})-Q(t_i)\bigr)\).
+5. (Compute) **Credit triangle hazard (rule of thumb):** If \(S=150\)bp and \(R=40\%\), estimate \(\lambda\) using \(\lambda\approx S/(1-R)\).
+6. (Compute) **CS01:** If \(P(z)=102.00\) and \(P(z-1\text{ bp})=102.03\), compute CS01 under this chapter’s convention (per 100).
+7. (Compute) **Spread duration from CS01:** If \(P=100\) and \(CS01\) (per 100) is \(0.04\), estimate spread duration.
+8. (Compute) **DV01 scaling:** A bond has price \(P=98\) and modified duration \(D_{\text{mod}}=5.2\). Compute DV01 (per 100) using \(DV01\approx P D_{\text{mod}}/10{,}000\).
+9. (Desk, compute) **1-day P&L explain:** You are long \$10mm of a bond with \(DV01=\$2{,}200/\text{bp}\) and \(CS01=\$2{,}400/\text{bp}\). Rates rise by \(+4\)bp and Z-spread widens by \(+12\)bp. Approximate \(\Delta PV\) ignoring convexity.
+10. (Concept) In 2–3 sentences, explain why Z-spread is not the same thing as “default probability”.
+11. (Concept) Give two reasons why a hazard-bump CS01 can differ from a Z-spread-bump CS01.
+12. (Desk) A negative basis trade looks attractive. List three practical breaks that can prevent “arbitrage” P&L (funding, term mismatch, counterparty/margin, liquidity, delivery/settlement options, etc.).
+
+### Solution Sketches (Selected)
+1. \(PV = 5(0.98) + 105(0.95) = 4.90 + 99.75 = 104.65\) (per 100).
+2. \(P = P_{\text{clean}} + AI = 101.20 + 0.35 = 101.55\).
+3. \(PV = 100 \cdot 0.90 \cdot 0.95 = 85.50\).
+5. \(\lambda \approx 0.015/0.60 = 0.025 = 2.5\%\)/year.
+6. \(CS01 = P(z-1\text{bp})-P(z) = 102.03-102.00 = 0.03\) (per 100 per bp).
+9. \(\Delta PV \approx -(2{,}200)(4) - (2{,}400)(12) = -8{,}800 - 28{,}800 = -\$37{,}600\).
+11. Different bumped objects (hazard vs Z-spread) imply different repricing mechanics; hazard-bump CS01 depends on the recovery convention and how the survival curve is parametrized/recalibrated.
+12. Example breaks: funding/repo terms change; margin calls arrive before convergence; term mismatch (short repo vs long CDS); liquidity/borrow constraints; counterparty and settlement frictions.
 
 ## References
 
-- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (Z-spread/ZVS, spread duration/CS01, asset swaps, CDS-bond basis taxonomy)
-- Tuckman & Serrat, *Fixed Income Securities* (clean/dirty pricing, DV01/duration conventions)
-- McNeil, Frey, Embrechts, *Quantitative Risk Management* (recovery conventions and reduced-form building blocks)
-- Hull, *Risk Management and Financial Institutions* (CDS-bond basis discussion and historical context)
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (“Z-spread / ZVS”, “Asset Swaps”, “Risky PV / payment-at-default building blocks”, “CDS-bond basis”)
+- Tuckman & Serrat, *Fixed Income Securities* (duration/DV01 scaling and interpretation; clean/dirty conventions)
+- Hull, *Options, Futures, and Other Derivatives* (risk-neutral vs real-world default probabilities; CDS vs bond spread intuition)
+- Hull, *Risk Management and Financial Institutions* (“CDS-bond basis” and drivers; practical impediments to arbitrage)
+- McNeil, Frey, Embrechts, *Quantitative Risk Management* (recovery conventions RT/RFV/RMV; reduced-form modeling building blocks)
+- Neftci, *Principles of Financial Engineering* (DV01/PV01 definitions and risk reporting conventions)
