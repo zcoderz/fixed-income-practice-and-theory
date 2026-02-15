@@ -53,15 +53,15 @@ This formula reflects that a 1/32 price difference (per $100 face) on $100 milli
 
 ### 10.1.4 Measuring Liquidity Quantitatively
 
-While bid-ask spreads are directly observable in quoted markets, quantifying liquidity for less actively traded securities often requires inference. One classic approach is **Roll’s implicit spread model**, which infers an effective bid-ask spread from the negative first-order autocovariance of transaction price changes.
+While bid-ask spreads are directly observable in quoted markets, quantifying liquidity for less actively traded securities often requires inference. One common approach is an **autocovariance-based implied spread model**, which infers an effective bid-ask spread from the negative first-order autocovariance of transaction price changes.
 
-Let \(X_t = P_t - P_{t-1}\) be the transaction price change. In the simple Roll (1984) bid-ask “bounce” model (often written for returns/log-prices), the first-lag autocovariance is negative and satisfies \(\mathrm{Cov}(X_t, X_{t-1})=-S^2/4\), implying:
+Let \(X_t = P_t - P_{t-1}\) be the transaction price change. In a stylized bid-ask “bounce” model (often written for returns/log-prices), the first-lag autocovariance is negative and satisfies \(\mathrm{Cov}(X_t, X_{t-1})=-S^2/4\), implying:
 
 $$\boxed{S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}}$$
 
 This estimator is most useful as a *relative* liquidity measure (e.g., comparing issues or regimes) because real markets include inventory effects, price impact, and other microstructure features beyond bid-ask bounce.
 
-> **Caveat:** Roll’s model is highly stylized. It can be distorted by price impact, discrete pricing, and news-driven order flow, so treat it as a rough proxy rather than a literal quoted spread.
+> **Caveat:** This model is highly stylized. It can be distorted by price impact, discrete pricing, and news-driven order flow, so treat it as a rough proxy rather than a literal quoted spread.
 
 ---
 
@@ -147,7 +147,7 @@ A bond “trading special” has \(r_{sp} < r_{GC}\) and therefore \(s>0\). Intu
 
 ### 10.4.2 Empirical Magnitudes
 
-Table 10.1 reproduces Tuckman's data on repo rates for February 15, 2001, illustrating the range of special spreads.
+Table 10.1 shows an illustrative snapshot of repo rates for settlement on February 15, 2001, highlighting the range of special spreads.
 
 **Table 10.1: Selected Repo Rates for February 15, 2001**
 
@@ -160,8 +160,6 @@ Table 10.1 reproduces Tuckman's data on repo rates for February 15, 2001, illust
 | 5.750% 11/15/05 | On-the-run 5-year | 3.85% |
 | 6.500% 02/15/10 | Old 10-year | 5.35% |
 | 5.750% 08/15/10 | On-the-run 10-year | 4.25% |
-
-*Source: Tuckman, Table 15.1*
 
 In this snapshot, the on-the-run five-year traded 159 basis points special (5.44% – 3.85%), while the old five-year traded near GC. Interpreting this in desk terms: shorts were willing to accept a below-GC rate on cash in order to borrow the benchmark security, and owners of the security enjoyed unusually cheap financing.
 
@@ -183,7 +181,7 @@ Special repo rates are a product of supply and demand for *specific* collateral.
 
 ### 10.5.1 The Cyclical Pattern
 
-Specialness often has a “seasoning” pattern around the auction cycle. A useful stylized fact (documented in Tuckman’s discussion of specials) is:
+Specialness often has a “seasoning” pattern around the auction cycle. A useful stylized fact is:
 
 - **Special spreads tend to be smaller soon after auctions** and can become larger as time passes and a short base develops.
 - **Reopenings** (which add supply to an existing issue) tend to keep specials from becoming as wide as they can become for **new issues**.
@@ -258,7 +256,7 @@ In practice, market participants may refer to the total wedge as a “liquidity 
 
 ### 10.7.2 Empirical Evidence
 
-Tuckman’s snapshot for settlement on February 15, 2001 (Table 15.2) illustrates the idea: the on-the-run two-year and five-year traded several basis points rich to comparable-maturity issues, and the when-issued 10-year traded at an even larger premium relative to the existing on-the-run.
+Empirically, benchmark issues often trade several basis points rich to close substitutes, and a when-issued security can trade at an even larger premium relative to the existing on-the-run when positioning is heavy.
 
 ### 10.7.3 Distinguishing Financing Advantage from Pure Liquidity
 
@@ -304,11 +302,11 @@ $$\boxed{\text{FinAdv}_{\text{bp}} = \frac{\text{FinAdv}_{100}}{DV01_y}}$$
 
 The same calculation can be read as a **financing drag** for a short position in the special bond: being short forces you to source the bond in the specials market, which can materially reduce (or even dominate) the expected convergence P&L.
 
-### 10.8.2 Tuckman's Worked Example
+### 10.8.2 Worked Example: Is the Benchmark Worth It?
 
-Tuckman frames the “is the benchmark worth it?” question as a comparison between:
+One practical way to frame the “is the benchmark worth it?” question is as a comparison between:
 - the **yield premium** you pay for the on-the-run issue, and
-- your (subjective) value of liquidity plus the **expected financing advantage** from special repo.
+- your value of liquidity plus the **expected financing advantage** from special repo.
 
 The key practical move is converting financing advantage into a yield-equivalent (bp) using a stated DV01 convention, so the terms are comparable.
 
@@ -320,11 +318,11 @@ The key practical move is converting financing advantage into a yield-equivalent
 
 On-the-run yields embed liquidity premiums and financing effects that reflect microstructure, not the fundamental term structure. Using OTR yields as "the" curve creates systematic bias.
 
-Tuckman emphasizes this point in the context of swap spreads: if your “Treasury leg” is an on-the-run benchmark, the measured spread can move because the benchmark’s liquidity/specialness moves, even if the underlying curve or swap market has not changed.
+This shows up immediately in swap spreads: if your “Treasury leg” is an on-the-run benchmark, the measured spread can move because the benchmark’s liquidity/specialness moves, even if the underlying swap curve has not changed.
 
 ### 10.9.2 Remedies
 
-Tuckman identifies several approaches to address OTR distortion:
+Common approaches to address OTR distortion include:
 
 1. **Exclude OTRs** entirely from the curve-fitting universe, using only off-the-run bonds to define the zero curve.
 
@@ -346,7 +344,7 @@ The conventional swap spread—swap rate minus Treasury yield—is particularly 
 
 ### 10.10.1 Market Stress Reveals Microstructure
 
-Tuckman describes how the September 11, 2001 shock disrupted the specials market through settlement disruption (fails) and a pullback of collateral lending. The result was a severe shortage of on-the-run collateral. Table 10.2 shows average repo rates on September 20, 2001.
+The September 11, 2001 shock disrupted the specials market through settlement disruption (fails) and a pullback of collateral lending. The result was a severe shortage of on-the-run collateral. Table 10.2 shows average repo rates on September 20, 2001.
 
 **Table 10.2: Selected Repo Rates on September 20, 2001**
 
@@ -357,13 +355,11 @@ Tuckman describes how the September 11, 2001 shock disrupted the specials market
 | 4.625% 05/15/06 | On-the-run 5-year | 0.10% |
 | 5.000% 08/15/11 | On-the-run 10-year | 0.35% |
 
-*Source: Tuckman, Table 15.3*
-
 In this snapshot, the five-year on-the-run traded at a very low repo rate (highly special), consistent with acute collateral scarcity and “borrow vs fail” economics.
 
 ### 10.10.2 The Treasury's Response
 
-Tuckman notes that the Treasury responded with an unusual surprise auction announcement, which helped alleviate scarcity in benchmark collateral and changed specials-market dynamics.
+The Treasury responded with an unusual surprise auction announcement, which helped alleviate scarcity in benchmark collateral and changed specials-market dynamics.
 
 This episode illustrates how microstructure effects can dominate during stress: collateral scarcity drove large price and spread moves independent of fundamental changes in the risk-free rate.
 
@@ -394,9 +390,9 @@ When the mispricing is only a few basis points, investors often use leverage to 
 
 ### 10.11.3 1998: Flight to Quality and a Widening of Liquidity Spreads
 
-In August 1998, Russia defaulted on its debt and this led to what is termed a “flight to quality” in capital markets: investors valued liquid instruments more highly than usual and the spreads between the prices of liquid and illiquid instruments increased dramatically. In Hull’s summary of the episode, “the prices of the bonds [LTCM] had bought went down and the prices of those it had shorted increased.” For a Treasury convergence trade (long off-the-run, short on-the-run), that is the same painful pattern.
+In August 1998, Russia defaulted on its debt and markets experienced a sharp “flight to quality”: investors paid up for the most liquid instruments, and the price wedge between liquid and illiquid bonds widened dramatically. For a Treasury convergence trade (long off-the-run, short on-the-run), that is the same painful pattern: the on-the-run tends to richen further while the off-the-run cheapens.
 
-Hull also emphasizes a feedback loop: when many participants run similar convergence trades, attempts to liquidate simultaneously can further widen liquidity spreads.
+Crowding can create a feedback loop: when many participants run similar convergence trades, attempts to liquidate simultaneously can further widen liquidity spreads.
 
 ### 10.11.4 Lessons for Relative Value Trading
 
@@ -414,7 +410,7 @@ Hull also emphasizes a feedback loop: when many participants run similar converg
 
 ### 10.12.1 The Setup: Dealer Balance Sheet Constraints
 
-In late February and March 2020, volatility and illiquidity rose sharply across markets. The Federal Reserve’s June 2020 Monetary Policy Report describes heavy selling pressure in Treasuries from a range of investors and notes that dealers approached balance-sheet constraints, limiting their ability to intermediate.
+In late February and March 2020, volatility and illiquidity rose sharply across markets. Heavy selling pressure in Treasuries met limited intermediation capacity as dealers approached balance-sheet constraints, limiting their ability to intermediate.
 
 ### 10.12.2 The "Dash for Cash"
 
@@ -431,7 +427,7 @@ Market functioning deteriorated: bid-ask spreads widened, market depth declined,
 
 ### 10.12.4 Federal Reserve Intervention
 
-The Monetary Policy Report highlights two core stabilizers:
+Two core stabilizers were:
 1. **Large-scale Treasury purchases** to absorb selling pressure.
 2. **Repo operations** to support funding and market functioning.
 
@@ -487,7 +483,7 @@ Trades and hedges involving special collateral require explicit assumptions: how
 
 ### 10.14.1 The Carry Formula
 
-Following Tuckman's notation (Ch 15, Eq 15.8), the P&L from holding a bond over $d$ days can be decomposed into price change and carry:
+A simple decomposition for holding a bond over $d$ days is:
 
 $$\boxed{P\&L = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{cd}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
 
@@ -509,11 +505,11 @@ So if carry is positive, the **clean price can fall by roughly “carry (in pric
 
 ### 10.15.1 No-Arbitrage Forward Price
 
-For a bond with no coupon payment during the forward window, the forward price is tied to spot price and repo by no-arbitrage. Tuckman derives this in Chapter 16 (Eq 16.7):
+For a bond with no coupon payment during the forward window, a no-arbitrage forward price relation is:
 
 $$\boxed{P_{fwd} + AI(d) = (P(0) + AI(0))\left(1 + \frac{rd}{360}\right)}$$
 
-Rearranging (following Eq 16.8):
+Rearranging:
 
 $$\boxed{P_{fwd} = P(0) - \text{Carry}}$$
 
@@ -703,7 +699,7 @@ Two practical cautions:
 
 11. **Butterflies isolate curvature:** The 2-5-10 fly trades body vs. wings, profiting from curvature changes rather than level.
 
-12. **Roll's model quantifies illiquidity:** Negative first-order autocovariance in transaction-price changes implies an effective bid-ask spread: \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\).
+12. **Implied spreads from price bounce:** Negative first-order autocovariance in transaction-price changes implies an effective bid-ask spread: \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\).
 
 ---
 
@@ -723,7 +719,7 @@ Two practical cautions:
 | \(DV01_{\$}\) (dollar DV01) | \(DV01_{\$} := DV01_y\times N/100\) (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
 | TMPG fails charge | \(C_{\text{daily}}=(1/360)\,0.01\,\max(3-R,F)\,P_{\text{proceeds}}\) (dollars/day) | Makes failing explicitly costly; affects the “negative special” bound |
 | Liquidity premium decomposition | OTR richness = financing component + pure liquidity component | Prevents double-counting when fitting curves / valuing benchmarks |
-| Roll implied spread | \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\) | Infers a rough effective spread from bid-ask bounce |
+| Implied bid-ask spread | \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\) | Infers a rough effective spread from bid-ask bounce |
 | Butterfly (2-5-10) | 3-leg trade (short wings, long body), sized to net DV01 \(\approx 0\) | Isolates curvature from level; common RV building block |
 | Asset swap spread (ASW) | Spread \(s_{ASW}\) that, when applied to swap discounting/float, makes PV match the bond price | Another rich/cheap lens vs swaps; sensitive to benchmark choice |
 
@@ -750,7 +746,7 @@ Two practical cautions:
 | \(DV01_y\) | Price DV01 to yield bump | price points per 100 per 1bp; \(DV01_y=P(y-1\text{bp})-P(y)>0\) for long |
 | \(DV01_{\$}\) | Dollar DV01 of a position | dollars per bp; \(DV01_{\$}=DV01_y\times N/100\) |
 | \(X_t\) | Transaction price change | price points per 100; \(X_t=P_t-P_{t-1}\) |
-| \(S\) | Roll implied spread | price points per 100 |
+| \(S\) | Implied bid-ask spread estimate | price points per 100 |
 
 ---
 
@@ -778,7 +774,7 @@ Two practical cautions:
 | 18 | What is the dirty (invoice) price? | The cash-settlement price: \(P_{\text{dirty}}=P_{\text{clean}}+AI\) per 100 par. |
 | 19 | Why can OTR yields distort curve fitting? | They embed liquidity premiums beyond the fundamental term structure. |
 | 20 | How to remedy OTR distortion? | Exclude OTRs, weight them less, or explicitly adjust yields. |
-| 21 | What is Roll's implicit spread formula? | \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\), where \(X_t=P_t-P_{t-1}\). |
+| 21 | What is the implied spread formula from autocovariance? | \(S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}\), where \(X_t=P_t-P_{t-1}\). |
 | 22 | What does LTCM stand for and what was their strategy? | Long-Term Capital Management; convergence arbitrage (long cheap/illiquid, short rich/liquid). |
 | 23 | What triggered LTCM's collapse? | Russia's default in August 1998 caused a "flight to quality" that widened spreads against their positions. |
 | 24 | What DV01 convention is used in this chapter? | \(DV01_y:=P(y-1\text{bp})-P(y)\) (per 100); \(DV01_{\$}=DV01_y\times N/100\); \(\Delta P\approx -DV01_y\Delta y_{\text{bp}}\). |
@@ -867,7 +863,7 @@ Two practical cautions:
 
 ---
 
-**13.** Using Roll's model, you compute \(\mathrm{Cov}(X_t, X_{t-1}) = -0.0001\), where \(X_t=P_t-P_{t-1}\) and prices are in dollars per 100. Estimate the bid-ask spread.
+**13.** Using the autocovariance-based implied spread model, you compute \(\mathrm{Cov}(X_t, X_{t-1}) = -0.0001\), where \(X_t=P_t-P_{t-1}\) and prices are in dollars per 100. Estimate the bid-ask spread.
 
 **Solution:**
 $$S = 2\sqrt{-(-0.0001)} = 2\sqrt{0.0001} = 2 \times 0.01 = 0.02$$

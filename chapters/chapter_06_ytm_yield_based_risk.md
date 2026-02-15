@@ -6,7 +6,7 @@
 
 A portfolio manager glances at two bonds on her screen. The first shows a yield of 5.2%; the second, 4.8%. The higher-yielding bond looks more attractive—40 basis points of extra return for similar credit quality. She buys the first bond.
 
-Has she made a good decision? Not necessarily. The yield-to-maturity is one number summarizing a complex cashflow structure, and that compression can mislead. As Tuckman emphasizes in *Fixed Income Securities*, "yield is not automatically a good measure of relative value or realized return-to-maturity," and "higher yield does not necessarily mean 'better value.'" The manager may have bought a bond with worse convexity, shorter effective duration, or hidden optionality—characteristics that YTM alone cannot reveal.
+Has she made a good decision? Not necessarily. Yield-to-maturity is one number summarizing a complex cashflow structure, and that compression can mislead. A higher YTM is not automatically better value or a higher realized return-to-maturity: the bond may have worse convexity, shorter effective duration, lower liquidity, or embedded optionality—characteristics that a single yield number cannot reveal.
 
 Yield-to-maturity (YTM) is the fixed income market's most ubiquitous metric. It appears on every trading screen, in every research report, in every risk system. Bonds are quoted by yield as often as by price because the two are equivalent—given one, you can always compute the other. But this convenience creates a trap. Practitioners who treat YTM as "the return you'll earn" or who use yield-based risk measures without understanding their assumptions will eventually be surprised by P&L that doesn't match their expectations.
 
@@ -72,7 +72,7 @@ When settlement doesn't align with regular coupon dates, the convention extends 
 
 ### 6.1.4 Key Properties of the Price-Yield Relationship
 
-Tuckman derives several important properties from the price-yield formula (equation 3.4 in his notation):
+Several important properties follow directly from the price-yield formula:
 
 1. **Par pricing:** When $c = y$ (same compounding convention) and $F = 100$, then $P = 100$. If the coupon rate equals the yield, the bond trades at par.
 
@@ -94,7 +94,7 @@ Bond market convention separates the quoted price from accrued interest:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + \text{AI}}$$
 
-Tuckman provides the synonyms: the **dirty** price is also called the **full** or **invoice** price—it is what the buyer actually pays. The **clean** price is also called the **flat** or **quoted** price—it is what appears on trading screens.
+Synonyms: the **dirty** price is also called the **full** or **invoice** price—it is what the buyer actually pays. The **clean** price is also called the **flat** or **quoted** price—it is what appears on trading screens.
 
 ### 6.2.2 Why Markets Quote Clean Prices
 
@@ -137,7 +137,7 @@ where $a_i$ is the time (in semiannual periods) from settlement to cash flow $i$
 
 YTM tells you the "average" rate at which the bond's cash flows are discounted. For a given term structure, YTM sits somewhere between the short-term and long-term spot rates, weighted by the present values of the cash flows.
 
-Tuckman demonstrates that yield-to-maturity is a summary (a blend) of the spot rates that enter the bond pricing equation. In one example, the first four semiannual spot rates are 5.008%, 4.929%, 4.864%, and 4.886%, and the bond’s yield is 4.8875%—a blend of these rates. The yield ends up closest to the 2-year spot rate because most of the bond’s value comes from the principal payment at maturity.
+Illustrative example: suppose the first four semiannual spot rates are 5.008%, 4.929%, 4.864%, and 4.886%, and the bond’s YTM comes out to 4.8875%. The YTM is a present-value-weighted blend of spot rates, and it often lands close to the maturity where most PV sits (frequently near the final principal payment).
 
 For a zero-coupon bond, this average is trivial—the YTM equals the spot rate to that maturity (under matched compounding conventions). For coupon bonds, YTM blends across multiple maturities.
 
@@ -181,7 +181,7 @@ Can you compare two bonds by their yields and conclude the higher-yielding bond 
 - Credit risk
 - Optionality
 
-As Tuckman cautions, relative-value screens that rank bonds by yield "can be misleading." A proper relative value analysis requires understanding the full term structure and the specific characteristics of each bond.
+Relative-value screens that rank bonds by yield can be misleading. A proper relative value analysis requires understanding the full term structure and the specific characteristics of each bond.
 
 ---
 
@@ -189,7 +189,7 @@ As Tuckman cautions, relative-value screens that rank bonds by yield "can be mis
 
 ### 6.4.1 The Myth of "Locked-In" Returns
 
-One of the most persistent misconceptions in fixed income is that buying a bond and holding it to maturity "locks in" the yield-to-maturity as your return. This is false. Tuckman states explicitly: "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect." The YTM calculation assumes every coupon payment can be reinvested at exactly the same rate—an assumption that virtually never holds in practice.
+One of the most persistent misconceptions in fixed income is that buying a bond and holding it to maturity “locks in” the yield-to-maturity as your return. This is false. The YTM calculation implicitly assumes every coupon payment can be reinvested at exactly the same yield, an assumption that rarely holds in practice.
 
 The mechanics are straightforward: when you receive a coupon payment, you must do something with that cash. If you reinvest it, the rate available at that future time will almost certainly differ from the original YTM. If rates have fallen, you'll reinvest at lower rates; if rates have risen, you'll reinvest at higher rates. Either way, your realized return will differ from the initial YTM.
 
@@ -302,11 +302,11 @@ This approach makes assumptions explicit rather than hiding them inside the YTM 
 
 In this chapter, **yield DV01** measures how the bond’s **dirty price** (quoted per 100 face) changes for a 1 bp change in the bond’s **yield-to-maturity** \(y\) (the bump object).
 
-Following Tuckman’s yield-based definition:
+A common yield-based definition is:
 
 $$\boxed{\text{DV01}_y := -\frac{1}{10{,}000}\frac{dP}{dy}}$$
 
-When an explicit price-yield function exists, DV01 can be written in closed form. Adapting Tuckman’s yield-based DV01 formula to our notation (\(F\) face value, coupon rate \(c\) in decimals), for a plain fixed-coupon bond:
+When an explicit price-yield function exists, DV01 can be written in closed form. Differentiating the price-yield function for a plain fixed-coupon bond gives:
 
 $$\text{DV01}_y
 = \frac{1}{10{,}000} \times \frac{1}{1+y/2}\left[\sum_{t=1}^{2T} \frac{t}{2} \frac{F c/2}{(1+y/2)^t} + T \frac{F}{(1+y/2)^{2T}}\right]$$
@@ -329,13 +329,13 @@ For practical computation, use a central difference:
 
 $$\boxed{\text{DV01}_y \approx \frac{P(y - 1\text{ bp}) - P(y + 1\text{ bp})}{2}}$$
 
-Tuckman notes that "the most stable numerical estimate chooses rates that are equally spaced above and below" the current rate.
+Central differences (equally spaced bumps above and below) are usually the most stable finite-difference estimate.
 
 ### 6.5.3 Modified Duration
 
 Duration measures percentage price sensitivity rather than dollar sensitivity.
 
-Tuckman defines modified duration as:
+Modified duration is defined as:
 
 $$\boxed{D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}}$$
 
@@ -357,7 +357,7 @@ Macaulay duration is a simple transformation of modified duration:
 
 $$\boxed{D_{\text{Mac}} = (1 + y/2) \cdot D_{\text{mod}}}$$
 
-Tuckman demonstrates "a convenient property": the Macaulay duration of a $T$-year zero-coupon bond equals $T$. Mathematically:
+Convenient property: the Macaulay duration of a $T$-year zero-coupon bond equals $T$. Mathematically:
 
 $$\left.D_{\text{Mac}}\right|_{c=0} = T$$
 
@@ -375,18 +375,18 @@ This provides intuition for duration generally—a bond's Macaulay duration equa
 >
 > Higher coupons = Heavier weights at the front = Fulcrum moves closer to zero (Lower Duration).
 
-Hull explains that duration is "a weighted average of the times when payments are made." For a 5-year bond with Macaulay duration of 4.4 years, you wait (on a present-value-weighted basis) 4.4 years to receive your money back.
+Duration is a present-value-weighted average of the times when payments are made. For a 5-year bond with Macaulay duration of 4.4 years, you wait (on a present-value-weighted basis) 4.4 years to receive your money back.
 
 ### 6.5.6 How Duration Varies with Coupon and Maturity
 
-Tuckman provides graphical analysis showing:
+Qualitative relationships:
 
 - **Higher coupon → lower duration:** More cash flow arrives early, pulling the weighted-average time forward
 - **Longer maturity → higher duration:** For most bonds, though the effect asymptotes
 - **Zero-coupon bonds have duration = maturity:** All cash arrives at one point
 - **Perpetuities have finite duration:** At yield $y$, Macaulay duration approaches $(1+y/2)/y$
 
-**Perpetuity Duration Example:** From Tuckman's formulas, as $T \to \infty$:
+**Perpetuity Duration Example:** As $T \to \infty$:
 
 $$\left.D_{\text{Mac}}\right|_{T=\infty} = \frac{1+y/2}{y}$$
 
@@ -398,11 +398,11 @@ At a 5% yield: $D_{\text{Mac}} = (1.025)/0.05 = 20.5$ years. Despite paying fore
 
 ### 6.6.1 Definition and Interpretation
 
-Convexity measures the curvature of the price-yield relationship—how duration itself changes as yields move. Tuckman defines yield-based convexity as:
+Convexity measures the curvature of the price-yield relationship—how duration itself changes as yields move. Yield-based convexity is defined as:
 
 $$\boxed{C_y = \frac{1}{P}\frac{d^2P}{dy^2}}$$
 
-where $d^2P/dy^2$ is the second derivative of the price-yield function. Tuckman notes: "Mathematically, convexity is defined as" this second-derivative expression, and "just as the first derivative measures how price changes with rates, the second derivative measures how the first derivative changes with rates."
+where $d^2P/dy^2$ is the second derivative of the price-yield function. It measures how the first derivative (duration) changes with yield.
 
 Convexity explains the asymmetry in price changes: when yields fall, prices rise by more than duration alone would predict; when yields rise, prices fall by less. This asymmetry favors bondholders.
 
@@ -412,7 +412,7 @@ The second-order Taylor expansion gives:
 
 $$\boxed{\Delta P \approx -P \cdot D_{\text{mod}} \cdot \Delta y + \frac{1}{2} P \cdot C_y \cdot (\Delta y)^2}$$
 
-Tuckman notes that for small yield changes, "the duration term... is much larger than the convexity term." But for larger moves, convexity becomes meaningful. In his numerical example with a 25bp move, the duration term is about 30% while the convexity term is about 3%—convexity is a correction, not the main effect.
+For small yield changes, the duration term typically dominates and convexity is a small correction. As moves get larger, convexity becomes more meaningful.
 
 ### 6.6.3 Positive Convexity as a Benefit
 
@@ -437,7 +437,7 @@ Graphically, "the property of positive convexity may also be thought of as the p
 
 ### 6.6.4 The Cost of Convexity
 
-Convexity is valuable, and markets price it accordingly. Tuckman emphasizes: "Bonds are priced to reflect their convexity advantage." An investor who wants more convexity must accept a lower yield—there is no free lunch.
+Convexity is valuable, and markets price it accordingly: higher convexity (all else equal) typically comes with a lower yield. An investor who wants more convexity must often accept a yield give-up—there is no free lunch.
 
 The economic intuition is straightforward: if Bond A and Bond B have the same duration but Bond A has higher convexity, Bond A will outperform in large rate moves (either direction). The market recognizes this and bids up the price of Bond A, lowering its yield.
 
@@ -483,12 +483,12 @@ $$\text{Bonds: } \Delta P \approx -D \cdot P \cdot \Delta y + \frac{1}{2}C \cdot
 
 ### 6.6.6 The Barbell versus the Bullet
 
-Tuckman develops an important example demonstrating how portfolio structure affects convexity. An asset-liability manager with liabilities having 9-year duration could fund with:
+A classic example demonstrating how portfolio structure affects convexity: an asset-liability manager with liabilities having 9-year duration could fund with:
 
 - **Bullet portfolio:** Intermediate-maturity bonds with 9-year duration
 - **Barbell portfolio:** A mix of short and long bonds (e.g., 2-year and 30-year) that also has 9-year portfolio duration
 
-The barbell has higher convexity because convexity increases with the *square* of maturity. Using zero-coupon bonds, Tuckman provides a specific numerical example:
+The barbell has higher convexity because convexity increases with the *square* of maturity. Using zero-coupon bonds, a simple numerical illustration is:
 
 **Example: 75%/25% Barbell vs 9-Year Bullet**
 
@@ -511,7 +511,7 @@ The barbell has convexity of **221** versus the bullet's **81**—nearly three t
 | Medium (±100 bp) | Similar | Similar | Tie |
 | Large (±200 bp) | Worse | Better | Barbell |
 
-Tuckman’s takeaway: bullets tend to do better for small rate moves, while barbells tend to do better for large moves (because the barbell has higher convexity).
+Rule of thumb: bullets tend to do better for small rate moves, while barbells tend to do better for large moves (because the barbell has higher convexity).
 
 > **Key Insight:** "Spreading out the cash flows of a portfolio (without changing its duration) raises its convexity." This is the mathematical essence of barbelling.
 
@@ -539,11 +539,11 @@ With a finite-difference approach using $\Delta = 50$ bp:
 
 $$\boxed{C_y \approx \frac{P(y - \Delta) + P(y + \Delta) - 2P(y)}{P(y) \cdot \Delta^2}}$$
 
-Tuckman notes that "extra precision is often necessary when calculating second derivatives" because the second-order effect is small.
+Second derivatives are small effects, so you often need extra numerical precision when estimating convexity.
 
 ### 6.6.9 Negative Convexity and Callable Bonds
 
-Not all fixed income securities exhibit positive convexity. Tuckman notes that "fixed income securities need not be positively convex at all rate levels. Some important examples of negative convexity are callable bonds... and mortgage-backed securities."
+Not all fixed income securities exhibit positive convexity at all rate levels. Callable bonds and mortgage-backed securities are common examples of negative convexity.
 
 **The Callable Bond Pricing Relationship:**
 
@@ -561,7 +561,7 @@ When rates fall substantially:
 
 This cap eliminates the upside that positive convexity provides. In the region where rates are low enough that the call is likely, the price-yield curve bends *downward* (concave), creating negative convexity.
 
-Tuckman provides a numerical example showing a callable bond with convexity of **-223** when the call is deep in the money, compared to positive convexity for the same structure when rates are high.
+A numerical illustration: a callable bond can show strongly negative convexity (e.g., around **-223**) when the call is deep in the money, compared to positive convexity for the same structure when rates are high.
 
 **Table: Convexity Across Rate Levels (Callable vs Non-Callable)**
 
@@ -591,7 +591,7 @@ $$P_{\text{dirty}} = \sum_{t=1}^{T_{\text{call}}} \frac{CF_t}{(1+y_c/2)^t} + \fr
 
 $$\boxed{\text{YTW} = \min(\text{YTM}, \text{YTC}_1, \text{YTC}_2, ...)}$$
 
-Tuckman explains that "investors will most likely use yield-to-worst—that is, the yield given the redemption price schedule that minimizes value to the investor."
+In practice, investors often use yield-to-worst: the yield given the redemption price schedule that minimizes value to the investor.
 
 > **Practitioner Note:** Yield-to-worst is conservative but not always accurate. It assumes the issuer exercises optimally against the investor; real-world exercise decisions can be affected by frictions (transaction costs, financing, operational constraints).
 
@@ -612,7 +612,7 @@ Yield-based risk (duration/DV01) implicitly assumes the risk is well described b
 
 ### 6.7.1 The Single-Factor Assumption
 
-All yield-based measures assume that a bond's price depends on one number: its yield. This is convenient but dangerous. As Tuckman warns, a key weakness is assuming that “movements in the entire term structure can be described by one interest-rate factor.”
+All yield-based measures assume that a bond's price depends on one number: its yield. This is convenient but dangerous. A key weakness is assuming that movements in the entire term structure can be described by one interest-rate factor.
 
 In reality, the price of a coupon bond depends on the entire term structure:
 
@@ -647,7 +647,7 @@ The differences can be material for:
 
 ### 6.7.4 Why Yield Hedges Fail Under Curve Twists
 
-A yield-DV01 hedge matches the DV01 of bond A with bond B. This works if both yields change by the same amount. But Tuckman emphasizes in Chapter 7: "A major weakness of the approach... is the assumption that movements in the entire term structure can be described by one interest rate factor."
+A yield-DV01 hedge matches the DV01 of bond A with bond B. This works if both yields change by the same amount. A major weakness of the approach is the assumption that movements in the entire term structure can be described by one interest rate factor.
 
 When the curve twists—say, the 2-year yield rises while the 10-year falls—a DV01-matched hedge can lose money. The hedge was built for parallel shifts; it has no protection against shape changes.
 
@@ -905,7 +905,7 @@ $$\text{Call Option Value} = 114.72 - 107.50 = 7.22$$
 
 ### 6.9.1 Yield Quoting Conventions
 
-Tuckman distinguishes **money market quoting** (simple interest with ACT/360) from **bond quoting** (semiannual compounding). Converting between them requires care:
+Money market quoting (simple interest with ACT/360) differs from bond quoting (semiannual compounding). Converting between them requires care:
 
 - Semi-annual to continuous: $R_c = 2\ln(1 + y/2)$
 - Continuous to semi-annual: $y = 2(e^{R_c/2} - 1)$
@@ -920,7 +920,7 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 **3. Treating yield DV01 as curve DV01:** Yield-based sensitivity assumes parallel yield shifts—a specific and often unrealistic assumption.
 
-**4. YTM as expected return:** Tuckman warns that "holding to maturity will not necessarily earn the initial yield" due to reinvestment and changing rates.
+**4. YTM as expected return:** Holding to maturity will not necessarily earn the initial yield because realized return depends on reinvestment rates and (if sold early) the exit yield/price.
 
 **5. Ignoring optionality:** Yield-based measures assume fixed promised cash flows. Callable bonds, MBS, and other structured products require different treatment.
 
@@ -1023,7 +1023,7 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | 23 | What is barbelling? | Using short + long maturities instead of intermediate to increase convexity |
 | 24 | When does barbell outperform bullet? | When rates move by large amounts (either up or down) |
 | 25 | What is the "cost of convexity"? | Higher convexity bonds have lower yields—you pay for the asymmetric payoff |
-| 26 | Tuckman quote on reinvestment assumption? | "The reinvestment assumption implicit in yield-to-maturity is almost certainly incorrect" |
+| 26 | What reinvestment assumption is embedded in YTM? | It implicitly assumes coupons can be reinvested at the original yield, which is rarely true in practice |
 | 27 | What is negative convexity? | When the price-yield curve is concave (curves downward); price gains are capped |
 | 28 | Which securities exhibit negative convexity? | Callable bonds, mortgage-backed securities |
 | 29 | Callable bond decomposition formula? | $P_{\text{callable}} = P_{\text{non-callable}} - \text{Call Option Value}$ |

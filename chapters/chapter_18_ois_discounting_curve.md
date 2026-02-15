@@ -4,11 +4,20 @@
 
 ## Introduction
 
-In the years before 2008, fixed income practitioners lived in a convenient fiction: they assumed that "risk-free" rates were observable in the interbank market, and that a single yield curve could serve both for forecasting cashflows and for discounting them. LIBOR was the universal standard, used to price everything from mortgages to complex derivatives.
+Prerequisites: [Chapter 2 — Time Value, Discount Factors, and Replication](chapters/chapter_02_time_value_discount_factors_replication.md); [Chapter 3 — Zero, Forward, and Par Rates (The Rate Triangle)](chapters/chapter_03_zero_forward_par_rates_triangle.md); [Chapter 17 — Curve Construction (Bootstrapping, Interpolation)](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md); [Chapter 11 — DV01/PV01 Definitions and Computation](chapters/chapter_11_dv01_pv01_definitions_computation.md).
 
-The 2008 financial crisis shattered this consensus. As banks failed, the spread between LIBOR (an unsecured term funding rate) and OIS (a compounded overnight rate) widened from a negligible few basis points to **hundreds of basis points** (peaking around the high-300s in October 2008). The market realized an uncomfortable truth: LIBOR embeds bank credit and liquidity risk. Discounting a risk-free (or collateralized) cashflow at LIBOR effectively undervalues it, as if the cashflow itself were subject to bank default risk.
+Follow-on: [Chapter 19 — Projection Curves (LIBOR, SOFR, Multi-Curve)](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md); [Chapter 22 — Multi-Curve Risk (Jacobians, Controlled Perturbations)](chapters/chapter_22_multi_curve_risk_jacobians.md); [Chapter 33 — Collateral Discounting (OIS)](chapters/chapter_33_collateral_discounting_ois.md); [Chapter 34 — XVA Overview](chapters/chapter_34_xva_overview.md).
 
-For collateralized trades backed by cash margin, the economically correct discount rate is not LIBOR, but the rate earned on that collateral—typically the overnight rate. This realization forced a wholesale re-architecture of valuation frameworks, moving from a "single-curve" world to a "multi-curve" world where the discounting curve is separated from the projection curve.
+## Learning Objectives
+- Translate an OIS quote (par fixed rate) into discount-factor constraints.
+- Bootstrap an OIS discount curve and convert discount factors to zero rates.
+- Choose and sanity-check an interpolation method (and understand what it implies for forward rates).
+- Use the OIS curve to discount collateralized cashflows and compute a clearly-defined DV01.
+- Interpret “locality” and the Jacobian view of how quote bumps propagate through the curve.
+
+Before the 2007–2009 crisis, many market models and systems used a single curve (often LIBOR-based) to both (i) project floating cashflows and (ii) discount them. During the crisis, the spread between LIBOR (an unsecured term funding rate) and OIS (a compounded overnight rate) widened dramatically—peaking in the high-300 bp range in October 2008—highlighting that LIBOR embeds bank credit and liquidity risk.
+
+For cash-collateralized trades under an idealized CSA (daily variation margin, cash collateral, and a specified collateral remuneration rate), no-arbitrage arguments point to discounting at the collateral rate—typically an overnight index. This led to the modern “multi-curve” framework: separate curves for discounting (collateral rate) and for projecting the contract’s index cashflows.
 
 > **Analogy: Gold vs. Silver Currency**
 >
@@ -28,9 +37,9 @@ This chapter guides you through constructing that discounting backbone: the **OI
 6. **Locality** (Section 18.6): How quote bumps propagate through the curve.
 7. **Valuation Impact** (Section 18.7): Demonstrating the P&L difference between OIS and LIBOR discounting.
 8. **Practical Considerations** (Section 18.8): Turn-of-year effects, negative rates, collateral choices, margin costs, and the operational lifecycle.
-9. **The SOFR Transition** (Section 18.9): How the market moved from Fed Funds to SOFR, including the historic October 2020 "Big Bang."
+9. **USD Overnight Benchmarks** (Section 18.9): Fed Funds OIS vs SOFR OIS, and why the benchmark choice matters for discounting.
 
-Mastering the OIS curve is no longer optional. It is the baseline for all modern derivatives pricing, the foundation upon which every other curve (LIBOR, SOFR projection, BSBY) is built.
+Mastering the OIS curve is the baseline for modern derivatives pricing: the discounting backbone on top of which projection curves and basis spreads are layered.
 
 ---
 
@@ -38,36 +47,32 @@ Mastering the OIS curve is no longer optional. It is the baseline for all modern
 
 ### 18.1.1 What Gets Exchanged
 
-An Overnight Indexed Swap (OIS) is an interest rate swap where one leg pays a fixed rate $k$, and the other pays a floating rate based on a daily compounded overnight index (such as the Fed Funds Rate or SOFR).
+An Overnight Indexed Swap (OIS) is an interest rate swap where one leg pays a fixed rate $k$, and the other pays an overnight leg that reflects the **geometric average** of overnight rates over the coupon period (typically implemented via daily compounding).
 
-Unlike a standard LIBOR swap where the floating rate is set at the *beginning* of the period, the floating payment in an OIS is determined at the *end*, based on the geometric average of daily rates realized over the period. Hull emphasizes this distinction: "LIBOR rates for a period are known at the beginning of the period to which they apply, whereas the result of the averaging process for overnight rates is known only at the end of the period."
+Unlike a term IBOR coupon (known at the start of the accrual period), the overnight leg is an **averaging process**, so the realized coupon rate is only known at the end of the period.
 
-Andersen and Piterbarg describe the floating leg payment for a period $[T_n, T_{n+1}]$ as being driven by the compounded rate $\bar{L}_n$:
+For a coupon period $[T_n, T_{n+1}]$, let $T_n = t_{n,1} < t_{n,2} < \cdots < t_{n,K_n}=T_{n+1}$ be the business days that bracket the overnight fixings in the period. Let:
+- $r_{n,i}$ be the overnight rate fixed at $t_{n,i}$, applied over $[t_{n,i}, t_{n,i+1}]$,
+- $\delta_{n,i}$ be the day-count accrual fraction for that sub-interval (e.g., ACT/360; weekends/holidays appear as larger $\delta_{n,i}$),
+- $\tau_n := \sum_{i=1}^{K_n-1}\delta_{n,i}$ be the accrual year-fraction for the coupon period.
 
-$$\boxed{\bar{L}_n = \frac{\prod_{j=1}^{\ell_n}\left(1 + r(T_n + t_j^n)\Delta t_j^n\right) - 1}{\tau_n}}$$
+Define the **compounded accrual factor** over the period as:
 
-where:
-- $r(T_n + t_j^n)$ is the overnight rate on day $j$.
-- $\Delta t_j^n$ is the accrual fraction for that day (e.g., 1/360 for most days, but 3/360 for a rate applied over a weekend).
-- $\tau_n$ is the total year fraction for the payment period.
+$$A^{\text{flt}}_n := \prod_{i=1}^{K_n-1}\left(1+r_{n,i}\delta_{n,i}\right).$$
 
-This formula captures the economic reality of rolling over an overnight deposit daily. The "minus 1" removes the principal, leaving just the interest, and dividing by $\tau_n$ annualizes the rate for the period.
+The **annualized compounded rate** for the period is then:
 
-Hull provides a concrete example: "Suppose that the (annualized) SOFR overnight rate on the $i$th business day of a period is $r_i$ and the rate applies to $d_i$ days. The (annualized) interest rate for the period is:
+$$\boxed{\bar{L}_n = \frac{A^{\text{flt}}_n - 1}{\tau_n}}$$
 
-$$\left[\left(1+r_1 \hat{d}_1\right)\left(1+r_2 \hat{d}_2\right) \ldots\left(1+r_n \hat{d}_n\right)-1\right] \times \frac{360}{D}$$
+so the floating-leg coupon amount is $N\tau_n\bar{L}_n = N\left(A^{\text{flt}}_n-1\right)$.
 
-where $\hat{d}_i = d_i/360$ and $D = \sum_i d_i$ is the number of days in the period."
-
-The net payment at $T_{n+1}$ for a notional $N$ is:
+The **net payment** at $T_{n+1}$ for notional $N$ (positive from the perspective of receiving floating / paying fixed) is:
 
 $$\boxed{\text{Payoff at } T_{n+1} = N \tau_n (\bar{L}_n - k)}$$
 
 ### 18.1.2 Contract Structure by Maturity
 
-Hull clarifies the structure of OIS contracts across different maturities: "When the life of the OIS is greater than one year, it is typically divided into three-month subperiods, with the fixed rate being exchanged at the end of each three-month period for the three-month reference rate that is calculated for that period from one-day rates. OISs lasting ten years or longer are now traded."
-
-In practice, the exact coupon period (annual vs quarterly) is a **market/CCP/documentation convention**. What stays the same is the core mechanic: within each coupon period, the floating leg is computed from **daily compounding** of the overnight rate, and a net payment is exchanged at the period end (often with a payment delay).
+In practice, the exact payment schedule is a **documentation / product / CCP convention**. What stays the same is the core mechanic: within each coupon period, the floating leg is computed from **daily compounding** of the overnight rate, and a net payment is exchanged at the period end (sometimes with a payment delay).
 
 For shorter maturities, the structure is simpler:
 
@@ -77,54 +82,53 @@ For shorter maturities, the structure is simpler:
 | 3 Months | Single exchange at maturity |
 | 6 Months | Single exchange at maturity |
 | 1 Year | Single exchange at maturity |
-| 2+ Years | Periodic exchanges (often annual for standard cleared OIS; conventions vary by product/CCP) |
+| 2+ Years | Periodic exchanges (frequency depends on product/currency/CCP; commonly quarterly or annual) |
 
 ### 18.1.3 Why OIS Became the Discounting Standard
 
-The prominence of OIS stems from the mechanics of collateral. In modern OTC derivatives, counterparties post variation margin (typically cash) to cover daily mark-to-market changes. This cash usually earns the overnight rate (e.g., Fed Funds or SOFR).
+The prominence of OIS stems from the mechanics of collateral in modern OTC derivatives. When cash variation margin is transferred (especially in centrally cleared setups), the party posting margin typically **earns** interest and the party receiving margin typically **pays** interest on the funds transferred; this interest is often called **price alignment interest (PAI)**.
 
-Hull explains the arbitrage argument concisely: derivatives that are collateralized by cash earning the overnight rate should be discounted at that overnight rate. As he notes, "overnight reference rates are considered to be better proxies for risk-free rates than Treasury rates."
+Under the idealized “clean CSA” setup (daily margining, cash collateral, and a specified collateral remuneration rate), a no-arbitrage argument points to discounting future collateralized cashflows at the **collateral rate**. In practice, that collateral rate is typically an overnight rate index, which is why OIS curves became the natural discounting backbone.
 
-This leads to the **separation of discount and forward curves** (discussed in detail in Andersen & Piterbarg, Vol 1, Section 6.5.2.2). The OIS curve $P(0,T)$ is used for discounting *all* collateralized cashflows, regardless of whether those cashflows themselves are linked to LIBOR, SOFR, or FX rates.
+This leads to the **separation of discounting and projection**:
+- **Discounting curve:** used to PV cashflows (often an OIS curve tied to the collateral index).
+- **Projection curve:** used to forecast index-linked cashflows (e.g., term IBOR, a term SOFR curve, or another RFR projection curve).
 
 > **Visual: The Crisis Gap**
 >
-> In 2007, the spread between 3-month LIBOR and OIS was only a few basis points.
-> In October 2008, that spread spiked to the high-300s of basis points.
+> Prior to August 2007, the 3-month LIBOR–OIS spread was less than 10 bp.
+> In early October 2008, it reached a peak around 364 bp.
 >
-> *   **Pre-2008**: OIS $\approx$ LIBOR. Using LIBOR to discount was "close enough."
-> *   **Post-2008**: OIS $\ll$ LIBOR. Using LIBOR to discount collateralized cash flows meant throwing away 3% of the value per year.
+> *   **Pre-2008**: LIBOR and OIS were close, so discounting differences were often small.
+> *   **Stress**: when the spread is large, discounting on the wrong curve can materially change PV and risk (especially for long-dated cashflows).
 >
 > This gap forced the "Dual Curve" shift:
 > 1.  **Project** flows using LIBOR (because the contract says so).
 > 2.  **Discount** flows using OIS (because the CSA collateral earns OIS).
 
-> **Practitioner Note:** While we often call this the "risk-free" curve, practitioners know it as the "collateral curve." It reflects the specific terms of the Credit Support Annex (CSA). A trade collateralized in USD cash uses the USD OIS curve; a trade collateralized in EUR uses the €STR curve. The choice of discounting curve is determined by the CSA, not by the underlying instrument.
+> **Desk Reality:** Traders often say “OIS curve” and mean “the discount curve implied by my collateral agreement.”
+> **Common break:** Two systems can both label a curve “OIS” but use different collateral indices/calendars/delays, producing PV and DV01 mismatches.
+> **What to check:** For each trade, confirm the CSA/clearing setup (collateral currency + remuneration/index + timing). Then confirm which curve label in risk reports maps to those terms.
 
 ### 18.1.4 SOFR-Specific Conventions
 
-With the transition from Fed Funds to SOFR as the primary USD overnight rate, practitioners must understand SOFR-specific conventions. Hull notes that "the secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States."
+USD OIS trades may reference different overnight benchmarks (e.g., the effective fed funds rate or SOFR). Throughout this chapter’s worked examples we use a simplified SOFR OIS convention set, but you should always verify the exact conventions for your product/CCP.
 
-**Common cleared USD SOFR OIS conventions (check your product/CCP):**
+**Assumptions used for the worked examples in this chapter (check your product/CCP):**
 
 | Convention | SOFR OIS |
 |------------|----------|
 | Day Count | ACT/360 |
 | Compounding | Daily, geometric |
-| Fixed Leg Payment Frequency | Often annual (standard cleared OIS); shorter maturities may be single exchange |
-| Floating Leg Payment Frequency | Often annual, compounded in arrears |
-| Payment Delay | Commonly 2 business days after period end |
-| Observation Convention | Often no observation shift; other conventions (lookback/lockout) exist by product |
+| Fixed Leg Payment Frequency | Annual (simplifying assumption) |
+| Floating Leg Payment Frequency | Annual (simplifying assumption), compounded in arrears |
+| Payment Delay | None (simplifying assumption) |
+| Observation Convention | None (simplifying assumption; no lookback/lockout/shift) |
 | Holiday Calendar | USNY (USD) |
 
-> **Desk Reality: "Observation Shift" vs "Lockout"**
->
-> Overnight rates are compounded **in arrears**, so the final coupon is only known at the end of the accrual period. Operationally, markets handle this with one or more of:
-> - **Payment delay:** Pay the coupon a fixed number of business days after period end (e.g., 2 days).
-> - **Lookback / observation shift:** Accrue using rates observed earlier so the amount is known before period end.
-> - **Lockout:** Freeze the last few daily rates to a fixed value so the coupon is known early.
->
-> Conventions differ across products and clearing houses. If two swaps use different conventions, that difference is a small basis risk that can matter for hedging and P&L explain.
+> **Desk Reality:** Overnight coupons are compounded **in arrears**, so the final coupon is only known at period end. Products handle this with conventions such as payment delays, lookbacks/observation shifts, or lockouts.
+> **Common break:** Valuing a trade assuming “no shift” when the confirmation uses a lookback/lockout creates small but sharp P&L effects around coupon dates and can break hedge attribution.
+> **What to check:** Read the confirmation/cleared spec for (i) payment delay, (ii) observation adjustment (lookback/shift/lockout), and (iii) the exact day-count/calendar used for accrual.
 
 **Comparison with Other Overnight Indices:**
 
@@ -175,21 +179,32 @@ $$\text{Net Payment} = \$100\text{mm} \times \frac{90}{360} \times (4.40\% - 4.3
 
 To build the curve, we rely on the fundamental pricing equation: at inception, a par swap has a present value of zero. This implies the present value of the fixed leg equals the present value of the floating leg.
 
-Hull provides the key insight that allows us to treat the floating leg simply. By adding notional principal exchanges (which net to zero), we can view the swap as an exchange of bonds: "A key point is that the floating-rate bond... is worth [$N$]. This is because it provides the payments necessary to service [$N$] of borrowings at overnight rates."
+The key trick is to add (purely for valuation convenience) offsetting notional exchanges at maturity. This does not change the economics, but it lets you view the swap as an exchange of:
+1. a **fixed-rate bond** (fixed coupons plus principal at maturity), and
+2. a **floating-rate bond** (floating coupons plus principal at maturity).
 
-**The Economic Intuition:** Imagine you have $1 and invest it overnight, rolling the investment daily at the overnight rate. At the end of the period, you receive $1 plus interest—but if you were borrowing at the same overnight rate, you'd owe exactly the same amount. The investment self-finances. This is why a floating-rate bond paying the overnight rate trades at par.
+**Economic intuition (why the floating leg is “par-like”):** a floating-rate note that resets to the relevant short rate is worth approximately par immediately after a reset, because it earns the prevailing funding rate for the next accrual period.
 
 A par OIS can thus be conceptualized as two bonds:
 1. **Fixed Rate Bond**: Pays coupons $k$ at times $T_i$.
 2. **Floating Rate Bond**: Pays compounded overnight rates—and prices at par.
 
-This allows us to write the **par condition** solely in terms of the fixed leg and the discount factors:
+Under a single-curve OIS setup (the overnight index is consistent with the discount curve), the swap PV can be written using discount factors only. For a spot-starting swap (start at $T_0=0$):
+
+- Floating leg PV (unit notional, no spread; idealized) is:
+  $$PV_{\text{flt}} = 1 - P(0,T_N).$$
+- Fixed leg PV is:
+  $$PV_{\text{fix}} = k \sum_{i=1}^{N}\tau_i P(0,T_i) = k\,A(0).$$
+
+The **par condition** $PV_{\text{fix}} = PV_{\text{flt}}$ gives:
+
+$$\boxed{k_{\text{par}} = \frac{1 - P(0,T_N)}{A(0)}}$$
+
+Equivalently, with the “add principal at maturity” fiction, the par condition becomes:
 
 $$\boxed{1 = k\sum_{i=1}^{N} \tau_i P(0,T_i) + P(0,T_N)}$$
 
 Here, the left side (1) represents the floating leg value, and the right side represents the fixed leg coupons plus the return of notional at maturity $T_N$.
-
-As Hull confirms: "the OIS rate is the interest rate on a fixed-rate bond that is worth par."
 
 > **Preview: Multi-Curve Complication**
 >
@@ -197,15 +212,13 @@ As Hull confirms: "the OIS rate is the interest rate on a fixed-rate bond that i
 
 ### 18.2.2 The Annuity Factor
 
-The sum of the discounted accrual factors is a recurring quantity known as the **annuity factor** (or PV01 of the fixed leg). Andersen and Piterbarg define it precisely:
+The sum of discounted accrual factors is a recurring quantity known as the **annuity factor** (often called the PV01 of the fixed leg up to scaling):
 
 $$\boxed{A(0) \equiv \sum_{i=1}^{N} \tau_i P(0,T_i)}$$
 
-This quantity represents "the time $t$ value of a security making $m$ coupon payments of $\tau_n$ at all $T_{n+1}$." Using this shorthand, the par rate $k_{\text{par}}$ can be expressed elegantly as:
+It is literally the PV today of receiving “1 per year” (scaled by accrual fractions) on the fixed-leg payment dates.
 
-$$\boxed{k_{\text{par}} = \frac{1 - P(0,T_N)}{A(0)}}$$
-
-This ratio has a physical interpretation: the numerator is the total discount (time value lost) to maturity, and the denominator distributes this loss across the coupon payment dates. Andersen and Piterbarg express this same relationship as:
+For a forward-starting swap with first fixing/payment at $T_k$ and last payment at $T_{k+m}$, the same idea is often written as a forward swap rate:
 
 $$S_{k,m}(t) = \frac{P(t, T_k) - P(t, T_{k+m})}{A_{k,m}(t)}$$
 
@@ -219,17 +232,13 @@ where $S_{k,m}(t)$ is the forward swap rate.
 
 We cannot solve for all discount factors simultaneously because the equation for a 5-year swap depends on the discount factors for years 1, 2, 3, and 4. Instead, we **bootstrap**: we solve for the curve one maturity at a time, starting from the shortest tenor.
 
-As Hull describes, "OIS rates with maturities one year or less, because they lead to just one exchange, have a straightforward interpretation. They provide the risk-free zero rates that are equivalent to the underlying overnight rates."
-
 **Step 1: Short End (Zero Rates)**
 
-For short-dated OIS (e.g., 1 month, 3 months), there is only one payment. The quoted rate $R$ acts as a simple zero rate:
+For short-dated OIS instruments with a single net payment, the quoted rate $R$ can be treated as a simple annualized rate over the stated day-count basis, implying a discount factor:
 
-$$P(0,T) = \frac{1}{1 + R \cdot T}$$
+$$P(0,T) = \frac{1}{1 + R \cdot \tau(0,T)}$$
 
-where $T$ is expressed as a year fraction using the appropriate day count (ACT/360 for USD).
-
-Hull's Table 7.3 provides an example: "The OIS rates out to one year define zero rates in a direct way."
+where $\tau(0,T)$ is the year fraction (e.g., ACT/360 for USD). If the market quote uses a different compounding basis, convert it to a consistent discount-factor representation before bootstrapping.
 
 **Step 2: Long End (Iterative Solve)**
 
@@ -241,61 +250,91 @@ Solving for $P(0,T_N)$ yields the **bootstrap formula**:
 
 $$\boxed{P(0,T_N) = \frac{1 - k_N \sum_{i=1}^{N-1} \tau_i P(0,T_i)}{1 + k_N \tau_N}}$$
 
-As Hull explains, for OIS rates with maturities greater than a year, "the zero curve can be assumed to be linear between maturities and calculations can be carried out." The two-year and five-year zero rates are "chosen using an iterative search procedure... so that they are consistent with" bonds of those maturities pricing at par.
+In a production curve build, the “simple” bootstrap above must be paired with (i) exact schedule generation (stubs, business-day rules), (ii) any payment delays and observation adjustments, and (iii) an interpolation rule between market pillars.
 
 ### 18.3.2 Worked Example: Building a 5-Year Curve
 
-Let's apply this to a concrete set of market quotes. Assume annual payments ($\tau=1$) for simplicity.
+**Example Title**: Bootstrapping discount factors from par OIS quotes (toy build)
 
-**Market Quotes:**
+**Context**
+- You receive par SOFR OIS swap rates (the fixed rates that make each swap PV = 0) and need discount factors for PV and risk.
+- Everything downstream—valuation, hedges, DV01 attribution—depends on getting the curve build *and* conventions right.
 
-| Maturity | Par Rate |
-|----------|----------|
+**Timeline (Make Dates Concrete)**
+- Valuation date: 2026-02-18
+- Assume annual payment dates: 2027-02-18, 2028-02-18, 2029-02-18, 2030-02-18, 2031-02-18
+- Day count: ACT/360 in production. To keep the arithmetic transparent below, we set each coupon-period accrual factor to $\tau_i = 1$ (you should compute $\tau_i$ from the day count in real builds).
+
+**Inputs**
+- Unit-notional par OIS fixed rates (annual pay; single-curve OIS discounting for the OIS itself):
+
+| Maturity | Par Rate $k$ |
+|---:|---:|
 | 1Y | 2.50% |
 | 2Y | 2.70% |
 | 3Y | 2.90% |
 | 4Y | 3.05% |
 | 5Y | 3.20% |
 
-**First Calculation (1Y):**
+- Simplifications: ignore stubs, payment delays, and observation adjustments.
 
-The 1Y instrument has a single flow. We solve directly:
+**Outputs (What You Produce)**
+- Discount factors $P(0,T)$ at the market “pillar” maturities.
+- A PV and DV01 for a collateralized cashflow discounted off the curve (to connect “curve build” → “risk number”).
 
-$$P(0,1) = \frac{1}{1 + 0.025} = 0.975610$$
+**Step-by-step**
+1. **Solve 1Y directly** (single payment):
+   $$P(0,1) = \frac{1}{1 + 0.025} = 0.975610.$$
+2. **Solve 2Y from the par condition**:
+   $$P(0,2) = \frac{1 - 0.027\,P(0,1)}{1 + 0.027} = 0.948061.$$
+3. **Solve 3Y similarly**:
+   $$P(0,3) = \frac{1 - 0.029\,(P(0,1)+P(0,2))}{1 + 0.029} = 0.917603.$$
+4. **Continue to 4Y and 5Y**:
 
-**Second Calculation (2Y):**
-
-Using the 1Y discount factor we just found, we solve for the 2Y factor. The 2.70% swap pays coupons at year 1 and year 2.
-
-$$P(0,2) = \frac{1 - 0.027(0.975610)}{1 + 0.027} = \frac{0.973659}{1.027} = 0.948061$$
-
-**Third Calculation (3Y):**
-
-Now utilizing both previous factors, we solve for the 3Y factor. The 2.90% swap pays at years 1, 2, and 3.
-
-$$P(0,3) = \frac{1 - 0.029(0.975610 + 0.948061)}{1 + 0.029} = \frac{0.944214}{1.029} = 0.917603$$
-
-**Continuing the Chain (4Y & 5Y):**
-
-By repeating this pattern:
-
-| Maturity | Discount Factor |
-|----------|-----------------|
+| Maturity | $P(0,T)$ |
+|---:|---:|
+| 1Y | 0.975610 |
+| 2Y | 0.948061 |
+| 3Y | 0.917603 |
 | 4Y | 0.886309 |
 | 5Y | 0.853408 |
 
-The result is a consistent curve where every input instrument reprices exactly to par.
+5. **Use the curve for PV**: suppose you will **receive** \$100,000,000 at 2029-02-18 (3Y).
+   $$PV = 100{,}000{,}000 \times P(0,3) = 91{,}760{,}300.$$
+6. **Define and compute DV01** (explicit bump object + units + sign):
+   - **Bump object:** the OIS discount curve expressed as a continuously-compounded zero curve $y_c(T) := -\ln P(0,T)/T$ (parallel shift).
+   - **Bump size:** 1 bp $=10^{-4}$.
+   - **Definition:** $DV01 := PV(y_c(T)\ \text{down }1\text{bp}) - PV(\text{base})$.
+   - **Units:** USD per 1 bp (here: per \$100,000,000 notional).
+
+   For a single cashflow at maturity $T$, the approximation is
+   $$DV01 \approx PV \times T \times 10^{-4}.$$
+   Here, $DV01 \approx 91{,}760{,}300 \times 3 \times 10^{-4} \approx 27{,}528.$
+
+**Cashflows (table)**
+| Date | Cashflow | Explanation |
+|---|---:|---|
+| 2029-02-18 | +100,000,000 | Collateralized cashflow discounted on the OIS curve |
+
+**P&L / Risk Interpretation**
+- A DV01 of +\$27.5k means: if the **OIS zero curve** shifts down 1 bp (as defined above), the PV of this \$100mm 3Y cashflow increases by about \$27.5k.
+- On a desk, the first check is **scaling**: DV01 should scale linearly with notional and roughly with maturity (all else equal).
+- What breaks in practice: if a risk report defines the bump on **par OIS quotes** (rebootstrap) rather than on a **zero curve** (parallel shift), the “DV01” numbers will differ even if both are called “OIS DV01.”
+
+**Sanity Checks**
+- Monotonicity: $P(0,T)$ should be decreasing in $T$ for positive rates.
+- Magnitudes: $PV$ should be less than notional; DV01 should be “small” relative to PV (order of $PV\times T \times 10^{-4}$).
 
 ### 18.3.3 Using Futures as Inputs
 
-In practice, the short end of the OIS curve (up to 2 years) is often built from SOFR futures rather than OIS swaps, because futures are more liquid. Hull discusses both 1-month and 3-month SOFR futures:
+In practice, the short end of the OIS curve (up to ~2 years) is often built from SOFR futures rather than OIS swaps, because the futures market can be more liquid:
 
 - **1-Month SOFR Futures:** Settlement based on arithmetic average of daily SOFR over the contract month.
 - **3-Month SOFR Futures:** Settlement based on geometric compounding of daily SOFR over the quarter.
 
 > **Desk Reality: Convexity Adjustment**
 >
-> When using futures rates to build a swap curve, a convexity adjustment is needed because futures settle daily (linear payoff) while swaps do not. Hull notes that the adjustment depends on "an assumption about the underlying interest rate model." For SOFR futures, the adjustment is typically small (a few basis points for short maturities) but grows with maturity. See Chapter 24 for the full treatment.
+> When using futures-implied rates to build a swap curve, a convexity adjustment is often needed because futures are marked-to-market daily while swaps are not. The adjustment is model-dependent, usually small at short maturities, and can grow with maturity and volatility. See Chapter 24 for the full treatment.
 
 ---
 
@@ -303,17 +342,17 @@ In practice, the short end of the OIS curve (up to 2 years) is often built from 
 
 While the discount factor $P(0,T)$ is the fundamental pricing object, humans find it hard to differentiate "0.9176" from "0.9180". We prefer rates.
 
-We can convert any discount factor into a **zero rate** (yield). Hull notes that zero rates are "often referred to as spot rates, or sometimes as zero-coupon rates." The two most common conventions are:
+We can convert any discount factor into a **zero rate** (also called a spot rate or zero-coupon yield). The two most common conventions are:
 
 **1. Continuously Compounded:**
-$$z_c(T) = -\frac{\ln P(0,T)}{T}$$
+$$y_c(T) = -\frac{\ln P(0,T)}{T}$$
 
 **2. Annually Compounded:**
-$$z_a(T) = \frac{1}{P(0,T)^{1/T}} - 1$$
+$$y_a(T) = \frac{1}{P(0,T)^{1/T}} - 1$$
 
 Applying this to our bootstrapped points:
 
-| Maturity | $P(0,T)$ | Continuous Zero $z_c$ | Annual Zero $z_a$ |
+| Maturity | $P(0,T)$ | Continuous Zero $y_c$ | Annual Zero $y_a$ |
 |----------|----------|-----------------------|-------------------|
 | 1Y | 0.975610 | 2.47% | 2.50% |
 | 2Y | 0.948061 | 2.67% | 2.70% |
@@ -323,7 +362,7 @@ Applying this to our bootstrapped points:
 
 ### 18.4.1 Par Rates vs Zero Rates
 
-Notice that the zero curve ($z$) is generally *not* the same as the par curve ($k$). For an upward sloping yield curve:
+Notice that the zero curve (e.g., $y_c(T)$) is generally *not* the same as the par curve ($k$). For an upward sloping yield curve:
 
 - The par rate is a *weighted average* of the zero rates, weighted by discount factors
 - The early coupons are discounted at lower rates (since the curve slopes upward)
@@ -340,15 +379,15 @@ Market quotes are sparse (1Y, 2Y... 10Y, 30Y). But you might need to value a cas
 
 ### 18.5.1 Linear in Log Discount Factor
 
-A standard practitioner choice (recommended by Andersen & Piterbarg) is **linear interpolation of the log discount factor**:
+A standard practitioner choice is **linear interpolation of the log discount factor**:
 
 $$\ln P(0,t) = (1-\alpha) \ln P(0,T_1) + \alpha \ln P(0,T_2)$$
 
 where $\alpha = (t - T_1)/(T_2 - T_1)$ is the fraction of time between $T_1$ and $T_2$.
 
-This method has a crucial physical property: it implies **piecewise constant forward rates**. As Andersen and Piterbarg note, under the assumption that "the instantaneous forward curve is piecewise flat, switching to a new level at each point in $\{T_i\}$":
+This method has a crucial physical property: it implies **piecewise constant instantaneous forward rates** between pillar dates. One way to see this is to assume that, on each interval $[T_i, T_{i+1}]$, the instantaneous forward rate is constant at some level $f_i$. Then
 
-$$P(T) = P(T_i) e^{-f(T_i)(T-T_i)}$$
+$$P(T) = P(T_i) e^{-f_i(T-T_i)}$$
 
 The forward rate is flat between grid points. This is robust and creates stable local sensitivities, which is why it is preferred for trading systems over splines (which can oscillate).
 
@@ -368,7 +407,7 @@ The difference (approximately 5 basis points in price) is significant for levera
 
 ### 18.5.3 Higher-Order Methods
 
-Andersen and Piterbarg catalog a hierarchy of smoothness:
+A useful mental model is to rank interpolation methods by smoothness:
 
 | Method | Smoothness | Forward Curve |
 |--------|------------|---------------|
@@ -420,7 +459,27 @@ This "one-way" causality is distinct from global fitting methods (like Nelson-Si
 
 ### 18.6.1 The Jacobian Perspective
 
-Andersen and Piterbarg formalize this with the Jacobian matrix $\partial P / \partial k$, which shows how discount factors respond to changes in input rates. For a bootstrapped curve, this matrix is *lower triangular*: the $(i,j)$ entry (sensitivity of $P_i$ to rate $k_j$) is zero whenever $j > i$. This triangular structure is the mathematical expression of locality.
+You can formalize “locality” with a Jacobian matrix that maps quote bumps to curve moves. Let $k_j$ denote the $j$-th input quote (e.g., a par OIS rate for a given maturity) and let $P_i$ denote the $i$-th discount factor pillar. The Jacobian $J := \partial P / \partial k$ summarizes how each discount factor responds to each quote.
+
+For a sequential bootstrap where each new quote solves for a new longest-maturity discount factor, this Jacobian is *lower triangular*: long-dated quote bumps do not change short-dated discount factors.
+
+### 18.6.2 Risk Measures and “What Is Being Bumped?”
+
+To make curve risk actionable, you must say **what is bumped**, by **how much**, and how the curve is **re-built** after the bump. Otherwise two systems can report “DV01” numbers that are not comparable.
+
+Two common bump styles are:
+1. **Zero-curve shift (direct bump):** bump a zero-rate curve $y_c(T)$ and recompute discount factors via $P(0,T)=e^{-y_c(T)T}$ (continuous compounding shown here).
+2. **Par-quote bump (rebootstrap):** bump a specific market quote $k_j$ (e.g., the 5Y par OIS rate) and rebootstrap the curve so all instruments reprice to par under the bumped quote set.
+
+For this chapter we use the book-wide DV01 sign convention:
+- **Bump object:** a continuously-compounded zero curve $y_c(T)$ for the OIS discount curve.
+- **Bump size:** 1 bp $=10^{-4}$, applied as a parallel shift $y_c(T)\mapsto y_c(T)-10^{-4}$.
+- **Definition:** $DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})$.
+- **Units:** currency per 1 bp (always state the notional basis).
+
+> **Pitfall — “What is being bumped?”:** “OIS DV01” might mean a zero-curve parallel shift in one system and a par-quote rebootstrap in another.
+> **Why it matters:** hedge ratios, bucket risk, and P&L explain can differ materially even if both numbers are labeled “DV01.”
+> **Quick check:** ask for the exact bump description (curve object + size + direction) and test scaling on a toy cashflow (e.g., a single discount factor): DV01 should be roughly $PV\times T\times 10^{-4}$ under a continuous-zero parallel shift.
 
 ---
 
@@ -459,9 +518,9 @@ If you are a bank posting cash collateral (earning OIS) but pricing your book us
 
 ### 18.8.1 Turn-of-Year (TOY) Effects
 
-One practitioner nuance often missed in textbooks is the **Turn-of-Year effect**. Over the year-end regulatory reporting period, balance sheet capacity becomes scarce, and overnight borrowing rates often spike (or plummet, depending on excess liquidity).
+One operational nuance is the **turn-of-year (TOY) effect**: around year-end, balance-sheet constraints can create localized dislocations in overnight funding rates.
 
-A standard smooth curve will miss this spike. Andersen & Piterbarg (Vol 1, Section 6.5.1) describe using a specific **overlay curve** $\varepsilon_f(t)$ to handle these jumps:
+A standard smooth curve will miss this spike. One approach is to add a localized **overlay** to the forward curve so that special-date effects live in a separate component:
 
 $$f(t) = f_{smooth}(t) + \varepsilon_{TOY}(t)$$
 
@@ -479,16 +538,14 @@ Practitioners may explicitly mark a "turn" spread (e.g., a special forward premi
 
 ### 18.8.2 Fed Funds vs SOFR
 
-The transition from Fed Funds to SOFR as the primary USD overnight rate has implications for curve construction. Tuckman notes that "the GC rate is typically below the fed funds target rate because loans through repurchase agreement are effectively secured by collateral, while loans in the fed funds market are not."
-
-SOFR, being based on Treasury repo transactions, reflects secured financing conditions; Fed Funds reflects unsecured interbank conditions. The spread between them varies over time (including quarter-end dynamics). Practitioners building OIS curves must be clear about which overnight rate their curve references.
+Fed Funds and SOFR are both USD overnight benchmarks that appear in OIS markets and in collateral remuneration conventions. Fed Funds is an overnight interbank borrowing rate; SOFR is a secured overnight financing rate derived from overnight repo transactions. Because repo is secured, repo rates (and hence SOFR) are often thought of as slightly below the corresponding fed funds rate, though the difference varies with market conditions.
 
 | Characteristic | Fed Funds | SOFR |
 |----------------|-----------|------|
-| Security | Unsecured | Secured (Treasury repo) |
-| Relative Level | Can differ; depends on funding/quarter-end conditions | Can differ; depends on repo conditions |
-| Quarter-End Effects | Can move | Can move (repo-specific) |
-| Primary Use | Legacy overnight index for USD OIS | Primary USD overnight index for modern OIS |
+| Underlying market | Interbank overnight borrowing | Overnight repo |
+| Secured? | Unsecured | Secured |
+| Construction | Effective fed funds rate (transaction-weighted) | Volume-weighted median of overnight repo rates |
+| OIS benchmark | Fed Funds OIS | SOFR OIS |
 
 ### 18.8.3 Implementation Checklist
 
@@ -500,11 +557,11 @@ SOFR, being based on Treasury repo transactions, reflects secured financing cond
 | **Negative Rates** | If rates go negative, ensure your formulas still produce valid discount factors |
 | **Interpolation Artifacts** | Check forward rates between nodes for unrealistic spikes or dips |
 
-Using the wrong day count is the most common "rookie error" in curve construction.
+A very common implementation error is using the wrong day count in accrual calculations.
 
 ### 18.8.4 Negative Rates: Operations and Models
 
-Negative interest rates became a feature of financial markets in 2014. Hull notes that "by the end of the first half of 2016, interest rates were negative for the Swedish krona, Danish krone, Japanese yen, euro, and Swiss franc. It was then estimated that more than $10 trillion of government bonds worldwide had negative yields."
+Negative interest rates became a feature of some major markets in the 2010s. From a curve-construction perspective, the key point is simple: negative rates are compatible with arbitrage-free discounting, but they can break naive system assumptions.
 
 **Operational Implications:**
 
@@ -525,11 +582,11 @@ This is mathematically valid—receiving $1 in the future is worth more than $1 
 
 **Modeling Implications:**
 
-For rate options (caps, floors, swaptions), negative rates broke the standard Black-76 model, which assumes rates are lognormal (and hence always positive). Hull describes two fixes:
+For rate options (caps, floors, swaptions), negative rates break the standard Black-76 setup, which assumes rates are lognormal (and hence strictly positive). Two common fixes are:
 
 1. **Shifted Lognormal Model:** Assume $r + \alpha$ is lognormal for some shift $\alpha > 0$. Options are priced using Black-76 with $F_k \rightarrow F_k + \alpha$ and $K \rightarrow K + \alpha$.
 
-2. **Bachelier (Normal) Model:** Assume rates follow arithmetic Brownian motion: $dF = \sigma^* dz$. Hull notes this "leads to a normal rather than lognormal distribution for the underlying rate and so allows rates to become negative."
+2. **Bachelier (Normal) Model:** Assume rates follow arithmetic Brownian motion: $dF = \sigma^* dz$. This produces a normal distribution for the underlying rate and allows negative rates.
 
 The Bachelier caplet formula is:
 
@@ -537,11 +594,11 @@ $$\text{Caplet} = L \delta_k P(0, t_{k+1})\left[(F_k - R_K)N(d) + \sigma_k^* \sq
 
 where $d = \frac{F_k - R_K}{\sigma_k^* \sqrt{t_k}}$.
 
-> **Practitioner Note:** When quotes shifted from Black vol to normal vol, the numbers looked very different. Hull notes that "when the forward interest rate is 3%, $\sigma_k$ [Black vol] might be 33% while $\sigma_k^*$ [normal vol] is about 1%." Don't confuse the two!
+> **Practitioner Note:** Black (lognormal) vol and normal (Bachelier) vol are not directly comparable. Always label the vol type and its units, and avoid mixing them in risk reports.
 
 ### 18.8.5 Multi-Currency Collateral and the Collateral Option
 
-Hull notes in a footnote that "a bank can choose which currency to post margin in and can in some circumstances post securities such as Treasury bills instead of cash." This creates an embedded option that affects the effective discount rate.
+Some CSAs allow multiple eligible collateral currencies (and sometimes eligible non-cash collateral). This creates an embedded **collateral option** that can affect the effective discount rate.
 
 **The Collateral Option Problem:**
 
@@ -574,20 +631,20 @@ More sophisticated approaches model the option explicitly, but this adds signifi
 > - Long-dated trades (option value accumulates)
 > - One-directional MTM (always posting or always receiving)
 >
-> For vanilla 5-year swaps with typical CSAs, the impact might be 1-5bp of NPV. For 30-year cross-currency swaps, it can be much larger.
+> For plain-vanilla swaps, the effect is often small relative to larger risk drivers, but it can become material for long-dated positions and in cross-currency funding setups.
 
 ### 18.8.6 Initial Margin and MVA
 
 The discussion so far has focused on **variation margin (VM)**—collateral that changes daily to reflect the mark-to-market value. There is also **initial margin (IM)**—collateral posted at trade inception (and potentially adjusted over time) to protect against potential future exposure.
 
-Hull explains the distinction: variation margin is rehypothecated (the receiver can use it), while initial margin typically is not. This creates different economic implications:
+In many setups, variation margin is rehypothecatable by the receiver (it can be used for funding), while initial margin is often segregated and not rehypothecatable. This creates different economic implications:
 
 - **VM can be rehypothecated** → Receiver earns OIS on it → This is why OIS discounting works
 - **IM cannot be rehypothecated** → Capital drag → Creates MVA
 
 **Margin Valuation Adjustment (MVA):**
 
-Hull defines MVA as an "adjustment to the value of a derivative to reflect the cost of funds tied up in margin accounts." The cost arises because:
+MVA is an adjustment to reflect the cost of funds tied up in margin accounts. The cost arises because:
 
 1. Initial margin must be funded (you borrow to post it)
 2. Interest received on IM is typically below your funding cost
@@ -607,7 +664,7 @@ where $E[IM(t)]$ is expected initial margin at time $t$, $s_{fund}$ is the fundi
 >
 > For a 10-year $100mm swap with 5bp upfront MVA, the cost is $50,000. This comes directly out of the trade's profit margin.
 >
-> Hull notes that there is debate about how to calculate the funding cost: "financial economists work with marginal funding costs while the financial engineers work with average costs." The difference can be significant—120bp vs 30bp in Hull's example.
+> Funding-cost conventions vary (marginal vs average, desk vs treasury). Be explicit about what $s_{fund}$ represents in your system.
 
 ### 18.8.7 The Collateral Lifecycle and Price Alignment Interest (PAI)
 
@@ -651,99 +708,53 @@ Price Alignment Interest is the interest paid or received on variation margin. U
 - If you receive collateral: You pay PAI to the counterparty
 - If you post collateral: You receive PAI from the counterparty
 
-The PAI rate is typically the overnight rate (Fed Funds historically, now SOFR for USD).
+The PAI rate is typically an overnight benchmark rate specified by the CSA/CCP for the relevant currency.
 
 ---
 
-## 18.9 The SOFR Transition and the "Big Bang"
+## 18.9 USD Overnight Benchmarks: Fed Funds OIS vs SOFR OIS
 
-> **Practitioner Note:** This section describes the October 2020 discounting switch from Fed Funds to SOFR. This event is too recent for most textbooks but is fundamental desk knowledge. The content is based on industry knowledge at the time of the transition.
+OIS discounting is both:
+1. a **principle** ("discount at the collateral remuneration rate"), and
+2. an **implementation** (a curve bootstrapped from OIS instruments referencing a specific overnight index).
 
-### 18.9.1 Why the Switch Was Necessary
+In USD, OIS swaps may reference different overnight benchmarks (e.g., the effective fed funds rate or SOFR). So the phrase “USD OIS curve” is incomplete unless you specify the benchmark and the compounding/observation conventions.
 
-For decades, USD OIS swaps referenced the Federal Funds rate. But Fed Funds has limitations:
+### 18.9.1 Post-Crisis: From LIBOR Discounting to OIS Discounting
 
-- **Thin market:** ~$80 billion daily volume vs. ~$1 trillion for repo
-- **Unsecured:** Contains bank credit risk
-- **Declining relevance:** Fed policy shifted away from targeting Fed Funds directly
+Following the GFC, market participants started using OIS as the discount rate for pricing collateralized interest rate swaps.
 
-SOFR, launched in 2018, addressed these issues by being:
-- Based on actual Treasury repo transactions
-- Secured (nearly risk-free)
-- Supported by massive daily volume
+A concrete milestone often cited is that, in June 2010, LCH.Clearnet announced it would use OIS instead of LIBOR to discount its interest rate swap portfolio (reported at the time as roughly \$218 trillion notional).
 
-However, switching the discounting rate for trillions of dollars of existing swaps was not a simple software update.
+### 18.9.2 Fed Funds vs SOFR (USD)
 
-### 18.9.2 The October 2020 "Big Bang"
+In the United States, the overnight rate used in “Fed Funds OIS” is the effective fed funds rate. SOFR (the Secured Overnight Financing Rate) is a benchmark based on overnight repo transactions (often described as a volume-weighted median average of overnight repo rates).
 
-On October 16, 2020, LCH and CME simultaneously switched their USD swap discounting from Fed Funds to SOFR. This was one of the largest risk transfer events in derivatives history.
+For curve building and risk reporting, what matters is:
+- which overnight index your discount curve is built on (Fed Funds OIS vs SOFR OIS), and
+- which exact conventions translate fixings into coupon cashflows (compounding-in-arrears, observation shifts/lookbacks, payment delays, calendars).
 
-**Why the Switch Created Winners and Losers:**
-
-Consider a receiver of fixed in an existing swap:
-- Before switch: Discounted at Fed Funds (~0.08% at the time)
-- After switch: Discounted at SOFR (~0.09% at the time)
-
-A higher discount rate reduces the PV of future fixed payments. So:
-- **Fixed receivers** saw their swaps become less valuable
-- **Fixed payers** saw their swaps become more valuable
-
-> **Practitioner Note: Magnitude of the Impact**
->
-> The Fed Funds-SOFR spread at the time was about 8-10bp (Fed Funds higher). For a typical swap book:
-> - 10-year swap: ~6 cents per $100 notional per bp of discounting change
-> - Portfolio with $100 billion 10Y equivalent: ~$60 million impact per bp
->
-> The total wealth transfer across the market was estimated in the billions of dollars.
-
-### 18.9.3 Compensating Swaps Auction
-
-To address the wealth transfer, LCH conducted a "Compensating Swaps" auction. The basic mechanism:
-
-1. **Calculate each participant's P&L impact** from the discounting change
-2. **Create offsetting swaps** (the "compensating swaps") to neutralize the impact
-3. **Auction these swaps** to willing buyers at fair prices
-
-This allowed participants who didn't want the compensating swaps to sell them, while those who wanted the risk could buy them at market-clearing prices.
-
-### 18.9.4 Current State: SOFR as the Standard
-
-Post-October 2020, the USD derivatives market has largely transitioned to SOFR:
-
-- **Cleared swaps:** SOFR discounting is standard (LCH, CME)
-- **New OIS trades:** Reference SOFR, not Fed Funds
-- **Legacy trades:** Some still reference Fed Funds (slowly aging off)
-- **Fallback protocols:** ISDA's SOFR fallback applies to legacy LIBOR trades
-
-> **Desk Reality: "Which OIS Curve?"**
->
-> When a trader says "OIS curve" in 2024, they mean SOFR. But be precise:
-> - "Fed Funds OIS" = legacy curve, still used for some old trades
-> - "SOFR OIS" = the standard USD discount curve
-> - "OIS discounting" generically = discount at the rate earned on collateral
->
-> Always verify which curve a quote or risk report references.
+> **Desk Reality:** In many risk systems, “OIS” is a *curve label*, not a guarantee that discounting is aligned to the CSA/clearing terms.
+> **Common break:** One system discounts a USD collateralized trade on “SOFR OIS” while another uses “Fed Funds OIS” (or uses different observation conventions), producing PV and DV01 differences that look like “model error” but are really convention mismatch.
+> **What to check:** For a sample trade, confirm (i) collateral currency + remuneration index, (ii) discount curve label ↔ benchmark mapping, and (iii) compounding/observation/payment conventions used in both pricing and risk.
 
 ---
 
 ## Summary
 
-- **OIS represents the collateral rate**: Post-2008, we use OIS curves for discounting because they reflect the funding cost of collateralized trades.
-- **OIS as a par bond**: Hull's insight that the floating leg equals par allows us to write valuation in terms of fixed leg only.
-- **Bootstrapping is sequential**: We strip discount factors one by one, ensuring each instrument prices to par.
-- **Par Condition**: The core equation is $k_{\text{par}} = (1 - P_N)/A(0)$.
-- **Interpolation matters**: Log-linear interpolation on discount factors is the industry standard for its stability and implied piecewise-constant forwards.
-- **Locality protects hedging**: Changes to long-dated inputs don't affect short-dated discount factors.
-- **Valuation impact is large**: Mixing up funding curves leads to massive valuation errors.
-- **TOY overlays required**: Year-end rate spikes need explicit handling to avoid curve distortion.
-- **Negative rates are real**: EUR, CHF, JPY experienced negative rates; models shifted from Black to Bachelier.
-- **Collateral choice creates options**: Multi-currency CSAs embed optionality that affects the effective discount rate.
-- **MVA matters**: Initial margin costs reduce trade value; understanding MVA completes the "why OIS" picture.
-- **SOFR is the new standard**: The October 2020 "Big Bang" transitioned USD discounting from Fed Funds to SOFR.
+- OIS discounting is the desk implementation of “discount at the collateral remuneration rate” under an idealized cash-collateral setup.
+- An OIS floating coupon is computed from daily compounded overnight fixings, so the realized coupon rate is known only at period end.
+- Under a single-curve OIS setup, the par condition implies $PV_{\text{flt}}=1-P(0,T_N)$ and $k_{\text{par}} = (1-P(0,T_N))/A(0)$.
+- Bootstrapping is sequential: each new pillar depends on earlier pillars, creating “locality” (and a lower-triangular Jacobian in a pure sequential build).
+- Zero rates (e.g., $y_c(T)$) are just a re-parameterization of discount factors; the par curve and the zero curve generally differ.
+- Interpolation is a modeling choice: log-linear interpolation of discount factors implies piecewise-constant instantaneous forwards and tends to give stable, local risk.
+- DV01 must specify bump object, bump size, units, and sign; zero-curve shifts and par-quote rebootstrap bumps produce different “DV01” numbers.
+- Operational features (stubs, payment delays, observation shifts/lookbacks, special dates, negative rates) and funding/margin terms (PAI, IM/MVA) can dominate small PV differences.
+- In USD, “OIS curve” must name the overnight benchmark (Fed Funds OIS vs SOFR OIS) and the exact cashflow conventions.
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -753,29 +764,34 @@ Post-October 2020, the USD derivatives market has largely transitioned to SOFR:
 | **Bootstrap** | Sequential calibration algorithm | Allows extraction of a unique discount curve from par quotes |
 | **Log-Linear Interpolation** | Linear in $\ln P(T)$ | Produces piecewise constant forwards; stable risk |
 | **Locality** | Input changes affect only $T \ge T_{input}$ | Crucial for stable hedging and risk management |
-| **TOY Effect** | Turn-of-Year rate spike | Requires a manual "overlay" to avoid distorting the smooth curve |
-| **Floating Leg = Par** | A floating bond paying the discount rate prices at par | Fundamental insight enabling par swap valuation |
+| **Special-date effects (“turns”)** | Local forward-rate dislocations around dates like year-end | Smooth curves can miss localized spikes, distorting PV/risk if not handled |
+| **Floating leg ≈ par** | Under a matching projection/discounting rate, a floater resets near par | Enables the $1-P(0,T_N)$ floating-leg PV identity in the single-curve setup |
 | **PAI** | Price Alignment Interest: interest on variation margin | The economic link between collateral and discounting |
 | **MVA** | Margin Valuation Adjustment | Cost of funding initial margin over trade life |
 | **Collateral Option** | Choice of which currency to post as margin | Affects effective discount rate in multi-currency CSAs |
-| **SOFR Big Bang** | October 2020 discounting switch | Established SOFR as USD discount standard |
+| **USD OIS benchmark** | “Fed Funds OIS” vs “SOFR OIS” (benchmark + conventions) | Risk/PV mismatches appear if “OIS” is treated as a generic label |
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $P(0,T)$ or $P(T)$ | Discount factor from 0 to $T$ |
-| $k$ or $k_N$ | Par swap rate for an $N$-period swap |
-| $\tau_i$ | Year fraction for period $i$ |
-| $A(0)$ | Annuity factor $\sum \tau_i P(0,T_i)$ |
-| $z_c(T)$ | Continuously compounded zero rate |
-| $z_a(T)$ | Annually compounded zero rate |
-| $\bar{L}_n$ | Compounded overnight rate for period $n$ |
-| $f(T)$ | Instantaneous forward rate at time $T$ |
-| $\varepsilon_f(t)$ | Forward rate overlay (for TOY effects) |
-| $s_{fund}$ | Funding spread (cost of funds minus margin rate) |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| $P(0,T)$ | discount factor to $T$ | unitless; $P(T,T)=1$ |
+| $k$ (or $k_N$) | OIS par fixed rate | per year; day count + compounding must be stated |
+| $\tau(t_1,t_2)$, $\tau_i$ | accrual year fraction | years; day count dependent (e.g., ACT/360) |
+| $t_{n,i}$ | business-day fixing dates in coupon period $n$ | dates (calendar dependent) |
+| $r_{n,i}$ | overnight fixing applied over $[t_{n,i},t_{n,i+1}]$ | per year on the index basis |
+| $\delta_{n,i}$ | accrual fraction for $[t_{n,i},t_{n,i+1}]$ | years; weekends/holidays appear via larger $\delta$ |
+| $A_n^{\mathrm{flt}}$ | compounded accrual factor over coupon period $n$ | unitless; $\prod_i (1+r_{n,i}\delta_{n,i})$ |
+| $\bar{L}_n$ | annualized compounded overnight rate for coupon period $n$ | per year; $(A_n^{\mathrm{flt}}-1)/\tau_n$ |
+| $A(0)$ | fixed-leg annuity factor | years; $\sum_i \tau_i P(0,T_i)$ |
+| $y_c(T)$ | continuous-compounded zero rate | per year; $P(0,T)=e^{-y_c(T)T}$ |
+| $y_a(T)$ | annual-compounded zero rate | per year; $P(0,T)=(1+y_a(T))^{-T}$ (if $T$ in years) |
+| $f(T)$ | instantaneous forward rate | per year; depends on interpolation choice |
+| $\varepsilon_f(t)$ | forward-rate overlay (e.g., special dates) | per year; user-specified component |
+| $s_{fund}$ | funding spread for MVA | per year; “my funding rate minus margin rate” |
+| $DV01$ | PV change for a 1 bp move | currency per 1 bp; define bump object + sign |
 
 ---
 
@@ -790,144 +806,51 @@ Post-October 2020, the USD derivatives market has largely transitioned to SOFR:
 | 5 | What is the formula for par rate given annuity and final DF? | $k = (1 - P(T_N))/A(0)$. |
 | 6 | What does log-linear interpolation of DFs imply for forward rates? | Forward rates are piecewise constant (flat between nodes). |
 | 7 | If the curve is upward sloping, is the zero rate higher or lower than the par rate? | Higher. The zero rate at $T$ exceeds the par rate because par rate averages in lower early rates. |
-| 8 | What is the Turn-of-Year effect? | A spike in overnight rates around Dec 31 due to balance sheet constraints. |
+| 8 | What is the turn-of-year (TOY) effect? | A localized year-end dislocation in overnight rates driven by balance sheet constraints. |
 | 9 | How does a bump in the 2Y rate affect the 1Y discount factor? | It doesn't. Causality flows from short to long (lower triangular Jacobian). |
-| 10 | What is the simplest relation between discount factor and continuous zero? | $P(0,T) = e^{-z_c(T) \cdot T}$. |
+| 10 | What is the simplest relation between discount factor and continuous zero? | $P(0,T) = e^{-y_c(T) \cdot T}$. |
 | 11 | Why does a floating-rate bond paying overnight compound to par? | It provides exactly the payments needed to service borrowings at overnight rates. |
 | 12 | What is the key difference between OIS and LIBOR swap mechanics? | OIS floating rate is known at end of period; LIBOR is set at beginning. |
 | 13 | What does "locality" mean in bootstrapping? | Changing an input rate only affects discount factors at or beyond that maturity. |
-| 14 | For a 1Y OIS, how do you get the discount factor from the quoted rate? | $P(0,1) = 1/(1 + R)$ since there's only one payment. |
+| 14 | For a short OIS with a single net payment, how do you get the discount factor from a simple quoted rate? | $P(0,T) \approx 1/(1 + R\,\tau(0,T))$ for the stated day-count basis. |
 | 15 | What is the bootstrap formula for $P(T_N)$? | $P(T_N) = [1 - k_N \sum_{i < N} \tau_i P(T_i)] / (1 + k_N \tau_N)$. |
-| 16 | What was the October 2020 "Big Bang"? | The LCH/CME switch from Fed Funds to SOFR discounting for USD derivatives. |
+| 16 | Give one concrete milestone in the post-crisis shift to OIS discounting. | LCH announced in June 2010 that it would discount its cleared IRS portfolio using OIS rather than LIBOR. |
 | 17 | What is PAI (Price Alignment Interest)? | Interest earned/paid on variation margin, typically at the OIS rate. |
 | 18 | What is MVA? | Margin Valuation Adjustment: the cost of funding initial margin over trade life. |
-| 19 | If your CSA allows multiple currencies, what discount rate should you use? | The rate from the cheapest currency to borrow and post (the "collateral option"). |
+| 19 | If your CSA allows multiple collateral currencies, what does the “collateral option” mean for discounting? | The effective discounting is not purely “USD OIS”; it depends on which collateral the poster chooses and on FX/funding constraints. |
 | 20 | What happens to discount factors when OIS rates go negative? | Discount factors exceed 1 ($P(T) > 1$), which is mathematically valid but operationally challenging. |
 
 ---
 
 ## Mini Problem Set
 
-**Problem 1** (Warm-up)
-A 6-month OIS quotes at 4.00% (simple rate, ACT/360). There are 182 actual days.
-(a) Calculate the discount factor $P(0, 0.5)$.
-(b) What is the continuously compounded zero rate?
+1. (Compute) A 6-month OIS quotes at 4.00% as a simple annual rate on ACT/360. There are 182 actual days. Compute (a) $P(0,T)$ and (b) the continuously compounded zero rate $y_c(T)$ using the same year fraction $\tau=182/360$.
+2. (Compute) Given annual-pay par OIS rates (assume $\tau_1=\tau_2=1$): 1Y = 3.00%, 2Y = 3.50%. Compute $P(0,1)$ and $P(0,2)$.
+3. (Compute) You have $P(0,1)=0.98$, $P(0,2)=0.95$, $P(0,3)=0.91$ (annual-pay). Compute (a) the 3Y par rate and (b) $y_c(3)$.
+4. (Compute) Given $P(0,2)=0.9400$ and $P(0,3)=0.9000$, compute $P(0,2.5)$ via (a) log-linear in $\ln P$ and (b) linear in $P$.
+5. (Concept) Explain (in words) why log-linear interpolation of discount factors implies piecewise-constant instantaneous forward rates.
+6. (Concept) In a sequential bootstrap, why does bumping a 10Y input quote not change $P(0,2)$? Relate your answer to the Jacobian “lower triangular” idea.
+7. (Compute) A 3-year zero-coupon bond pays 100 at maturity. Compare PV using $P(0,3)=0.9100$ vs $P(0,3)=0.8965$. Express the PV difference in bp of face value.
+8. (Desk) Two systems report “OIS DV01” for the same trade, but one uses a zero-curve parallel shift and the other uses a par-quote bump with rebootstrap. What questions do you ask to reconcile the numbers, and what toy scaling check can you run?
+9. (Compute) Given $P(0,2)=0.9400$ and $P(0,3)=0.9000$, compute the 1-year simple forward rate for $[2,3]$.
+10. (Desk) Your CSA allows posting USD or EUR collateral. Explain what the “cheapest-to-deliver collateral” idea means for discounting a USD trade.
+11. (Compute) The 6-month €STR OIS quotes at -0.50% (ACT/360, 182 days). Compute $P(0,T)$ and verify it exceeds 1.
+12. (Compute) IM is approximately \$5mm for 10 years and your funding spread is 50 bp. Estimate the undiscounted funding cost and give a rough PV if the average discount factor over the horizon is 0.85.
 
-*Solution sketch:* (a) $P = 1/(1 + 0.04 \times 182/360) = 0.9801$. (b) $z_c = -\ln(0.9801)/(182/365) = 4.03\%$.
-
----
-
-**Problem 2** (Bootstrap Mechanics)
-Given the following par OIS rates (annual pay):
-- 1Y: 3.00%
-- 2Y: 3.50%
-
-Calculate $P(0,1)$ and $P(0,2)$.
-
-*Solution sketch:* $P(0,1) = 1/1.03 = 0.9709$. Then $P(0,2) = (1 - 0.035 \times 0.9709)/(1.035) = 0.9322$.
-
----
-
-**Problem 3** (Par vs Zero)
-You've bootstrapped: $P(0,1) = 0.98$, $P(0,2) = 0.95$, $P(0,3) = 0.91$.
-(a) Calculate the 3Y par rate (annual pay).
-(b) Calculate the 3Y continuously compounded zero rate.
-(c) Which is higher, and why?
-
-*Solution sketch:* (a) $k = (1 - 0.91)/(0.98 + 0.95 + 0.91) = 0.09/2.84 = 3.17\%$. (b) $z_c = -\ln(0.91)/3 = 3.14\%$. (c) With annual compounding, the zero rate would be $0.91^{-1/3} - 1 = 3.21\%$, which exceeds the par rate. The par rate is a weighted average pulled down by higher early discount factors.
-
----
-
-**Problem 4** (Interpolation)
-Given $P(0,2) = 0.9400$ and $P(0,3) = 0.9000$, find $P(0,2.5)$ using:
-(a) Log-linear interpolation
-(b) Linear interpolation of discount factors directly
-
-*Solution sketch:* (a) $\ln P(0,2.5) = 0.5 \ln(0.94) + 0.5 \ln(0.90) = -0.0840$, so $P(0,2.5) = 0.9194$. (b) Linear: $P(0,2.5) = 0.5(0.94) + 0.5(0.90) = 0.9200$. Difference is small but affects forward rate calculation.
-
----
-
-**Problem 5** (Locality Test)
-You have a 5-point curve. You bump the 3Y par rate up by 1bp.
-(a) Which discount factors change: $P(0,1)$, $P(0,2)$, $P(0,3)$, $P(0,4)$, $P(0,5)$?
-(b) Explain why.
-
-*Solution sketch:* (a) Only $P(0,3)$, $P(0,4)$, $P(0,5)$ change. (b) Bootstrap is sequential. The 1Y and 2Y swap equations don't include the 3Y rate. But the 4Y and 5Y swaps depend on $P(0,3)$, so when it changes, they must be re-solved.
-
----
-
-**Problem 6** (Valuation Impact)
-A 3-year zero-coupon bond pays 100 at maturity. You can discount at:
-- OIS: $P(0,3) = 0.9100$
-- LIBOR+50bp curve: $P(0,3) = 0.8965$
-
-Calculate the PV difference and express it in bp of face value.
-
-*Solution sketch:* OIS: PV = 91.00. LIBOR: PV = 89.65. Difference = 1.35, or 135 bp of face value.
-
----
-
-**Problem 7** (Forward Rate Implication)
-Given $P(0,2) = 0.9400$ and $P(0,3) = 0.9000$, calculate the 1-year forward rate starting in 2 years (simple, annual).
-
-*Solution sketch:* $F(0;2,3) = [P(0,2)/P(0,3) - 1]/1 = [0.94/0.90 - 1] = 4.44\%$.
-
----
-
-**Problem 8** (OIS Mechanics)
-An OIS quotes at 5.00% (quarterly pay, 2-year maturity). At inception:
-(a) What is the NPV?
-(b) If the floating leg pays realized rates averaging 4.80% over the life, who benefits and by approximately how much (per 100 notional)?
-
-*Solution sketch:* (a) NPV = 0 at inception by definition. (b) Fixed payer pays 5%, receives 4.80%, net outflow of 0.20% per year. Over 2 years on 100 notional, approximately 0.40 in undiscounted terms—fixed payer is worse off.
-
----
-
-**Problem 9** (TOY Adjustment)
-The 6-month OIS rate is 4.50% (ACT/360). You observe that rates spike 25bp over the Dec 31-Jan 2 window (3 calendar days). Assuming the period is Jan 1 to Jul 1 (181 days) and includes the TOY window:
-(a) What is the discount factor without TOY adjustment?
-(b) What is the approximate discount factor with the TOY overlay?
-
-*Solution sketch:* (a) $P = 1/(1 + 0.045 \times 181/360) = 0.9779$. (b) The TOY adds 0.25% for 3/360 year fraction = 0.00208 to effective rate, so $P \approx 1/(1 + 0.04708 \times 181/360) = 0.9769$. Difference: ~10bp in discount factor.
-
----
-
-**Problem 10** (Negative Rates)
-The 6-month €STR OIS quotes at -0.50% (ACT/360, 182 days).
-(a) Calculate the discount factor.
-(b) Verify it exceeds 1.
-(c) What is the economic interpretation?
-
-*Solution sketch:* (a) $P = 1/(1 + (-0.005) \times 182/360) = 1/(1 - 0.00253) = 1.00254$. (b) Yes, $P > 1$. (c) Receiving €1 in 6 months is worth MORE than €1 today because holding cash costs money (you pay to store it).
-
----
-
-**Problem 11** (Collateral Option)
-Your CSA allows posting USD or EUR collateral. Current rates:
-- USD SOFR: 5.25%
-- €STR: 3.50%
-
-You are receiving collateral on a USD-denominated 5-year swap. The counterparty will post the cheapest currency.
-(a) Which currency will they post?
-(b) What is the approximate impact on your swap value if you discount at USD SOFR vs. the effective rate?
-
-*Solution sketch:* (a) EUR is cheaper (3.50% < 5.25%), so they post EUR. (b) The effective discount rate is closer to 3.50% than 5.25%. For a 5-year swap, the ~175bp lower discount rate increases PV significantly—roughly 175bp × 4.5 duration ≈ 8% of the fixed leg value.
-
----
-
-**Problem 12** (MVA Estimation)
-A 10-year swap requires initial margin of approximately $5 million throughout its life. Your funding spread (cost of funds minus margin rate) is 50bp.
-(a) Estimate the undiscounted MVA cost over 10 years.
-(b) If the average discount factor over this period is 0.85, what is the approximate PV of MVA?
-
-*Solution sketch:* (a) Annual cost = $5mm × 0.50% = $25,000. Over 10 years: $250,000. (b) PV ≈ $250,000 × 0.85 / 2 (rough average timing) ≈ $106,000. More precisely, integrate $E[IM(t)] \times s_{fund} \times df(t)$.
-
----
+### Solution Sketches (Selected)
+1. $\tau=182/360=0.5056$. $P\approx 1/(1+0.04\tau)=0.9802$. $y_c(T)=-\ln P/\tau \approx 3.96\\%$.
+2. $P(0,1)=1/1.03=0.9709$. $P(0,2)=(1-0.035P(0,1))/(1.035)=0.9334$.
+4. (a) $\ln P(0,2.5)=\\tfrac{1}{2}\\ln(0.94)+\\tfrac{1}{2}\\ln(0.90)$ so $P(0,2.5)=\\sqrt{0.94\\cdot 0.90}=0.9198$. (b) Linear in $P$: $0.5(0.94+0.90)=0.9200$.
+7. PVs are 91.00 and 89.65, so the difference is 1.35 price points = 135 bp of face value.
+8. Ask for (i) bump object (zero curve? which representation?), (ii) bump size/direction, (iii) whether the curve is rebuilt and how (rebootstrap vs direct shift), (iv) units/notional basis and sign convention. Quick check: on a single cashflow $PV=N\\,P(0,T)$, a continuous-zero parallel shift gives $DV01\\approx PV\\,T\\,10^{-4}$.
+12. Undiscounted cost $\approx 5{,}000{,}000\\times 0.005\\times 10=250{,}000$. Rough PV $\approx 250{,}000\\times 0.85\\approx 210{,}000$ (level-cost approximation).
 
 ## References
 
-- Hull, *Options, Futures, and Other Derivatives* (OIS mechanics; discounting under collateral; SOFR compounding examples; negative rates).
-- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-curve discounting motivation; curve overlays for special dates; interpolation choices).
-- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (secured vs unsecured funding intuition; repo/GC vs Fed Funds discussion).
-- Federal Reserve Board publications on money-market spreads during the 2007–2009 crisis (LIBOR–OIS widening).
-- CFTC: cleared swap-class specifications for USD OIS/SOFR (payment frequency and operational conventions).
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1), “OIS definition” and “Swap Rate Dynamics” (OIS compounding; par swap rates and annuity factors).
+- Hull, *Options, Futures, and Other Derivatives*, “Determining Risk-Free Rates” (OIS intuition; floating vs fixed bond view).
+- Hull, *Risk Management and Financial Institutions*, “The OIS Rate” and “Central Clearing” (LIBOR–OIS stress; price alignment interest).
+- Neftci, *Principles of Financial Engineering*, “OIS discounting after the GFC” and “LCH adopts OIS discounting” (June 2010 milestone).
+- Crépey, *Counterparty Risk and Funding*, “Collateral and discounting” (collateral remuneration at an OIS-like rate; discount/projection separation).
+- Damiano, *Counterparty Credit Risk, Collateral and Funding*, “SCSA and collateral discounting” (clean CSA intuition; OIS discounting motivation).
+- *Interest Rate Models: Theory and Practice*, §6.19.1 (log-linear interpolation between discount factors).

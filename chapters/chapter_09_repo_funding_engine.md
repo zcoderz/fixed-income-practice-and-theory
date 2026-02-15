@@ -103,7 +103,7 @@ The terminology matters because it indicates the economic position:
 
 ### 9.2.2 A Complete Example
 
-Tuckman provides a detailed example that illustrates the full mechanics. Assume:
+**Worked example:** the following concrete numbers illustrate the full mechanics. Assume:
 - Trade date: February 14, 2001; settlement: February 15, 2001
 - Security: \$100 million face of the 5-7/8s of November 15, 2005
 - Bid price: 103-18 (= 103.5625)
@@ -266,9 +266,9 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 - Sign check: for a funded long, repo rate down \(\Rightarrow\) lower financing cost \(\Rightarrow\) higher P&L, so `Repo01` should be positive.
 - Limit check: as \(d\to 0\), both repo interest and `Repo01` go to zero.
 
-### 9.4.3 Quick Numerical Example (From Tuckman)
+### 9.4.3 Quick Numerical Example
 
-From the Tuckman example of Section 9.2, suppose the desk sells the bond the next day at the ask price (one tick higher than bid). The desk earns \$32,596 on the trade:
+Continuing the example of Section 9.2, suppose the desk sells the bond the next day at the ask price (one tick higher than bid). The desk earns \$32,596 on the trade:
 
 - **Price change (bid-ask spread):** $\$100{,}000{,}000 \times (1/32)\% = \$31{,}250$
 - **Interest income (one day's accrual):** $\$100{,}000{,}000 \times (1.509323 - 1.493094)\% = \$16{,}229$
@@ -287,11 +287,11 @@ These differences can cause carry to be slightly different from a naive coupon-m
 
 ### 9.4.5 Carry and Shorts
 
-For a short position, the signs flip: the desk **pays** the coupon (to the security lender) and **earns** repo on its cash. Tuckman's example shows that the same trade shorted earns only \$29,908, compared to \$32,596 for the long—the difference is the negative carry of approximately \$1,342 (plus rounding).
+For a short position, the signs flip: the desk **pays** the coupon (to the security lender) and **earns** repo on its cash. In the same numerical setup, the short earns only \$29,908, compared to \$32,596 for the long—the difference is the negative carry of approximately \$1,342 (plus rounding).
 
 ### 9.4.6 Breakeven Calculations
 
-Carry is useful for computing **breakeven price changes**. Tuckman shows that an investor holding the 5-7/8s for 30 days at 5.10% repo earns:
+Carry is useful for computing **breakeven price changes**. In this same setup, an investor holding the 5-7/8s for 30 days at 5.10% repo earns:
 
 - Interest income: $\$486{,}878$
 - Financing cost: $\$446{,}688$
@@ -331,9 +331,9 @@ $$\boxed{s = r_{\text{GC}} - r_{\text{spec}}}$$
 
 When a bond is special, \(r_{\text{spec}} < r_{\text{GC}}\), so \(s>0\). "Specialness" is the scarcity value of that security, expressed as a funding advantage.
 
-### 9.5.4 A Concrete Snapshot (Tuckman, 2001-02-15)
+### 9.5.4 A Concrete Snapshot (2001-02-15)
 
-On 2001-02-15, Tuckman reports a GC rate of 5.44% and much lower special rates for on-the-run issues:
+On 2001-02-15, a representative snapshot shows a GC rate of 5.44% and much lower special rates for on-the-run issues:
 
 | Treasury Issue | Comment | Special Rate | Specialness |
 |---|---|---:|---:|
@@ -361,7 +361,7 @@ For a short position, specialness shows up as a **cost**: to borrow the security
 
 ### 9.6.1 The Pattern of On-the-Run Specialness
 
-Tuckman shows a common pattern in on-the-run (OTR) specialness over the auction cycle: specialness tends to be smaller right after an auction or reopening (more supply) and tends to build as the issue becomes the focal point for shorting and financing demand.
+A common pattern in on-the-run (OTR) specialness over the auction cycle: specialness tends to be smaller right after an auction or reopening (more supply) and tends to build as the issue becomes the focal point for shorting and financing demand.
 
 **Immediately after an auction:** The new on-the-run issue has just been distributed. Shorts can stay in the previous on-the-run or shift to the new one—this substitutability depresses special spreads. After a **reopening** (an auction that increases the size of an existing issue), extra supply also depresses spreads.
 
@@ -373,7 +373,7 @@ Specialness is a supply/demand price for collateral, so it can move sharply day-
 
 ### 9.6.3 The Floor on Special Rates: The Pre-2009 Logic
 
-Tuckman presents a useful "borrow vs fail" argument for a floor on special repo rates. If for some reason the bond cannot be borrowed, the trader will fail to deliver it and, consequently, not receive the proceeds from the sale. In effect, the trader will lose one day of interest on the proceeds.
+A useful “borrow vs fail” argument for a floor on special repo rates: if the bond cannot be borrowed, the trader will fail to deliver it and, consequently, not receive the proceeds from the sale. In effect, the trader will lose one day of interest on the proceeds.
 
 If the bond can be borrowed, the trader delivers the bond, receives the proceeds, and lends them at the special repo rate. But if the repo rate is 0%, there is no point in bothering with the repo agreement: earning 0% on the proceeds is the equivalent of having failed to deliver the bond.
 
@@ -389,11 +389,11 @@ In the fall of 2001, with GC near 2%, the maximum special spread was about 200 b
 
 ### 9.7.1 The Relative Value Question
 
-Tuckman presents an important application: how should an investor choose between two similar bonds when one trades special? Consider a money manager deciding between the on-the-run 5-year (yielding 4.970%) and an off-the-run issue with the same maturity (yielding 5.020%). The OTR is five basis points rich—but it also finances at 159 basis points below GC.
+An important application: how should an investor choose between two similar bonds when one trades special? Consider a money manager deciding between the on-the-run 5-year (yielding 4.970%) and an off-the-run issue with the same maturity (yielding 5.020%). The OTR is five basis points rich—but it also finances at 159 basis points below GC.
 
 ### 9.7.2 Components of the Relative Value
 
-Tuckman's framework breaks the decision into three components:
+One useful framework breaks the decision into three components:
 
 1. **Liquidity value**: How much is the OTR's superior liquidity worth to this investor? A trader who expects to sell quickly values liquidity highly; a buy-and-hold investor values it less.
 
@@ -407,7 +407,7 @@ of face value.
 
 ### 9.7.3 The Trade-Off Calculation
 
-Tuckman's example shows how to net these effects. If the financing advantage is 0.25% of face, but the anticipated yield convergence costs about 0.085% (based on DV01), and the coupon disadvantage costs about 0.031%, then the net advantage of the OTR is approximately:
+Netting these effects: if the financing advantage is 0.25% of face, but the anticipated yield convergence costs about 0.085% (based on DV01), and the coupon disadvantage costs about 0.031%, then the net advantage of the OTR is approximately:
 
 $$0.25\% - 0.031\% - 0.085\% = 0.134\%$$
 
@@ -487,7 +487,7 @@ Or equivalently:
 
 $$\boxed{P_{\text{fwd}} = P(0) - \text{Carry}}$$
 
-This is Tuckman's equation (16.8): positive carry generally implies a forward price below the spot price (for coupon bonds).
+Positive carry generally implies a forward price below the spot price (for coupon bonds).
 
 ### 9.9.3 Forward Price with an Intermediate Coupon
 
@@ -502,7 +502,7 @@ Then:
 
 $$\boxed{P_{\text{fwd}} + AI(d) = \left[(P(0) + AI(0))\left(1 + r\frac{d_1}{360}\right) - C\right]\left(1 + r\frac{d_2}{360}\right)}$$
 
-Tuckman explains that the security lender continues to receive coupons, so the borrower must pass through a "manufactured" coupon to the lender.
+The security lender continues to receive coupons, so the borrower must pass through a "manufactured" coupon to the lender.
 
 Intuition: the security lender continues to receive the coupon, so the borrower must pass through a manufactured coupon; it is therefore natural to reduce the repo loan balance by the coupon on the coupon date.
 
@@ -536,7 +536,7 @@ The implied repo concept is central to Treasury futures "basis" logic: futures p
 
 ### 9.10.1 Disruption in the Specials Market
 
-Tuckman describes how the September 11, 2001 attacks disrupted the Treasury specials market through two channels: operational disruption that increased settlement fails, and a pullback of securities lending amid uncertainty and credit concerns. The combination created a severe shortage of on-the-run collateral.
+The September 11, 2001 attacks disrupted the Treasury specials market through two channels: operational disruption that increased settlement fails, and a pullback of securities lending amid uncertainty and credit concerns. The combination created a severe shortage of on-the-run collateral.
 
 ### 9.10.2 Extreme Special Rates
 
@@ -549,7 +549,7 @@ On September 20, 2001, repo rates reached extraordinary levels:
 | 5.000% Aug 15, 2011 | OTR 10-year | 0.35% |
 | 3.625% Aug 31, 2003 | OTR 2-year | 0.65% |
 
-Tuckman reports that GC was 1.75% while the fed funds rate at the time was about 3%, widening the spread between fed funds and GC to about 125 basis points.
+In this episode, GC was about 1.75% while the fed funds rate at the time was about 3%, widening the spread between fed funds and GC to about 125 basis points.
 
 The OTR 5-year was 165 basis points special—nearly the entire GC rate.
 
@@ -569,7 +569,7 @@ The September 2001 episode illustrates that repo markets can become severely str
 
 ### 9.11.1 Market Structure
 
-Neftci emphasizes that a robust clearing/custody/settlement infrastructure is an essential prerequisite for a well-functioning repo market and distinguishes (at a high level) **bilateral** and **tri-party** repo structures.
+A robust clearing/custody/settlement infrastructure is an essential prerequisite for a well-functioning repo market. At a high level, repo is often discussed in two structures: **bilateral** and **tri-party**.
 
 For this chapter, the key operational distinction is:
 

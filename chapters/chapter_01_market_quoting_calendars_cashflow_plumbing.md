@@ -199,7 +199,7 @@ The takeaway is simple: treat the quote *and* its conventions as one package. If
 
 ### 1.2.1 Day Counts Define How Time Is Measured
 
-Hull provides the canonical definition: "The day count defines the way in which interest accrues over time." More precisely, a day count convention determines two things:
+A **day count convention** defines how to convert a pair of dates into a **year fraction** (also called an accrual fraction). That year fraction is the time unit used in interest calculations. Concretely, a day count convention determines two things:
 
 1. How to count days between two dates (the numerator)
 2. How to define the "reference period" (the denominator)
@@ -217,7 +217,7 @@ This fraction—(days between dates) / (days in reference period)—is the **acc
 - Numerator: actual days between dates
 - Denominator: actual days in the coupon period
 
-**Worked Example B (from Hull):** Consider a Treasury bond with coupon payment dates March 1 and September 1, paying an 8% annual coupon ($4 semiannually). To calculate interest earned between March 1 and July 3:
+**Worked Example B:** Consider a Treasury bond with coupon payment dates March 1 and September 1, paying an 8% annual coupon ($4 semiannually). To calculate interest earned between March 1 and July 3:
 
 - Reference period: March 1 to September 1 = 184 actual days
 - Days elapsed: March 1 to July 3 = 124 actual days
@@ -228,7 +228,7 @@ This fraction—(days between dates) / (days in reference period)—is the **acc
 - Numerator: computed assuming each month has 30 days
 - Denominator: 360
 
-Hull notes that with 30/360, "we assume 30 days per month and 360 days per year when carrying out calculations." For the same March 1 to July 3 period:
+Under 30/360, we assume 30 days per month and 360 days per year when carrying out accrual calculations. For the same March 1 to July 3 period:
 
 - Days elapsed: $(4 \times 30) + 2 = 122$ days (4 full months plus 2 days)
 - Reference period: 180 days (6 months × 30 days)
@@ -236,7 +236,7 @@ Hull notes that with 30/360, "we assume 30 days per month and 360 days per year 
 
 ### 1.2.3 The 30/360 Day Counting Algorithm
 
-The 30/360 convention requires a specific algorithm for counting days. Tuckman provides a detailed example: to count days from August 27, 2001 to February 15, 2002:
+The 30/360 convention requires a specific algorithm for counting days. For example, to count days from August 27, 2001 to February 15, 2002:
 
 | From | To | Days |
 |------|-----|------|
@@ -260,7 +260,7 @@ with adjustments at month boundaries (e.g., if $D_1 = 31$, set $D_1 = 30$).
 - Numerator: actual days between dates
 - Denominator: 360 (always)
 
-This means a full year of 365 days earns $365/360 \approx 1.0139$ times the quoted rate, not exactly the quoted rate. Hull confirms: "the interest earned in a whole year of 365 days is $365/360$ times the quoted rate."
+This means a full year of 365 days earns $365/360 \approx 1.0139$ times the quoted rate, not exactly the quoted rate.
 
 ### 1.2.4 International Day Count Variants
 
@@ -284,7 +284,7 @@ Here is a compact “you will see these on the desk” list:
 
 ### 1.2.5 Why Day Counts Matter: The "Million Dollar Calendar Mistake"
 
-Hull provides a vivid illustration in Business Snapshot 6.1. Between February 28 and March 1 in a non-leap year:
+A classic gotcha happens around the end of February. Between February 28 and March 1 in a non-leap year:
 
 - Under **30/360**: There are 3 days (Feb 28 → Feb 30 → Mar 1)
 - Under **ACT/ACT**: There is 1 day
@@ -391,13 +391,13 @@ The practical danger is **convention risk**: accidentally using the wrong compou
 
 Practical rule: before comparing rates across systems, convert them to a common convention (or convert to discount factors using consistent year fractions) and then compare.
 
-**Worked Example D:** Convert 10% semiannual to continuous (Hull Example 4.1).
+**Worked Example D:** Convert 10% semiannual to continuous.
 
 $$R_c = 2 \ln(1 + 0.10/2) = 2 \ln(1.05) = 2 \times 0.04879 = 0.09758 = 9.758\%$$
 
 The continuous rate is lower because interest is being compounded more frequently.
 
-**Worked Example E:** Convert 8% continuous to quarterly (Hull Example 4.2).
+**Worked Example E:** Convert 8% continuous to quarterly.
 
 $$R_m = 4 \times (e^{0.08/4} - 1) = 4 \times (e^{0.02} - 1) = 4 \times 0.0202 = 0.0808 = 8.08\%$$
 
@@ -440,7 +440,7 @@ What happens when the seller cannot deliver the bonds on settlement day? This cr
 
 When a security is hard to source, a short position may be unable to borrow it in repo/securities lending to make delivery, leading to a fail. Economically, failing delays receipt of sale proceeds, so the short forgoes earning interest on those proceeds until it can deliver.
 
-A useful (but imperfect) intuition is that failing can compete with borrowing the security: if avoiding a fail is the only objective, a trader will not accept an arbitrarily punitive special repo rate. Real markets add fails charges (e.g., TMPG), balance sheet costs, and can operate with negative rates, so treat this as intuition rather than a hard bound.
+A useful (but imperfect) intuition is that failing can compete with borrowing the security: if avoiding a fail is the only objective, a trader will not accept an arbitrarily punitive special repo rate. Real markets can include explicit fails charges, balance sheet costs, and even negative rates, so treat this as intuition rather than a hard bound.
 
 > **Desk Reality: Fails Are Funding Events**
 >
@@ -448,18 +448,20 @@ A useful (but imperfect) intuition is that failing can compete with borrowing th
 > - the short can’t deliver, so it doesn’t receive sale proceeds when expected;
 > - the long doesn’t receive the bond, so it may have to replace it (or fail onward).
 >
-> **US Treasuries: TMPG Fails Charge (Formula)**
+> **US Treasuries: Fails Charge (Illustrative Formula)**
 >
-> The Treasury Market Practices Group (TMPG) recommends a fails charge intended to discourage chronic failing. Under the TMPG “U.S. Treasury Securities Fails Charge Trading Practice” (revised April 23, 2018), the **daily** fails charge amount for a delivery-versus-payment (DVP) Treasury trade is:
+> A common market convention is to apply a daily fails charge for delivery-versus-payment (DVP) Treasury trades. One widely used functional form is:
 >
 > $$\boxed{C \;=\; \frac{1}{360}\times 0.01 \times \max(3 - R,\; F)\times P}$$
 >
 > where:
 > - $C$ = fails charge amount, in dollars (accrues each calendar day during the fail);
 > - $P$ = “trade proceeds”, i.e., the amount of funds due from the non-failing party (for DVP);  
->   *(TMPG uses $P$ for proceeds—don’t confuse it with bond price notation elsewhere in this chapter.)*
-> - $R$ = TMPG reference rate (defined from the Fed funds target; if a target range is used, the lower limit is used);
-> - $F$ = floor in percentage points. Under the TMPG revision, $F=1$ (1% per annum) for Treasury transactions entered into on/after July 2, 2018 (and earlier transactions still unsettled on July 2, 2018); otherwise $F=0$.
+>   *(Here $P$ denotes proceeds—don’t confuse it with bond price notation elsewhere in this chapter.)*
+> - $R$ = reference short rate used for the charge calculation (definition is convention-specific);
+> - $F$ = floor in percentage points per annum so the charge does not collapse to zero when rates are very low (definition is convention-specific).
+>
+> The exact definitions of \(R\) and \(F\) (including any floors/thresholds and effective dates) are rulebook inputs: confirm them for your product and venue.
 >
 > **Intuition:** when short rates are low, failing is otherwise “cheap,” so the fails charge creates an explicit cost. When short rates are high enough, the opportunity cost of not receiving proceeds is already meaningful and the explicit charge may be small or zero (subject to any floor).
 >
@@ -632,7 +634,7 @@ The purpose of separating accrued interest is to avoid a sudden drop in the *quo
 
 ### 1.5.3 The Continuity Proof
 
-Tuckman provides a rigorous demonstration that clean prices are continuous across coupon dates when yields don't change. The argument proceeds as follows:
+Clean prices are continuous across coupon dates when yields don't change. The argument is a simple bookkeeping identity:
 
 **Setup:** Let $P^b$ and $P^a$ be the quoted (clean) prices of a bond right before and right after a coupon payment of $c/2$, respectively. The fundamental pricing equation is:
 

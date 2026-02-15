@@ -8,7 +8,7 @@ A 10-year interest rate swap has roughly 10 years of duration—but what exactly
 
 These questions matter because swaps are the workhorse instruments for interest rate hedging. A corporate treasurer converting fixed-rate debt to floating, a mortgage portfolio manager hedging duration, or a pension fund immunizing liabilities—all rely on swaps and all need accurate sensitivity measures to size their hedges. Get the sensitivity definition wrong, and you'll hedge with the wrong notional. Mix up which curve you're bumping, and your "hedged" position may retain substantial risk.
 
-The challenge is that "PV01" and "DV01" are overloaded terms in fixed income. Tuckman notes that "PV01" in swap markets is "normally meant to mean the change in the value of a swap for a one-basis point change in its fixed rate"—but many risk systems use the same label to mean something entirely different: the sensitivity to a curve bump. Understanding these distinctions is essential for anyone who trades, hedges, or risk-manages swap positions.
+The challenge is that "PV01" and "DV01" are overloaded terms in fixed income. Depending on the desk and the risk system, "PV01" might mean a sensitivity to a *contract term* (the fixed rate on the swap), or it might mean a sensitivity to a *market move* (a particular curve bump). This chapter makes these definitions explicit, because the hedge you put on depends on *what is being bumped*.
 
 This chapter covers:
 
@@ -24,21 +24,32 @@ Chapter 25 established the mechanics of swap valuation. This chapter builds on t
 
 ---
 
+## Learning Objectives
+- Distinguish **PV01-to-fixed-rate** (quote sensitivity) from **curve DV01/PV01** (market sensitivity).
+- Compute a swap annuity (PVBP) from accrual factors and discount factors and use it to compute PV01-to-fixed-rate.
+- Define a curve DV01 with an explicit bump object, bump size, units, and sign convention.
+- Size a first-order DV01 hedge with swaps and explain the main residual risks: curve shape (twists), basis/spreads, and convexity.
+- Debug common scaling/sign errors in swap risk reports (per-$1mm vs per-$100, bp vs decimal, payer vs receiver).
+
+Prerequisites: [Chapter 11: DV01/PV01 — Definitions, Computation, and "What's Being Bumped"](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12: Duration — Macaulay, Modified, and the Connection to DV01](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 14: Key-Rate DV01 and Bucket Exposures](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 22: Curve Risk Management in a Multi-Curve World — Par-Point Deltas, Jacobians, and Controlled Perturbations](chapters/chapter_22_multi_curve_risk_jacobians.md), [Chapter 25: Interest Rate Swaps — Mechanics and Valuation](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md)
+
+Follow-on: [Chapter 27: Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapters/chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md), [Chapter 28: Basis Trades in Rates — OIS-IBOR Basis, Treasury Futures Basis, Swap Spread RV, Curve RV](chapters/chapter_28_basis_trades.md)
+
 ## 26.1 Swap PV Refresher: Fixed Receiver vs Fixed Payer
 
 ### 26.1.1 The Sign Convention
 
-Before computing sensitivities, we must be precise about whose perspective we're taking. Following Tuckman's convention, we define swap value from the fixed-rate receiver's perspective:
+Before computing sensitivities, we must be precise about whose perspective we're taking. In this chapter, we define swap value from the **fixed-rate receiver's** perspective (receive fixed, pay float):
 
 $$PV_{\text{rec}} = V_{\text{fixed}} - V_{\text{float}}$$
 
-where $V_{\text{fixed}}$ is the present value of the fixed leg and $V_{\text{float}}$ is the present value of the floating leg. Tuckman states this explicitly: "The value of a swap to the fixed receiver/floating payer is $V_{\text{Fixed}} - V_{\text{Float}}$, and the value of a swap to the floating receiver/fixed payer is $V_{\text{Float}} - V_{\text{Fixed}}$."
+where $V_{\text{fixed}}$ is the present value of the fixed leg and $V_{\text{float}}$ is the present value of the floating leg.
 
 The fixed payer's value is simply the negative:
 
 $$PV_{\text{pay}} = V_{\text{float}} - V_{\text{fixed}} = -PV_{\text{rec}}$$
 
-This convention means that if $V_{\text{fixed}} - V_{\text{float}} > 0$, the swap has positive value to the fixed receiver and negative value to the fixed payer. As Tuckman explains, "If the parties wish to terminate the swap, so that neither party need make any more payments to the other, the fixed payer will have to make a positive payment of $V_{\text{Fixed}} - V_{\text{Float}}$ to the fixed receiver."
+Interpretation (termination cash amount): if $PV_{\text{rec}}>0$, the swap is an asset to the fixed receiver. A clean way to think about this is: **to terminate the swap today**, the fixed payer would pay approximately $PV_{\text{rec}}$ to the fixed receiver (ignoring any operational decomposition into accrued vs clean PV).
 
 ### 26.1.2 The Generic Valuation Formula
 
@@ -46,7 +57,11 @@ With payment dates $T_1, T_2, \ldots, T_n$, accrual fractions $\alpha_i$, fixed 
 
 $$\boxed{PV_{\text{rec}} = N \sum_{i=1}^{n} (K - F_i) \alpha_i P_d(0, T_i)}$$
 
-This formula encapsulates the modern multi-curve approach. Hull describes the valuation method: "Assume that forward rates will be realized... then discount the resulting cash flows at the OIS... rate." The forward rates $F_i$ come from a projection curve (historically LIBOR, now typically SOFR), while the discount factors $P_d(0, T_i)$ come from the OIS discounting curve.
+This is a common multi-curve representation: project floating cashflows using a curve appropriate for the floating index, and discount all cashflows using the chosen discount curve (often an OIS-based curve for collateralized swaps).
+
+This representation separates:
+- **Projection**: the forward rates $F_i$ used to forecast floating cashflows (a curve specific to the floating index).
+- **Discounting**: the discount factors $P_d(0,T_i)$ used to PV cashflows (often an OIS-based curve for collateralized swaps).
 
 ---
 
@@ -58,9 +73,7 @@ The **swap annuity** (also called the **annuity factor** or **PVBP kernel**) is 
 
 $$\boxed{A \equiv \sum_{i=1}^{n} \alpha_i P_d(0, T_i)}$$
 
-Andersen and Piterbarg provide the formal definition: "Given a tenor structure, for any two integers $k, m$ satisfying $0 \leq k < N$, $m > 0$, and $k + m \leq N$, we can define an annuity factor $A_{k,m}$ by $A_{k,m}(t) = \sum_{n=k}^{k+m-1} P(t, T_{n+1}) \tau_n$."
-
-They further note that "the quantity $A(\cdot)$ is the annuity of the swap (or its PVBP, for Present Value of a Basis Point)." This equivalence between "annuity" and "PVBP" is important: the annuity measures both the PV of a 1% stream and the dollar sensitivity to a 1bp rate change (scaled appropriately).
+This quantity is also commonly called **PVBP** (present value of a basis point) or (sometimes) **PV01**. It is the kernel that converts a rate difference into a dollar PV.
 
 The annuity has a natural interpretation: it is the present value of receiving 1 unit of currency at each payment date, weighted by the accrual fraction. For a 5-year annual-pay swap with discount factors summing to 4.635, the annuity is 4.635—meaning a 1% per annum fixed-rate stream on $100mm notional has PV of approximately $4.635 million.
 
@@ -82,12 +95,12 @@ The annuity has a natural interpretation: it is the present value of receiving 1
 
 The annuity appears everywhere in swap analysis:
 
-1. **Par swap rate formula:** The par swap rate $K^*$ is the ratio of the discounted floating-leg payments to the annuity. Andersen and Piterbarg derive:
-   $$K^* = \frac{P(t, T_k) - P(t, T_{k+m})}{A_{k,m}(t)} = \frac{\sum_{n=k}^{k+m-1} \tau_n P(t, T_{n+1}) L_n(t)}{A_{k,m}(t)}$$
+1. **Par swap rate:** the par fixed rate $K^*$ is the value of $K$ that makes the swap PV zero. For a forward-starting swap that begins at $T_k$ and ends at $T_{k+m}$, a standard expression is
+   $$\boxed{K^*(t) = \frac{P_d(t, T_k) - P_d(t, T_{k+m})}{A_{k,m}(t)}} \quad \text{where} \quad A_{k,m}(t)=\sum_{i=k+1}^{k+m} \alpha_i P_d(t,T_i).$$
 
-2. **Swap PV formula:** For an off-market swap, Andersen and Piterbarg show that the value is simply:
-   $$V_{\text{swap}}(t) = A(t)(S(t) - k)$$
-   where $S(t)$ is the forward swap rate and $k$ is the contracted fixed rate.
+2. **Off-market swap PV (rate difference × annuity):** a useful intuition (and often a good approximation for small moves) is
+   $$\boxed{PV_{\text{rec}}(t)\approx N \, A(t)\, (K - K^*(t))}$$
+   with the sign flipping for the payer. The main caveat is that $A(t)$ itself depends on the curve(s), so for larger moves you generally reprice rather than treat $A$ as constant.
 
 3. **Swaption payoffs:** A payer swaption exercised at expiry is worth $N \times A \times \max(K^{\text{swap}} - K^{\text{strike}}, 0)$
 
@@ -97,13 +110,13 @@ The annuity appears everywhere in swap analysis:
 
 ## 26.3 PV01 to the Fixed Rate: The "Swap Market" Definition
 
-### 26.3.1 What Tuckman Means by PV01
+### 26.3.1 Definition: PV01-to-$K$ (Contract-Term Sensitivity)
 
-Tuckman states clearly: "Another measure of risk used in the swap markets is PV01, normally meant to mean the change in the value of a swap for a one-basis point change in its fixed rate."
+To avoid ambiguity, define **PV01-to-$K$** as the change in PV when the *contracted fixed rate* $K$ is bumped by 1bp, holding all curves fixed:
 
-This is a crucial distinction. In swap markets, "PV01" often refers to the sensitivity to the **contracted fixed rate $K$**, holding all market curves fixed. This is fundamentally different from a curve sensitivity (which measures how value changes when the **market** moves).
+$$\boxed{PV01_{K} := PV(K+1\text{ bp}) - PV(K)} \qquad (1\text{ bp}=10^{-4})$$
 
-Tuckman adds: "Writing a bond pricing equation in terms of discount factors reveals that PV01 equals the sum of the discount factors used to discount the fixed cash flows."
+This is a **contract-term sensitivity** (it answers: “what if we rewrote the fixed rate on the swap?”), and it is closely related to the swap annuity/PVBP.
 
 ### 26.3.2 Derivation
 
@@ -162,40 +175,46 @@ To be precise, we define:
 - **PV01-to-$K$:** Sensitivity to the contracted fixed rate (holding curves fixed)
 - **Curve PV01 or DV01:** Sensitivity to a curve bump (e.g., +1bp parallel shift)
 
-The distinction matters enormously. Consider an at-market swap where $K = K^*$ and $PV \approx 0$. The PV01-to-$K$ is $N \times A \times 0.0001$—a substantial number. But the curve PV01 might be nearly zero if the parallel bump affects both legs similarly (though this depends on the exact bump methodology and whether we're in a single-curve or multi-curve world).
+The distinction matters enormously. Consider an at-market swap where $K = K^*$ and $PV \approx 0$.
 
-> **Desk Reality: Always Ask "Which PV01?"**
->
-> Before using any risk report, confirm:
->
-> | Question | Why It Matters |
-> |----------|----------------|
-> | Is PV01 defined vs the fixed rate $K$ or vs a curve bump? | Entirely different numbers and interpretations |
-> | Which curve is bumped (discount, projection, or both)? | Multi-curve setups give different answers |
-> | What's the bump rule (zero rates, par rates, instrument quotes)? | Affects the magnitude and distribution of sensitivities |
-> | What's the sign convention (payer vs receiver)? | Getting the sign wrong flips the hedge direction |
->
-> The first question you should ask when someone hands you a PV01 number: "PV01 of *what* with respect to *what*?"
+- The PV01-to-$K$ is, by construction, $N \times A \times 0.0001$: it answers “what if the fixed rate in the contract were 1bp higher?”
+- A curve DV01 answers a different question: “what if the market curve(s) move by 1bp under a specified bump-and-rebuild rule?”
 
-### 26.4.2 Tuckman on Swap DV01
+Under a simple parallel shift that moves the par swap rate, the curve DV01 is often on the same order as $N \times A \times 0.0001$ (with opposite signs for payer vs receiver), but in multi-curve setups and/or partial bumps (discount curve only vs projection curve only) the reported number can differ substantially.
 
-Tuckman observes that "strictly speaking, it is correct to say that the DV01 of a swap from the perspective of the fixed receiver is the DV01 of the fixed leg minus the DV01 of the floating leg. But this observation is not used much in practice."
+> **Pitfall — “PV01” label collision:** using PV01-to-$K$ (contract-term sensitivity) as if it were a curve DV01 (market sensitivity).
+> **Why it matters:** you can size a hedge that is off by a large factor (or the wrong sign) because you hedged the wrong risk.
+> **Quick check:** compute $PV01_{K}=N\times A\times 10^{-4}$ from the annuity. If a system’s “PV01” is wildly different, you are probably looking at a different bump object.
 
-Why not? Because "the DV01 of the fixed leg depends on the swap rate curve out to the maturity of the swap, whereas the DV01 of the floating leg depends on LIBOR out to the first payment date. Hence, adding these DV01 values for a 10-year swap, for example, mixes 10-year risk with three-month risk."
+From here on, when we say **curve DV01** we mean a *market* sensitivity with an explicit bump definition:
+- **Bump object:** a specified curve (at minimum: “discount curve” vs “projection curve”).
+- **Bump size:** $1\text{ bp} = 10^{-4}$ in rate units.
+- **Units:** currency per 1bp for the stated notional (we will often quote “per $1\text{mm}$ notional”).
+- **Sign convention (aligns with the book-wide registry):**
+  $$\boxed{DV01 := PV(\text{rates down }1\text{ bp}) - PV(\text{base})}$$
+  so long-duration positions have positive DV01.
 
-This insight is critical: **the fixed and floating legs have fundamentally different risk horizons**, and combining them into a single DV01 obscures rather than clarifies the risk profile.
+> **Desk Reality:** risk reports often label multiple different objects “PV01” or “DV01”.
+> **Common break:** the bump rule differs across systems (zero-curve shift vs par-quote shift; “bump and rebuild” vs direct node bump; discount vs projection curve).
+> **What to check:** ask for the bump definition and reproduce a 1bp bump-and-reprice in your own pricer with the same curve inputs and units.
+
+### 26.4.2 Why Netting Fixed and Floating DV01 Can Mislead
+
+In principle (for a chosen curve bump), the DV01 of receiving fixed on a swap equals:
+
+$$DV01_{\text{swap}} \approx DV01_{\text{fixed leg}} - DV01_{\text{floating leg}}.$$
+
+The problem is interpretability: the fixed leg’s risk is spread across the swap’s maturity, while the floating leg’s risk is concentrated near the next reset/payment. Collapsing them into one scalar mixes long-horizon and short-horizon risks.
 
 ### 26.4.3 Managing Fixed and Floating Risk Separately
 
-Tuckman continues: "For this reason it is common in the industry to manage the interest rate risk of the fixed and floating legs separately. The fixed side of a swap is hedged with other swaps or bonds, and the floating side of a swap is hedged with Eurodollar or fed funds futures... or other short-term securities."
-
-This separation reflects a key practical reality: the floating leg of a swap behaves like a floating-rate note with duration approximately equal to the time to the next reset (often just a few months), while the fixed leg has duration roughly equal to the swap's maturity.
+In practice, it is often clearer to manage:
+- **Fixed-leg risk** with swaps or bonds at relevant maturities (long-horizon curve exposure).
+- **Floating-leg risk** with short-dated instruments tied to the index/reset (front-end exposure).
 
 ### 26.4.4 The Floating Leg's Short Duration
 
-Tuckman explains the floating leg's behavior through the valuation of floating-rate notes: "Despite the fact that the maturity of the floater is 10 years, the price of the floating rate note depends only on the short-term rate and its effect on the present value of the next payment date. Put another way, since the floating rate note is always worth par on set dates, it behaves like a zero coupon bond maturing on the next payment date. Hence... its duration is approximately equal to the time to the next payment date, that is, .25 years."
-
-He continues: "Unlike the case of a fixed coupon bond, a change in interest rates does not affect the value of all the payments of a floater. The provision resetting each floating payment to reflect a fair market rate at the time of reset makes the value of later payments on the floater immune to changes in interest rates."
+Intuition: a standard floating-rate note (and, by analogy, the floating leg of a par swap) tends to be **near par at reset dates** because the coupon is reset to a market rate. Between resets, the dominant rate sensitivity comes from discounting the next known payment and the par value at the next reset date. As a result, the floating leg’s duration is typically on the order of the time to the next reset/payment (months, not years).
 
 ---
 
@@ -203,13 +222,11 @@ He continues: "Unlike the case of a fixed coupon bond, a change in interest rate
 
 ### 26.5.1 The Post-Crisis Framework
 
-Before 2008, swaps were typically valued using a single curve: LIBOR discount factors were used for both discounting and forward rate projection. The financial crisis revealed that this approach conflated credit and funding considerations with rate dynamics.
+A common modern setup uses **different curves** for:
+- **Discounting** (to PV cashflows), and
+- **Projecting** the floating index (to forecast floating cashflows).
 
-Andersen and Piterbarg describe the industry evolution: the move to separate discount and projection curves became the post-crisis standard. Hull states the modern approach explicitly: "Assume that forward rates will be realized... then discount the resulting cash flows at the OIS... rate."
-
-Under this framework:
-- **Discount curve:** An OIS-based curve that reflects the risk-free rate for collateralized transactions
-- **Projection curve:** A curve specific to the floating index (e.g., Term SOFR, legacy LIBOR) that determines expected floating payments
+For collateralized swaps, a frequent choice is to discount using an OIS-based curve and to project the floating coupons from a curve tied to the floating index.
 
 ### 26.5.2 Splitting Risk by Curve
 
@@ -221,11 +238,11 @@ where $F_i$ comes from the projection curve and $P_d(0, T_i)$ comes from the dis
 
 This creates two distinct sensitivities:
 
-1. **Discount curve PV01:** Bump the discount curve (holding forward rates fixed) and measure the PV change. This primarily scales the present values of both legs.
+1. **Discount-curve DV01:** Bump the discount curve (holding projected forwards fixed) and measure the PV change. This primarily rescales the PV of all cashflows.
 
-2. **Projection curve PV01:** Bump the projection curve (holding discount factors fixed) and measure the PV change. This changes the expected floating payments.
+2. **Projection-curve DV01:** Bump the projection curve (holding discount factors fixed) and measure the PV change. This changes the expected floating cashflows.
 
-Andersen and Piterbarg note that with a spread-based method of curve group construction, "sensitivities to instruments used in the curve group have clear, and orthogonal, meaning."
+This “split” is a risk attribution choice: it depends on what you are holding fixed while bumping the other curve.
 
 ### 26.5.3 Worked Example: Discount vs Projection PV01
 
@@ -236,26 +253,26 @@ $$\sum F_i \alpha_i P_i = 0.03 \times 0.98 + 0.034 \times 0.955 + 0.038 \times 0
 $$K \times A = 0.04 \times 2.865 = 0.1146$$
 $$PV_{\text{pay}} = 100\text{mm} \times (0.09721 - 0.1146) = -\$1,739,000$$
 
-**Discount curve bump (+1bp parallel to zero rates):**
+**Discount curve bump (rates down 1bp, discount curve only):**
 
-Using the bump rule $P_d^b(0,T) = P_d(0,T) e^{-0.0001 \times T}$, the bumped discount factors are approximately $P_1^b = 0.979902$, $P_2^b = 0.954809$, $P_3^b = 0.929721$.
+Using a parallel zero-rate shift with $P_d^b(0,T) = P_d(0,T) e^{+0.0001 \times T}$, the bumped discount factors are approximately $P_1^b = 0.980098$, $P_2^b = 0.955191$, $P_3^b = 0.930279$.
 
 Holding forwards fixed:
-$$PV_{\text{pay}}^{\text{bump,disc}} = 100\text{mm} \times (0.097190 - 0.114577) = -\$1,738,732$$
+$$PV_{\text{pay}}^{\text{bump,disc}} \approx -\$1,739,268$$
 
-$$PV01_{\text{disc}} = -1,738,732 - (-1,739,000) = +\$268$$
+$$DV01_{\text{disc}} = PV(\text{rates down }1\text{bp})-PV(\text{base}) \approx -1,739,268 - (-1,739,000) = -\$268$$
 
-**Projection curve bump (+1bp to each forward):**
+**Projection curve bump (rates down 1bp, projection curve only):**
 
-With $F_i^b = F_i + 0.0001$:
-$$\sum F_i^b P_i = 0.09721 + 0.0001 \times 2.865 = 0.09750$$
-$$PV_{\text{pay}}^{\text{bump,proj}} = 100\text{mm} \times (0.09750 - 0.1146) = -\$1,710,350$$
+With $F_i^b = F_i - 0.0001$:
+$$\sum F_i^b P_i = 0.09721 - 0.0001 \times 2.865 = 0.0969235$$
+$$PV_{\text{pay}}^{\text{bump,proj}} = 100\text{mm} \times (0.0969235 - 0.1146) = -\$1,767,650$$
 
-$$PV01_{\text{proj}} = -1,710,350 - (-1,739,000) = +\$28,650$$
+$$DV01_{\text{proj}} = -1,767,650 - (-1,739,000) = -\$28,650$$
 
-**Interpretation:** The projection curve PV01 ($28,650) is much larger than the discount curve PV01 ($268) for this payer swap. The projection bump directly changes expected floating receipts, while the discount bump merely rescales both legs' PVs.
+**Interpretation:** For this toy payer swap, the projection-curve DV01 magnitude ($28,650/bp) is much larger than the discount-curve DV01 magnitude ($268/bp). The projection bump directly changes expected floating receipts, while the discount bump mostly rescales PVs.
 
-**Sanity check:** The projection PV01 equals the annuity PV01, which makes sense—bumping all forward rates by 1bp increases the expected floating leg PV by exactly $N \times A \times 0.0001$. ✓
+**Sanity check (magnitude):** $|DV01_{\text{proj}}| = N \times A \times 0.0001$ here because bumping all forwards by 1bp changes the expected floating PV by $N \times A \times 0.0001$ when discount factors are held fixed. ✓
 
 ---
 
@@ -263,7 +280,11 @@ $$PV01_{\text{proj}} = -1,710,350 - (-1,739,000) = +\$28,650$$
 
 ### 26.6.1 The Bond DV01 Definition
 
-Tuckman defines DV01 as "the change in the value of a fixed income security for a one-basis point decline in rates," giving the formula:
+A common **yield-based DV01** for a bond is the PV change for a 1bp **decline** in its yield:
+
+$$DV01 := P(y-1\text{ bp})-P(y).$$
+
+For small bumps this is well-approximated by the derivative form:
 
 $$\boxed{DV01 = \frac{1}{10,000} \left( -\frac{dP}{dy} \right)}$$
 
@@ -279,7 +300,7 @@ Even for a swap and bond with identical maturity, their DV01s can differ substan
 
 1. **Cashflow timing:** A bond pays coupons plus principal at maturity; a swap's fixed leg pays only coupons (no principal exchange). The principal payment at maturity gives the bond more weight at the long end.
 
-2. **Floating leg duration:** Tuckman emphasizes that "the DV01 of the floating leg depends on time to next payment and can be tiny compared to the fixed leg." A bond has no floating leg at all.
+2. **Floating leg duration:** A swap’s floating leg behaves like a short-maturity instrument (duration on the order of “time to next reset/payment”), so its DV01 is often small compared with the fixed leg. A bond has no floating leg at all.
 
 3. **Curve choice:** In multi-curve valuation, the swap's sensitivity depends on which curve you bump (discount, projection, or both). A bond's yield-based DV01 uses a single yield.
 
@@ -313,29 +334,62 @@ The bond DV01 ($4,758/bp) and swap annuity PV01 ($4,635/bp) are similar but not 
 
 ### 26.7.1 The DV01 Hedge Ratio
 
-Tuckman provides the fundamental hedging formula. To hedge position A with instrument B, choose position sizes such that first-order price changes offset:
+To hedge position A with instrument B using a first-order DV01 match (under your chosen bump definition), choose position sizes such that small PV changes offset:
 
 $$\boxed{F_B = -F_A \frac{DV01_A}{DV01_B}}$$
 
-Tuckman explains: "To avoid careless trading mistakes, it is worth emphasizing the simple implications of this equation, assuming that, as usually is the case, each DV01 is positive. First, hedging a long position in security A requires a short position in security B and hedging a short position in security A requires a long position in security B... Second, the security with the higher DV01 is traded in smaller quantity than the security with the lower DV01."
+Two quick implications (when $DV01_A$ and $DV01_B$ are reported as **magnitudes**):
+- Hedging a **long** position typically requires a **short** hedge instrument (and vice versa).
+- The instrument with **higher DV01 per unit** requires **less notional** to hedge.
 
-Hull notes this is also called the "duration-based hedge ratio" or "price sensitivity hedge ratio."
+### 26.7.2 Worked Example (Template): Hedging a Bond with a Swap
 
-### 26.7.2 Worked Example: Hedging a Bond with a Swap
+**Example Title**: DV01-match a 5Y bond with a 5Y payer swap
 
-**Objective:** Hedge a $10mm face 5-year 3% bond using a 5-year payer swap.
+**Context**
+- You are long a fixed-rate bond and want to neutralize first-order exposure to a *parallel rates move* using a swap.
+- This is a common “rates hedge” that leaves you with residual spread/basis and curve-shape risk.
 
-**Bond characteristics:** DV01 = $4,758 per bp (long bond loses when rates rise).
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-02-17
+- Settlement / effective date: 2026-02-19
+- Bond maturity: 2031-02-19 (5Y)
+- Swap fixed payment dates (simplified): 2027-02-19, 2028-02-19, 2029-02-19, 2030-02-19, 2031-02-19
 
-**Swap characteristics:** Annuity PV01 = $463.5 per bp per $1mm notional.
+**Inputs**
+- Bond position: long $10\text{mm}$ face of a 5Y 3% annual-coupon bond.
+- Bond DV01 (given by your bond pricer / risk system): $DV01_{\text{bond}}=+\$4{,}758$ per 1bp (positive = gains when yields fall).
+- Swap instrument: 5Y **payer** swap (pay fixed, receive float), sized in notional.
+- Swap annuity (from discount factors for the swap schedule): $A=4.635$ (annual-pay simplification).
+- PV01-to-$K$ per $1\text{mm}$ swap notional:
+  $$|PV01_{K}| = 1{,}000{,}000 \times 4.635 \times 10^{-4} = \$463.5 \text{ per bp per } \$1\text{mm}.$$
 
-**Hedge sizing:**
+**Outputs (What You Produce)**
+- Swap notional $N_{\text{swap}}$ to make the package approximately DV01-neutral to a parallel move.
 
-A long bond position loses money when rates rise. A payer swap (pay fixed, receive floating) gains when rates rise—it has negative duration exposure. Therefore, we need to go long the payer swap.
+**Step-by-step**
+1. Put both risks in the same units: dollars per 1bp for the positions you will actually hold.
+2. A payer swap has **negative duration** (it tends to gain when rates rise), so it is the natural hedge against a long bond.
+3. Size the swap so the DV01s offset in magnitude:
+   $$N_{\text{swap}} \approx \frac{DV01_{\text{bond}}}{|PV01_{K,\text{swap per mm}}|} = \frac{4{,}758}{463.5} \approx 10.27\text{ mm}.$$
+   (In a production setup, use the risk system’s *curve DV01* for the swap under the same bump definition as the bond, not just the annuity.)
 
-$$N_{\text{swap}} = \frac{DV01_{\text{bond}}}{PV01_{\text{swap per mm}}} = \frac{4,758}{463.5} \approx 10.27 \text{ mm}$$
+**Cashflows (schematic)**
+| Date | Cashflow | Explanation |
+|---|---|---|
+| each coupon date | Bond: +$0.03 \times 10\text{mm}$ | fixed coupons received |
+| maturity | Bond: +$10\text{mm}$ | principal received |
+| each fixed leg date | Swap: pay $K_{\text{swap}} \times \alpha_i \times N_{\text{swap}}$ | fixed coupons paid |
+| each float leg date | Swap: receive floating coupon | index-linked receipts |
 
-**Result:** Hedge the $10mm bond with approximately $10.3mm payer swap notional to achieve DV01 neutrality under parallel shifts.
+**P&L / Risk Interpretation**
+- Parallel rates +10bp (small move): bond loses about $4{,}758\times 10 \approx \$47{,}580$; payer swap gains about $\$47{,}580$ → net near 0.
+- Residual risk: if bond yields and swap rates do not move together (swap spread/basis), the hedge produces P&L even when “DV01-neutral”.
+
+**Sanity Checks**
+- Units: $A$ is in years; $N\times A\times 10^{-4}$ is currency per bp.
+- Sign: long bond has $DV01>0$; payer swap has $DV01<0$ under the “rates down” convention.
+- Methodology: confirm the bump object (par swap rate curve vs zero curve; discount vs projection) before trusting the hedge size.
 
 > **Technique: The Hedge Ratio Shortcut**
 >
@@ -369,15 +423,9 @@ $$\boxed{\text{Residual P\&L} \approx DV01 \times (\Delta y_{\text{bond}} - \Del
 
 If Treasury yields rise 10bp and swap rates rise 10bp, your hedged position is flat. But if Treasury yields rise 10bp and swap rates rise only 6bp (a 4bp spread widening), you lose money.
 
-> **Desk Reality: "I'm Hedged" vs "Hedged Against What?"**
->
-> When a portfolio manager says "I'm hedged," the first question should be: "Hedged against what?"
->
-> - **Rate-hedged with swaps:** Protected against parallel rate moves; exposed to spread changes
-> - **Spread-hedged:** Requires both rate hedge AND spread lock or offsetting spread position
-> - **Fully hedged:** Rare; would require eliminating all systematic risk
->
-> Most "hedged" positions in practice retain spread exposure. This is why P&L on seemingly hedged books can move significantly when swap spreads widen or tighten.
+> **Desk Reality:** “DV01-neutral” often gets paraphrased as “hedged.”
+> **Common break:** a DV01 match can remove parallel *rates* exposure but leave large *swap-spread/basis* and *curve-shape* exposures.
+> **What to check:** stress the package under (i) a parallel shift, (ii) a steepener/flattener, and (iii) a swap-spread move; confirm which risk you are actually neutralizing.
 
 **Table: What a Swap Hedge Protects Against vs What It Doesn't**
 
@@ -389,7 +437,7 @@ If Treasury yields rise 10bp and swap rates rise 10bp, your hedged position is f
 | Convexity (large moves) | No | Second-order effect not captured |
 | Credit spread of specific bond | No | Swap doesn't track issuer credit |
 
-Tuckman confirms this risk: "Even if the correlation is high, substantial basis risk remains when hedging changes in corporate rates with swaps. First, swap rates reflect banking credit specifically rather than general corporate credits. Second, swap rates cannot possibly hedge the risk that the credit spread of a particular corporation might change relative to the general level of credit spreads."
+Even when bond yields and swap rates are highly correlated, **basis/spread risk** remains. A swap hedge cannot eliminate security-specific effects (liquidity, repo specialness, issuer credit spread) and will generally leave exposure to the relative move between the bond yield and the swap rate.
 
 ---
 
@@ -397,13 +445,11 @@ Tuckman confirms this risk: "Even if the correlation is high, substantial basis 
 
 ### 26.8.1 Why Bucket Analysis?
 
-Tuckman explains that "the practice of accumulating swaps leads to large portfolios that change in composition only slowly." This makes it "reasonable to hedge against possible changes in many small segments of the term structure. While hedging against these many possible shifts requires many initial trades, the stability of the underlying portfolio composition assures that these hedges need not be adjusted very frequently."
-
-Rather than a single DV01 number, bucket analysis computes sensitivity to each segment (or "bucket") of the forward rate curve. This reveals the **term structure of risk** embedded in a swap position.
+Large swap books often have exposures distributed across the curve in a way that a single scalar DV01 cannot summarize. **Bucket analysis** computes sensitivity to many small regions of the curve so you can see (and hedge) the term structure of the risk.
 
 ### 26.8.2 The Mechanics of Bucket Shifts
 
-Tuckman defines the approach: "A bucket is jargon for a region of some curve, like a term structure of interest rates. Bucket shifts are similar to key rate shifts but differ in two respects. First, bucket analysis usually uses very many buckets while key rate analysis tends to use a relatively small number of key rates. Second, each bucket shift is a parallel shift of forward rates as opposed to the shapes of the key rate shifts."
+In this context, a **bucket** is a small region of the curve (often expressed in terms of forward rates). A **bucket shift** is a 1bp shift applied to the rates inside one bucket while holding other buckets fixed.
 
 The procedure is straightforward:
 
@@ -412,31 +458,21 @@ The procedure is straightforward:
 3. Recompute the swap PV
 4. The bucket exposure is the PV change for that bucket
 
-### 26.8.3 Tuckman's Example: 6-Year Par Swap
+### 26.8.3 Example: 6-Year Par Swap (One Bucket)
 
-Tuckman illustrates bucket exposures for receiving fixed on $100mm of a 6% par swap with a flat 6% rate curve. He explains: "The graph shows, for example, that the exposure to the six-month rate 2.5 years forward is about $4,200."
-
-The computation follows from repricing: "The original forward rate curve is flat at 6%, and the par swap, by definition, is priced at 100% of face amount. For the perturbed forward curve, the six-month rate 2.5 years forward is raised to 6.01%, and all other forwards are kept the same." After recomputing discount factors and repricing:
+Consider receiving fixed on $100\text{mm}$ of a 6-year par swap under a flat curve (for illustration). To compute the exposure to the six-month forward rate 2.5 years forward, bump **that** forward rate by +1bp, keep all other forwards the same, rebuild the discount factors implied by the perturbed forwards, and reprice the swap.
 
 $$-\$100,000,000 \times (99.995813\% - 100\%) = \$4,187$$
 
-Tuckman notes that "the sum of the bucket exposures, in this case $49,768, is the exposure of the swap to a simultaneous one-basis point change to all the forwards. If the swap rate curve is flat, as in this simple example, this sum exactly equals the DV01 of the fixed side of the swap."
+Across all buckets, the **sum of bucket exposures** is (approximately) the exposure to a simultaneous 1bp shift in all forwards. Under simplifying assumptions (e.g., a flat curve and consistent bump/rebuild rules), this sum can be very close to the fixed-leg DV01.
 
 ### 26.8.4 Using Bucket Exposures
 
 The sum of bucket exposures equals (approximately) the total DV01 under a parallel shift. But the granular view enables more precise hedging:
 
-- **Futures hedging:** Historically Eurodollar futures, now SOFR futures, can hedge specific forward rate buckets directly
+- **Front-end hedging:** short-term rate futures and other short-dated instruments can hedge specific forward buckets (instrument choice depends on the index/market)
 - **Curve trades** can be designed to neutralize exposure to specific curve segments
 - **Risk limits** can be set by bucket rather than in aggregate
-
-Tuckman notes: "As each Eurodollar futures contract is related to a particular three-month forward rate and as 10 years of these futures trade at all times, it is common to divide the first 10 years of exposure into three-month buckets."
-
-> **Practitioner Note: SOFR Transition**
->
-> With the phase-out of LIBOR and Eurodollar futures, SOFR futures have taken their place for bucket hedging. The principle remains identical: each SOFR futures contract corresponds to a specific forward rate period (typically 3-month segments), allowing bucket exposures to be hedged directly with futures.
->
-> The granularity convention persists: 3-month buckets for the front 2-3 years (where SOFR futures are most liquid), transitioning to 6-month or 1-year buckets beyond.
 
 ### 26.8.5 Connection to Key-Rate DV01
 
@@ -459,16 +495,14 @@ Both approaches reveal the term structure of risk. For swap books, buckets are p
 >     *   Years 4-6: Net positive exposure (long risk)
 >     *   Sum: Zero (parallel DV01 neutral)
 >
-> Tuckman confirms: "So while the portfolio has no risk with respect to parallel shifts of the forward curve, it can hardly be said that the portfolio has no interest rate risk. The portfolio will make money in a flattening of the forward curve... Conversely, the portfolio will lose money in a steepening."
+> Even with zero *parallel* DV01, the portfolio can have large offsetting bucket exposures and therefore meaningful P&L under steepening/flattening moves.
 
 ### 26.8.6 Hedging Swap Books: Fixed Leg with Swaps, Floating with Futures
 
 Given the different risk horizons of fixed and floating legs, large swap books are often hedged in two stages:
 
 1. **Fixed-leg risk:** Hedged with offsetting swaps or bonds at the relevant maturities
-2. **Floating-leg risk:** Hedged with short-term futures (SOFR futures) that target the specific forward rate buckets
-
-This approach aligns with Tuckman's recommendation to manage fixed and floating risks separately rather than netting them into a single DV01.
+2. **Floating-leg risk:** Hedged with short-term futures or short-dated instruments that target the specific forward buckets
 
 ### 26.8.7 Swaps as Factor Instruments
 
@@ -513,7 +547,7 @@ Swap hedges against Treasury positions leave exposure to swap spread changes. If
 - Swap gain: $+4,758 \times 6 = +\$28,548$
 - Residual: $-\$19,032$
 
-This basis risk reflects that Treasury and swap markets embed different credit, liquidity, and supply/demand factors. Tuckman notes that "substantial basis risk remains when hedging changes in corporate rates with swaps."
+This basis risk reflects that Treasury yields and swap rates can move differently because they embed different forces (liquidity, funding, and supply/demand). For corporate bonds, the mismatch is typically larger because a swap hedge does not remove issuer-specific credit-spread risk.
 
 **Worked Example: Basis Risk Under Spread Widening**
 
@@ -587,16 +621,11 @@ Despite the economic similarity, paying fixed on a swap and shorting a bond diff
 
 When a Treasury becomes "special" in the repo market—meaning it's expensive to borrow—shorting that bond becomes costly. The short seller must pay the repo rate to borrow the bond, and for special securities, this rate can be well below general collateral rates.
 
-Tuckman explains: "Investors and traders long an on-the-run security for liquidity reasons require compensation to sacrifice liquidity by lending those securities in the repo market. At the same time, investors and traders wanting to short the on-the-run securities are willing to pay for the liquidity of shorting these securities when borrowing them in the repo market. As a result, the on-the-run securities tend to trade special in the repo market."
+Mechanically, scarcity of a particular bond increases the value of *borrowing* it. Lenders can demand a more favorable repo rate, and shorts effectively pay for the privilege of borrowing the security. This is one reason “short bond” and “pay fixed” can diverge in realized P&L even if they look similar in a frictionless model.
 
-> **Practitioner Note: Why Swaps "Trade Rich" During Squeezes**
->
-> When Treasuries become special or hard to short:
-> - Shorting bonds becomes expensive → traders avoid it
-> - Paying fixed on swaps achieves similar directional exposure → demand increases
-> - Higher swap demand → swap rates fall relative to Treasury yields → swap spreads compress
->
-> This dynamic explains some of the short-term volatility in swap spreads, particularly around month-end and quarter-end when balance sheet constraints bind.
+> **Desk Reality:** if a bond is special (hard/expensive to borrow), it can be operationally cheaper to express a similar “rates short” view via swaps than by shorting the bond.
+> **Common break:** treating “pay fixed ≈ short bond” as identical ignores financing/borrow costs; the package can pick up repo-specialness and swap-spread P&L.
+> **What to check:** stress (i) a repo-specialness move (borrow cost) and (ii) a swap-spread move, in addition to the parallel-rate stress that the hedge ratio was built on.
 
 ### 26.10.4 When to Use Each
 
@@ -614,7 +643,7 @@ Tuckman explains: "Investors and traders long an on-the-run security for liquidi
 
 ### 26.11.1 The Canonical Use Case
 
-Tuckman describes corporate swap usage: "A solution for these corporations is to issue fixed rate debt and then receive fixed and pay floating in a swap. The net effect of the fixed debt and the swap is floating rate debt."
+One canonical corporate use case is to **convert fixed-rate debt into floating**: issue fixed-rate bonds, then enter a **receive-fixed / pay-floating** swap. The fixed receipts on the swap offset the fixed coupons on the bond, leaving a floating-rate liability.
 
 But the flows don't stop with the corporate. Here's the full chain:
 
@@ -627,37 +656,29 @@ Company XYZ issues $500mm of 5-year fixed-rate bonds at 4.50% to institutional i
 **Step 2: Corporate Enters Swap**
 
 XYZ wants floating-rate exposure (perhaps it has floating-rate assets). It enters a payer swap with a bank:
-- XYZ pays fixed 4.00% (the 5-year swap rate)
-- XYZ receives 3-month SOFR
+- XYZ **receives** fixed 4.00% (the 5-year swap rate)
+- XYZ **pays** 3-month SOFR
 
 **Net result for XYZ:**
-- Pays: 4.50% (bond) + 4.00% (swap fixed) - SOFR (swap floating) = 4.50% + 4.00% - SOFR
-- Simplifies to: SOFR + 0.50% (effectively floating-rate debt at SOFR + 50bp)
+- Pays: 4.50% (bond fixed) + SOFR (swap floating) - 4.00% (swap fixed receipt)
+- Simplifies to: **SOFR + 0.50%** (effectively floating-rate debt at SOFR + 50bp)
 
 **Step 3: Bank Hedges**
 
-The bank is now receiving fixed, paying floating. This is equivalent to being long a bond—the bank loses if rates rise. To hedge, the bank typically:
+The bank is now **paying fixed, receiving floating**. To manage the resulting rate risk, the bank may hedge with other swaps and/or government bonds (the exact hedge depends on the desk’s risk methodology and constraints).
 
-- **Sells Treasuries** to offset the duration (or pays fixed on another swap)
-- This Treasury selling puts downward pressure on Treasury prices / upward pressure on yields
+For example, a bank might combine:
+- a swap hedge (to offset swap-curve DV01), and/or
+- a government bond hedge (to offset Treasury-curve DV01),
+which in turn can create flows that move swap rates and Treasury yields differently.
 
 **Step 4: Market Impact**
 
-Heavy corporate issuance (followed by banks hedging) tends to:
-- Increase Treasury supply → yields rise
-- Increase swap receiving (banks hedge by receiving elsewhere) → swap rates may fall
-- Net effect: swap spreads can compress during heavy issuance periods
+Heavy corporate issuance plus hedging flows can move swap spreads because the “rates hedge” is not the same as the “spread hedge”. The direction and size depend on the instruments used for hedging and on relative supply/demand in the Treasury and swap markets.
 
-> **Desk Reality: Corporate Issuance and Swap Spread Dynamics**
->
-> When you see swap spreads tightening during a week of heavy investment-grade corporate issuance, this is often the mechanism:
-> 1. Corporates issue → enter payer swaps
-> 2. Banks receive fixed → hedge by selling Treasuries
-> 3. Treasury selling → Treasury yields rise
-> 4. Swap rates don't rise as much (different buyer base)
-> 5. Spread = Swap - Treasury → compresses
->
-> Tuckman's footnote mentions that "rather than pay fixed on a swap, a corporation may sell Treasuries to hedge changes in the level of rates and purchase a spread lock, which makes money if swap spreads widen, to hedge credit spreads."
+> **Desk Reality:** A “rates hedge” can leave a position dominated by *spread* moves.
+> **Common break:** a portfolio is DV01-neutral but still has large P&L when swap spreads move.
+> **What to check:** decompose P&L into (i) rate level, (ii) curve shape, and (iii) swap-spread/basis components; then decide whether you need a separate spread hedge (e.g., a spread lock) in addition to the rates hedge.
 
 ### 26.11.3 Cash Flow Summary
 
@@ -680,7 +701,7 @@ Heavy corporate issuance (followed by banks hedging) tends to:
 | Forgetting the 0.0001 bp factor | Off by factor of 10,000 |
 | Wrong notional (contract vs risk notional) | Can be off by factor of 2 for certain amortizing swaps |
 
-Tuckman cautions: "Note that the DV01 values, quoted per 100 face value, must be divided by 100 before being multiplied by the face amount."
+Rule of thumb: if a DV01 is quoted **per 100 face**, divide by 100 before scaling by the face amount.
 
 ### 26.12.2 Implementation Considerations
 
@@ -705,25 +726,18 @@ Tuckman cautions: "Note that the DV01 values, quoted per 100 face value, must be
 
 ## Summary
 
-This chapter developed the risk measures for interest rate swaps, distinguishing between:
-
-1. **PV01-to-fixed-rate** (the "swap market" definition): Sensitivity to the contracted fixed rate, equal to $N \times A \times 0.0001$ where $A$ is the annuity
-
-2. **Curve PV01/DV01:** Sensitivity to market curve bumps, which in multi-curve frameworks splits into discount-curve and projection-curve sensitivities
-
-3. **Bucket exposures:** Granular sensitivities to individual forward rate segments, enabling precise hedging with futures
-
-The annuity factor $A = \sum \alpha_i P_d(0, T_i)$ is the central quantity for swap risk: it determines the PV01-to-fixed-rate, appears in the par swap rate formula, and drives swaption payoffs. Andersen and Piterbarg emphasize that this quantity is "the annuity of the swap (or its PVBP)."
-
-DV01 hedging uses the ratio $F_B = -F_A(DV01_A/DV01_B)$ to match first-order exposures. This neutralizes parallel shift risk but **transforms rate risk into spread risk**—a critical distinction that risk reports often obscure. Basis moves, curve twists, and convexity effects can all cause "hedged" positions to move.
-
-Tuckman's key insight—that fixed and floating leg risks should be managed separately because they have fundamentally different horizons—informs practical risk management. The fixed leg resembles a coupon bond with duration roughly equal to maturity; the floating leg, as Tuckman explains, "behaves like a zero coupon bond maturing on the next payment date" with duration equal to the time to next reset.
-
-Operationally, paying fixed on a swap and shorting a bond serve similar economic purposes but differ dramatically in balance sheet treatment, repo exposure, and capital requirements. Understanding these differences explains why swap demand rises during repo squeezes and why corporate hedging flows affect swap spreads.
+1. “PV01” is ambiguous unless you specify **what is being bumped** (contract fixed rate vs a market curve).
+2. The swap annuity / PVBP is \(A=\sum_i \alpha_i P_d(0,T_i)\); it converts a rate difference into a dollar PV.
+3. PV01-to-$K$ is a **contract-term** sensitivity: \(PV01_{K}=\pm N\times A\times 10^{-4}\) (sign depends on receiver vs payer).
+4. Curve DV01 is a **market** sensitivity: \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\), with an explicit bump object and units.
+5. In a multi-curve setup, you must state whether the bump hits the **discount curve**, the **projection curve**, or both.
+6. DV01 hedging matches first-order exposure to the chosen bump, but it does **not** hedge twists (key-rate/bucket mismatch), convexity, or swap-spread/basis moves.
+7. Bucket exposures reveal the term structure of risk; their sum is typically close to a parallel DV01 under consistent bump rules.
+8. Operational details (repo specialness, funding/balance sheet, settlement conventions) can make “pay fixed” behave differently from “short the bond.”
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -738,7 +752,7 @@ Operationally, paying fixed on a swap and shorting a bond serve similar economic
 
 ---
 
-## Notation for This Chapter
+## Notation
 
 | Symbol | Definition |
 |--------|------------|
@@ -762,12 +776,12 @@ Operationally, paying fixed on a swap and shorting a bond serve similar economic
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is the swap annuity? | $A = \sum \alpha_i P_d(0, T_i)$, the PV of a 1% p.a. stream on the swap schedule |
-| 2 | What does Tuckman say "PV01" normally means in swap markets? | Change in swap value for 1bp change in the fixed rate $K$ |
+| 2 | In swap markets, what does "PV01" often mean? | Change in swap value for 1bp change in the fixed rate $K$ |
 | 3 | Formula for PV01-to-$K$ for a fixed receiver? | $PV01_{K,\text{rec}} = +N \times A \times 0.0001$ |
 | 4 | What is $PV_{\text{rec}}$ in terms of leg values? | $PV_{\text{rec}} = V_{\text{fixed}} - V_{\text{float}}$ |
-| 5 | Why doesn't Tuckman recommend using combined swap DV01? | It mixes long-term fixed-rate risk with short-term floating-rate risk |
+| 5 | Why can a single "swap DV01" number be misleading? | It mixes long-term fixed-rate risk with short-term floating-rate risk |
 | 6 | What's the duration of a floating leg approximately? | Time to next reset (often just a few months) |
-| 7 | Bond DV01 formula (Tuckman)? | $DV01 = (1/10,000)(-dP/dy)$ |
+| 7 | Bond DV01 formula (yield-based)? | $DV01 = (1/10,000)(-dP/dy)$ |
 | 8 | Relation between DV01 and modified duration? | $DV01 = P \times D_{\text{mod}} / 10,000$ |
 | 9 | DV01 hedge ratio formula? | $F_B = -F_A(DV01_A/DV01_B)$ |
 | 10 | What does DV01 matching neutralize? | First-order exposure to parallel rate moves |
@@ -814,7 +828,7 @@ Operationally, paying fixed on a swap and shorting a bond serve similar economic
 
 ---
 
-### Solution Sketches (Problems 1-6)
+### Solution Sketches (Selected)
 
 **1.** Annuity $A = \sum_{i=1}^{8} 0.5 \times P(0.5i) = 0.5 \times (0.985 + 0.97 + 0.955 + 0.94 + 0.925 + 0.91 + 0.895 + 0.88) = 0.5 \times 7.46 = 3.73$.
 
@@ -845,6 +859,9 @@ For $N = 100\text{mm}$: $PV_{\text{pay}} = -\$2,097,000$ (negative to payer beca
 
 ## References
 
-- Tuckman & Serrat, *Fixed Income Securities* (swap valuation; DV01/PV01; swap spreads; repo specialness)
-- Andersen & Piterbarg, *Interest Rate Modeling* (swap annuity/PVBP; multi-curve framework)
-- Hull, *Options, Futures, and Other Derivatives* (multi-curve discounting overview; hedging intuition)
+- (Tuckman and Serrat, *Fixed Income Securities*, “Valuation of Swaps, Continued”; “Note on the Measurement of Fixed and Floating Interest Rate Risk”; “Bucket Shifts and Exposures”.)
+- (Hull, *Options, Futures, and Other Derivatives*, “29.4 Hedging Interest Rate Derivatives”; “Multiple Yield Curves”.)
+- (Musiela and Rutkowski, *Martingale Methods in Financial Modelling*, Section 13.3 (formulas 13.12–13.13: forward swap rate and level process / PVBP).)
+- (O’Kane, *Modelling Single-name and Multi-name Credit Derivatives*, “2.6.5 The Breakeven Swap Rate” (PV01 and swap-rate sensitivity).)
+- (Neftci, *Principles of Financial Engineering*, “3.8.1 DV01 and PV01”; “4.6.3.1 Changing portfolio duration” (DV01/PV01 language applied to swaps).)
+- (Andersen and Piterbarg, *Interest Rate Modeling*, “6.5.3 Tenor Basis and Multi-Index Curve Group Construction” (curve separation and multi-curve setup).)

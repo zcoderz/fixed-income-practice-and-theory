@@ -53,7 +53,7 @@ Follow-on: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle]
 
 ### 2.1.1 Definition
 
-Tuckman defines the discount factor \(d(t)\) as the present value today of one unit of currency received at the end of the term. We write \(d(T)\) (or equivalently \(P(0,T)\)) for the discount factor to maturity \(T\).
+The **discount factor** \(d(t)\) is the present value today of one unit of currency received at time \(t\). We write \(d(T)\) (equivalently \(P(0,T)\)) for the discount factor from today (time 0) to maturity \(T\).
 
 If \(d(0.5) = 0.97557\), then \$1 received in six months is worth 97.557 cents today. Equivalently, \(d(0.5)\) is the price today (per \$1 face) of a zero-coupon bond paying \$1 in six months.
 
@@ -67,9 +67,9 @@ This simple definition has powerful implications. If we know the discount factor
 
 ### 2.1.2 Extracting Discount Factors from Bond Prices
 
-Discount factors are not directly quoted in the market—they must be extracted from traded instruments. Tuckman demonstrates this process using Treasury bonds.
+Discount factors are not directly quoted in the market—they must be extracted from traded instruments. The example below uses Treasury coupon bonds and works from short maturities to long: solve for the shortest discount factor first, then use it to solve for the next one, and so on.
 
-**Example from Tuckman (Table 1.1):** On February 15, 2001, the $7\frac{7}{8}$s of August 15, 2001, traded at $101\text{-}12\frac{3}{4}$ (i.e., $101 + 12.75/32 = 101.3984\%$ of face). This bond pays its final coupon plus principal in six months: $100 + 7.875/2 = 103.9375$. Therefore:
+**Worked example (Treasury bond):** On February 15, 2001, the $7\frac{7}{8}$s of August 15, 2001, traded at $101\text{-}12\frac{3}{4}$ (i.e., $101 + 12.75/32 = 101.3984\%$ of face). This bond pays its final coupon plus principal in six months: $100 + 7.875/2 = 103.9375$. Therefore:
 
 $$101.3984 = 103.9375 \times d(0.5)$$
 
@@ -91,7 +91,7 @@ $$d(1) = 0.95247$$
 
 ### 2.1.3 Sequential Extraction (Bootstrapping Preview)
 
-**Continuing sequentially**, each additional bond with a longer maturity provides one more equation to solve for one more discount factor. Tuckman shows that the five bonds in his Table 1.1 yield discount factors out to 2.5 years (Table 1.2):
+**Continuing sequentially**, each additional bond with a longer maturity provides one more equation to solve for one more discount factor. An illustrative set of extracted discount factors out to 2.5 years is:
 
 | Maturity | Discount Factor |
 |----------|-----------------|
@@ -107,7 +107,7 @@ This sequential approach—solving for one discount factor at a time using known
 
 The collection of discount factors across all maturities is called the **discount function** or discount factor curve. With positive rates, discount factors typically fall with maturity: the longer you delay receiving \$1, the less it is worth today.
 
-Figure 1.2 in Tuckman graphs this relationship, illustrating how strongly a long-dated \$1 payment can be discounted when rates are a few percent. This dramatic decline is why discounting matters so much for long-dated cash flows.
+A plot of \(P(0,T)\) against \(T\) makes this relationship vivid: even “a few percent” rates compound over time, so a long-dated \$1 payment can be worth only a small fraction of a dollar today. This dramatic decline is why discounting matters so much for long-dated cash flows.
 
 ### 2.1.5 Discount Factors in Negative Rate Environments
 
@@ -225,7 +225,7 @@ The existence of arbitrage opportunities is what enforces the law of one price. 
 
 **Replication** means constructing a portfolio that produces the same cash flows as a target security. Under no-arbitrage, the target must be priced at the cost of its replicating portfolio.
 
-Tuckman provides a detailed example in his Appendix 1A and Table 1.4. The $10\frac{3}{4}$s of February 15, 2003, with its four remaining cash flows ($5.375$ at each of 0.5, 1.0, 1.5 years, and $105.375$ at 2.0 years), can be replicated by a portfolio of four bonds from Table 1.1.
+**Worked example (coupon bond replication):** Consider the $10\frac{3}{4}$s of February 15, 2003. It has four remaining cash flows: $5.375$ at each of 0.5, 1.0, and 1.5 years, and $105.375$ at 2.0 years. Using the discount factors for those maturities (from Section 2.1), you can value the bond directly. You can also replicate its cash flows using a portfolio of shorter-maturity instruments; under no-arbitrage, both approaches must agree.
 
 The key insight of replication is that we can match cash flows at each date by working backward from the final payment.
 
@@ -252,13 +252,13 @@ $$V_0 = 5.244 + 5.120 + 5.001 + 95.676 = 111.041$$
 
 **Method 2: Replicating Portfolio Cost**
 
-The replicating portfolio constructed from the Table 1.1 bonds has a total cost of 111.041 (computed by summing the portfolio weights times bond prices).
+The replicating portfolio constructed from the underlying bond set has a total cost of 111.041 (computed by summing the portfolio weights times bond prices).
 
 **The two methods produce identical values.** This is not a coincidence—it is guaranteed by the law of one price. If the discount factors were extracted correctly from the bond prices, both methods are mathematically equivalent.
 
 ### 2.4.4 Identifying Rich/Cheap Securities
 
-Tuckman notes that the $10\frac{3}{4}$s actually traded at 110.938 (from Table 1.4), which is below the replication value of 111.041. The bond is therefore **cheap** by $0.103$ (or about 3.3 32nds).
+Suppose the $10\frac{3}{4}$s traded at 110.938 while the replication value is 111.041. The bond is therefore **cheap** by $111.041-110.938 = 0.103$ (about 3.3 32nds).
 
 An arbitrageur could exploit this by:
 1. **Buy** the $10\frac{3}{4}$s at 110.938
@@ -279,13 +279,13 @@ For instruments with optionality or rate-dependent cash flows (covered in later 
 
 ### 2.5.1 What Are STRIPS?
 
-Tuckman explains that Treasury STRIPS (Separate Trading of Registered Interest and Principal of Securities) are zero-coupon securities created by stripping the individual cash flows from Treasury notes and bonds. When a Treasury is stripped, each coupon payment and the principal payment become separate, tradeable securities.
+Treasury STRIPS (Separate Trading of Registered Interest and Principal of Securities) are zero-coupon securities created by stripping the individual cash flows from Treasury notes and bonds. When a Treasury is stripped, each coupon payment and the principal payment become separate, tradeable securities.
 
 For example, a 10-year Treasury note with semiannual coupons can be stripped into 21 separate securities: 20 coupon strips (one for each semiannual coupon) and 1 principal strip (the final \$100 principal payment per \$100 face).
 
 ### 2.5.2 C-STRIPS vs. P-STRIPS
 
-Tuckman distinguishes two types:
+Two common types are:
 
 - **C-STRIPS (Coupon strips)**: Created from the coupon payments. Since many bonds have coupons on the same date (e.g., February 15 and August 15), C-STRIPS are fungible—a coupon strip from one bond is interchangeable with a coupon strip of the same maturity date from another bond.
 
@@ -301,7 +301,7 @@ For example, if an August 15, 2031 C-STRIP trades at 63.50, then:
 
 $$P(0, 10.5) = 0.6350$$
 
-This direct observability makes STRIPS valuable for curve construction. However, Tuckman notes that STRIPS prices may not perfectly match discount factors implied by coupon bonds due to:
+This direct observability makes STRIPS valuable for curve construction. However, STRIPS prices may not perfectly match discount factors implied by coupon bonds due to:
 
 - **Liquidity differences**: STRIPS are less liquid than the underlying bonds
 - **Reconstitution option**: The ability to recombine STRIPS into whole bonds creates pricing relationships
@@ -382,7 +382,7 @@ Continuous compounding simplifies the algebra of time and rates. Combining rates
 
 ### 2.6.3 Conversion Formulas
 
-Hull provides the conversion between continuous and $m$-times-per-year compounding:
+Conversion between continuous and $m$-times-per-year compounding:
 
 $$\boxed{R_c = m \ln\left(1 + \frac{R_m}{m}\right)}$$
 
@@ -392,7 +392,7 @@ $$\boxed{R_m = m\left(e^{R_c/m} - 1\right)}$$
 
 $$R_c = 2 \ln(1 + 0.10/2) = 2 \ln(1.05) = 0.09758 = 9.758\%$$
 
-The continuous rate is lower because continuous compounding "works harder"—interest compounds more frequently, so a lower rate achieves the same final value.
+The continuous rate is lower because more frequent compounding achieves the same terminal value with a slightly smaller quoted rate; the two rates are just different parameterizations of the same discount factor.
 
 ---
 
@@ -413,7 +413,7 @@ If markets allow you to lock in the \(T_1 \to T_2\) reinvestment rate today (e.g
 
 ### 2.7.3 The Forward Rate Calculation
 
-Hirsa writes the **simple (simply compounded)** forward rate for the future period \([S,T]\) as the no-arbitrage identity:
+A standard no-arbitrage identity for the **simple (simply compounded)** forward rate for the future period \([S,T]\) is:
 
 $$\boxed{1+(T-S)\,F(t;S,T)=\frac{P(t,S)}{P(t,T)}}$$
 
@@ -478,7 +478,7 @@ The intuition is that each spot rate is an average of all forward rates up to th
 
 ### 2.8.1 The Risk-Free Rate Question
 
-The discount-factor framework assumes you know which curve you are discounting on. But what rate is “risk-free”? Hull notes that before the credit crisis that started in 2007, institutions often used LIBOR and swap rates as proxies for risk-free discounting; since the crisis, they have commonly switched to using OIS rates for that purpose.
+The discount-factor framework assumes you know which curve you are discounting on. But what rate is “risk-free”? Historically, many institutions used LIBOR and swap rates as practical proxies for risk-free discounting. After the 2007–2009 crisis, market practice in many derivatives contexts shifted toward OIS-based discounting, especially for collateralized trades.
 
 ### 2.8.2 OIS: The Collateralized Benchmark
 
@@ -525,7 +525,7 @@ Before the crisis, many practitioners used the same curve for both roles; in mod
 
 ### 2.9.1 The Idealized vs. Real Arbitrage
 
-The textbook arbitrage is frictionless: if prices diverge, arbitrageurs instantly exploit the gap, and prices snap back. Reality is messier. In Tuckman’s bond/replication example, the bond can remain cheap to its replication cost—suggesting that some confounding factors inhibit arbitrage activity.
+The textbook arbitrage is frictionless: if prices diverge, arbitrageurs instantly exploit the gap, and prices snap back. Reality is messier. Even when a bond looks cheap relative to a replication benchmark, it can remain cheap for a long time—suggesting that some confounding factors inhibit arbitrage activity.
 
 Why does apparent mispricing persist? Because **real arbitrage is not free**.
 
@@ -579,7 +579,7 @@ $$\boxed{\Delta PV \approx -\sum_i C_i \, T_i \, P(0, T_i) \, \Delta y}$$
 
 ### Link to Duration (Fisher–Weil Intuition)
 
-Luenberger defines the **Fisher–Weil duration** as the present-value-weighted average cashflow time:
+One useful duration concept here is the **Fisher–Weil duration**, the present-value-weighted average cashflow time:
 
 $$\boxed{D_{FW}:=\frac{1}{PV(0)}\sum_{i=0}^{n} t_i\,x_i\,e^{-r_i t_i}}$$
 
@@ -595,7 +595,7 @@ $$\boxed{\frac{1}{PV(0)}\left.\frac{dPV(\lambda)}{d\lambda}\right|_{\lambda=0}=-
 
 ### DV01 (Preview): Bump Object, Units, and Sign
 
-Tuckman defines yield-based DV01 (when the bumped “rate factor” is the bond’s yield \(y\)) as:
+One common analytical definition of yield-based DV01 (when the bumped “rate factor” is the bond’s yield \(y\)) is:
 
 $$DV01 = -\frac{1}{10{,}000}\,\frac{dP}{dy}$$
 
@@ -763,7 +763,7 @@ You have locked in a risk-free profit of $1.00$ with zero net future obligations
 
 **Goal:** Verify consistency between STRIPS prices and discount factors.
 
-**Given:** From Tuckman's Table 1.2, $d(1.0) = 0.95247$.
+**Given:** From the bootstrapped discount factors above, $d(1.0) = 0.95247$.
 
 **Expected STRIPS price:** A 1-year C-STRIP should trade at $95.247$ per $100 face.
 

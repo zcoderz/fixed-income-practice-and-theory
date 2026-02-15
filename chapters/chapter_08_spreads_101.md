@@ -8,7 +8,7 @@ A portfolio manager calls to say her position "widened 15 basis points overnight
 
 The fixed income markets use spreads as a universal language for expressing "everything in a bond price that is not the risk-free term structure." Spreads allow practitioners to compare bonds with different coupons and maturities, to decompose P&L into "rates" versus "credit" components, and to risk-manage exposures to credit deterioration and liquidity shocks. Yet there is a fundamental trap: the word "spread" can refer to at least half a dozen different quantities, and each responds differently to market movements.
 
-O'Kane observes that the simple yield spread "does not take into account the term structure and depends on coupon"—meaning two bonds from the same issuer with identical credit risk can show different yield spreads simply because of their coupon and maturity profiles. Tuckman emphasizes that a single yield "is not a complete description when interest rates change over time." These warnings motivate the development of more sophisticated spread measures: the Z-spread (zero-volatility spread) which incorporates the full term structure, the OAS (option-adjusted spread) which accounts for embedded options, and the asset swap spread which converts fixed-rate bonds into floating-rate economics.
+A simple yield spread does not take into account the full term structure and it depends on coupon—meaning two bonds from the same issuer with identical credit risk can show different yield spreads simply because their cash-flow timing differs. More generally, a single yield is not a complete description when interest rates change over time. These limitations motivate more term-structure-consistent measures: the Z-spread (zero-volatility spread), the OAS (option-adjusted spread) for bonds with embedded options, and the asset swap spread which converts fixed-rate bonds into floating-rate economics.
 
 This chapter builds a taxonomy of spread definitions so that when someone says "the spread widened 10 bp," you can immediately ask the five essential clarifying questions:
 
@@ -18,7 +18,7 @@ This chapter builds a taxonomy of spread definitions so that when someone says "
 4. Which compounding and day-count convention?
 5. Option-adjusted or not?
 
-We begin with the conceptual foundation—clean versus dirty prices and yield-to-maturity—then work through each spread definition in order of complexity: G-spread, I-spread, Z-spread, asset swap spread, TED spread, and OAS. We then explore which desks use which spreads, and conclude with O'Kane's decomposition of credit spreads into actuarial, default risk premium, and liquidity components. Finally, we preview the CDS-bond basis as a bridge to the credit chapters.
+We begin with the conceptual foundation—clean versus dirty prices and yield-to-maturity—then work through each spread definition in order of complexity: G-spread, I-spread, Z-spread, asset swap spread, TED spread, and OAS. We then explore which desks use which spreads, and conclude with a decomposition of credit spreads into actuarial (expected loss), default risk premium, and liquidity components. Finally, we preview the CDS-bond basis as a bridge to the credit chapters.
 
 > **Analogy: The Speedometer Sensors**
 >
@@ -51,7 +51,7 @@ Follow-on: [Chapter 11 — DV01/PV01 and bump design](chapter_11_dv01_pv01_defin
 
 Before computing any spread, we must be precise about what price we are matching. The **dirty price** (also called the *full price* or *invoice price*) is the actual cash exchanged at settlement. The **clean price** (also called the *flat price* or *quoted price*) is what markets quote, excluding accrued interest.
 
-Tuckman states this relationship directly:
+The clean/dirty identity is:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + AI}$$
 
@@ -69,13 +69,13 @@ $$AI = \Delta \cdot \frac{c}{f} \cdot 100$$
 
 ### 8.2.1 The Yield as a Summary Statistic
 
-The **yield to maturity** ($y$) is the internal rate of return that equates the present value of a bond's promised cash flows to its price. For a bond with maturity $T$ years, coupon rate $c$, and semiannual compounding, the pricing equation from Tuckman is:
+The **yield to maturity** ($y$) is the internal rate of return that equates the present value of a bond's promised cash flows to its price. For a bond with maturity $T$ years, coupon rate $c$, and semiannual compounding, one common closed-form price–yield relation (for level yield) is:
 
 $$P = \frac{c}{y}\left(1 - \frac{1}{(1 + y/2)^{2T}}\right) + \frac{100}{(1 + y/2)^{2T}}$$
 
 where $c$ is the annual coupon in dollars per 100 (so a 6% coupon bond has $c = 6$).
 
-This single number $y$ compresses the entire term structure into one rate. It is convenient for quick comparisons but can hide important details. Hull explains that "a bond's yield spread is the excess of the promised yield on the bond over the risk-free rate" and notes that "the usual assumption is that the excess yield is compensation for the possibility of default." However, as we will see, this assumption oversimplifies what spreads actually capture.
+This single number $y$ compresses the entire term structure into one rate. It is convenient for quick comparisons but can hide important details. A common simplification is to treat a bond’s yield spread (promised yield minus “risk-free” benchmark yield) as compensation for default risk. However, as we will see, that assumption oversimplifies what spreads actually capture.
 
 ### 8.2.2 The Generic Yield Spread
 
@@ -87,7 +87,7 @@ where $y_{\text{ref}}(T)$ is a benchmark yield at the same maturity $T$, typical
 
 This is fast to quote and easy to compare across issues. But its limitations are serious: two bonds from the same issuer with different coupons will show different yield spreads even if they have identical credit risk. A high-coupon bond has more of its value in near-term cash flows, which are discounted less than a low-coupon bond's back-loaded cash flows, creating a coupon effect that distorts the spread comparison.
 
-O'Kane emphasizes this limitation: the yield spread "does not take into account the term structure and depends on coupon." This motivates the development of term-structure-consistent measures like the Z-spread.
+This limitation motivates the development of term-structure-consistent measures like the Z-spread.
 
 ---
 
@@ -155,7 +155,7 @@ This is why the same bond can look “tight” on one benchmark and “wide” o
 
 The **Z-spread** (zero-volatility spread, or ZVS in some texts) addresses the fundamental limitation of yield spreads: it incorporates the full term structure of discount factors rather than comparing single yields.
 
-O'Kane defines the ZVS as "the fixed spread adjustment to the Libor [or government] discount rate which reprices the bond." In continuously compounded form:
+Define the Z-spread as the constant spread adjustment to the benchmark discounting curve that reprices the bond. In continuously compounded form:
 
 $$\boxed{P_{\text{dirty}} = \sum_k CF_k \cdot P_{\text{bench}}(0, t_k) \cdot e^{-s_Z t_k}}$$
 
@@ -175,7 +175,7 @@ where:
 >
 > Contrast this with Yield Spread, which just looks at one single point.
 
-O'Kane also provides a discrete compounding version:
+A discrete-compounding version is:
 
 $$P = \frac{c}{f} \sum_{n=1}^{N} \frac{1}{(1 + (r(0, t_n) + \theta)/f)^n} + \frac{1}{(1 + (r(0, t_N) + \theta)/f)^N}$$
 
@@ -202,7 +202,7 @@ On a flat term structure, Z-spread and yield spreads converge. On a steep curve,
 
 Consider a high-coupon bond on an upward-sloping curve. The early cash flows (coupons) are discounted at lower short-term rates, while the yield spread calculation uses a single blended rate. The Z-spread properly weights each cash flow by its maturity, producing a different number.
 
-O'Kane notes that practitioners sometimes prefer Z-spread to simple yield spreads because it explicitly incorporates the term structure when discounting each cash flow.
+Practitioners sometimes prefer Z-spread to simple yield spreads because it explicitly incorporates the term structure when discounting each cash flow.
 
 > **Deep Dive: Direction of Bias**
 >
@@ -336,13 +336,7 @@ These produce different spread numbers for the same bond.
 
 ### 8.7.1 Definition and Purpose
 
-Tuckman defines **TED spreads** as using rates implied by Eurodollar futures to assess the value of a security relative to Eurodollar futures rates (or relative to another security).
-
-He notes that TED spreads were originally used to compare Treasury bill futures (no longer actively traded) and Eurodollar futures, and that “the name came from the combination of T for Treasury and ED for Eurodollar.”
-
-The idea is to find the spread such that “discounting cash flows at Eurodollar futures rates minus that spread produces the security’s market price.”
-
-He motivates this benchmark choice by arguing that Eurodollar futures are often (though not always) treated as fairly priced because they are “quite liquid” and “immune to many individual security effects.”
+**TED spreads** are a (largely historical) way to benchmark a security using rates implied by Eurodollar futures. Operationally, you solve for a spread $s_{\\text{TED}}$ such that discounting the bond’s cash flows at “futures-implied rates minus $s_{\\text{TED}}$” reproduces the dirty price.
 
 ### 8.7.2 Calculation Approach
 
@@ -352,13 +346,11 @@ $$P_{\text{dirty}} = \sum_k CF_k \cdot DF_k(s_{\text{TED}})$$
 
 where $DF_k(s_{\text{TED}})$ denotes discounting at “futures-implied rates minus $s_{\text{TED}}$” for each period.
 
-In Tuckman’s example, the interpretation of a TED spread of 15.6 bp is that “the agency is 15.6 basis points rich to LIBOR as measured by the futures rates.”
+In an illustrative example, a TED spread of 15.6 bp would be interpreted as “the agency is 15.6 bp rich to the futures-implied benchmark,” under that specific discounting convention.
 
 ### 8.7.3 Theoretical Caveat
 
-Tuckman highlights an obvious theoretical caveat: discounting should be done at forward rates, not futures rates, because futures and forwards differ (the futures-forward/convexity adjustment).
-
-He also notes that for futures expiring shortly, the difference between forward and futures rates is relatively small, so using futures rates for discounting can be “relatively accurate” for short-maturity bonds.
+**Theoretical caveat:** discounting should be done at forward rates, not futures rates, because futures and forwards generally differ (the futures-forward/convexity adjustment). For short expiries, the difference is often small, so using futures-implied rates can be a reasonable approximation for short-maturity bonds.
 
 ---
 
@@ -366,29 +358,25 @@ He also notes that for futures expiring shortly, the difference between forward 
 
 ### 8.8.1 Definition
 
-Hull notes that, in addition to computing theoretical prices for mortgage-backed securities and other bonds with embedded options, traders compute what is known as the **option-adjusted spread** (OAS). This is a measure of the spread over the yields on government Treasury bonds provided by the instrument when all options have been taken into account. To calculate an OAS for an instrument, it is priced as described above using Treasury rates plus a spread for discounting. The price of the instrument given by the model is compared to the price in the market. A series of iterations is then used to determine the value of the spread that causes the model price to be equal to the market price.
-
-In Tuckman’s tree framework, the OAS is the spread that—when added to all the short rates in the risk-neutral tree for discounting purposes—produces a model price equal to the market price.
-
-O’Kane defines OAS as the fixed spread over the Libor (or government) discount rate which reprices the bond. The concept of the OAS has its origins in the callable bond market. Originally, the OAS was used as a way to quantify the spread impact of a call option embedded in a fixed rate bond. However, in the world of credit, the same measure is used to quantify the spread over the Libor curve due to the embedded credit risk where no optionality is present. For this reason, the name **zero volatility spread (ZVS)** is preferred as it makes clear that it is not a volatility measure, even though it is calculated in exactly the same way.
+Traders compute the **option-adjusted spread (OAS)** for mortgage-backed securities and other bonds with embedded options. Conceptually, OAS is the constant spread added inside a rate model (tree/Monte Carlo) such that the model price matches the market dirty price. It originated in callable/option-embedded markets to quantify the spread after accounting for option value. In option-free credit contexts, the same computation often behaves like a term-structure-consistent spread (sometimes called a “zero-volatility spread” to emphasize it is not a volatility number).
 
 ### 8.8.2 Model Dependence
 
-Tuckman emphasizes that OAS is a measure of the value of a security with respect to a particular model.
+OAS is a measure of value **with respect to a particular model**.
 
 > **Desk Reality: OAS and “Cheap/Rich” (Model-Relative)**
 >
-> In Tuckman’s example, an OAS of 10 bp means the security is **10 bp cheap** relative to the model; if the OAS were negative, the security would be **rich**.
+> An OAS of +10 bp can be interpreted as “10 bp cheap” relative to the model; a negative OAS can be interpreted as “rich,” under the same model and calibration.
 >
 > This is model-relative: OAS is a measure of value with respect to a particular model.
 
 ### 8.8.3 DVOAS and P&L Attribution
 
-Tuckman calls the sensitivity of model price to a one-basis-point decrease in OAS **DVOAS**. He computes it analogously to DV01: reprice at OAS $\pm 1$ bp and divide the price change by 2:
+The sensitivity of model price to a one-basis-point decrease in OAS is often called **DVOAS**. Compute it analogously to DV01: reprice at OAS $\pm 1$ bp and divide the price change by 2:
 
 $$\text{DVOAS} \approx \frac{P(OAS - 1\text{ bp}) - P(OAS + 1\text{ bp})}{2}$$
 
-Tuckman also shows a P&L decomposition that makes OAS desk-usable:
+A model-based P&L decomposition that makes OAS desk-usable is:
 
 $$\boxed{d P=(r+\mathrm{OAS}) P\, d t+\mathrm{DV01}_{x}(d x-E[d x])+\mathrm{DVOAS} \times d \,\mathrm{OAS}}$$
 
@@ -397,7 +385,7 @@ The three components are:
 - **Factor exposure:** $DV01_x \cdot (dx - E[dx])$ — unexpected rate moves
 - **Convergence:** $DVOAS \times dOAS$ — OAS change toward fair value
 
-For a hedged and financed position, Tuckman shows the P&L simplifies to:
+For a hedged and financed position, this is often simplified to:
 
 $$d P=\mathrm{OAS} \times P\, d t+\mathrm{DVOAS} \times d \,\mathrm{OAS}$$
 
@@ -430,7 +418,7 @@ $$\frac{\Delta P}{P} \approx -D_s\,\Delta s$$
 
 $$\boxed{D_s := -\frac{1}{P}\frac{\partial P}{\partial s}}$$
 
-This sign convention is consistent with the way O’Kane writes first-order risk: the percentage price change includes a term of the form $-D_s\,ds$ (so $D_s$ is typically positive for a fixed-coupon bond when $s$ is a discount-rate spread).
+This sign convention matches the common first-order risk form: the percentage price change includes a term of the form $-D_s\,ds$ (so $D_s$ is typically positive for a fixed-coupon bond when $s$ is a discount-rate spread).
 
 For Z-spread with continuous compounding, where $P(s) = \sum_k CF_k \cdot P_{\text{bench}}(0, t_k) \cdot e^{-s t_k}$:
 
@@ -477,13 +465,13 @@ When someone quotes "CS01," always clarify: CS01 with respect to which spread me
 
 ---
 
-## 8.10 What Spread Are We Really Talking About? O'Kane's Decomposition
+## 8.10 What Spread Are We Really Talking About? A Decomposition
 
 ### 8.10.1 The Credit Risk Premium
 
-Market spreads are not pure measures of default probability. Hull notes that when estimating default probabilities from bond yield spreads, "the usual assumption is that the excess yield is compensation for the possibility of default." But this assumption is incomplete.
+Market spreads are not pure measures of default probability. A common assumption is that the excess yield is compensation for the possibility of default, but this assumption is incomplete.
 
-O'Kane provides a conceptual decomposition:
+A useful conceptual decomposition is:
 
 $$\boxed{\text{Credit spread} = \text{Actuarial spread} + \text{Default risk premium} + \text{Volatility risk premium} + \text{Liquidity risk premium}}$$
 
@@ -494,7 +482,7 @@ The components are:
 - **Volatility risk premium:** Compensation for the risk that credit quality changes (spreads widen) even without default, causing mark-to-market losses.
 - **Liquidity risk premium:** Compensation for the risk of not being able to sell when needed due to market illiquidity.
 
-O'Kane defines:
+Define:
 $$\text{Spread premium} = \text{Credit spread} - \text{Actuarial spread}$$
 
 and:
@@ -511,7 +499,7 @@ $$\text{Coverage ratio} = \frac{\text{Credit spread}}{\text{Actuarial spread}}$$
 
 ### 8.10.2 Empirical Magnitudes
 
-O'Kane and Schloegl (2002) calculated coverage ratios by rating category using CDS spreads and Moody's historical default/recovery data:
+An empirical illustration of coverage ratios by rating category (using CDS spreads and historical default/recovery assumptions):
 
 | Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
 |--------|-------------------|----------------------|----------------|---------------------|
@@ -580,7 +568,7 @@ All examples use 100 notional. Spreads are in basis points unless stated otherwi
 
 **Step 1 — Dirty price:** $P_{\text{dirty}} = 98.50 + 0 = 98.50$
 
-**Step 2 — Solve for YTM:** Using Tuckman's formula with $c = 6$:
+**Step 2 — Solve for YTM:** Using the standard semiannual price–yield equation with $c = 6$:
 
 $$P(y) = \frac{6}{y}\left(1 - \frac{1}{(1 + y/2)^{10}}\right) + \frac{100}{(1 + y/2)^{10}}$$
 
@@ -760,7 +748,7 @@ $$MTM = \boxed{\$87,500}$$
 
 As we transition toward the credit chapters (Part IX), it's important to understand that CDS spreads and bond spreads do not always agree. The difference between them—the **CDS-bond basis**—is a fundamental concept in credit relative value.
 
-O'Kane defines:
+Define:
 
 $$\boxed{\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread (ASW)}}$$
 
@@ -770,7 +758,7 @@ The basis can be **positive** (CDS wider than cash) or **negative** (CDS tighter
 
 ### 8.13.1 Fundamental Factors Driving the Basis
 
-O'Kane identifies several **fundamental factors** that relate to contractual differences:
+Several **fundamental factors** relate to contractual differences:
 
 1. **Funding:** CDS are unfunded transactions; bonds are funded. For the same spread, CDS are favored by investors with funding costs above Libor, while bonds are favored by those who fund below Libor. This affects the equilibrium basis.
 
@@ -786,7 +774,7 @@ O'Kane identifies several **fundamental factors** that relate to contractual dif
 
 ### 8.13.2 Market Factors Driving the Basis
 
-O'Kane also identifies **market factors**:
+Several **market factors**:
 
 1. **Relative liquidity:** CDS liquidity concentrates at standard maturities (3Y, 5Y, 7Y, 10Y); bond liquidity depends on issuance.
 
@@ -927,11 +915,11 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | 19 | If spread widens, what happens to price? | Price decreases (all else equal) |
 | 20 | Repricing test for Z-spread? | Plug $s_Z$ back in; verify PV = $P_{\text{dirty}}$ |
 | 21 | Why is OAS model-dependent? | Option value depends on interest rate dynamics/volatility used |
-| 22 | List three components of credit spread (O'Kane) | Actuarial spread, default risk premium, liquidity risk premium |
+| 22 | List three components of credit spread | Actuarial spread, default risk premium, liquidity risk premium |
 | 23 | What is actuarial spread? | Compensation for expected loss from historical default/recovery |
 | 24 | What is coverage ratio? | Credit spread / actuarial spread |
 | 25 | What question to ask when someone says "spread widened"? | "Which spread definition and which benchmark curve?" |
-| 26 | What is a TED spread (Tuckman)? | Spread such that discounting cash flows at futures-implied rates minus spread matches dirty price |
+| 26 | What is a TED spread? | Spread such that discounting cash flows at futures-implied rates minus spread matches dirty price |
 | 27 | Key caveat for TED spreads? | Futures rates differ from forward rates (convexity/futures-forward adjustment), so the benchmark is not a pure no-arbitrage discount curve |
 | 28 | Market asset swap spread formula? | $A^*(0) = A(0)/P$ |
 | 29 | Asset swap MTM formula (unit-safe)? | $\text{MTM}_{\$}(t)\\approx (A(0)-A(t))_{\\text{bp}}\\times 10^{-4}\\times PV01(t,T)\\times N$ |

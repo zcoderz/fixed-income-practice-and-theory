@@ -45,7 +45,7 @@ Chapter 2 established discount factors and present value. This chapter extends t
 
 Every rate concept derives from one fundamental building block: the discount factor.
 
-Tuckman defines the discount factor $d(t)$ (or $P(0,t)$) as "the value today, or the present value of one unit of currency to be received at the end of that term" (Tuckman Ch 1). Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
+The discount factor $d(t)$ (or $P(0,t)$) is the present value today of one unit of currency received at time $t$. Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
 
 $$\boxed{P(0,T) = \text{Price today of \$1 paid at time } T}$$
 
@@ -63,7 +63,7 @@ Everything else—yields, spreads, durations—is just a layer of interpretation
 
 ### 3.1.3 The No-Arbitrage Requirements
 
-Tuckman (Ch 1) establishes the fundamental requirements that discount factors must satisfy:
+Under no-arbitrage, discount factors must satisfy a few basic requirements:
 
 1. **Positivity:** $P(0,T) > 0$ for all $T$. If $P(0,T)$ were 0 or negative, you could buy money at $T$ for free (or get paid to take it), leading to infinite arbitrage.
 2. **Normalization:** $P(0,0) = 1$. A dollar today is worth a dollar today.
@@ -79,25 +79,25 @@ Tuckman (Ch 1) establishes the fundamental requirements that discount factors mu
 
 A zero rate (or spot rate) answers the question: *What single annual interest rate, applied over the entire horizon from 0 to $T$, produces the discount factor $P(0,T)$?*
 
-Tuckman defines the spot rate as "the rate on a spot loan... in which the lender gives money to the borrower at the time of the agreement" (Tuckman Ch 2). Hull similarly defines the $n$-year zero rate as "the rate of interest earned on an investment that starts today and lasts for $n$ years," with **no intermediate payments** (Hull Ch 4).
+Equivalently, it is the annualized return on an investment that starts today and lasts until $T$ with **no intermediate payments** (a zero-coupon investment), under a stated compounding convention.
 
 Crucially, **you cannot quote a zero rate without specifying a compounding convention.** The same discount factor implies different numerical rates depending on how you compound.
 
 ### 3.2.2 Continuous Compounding
 
-This is the standard for derivatives pricing code (e.g., Black-Scholes, QuantLib internals). Hull (eq. 4.2) establishes that with continuous compounding, an amount $A$ invested for $n$ years at rate $R$ grows to $Ae^{Rn}$. The fundamental relationship is:
+Continuous compounding is common in derivatives pricing because it makes discounting algebraically simple. With continuous compounding, an amount $A$ invested for $n$ years at rate $R$ grows to $Ae^{Rn}$. The corresponding discount-factor relationship is:
 
 $$P(0,T) = e^{-y_c(T) \cdot T}$$
 
-Solving for the rate (Hull Ch 4):
+Solving for the rate:
 
 $$\boxed{y_c(T) = -\frac{\ln P(0,T)}{T}}$$
 
-**Why it's preferred by quants:** Hull explains that "continuously compounded interest rates are used to such a great extent in pricing derivatives that it makes sense to get used to working with them now." The mathematical convenience—particularly that discount factors multiply simply as $e^{-r_1 t_1} \times e^{-r_2 t_2} = e^{-(r_1 t_1 + r_2 t_2)}$—makes continuous compounding the standard in quantitative finance.
+**Why it’s preferred by quants:** discount factors multiply as $e^{-r_1 t_1} \times e^{-r_2 t_2} = e^{-(r_1 t_1 + r_2 t_2)}$, so combining periods becomes addition in the exponent. This makes forward-rate algebra and model implementations cleaner.
 
 ### 3.2.3 Semiannual Compounding (Treasury Convention)
 
-This is the standard for U.S. bond markets. Hull (eq. 4.1) gives the general compounding formula: an amount $A$ invested at rate $R$ compounded $m$ times per year grows to $A(1 + R/m)^{mn}$ after $n$ years. For semiannual compounding:
+This is the standard for U.S. bond markets. With compounding $m$ times per year, an amount $A$ invested at rate $R$ grows to $A(1 + R/m)^{mn}$ after $n$ years. For semiannual compounding:
 
 $$P(0,T) = \frac{1}{\left(1 + \frac{y_{sa}(T)}{2}\right)^{2T}}$$
 
@@ -107,7 +107,7 @@ $$\boxed{y_{sa}(T) = 2 \left[ \left( \frac{1}{P(0,T)} \right)^{\frac{1}{2T}} - 1
 
 ### 3.2.4 Simple Interest (Money Market Convention)
 
-Used for short-term rates (typically $T < 1$ year), like SOFR fixings and T-Bills. Tuckman explains that "lending $\$1$ for $d$ days at a rate of $r$ will earn the lender an interest payment of $rd/360$ dollars at the end of the $d$ days" under the actual/360 convention. There is no "compounding" of interest on interest.
+Used for short-term rates (typically $T < 1$ year), like overnight-index fixings and T-Bills. Under a simple-interest quote on ACT/360, lending $\$1$ for $d$ days at rate $r$ earns interest $r(d/360)$ at maturity (so the payoff is $1+rT$ with $T=d/360$). There is no interest-on-interest within the period.
 
 $$P(0,T) = \frac{1}{1 + y_{\text{simple}}(T) \cdot T}$$
 
@@ -119,7 +119,7 @@ $$\boxed{y_{\text{simple}}(T) = \frac{1}{T} \left( \frac{1}{P(0,T)} - 1 \right)}
 
 A common rookie mistake is to assume "5% is 5%."
 
-**Example (adapted from Hull Ch 4):**
+**Example:**
 Suppose $P(0, 1) = 0.9512$ (roughly 5%).
 - **Simple Rate:** $(1/0.9512 - 1) / 1 = 5.130\%$
 - **Semiannual Rate:** $2 \times ((1/0.9512)^{0.5} - 1) = 5.063\%$
@@ -135,13 +135,13 @@ All three represent the **exact same economic value**. If you plug a 5.13% simpl
 
 ### 3.2.6 Conversion Between Compounding Conventions
 
-Hull (eq. 4.3, 4.4) provides the general conversion formulas. If $R_c$ is a continuously compounded rate and $R_m$ is a rate with compounding $m$ times per year:
+General conversion formulas. If $R_c$ is a continuously compounded rate and $R_m$ is a rate with compounding $m$ times per year:
 
 $$\boxed{R_c = m \ln\left(1 + \frac{R_m}{m}\right)}$$
 
 $$\boxed{R_m = m\left(e^{R_c/m} - 1\right)}$$
 
-More generally, to convert from compounding $m_1$ times per year at rate $R_1$ to compounding $m_2$ times per year at rate $R_2$ (Hull Ch 4):
+More generally, to convert from compounding $m_1$ times per year at rate $R_1$ to compounding $m_2$ times per year at rate $R_2$:
 
 $$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 
@@ -165,7 +165,7 @@ $$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\%
 
 **Verification:** All four rates produce the same discount factor when applied with their respective compounding formulas. The ordering follows the mathematical property: for positive rates, more frequent compounding implies a lower quoted rate. Continuous < Quarterly < Semiannual < Annual.
 
-**Sanity Check:** This ordering always holds for positive rates because more frequent compounding "works harder"—interest compounds more often, so you need a lower stated rate to achieve the same terminal value.
+**Sanity Check:** This ordering always holds for positive rates because more frequent compounding achieves the same terminal value with a lower quoted rate; the rates are simply different parameterizations of the same discount factor.
 
 ---
 
@@ -175,15 +175,15 @@ $$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\%
 
 A forward rate answers the question: *What rate for a future period $[T_1, T_2]$ is consistent with today's discount factors?*
 
-Hull defines forward rates as "the rates of interest implied by current zero rates for periods of time in the future" (Hull Ch 4).
+A forward rate is the interest rate for a future period $[T_1, T_2]$ implied by today’s discount factors (or equivalently, today’s zero curve).
 
 This definition carries a critical implication: **the forward rate is not a forecast of where rates will be in the future.** It is a "breakeven" rate that prevents arbitrage between investing long-term vs. rolling over short-term investments.
 
 ### 3.3.2 The No-Arbitrage Derivation: Locking in the Forward Rate
 
-Hull provides a clear illustration of how forward rates can be locked in (Hull Ch 4). Consider an investor who wants to guarantee a rate for a future period.
+You can see the no-arbitrage logic by constructing a trade that locks the forward. Consider an investor who wants to guarantee a rate for a future period.
 
-**Hull's Locking Strategy:**
+**Locking strategy (borrow/lend replication):**
 Suppose the 1-year zero rate is 3% and the 2-year zero rate is 4% (both continuously compounded). An institution can borrow $\$100$ at 3% for 1 year and invest the money at 4% for 2 years:
 
 - Borrow $\$100$ for 1 year at 3%: repay $100e^{0.03 \times 1} = \$103.05$ at end of year 1
@@ -197,7 +197,7 @@ Since $108.33 = 103.05 \times e^{0.05}$, a return equal to 5% is earned on $\$10
 
 ### 3.3.3 Forward Rates as Breakeven Rates
 
-Tuckman emphasizes the breakeven interpretation: the forward rate is the rate at which an investor is **indifferent** between:
+The breakeven interpretation: the forward rate is the rate at which an investor is **indifferent** between:
 1. Investing at the short rate and rolling over
 2. Locking in the longer rate
 
@@ -230,23 +230,23 @@ $$1 + F_{\text{simple}} \cdot \tau = \frac{P(0,T_1)}{P(0,T_2)}$$
 ### 3.3.5 Forward Rate Formulas by Convention
 
 **Simple Forward Rate (Money Market / FRA style):**
-Used for FRAs and floating rate legs. Tuckman (eq. 2.14) provides:
+Used for FRAs and floating rate legs:
 
 $$\boxed{F_{\text{simple}}(0; T_1, T_2) = \frac{1}{\tau} \left( \frac{P(0,T_1)}{P(0, T_2)} - 1 \right)}$$
 
 **Continuously Compounded Forward Rate:**
-Used in theoretical modeling. Hull (eq. 4.5) gives:
+Used in theoretical modeling:
 
 $$\boxed{f_c(0; T_1, T_2) = \frac{y_c(T_2) \cdot T_2 - y_c(T_1) \cdot T_1}{T_2 - T_1} = \frac{\ln P(0, T_1) - \ln P(0, T_2)}{T_2 - T_1}}$$
 
 **Semiannual Forward Rate:**
-Tuckman (eq. 2.17) derives:
+Used when quoting forwards under a semiannual-compounding convention:
 
 $$\boxed{f_{sa}(0; T_1, T_2) = 2 \left[ \left(\frac{P(0,T_1)}{P(0,T_2)}\right)^{\frac{1}{2(T_2-T_1)}} - 1 \right]}$$
 
 ### 3.3.6 Instantaneous Forward Rate
 
-The limit as $T_2 \to T_1$. This describes the forward rate “at” a single maturity point $T$, under continuous compounding. Hull (Ch 4) defines the instantaneous forward rate as:
+The limit as $T_2 \to T_1$. This describes the forward rate “at” a single maturity point $T$, under continuous compounding. The instantaneous forward rate is:
 
 $$\boxed{f(0,T) = -\frac{\partial}{\partial T} \ln P(0,T)}$$
 
@@ -264,7 +264,7 @@ This reminds you that a smooth $P(0,T)$ implies a smooth integral of $f(0,T)$—
 
 ### 3.4.1 FRA Mechanics
 
-Andersen and Piterbarg describe a **forward rate agreement (FRA)** as a contract to exchange a fixed rate (agreed today) against a payment based on a spot reference rate fixed at the start of a future accrual period.
+A **forward rate agreement (FRA)** is a contract that exchanges a fixed rate (agreed today) against a payment based on a spot reference rate fixed at the start of a future accrual period.
 
 Fix two dates $T_1 < T_2$ and let $\tau$ be the year fraction for $[T_1, T_2]$ (according to the contract’s day count). Let $K$ be the FRA fixed rate and let $R$ be the realized reference rate (e.g., a 3‑month term rate) observed at $T_1$ for the period $[T_1, T_2]$. No notional is exchanged; only the net interest difference is exchanged.
 
@@ -272,11 +272,7 @@ If settlement were made at the **end** of the accrual period (at $T_2$), the net
 
 $$\text{Interest difference at }T_2 \;=\; N \, (K - R)\, \tau$$
 
-In practice, FRAs are commonly **cash-settled at (or near) $T_1$** rather than at $T_2$. As O'Kane puts it:
-
-> While the final payment is defined as though it occurs at time $T_{2}$, in practice the contract is cash settled at time $T_{1}$.
-
-Andersen and Piterbarg give the net payment at $T_1$ **from the perspective of the fixed-rate payer** (pay fixed, receive floating) as:
+In practice, FRAs are commonly **cash-settled at (or near) $T_1$** rather than at $T_2$, by discounting the end-of-period interest difference back to $T_1$ using the realized reference rate (or an equivalent cash-settlement convention). The net payment at $T_1$ **from the perspective of the fixed-rate payer** (pay fixed, receive floating) is:
 
 $$\boxed{V_{\text{pay fixed}}(T_1) \;=\; \frac{N \, (R - K)\, \tau}{1 + R\,\tau}}$$
 
@@ -290,7 +286,7 @@ $$\boxed{V_{\text{receive fixed}}(T_1) \;=\; \frac{N \, (K - R)\, \tau}{1 + R\,\
 
 ### 3.4.2 FRA Valuation
 
-Andersen and Piterbarg express the time-$t$ value of a unit-notional FRA in terms of discount factors. Specializing their result to time 0 and notional $N$, the PV **to the fixed-rate payer** can be written as:
+Using discount factors, one convenient time-0 PV expression for notional $N$ **to the fixed-rate payer** can be written as:
 $$\boxed{PV_{\text{pay fixed}}(0) = N\left(P(0,T_1) - P(0,T_2) - K\,\tau\,P(0,T_2)\right).}$$
 
 Rearranging:
@@ -339,7 +335,7 @@ The forward rate is the breakeven. Beat it, you profit. Miss it, you lose.
 
 ### 3.5.1 The Key Identity
 
-Under continuous compounding, there is a beautiful relationship between the (continuously compounded) zero curve $y_c(T)$ and the instantaneous forward rate $f(T)$. Hull (Ch 4) derives this from the instantaneous forward formula:
+Under continuous compounding, there is a useful relationship between the (continuously compounded) zero curve $y_c(T)$ and the instantaneous forward rate $f(T)$:
 
 $$\boxed{f(T) = y_c(T) + T \cdot \frac{\partial y_c(T)}{\partial T}}$$
 
@@ -406,7 +402,7 @@ Because forward rates depend on the *derivative* (slope) of the spot curve, smal
 
 A par rate answers: *What coupon rate $C$ makes a bond (or swap) worth exactly 100% of par?*
 
-While zero rates apply to single cashflows, par rates apply to **series** of cashflows. Hull defines the par yield as "the coupon rate that causes the bond price to equal its par value" (Hull Ch 4). They are weighted averages of the discount curve.
+While zero rates apply to single cashflows, par rates apply to **series** of cashflows. A par yield is the coupon rate that causes the bond price to equal its par value; it is an annuity-weighted summary of the discount curve.
 
 ### 3.6.2 The Par Equation
 
@@ -418,7 +414,7 @@ Solving for $C$:
 
 $$\boxed{C_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}}$$
 
-Hull (Ch 4) provides an equivalent form:
+An equivalent form (per 100 face) is:
 $$c = \frac{(100 - 100d)m}{A}$$
 where $d$ is the final discount factor, $m$ is the payment frequency, and $A$ is the annuity factor.
 
@@ -451,7 +447,7 @@ Par rates are the **observable market quotes**. You don't typically observe zero
 
 ### 3.7.1 The Phenomenon
 
-Tuckman (Ch 3) explains that "the impact of coupon level on the yield-to-maturity of coupon bonds with the same maturity is called the coupon effect." On a non-flat curve, par bonds and zero-coupon bonds of the same maturity have different yields—even though both are fairly priced.
+The **coupon effect** is the dependence of yield-to-maturity on coupon level for bonds of the same maturity when the curve is not flat. On a non-flat curve, par bonds and zero-coupon bonds of the same maturity can have different yields—even though both are fairly priced.
 
 ### 3.7.2 Why Par Yields Are Below Zero Yields on Steep Curves
 
@@ -461,7 +457,7 @@ On an **upward-sloping** (steep) yield curve, par yields are **below** zero yiel
 - Only the final principal gets discounted at the *higher* long-term rate
 - This "front-loading" of cash flows at lower discount rates pulls the par yield below the zero yield
 
-Tuckman explains: "As term increases, the number of coupon payments increases and discounting reduces the relative importance of the final principal payment... intermediate spot rates have a larger impact on coupon bond yields."
+As maturity increases, there are more coupon dates and discounting reduces the relative importance of the final principal payment. That means intermediate spot rates can have a larger impact on a coupon bond’s yield than you might guess from “just the last zero rate.”
 
 ### 3.7.3 Mathematical Demonstration
 
@@ -498,11 +494,11 @@ When short rates are higher than long rates:
 >
 > Junior traders sometimes think a par bond looks "cheap" relative to a zero-coupon bond when par yield < zero yield on a steep curve. This is not cheapness—it's the coupon effect. Both bonds are fairly priced; they just have different duration profiles and different reinvestment assumptions.
 >
-> **Key insight:** Par yield equals zero yield **only on a flat curve**. The steeper the curve, the larger the gap. Tuckman illustrates this with one historical date where the zero–par gap reaches double-digit basis points at long maturities.
+> **Key insight:** Par yield equals zero yield **only on a flat curve**. The steeper the curve, the larger the gap.
 
 ### 3.7.5 Quantifying the Coupon Effect
 
-Tuckman provides empirical magnitudes for one historical date: "The difference between the zero and par rates is about 1.3 basis points at a term of 5 years, 6.1 at 10 years, and 14.1 at 20 years." However, he cautions that "these quantities cannot be easily extrapolated to other yield curves" because the effect depends critically on the shape of the term structure.
+The magnitude of the zero–par gap depends critically on the shape of the term structure and payment frequency. For one representative upward-sloping curve, the gap might be on the order of ~1bp at 5y, ~6bp at 10y, and ~14bp at 20y, but it is not stable across curves.
 
 ---
 
@@ -512,32 +508,23 @@ Tuckman provides empirical magnitudes for one historical date: "The difference b
 
 The expectations hypothesis is a theory that connects the *shape* of the yield curve to expectations of future short rates.
 
-Luenberger makes the hypothesis concrete by expressing expectations in terms of forward rates:
-
-> According to the expectations hypothesis, this forward rate is exactly equal to the market expectation of what the 1-year spot rate will be next year.
+One common statement of the hypothesis is: the forward rate for a future period equals the market’s expected future short (spot) rate for that period.
 
 In symbols (pure expectations, no term premium):
 $$\text{Forward rate} \;\approx\; \mathbb{E}_t[\text{future short (spot) rate}].$$
 
 ### 3.8.2 Why the Expectations Hypothesis Fails
 
-Luenberger points out an immediate weakness:
-
-> Thus the expectations cannot be right even on average, since rates do not go up as often as expectations would imply.
+One immediate problem is empirical: forward rates do not behave like unbiased forecasts of future spot rates across cycles.
 
 One way to reconcile this is to add **risk premia** (term premia). A compact way to express the idea is:
 $$\text{Forward Rate} = \text{Expected Future Spot Rate} + \text{Term Premium}$$
 
-Jarrow gives a simple arbitrage-free counterexample:
-
-> This shows that $f(0, T) \neq E(r(T))$ for $T=1,2,3$.
-> Second, this example shows that the slope of the forward rate curve does not forecast the direction of future spot rates.
+Even in arbitrage-free models, forward rates generally do **not** equal expected future short rates. The gap is commonly attributed to term premia (and, depending on the setup, convexity effects and risk adjustments).
 
 ### 3.8.3 Liquidity Preference Theory
 
-Elton et al. motivate liquidity premium theory with horizon preferences:
-
-> To induce some six-month investors to hold one-year bonds, a premium will have to be offered.
+Liquidity/term-premium stories often start from horizon preferences: if many investors prefer short maturities, longer maturities may need to offer extra yield to clear the market.
 
 ### 3.8.4 Practical Implications
 
@@ -554,9 +541,9 @@ Elton et al. motivate liquidity premium theory with horizon preferences:
 
 ### 3.9.1 Visualizing the Rate Relationships
 
-> **The Triangular Array (Luenberger)**
+> **The Triangular Array**
 >
-> Luenberger introduces the "Triangular Array" to visualize how today's curve implies the entire future:
+> One spot curve today implies a whole matrix of forward rates for future start dates:
 >
 > | | $T=1$ | $T=2$ | $T=3$ | $T=4$ |
 > | :--- | :--- | :--- | :--- | :--- |
@@ -597,8 +584,8 @@ You cannot convert a single par rate to a single discount factor in isolation; y
 ### 3.9.3 Forward Rates in the Triangle
 
 Forward rates can be derived from either discount factors or zero rates:
-- From discount factors: $F = \frac{1}{\tau}\left(\frac{P_1}{P_2} - 1\right)$ (Tuckman eq. 2.14)
-- From zero rates (continuous): $f_c = \frac{y_c(T_2)T_2 - y_c(T_1)T_1}{T_2 - T_1}$ (Hull eq. 4.5)
+- From discount factors: $F = \frac{1}{\tau}\left(\frac{P_1}{P_2} - 1\right)$
+- From zero rates (continuous): $f_c = \frac{y_c(T_2)T_2 - y_c(T_1)T_1}{T_2 - T_1}$
 
 ---
 
@@ -842,7 +829,7 @@ The key insight: what looks smooth in one representation may look jagged in anot
 
 ## 3.13 HJM Framework Connection (Brief)
 
-The instantaneous forward rate $f(0,T)$ is the foundation of the **Heath-Jarrow-Morton (HJM) framework** for interest rate modeling.
+The instantaneous forward rate $f(0,T)$ is the foundation of the **HJM framework** for interest rate modeling.
 
 The key HJM insight: in a no-arbitrage world, the drift of forward rates is determined by their volatilities. Specifically, under the risk-neutral measure, the drift of $f(t,T)$ is constrained by:
 

@@ -37,7 +37,7 @@ Follow-on: [Chapter 6](chapters/chapter_06_ytm_yield_based_risk.md), [Chapter 11
 
 ### 5.1.1 The Bond as a Cashflow Schedule
 
-A fixed-rate bond promises a deterministic stream of payments. Tuckman describes the structure simply: a bond with face value $F$, coupon rate $c$, and semiannual payments promises coupon payments of $F \times c/2$ every six months, plus a principal repayment of $F$ at maturity. There is no uncertainty about the amounts or timing—only about what those future dollars are worth today.
+A fixed-rate bond promises a deterministic stream of payments. A bond with face value $F$, coupon rate $c$, and $m$ coupon payments per year promises coupon payments of $F \times c/m$ each period, plus a principal repayment of $F$ at maturity. There is no uncertainty about the amounts or timing—only about what those future dollars are worth today.
 
 More formally, let:
 - $F$ = face value (principal), typically 100 "per 100 par"
@@ -83,7 +83,7 @@ Once the cashflow schedule is specified, pricing reduces to a single question: w
 
 ### 5.2.1 The Law of One Price
 
-Chapter 2 introduced the discount factor $P(0,t)$ as "the value today of receiving one unit of currency at time $t$." Tuckman emphasizes that the **law of one price** allows "discount factors extracted from one set of bonds... to price any other bond with cash flows on the same set of dates."
+Chapter 2 introduced the discount factor $P(0,t)$ as the present value today of receiving one unit of currency at time $t$. The **law of one price** implies that discount factors extracted from one set of traded instruments can be used to price any other bond with cash flows on the same set of dates.
 
 This means we can value a bond by decomposing it into its component cashflows and pricing each separately. The total price is simply the sum of the present values of all future cashflows:
 
@@ -128,7 +128,7 @@ In this case, the two methods agree because the YTM was solved to match the curv
 
 ### 5.2.4 Why "Dirty" Price?
 
-The formula above produces what traders call the **dirty price** (also called **full price**, **invoice price**, or **cash price**). This is the actual amount paid for the bond at settlement. It represents the comprehensive economic value of the remaining cashflows. Tuckman states clearly: "the money paid by the buyer and received by the seller" is the invoice price.
+The formula above produces what traders call the **dirty price** (also called **full price**, **invoice price**, or **cash price**). This is the actual amount paid for the bond at settlement: the cash the buyer pays and the seller receives. It represents the comprehensive economic value of the remaining cashflows.
 
 ---
 
@@ -146,7 +146,7 @@ A fundamental relationship connects the bond's coupon rate to its price relative
 
 **Why this holds:** If a bond's coupon is higher than current market rates, investors are willing to pay more than $100 for the stream of above-market payments. Conversely, if the coupon is below market rates, the bond must sell below $100 to compensate buyers for the sub-market cashflows.
 
-Hull defines the **par yield** as "the coupon rate that causes the bond price to equal its par value." When the coupon rate exactly matches the par yield for that maturity, the bond trades at exactly 100.
+The **par yield** is the coupon rate that causes the bond price to equal its par value. When the coupon rate exactly matches the par yield for that maturity, the bond trades at exactly 100.
 
 ### 5.3.2 Par Bond Sanity Check
 
@@ -198,11 +198,11 @@ The price decline accelerates as maturity approaches because the "extra" coupon 
 
 ### 5.4.1 The Problem Clean Pricing Solves
 
-Elton et al. emphasize that the **quoted price** at which a bond is bought or sold is not the price the customer pays or receives: the settlement amount is the quoted price **plus accrued interest**. They also note a useful consequence of quoting this way: when a bond makes an interest payment, accrued interest becomes zero but the quoted price remains unchanged (assuming yields do not change).
+The **quoted price** at which a bond is bought or sold is not the cash amount the customer pays or receives: the settlement amount is the quoted price **plus accrued interest**. A useful consequence is that when a bond makes an interest payment, accrued interest becomes zero but the quoted (clean) price remains unchanged (assuming yields do not change).
 
 ### 5.4.2 The Market Convention
 
-In Hull’s U.S. Treasury quoting convention, traders call the quoted price the **clean price** and the cash settlement amount the **dirty price**. In general:
+In U.S. Treasury quoting convention, traders call the quoted price the **clean price** and the cash settlement amount the **dirty price**. In general:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + \text{AI}}$$
 
@@ -213,7 +213,7 @@ Where:
 
 ### 5.4.3 Why This Convention Works
 
-Tuckman writes the relationship between flat (quoted) price, accrued interest, and present value as:
+The relationship between flat (quoted) price, accrued interest, and present value can be written as:
 
 $$\boxed{P + AI = PV(\text{future cash flows})}$$
 
@@ -223,7 +223,7 @@ The particular market convention used in calculating accrued interest does not r
 
 ### 5.4.4 Algebraic Proof of Clean Price Continuity
 
-Tuckman shows that **if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment**. The algebra is:
+If yield does not change, then the quoted (clean) price of a bond does not fall as a result of a coupon payment. The algebra is:
 
 Let $P^b$ and $P^a$ be the quoted prices immediately before and after a coupon payment of $c/2$. Right before the coupon date:
 - Accrued interest equals the full coupon: $\text{AI} = c/2$
@@ -262,7 +262,7 @@ The *dirty* price drops from 103.87 to 101.14 (the coupon amount is paid out). T
 
 ### 5.5.1 Economic Purpose
 
-Accrued interest compensates the seller for the portion of the coupon period during which they held the bond. In Tuckman's 5 1/2s example: if the bond makes a coupon payment on July 31 but the seller sells on February 15, the seller should receive compensation for having held the bond from the prior coupon date (January 31) to settlement. The buyer pays this amount at settlement, then collects the full coupon when it's paid.
+Accrued interest compensates the seller for the portion of the coupon period during which they held the bond. For example, if the bond pays a coupon on July 31 but the seller sells on February 15, the seller should receive compensation for having held the bond from the prior coupon date (January 31) to settlement. The buyer pays this amount at settlement, then collects the full coupon when it is paid.
 
 > **Analogy: The Taxi Meter**
 >
@@ -280,9 +280,9 @@ The accrued interest is the pro-rated share of the full coupon:
 
 $$\boxed{\text{AI}_{\text{Act/Act}} = \frac{d_{\text{elapsed}}}{d_{\text{period}}} \times \text{Cpn}}$$
 
-### 5.5.3 Worked Example C: Tuckman's 5 1/2s of January 31, 2003
+### 5.5.3 Worked Example C: 5 1/2s of January 31, 2003 (Accrued Interest)
 
-This is Tuckman's canonical example, which we reproduce exactly:
+This example uses a concrete Treasury-style schedule to make the day count and dollar amounts tangible:
 
 **Scenario:**
 - **Bond:** 5 1/2s of January 31, 2003
@@ -299,7 +299,7 @@ This is Tuckman's canonical example, which we reproduce exactly:
    $$\text{AI} = \frac{15}{181} \times 2.75 = 0.2279$$
 5. **Accrued Interest per $10,000 face:** $0.2279 \times 100 = \$22.79$
 
-As Tuckman states: the buyer pays "$22.79 of accrued interest" and "having paid this $22.79 of accrued interest, investor B may keep the entire $275 coupon payment of July 31, 2001."
+Interpretation: the buyer pays \$22.79 of accrued interest at settlement, and then keeps the entire \$275 coupon payment when it is paid on July 31, 2001.
 
 ### 5.5.4 The 30/360 Day Count (U.S. Corporates)
 
@@ -325,7 +325,7 @@ where $\text{Cpn} = 100 \times c / 2$ for a semiannual coupon bond.
 
 ### 5.5.5 Day Count Comparison: Act/Act vs 30/360
 
-Hull's examples highlight how Actual/Actual (in period) and 30/360 can produce different accrued interest, especially around month boundaries.
+Actual/Actual (in period) and 30/360 can produce different accrued interest, especially around month boundaries.
 
 **Example: March 1 to July 3, 8% annual coupon ($4 semiannual)**
 
@@ -486,11 +486,11 @@ Because the final repayment of principal occurs at maturity ($T_N$), the price o
 
 ### 5.7.3 DV01 (One-Number Rate Risk) — Define the Bump
 
-DV01 is short for "dollar value of a 01" (one basis point). If $\Delta B$ is the change in bond price for a yield change $\Delta y$, Neftci defines:
+DV01 is short for "dollar value of a 01" (one basis point). One common yield-based definition is:
 
 $$\boxed{DV01 = -\frac{\Delta B}{10{,}000 \times \Delta y}}$$
 
-Tuckman gives the corresponding derivative form:
+In differential form:
 
 $$\boxed{DV01 = -\frac{1}{10{,}000}\frac{d P(y)}{d y}}$$
 
@@ -635,7 +635,7 @@ One important driver is *financing mechanics*: when a trader is short an on-the-
 
 ### 5.9.3 The Funding Intuition: Why Fails Matter
 
-Tuckman gives a simple financing interpretation in the context of specials. If the bond cannot be borrowed, the trader fails to deliver and does not receive the proceeds from the sale. In effect, the trader loses (at least) a day of interest on those proceeds.
+A simple financing interpretation in the context of specials: if the bond cannot be borrowed, the trader fails to deliver and does not receive the proceeds from the sale. In effect, the trader loses (at least) a day of interest on those proceeds.
 
 If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\\%$, earning $0\\%$ on proceeds is economically similar to failing to deliver.
 
@@ -812,7 +812,7 @@ Any pricing engine should pass these checks:
 
 **Problem 11 (Analysis):** Why can curve-based pricing differ from yield-based pricing when the yield curve is not flat?
 
-**Problem 12 (Hard):** Verify the Tuckman example: 5 1/2s of Jan 31, 2003, quoted at 101-04 5/8 with AI = 0.2279 per $100 face. What is the dirty price? What is the invoice amount on $10,000 face?
+**Problem 12 (Hard):** Verify the worked example in Section 5.5.3: 5 1/2s of Jan 31, 2003, quoted at 101-04 5/8 with AI = 0.2279 per $100 face. What is the dirty price? What is the invoice amount on $10,000 face?
 
 ---
 

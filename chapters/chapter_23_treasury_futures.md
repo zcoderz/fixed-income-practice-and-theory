@@ -6,9 +6,17 @@
 
 The Treasury bond futures contract doesn't specify which bond you deliver—so which one do you choose?
 
-This seemingly simple question reveals the distinctive feature that makes bond futures pricing both fascinating and challenging. Unlike most futures contracts where the underlying asset is precisely defined, Treasury futures allow the short position to deliver any bond from a specified basket. The short can also choose *when* to deliver within an extended window. These embedded options—the **quality option** to choose the bond and the **timing option** to choose the date—transfer value from the long to the short and depress the futures price below what a simple cost-of-carry calculation would suggest.
+Unlike most futures, the “underlying” is not a single bond. Treasury futures are **deliverable-basket contracts**: the short can choose *which* eligible bond to deliver and *when* (within the delivery window). These embedded delivery options transfer value from the long to the short and push the futures price away from a naive single-asset cost-of-carry forward. Exact theoretical pricing is therefore harder than for a single identified bond, but the contract is still highly structured: you can translate quotes into invoice prices, delivery economics, basis metrics, and hedge ratios.
 
-Understanding this mechanism is essential for anyone trading, hedging, or pricing with Treasury futures. A hedger who ignores the delivery option dynamics may find their carefully constructed DV01 hedge suddenly misaligned when the cheapest-to-deliver bond switches. A basis trader who focuses only on gross basis without accounting for carry and option value will systematically misprice the trade's expected return. As Hull notes explicitly: "An exact theoretical futures price for the Treasury bond contract is difficult to determine because the short party's options concerned with the timing of delivery and choice of the bond that is delivered cannot easily be valued."
+## Learning Objectives
+- After this chapter, you can describe the deliverable basket and the short’s delivery options (quality, timing, end-of-month, and “wild card” style notice timing).
+- You can compute invoice price and cost of delivery, and identify the cheapest-to-deliver (CTD) bond from a deliverables table.
+- You can translate cash–futures quotes into gross basis, net basis, and implied repo, and explain how funding assumptions (GC vs special) change carry and CTD economics.
+- You can compute and interpret Treasury futures DV01 with an explicit bump object, bump size, units, and sign convention.
+- You can explain why hedge ratios jump when CTD switches, and what “roll” and “squeeze risk” mean for live hedges.
+
+Prerequisites: [Chapter 5 — Fixed-Rate Bond Pricing](chapter_05_fixed_rate_bond_pricing.md), [Chapter 9 — Repo Funding Engine](chapter_09_repo_funding_engine.md), [Chapter 11 — DV01/PV01 Definitions and Computation](chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration (Macaulay, Modified, DV01)](chapter_12_duration_macaulay_modified_dv01.md), [Chapter 13 — Convexity](chapter_13_convexity.md)  
+Follow-on: [Chapter 24 — STIR Futures and Convexity Adjustments](chapter_24_stir_futures_convexity_adjustments.md), [Chapter 28 — Basis Trades in Rates](chapter_28_basis_trades.md)
 
 For middle-office professionals transitioning to front office roles, Treasury futures present both opportunity and risk. The P&L reports you already see contain basis P&L, roll P&L, and CTD switch impacts—but understanding what drives those numbers requires mastering the concepts in this chapter. When a hedge ratio jumps by 15% overnight and you need to explain it to the desk head, the answer lies in CTD switching. When the roll spread blows out during quarter-end, the explanation involves squeeze risk and repo specialness.
 
@@ -25,7 +33,7 @@ This chapter covers:
 9. **Squeeze risk** — what happens when the CTD becomes scarce
 10. **Model selection** — when to use simple vs. multi-factor approaches
 
-The mechanics developed here connect directly to Part II's bond pricing (Chapter 5), Part III's risk measures (Chapters 11–16), and Chapter 9's treatment of repo. The carry and forward-pricing relationships from Chapter 9 are essential background; this chapter focuses on what makes futures *different* from forwards.
+This chapter leans heavily on bond pricing and accrued interest (Chapter 5), repo/carry mechanics (Chapter 9), and DV01/duration/convexity conventions (Chapters 11–13). It focuses on what makes Treasury futures *different* from forwards: the delivery basket and the short’s embedded options.
 
 ---
 
@@ -33,31 +41,31 @@ The mechanics developed here connect directly to Part II's bond pricing (Chapter
 
 ### 23.1.1 The Contract Structure
 
-Treasury futures obligate the short to deliver Treasury securities of a specified maturity range during the delivery month. The contract specifies a **delivery basket**: a set of eligible bonds that the short may choose from. Tuckman describes these as "a basket of eligible Treasury securities" and notes that the short satisfies the contract by delivering one eligible bond of the face amount specified by the contract.
+Treasury futures are *deliverable-basket* contracts: the short satisfies the contract by delivering **one** eligible Treasury security from a specified basket during a delivery window. The exchange specifies eligibility (maturity range and other criteria) and publishes a list of deliverables for each contract month.
 
-The design of bond futures contracts purposely avoids a single underlying security. Tuckman explains two key reasons for this choice: First, "if the single underlying bond should lose liquidity, perhaps because it has been accumulated over time by buy-and-hold investors and institutions, then the futures contract would lose its liquidity as well." Second, a single deliverable creates the possibility of a **squeeze**, where a trader might "profit by simultaneously purchasing a large fraction of that bond issue and a large number of contracts," forcing shorts to buy that bond at distorted prices.
+Why a basket? Two practical reasons:
 
-The contract face amount is typically $100,000. The short receives an **invoice price** based on the futures settlement price and a bond-specific adjustment called the **conversion factor**.
+1. **Liquidity protection:** if one specific issue becomes illiquid or “locked up,” the futures contract can still function.
+2. **Anti-squeeze design:** allowing multiple deliverables makes it harder (though not impossible) to corner a single issue and force distorted delivery economics.
 
-> **Key insight:** The futures is not a forward on a single bond. It is a forward-like commitment to exchange *some* Treasury security, with embedded options held by the short.
+In common U.S. Treasury futures, the contract face amount is \(N=\$100{,}000\). The delivery cash amount is an **invoice price** based on the futures settlement price and a bond-specific **conversion factor**.
+
+> **Key insight:** This futures is not a forward on a single bond. It is a standardized promise to deliver *some* eligible bond, and the short gets to choose.
 
 ### 23.1.2 The Short's Embedded Options
 
-Hull summarizes the delivery options available to the short: "In the Treasury bond futures contracts, the party with the short position has a number of interesting delivery options: (1) Delivery can be made on any day during the delivery month. (2) There are a number of alternative bonds that can be delivered. (3) On any day during the delivery month, the notice of intention to deliver at the 2:00 p.m. settlement price can be made later in the day." Hull then states explicitly: "These options all tend to reduce the futures price."
+Because the short controls delivery, Treasury futures embed several short-owned options:
 
-The short position holder has several embedded options:
+- **Quality option:** choose *which* eligible bond to deliver (choose the cheapest-to-deliver bond).
+- **Timing option:** choose *when* to deliver within the window.
+- **End-of-month option:** when the last trading day is before the last delivery day, the settlement price is fixed while delivery choices remain.
+- **Wild-card style notice option:** when the delivery notice deadline occurs after the futures settlement time while the cash bond market is still trading, the short can condition the notice decision on post-settlement price moves.
 
-**Quality option:** The short chooses which eligible bond to deliver. Different bonds in the basket have different prices, coupons, and risk characteristics. The short will naturally choose the bond that minimizes the cost of delivery. Tuckman notes this is "the most significant embedded option in futures contracts."
+All of these options are economically favorable to the short. In competitive markets, their value is reflected in the futures price.
 
-**Timing option:** The short can deliver on any day during the delivery month (or delivery window). Tuckman explicitly describes this: "The party short the futures contract may deliver at any time during the delivery month."
-
-**End-of-month option:** In U.S. contracts, the last trade date typically precedes the last delivery date. After the last trade, the settlement price is fixed, but the short can still choose which day (and which bond) to deliver. If prices move, the short can switch to a more favorable bond. Tuckman notes this feature "gives rise to the end-of-month option."
-
-**Wild card play:** Hull describes this timing feature in Business Snapshot 6.2: "The settlement price in the CME Group's Treasury bond futures contract is the price at 2:00 p.m. Chicago time. However, Treasury bonds continue trading in the spot market beyond this time and a trader with a short position can issue to the clearing house a notice of intention to deliver later in the day." If bond prices fall between 2:00 p.m. and the notice deadline, the short benefits by delivering at the higher (earlier) settlement price while buying bonds cheaper. Hull notes: "As with the other options open to the party with the short position, the wild card play is not free. Its value is reflected in the futures price, which is lower than it would be without the option."
-
-> **Desk Reality: Why These Options Matter for P&L**
->
-> If you've ever seen a futures position show unexplained P&L when rates barely moved, the delivery options may be the culprit. The embedded optionality means futures don't move 1:1 with their CTD—especially near delivery or when CTD is close to switching. Your risk system may show a clean DV01-neutral hedge, but the P&L says otherwise. The explanation often lies in the convexity effects from these options.
+> **Desk Reality:** Risk reports often map a Treasury futures position to “today’s CTD” and compute DV01 off that mapping.  
+> **Common break:** P&L can move even when reported DV01 is near zero (CTD switching, delivery-option convexity, and repo-driven carry can dominate).  
+> **What to check:** monitor net basis levels across near-CTDs, and re-run DV01 under plausible alternative CTDs before major roll/delivery periods.
 
 ---
 
@@ -67,33 +75,27 @@ The short position holder has several embedded options:
 
 Bonds in the delivery basket differ in coupon and maturity. Without any adjustment, a high-coupon bond would be much more valuable than a low-coupon bond of the same maturity. The futures contract would then essentially become a contract on the highest-coupon bond, since the short would never deliver anything else.
 
-**Conversion factors** solve this problem by adjusting the delivery price for each bond's characteristics. Hull explains: "When a particular bond is delivered in a CME group bond futures contract, a parameter known as its conversion factor defines the price received for the bond by the party with the short position."
-
-Tuckman provides the economic rationale for using a basket with conversion factors: "The large difference between delivering the CTD versus the next to CTD when all conversion factors are one arises because the same credit is given for delivering the low-coupon [bond] as the [high-coupon bond]. Actual conversion factors reduce the differences in delivery costs across bonds by adjusting delivery prices for coupon rates."
+**Conversion factors** solve this problem by translating a single futures quote into a bond-specific delivery price. They reduce (but do not eliminate) differences in delivery value across bonds with different coupons and maturities.
 
 ### 23.2.2 The 6% Rule: How Conversion Factors Are Calculated
 
-The conversion factor is computed as the bond's clean price per $1 face value when discounted at a **notional yield of 6%** (with semiannual compounding), using contract-specific rounding rules.
+For U.S. Treasury bond/note futures, a common definition sets a bond’s conversion factor equal to the bond’s quoted price per dollar of principal on the first day of the delivery month, assuming a flat **6%** yield curve with semiannual compounding (with contract-specific standardization/rounding of coupon timing and maturity).
 
-Hull states: "The conversion factor for a bond is set equal to the quoted price the bond would have per dollar of principal on the first day of the delivery month on the assumption that the interest rate for all maturities equals 6% per annum (with semiannual compounding)."
+In practice, you treat \(cf_i\) as an exchange-published input for each eligible bond.
 
-**Hull's first worked example:** Consider a 10% coupon bond with 20 years and 2 months to maturity. For the purposes of calculating the conversion factor, the bond is assumed to have exactly 20 years to maturity (rounding down to the nearest 3 months for bond futures). The first coupon is assumed to be made after 6 months. Hull calculates:
+**Illustrative calculation (stylized, on-cycle bond):** Consider a 10% coupon bond with 20 years to maturity (40 semiannual periods). If the yield is 6% per year with semiannual compounding (3% per half-year), the theoretical clean price per $100 is:
 
 $$\text{Value at 6\%} = \sum_{i=1}^{40} \frac{5}{1.03^{i}} + \frac{100}{1.03^{40}} = \$146.23$$
 
 Dividing by the face value gives a conversion factor of **1.4623**.
 
-**Hull's second worked example:** Consider an 8% coupon bond with 18 years and 4 months to maturity. For conversion factor purposes, the bond is assumed to have exactly 18 years and 3 months to maturity. Discounting all payments back to a point 3 months from today at 6% per annum (compounded semiannually) gives:
+**Illustrative calculation (off-cycle settlement intuition):** Consider an 8% coupon bond that is not exactly on a coupon date. One common approach is to value cashflows at 6% and then subtract accrued interest to get a clean price. For example, discounting all payments back to a point 3 months from today at 6% per year (compounded semiannually) gives:
 
 $$4 + \sum_{i=1}^{36} \frac{4}{1.03^{i}} + \frac{100}{1.03^{36}} = \$125.8323$$
 
 The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\%$. Hence, discounting back to the present gives the bond's value as $125.8323 / 1.014889 = \$123.99$. Subtracting the accrued interest of 2.0 gives $\$121.99$. The conversion factor is therefore **1.2199**.
 
-Tuckman frames the intuition: "The conversion factor of a bond is approximately equal to its price per dollar face amount as of the last delivery date with a yield equal to the notional coupon rate." He adds: "Conversion factors approximately equal the bond's price per $1 face value if yields were at the notional coupon rate; they would adjust prices perfectly if the term structure were flat at that notional rate."
-
-> **Practitioner Note: Historical Context**
->
-> The notional coupon for U.S. Treasury futures was historically 8% when the contracts were first introduced. In February 1999, the CBOT approved changing the notional coupon to 6%, effective with the March 2000 Treasury bond and Treasury note futures contracts. This historical context helps explain why some older references use 8% in their examples.
+> **Note:** Some older references (or non-U.S. contracts) may use a different notional yield or different rounding rules. For trading and operations, always use the exchange’s published conversion factors for the contract month.
 
 ### 23.2.3 What Conversion Factors Are NOT
 
@@ -115,34 +117,39 @@ When bond $i$ is delivered into the futures contract, the short receives:
 
 $$\boxed{\text{Invoice}_i(t) = cf_i \times F(t) + AI_i(t)}$$
 
+In words: the clean delivery price is \(cf_i \times F(t)\), and the invoice price adds accrued interest (delivery price + accrued interest).
+
 where:
 - $cf_i$ is the conversion factor for bond $i$
 - $F(t)$ is the futures settlement price at time $t$
 - $AI_i(t)$ is the accrued interest on bond $i$ at time $t$
 
-Hull states explicitly: "The applicable quoted price for the bond delivered is the product of the conversion factor and the most recent settlement price for the futures contract. Taking accrued interest into account... the cash received for each $100 face value of the bond delivered is (Most recent settlement price × Conversion factor) + Accrued interest."
+**Intuition:** The futures price is quoted like a clean price. The invoice adds accrued interest because the delivered bond exchanges at its dirty (cash) price.
 
-**Hull's numerical example:** Suppose the most recent settlement price is 120-00 (i.e., 120.00), the conversion factor for the bond delivered is 1.3800, and the accrued interest is $3 per $100 face value. The cash received is:
+**Quick example:** Suppose the most recent settlement price is 120.00, the conversion factor for the bond delivered is 1.3800, and accrued interest at delivery is $3 per $100 face value. The cash received is:
 
 $$(1.3800 \times 120.00) + 3.00 = \$168.60$$
 
 per $100 face value. A party with the short position in one contract would deliver bonds with face value of $100,000 and receive $168,600.
 
-**Intuition:** The futures price is quoted like a clean price. The invoice adds accrued interest because the delivered bond exchanges at its dirty (cash) price.
+> **Pitfall — Invoice vs clean quote:** Mixing futures quotes, bond clean prices, and dirty cash settlement amounts.  
+> **Why it matters:** You will miscompute delivery economics, implied repo, and hedge ratios by dollars per $100 (which becomes thousands per contract).  
+> **Quick check:** At delivery, cash paid/received must be “dirty”: verify the same \(AI(t)\) term is added on both sides before canceling it in any spread.
 
 ### 23.3.2 Cost of Delivery
 
-The **cost of delivery** measures what the short pays to buy the bond minus what they receive from delivering it. Tuckman gives this as equation (20.1):
+The short’s delivery economics are driven by the difference between:
 
-$$\text{Cost of buying bond } i = P_i(t) + AI_i(t)$$
+- the **dirty** cost to acquire the bond: \(P_i(t)+AI_i(t)\),
+- the **dirty** invoice received: \(cf_iF(t)+AI_i(t)\).
 
-$$\text{Invoice received} = cf_i \times F(t) + AI_i(t)$$
+Accrued interest cancels, giving the clean-price expression:
+
+$$\text{CostDel}_i(t)=\left(P_i(t)+AI_i(t)\right)-\left(cf_i \times F(t)+AI_i(t)\right)=P_i(t)-cf_i \times F(t).$$
 
 $$\boxed{\text{CostDel}_i(t) = P_i(t) - cf_i \times F(t)}$$
 
-Tuckman notes that accrued interest cancels because it appears in both the purchase cost and the invoice received.
-
-**Unit check:** All terms are in dollars per $100 face. The cost of delivery is positive if the bond costs more to buy than the invoice received (i.e., it "costs" the short to deliver).
+**Unit check:** All terms are in dollars per $100 face. A negative cost of delivery means delivering bond \(i\) is profitable for the short at that futures price.
 
 ---
 
@@ -166,7 +173,7 @@ $$\boxed{\text{CTD} = \arg\min_i \{P_i(t) - cf_i \times F(t)\}}$$
 > *   **The Choice**: You will obviously buy the salad ($8) because it's the cheapest way to fulfill the contract, even though the contract price is fixed.
 > *   **The Switch**: If salad prices skyrocket to $15, you will switch to buying the burger. This ability to *switch* is the "Quality Option." It's valuable to you (Short), and risky for the eater (Long).
 
-**Example from Hull (Example 6.1):** A short considers three bonds with the most recent settlement price at 93-08 (93.25):
+**Example:** A short considers three deliverable bonds when the most recent settlement price is 93-08 (93.25):
 
 | Bond | Quoted Price | Conversion Factor | Cost of Delivery |
 |------|--------------|-------------------|------------------|
@@ -178,15 +185,13 @@ Bond 2 has the lowest cost of delivery and is therefore CTD.
 
 ### 23.4.2 Final Settlement Price at Delivery
 
-Tuckman shows (equation 20.3) that at the final delivery date, the settlement price must satisfy:
+At the final delivery date \(T\), no-arbitrage implies the settlement price must satisfy:
 
 $$\boxed{F(T) = \min_i \frac{P_i(T)}{cf_i} = \frac{P^{\text{CTD}}(T)}{cf^{\text{CTD}}}}$$
 
-This is proved by arbitrage. Tuckman shows: "First assume that $F(T) > P^{CTD}(T)/cf^{CTD}$. In this case a trader could buy the CTD, sell the contract, and deliver the CTD. The profit from this trade is $cf^{CTD} \times F(T) - P^{CTD}(T)$. But, by assumption, this is positive and, therefore, the trade constitutes an arbitrage opportunity."
+Reason (intuition): if \(F(T)\) were above the minimum \(P/cf\), you could buy the cheapest bond, sell futures, deliver, and lock in a profit. If \(F(T)\) were below the minimum \(P/cf\), you could sell the cheapest bond, buy futures, take delivery, and lock in a profit. In frictionless markets, these arbitrages force the equality.
 
-Similarly, if $F(T) < P^{CTD}(T)/cf^{CTD}$, a trader could sell the CTD, buy futures, and take delivery—also creating arbitrage.
-
-A key consequence: **the cost of delivering the CTD at final settlement is zero** (Tuckman equation 20.7):
+A key consequence: **the cost of delivering the CTD at final settlement is zero**:
 
 $$P^{\text{CTD}}(T) - cf^{\text{CTD}} \times F(T) = 0$$
 
@@ -202,27 +207,22 @@ The cost of delivering a non-CTD bond is positive.
 
 ### 23.5.1 The Imperfection of Conversion Factors
 
-Conversion factors would perfectly equalize delivery attractiveness only if the term structure were flat at exactly 6%. In reality, yields differ from 6%, and the curve has shape. This creates systematic biases.
+Conversion factors would equalize delivery attractiveness only in a special case (think: a flat curve at the notional yield and no rounding frictions). In reality, yields are not exactly 6% and the curve is not flat. Because \(cf_i\) is fixed, bonds with different durations respond differently to yield changes, and the identity of the CTD can change.
 
-Tuckman explains the mechanism: "As yield moves away from the notional coupon it is no longer true that conversion factors perfectly adjust delivery prices." The key insight involves duration.
-
-At a yield of 6%, the conversion factor approximately equals the bond's price per dollar face. Tuckman derives that the slope of the price/CF ratio with respect to yield is approximately proportional to the bond's duration:
+A useful local approximation is to look at the “adjusted price” \(P_i/cf_i\). Around a given yield level,
 
 $$\frac{d(P_i/cf_i)}{dy} \approx -\frac{P_i}{cf_i} \times D_i$$
 
-Since at 6% the conversion factor equals price per dollar face, this slope is approximately proportional to duration.
+so higher-duration bonds’ adjusted prices move more for a given yield change.
 
 ### 23.5.2 Yield Level Effects
 
-**When yields rise above 6%:** Higher-duration bonds fall more in price (since duration measures price sensitivity). But their conversion factors don't change. So higher-duration bonds become relatively cheaper to deliver.
+As rules of thumb (not laws):
 
-Tuckman: "As yield increases above the notional coupon rate the prices of all bonds fall, but the price of the bond with the highest duration... falls the most."
+- **Yields above the notional yield (e.g., above 6%):** long-duration / low-coupon bonds tend to become relatively cheaper to deliver.
+- **Yields below the notional yield (e.g., below 6%):** short-duration / high-coupon bonds tend to become relatively cheaper to deliver.
 
-**When yields fall below 6%:** Lower-duration bonds rise less in price, making them relatively cheaper to deliver.
-
-Tuckman: "As yield falls below the notional coupon rate, the prices of all bonds increase but the price of the bond with the lowest duration... increases the least."
-
-Hull summarizes the pattern: "When bond yields are in excess of 6%, the conversion factor system tends to favor the delivery of low-coupon long-maturity bonds. When yields are less than 6%, the system tends to favor the delivery of high-coupon short-maturity bonds."
+Coupon structure, curve shape, and financing can dominate these tendencies.
 
 ### 23.5.3 CTD Tends Toward Extremes
 
@@ -245,19 +245,17 @@ This creates a systematic pattern:
 
 ### 23.5.4 Negative Convexity of Futures
 
-A striking consequence of CTD switching is that Treasury futures exhibit **negative convexity**. Tuckman explains: "At any yield level the futures price at delivery is, according to equation (20.3), the ratio of the price of the CTD to its conversion factor. Graphically, the futures price is the lower envelope of the price ratio-yield curves."
+At delivery, the futures settlement is the **minimum envelope** of adjusted prices:
 
-As yields change and CTD switches, Tuckman notes: "As yield decreases the duration of the futures contract moves from resembling the relatively high duration of the [longest bond] to resembling the relatively low duration of the [shortest bond]. Hence, at delivery, the duration of the futures contract falls with yield; that is, the contract is negatively convex."
+$$F(T)=\min_i \frac{P_i(T)}{cf_i}$$
 
-This negative convexity is a direct consequence of the quality option: the short always delivers the bond that minimizes the futures value, creating a "minimum envelope" effect.
+As yields move, the identity of the minimizing bond can switch. That makes the futures behave like it is **short an option**: in rallies it tends to “switch into” a lower-duration deliverable, and in sell-offs it tends to “switch into” a higher-duration deliverable. Equivalently, the *effective duration* of the futures tends to fall as yields fall.
+
+This is the practical meaning of “negative convexity” here: when CTD is near switching, second-order effects and CTD-switch risk can dominate a hedge that looks DV01-neutral under a single assumed CTD.
 
 ### 23.5.5 Curve Shape Also Matters
 
-With a non-flat curve, intermediate-maturity bonds can become CTD even when yields are not at 6%. Tuckman notes: "If general yield levels were to fall further, the CTD would shift to the front end of the basket. If the curve were to steepen more, the CTD would shift to the back end of the basket."
-
-Hull also observes: "When the yield curve is upward-sloping, there is a tendency for bonds with a long time to maturity to be favored, whereas when it is downward-sloping, there is a tendency for bonds with a short time to maturity to be delivered."
-
-The two-dimensional nature of CTD determination (yield level + curve shape) makes the futures contract's risk profile more complex than a simple bond position.
+With a non-flat curve, intermediate-maturity bonds can become CTD even when yields are not near the notional yield. CTD determination is therefore two-dimensional: overall yield level **and** curve shape (and, in practice, financing).
 
 ---
 
@@ -265,51 +263,50 @@ The two-dimensional nature of CTD determination (yield level + curve shape) make
 
 ### 23.6.1 Gross Basis
 
-The **gross basis** for bond $i$ at time $t$ is simply the cost of delivery (Tuckman equation 20.10):
+The **gross basis** for bond \(i\) at time \(t\) is the clean cash–futures difference after conversion-factor adjustment:
 
 $$\boxed{GB^i(t) = P^i(t) - cf^i \times F(t)}$$
 
-A positive gross basis means the bond is "rich" to the futures after CF adjustment; negative means "cheap."
+This is the same object as the cost of delivery (away from the final delivery date it is *not* an arbitrage-free “profit,” because financing and option value matter).
+
+- \(GB>0\): cash bond is rich vs CF-adjusted futures.
+- \(GB<0\): cash bond is cheap vs CF-adjusted futures.
 
 ### 23.6.2 Net Basis and the Role of Carry
 
-Gross basis ignores the cost of financing the bond until delivery. The **net basis** accounts for carry. Tuckman defines net basis (equation 20.11) as:
+Gross basis ignores financing and coupon carry between \(t\) and delivery \(T\). The **net basis** incorporates carry by using the bond’s forward (or financed) price:
 
 $$\boxed{NB^i(t) = P_{\text{fwd}}^i(t) - cf^i \times F(t)}$$
 
 where $P_{\text{fwd}}^i(t)$ is the forward price of bond $i$ for delivery at $T$.
 
-Using the carry relationship from Chapter 9 (and Tuckman equation 16.8), the forward price may be written in terms of spot price and carry:
+Using the repo/carry engine from Chapter 9, you can write the forward clean price schematically as:
 
-$$P_{\text{fwd}} = P(0) - \text{Carry}$$
+$$P_{\text{fwd}}^i(t) \approx P^i(t) - \text{Carry}^i(t \to T)$$
 
 Substituting into the net basis definition:
 
-$$\boxed{NB^i(t) = GB^i(t) - \text{Carry}^i(t \to T)}$$
+$$\boxed{NB^i(t) \approx GB^i(t) - \text{Carry}^i(t \to T)}$$
 
-Tuckman explicitly states (equation 20.12): "The right-hand side of equation (20.12) explains the term net basis: It is the gross basis net of carry."
+At the final delivery date, carry to \(T\) is zero and \(NB(T)=GB(T)=\text{CostDel}(T)\). The CTD has \(NB^{CTD}(T)=0\).
 
-**Why net basis matters:** At delivery, the forward price equals the spot price (carry = 0), so gross basis equals net basis, and both equal the cost of delivery. The CTD has zero cost of delivery at final settlement. Therefore, **net basis measures the value of the quality option** that can be locked in at time $t$.
-
-Tuckman interprets: "If the net basis of any bond is near zero, then the quality option embedded in the contract is nearly worthless and selling that bond forward is equivalent to selling the futures contract."
+In many practical setups, **net basis is the carry-adjusted measure used for cash–futures relative value**, and its level/dispersion across deliverables is a proxy for CTD uncertainty and delivery-option value.
 
 ### 23.6.3 Net Basis as Straddle-Like Exposure
 
-Tuckman provides a key insight about net basis behavior for bonds close to CTD: "The net basis of a bond close to CTD behaves like a straddle on rates or prices." Rate moves in either direction push the bond away from CTD and increase its net basis. This straddle-like characteristic reflects the optionality embedded in the CTD mechanism.
+For bonds that are close competitors for CTD, net basis behaves like an option-value object: as yields move away from the point where two deliverables are equally attractive, one bond becomes clearly non-CTD and its net basis widens. That is why CTD uncertainty shows up as basis volatility.
 
-> **Desk Reality: Reading Net Basis**
->
-> When you see net basis near zero for a bond, it's telling you that bond is CTD and the quality option is nearly worthless—the futures is trading close to its theoretical floor. When net basis widens, it means the quality option has value: either CTD might switch, or the bond has moved away from CTD.
->
-> For basis traders, net basis is the economic measure. Gross basis can be misleading because it ignores carry—a bond might look cheap on gross basis but expensive after accounting for financing costs.
+> **Desk Reality:** Net basis (not gross basis) is the number many cash–futures relative-value desks monitor, because it embeds funding (GC vs special) and carry.  
+> **Common break:** A bond can look “cheap” on gross basis but be unattractive once you use *your actual* funding assumption (haircuts, specials, fails).  
+> **What to check:** compute \(GB\), carry, and \(NB\) under both GC and plausible special financing, and compare implied repo to your marginal funding rate.
 
 ### 23.6.4 Basis Trade P&L
 
-Tuckman shows (equation 20.15) that a long basis trade (buy bond, finance in repo, short futures with proper tailing) has P&L proportional to the change in net basis:
+At a high level, a long-basis trade is: buy the cash bond, finance it, and short futures with the correct “tailing” so the hedge ratio is consistent with the conversion factor. Under that construction, P&L is largely driven by changes in net basis:
 
-$$\text{P\&L} = G^i \times [NB^i(t') - NB^i(t)]$$
+$$\text{P\&L} \approx \frac{N_{\text{bond}}}{100}\,[NB^i(t')-NB^i(t)]$$
 
-where $G^i$ is the face amount of the bond position. In words, "the P&L from the long basis position equals the size of the bond position times the change in the net basis."
+where \(N_{\text{bond}}\) is the bond face amount (in dollars) and \(NB\) is quoted per $100 face.
 
 ---
 
@@ -321,18 +318,18 @@ The **implied repo rate** is the financing rate at which a cash-and-carry trade 
 
 Setting the delivery profit to zero:
 
-$$(P_i(0) + AI_i(0))(1 + r_{\text{imp}} \times d/360) = cf_i \times F(T) + AI_i(T)$$
+$$(P_i(0) + AI_i(0))(1 + r_{\text{imp}} \times d/360) = cf_i \times F + AI_i(T)$$
 
 Solving:
 
-$$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F(T) + AI_i(T)}{P_i(0) + AI_i(0)} - 1\right) \frac{360}{d}}$$
+$$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F + AI_i(T)}{P_i(0) + AI_i(0)} - 1\right) \frac{360}{d}}$$
 
 ### 23.7.2 Interpretation
 
 - **If $r_{\text{imp}} > r_{\text{repo}}$:** The trade earns more than the cost of financing. Cash-and-carry (long basis) is attractive.
 - **If $r_{\text{imp}} < r_{\text{repo}}$:** The trade costs more to finance than it earns. Cash-and-carry is unattractive.
 
-The CTD typically has an implied repo rate close to—or below—the actual repo rate, reflecting the quality option's value. For non-CTD bonds, implied repo is usually below market repo rates (the trade loses money unless that bond becomes CTD).
+Across deliverables, the bond with the highest implied repo (under your chosen delivery date and funding assumption) is often the most attractive for cash-and-carry and delivery economics. Comparing implied repo to your actual marginal funding rate is a quick sanity check for “cheap vs rich” in cash–futures relative value.
 
 ---
 
@@ -348,7 +345,7 @@ Lower repo rates mean lower financing costs, which increases carry and reduces t
 
 ### 23.8.2 Specialness Can Shift CTD
 
-Tuckman discusses how some bonds finance "special" (at repo rates below general collateral) due to high demand to borrow those specific securities.
+Some bonds finance **special** (at repo rates below general collateral) due to scarcity and high demand to borrow that specific issue.
 
 **Special spread** = GC rate - Special rate
 
@@ -364,23 +361,29 @@ If a bond in the delivery basket can be financed special, its carry improves. Th
 
 ### 23.9.1 Why Delivery Options Depress the Futures Price
 
-Hull states explicitly: "An exact theoretical futures price for the Treasury bond contract is difficult to determine because the short party's options concerned with the timing of delivery and choice of the bond that is delivered cannot easily be valued."
+Exact theoretical pricing is hard because the payoff depends on the short’s optimal delivery choices (which bond, which day, and sometimes when to give notice). Those choices are option-like and state-dependent.
 
-The delivery options all benefit the short. In a competitive market, the short "pays" for these options by accepting a lower futures price. The futures trades **below** what a simple cost-of-carry model would predict.
+All else equal, these options are valuable to the short. In competitive markets, the futures price reflects that value: it can trade below a naive “single-bond cost-of-carry” forward built on one assumed deliverable.
 
 ### 23.9.2 Quality Option Value
 
-Tuckman interprets net basis as the quality option value: "The cost you can lock in is $P_{\text{fwd}}^i(t) - cf^i \times F(t)$, which is net basis... net basis is the value of the quality option."
+A convenient way to think about the quality option is through net basis. For each bond \(i\),
 
-When all bonds have similar net bases, the quality option is worth little (none is clearly favored). When one bond has net basis near zero while others have large positive net bases, CTD is stable and the quality option has significant value.
+$$NB^i(t)=P_{\text{fwd}}^i(t)-cf^iF(t)$$
 
-**Optionality behavior:** For a bond close to CTD, Tuckman notes that "the net basis of a bond close to CTD behaves like a straddle on rates or prices." Rate moves in either direction push it away from CTD and increase its net basis.
+is the carry-adjusted cost of delivering that bond (expressed as a price difference per $100 face).
+
+- The short will prefer the deliverable with the **lowest** net basis (equivalently, the highest implied repo).
+- The dispersion of net bases across deliverables is an indicator of option value: if several bonds have similar low net basis, CTD is unstable; if one bond is clearly lowest, CTD is stable.
+
+For near-CTD bonds, net basis can widen in either direction as rates move away from the “indifference” point where two deliverables tie—an option-like behavior that shows up as CTD-switch risk.
 
 ### 23.9.3 Timing Option: Early vs. Late Delivery
 
-Tuckman describes the trade-off governing the timing option: "Under the early delivery strategy, the trader pays carry on the CTD and sacrifices any value left in the quality option. Under the late delivery strategy, the trader pays no carry and can switch bonds if the CTD changes."
+Delivery timing is a trade-off between carry and optionality:
 
-The conclusion: "Clearly, if carry is positive, it is optimal to delay delivery. If carry is negative, however, then the carry advantage of delivering early must be weighed against the sacrifice of the quality option."
+- **Deliver early:** stop paying negative carry sooner, but give up remaining flexibility to switch deliverables and exploit timing/notice options.
+- **Deliver late:** preserve the ability to switch deliverables; if carry is positive you may also benefit from holding longer, but if carry is negative you keep paying it.
 
 **Decision framework for delivery timing:**
 
@@ -400,110 +403,102 @@ The conclusion: "Clearly, if carry is positive, it is optimal to delay delivery.
 
 ### 23.9.4 End-of-Month Option
 
-After the last trade date, the settlement price is fixed but delivery can continue. If prices move favorably, the short can switch bonds.
+In many contracts, the last trading day comes before the last delivery day. After trading stops, the final settlement price \(\bar F\) is fixed while delivery choices remain. The short effectively holds an option to choose the minimum cost of delivery given \(\bar F\):
 
-Tuckman explains the P&L from switching (equation 20.17): If the CTD changes after the final settlement price $\bar{F}$ is set, the short can "sell the holding of bond $i$, buy the new CTD, and deliver the new CTD instead of bond $i$. This option to switch bonds after the last trading date is called the end-of-month option."
+$$\text{CostDel}_i(T)=P_i(T)-cf_i\,\bar F.$$
 
-Tuckman: "Before the last trade date the futures price reflects any cheapening of the CTD. After the last trade date, however,... any cheapening of the CTD leads to greater and greater profits."
-
-However, Tuckman notes the end-of-month option "does not turn out to be worth much in practice" because the time window is short and "traders long bonds and short futures actively seek opportunities to profit by switching bond holdings. This attention tends to dominate trading of bonds in the deliverable basket."
+If you were planning to deliver bond \(i\) but bond \(j\) later becomes cheaper to deliver, switching improves P&L by \(\text{CostDel}_i-\text{CostDel}_j\). The window is short, so the value is usually smaller than the main quality option, but it can matter if relative values in the basket move sharply after the last trading day.
 
 ### 23.9.5 Wild Card Play
 
-Hull describes the mechanism: trading continues after the 2:00 p.m. settlement. "If bond prices decline after 2:00 p.m. on the first day of the delivery month, the party with the short position can issue a notice of intention to deliver at, say, 3:45 p.m. and proceed to buy bonds in the spot market for delivery at a price calculated from the 2:00 p.m. futures price."
-
-"As with the other options open to the party with the short position, the wild card play is not free. Its value is reflected in the futures price, which is lower than it would be without the option."
+On some days there is a gap between the time the futures daily settlement is fixed and the deadline for submitting delivery notice, while the cash Treasury market continues trading. That gap creates a timing option for the short: after seeing post-settlement moves in cash prices, the short can decide whether issuing a notice is advantageous.
 
 > **Deep Dive: The Wild Card Arbitrage**
 >
-> *   **2:00 PM**: Futures market closes. Settlement price $F$ is fixed.
-> *   **4:00 PM**: Treasury bond market is still open.
-> *   **Scenario**: Bond prices crash at 3:00 PM.
-> *   **The Play**:
->     1.  Buy the physical bonds at the new, crashed price (Cheap).
->     2.  Notify the exchange you will deliver.
->     3.  Get paid based on the 2:00 PM Settlement Price (High).
-> *   **Result**: Instant risk-free profit. Because this *can* happen, the futures price trades slightly lower all day long to compensate the long holder for this risk.
+> - **Settlement time:** futures daily settlement \(F\) is fixed.
+> - **Later:** the cash bond market still trades, and delivery notice can still be submitted.
+> - **Scenario:** cash bond prices fall after futures settlement.
+> - **Mechanics:** delivering after the fall lets the short buy the bond cheaper in cash while still receiving an invoice based on the earlier futures settlement.
+> - **Takeaway:** this is not “free”; its expected value is embedded in the futures price.
 
 ---
 
 ## 23.10 Futures DV01 and Hedging
 
-### 23.10.1 Duration-Based Hedge Ratio from Hull
+### 23.10.1 DV01 Definition (Bump Object, Size, Units, Sign)
 
-Hull provides the standard formula for duration-based hedging with futures (equation 6.3). Define:
-- $V_F$: Contract price for one interest rate futures contract
-- $D_F$: Duration of the asset underlying the futures contract
-- $P$: Value of the portfolio being hedged
-- $D_P$: Duration of the portfolio
+Throughout this book, we use the convention:
 
-The number of contracts required is:
+$$\boxed{DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})}$$
 
-$$\boxed{N^* = \frac{P \times D_P}{V_F \times D_F}}$$
+for the **stated bump object**. Here \(1\text{bp}=10^{-4}\) in rate units, and DV01 units are **currency per 1bp**. With this convention, DV01 is positive for a long position in rates (rates down → price up → PV up).
 
-Hull notes: "When the hedging instrument is a Treasury bond futures contract, the hedger must base $D_F$ on an assumption that one particular bond will be delivered. This means that the hedger must estimate which of the available bonds is likely to be cheapest to deliver at the time the hedge is put in place."
+For a Treasury futures contract you must be explicit about *what is being bumped*. In this chapter, we use a CTD-based mapping:
 
-### 23.10.2 Futures DV01 Approximation
+1. **Assume a CTD bond** at time \(t\) (hold CTD identity fixed for the bump).
+2. **Map futures to CTD near delivery:** \(F \approx P^{CTD}/cf^{CTD}\) (per $100).
+3. **Bump object:** bump the CTD yield/curve down by 1bp, reprice \(P^{CTD}\), and translate that price change to \(F\) using the mapping above.
+
+This is a practical desk approximation. A more complete methodology would allow CTD to re-optimize under the bump (which can matter when net bases are tight).
+
+### 23.10.2 Futures DV01 Approximation (CTD Mapping)
 
 Near delivery, the futures price approximates:
 
 $$F \approx \frac{P^{\text{CTD}}}{cf^{\text{CTD}}}$$
 
-Differentiating with respect to yield:
+Holding CTD fixed and differentiating with respect to yield:
 
 $$\frac{dF}{dy} \approx \frac{1}{cf^{\text{CTD}}} \frac{dP^{\text{CTD}}}{dy}$$
 
-Therefore:
+So, under the bump object above (CTD held fixed), a 1bp yield-down bump gives:
+
+$$\text{DV01}_{\text{fut, per \$100}} \approx \frac{P^{\text{CTD}}(y-1\text{bp})-P^{\text{CTD}}(y)}{cf^{\text{CTD}}}.$$
+
+If you denote \(\text{DV01}_{\text{CTD, per \$100}} := P^{\text{CTD}}(y-1\text{bp})-P^{\text{CTD}}(y)\), then:
 
 $$\boxed{\text{DV01}_{\text{fut, per \$100}} \approx \frac{\text{DV01}_{\text{CTD, per \$100}}}{cf^{\text{CTD}}}}$$
 
-For a contract with face $N = \$100{,}000$:
+For a contract with face \(N\) (commonly \(N=\$100{,}000\Rightarrow N/100=1000\)):
 
 $$\boxed{\text{DV01}_{\text{fut, per contract}} \approx \frac{N}{100} \times \frac{\text{DV01}_{\text{CTD, per \$100}}}{cf^{\text{CTD}}}}$$
 
-### 23.10.3 Hedge Ratio with DV01
+### 23.10.3 Hedge Ratios (Duration or DV01)
 
-The standard DV01 hedge ratio (from Chapter 15) is:
+You can size a futures hedge using either duration or DV01:
 
-$$\boxed{n = \frac{\text{DV01}_{\text{exposure}}}{\text{DV01}_{\text{hedge}}}}$$
+- **Duration form (conceptual):** number of contracts \(\propto \frac{(\text{PV of exposure})\times(\text{duration of exposure})}{(\text{PV per futures contract})\times(\text{duration of assumed CTD})}\).
+- **DV01 form (most practical):**
 
-For hedging a bond position with futures, the conversion factor enters through the futures DV01.
+$$\boxed{n = \frac{\text{DV01}_{\text{exposure}}}{\text{DV01}_{\text{fut}}}}$$
 
-### 23.10.4 CTD Switching Risk
+The key point is that \(\text{DV01}_{\text{fut}}\) depends on the assumed CTD (via DV01 and conversion factor), so you must monitor it over time.
 
-**This is critical for practitioners:** If CTD switches, the futures DV01 changes abruptly. A hedge that was DV01-neutral becomes mismatched.
+### 23.10.4 CTD Switching Risk (Why “DV01-Neutral” Hedges Break)
 
-Hull explicitly warns: "If, subsequently, the interest rate environment changes so that it looks as though a different bond will be cheapest to deliver, then the hedge has to be adjusted and as a result its performance may be worse than anticipated."
+If CTD switches, the futures DV01 changes abruptly (because both \(\text{DV01}_{CTD}\) and \(cf_{CTD}\) change). A hedge that was DV01-neutral under yesterday’s CTD can become materially over- or under-hedged overnight.
 
-**Example:** If CTD switches from a 7-year duration bond (CF = 0.90) to a 9-year duration bond (CF = 0.84), the futures DV01 per contract jumps significantly. A hedger who was short 450 contracts may now need only 377—or vice versa, creating instant P&L and requiring rebalancing.
+This is not a subtle effect: if CTD switches between bonds with meaningfully different duration or conversion factor, the hedge ratio can jump by double-digit percentages. Monitoring near-CTDs and recalculating hedge ratios under alternative CTDs is part of operating Treasury futures hedges on a desk.
 
-Practitioners must monitor CTD status and recognize that futures hedges have embedded optionality.
+### 23.10.5 Beyond One Factor: Spot vs Repo vs Curve Shape
 
-### 23.10.5 Multi-Factor Considerations and Model Selection
+Treasury futures are sensitive to more than a single “parallel shift”:
 
-Tuckman notes that a one-factor approach to futures hedging has limitations: "Hedging a futures contract with cash bonds alone is, at least in part, a hedge of repo rates with bonds in the delivery basket, for example, a hedge of a three-month rate with 10-year bonds."
+- **Spot yields:** level and curve-shape moves can change relative value across the basket (and trigger CTD switches).
+- **Repo/funding:** specials vs GC changes carry and can change which bond is cheapest after financing.
 
-For more sophisticated risk management, Tuckman suggests computing "both the change in futures price for a parallel shift in spot yields and the change in futures price for a parallel shift in repo rates" and hedging each exposure separately.
-
-**The model selection problem:**
+So there is a model-selection choice:
 
 | Approach | Advantages | Disadvantages | When to Use |
 |----------|------------|---------------|-------------|
-| **One-factor (parallel shift)** | Simple, closed-form | Ignores repo risk, curve shape | Quick hedge ratios, stable CTD |
-| **Two-factor (level + slope)** | Captures curve risk | More complex, requires calibration | CTD near switching, curve trades |
-| **Basket-level model** | Full richness of each bond | Computationally intensive | Detailed basis trading, options pricing |
-| **One-factor + repo sensitivity** | Separates spot/repo exposures | Requires two hedge instruments | Financed positions, carry trades |
+| **One-factor (parallel shift)** | Simple, closed-form | Misses curve + repo effects | Quick hedge ratios, stable CTD |
+| **Two-factor (level + slope)** | Captures curve risk | More complex | CTD near switching, curve trades |
+| **Basket-level model** | Full richness of each bond | Computationally intensive | Detailed basis trading / option value |
+| **One-factor + repo sensitivity** | Separates spot/repo exposures | Needs extra hedge instrument | Financed positions, stressed funding |
 
-Tuckman observes: "The discussion in the previous paragraph suggests that there is a family of one-factor measures of price sensitivity for futures contracts. It may be assumed that for every one-basis point move in the spot yield the repo rate moves by $.25, .5$, or some other fraction of a basis point. Once again, the correct choice is an empirical question."
-
-> **Desk Reality: Choosing Your Model**
->
-> For most day-to-day hedging with stable CTD, the one-factor DV01 approach is sufficient. But when CTD is close to switching—typically when multiple bonds have similar net bases—you need to think about:
-> 1. What happens if CTD switches (recalculate hedge ratio under alternative CTD)
-> 2. Whether your position is long or short the embedded quality option
-> 3. Whether repo moves differently than spot yields (especially in stressed markets)
->
-> The warning sign that you need a more sophisticated approach: unexplained P&L when the curve moved but your hedge "should have" worked.
+> **Desk Reality:** One-factor DV01 is often “good enough” when CTD is stable and funding is calm.  
+> **Common break:** When CTD is near switching or repo/specials move independently, DV01-only hedges show unexplained P&L.  
+> **What to check:** compute DV01 under multiple CTD assumptions, stress repo assumptions, and track net basis dispersion across near-CTDs.
 
 ---
 
@@ -517,7 +512,7 @@ $$\text{Roll} = F_{\text{front}} - F_{\text{deferred}}$$
 
 The roll is also called the **calendar spread** because it represents the cost of extending a futures position from one delivery month to the next.
 
-> **Practitioner Note:** Roll mechanics are not covered in detail by Tuckman or Hull, but they derive directly from the basis and carry concepts developed above. The roll is essential for practitioners because most hedgers do not intend to take delivery—they must roll their positions forward as contracts approach delivery.
+Most hedgers do not intend to take delivery. Instead, they roll hedges forward as contracts approach the delivery window, so the roll spread becomes a first-class object to monitor and trade.
 
 ### 23.11.2 Why the Roll Exists: Carry Differentials
 
@@ -546,13 +541,9 @@ The net cost of rolling equals the roll spread at execution. If roll = 0.50 (fro
 - You sell back at 107.50
 - Cost per contract: $0.50 × 1000 = $500
 
-> **Desk Reality: Roll Mechanics**
->
-> **When do rolls trade?** The most liquid roll window is typically 2-3 weeks before first delivery date. Liquidity in the roll market is usually better than trading the two legs outright.
->
-> **Roll bid-ask:** The roll market often has tighter spreads than the sum of the two outright markets because market makers can offset risk across the two contracts.
->
-> **P&L attribution:** When your hedged position shows P&L during roll periods, some of it may be roll slippage—the difference between where you expected to roll and where you actually executed. This is real P&L, not noise.
+> **Desk Reality:** Roll liquidity often concentrates as the front contract approaches delivery, and many traders quote the roll directly rather than legging two outrights.  
+> **Common break:** Roll slippage can dominate “hedged” P&L during roll periods (it is real P&L, not noise).  
+> **What to check:** compare expected roll from carry to the traded roll, and confirm CTD assumptions for *each* contract month.
 
 ### 23.11.4 When Rolls "Blow Out"
 
@@ -562,7 +553,7 @@ Rolls can deviate significantly from theoretical levels when:
 
 2. **Squeeze in front month:** If the front-month CTD becomes extremely special or scarce (see Section 23.12), the front contract may trade rich, widening the roll.
 
-3. **Quarter-end effects:** Balance sheet constraints on dealers can distort repo rates and roll pricing near quarter-ends.
+3. **Funding/ balance-sheet effects:** shifts in financing conditions can distort repo rates and roll pricing, especially around reporting dates.
 
 4. **Delivery uncertainty:** Near delivery, if there's uncertainty about CTD, the front contract may trade with additional premium or discount.
 
@@ -592,7 +583,7 @@ A **squeeze** occurs when the CTD bond becomes scarce—either because it's been
 3. **Basis blows out** as the cash bond trades rich to futures
 4. **Roll spreads distort** as the pressure concentrates in the near-delivery contract
 
-Tuckman explains why the delivery basket exists: to prevent squeezes. A single deliverable would allow a trader to "profit by simultaneously purchasing a large fraction of that bond issue and a large number of contracts," forcing shorts to pay distorted prices.
+One reason delivery baskets exist is to reduce squeeze risk. With a single deliverable, a trader could try to corner the issue and force shorts to pay distorted prices to source the bond for delivery.
 
 ### 23.12.2 Mechanics of Squeeze P&L
 
@@ -621,7 +612,9 @@ The squeeze hurts:
 | **Open interest vs. deliverable** | OI approaching or exceeding deliverable supply |
 | **Net basis collapsing** | CTD net basis approaching zero from above |
 
-> **Practitioner Note:** In squeeze-like conditions, the CTD can trade extremely special (repo far below GC), making basis trade economics dramatically different from normal carry-adjusted expectations. The mechanics described here apply to any such event, regardless of the specific episode.
+> **Desk Reality:** In squeeze-like conditions, the CTD can finance extremely special (repo far below GC), so “normal” carry assumptions fail.  
+> **Common break:** Basis-trade P&L can be dominated by funding and locate dynamics rather than yield moves.  
+> **What to check:** re-run net basis / implied repo under plausible specials (or fails) assumptions and monitor deliverable supply vs open interest.
 
 ### 23.12.4 Operational Responses to Squeeze Risk
 
@@ -635,60 +628,119 @@ The squeeze hurts:
 
 ## 23.13 Trading Case Study: The TYM0 Basis Trade
 
-Tuckman provides an excellent case study of the November '08 basis trade into the June 2000 ten-year note futures contract (TYM0). This case illustrates how basis trades work, what can go wrong, and how option protection can mitigate losses.
+This section is an illustrative case study (Feb–May 2000) of a 10-year note futures basis trade. The purpose is to connect the chapter’s objects—net basis, CTD switching, and option protection—to a realistic P&L path. The specific numbers are dated; the mechanics are reusable.
 
 ### 23.13.1 Trade Setup (February 28, 2000)
 
-On February 28, 2000, TYM0 appeared cheap in most dealer models. The 4.75s of November 15, 2008, had a net basis of 7.5 ticks. Traders sold the November '08 net basis—meaning they bought the bond, financed it in repo, and sold futures (with proper tailing).
+On February 28, 2000:
 
-Per Tuckman's Table 20.6, the deliverable basket had four bonds with maturities spanning 2007-2010. The CTD at trade initiation was the 4.75s of November 2008.
+- Contract: June 2000 10-year note futures (TYM0).
+- A particular deliverable (the Nov 2008 4.75% bond) showed net basis around 7.5 ticks (where a “tick” is the contract’s minimum price increment).
+- Trade: buy the cash bond, finance it in repo, and short futures with proper tailing.
+
+At the time, the deliverable basket contained several bonds spanning roughly 2007–2010, and the Nov 2008 bond was CTD at initiation.
 
 ### 23.13.2 The Trade Rationale
 
-The trade made sense if the futures was truly cheap relative to cash. The scenario analysis (Tuckman Table 20.7) showed:
+If the “option value” embedded in the futures cheapness converges toward zero as delivery approaches, the trade earns carry-adjusted net basis. But delivery optionality makes the P&L asymmetric: rallies can push CTD toward shorter deliverables and widen net basis, producing losses.
 
-- **If yields rose 40-80bp:** Net basis would fall toward 0.9 ticks. P&L from basis position: +$200k on $100mm face.
-- **If yields fell 60-80bp:** Net basis would rise to 7-13 ticks. P&L from basis position: -$180k.
+A simple scenario analysis illustrates the shape:
 
-The asymmetry worried traders: unlimited losses in a rally, capped gains in a sell-off (once CTD switched, basis P&L stabilized).
+- Sell-off scenario (yields +40 to +80bp): net basis compresses toward ~1 tick → gains on the basis position.
+- Rally scenario (yields −60 to −80bp): net basis widens into the high single digits → losses, especially if CTD shifts away.
 
 ### 23.13.3 Option Protection
 
-Many traders bought call options on futures to hedge the rally scenario. Per Tuckman, buying 47 contracts of 95-strike calls cost 1.516 per contract (1-16.5 in ticks). This option protection:
-
-- **Limited losses** in a rally (options gain value, offsetting basis losses)
-- **Reduced gains** in a sell-off (option premium is lost)
-- **Created a more symmetric P&L profile**
+To limit rally losses, traders sometimes buy call options on the futures. A small option position can reduce drawdowns during rallies, at the cost of option premium.
 
 ### 23.13.4 What Actually Happened
 
-From February to April 2000:
-- Yields rallied 47bp (April 3)
-- CTD shifted toward shorter bonds (August '07, February '08)
-- November '08 net basis rose to 11.06 ticks
-- Basis position lost $112,813; options gained $87,391; net loss only $25,422
+Over the next few months:
 
-Then the trade reversed:
-- By May 19, yields had backed up (returned close to starting levels)
-- November '08 returned to near-CTD status with net basis at 3.51 ticks
-- Final P&L on basis: +$123,125; options expired near worthless (-$57,281)
-- **Total profit: $65,844**
+- Yields rallied during March/early April and CTD shifted toward shorter deliverables.
+- The Nov 2008 bond’s net basis widened; the basis position lost money.
+- Call options gained and partially offset the loss.
+- As yields later backed up, net basis compressed again and the basis trade recovered.
 
 ### 23.13.5 Key Lessons from the Case
 
-1. **Basis trades can work even with intermediate mark-to-market losses** — patience and proper hedge sizing matter
-2. **Option protection has value** — the cost of options may be worth the reduced volatility
-3. **CTD switches create P&L swings** — the trade was underwater when CTD shifted away from November '08
-4. **Model-driven trades require conviction** — holding through April required belief in the model's assessment that futures was cheap
-5. **Tail management matters** — Tuckman notes the proper tailing of the futures position is critical to realizing the P&L
+1. **Basis trades can have large interim MTM** even when the “delivery convergence” thesis is ultimately right.
+2. **CTD switching is a first-order risk driver:** it changes DV01 and changes which bond you are economically long.
+3. **Option protection is an explicit trade-off:** pay premium to reduce convexity/CTD-switch drawdowns.
+4. **Funding assumptions matter:** GC vs special can move net basis independently of yields.
+5. **Tailing and unit discipline matter:** basis is per $100; hedge is in contracts; a small scaling error becomes a big P&L error.
 
-> **Desk Reality: Basis Trading Today**
->
-> The TYM0 case study illustrates mechanics that still apply. The specific numbers are dated, but the principles are timeless: basis trades are essentially bets on option value converging to zero while earning carry. When CTD is stable, you earn carry-adjusted net basis. When CTD switches, you're long or short the quality option, which can dominate the P&L.
+> **Desk Reality:** P&L on basis trades is rarely “rates only”; it is rates + funding + delivery optionality interacting.  
+> **Common break:** Risk systems that hold CTD fixed can misattribute P&L when CTD is switching or repo is moving.  
+> **What to check:** monitor net basis dispersion, implied repo vs actual funding, and hedge ratio under multiple CTDs.
 
 ---
 
 ## 23.14 Worked Examples
+
+### Worked Example 1: Quote → Invoice → Implied Repo → Futures DV01
+
+**Example Title**: Cash-and-carry snapshot for a Treasury futures contract
+
+**Context**
+- You are deciding whether a particular deliverable bond is attractive to buy-and-deliver versus its futures.
+- You also want the futures DV01 to size a hedge.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-02-17
+- Delivery date (assumed): 2026-05-17 (\(d = 90\) days)
+- Bond coupon accrual period: 2026-02-15 to 2026-08-15 (semiannual)
+- Next coupon payment date: 2026-08-15 (after delivery; we work via accrued interest)
+
+**Inputs**
+- Futures settlement price: \(F = 112.50\) (per $100)
+- Bond clean price today: \(P(0) = 101.20\) (per $100)
+- Conversion factor: \(cf = 0.9012\)
+- Accrued interest: \(AI(0) = 0.45\), \(AI(T) = 1.35\) (per $100)
+- Repo rate: \(r = 5.00\%\), simple interest, ACT/360
+- Contract face amount: \(N = \$100{,}000\)
+
+**Outputs (What You Produce)**
+- Invoice at delivery: 102.735 per $100 (=$102,735 per contract)
+- Delivery profit (cash-and-carry snapshot, before haircuts/fees): \(-0.186\) per $100 (=-$186 per contract)
+- Implied repo rate: 4.27% (annualized ACT/360)
+- Futures DV01 (CTD mapping): $94.32 per 1bp per contract  
+  (bump object: CTD yield down 1bp, CTD held fixed; bump size: 1bp \(=10^{-4}\))
+
+**Step-by-step**
+1. Translate futures quote to invoice:
+   - Clean delivery price: \(cfF = 0.9012 \times 112.50 = 101.385\).
+   - Invoice: \(cfF + AI(T) = 101.385 + 1.35 = 102.735\).
+2. Compute financed purchase cost to delivery:
+   - Dirty today: \(P(0) + AI(0) = 101.20 + 0.45 = 101.65\).
+   - Repo interest: \(101.65 \times 0.05 \times 90/360 = 1.271\).
+   - Repayment at \(T\): \(101.65 + 1.271 = 102.921\).
+3. Compute delivery profit:
+   - \(\Pi = \text{Invoice}(T) - \text{Repayment}(T) = 102.735 - 102.921 = -0.186\) per $100.
+4. Compute implied repo:
+   - \(r_{\text{imp}} = \left(\frac{\text{Invoice}(T)}{P(0) + AI(0)} - 1\right)\frac{360}{90} = 4.27\%\).
+5. Compute futures DV01 and hedge ratio (illustrative):
+   - Assume CTD DV01 per $100 is 0.085.
+   - Futures DV01 per contract \(\approx (N/100)\times 0.085/cf = 1000\times0.085/0.9012 = \$94.32\) per bp.
+   - If a cash exposure has DV01 $42,500/bp, hedge needs \(42{,}500/94.32 \approx 451\) contracts.
+
+**Cashflows (table)**
+| Date | Cashflow (per $100) | Explanation |
+|---|---:|---|
+| 2026-02-17 | \(-101.65\) | Buy bond dirty (simplified; financed in repo) |
+| 2026-05-17 | \(+102.735\) | Invoice received on delivery |
+| 2026-05-17 | \(-102.921\) | Repo repayment (principal + interest) |
+| 2026-05-17 | \(-0.186\) | Net profit/loss from cash-and-carry snapshot |
+
+**P&L / Risk Interpretation**
+- Implied repo (4.27%) below your funding rate (5.00%) → the cash-and-carry loses money; the bond is not “cheap enough” versus the futures under GC funding.
+- If the bond can be financed special, carry improves and the economics can flip.
+- DV01 mapping assumes CTD stays the same; if CTD is near switching, hedge ratios can jump.
+
+**Sanity Checks**
+- Units: all prices/basis are per $100; per-contract scaling is \(N/100=1000\).
+- Sign: rates down 1bp should increase \(P^{CTD}\) and \(F\), so DV01 is positive for long futures.
+- Limit: if you plug \(r=r_{imp}\) into the financing step, \(\Pi\) should be ~0.
 
 ### Conventions for Examples
 
@@ -859,18 +911,6 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 | Invoice rounding | Minimum tick, accrued interest conventions |
 | Settlement timing | Mark-to-market timing, delivery notice cutoffs |
 
-### Key Contract Parameters (Approximate)
-
-| Contract | Maturity Range | Typical CTD Duration | Tick Size |
-|----------|---------------|---------------------|-----------|
-| 2-Year (TU) | 1.75 - 2 years | ~1.8 years | 1/128 |
-| 5-Year (FV) | 4.2 - 5.25 years | ~4.5 years | 1/128 |
-| 10-Year (TY) | 6.5 - 10 years | ~7-8 years | 1/64 |
-| T-Bond (US) | 15+ years | ~15-20 years | 1/32 |
-| Ultra T-Bond (UB) | 25+ years | ~25 years | 1/32 |
-
-*These are approximate parameters for intuition. Exchange specifications evolve; always verify current rules (eligible deliverables, ticks, timing) before trading.*
-
 ### Common Pitfalls
 
 1. **Mixing clean and dirty prices:** Invoice price adds accrued; cost of delivery uses clean
@@ -891,37 +931,20 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 
 ## Summary
 
-Treasury futures are **deliverable-basket contracts** where the short holds embedded options—most importantly, the quality option to choose which bond to deliver and timing options about when to deliver. These options transfer value from long to short and depress the futures price below simple cost-of-carry levels.
-
-**Key takeaways:**
-
-1. **Conversion factors** standardize delivery across bonds of different coupons and maturities, computed by discounting at a notional 6% yield
-
-2. **CTD minimizes cost of delivery:** $\text{CTD} = \arg\min_i\{P_i - cf_i \times F\}$
-
-3. **CTD switches** with yield level (high yields favor high duration) and curve shape—this creates risk for hedgers
-
-4. **Negative convexity:** The futures contract exhibits negative convexity because the short always delivers the bond that minimizes value—duration falls as yields fall
-
-5. **Net basis = gross basis minus carry** and represents the quality option value that can be locked in
-
-6. **Implied repo rate** measures whether cash-and-carry is attractive relative to funding costs
-
-7. **Repo specialness** affects carry and can shift CTD economics
-
-8. **Futures DV01 ≈ CTD DV01 / cf** but jumps when CTD switches—hedge ratios are not stable
-
-9. **Rolls** are the cost of extending a futures position and derive from carry differentials between delivery months
-
-10. **Squeeze risk** materializes when CTD becomes scarce, causing basis to blow out
-
-11. **Model selection** depends on CTD stability: one-factor for stable CTD, multi-factor when CTD is near switching or for detailed basis trading
-
-12. Hull warns: exact pricing is "difficult" because the short's delivery options "cannot easily be valued"
+1. Treasury futures are deliverable-basket contracts; the short holds delivery options (bond choice, timing, and sometimes notice timing).
+2. Conversion factors map a single futures quote into bond-specific delivery economics; invoice at delivery is \(cf\cdot F + AI\).
+3. Cost of delivery is \(P - cf\cdot F\) (clean); CTD minimizes it. At final delivery, \(F(T)=\min_i P_i(T)/cf_i\) and the CTD cost of delivery is 0.
+4. CTD can switch with yield level, curve shape, and financing; this makes futures risk state-dependent and creates “negative convexity” intuition.
+5. Gross basis \(GB=P-cfF\) is the clean cash–futures spread; net basis \(NB=P_{fwd}-cfF\approx GB-\text{carry}\) is carry-adjusted and desk-relevant.
+6. Implied repo is the break-even financing rate for buy-and-deliver; compare it to your marginal funding (GC vs special).
+7. Delivery options transfer value from long to short and explain why exact theoretical pricing is harder than a single-bond cost-of-carry forward.
+8. Futures DV01 depends on the bump object and the assumed CTD mapping; under a CTD-held-fixed mapping, \(\text{DV01}_{fut}\approx \text{DV01}_{CTD}/cf\).
+9. Hedges break when CTD switches; re-run DV01 and hedge ratios under alternative CTDs.
+10. Rolls and squeezes are funding-and-delivery phenomena; carry and specials can dominate yield moves near delivery.
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -939,23 +962,25 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $F(t)$ | Futures settlement price at time $t$ (per $100 notional) |
-| $cf_i$ | Conversion factor for bond $i$ (dimensionless) |
-| $P_i(t)$ | Clean price of bond $i$ at time $t$ (per $100 face) |
-| $AI_i(t)$ | Accrued interest on bond $i$ at time $t$ (per $100 face) |
-| $\text{Invoice}_i(t)$ | Cash received on delivery of bond $i$: $cf_i \times F(t) + AI_i(t)$ |
-| $\text{CostDel}_i(t)$ | Cost of delivery: $P_i(t) - cf_i \times F(t)$ |
-| $GB^i(t)$ | Gross basis (= cost of delivery) |
-| $NB^i(t)$ | Net basis: $P_{\text{fwd}}^i(t) - cf_i \times F(t)$ |
-| $r$ | Repo rate (annualized, ACT/360) |
-| $d$ | Days to delivery |
-| $N$ | Contract face amount ($100,000 typically) |
-| $D_F$ | Duration of asset underlying futures (CTD) |
-| $D_P$ | Duration of portfolio being hedged |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| \(t,T\) | valuation time; delivery time | date (or year-fraction if stated) |
+| \(F(t)\) | futures settlement price | quoted per $100 notional; clean-like |
+| \(cf_i\) | conversion factor for bond \(i\) | unitless; exchange-published |
+| \(P_i(t)\) | clean cash price of bond \(i\) | dollars per $100 face |
+| \(AI_i(t)\) | accrued interest of bond \(i\) | dollars per $100 face; \(P_{dirty}=P_{clean}+AI\) |
+| \(\text{Invoice}_i(t)\) | delivery cash amount per $100 | \(cf_iF(t)+AI_i(t)\) |
+| \(\text{CostDel}_i(t)\) | delivery economics per $100 | \(P_i(t)-cf_iF(t)\) (clean) |
+| \(GB^i(t)\) | gross basis per $100 | \(P_i(t)-cf_iF(t)\) |
+| \(NB^i(t)\) | net basis per $100 | \(P_{\text{fwd}}^i(t)-cf_iF(t)\approx GB-\text{carry}\) |
+| \(r_{\text{repo}}\) | repo rate used for financing | annualized; simple; ACT/360 in examples |
+| \(r_{\text{imp}}\) | implied repo rate | annualized; ACT/360 in examples |
+| \(d\) | days to delivery | days (calendar) |
+| \(N\) | futures contract face | dollars; examples use \(N=\$100{,}000\) |
+| \(DV01\) | PV sensitivity scalar | dollars per 1bp; convention: \(PV(\text{rates down }1\text{bp})-PV(\text{base})\) for the stated bump object |
+| \(\text{DV01}_{fut}\) | futures DV01 | dollars per 1bp per contract; bump object in this chapter: CTD yield down 1bp, CTD held fixed |
 
 ---
 
@@ -963,107 +988,61 @@ Treasury futures are **deliverable-basket contracts** where the short holds embe
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is the "delivery basket" in Treasury futures? | The set of eligible Treasury securities the short may choose to deliver |
-| 2 | Who controls which bond is delivered? | The short position holder (quality option) |
-| 3 | How is the conversion factor calculated? | As the bond's price per $1 face when discounted at 6% semiannual |
-| 4 | What is the invoice price formula? | $cf_i \times F(t) + AI_i(t)$ |
-| 5 | Why is accrued interest added to delivery price? | Because bonds exchange at dirty (cash) price |
-| 6 | Write the cost of delivery formula | $\text{CostDel}_i = P_i - cf_i \times F$ |
-| 7 | Why does AI cancel in cost of delivery? | It appears in both purchase cost and invoice received |
-| 8 | Define CTD | The bond minimizing cost of delivery (maximizing delivery profit) |
-| 9 | What is the futures price at delivery per Tuckman? | $F(T) = P^{CTD}(T) / cf^{CTD}$ |
-| 10 | What does gross basis measure? | Cash price minus CF-adjusted futures price |
-| 11 | What does net basis measure? | Forward price minus CF-adjusted futures price (carry-adjusted) |
-| 12 | How is net basis related to gross basis? | $NB = GB - \text{Carry}$ |
-| 13 | What does Tuckman interpret net basis as? | The value of the quality option |
-| 14 | When is net basis near zero? | When quality option is nearly worthless |
-| 15 | Give the forward price formula under repo | $P_{\text{fwd}} + AI(T) = (P(0) + AI(0))(1 + rd/360)$ |
-| 16 | What is the timing option? | Short's right to choose delivery date within the window |
-| 17 | What is the wild card play? | Option from post-settlement trading allowing late delivery notice |
-| 18 | What is the end-of-month option? | Option to switch bonds after last trade but before last delivery |
-| 19 | Why are futures prices "difficult" to determine exactly (per Hull)? | Delivery options cannot easily be valued |
-| 20 | Which bonds tend to be CTD when yields are high (above 6%)? | Long duration (low coupon, long maturity) |
-| 21 | Which bonds tend to be CTD when yields are low (below 6%)? | Short duration (high coupon, short maturity) |
-| 22 | Why are Treasury futures negatively convex? | CTD switching: duration falls as yields fall |
-| 23 | What is implied repo rate? | Financing rate at which cash-and-carry breaks even |
-| 24 | If implied repo > actual repo, is cash-and-carry attractive? | Yes—trade earns more than financing costs |
-| 25 | What is the P&L formula for a long basis trade? | $G^i \times [NB^i(t') - NB^i(t)]$ |
-| 26 | Give the futures DV01 approximation | $\text{DV01}_{\text{fut}} \approx \text{DV01}_{\text{CTD}}/cf_{\text{CTD}}$ |
-| 27 | What is CTD switching risk? | Risk that CTD changes, causing hedge ratio to jump |
-| 28 | What is Hull's duration-based hedge ratio formula? | $N^* = (P \times D_P) / (V_F \times D_F)$ |
-| 29 | What must a hedger estimate when using Treasury futures per Hull? | Which bond is likely to be cheapest to deliver |
-| 30 | What is a calendar spread (roll)? | Price difference between front and deferred futures |
-| 31 | What drives roll pricing? | Carry differential between delivery months |
-| 32 | What is a squeeze in Treasury futures? | Scarcity of CTD causing extreme specialness and basis blow-out |
-| 33 | Why does the delivery basket exist? | To prevent squeezes and maintain contract liquidity |
-| 34 | When should you use a multi-factor model for futures? | When CTD is close to switching or for detailed basis trading |
-| 35 | What is the key practitioner message? | Treasury futures = delivery optionality + financing (repo) |
+| 1 | What is a deliverable-basket futures contract? | A futures where the short can choose which eligible bond to deliver (and often when) within a delivery window |
+| 2 | Who owns the delivery options? | The short position holder |
+| 3 | What is a conversion factor \(cf_i\)? | A fixed scale that maps the futures quote into a bond-specific delivery price for bond \(i\) (often defined off a notional 6% yield, semiannual) |
+| 4 | What is the invoice price formula? | \(\text{Invoice}_i(t)=cf_iF(t)+AI_i(t)\) |
+| 5 | Why is accrued interest added at delivery? | Cash bonds settle dirty; accrued interest is part of the cash amount |
+| 6 | Write the cost-of-delivery formula | \(\text{CostDel}_i(t)=P_i(t)-cf_iF(t)\) (clean) |
+| 7 | Why does accrued interest cancel in cost of delivery? | It is added to both the dirty purchase cost and the invoice received |
+| 8 | Define CTD | The bond that minimizes cost of delivery (equivalently, minimizes net basis under a funding assumption) |
+| 9 | What is the futures price at final delivery in a no-arbitrage setting? | \(F(T)=\min_i P_i(T)/cf_i\) |
+| 10 | What does gross basis measure? | Clean cash price minus CF-adjusted futures price: \(GB=P-cfF\) |
+| 11 | What does net basis measure? | Carry-adjusted cash–futures difference: \(NB=P_{fwd}-cfF\approx GB-\text{carry}\) |
+| 12 | What does implied repo measure? | The break-even financing rate for buy-and-deliver given \(F\), \(cf\), and accrued interest |
+| 13 | When is cash-and-carry attractive? | When implied repo exceeds your marginal funding rate (under the same assumptions) |
+| 14 | Name the main short-owned delivery options | Quality (bond choice), timing (delivery date), end-of-month switching, notice-timing (“wild card” style) |
+| 15 | Why can delivery options depress the futures price? | The long effectively pays for options owned by the short, so the futures can trade below a naive single-bond forward |
+| 16 | What is the DV01 convention in this book? | \(DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})\), positive for long rates risk |
+| 17 | What is being bumped for futures DV01 in this chapter? | CTD yield (or CTD pricing curve) down 1bp, holding CTD identity fixed |
+| 18 | Give the CTD-mapped futures DV01 approximation | \(\text{DV01}_{fut,\$100}\approx \text{DV01}_{CTD,\$100}/cf_{CTD}\) |
+| 19 | Give the DV01 hedge ratio | \(\#\text{contracts}=\text{DV01}_{exposure}/\text{DV01}_{fut}\) |
+| 20 | What is CTD switching risk? | Risk that the CTD changes, causing DV01 and hedge ratios to jump |
+| 21 | What does “special” repo mean? | A bond finances below GC because it is scarce/in demand to borrow |
+| 22 | How can specialness change CTD? | Lower financing cost improves carry, lowers net basis, and can make a bond cheapest after financing |
+| 23 | What is a roll (calendar spread)? | \(F_{front}-F_{deferred}\): the cost of extending a futures position to a later delivery month |
+| 24 | What can move the roll away from “carry”? | Different CTDs across months, funding shifts, squeeze risk, and delivery uncertainty |
+| 25 | What is a squeeze (in this context)? | CTD scarcity → extreme specialness → distorted basis/roll near delivery |
 
 ---
 
 ## Mini Problem Set
+1. (Compute) Compute invoice price given \(F = 108.50\), \(cf = 0.8750\), \(AI = 2.10\).
+2. (Compute) Given three deliverables with \((P,cf)=[(98.50,0.92),(105.00,0.98),(91.20,0.85)]\) and \(F = 106.00\), identify CTD using \(P-cfF\).
+3. (Compute) Compute gross basis for Bond A: \(P = 102.50\), \(cf = 0.9500\), \(F = 108.00\).
+4. (Compute) Compute carry for 60 days: \(P + AI(0)=103.20\), \(AI(T)-AI(0)=1.00\), \(r=4.50\%\), ACT/360 simple.
+5. (Compute) Compute net basis from gross basis \(-0.10\) and carry \(0.226\).
+6. (Compute) Compute implied repo: dirty today \(=103.20\), invoice at delivery \(=103.85\), \(d=60\) days.
+7. (Compute) Cash DV01 \(=\$30{,}000/\text{bp}\). CTD DV01 \(=0.072\) per $100, \(cf=0.8500\). Compute futures DV01 per contract and the hedge ratio.
+8. (Compute) Roll: \(F_{Mar}=112.50\), \(F_{Jun}=112.15\). Compute roll and the cost to roll 100 short contracts.
+9. (Concept) Explain why the futures price is not a pure cost-of-carry forward price on a single bond.
+10. (Desk) Describe how a CTD switch can create P&L on an otherwise DV01-neutral hedge.
+11. (Desk) Construct a scenario where gross basis is negative but net basis is positive. Why might a basis trade lose money?
+12. (Desk) Write a daily monitoring checklist for a live Treasury futures hedge (CTD status, net basis, implied repo, roll, specials).
 
-### Questions 1–8 (With Solution Sketches)
-
-**1.** Compute invoice price given $F = 108.50$, $cf = 0.8750$, $AI = 2.10$.
-
-*Sketch:* Invoice $= 0.8750 \times 108.50 + 2.10 = 94.94 + 2.10 = 97.04$ per $100. Per contract: $\$97{,}040$.
-
-**2.** Given three deliverables with $(P, cf) = [(98.50, 0.92), (105.00, 0.98), (91.20, 0.85)]$ and $F = 106.00$, identify CTD.
-
-*Sketch:* Compute $P - cf \times F$: $(98.50 - 97.52) = 0.98$; $(105 - 103.88) = 1.12$; $(91.20 - 90.10) = 1.10$. CTD is Bond 1 (lowest = 0.98).
-
-**3.** Compute gross basis for Bond A: $P = 102.50$, $cf = 0.9500$, $F = 108.00$.
-
-*Sketch:* $GB = 102.50 - 0.95 \times 108 = 102.50 - 102.60 = -0.10$. Negative = cash cheap vs futures.
-
-**4.** Compute carry for 60 days: $P + AI(0) = 103.20$, $AI(T) - AI(0) = 1.00$, $r = 4.50\%$.
-
-*Sketch:* Financing = $103.20 \times 0.045 \times 60/360 = 0.774$. Carry $= 1.00 - 0.774 = 0.226$.
-
-**5.** Compute net basis from gross basis $= -0.10$ and carry $= 0.226$.
-
-*Sketch:* $NB = GB - \text{Carry} = -0.10 - 0.226 = -0.326$.
-
-**6.** Compute implied repo: dirty today $= 103.20$, invoice at delivery $= 103.85$, $d = 60$ days.
-
-*Sketch:* $r_{\text{imp}} = (103.85/103.20 - 1) \times 360/60 = 0.0063 \times 6 = 3.78\%$.
-
-**7.** If GC = 4.50% and special = 3.00%, what is the special spread?
-
-*Sketch:* Special spread $= 4.50\% - 3.00\% = 150$ bp.
-
-**8.** Cash DV01 = $\$30{,}000$/bp. CTD has DV01 = 0.072 per $100, cf = 0.8500. Compute hedge ratio.
-
-*Sketch:* Futures DV01 per contract $= 1000 \times 0.072/0.85 = \$84.71$/bp. Hedge $= 30{,}000/84.71 \approx 354$ contracts.
-
-### Questions 9–18 (No Solutions Provided)
-
-**9.** Explain qualitatively why the futures price is not a pure cost-of-carry forward price.
-
-**10.** Describe how a CTD switch can create P&L on an otherwise DV01-neutral hedge.
-
-**11.** Construct a scenario where gross basis is negative but net basis is positive. Why might a basis trade lose money?
-
-**12.** A bond becomes extremely special in repo. Explain how it might become CTD even if its cash price rises.
-
-**13.** What market feature creates the wild card play (per Hull), and how does it benefit the short?
-
-**14.** Tuckman notes the end-of-month option "does not turn out to be worth much in practice." Explain why.
-
-**15.** Explain net basis as quality option value using Tuckman's interpretation.
-
-**16.** The roll spread for Mar/Jun widens from 0.35 to 0.60. List three possible causes.
-
-**17.** Design a daily monitoring checklist for a live Treasury futures hedge.
-
-**18.** A squeeze develops in the front-month CTD. Describe the impact on (a) basis trades, (b) roll spreads, (c) hedgers with delivery approaching.
+### Solution Sketches (Selected)
+1. Invoice \(=0.8750\times108.50+2.10=97.04\) per $100. Per contract: \(97.04\times1000=\$97{,}040\).
+2. Compute \(P-cfF\): 0.98, 1.12, 1.10 → CTD is Bond 1 (minimum).
+3. \(GB=102.50-0.95\times108.00=-0.10\) per $100.
+6. \(r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\%\).
+7. Futures DV01 per contract \(=1000\times(0.072/0.85)=\$84.71/\text{bp}\). Hedge \(\approx 30{,}000/84.71\approx 354\) contracts.
 
 ---
 
 ## References
 
-- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (Treasury futures CTD, basis, implied repo, and delivery options; case studies).
-- Hull, *Options, Futures, and Other Derivatives* (Treasury futures hedging, conversion factors, and delivery-option intuition).
-- CBOT/CME historical documentation on the 8% → 6% notional coupon change (approved Feb 1999; effective Mar 2000).
-- CME contract specifications / rulebook (current deliverable-basket and tick/settlement details).
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets*, Treasury futures chapter/sections on mechanics, CTD, gross/net basis, and delivery options.
+- Hull, *Options, Futures, and Other Derivatives*, sections on Treasury bond futures (conversion factors, CTD) and hedging with bond futures (duration/DV01 logic, delivery-option intuition).
+- Neftci, *Principles of Financial Engineering*, sections on futures arbitrage / implied repo and repo special vs general collateral.
+- Musiela & Rutkowski, *Martingale Methods in Financial Modelling*, discussion of Treasury bond futures delivery factors and invoice-price mechanics.
+- Elton, Gruber, Brown & Goetzmann, *Modern Portfolio Theory and Investment Analysis*, section on Treasury bond futures and the role of conversion factors.

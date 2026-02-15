@@ -62,7 +62,7 @@ One useful mental split:
 - **(Nearly) risk-free / RFR-style rates** are designed to reflect secured or policy-anchored overnight funding and to contain little bank credit premium (e.g., SOFR is based on secured Treasury repo transactions).
 - **Credit-sensitive term rates** embed bank credit and liquidity premia (historically LIBOR).
 
-Hull emphasizes this distinction: new overnight reference rates are intended to be (nearly) risk-free, while LIBOR incorporated a time-varying bank credit spread. Hull also notes a practical implication: when banks lend to customers at “SOFR + spread”, changes in that spread are not hedged by a plain SOFR leg.
+A key point: overnight RFRs are designed to be (nearly) risk-free, while LIBOR-style term rates embedded a time-varying bank credit and liquidity spread. A practical implication is that when banks lend to customers at “SOFR + spread”, a hedge that references only SOFR removes the index component but leaves the spread component unhedged.
 
 > **Desk Reality:** Hedging a credit-sensitive funding exposure with an RFR hedge leaves residual spread risk.
 > **Common break:** A funding P&L line (often “index + spread”) doesn’t match the P&L from a hedge that references only the index.
@@ -134,7 +134,7 @@ The LIBOR-to-SOFR transition introduced a fundamental change in how floating rat
 
 Under the traditional LIBOR convention, the floating rate for an accrual period was **known at the start of that period**.
 
-Hull explains: "LIBOR rates are forward looking and published at the beginning of periods to which they apply."
+LIBOR-style term rates are forward-looking: the rate for an accrual period is fixed and published at the beginning of the period to which it applies.
 
 **Timeline example (3-month LIBOR):**
 - **January 1**: 3M LIBOR fixes at 5.00%
@@ -147,7 +147,7 @@ Hull explains: "LIBOR rates are forward looking and published at the beginning o
 
 Under SOFR and other overnight risk-free rates, the floating rate is determined by **compounding daily observations over the accrual period**. The rate is not known until the period ends.
 
-Hull emphasizes that the new overnight reference rates are **backward looking**: the rate for an accrual period is computed from overnight rates observed during the period, so it is only known at (or near) period end.
+Overnight RFR-style rates are **backward-looking**: the rate for an accrual period is computed from overnight rates observed during the period, so it is only known at (or near) period end.
 
 **Timeline example (3-month compounded SOFR):**
 - **January 1**: Accrual period begins. Rate is **unknown**.
@@ -155,7 +155,7 @@ Hull emphasizes that the new overnight reference rates are **backward looking**:
 - **Late March**: Rate becomes known only near period end (exact timing depends on the contract’s observation/payment conventions)
 - **March 31**: Payment calculated and made (often with conventions to ensure operational notice)
 
-**The compounding formula:** Hull provides the formula for computing the compounded rate over $n$ business days:
+**A common compounding formula:** the compounded rate over $n$ business days can be written as:
 
 $$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}\left(1 + r_i \cdot \frac{d_i}{360}\right) - 1\right] \times \frac{360}{D}}$$
 
@@ -175,7 +175,7 @@ A subtle but important distinction exists in how overnight rates are combined:
 
 **Arithmetic averaging:** Used for Fed Funds futures settlement. The contract settles based on the simple arithmetic average of daily effective Fed Funds rates over the month.
 
-Hull notes that an average overnight rate over a period is computed by compounding the daily overnight rates (a geometric average).
+An average overnight rate over a period is typically computed by compounding the daily overnight rates (a geometric average).
 
 This distinction matters for basis calculations between Fed Funds futures and compounded SOFR.
 
@@ -197,7 +197,7 @@ Solving:
 
 $$\boxed{P(0,T) = \frac{1}{1 + r \cdot \tau(0,T)}}$$
 
-Hull notes that USD money-market instruments typically use Actual/360 day count: the year fraction is actual days divided by 360.
+USD money-market instruments typically use Actual/360 day count: the year fraction is actual days divided by 360.
 
 #### Accrual and Settlement Conventions
 
@@ -222,7 +222,7 @@ For pedagogical examples in this chapter, we ignore spot lags and assume year fr
 
 #### Bill Price Quoting vs. Discount Yield Quoting
 
-Hull notes that some money-market instruments (including US T-bills) are quoted using a discount rate based on face value rather than on the price paid.
+Some money-market instruments (including US T-bills) are quoted using a discount rate based on face value rather than on the price paid.
 
 > **Visualizer: Discount Yield vs. Investment Yield**
 >
@@ -239,13 +239,9 @@ Hull notes that some money-market instruments (including US T-bills) are quoted 
 >
 > **Rule (mechanical):** If $Y<100$ is the cash price per \$100 face, then $(100-Y)/Y > (100-Y)/100$, so a price‑denominator yield is higher than a face‑denominator “discount yield”.
 
-A US Treasury bill with 91 days to maturity quoted at 8 means “8% of face value per 360 days.” Hull illustrates: for \$100 face, interest over 91 days is \$100 × 0.08 × 91/360 = \$2.0222, so the cash price is \$97.9778 per \$100 face.
+A US Treasury bill with 91 days to maturity quoted at 8 means “8% of face value per 360 days.” For \$100 face, interest over 91 days is \$100 × 0.08 × 91/360 = \$2.0222, so the cash price is \$97.9778 per \$100 face.
 
-Let $Y$ be the **cash price per \$100 face**, let $d$ be the remaining life in calendar days, and let $q_{\text{disc}}$ be the quoted **bank discount rate** (percent per year, ACT/360, applied to face value). Hull gives the relationship:
-
-$$P = \frac{360}{d}(100 - Y)$$
-
-where $P$ is his symbol for the quoted discount rate and $Y$ is the cash price. In this book we write the quote as $q_{\text{disc}}$ (so $q_{\text{disc}}=P$):
+Let $Y$ be the **cash price per \$100 face**, let $d$ be the remaining life in calendar days, and let $q_{\text{disc}}$ be the quoted **bank discount rate** (percent per year, ACT/360, applied to face value). The relationship is:
 
 $$\boxed{q_{\text{disc}} = \frac{360}{d}(100 - Y)}$$
 
@@ -261,9 +257,9 @@ $$P(0,T) = \frac{Y}{100}$$
 
 #### Caution: Multiple Yield Conventions Exist
 
-An **investment-style yield** (returns on price paid) differs from the bank discount quote. Hull’s example highlights the core point: a return computed on the **price paid** is higher than the discount computed on **face value** because $Y<100$.
+An **investment-style yield** (returns on price paid) differs from the bank discount quote. The core point is that a return computed on the **price paid** is higher than the discount computed on **face value** because $Y<100$.
 
-One commonly used annualization (often discussed as a “bond‑equivalent” style conversion for bills) is to annualize the holding-period return on a 365-day basis (Musiela):
+One commonly used annualization (often discussed as a “bond‑equivalent” style conversion for bills) is to annualize the holding-period return on a 365-day basis:
 
 $$y_{\text{ask}} = \left(\frac{100 - Y}{Y}\right) \times \frac{365}{d}$$
 
@@ -281,7 +277,7 @@ The banker's discount yield is a convenient quoting convention, **not** an inter
 
 #### FRA as a Forward-Starting Deposit
 
-Hull describes an FRA as a contract that exchanges a fixed rate for a reference rate observed in the future on a specified notional, typically settled net without exchanging principal.
+An FRA is a contract that exchanges a fixed rate for a reference rate observed in the future on a specified notional, typically settled net without exchanging principal.
 
 An FRA references the future floating rate for a period $[T_1, T_2]$ and exchanges (in net form) the difference between floating and a fixed contract rate $K$. Let $\tau(T_1,T_2)$ be the year fraction for the accrual period under the contract’s day count.
 
@@ -306,7 +302,7 @@ $$V_{\text{FRA}}(t) = \tau(T_1,T_2) \cdot P(t,T_2) \cdot \left(L(t;T_1,T_2) - K\
 
 where $L(t;T_1,T_2)$ is the (simply-compounded) forward rate implied by the discount curve.
 
-Hull notes that FRAs can be valued using the forward rate for the underlying period implied by the curve, discounted appropriately.
+FRAs can be valued using the forward rate for the underlying period implied by the curve, discounted appropriately.
 
 #### The Par FRA Rate Equals the Forward Rate
 
@@ -314,7 +310,7 @@ Setting $V_{\text{FRA}}(t) = 0$ and solving for the fixed rate $K$:
 
 $$\boxed{K^* = L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)}$$
 
-The par FRA rate equals the implied forward rate—a fundamental result that makes FRAs direct constraints on the forward curve. Hull notes that the FRA has zero value when the fixed rate equals the relevant forward rate.
+The par FRA rate equals the implied forward rate—a fundamental result that makes FRAs direct constraints on the forward curve. When the fixed rate equals the relevant forward rate, the FRA has zero value at inception.
 
 #### FRA Settlement Payoff
 
@@ -326,7 +322,7 @@ The denominator discounts the net interest difference from $T_2$ back to $T_1$ a
 
 ### 4.3.4 Fed Funds Futures: Contract Structure
 
-Tuckman describes fed funds futures as designed to hedge a \$5,000,000 30-day fed funds deposit; the final settlement is based on the average effective fed funds rate over the contract month.
+Fed funds futures are designed to hedge (or take views on) the average effective fed funds rate over a contract month. The canonical contract size is a \$5,000,000 30-day deposit, and the final settlement is based on the average effective fed funds rate over the month.
 
 **Key contract features:**
 - **Notional:** $5,000,000
@@ -339,13 +335,13 @@ $$\text{Average Rate} = \frac{1}{N}\sum_{i=1}^{N} r_i$$
 
 where $N$ is the number of calendar days in the month and $r_i$ is the effective Fed Funds rate on day $i$.
 
-> **Desk Reality:** Tuckman describes the fed funds futures contract as a hedge to a \(\$5{,}000{,}000\) 30-day deposit in fed funds, and the final settlement price is set to 100 minus 100 times the average effective fed funds rate over the month.
+> **Desk Reality:** Fed funds futures are often explained as hedges of a \(\$5{,}000{,}000\) 30-day deposit in fed funds. The final settlement price is set to \(100 - 100\times \bar r\), where \(\bar r\) is the month’s average effective fed funds rate (in percent).
 > **Common break:** In fed funds futures, changing the rate of the \(\$5{,}000{,}000\) 30-day underlying by 1 bp changes the interest payment by \(\$41.67\) (= \(\$5{,}000{,}000 \times (.0001 \times 30)/360\)).
-> **What to check:** Tuckman writes that hedging a \(\$100{,}000{,}000\) investment over December requires \(20\times(31/30)\) or 21 fed funds futures contracts.
+> **What to check:** Hedging a \(\$100{,}000{,}000\) investment over a 31-day month requires \(20\times(31/30)\approx 20.67\), i.e., 21 fed funds futures contracts (rounding up to an integer contract count).
 
 ### 4.3.5 The "Staircase" Curve: Fed Funds at FOMC Meetings
 
-Tuckman notes that the Fed usually changes the fed funds target at the conclusion of scheduled FOMC meetings (with occasional exceptions). A convenient mental model for expected fed funds rates is therefore a stepwise curve: constant between meetings and jumping at meeting dates.
+The Fed usually changes the fed funds target at the conclusion of scheduled FOMC meetings (with occasional exceptions). A convenient mental model for expected fed funds rates is therefore a stepwise curve: constant between meetings and jumping at meeting dates.
 
 This creates a **staircase pattern** in expected Fed Funds rates:
 - Rates are approximately constant between FOMC meetings
@@ -353,7 +349,7 @@ This creates a **staircase pattern** in expected Fed Funds rates:
 
 ### 4.3.6 Fed Probability Extraction from Futures Prices
 
-One of the most practical applications of Fed Funds futures is extracting the market-implied probability of Fed rate changes. Tuckman provides a detailed methodology.
+One of the most practical applications of Fed Funds futures is extracting the market-implied probability of Fed rate changes.
 
 **The setup:**
 - An FOMC meeting occurs during the futures contract month
@@ -393,7 +389,7 @@ where $p$ is the probability of a rate change.
 
 #### Quote Convention
 
-Andersen & Piterbarg frame Eurodollar (and similarly SOFR) futures as forward-rate instruments entered at zero upfront cost, with payoff tied to the realized floating rate over the underlying period relative to the rate implied at inception.
+Eurodollar (and similarly SOFR) futures can be viewed as forward-rate instruments entered at zero upfront cost, with payoff tied to the realized floating rate over the underlying period relative to the rate implied at inception.
 
 The quoted price is typically:
 
@@ -405,13 +401,13 @@ For example, a quote of 94.67 implies a futures rate of 5.33%.
 
 #### Futures vs. Forwards: The Convexity Adjustment
 
-Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Andersen & Piterbarg explain that daily settlement creates a correlation between margin cashflows and funding/reinvestment rates, so futures rates generally differ from forward rates; the futures rate tends to be above the corresponding forward rate.
+Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Daily settlement creates a correlation between margin cashflows and funding/reinvestment rates, so futures rates generally differ from forward rates; the futures rate tends to be above the corresponding forward rate.
 
 The mechanism is as follows: under rising interest rates, the futures holder must make margin payments at precisely the moment when borrowing costs are highest. Conversely, when rates fall, received margin is reinvested at lower rates. This systematic disadvantage means futures rates must exceed forward rates to compensate.
 
-Hull provides similar intuition: daily settlement creates a convexity adjustment, and the forward and futures quotes differ as a result.
+A convenient intuition is that daily settlement creates a convexity adjustment, so the forward and futures quotes differ.
 
-**Magnitude:** Hull notes that the convexity adjustment increases as the life of the contract increases.
+**Magnitude:** The convexity adjustment tends to increase as the life of the contract increases.
 
 The full convexity adjustment derivation is covered in Chapter 24.
 
@@ -423,7 +419,7 @@ The full convexity adjustment derivation is covered in Chapter 24.
 
 In this chapter, we use the practitioner term **turn** for the implied overnight rate over a stub spanning a special date (for example, the overnight rate spanning December 31).
 
-Tuckman's Figure 17.2 shows that the fed funds effective rate and the fed funds target rate can be very far apart, reminding you that the very front end is not guaranteed to be smooth.
+Historically, the fed funds effective rate and the fed funds target can be very far apart, reminding you that the very front end is not guaranteed to be smooth.
 
 > **Practitioner Note: What to internalize**
 >
@@ -529,7 +525,7 @@ where $F = L(0;T_1,T_2)$ is the forward rate.
 
 ### 4.6.1 The Sequential Logic
 
-Curve construction is an inverse problem: given prices of traded instruments, recover the discount factors. Andersen notes that only a finite set of instruments is quoted, so constructing a continuous curve inevitably requires bootstrapping plus interpolation.
+Curve construction is an inverse problem: given prices of traded instruments, recover the discount factors. Only a finite set of instruments is quoted, so constructing a continuous curve inevitably requires bootstrapping plus interpolation.
 
 **The short-end bootstrap:**
 
@@ -551,7 +547,7 @@ This follows directly from the forward-rate identity.
 
 ### 4.6.2 Single-Curve vs. Multi-Curve (Preview)
 
-Andersen notes that pre-2007 practice commonly used a single LIBOR curve; after the crisis, curve construction often requires multiple curves (discounting vs forwarding). For simplicity, this chapter proceeds with the single-curve assumption.
+Before 2007, many practitioners commonly used a single LIBOR curve; after the crisis, curve construction often requires multiple curves (discounting vs forwarding). For simplicity, this chapter proceeds with the single-curve assumption.
 
 **The economic source of the basis:** Credit risk differences between overnight secured rates (SOFR/OIS) and term unsecured rates (historical LIBOR) create a spread. Even after LIBOR cessation, different tenors of SOFR-based rates can exhibit basis due to term premium and liquidity effects.
 
@@ -582,7 +578,7 @@ $$DV01 \approx N\cdot \frac{\tau}{(1+r\tau)^2}\cdot 10^{-4}\quad\text{(currency 
 
 ### 4.7.2 Locality of Short-End Perturbations
 
-A key property of sequential bootstrapping: changing a short-dated quote primarily affects the nearest nodes and the forwards that depend on them. Andersen describes "bucket exposure" analysis where bumping a specific forward-rate segment reveals the locality of curve shocks.
+A key property of sequential bootstrapping is locality: changing a short-dated quote primarily affects the nearest nodes and the forwards that depend on them. Risk systems often illustrate this by bumping a specific forward-rate segment and observing which PVs move.
 
 This locality intuition underlies key-rate DV01 analysis, covered in Chapter 14.
 
@@ -696,9 +692,6 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
 - Units check: $q_{\text{disc}}$ is percent per year and $d/360$ is years, so $q_{\text{disc}}d/360$ is the percent discount off face over the period.
 - Sign check: quote down → price up → positive DV01 for a long bill (book DV01 convention).
 - Limit check: if $q_{\text{disc}}=0$, then $Y=100$.
-
-**References**
-- (Hull, *Options, Futures, and Other Derivatives*, “Price Quotations of U.S. Treasury Bills”)
 
 ---
 
@@ -887,7 +880,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 **Simple vs. compounded:** Money-market rates are simple; mixing them with continuously compounded rates without conversion causes errors.
 
-**Day count matters:** ACT/360 is standard for U.S. money markets, but ACT/365 applies in some jurisdictions. Hull emphasizes these vary "from country to country and from instrument to instrument."
+**Day count matters:** ACT/360 is standard for U.S. money markets, but ACT/365 applies in some jurisdictions. Day count conventions vary by market and instrument—confirm them explicitly before comparing rates or PVs.
 
 **Bill conventions are not interchangeable:** Banker's discount yield uses face in the denominator and 360-day annualization. The ask yield (BEY) uses price and 365-day annualization. Neither is an IRR.
 

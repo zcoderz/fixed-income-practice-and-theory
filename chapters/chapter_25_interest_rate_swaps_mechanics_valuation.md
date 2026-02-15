@@ -4,22 +4,31 @@
 
 ## Introduction
 
-A swap is not a bet on rates—it is an exchange of cashflow streams with zero initial value.
+A swap is not a bet on rates—it is an exchange of cashflow streams with (approximately) zero value at inception once the fixed rate is set.
 
-This seemingly simple statement contains the essence of what makes interest rate swaps the most important derivative in fixed income markets. When a corporation issues fixed-rate bonds but prefers floating-rate funding, it enters a swap. When a mortgage servicer needs to hedge the duration of its portfolio, it uses swaps. When a central bank wants to assess market expectations for future interest rates, it looks at the swap curve. The notional outstanding in interest rate swaps exceeds $400 trillion globally—dwarfing the underlying bond markets by an order of magnitude.
+Swaps show up everywhere in rates markets because they let you **transform** cashflows (fixed ↔ floating) without refinancing the underlying debt and they provide a clean “swap-curve” yardstick for pricing and hedging.
 
-Yet for all their ubiquity, swaps create confusion because their value depends on *two distinct curves* that serve fundamentally different purposes: one curve tells us what floating payments to expect, while another tells us how to discount those payments to today. Getting this separation wrong—or not even knowing it exists—is a recipe for systematic mispricing.
+The mechanics are simple; the pitfalls are not. A vanilla interest rate swap is specified in *rate language* (fixed rate, floating index, day count, reset/payment dates), but it is valued in *cashflow language*. And in modern markets you usually need **two curve objects**:
+- a **projection** curve to turn the floating index into expected coupons, and
+- a **discounting** curve to PV every cashflow.
 
-This chapter builds your understanding of interest rate swaps from the ground up:
+This chapter builds the quote-to-PV pipeline:
+1. Mechanics and timeline (trade/effective/reset/payment)
+2. Cashflow construction (day counts, accrual factors, and net settlement)
+3. Valuation (fixed leg, floating leg, par swap rate, and the annuity/PVBP object)
+4. Single-curve vs multi-curve (where the telescoping shortcut breaks)
+5. A worked example with unit/sign checks and a short risk “one page”
 
-1. **Mechanics**: What exactly is exchanged, when, and how are payments calculated?
-2. **Market conventions**: How swaps are quoted, executed, and cleared in modern markets
-3. **Valuation fundamentals**: How to price a swap as a portfolio of cashflows
-4. **The par swap rate**: Why swaps trade at par and how to derive the fixed rate
-5. **Multi-curve pricing**: Why projection and discounting curves differ, and what happens when you ignore this
-6. **SOFR conventions**: The post-LIBOR world and how overnight rate compounding works
+## Learning Objectives
+- After this chapter, you can describe a vanilla fixed-for-floating IRS and its timeline.
+- You can translate a swap quote into fixed and floating cashflows (with day count and compounding stated).
+- You can compute a par swap rate from discount factors and explain the annuity/PVBP object.
+- You can explain projection vs discounting curves and why multi-curve valuation does not telescope.
+- You can state a DV01/PVBP definition with explicit bump object, units, and sign (and know what is deferred to Chapter 26).
 
-We do *not* cover swap risk measures (DV01, PV01) here—Chapter 26 owns that territory. Nor do we discuss swap spreads in depth—Chapter 27 handles relative value. This chapter focuses on getting the mechanics and valuation exactly right, because everything else builds on this foundation.
+Prerequisites: [Chapter 1 — Market Quoting, Calendars, and Cashflow Plumbing](chapter_01_market_quoting_calendars_cashflow_plumbing.md), [Chapter 2 — Time Value, Discount Factors, and Replication](chapter_02_time_value_discount_factors_replication.md), [Chapter 3 — Zero/Forward/Par Rates (The Triangle)](chapter_03_zero_forward_par_rates_triangle.md), [Chapter 17 — Curve Construction (Bootstrapping and Interpolation)](chapter_17_curve_construction_bootstrapping_interpolation.md), [Chapter 19 — Projection Curves (LIBOR/SOFR) and Multi-Curve](chapter_19_projection_curves_libor_sofr_multi_curve.md)
+
+Follow-on: [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapter_26_swap_pv01_dv01_hedging.md), [Chapter 27 — Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md), [Chapter 28 — Basis Trades in Rates](chapter_28_basis_trades.md), [Chapter 33 — Collateral Discounting and OIS](chapter_33_collateral_discounting_ois.md)
 
 ---
 
@@ -27,13 +36,13 @@ We do *not* cover swap risk measures (DV01, PV01) here—Chapter 26 owns that te
 
 ### 25.1.1 The Basic Contract
 
-Hull provides a clean definition: "An interest rate swap is a swap where interest at a predetermined fixed rate, applied to a certain principal, is exchanged for interest at a floating reference rate, applied to the same principal, with regular exchanges being made for an agreed period of time."
+An **interest rate swap (IRS)** is a bilateral contract to exchange interest payments on a notional principal: one leg pays a fixed rate and the other leg pays a floating reference rate, on specified schedules, for an agreed term. The notional is a calculation amount and is typically **not** exchanged.
 
 The key elements are:
 
 - **Notional principal** ($N$): The amount on which interest is calculated. Unlike a loan, this principal is never exchanged—it is "notional" in the sense that it exists only for calculation purposes.
 - **Fixed leg**: One party pays a fixed rate $c$ applied to the notional.
-- **Floating leg**: The other party pays a floating reference rate (historically LIBOR, now increasingly SOFR or other overnight rates) applied to the same notional.
+- **Floating leg**: The other party pays a floating reference index (e.g., a term rate or an overnight rate compounded over the accrual period) applied to the same notional.
 - **Payment frequency**: Often different for the two legs—quarterly floating and semiannual fixed is common in USD markets.
 - **Maturity**: The swap's lifetime, typically ranging from 1 to 30 years.
 
@@ -44,19 +53,19 @@ The terminology reflects which leg you *pay*:
 $$\boxed{\text{Payer swap: Pay fixed, receive floating}}$$
 $$\boxed{\text{Receiver swap: Receive fixed, pay floating}}$$
 
-A payer swap profits when rates rise (you receive higher floating payments while your fixed payments remain constant). A receiver swap profits when rates fall. This directional exposure makes swaps the primary tool for expressing interest rate views and hedging rate risk.
+All else equal, a payer swap benefits when rates rise (floating receipts rise while fixed payments are unchanged), and a receiver swap benefits when rates fall.
 
-> **Desk Reality: The Language of Swaps**
->
-> On a trading desk, you'll hear "I'm long duration" from someone who has a receiver swap (they benefit if rates fall) and "I'm short duration" from someone with a payer swap. The confusion potential is real: "paying" on a swap means paying fixed, which is *short* duration, even though you're "long" the swap contract itself.
->
-> To avoid confusion, traders often just say "paying" or "receiving" rather than "long" or "short." When someone says "I'm paying 5s" they mean they're paying fixed on a 5-year swap.
+> **Desk Reality:** Traders say “paying” / “receiving” (meaning paying/receiving fixed).
+> **Common break:** People translate “pay fixed” into “long the swap” and flip the PV/DV01 sign.
+> **What to check:** Write \(V_{\text{payer}}=PV_{\text{float}}-PV_{\text{fixed}}\) and apply the book DV01 sign convention before you size a hedge.
 
 ### 25.1.3 Why Notional Is Not Exchanged
 
-Tuckman explains the intuition elegantly: "The valuation of swaps without default risk is made much simpler by the following fiction. Treat the swap as if the fixed-rate payer pays the notional amount to the floating-rate payer on the termination date and as if the floating-rate payer pays the notional amount to the fixed-rate payer on the termination date. This fiction does not alter the cash flows because the payments of the notional amounts cancel."
+Even though the notional is not exchanged, it is often helpful for valuation to **pretend** that both parties exchange notional at maturity. Those notional exchanges cancel out, so you have not changed the economics—but you gain a powerful replication:
+- the fixed leg behaves like a fixed-rate bond, and
+- the floating leg behaves like a floating-rate note.
 
-This "bond replication" view is powerful: by imagining that notional is exchanged at maturity, the fixed leg becomes economically equivalent to a fixed-rate bond, and the floating leg becomes equivalent to a floating-rate note. We will exploit this decomposition throughout the chapter.
+This perspective is one reason swaps can be priced with the same “discount cashflows” machinery used for bonds.
 
 ### 25.1.4 The Loan Analogy
 
@@ -90,7 +99,7 @@ $$\boxed{CF_j^{\text{fix}} = N \cdot c \cdot \tau_j^{\text{fix}}}$$
 
 where $\tau_j^{\text{fix}}$ is the accrual factor (year fraction) for that period, computed according to the applicable day count convention.
 
-**Day count conventions matter.** Hull notes that "the fixed rate in a swap is also quoted with a day count convention. Popular fixed-rate day counts are actual/365 and 30/360." In USD swaps, the fixed leg typically uses 30/360, meaning each month is treated as having 30 days regardless of the actual calendar.
+**Day count conventions matter.** The fixed rate is always quoted with a day count convention (commonly 30/360 or ACT/365). The day count determines \(\tau_j^{\text{fix}}\) and therefore the cash amount exchanged.
 
 ### 25.2.2 Floating Leg Cashflows
 
@@ -100,65 +109,60 @@ $$\boxed{CF_{i+1}^{\text{flt}} = N \cdot L_k(T_i; T_i, T_{i+1}) \cdot \tau_i^{\t
 
 where $L_k(T_i; T_i, T_{i+1})$ is the floating reference rate for tenor $k$ observed at time $T_i$.
 
-**The floating day count often differs from the fixed.** Tuckman explains that "floating rate cash flows are determined using the actual/360 convention" in typical USD markets. This means that even if both legs have the same notional and similar rates, they may produce different cashflows due to day count differences.
+**The floating day count often differs from the fixed.** Many money-market indices (including SOFR and legacy IBORs) use ACT/360. That means a “one-year” interval can have a year fraction greater than 1 under ACT/360 (e.g., \(365/360\)), while the fixed leg might accrue exactly 1.0 under 30/360.
 
 ### 25.2.3 Example: A 2-Year USD Swap Schedule
 
-Consider a \$100 million 2-year swap initiated on March 8, 2022, with:
-- Fixed leg: 3% semiannual, 30/360 day count
-- Floating leg: 3-month SOFR, quarterly, ACT/360 day count
+Consider a \$100 million swap with:
+- Fixed leg: 3.00% semiannual, 30/360
+- Floating leg: quarterly money-market index, ACT/360 (set in advance, paid in arrears)
 
-The fixed leg pays \$100,000,000 × 3% × 0.5 = \$1,500,000 every six months.
+The fixed leg pays (every six months):
+\$100,000,000 × 3.00% × 0.5 = \$1,500,000.
 
-The floating leg pays based on realized SOFR rates. Hull provides a worked example showing that if the 3-month SOFR reference rate for the first period is 2.2%, the floating payment would be \$100,000,000 × 2.2% × (91/360) = \$556,111, where 91 is the actual number of days in the quarter.
+The floating leg pays (each quarter):
+\$100,000,000 × \(R\) × \((n/360)\), where \(R\) is the annualized floating rate and \(n\) is the actual number of days in the accrual period.
 
-The payments are typically *netted*: only the difference between fixed and floating amounts changes hands on each payment date. If the fixed payment is \$750,000 (for a quarter using 30/360) and the floating payment is \$556,111, the fixed payer sends \$193,889 to the floating payer.
+Example: if \(R=2.20\%\) and the quarter has \(n=92\) days, the floating coupon is:
+\$100,000,000 × 0.022 × (92/360) = \$562,222.
+
+Cash settlement is typically **netted** on dates where both legs pay: only the difference between the fixed and floating amounts is exchanged. On dates where only one leg pays, that leg’s payment is exchanged.
 
 ---
 
-## 25.3 SOFR Swap Conventions
+## 25.3 SOFR Swaps: Compounding and Payment Mechanics
 
-The transition from LIBOR to SOFR represents a fundamental shift in how floating-rate payments are determined. LIBOR was a forward-looking term rate—you knew at the start of the period what rate would apply. SOFR is backward-looking—the rate is determined by compounding daily overnight rates observed during the period.
+SOFR-based swap legs differ from term-index swap legs mainly in how the floating coupon is set. In a term-index leg, the coupon rate is fixed at the start of the accrual period (set in advance, paid in arrears). In a compounded SOFR leg, the coupon rate depends on daily overnight fixings through the accrual period and is finalized near period end.
 
 ### 25.3.1 Why SOFR Is Different
 
-SOFR (Secured Overnight Financing Rate) is published daily by the Federal Reserve Bank of New York. Unlike LIBOR, which was a term rate (3-month LIBOR, 6-month LIBOR, etc.), SOFR is an overnight rate. To calculate a payment over a 3-month period, you must compound the daily SOFR observations.
+SOFR is an overnight rate. To calculate a floating coupon over a multi-day accrual period, you compound the daily overnight rates over that period and then annualize the result on the relevant day-count basis.
 
-Hull explains the compounding formula. For a period from day 1 to day $n$, with daily SOFR rates $r_1, r_2, \ldots, r_n$ and corresponding day counts $d_1, d_2, \ldots, d_n$, the compounded rate is:
+For a period from day 1 to day \(n\), with daily overnight rates \(r_1, r_2, \ldots, r_n\) and corresponding day counts \(d_1, d_2, \ldots, d_n\), one common annualized compounding convention is:
 
 $$\boxed{R_{\text{compound}} = \frac{360}{D} \left[\prod_{i=1}^{n} \left(1 + r_i \cdot \frac{d_i}{360}\right) - 1\right]}$$
 
-where $D$ is the total number of days in the period.
+where $D$ is the total number of days in the period. On most days $d_i=1$, but weekends and holidays mean an overnight fixing can apply to multiple days.
 
-### 25.3.2 Observation Shift and Payment Delay
+### 25.3.2 Operational Timing: Observation Schedule and Payment Delay
 
-Because SOFR is backward-looking and published with a one-day lag, swaps use operational conventions so coupons can be calculated and paid smoothly. Common approaches include:
+For compounded-in-arrears coupons, the rate is not fully known until the accrual period ends. To compute the coupon (and to settle cash), you need the confirmation to specify the schedule: trade/effective/termination dates, calendars and business day convention, day count, payment dates, and (for compounded legs) the observation/compounding dates used in the calculation.
 
-**Payment delay:** Keep the observation and accrual period aligned, but pay the coupon a fixed number of business days after period end (e.g., 2 business days).
-
-**Lookback / observation shift:** Observe rates from a few business days earlier so the final coupon can be calculated before the accrual period ends.
-
-**Lockout:** Freeze the last few daily rates so the coupon amount is known early.
-
-The exact convention is documentation/CCP-specific. The key desk skill is to recognize that different conventions create a small but real “convention basis” between otherwise similar SOFR trades.
-
-> **Desk Reality: SOFR Fixing and Operational Timing**
->
-> SOFR is published on T+1 (the rate for Monday’s transactions is published Tuesday morning). This is why SOFR swaps typically include operational conventions (payment delays, lookbacks, or lockouts): without them, you may not have enough time to calculate and confirm a coupon before settlement.
+> **Desk Reality:** For RFR legs, ops needs the final coupon amount before cash settlement.
+> **Common break:** Assuming there is a single “standard” observation rule when the confirmation uses a different one.
+> **What to check:** Read the confirmation fields for observation dates and payment date, then reproduce the compounding on a 2–3 day toy period.
 
 ### 25.3.3 Term SOFR vs. Overnight SOFR Compounding
 
-Two SOFR-based products exist:
+SOFR-linked coupons can be constructed in different ways. Two common structures are:
 
-**Overnight SOFR Compounding (OIS-style):** This is the standard for derivatives. Daily SOFR rates are compounded in arrears. The rate is known only at period end.
+**Overnight SOFR compounding (OIS-style):** Daily SOFR rates are compounded in arrears. The coupon rate is known only near period end.
 
-**Term SOFR:** Published by CME, this is a forward-looking rate (30-day, 90-day, etc.) set at the beginning of the period. It is derived from SOFR futures prices and functions similarly to how LIBOR did.
-
-> **Practitioner Note:** Most cleared USD interest rate swaps reference overnight SOFR compounded in arrears, not Term SOFR. The Term SOFR rate exists primarily for loans and some end-user derivatives where backward-looking rates create operational challenges.
+**Term-style reference rates:** Some products reference forward-looking term rates derived from overnight-rate futures. The desk-relevant distinction is whether the floating coupon is known at period start (term-style) or only near period end (compounded in arrears).
 
 ### 25.3.4 Standard USD SOFR Swap Conventions
 
-The most common USD “fixed vs SOFR” swap structure looks similar to the legacy USD fixed-vs-LIBOR swap: fixed coupons are paid periodically (often semiannual) and floating coupons are paid periodically (often quarterly), but the floating coupon is computed from **compounded SOFR in arrears**.
+A common USD “fixed vs SOFR” swap structure looks similar to the legacy USD fixed-vs-term swap: fixed coupons are paid periodically (often semiannual) and floating coupons are paid periodically (often quarterly), but the floating coupon is computed from **compounded SOFR in arrears**.
 
 | Element | Fixed Leg (common) | Floating Leg (common) |
 |---------|---------------------|------------------------|
@@ -194,11 +198,11 @@ $$\text{Payment} = \$50,000,000 \times 0.04302 \times \frac{91}{360} = \$543,697
 
 ---
 
-## 25.4 Market Quoting Conventions and Execution
+## 25.4 Market Quoting and Execution
 
-### 25.4.1 How Swaps Are Quoted: Spread to Treasuries
+### 25.4.1 How Swaps Are Quoted: Outright Rate vs. Swap Spread
 
-In the USD market, swaps are typically quoted as a *spread to Treasuries*. Tuckman explains: swap rates can be quoted directly (e.g., "5-year swaps at 3.75%") or as a spread over the benchmark Treasury yield.
+Swaps are commonly quoted as an **outright fixed rate** (e.g., “5-year at 3.75%”). In relative-value discussions, traders also quote the **swap spread**: the difference between the swap fixed rate and a reference Treasury yield.
 
 $$\boxed{\text{Swap Rate} = \text{Treasury Yield} + \text{Swap Spread}}$$
 
@@ -216,9 +220,7 @@ For example, if the 5-year Treasury yields 3.50% and the 5-year swap spread is 2
 
 ### 25.4.2 Why Swap Spreads Can Be Negative
 
-Historically, swap spreads were positive because swaps were seen as carrying some bank credit risk (the reference rate was LIBOR, which reflected bank borrowing costs). However, since the 2008 crisis and especially after LIBOR transition, negative swap spreads have become common in certain tenors.
-
-Tuckman notes: "The fall in swap spreads in the early 1990s reflected the recovery of the banking sector from its problems in the 1980s. The rise in swap spreads in the late 1990s, on the other hand, can be best explained by a perceived scarcity in the supply of U.S. Treasury securities relative to demand."
+Swap spreads can be **positive or negative**. Intuitively, they reflect a mix of forces: the funding and balance-sheet cost of holding swap exposure, the relative supply/demand for Treasuries vs swaps, and the details of collateralization/discounting conventions.
 
 Negative swap spreads imply that the swap rate is *below* the Treasury yield—a counterintuitive result explained by:
 - Treasury scarcity (high demand for Treasuries for regulatory purposes)
@@ -235,20 +237,18 @@ Chapter 27 explores swap spread dynamics in detail.
 
 ### 25.4.4 Trade Execution: SEF and Voice
 
-Since the Dodd-Frank Act (2010), standardized swaps between financial institutions must be executed on Swap Execution Facilities (SEFs) and cleared through central counterparties.
-
-Hull explains: "The Dodd-Frank act... expanded the role of the CFTC. For example, it is now responsible for rules requiring that standard over-the-counter derivatives between financial institutions be traded on swap execution facilities and cleared through central counterparties."
+In the post-crisis market structure, many standardized swaps are executed electronically and cleared through central counterparties (CCPs), while bespoke trades may remain bilateral.
 
 **Execution Methods:**
 - **Request for Quote (RFQ):** Client requests prices from multiple dealers; best price wins
 - **Central Limit Order Book (CLOB):** Anonymous trading on an electronic order book
 - **Voice:** Large or non-standard trades may still be negotiated by phone
 
-> **Practitioner Note:** Most interdealer trading in benchmark swaps occurs electronically on SEFs like Tradeweb and Bloomberg SEF. Client-to-dealer trades may use RFQ or voice depending on size and complexity.
+> **Practitioner Note:** Interdealer trading in benchmark tenors is often electronic; client-to-dealer trades may use RFQ or voice depending on size and complexity.
 
 ### 25.4.5 CCP Clearing: How It Works
 
-Hull describes the post-crisis clearing framework: "In over-the-counter derivatives markets, transactions are cleared either bilaterally or centrally. When central clearing is used, a central counterparty (CCP) stands between the two sides. It requires each side to provide margin and performs much the same function as an exchange clearing house."
+In centrally cleared markets, a **central counterparty (CCP)** stands between the two original parties. It requires margin and performs functions similar to an exchange clearing house.
 
 **The CCP Process:**
 
@@ -258,16 +258,9 @@ Hull describes the post-crisis clearing framework: "In over-the-counter derivati
 4. **Daily Settlement:** Gains/losses are settled daily via variation margin transfers
 5. **Default Management:** If a party defaults, the CCP uses margin and default fund resources to close out positions
 
-**Major CCPs for USD swaps:** LCH (London) and CME (Chicago)
-
 > **Desk Reality: Margin and Funding Costs**
 >
-> CCP clearing changes the economics of swaps. Before clearing, a swap between two strong credits might have required no collateral. Now:
-> - Initial margin (typically 1-5% of notional for a 5-year swap) must be posted
-> - Variation margin is exchanged daily
-> - The cost of funding this margin affects swap pricing
->
-> This "margin cost" is why cleared swaps trade differently from legacy bilateral swaps—it's embedded in the swap rate.
+> CCP clearing changes the economics of swaps: initial margin is posted, variation margin is exchanged (often daily), and the cost of funding margin can matter for pricing and for P&L attribution.
 
 ### 25.4.6 Bilateral Clearing (Non-Cleared Swaps)
 
@@ -310,9 +303,9 @@ $$\boxed{V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = -V_{\text{pay
 
 **Sign interpretation:** If rates have risen since inception, forward rates exceed the fixed rate, making $PV_{\text{float}} > PV_{\text{fixed}}$. The payer swap has positive value—the payer locked in a below-market fixed rate and receives above-market floating payments.
 
-### 25.5.3 Hull's Valuation Example
+### 25.5.3 Worked Example: Valuing a Swap from Leg Cashflows
 
-Hull provides a detailed worked example worth studying. Consider a swap with 1.2 years remaining, where the fixed rate is 3% paid semiannually and the floating rate is based on SOFR. With risk-free zero rates of 2.8%, 3.2%, and 3.4% for maturities of 0.2, 0.7, and 1.2 years respectively, Hull shows the valuation:
+Consider a swap with 1.2 years remaining, fixed rate 3% paid semiannually, and a floating leg based on a short-term index. Suppose discount factors (or equivalently zero rates) for maturities of 0.2, 0.7, and 1.2 years are available. A leg-by-leg valuation produces:
 
 | Time (years) | Fixed CF | Floating CF | Net CF | Discount Factor | PV of Net CF |
 |--------------|----------|-------------|--------|-----------------|--------------|
@@ -326,14 +319,13 @@ The swap value of +\$0.292 million (per \$100 million notional) reflects that fl
 > **Technique: Napkin Valuation**
 >
 > You don't always need a computer to know if you're winning or losing.
-> *   **Formula**: $\text{PV} \approx \text{Notional} \times (\text{New Swap Rate} - \text{Your Fixed Rate}) \times \text{Duration}$
+> *   **Rule of thumb (receiver-fixed):** $\text{PV} \approx -\text{Notional} \times (\text{New Par Swap Rate} - \text{Your Fixed Rate}) \times \text{Duration}$
 > *   **Example**:
 >     *   You receive fixed 3.00% on \$100M for 5 years.
 >     *   Market rates rise to 3.50%.
 >     *   Duration $\approx$ 4.5 years.
->     *   $\text{PV} \approx \$100M \times (0.0350 - 0.0300) \times 4.5$
->     *   $\text{PV} \approx \$100M \times 0.0050 \times 4.5 = \$2.25M$
->     *   **Sign Check**: You receive 3.00%, market pays 3.50%. You are LOSING money. So Value $\approx -\$2.25M$.
+>     *   $\text{PV} \approx -\$100\text{M} \times (0.0350 - 0.0300) \times 4.5 = -\$2.25\text{M}$
+>     *   **Sign check:** You receive 3.00%, but the market now pays 3.50%, so the position is worth less.
 
 ---
 
@@ -357,13 +349,14 @@ The annuity represents the present value of receiving 1 unit of coupon (as a rat
 
 ### 25.6.2 Why Swaps Trade at Par
 
-Tuckman explains the economic logic: "Since no payment is exchanged at the initiation of the swap, the swap is only fair if its net value to each party equals zero, that is, $V_{\text{Fixed}} - V_{\text{Float}}$ equals zero."
+Most vanilla swaps are traded with **no upfront exchange**. The fixed rate is therefore set so that the trade is fair at inception:
+\(PV_{\text{fixed}} = PV_{\text{float}}\).
 
-This is not arbitrary—it reflects that both parties freely enter the agreement. If the swap had positive value to one party at inception, the other party would demand compensation (an upfront payment) to enter. Par swaps avoid this complexity.
+If the fixed rate were set above or below par, one party would be receiving something of value at inception and (in a frictionless world) an upfront payment would be required to restore fairness.
 
 ### 25.6.3 The Single-Curve Par Rate Formula
 
-In the traditional single-curve framework (where the same curve provides both forward rates and discount factors), the par swap rate takes an elegant closed form. Andersen and Piterbarg derive:
+In the traditional single-curve framework (where the same curve provides both forward rates and discount factors), the par swap rate has a closed form:
 
 $$\boxed{S_{k,m}(t) = \frac{P(t, T_k) - P(t, T_{k+m})}{A_{k,m}(t)}}$$
 
@@ -397,9 +390,11 @@ $$\boxed{\frac{PV_{\text{float}}}{N} = 1 - P(0, T_n) \quad \text{(single-curve, 
 
 ### 25.7.1 Why One Curve Is Not Enough
 
-The 2008 financial crisis revealed that the single-curve framework was fundamentally flawed. Andersen and Piterbarg explain: "While the spread between the Fed funds rate and 3 month Libor rate used to be very small—in the order of a few basis points—after September 2007 it went up to as much as 275 basis points."
+A common valuation pipeline for a fixed-for-floating swap (often described as “assume forward rates are realized”) is:
+1. **Project** the floating coupons using forward rates implied by the yield curve for the floating reference rate.
+2. **Discount** those cashflows using the risk-free (OIS) curve (more precisely: the collateral discount curve implied by the CSA/clearing setup).
 
-This spread explosion had profound implications: LIBOR was no longer a risk-free rate suitable for discounting. The rate at which you expect to receive floating payments (projection) differs from the rate at which you should discount those payments (discounting).
+This is already a “multi-curve” description: one curve object to generate forwards (projection) and one curve object to PV cashflows (discounting).
 
 ### 25.7.2 The Multi-Curve Framework
 
@@ -412,10 +407,10 @@ Modern swap valuation uses:
 >
 > In the old days (Single Curve), one person guessed the future rates and valued the money. Now, these jobs are split.
 >
-> *   **The Projector (Blue Curve):** "I am looking at the risky bank market (LIBOR/Euribor/BSBY). I predict the floating rate in 5 years will be 4.00%."
+> *   **The Projector (Blue Curve):** "I am looking at the term index market (legacy IBOR). I predict the floating rate in 5 years will be 4.00%."
 > *   **The Auditor (Green Curve):** "I don't care about risky banks. I care about the *value of money* today. Since this trade is collateralized with cash, correct value is determined by the safe rate (OIS/SOFR). I will discount that 4.00% payment using the 3.00% risk-free rate."
 >
-> If you use the Projector's rate to discount (like we did pre-2008), you are over-discounting and mispricing the trade.
+> The key point is that the curve used to forecast floating coupons need not be the curve used to discount those cashflows.
 
 For a swap referencing index $k$, the floating forward rate is:
 
@@ -429,12 +424,13 @@ Note carefully: forwards come from $P_k$, but discounting uses $P_d$.
 
 ### 25.7.3 OIS Discounting for Collateralized Swaps
 
-What curve should we use for discounting? Andersen and Piterbarg argue that "most inter-dealer transactions are collateralized under the International Swaps and Derivatives Association (ISDA) Master Agreement, with the rate paid on collateral being the Fed funds rate (for USD; Eonia and Sonia for Euro and GBP)."
+What curve should we use for discounting? For a collateralized swap, the discounting choice is tied to the **collateral rate** (the rate earned/paid on variation margin or collateral under the CSA/clearing setup). In many rate markets this leads to an OIS-style discount curve for collateralized trades.
 
-Since collateral earns the overnight rate, the appropriate discount rate for collateralized swaps is the OIS (Overnight Indexed Swap) curve. This leads to the modern convention:
+One argument: if collateral remuneration is tied to an overnight rate (e.g., Fed funds/OIS in USD), then a term bank rate is not a good proxy for the discount rate on collateralized trades.
 
-- **USD collateralized swaps**: Discount with SOFR OIS curve, project with SOFR term curve
-- **Legacy LIBOR swaps**: Discount with OIS, project with LIBOR curve (while LIBOR existed)
+Practical takeaway: in a multi-curve world, always state explicitly:
+- which curve is used to **project** the floating coupons, and
+- which curve is used to **discount** all cashflows.
 
 > **Visual: The Dual Curve Diagram**
 >
@@ -454,9 +450,107 @@ $$\boxed{c_{\text{par}}^{\text{multi}} = \frac{\sum_i \tau_i^{\text{flt}} \cdot 
 
 **Critical observation:** The telescoping identity fails in multi-curve. Since forwards come from $P_k$ but discounting uses $P_d$, the convenient $1 - P(0,T)$ result no longer applies. You must compute each floating coupon's PV explicitly.
 
+> **Pitfall — Telescoping in Multi-Curve:** Using \(PV_{\text{float}}/N = 1-P_d(0,T)\) when your forwards come from a different curve.
+> **Why it matters:** You will misprice the floating leg and get misleading “basis” P&L and risk.
+> **Quick check:** If your spreadsheet can compute the floating PV without referencing the projection curve, you implicitly assumed single-curve.
+
+### 25.7.5 Risk in One Page: PVBP and DV01 (Preview)
+
+Full swap risk reports and hedging workflows are covered in Chapter 26, but you should already be able to read a risk scalar **with units and sign**.
+
+- **Bump object (state it explicitly):** the curve object you bump and rebuild. A common choice is the **discounting-curve zero rates** (equivalently discount factors), with the projection curve held fixed for a “discounting DV01” view.
+- **Bump size:** 1bp \(=10^{-4}\).
+- **Definition (this book):** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) for the stated bump object.
+- **Units:** currency per 1bp for the stated notional (e.g., USD per 1bp for \(N=\$100\text{ million}\)).
+- **Sign (implied by the definition):** receiver-fixed has \(DV01>0\); payer-fixed has \(DV01<0\).
+
+A useful intermediate object is the fixed-leg annuity \(A^{\text{fix}}(0)\). Holding curves fixed, bumping the contractual fixed rate \(c\) up by 1bp changes the receiver-fixed PV by approximately:
+$$\boxed{\text{PVBP}_{\text{fixed}} \approx N \cdot A^{\text{fix}}(0) \cdot 10^{-4}.}$$
+
+Rule of thumb: the DV01 magnitude is often on the same order as the fixed-leg PVBP because the floating leg has little duration beyond the next reset, but the exact relation depends on the curve-bump methodology and the valuation date.
+
 ---
 
 ## 25.8 Worked Examples
+
+### Worked Example (Template): Pricing a 1-Year USD Swap from Two Curves
+
+**Context**
+- Price a 1-year receive-fixed/pay-float swap at inception and value an off-market fixed rate.
+- Why this matters: this is the desk “quote → cashflows → PV” pipeline, plus the PVBP scale you use to sanity-check risk.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-03-02
+- Effective (settlement) date: 2026-03-04 (assume spot-start, T+2)
+- Floating payment dates (quarterly): 2026-06-04, 2026-09-04, 2026-12-04, 2027-03-04
+- Fixed payment dates (semiannual): 2026-09-04, 2027-03-04
+
+**Inputs**
+- Notional: \(N=\$100{,}000{,}000\)
+- Fixed leg: semiannual, 30/360 (so \(\tau^{\text{fix}}=0.5\) each period)
+- Floating leg: quarterly, ACT/360 (so \(\tau_i = \text{days}/360\))
+- Discounting curve discount factors \(P_d(0,T)\):
+
+| Date | \(P_d\) |
+|---|---:|
+| 2026-06-04 | 0.9940 |
+| 2026-09-04 | 0.9880 |
+| 2026-12-04 | 0.9820 |
+| 2027-03-04 | 0.9760 |
+
+- Projection curve discount factors \(P_{3M}(0,T)\) for the floating index (assume \(P_{3M}(0)=1\)):
+
+| Date | \(P_{3M}\) |
+|---|---:|
+| 2026-06-04 | 0.9930 |
+| 2026-09-04 | 0.9860 |
+| 2026-12-04 | 0.9790 |
+| 2027-03-04 | 0.9720 |
+
+**Outputs (What You Produce)**
+- Par fixed rate: \(c_{\text{par}} \approx 2.859\%\)
+- Receiver-fixed NPV at \(c=3.20\%\): \(V_{\text{recv}} \approx +\$335{,}249\)
+- Fixed-leg PVBP (1bp): \(\text{PVBP}_{\text{fixed}} \approx \$9{,}820/\text{bp}\) for \(N=\$100\text{ million}\)
+
+**Step-by-step**
+1. **Build accrual factors (ACT/360) for the floating leg**
+   - 2026-03-04 → 2026-06-04: \(92/360 \approx 0.2556\)
+   - 2026-06-04 → 2026-09-04: \(92/360 \approx 0.2556\)
+   - 2026-09-04 → 2026-12-04: \(91/360 \approx 0.2528\)
+   - 2026-12-04 → 2027-03-04: \(90/360 = 0.25\)
+
+2. **Compute forward rates from the projection curve**
+   $$L_i = \frac{1}{\tau_i}\left(\frac{P_{3M}(0,T_{i-1})}{P_{3M}(0,T_i)}-1\right)$$
+   Using \(P_{3M}(0)=1\), the implied quarterly forwards are approximately:
+   - \(L_1 \approx 2.758\%\), \(L_2 \approx 2.778\%\), \(L_3 \approx 2.829\%\), \(L_4 \approx 2.881\%\)
+
+3. **PV the floating leg using the discount curve**
+   $$PV_{\text{float}} = N\sum_i \tau_i\,L_i\,P_d(0,T_i) \approx \$2{,}807{,}151$$
+
+4. **Compute the fixed-leg annuity and the par rate**
+   $$A^{\text{fix}}(0)=0.5\,P_d(0,\text{2026-09-04})+0.5\,P_d(0,\text{2027-03-04})=0.9820$$
+   $$c_{\text{par}}=\frac{(PV_{\text{float}}/N)}{A^{\text{fix}}(0)}\approx 2.859\%$$
+
+5. **Value an off-market fixed rate**
+   For a receive-fixed swap at \(c=3.20\%\),
+   $$V_{\text{recv}} \approx N\,(c-c_{\text{par}})\,A^{\text{fix}}(0) \approx +\$335{,}249.$$
+
+**Cashflows (Receiver-Fixed, Pay-Float; \(c=3.20\%\))**
+| Date | Cashflow | Explanation |
+|---|---:|---|
+| 2026-06-04 | \(-\$704{,}935\) | pay floating |
+| 2026-09-04 | \(+\$890{,}061\) | receive fixed, pay floating |
+| 2026-12-04 | \(-\$715{,}015\) | pay floating |
+| 2027-03-04 | \(+\$879{,}835\) | receive fixed, pay floating |
+
+**P&L / Risk Interpretation**
+- The NPV is the upfront amount (in PV terms) you would receive/pay to enter a swap at a fixed rate away from par.
+- Receiver-fixed is long rates risk: if the par swap rate rises after you trade, your PV tends to fall.
+
+**Sanity Checks**
+- **Units:** discount factors are unitless; rates are “per year”; \(\tau\) is in years; cashflows are in USD.
+- **Day-count check:** over this calendar year, the floating-leg ACT/360 accrual sums to \(365/360\approx 1.0139\), while the fixed-leg 30/360 accrual sums to exactly 1.0.
+- **Par check:** setting \(c=c_{\text{par}}\) makes the PV approximately zero (up to rounding).
 
 ### Example A: Par Swap Rate from Discount Factors (Single-Curve)
 
@@ -606,9 +700,10 @@ The client pays \$2.25 million upfront and then pays 3.50% fixed over the life o
 
 ### 25.9.3 Swap Termination and Unwinds
 
-Tuckman provides a termination example (Problem 18.3): "One year ago you paid fixed on \$10,000,000 of a 10-year interest rate swap at 5.75%. The nine-year par swap rate now is 6.25%, and the nine-year discount factor from the current swap rate curve is 0.572208."
+When you terminate (“unwind”) a swap, the economic idea is simple: exchange a cash amount equal to the swap’s NPV (plus any unpaid amounts/accruals as specified by the contract) on the termination settlement date.
 
-To terminate:
+**Rule of thumb (near par):** for the remaining maturity,
+$$V \approx N \times (c_{\text{market}} - c_{\text{old}}) \times A^{\text{fix}}.$$
 
 **Step 1: Determine who owes whom**
 
@@ -646,9 +741,9 @@ You *receive* approximately \$375,000 to terminate the swap.
 
 ### 25.10.1 Why Floaters Trade at Par
 
-Tuckman provides crucial intuition: "The key to valuing floaters is to start at the maturity date and work backward... on August 28, 2011, the ex-coupon value of the floating rate note must equal par. This valuation does not depend on the value of LIBOR on that date. Intuitively, as of the set date the floater earns the fair interest rate on three-month money for three months. And the value of a note earning the fair rate of interest over the single period of its life is simply par."
+On each reset date, a floating-rate note is approximately worth **par**: the coupon for the next period is set to the prevailing market rate for that period, so (ignoring credit and frictions) the note is “fair” for the next accrual interval.
 
-By backward induction, a floating-rate note is worth par on every reset date. Between reset dates, its value is:
+Between reset dates, the floater’s value is close to par and can be approximated by discounting the next cashflow:
 
 $$P_{\text{floater}} = \frac{N + N \cdot L_{\text{current}} \cdot \tau}{1 + L_{\text{today}} \cdot \tau'}$$
 
@@ -656,9 +751,7 @@ where $L_{\text{current}}$ is the rate already set for the current period and $\
 
 ### 25.10.2 Duration of a Floating-Rate Note
 
-Tuckman observes: "Despite the fact that the maturity of the floater is 10 years, the price of the floating rate note depends only on the short-term rate and its effect on the present value of the next payment date... Hence, by the arguments of Chapter 6, its duration is approximately equal to the time to the next payment date, that is, 0.25 years."
-
-This near-zero duration is precisely why floating-rate exposure is preferred by those wanting to avoid interest rate risk—and why the floating leg of a swap has minimal duration while the fixed leg has substantial duration.
+The key risk intuition: even if a floater has a long final maturity, its price sensitivity is dominated by the **next reset/payment**. As a result, the duration of a floater is often close to the time to the next reset (e.g., ~0.25 years for quarterly resets). This is why the floating leg of a swap has much less duration than the fixed leg.
 
 ---
 
@@ -666,7 +759,7 @@ This near-zero duration is precisely why floating-rate exposure is preferred by 
 
 ### 25.11.1 Decomposition into Period-by-Period Exposures
 
-Hull emphasizes: "Each exchange of payment in a swap can be regarded as a forward rate agreement (FRA). Because it is nothing more than a portfolio of FRAs, an interest rate swap can also be valued by assuming that forward rates are realized."
+You can view a vanilla swap as a strip of period-by-period forward contracts: each payment date exchanges “floating minus fixed” for that accrual period. This is closely related to thinking of each period as an FRA-like cash exchange.
 
 For a payer swap with aligned fixed and floating schedules, the value can be written:
 
@@ -701,9 +794,9 @@ While this chapter focuses on vanilla fixed-for-floating swaps, practitioners en
 
 ### 25.12.1 Basis Swaps (Floating-Floating)
 
-A basis swap exchanges two floating rates—for example, 3-month SOFR vs. 1-month SOFR, or SOFR vs. a legacy rate like BSBY.
+A basis swap exchanges two floating rates—for example, 3-month vs. 1-month terms of the same index, or two different floating indices.
 
-Andersen and Piterbarg describe these as essential instruments for curve construction: different floating tenors imply different forward rates due to credit and liquidity differences between tenors.
+Basis swaps matter because different tenors/indices can embed different credit/liquidity/funding components, so their forward curves can move differently. They are important both for curve construction and for managing **tenor/index basis** risk.
 
 **Why basis swaps exist:**
 - Banks have mismatched funding (borrow at 1M, lend at 3M)
@@ -735,7 +828,7 @@ Valuation treats each period as a separate swap with that period's notional.
 
 ---
 
-## 25.13 Practical Conventions
+## 25.13 Practical Setup Checklist
 
 ### 25.13.1 Standard USD Swap Conventions (Summary)
 
@@ -760,7 +853,7 @@ Even if both legs have the same quoted rate, the ACT/360 leg generates ~1.4% mor
 
 ### 25.13.3 Payment Netting
 
-In practice, when fixed and floating payments fall on the same date, only the net amount is exchanged. This reduces operational risk and settlement flows. Tuckman notes: "The fixed and floating payments are netted with the result that Apple pays Citigroup \$200,000 on June 8, 2022" rather than separate payments of \$750,000 and \$550,000.
+In practice, when fixed and floating payments fall on the same date, the payments are often **netted** so only the difference is exchanged. This reduces operational settlement flows.
 
 ---
 
@@ -785,10 +878,10 @@ In practice, when fixed and floating payments fall on the same date, only the ne
 > - Payment date falls on a holiday in one calendar but not the other
 > - Result: One-day timing differences that compound over the swap's life
 >
-> **SOFR Fixing Confusion:**
-> - Which SOFR rate applies? The rate for that day or the prior day?
-> - Did the observation shift get applied correctly?
-> - Is the 2-day lookback counting business days or calendar days?
+> **RFR Observation / Fixing Confusion:**
+> - Which dates are *observed* vs. which dates define the accrual period?
+> - How are weekends/holidays handled (day-count weights and “carried” rates)?
+> - Is there a payment delay or shifted observation window in the contract?
 >
 > **Modified Following Errors:**
 > - If a payment date falls on a weekend, does it move forward or back?
@@ -811,7 +904,7 @@ In practice, when fixed and floating payments fall on the same date, only the ne
 
 ### 25.15.1 Initial Value Structure
 
-A par swap has zero net present value at inception, but this does not mean that each cash flow exchange is worth zero. Hull explains: "The fixed rate in an interest rate swap is chosen so that the swap is worth zero initially. This does not mean that each cash flow exchange in the swap is worth zero initially. Instead, it means that the sum of the values of the cash flow exchanges is zero."
+A par swap has zero net present value at inception, but this does not mean that each cash flow exchange is worth zero. Individual exchanges can have positive or negative value; only the **sum** is zero.
 
 Consider a swap where the term structure is upward sloping and the fixed rate is being received while floating is paid. Forward rates increase with maturity, so early floating payments are expected to be lower than later ones. Since the fixed rate is constant, early exchanges favor the fixed receiver (fixed exceeds expected floating) while later exchanges favor the floating receiver (expected floating exceeds fixed).
 
@@ -823,7 +916,7 @@ This structure implies a predictable pattern for how the swap's value will evolv
 
 - **Fixed payer, upward-sloping curve**: The opposite pattern. Early exchanges have negative value to the payer, later exchanges have positive value. The swap value is expected to become positive over time.
 
-Hull notes: "These results can be used to determine whether the swap is expected to have a positive or negative value in the future."
+These patterns are useful for building intuition about expected exposure profiles, but they are not a substitute for simulation or for actual market moves.
 
 **Important caveat:** These are expected values in a risk-neutral sense. Actual swap values depend on realized rate movements. If rates decline unexpectedly, a fixed-receiver swap could have positive value throughout its life despite the initial structure suggesting otherwise.
 
@@ -840,53 +933,37 @@ This asymmetry is one reason why credit risk management for swap portfolios requ
 
 ## 25.16 Credit Risk of Swap Agreements
 
-### 25.16.1 Swap Credit Risk Is Much Lower Than Bond Credit Risk
+### 25.16.1 Why Swap Credit Exposure Is Not “Notional”
 
-A common misconception is to view swap credit risk as equivalent to bond credit risk. Tuckman clarifies: "It is not correct to view a swap as a position in a fixed rate note and an opposite position in a floating rate note when considering the implications of default."
+A swap’s notional is not exchanged. Credit exposure is therefore not “\$N at risk”; it is the **mark-to-market (NPV)**: what you would lose if the counterparty defaulted today and you had to replace the trade.
 
-The key differences:
+Key implications:
+1. **No principal at risk:** losses are bounded by the swap’s value at default, not by notional.
+2. **Netting matters:** under master agreements/clearing, offsetting trades can net, reducing exposure.
+3. **Order-of-magnitude intuition:** PV swings are often on the order of \(|DV01| \times |\Delta y_{bp}|\). For example, if a \$100 million swap has \(DV01 \approx \$40{,}000/\text{bp}\), then a 50bp move is on the order of \$2 million of PV swing—not \$100 million.
 
-1. **No principal at risk**: In a swap, notional principal is never exchanged. Default on a bond can result in loss of the entire principal; default on a swap can only cause loss of the swap's *value* at the time of default.
+### 25.16.2 Collateral and Margin (CSA / CCP)
 
-2. **Cross-default provisions**: Swap agreements typically allow one party to stop payments if the other party defaults. This limits the loss to the current value of the swap, not future cashflows.
+For many swaps, collateralization dominates the practical credit picture:
+- **Variation margin** transfers track current mark-to-market.
+- **Initial margin** is posted to cover adverse moves over the margin period of risk.
+- **Thresholds, MTAs, and margin frequency** determine residual “gap risk”.
 
-3. **Value at risk much smaller than notional**: Tuckman provides an order-of-magnitude calculation: For a $100 million 5-year swap with net DV01 of 0.039, a 50 basis point rate move puts at most $1.95 million at risk—roughly 2% of notional. "Thus the default risk of a swap is in no way comparable to the default risk of a note."
+In the idealized limit of continuous margining with zero thresholds, current exposure is largely collateralized; the remaining risk is operational and jump-to-default-style gap risk.
 
-### 25.16.2 Collateral Further Reduces Credit Risk
+### 25.16.3 Link Back to Discounting
 
-The CSA Framework governs collateral posting for most inter-dealer swaps:
-
-- **Collateral currency**: Determines which overnight rate applies
-- **Collateral rate**: Typically the overnight rate (SOFR for USD, SONIA for GBP)
-- **Threshold and minimum transfer amounts**: Operational parameters
-
-Tuckman explains the mechanism: "Swap agreements usually require cash margin, which earns interest at a short-term rate, to cover negative swap values. If the value of a swap is -$X to party A and +$X to party B, party A will have posted $X to party B as margin. If party A defaults, party B may keep the margin and terminate the swap."
-
-This collateral mechanism means that the true credit exposure on collateralized swaps approaches zero in the limit of continuous margining.
-
-### 25.16.3 Why Collateral Changes Discounting
-
-When a swap is fully collateralized with daily margin calls, the credit risk is largely eliminated. The party posting collateral earns the overnight rate on that collateral. This cost/benefit must be reflected in pricing, which leads to discounting at the overnight rate rather than a credit-risky rate.
-
-Andersen and Piterbarg note: "It is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
-
-### 25.16.4 The Internal Inconsistency in Traditional Pricing
-
-Tuckman identifies a subtle inconsistency in traditional swap pricing: "On the one hand it is assumed that there is no risk of counterparty default: The cash flows are assumed to be as specified in the swap agreement... On the other hand, all cash flows are discounted at LIBOR or swap rates (i.e., at rates containing the rolling credit risk of strong banks)."
-
-The resolution: "The market convention must be viewed as a compromise. The default risk of a swap agreement is perceived small enough to assume that promised cash flows are received and to discount these cash flows at a rate appropriate for a very strong credit, namely the rolling credit of financially sound banks."
-
-Modern OIS discounting resolves much of this inconsistency—collateralized swaps are discounted at rates reflecting minimal credit risk.
+Because collateral typically earns an overnight rate, collateralization connects naturally to OIS-style discounting (Section 25.7). Uncollateralized trades require additional credit/funding adjustments beyond this chapter’s scope; see Chapter 33 for discounting implications and later chapters for CVA/XVA concepts.
 
 ---
 
 ## 25.17 Major Uses of Interest Rate Swaps
 
-Interest rate swaps are used for three primary purposes, as Tuckman describes:
+Interest rate swaps are used for three primary purposes:
 
 ### 25.17.1 Creating Synthetic Floating-Rate Funding
 
-"While many corporations prefer floating rate debt, the market for long-term floating rate notes in the U.S. is very small." Corporations wanting floating-rate exposure have two options:
+Corporations often issue fixed-rate debt (because that investor base is deep) but prefer floating-rate exposure for internal funding or risk reasons. Two stylized approaches:
 
 1. **Roll short-term debt**: Issue and roll over commercial paper or other short-term obligations. This works for highly-rated issuers but creates *liquidity risk*—the risk that credit deterioration prevents refinancing.
 
@@ -894,7 +971,7 @@ Interest rate swaps are used for three primary purposes, as Tuckman describes:
 
 ### 25.17.2 The Comparative Advantage Argument
 
-Hull presents a classic motivation for swaps through the comparative advantage argument. Consider two companies:
+A common textbook motivation for swaps is the *comparative advantage* story. Consider two companies:
 
 | Company | Fixed Rate | Floating Rate |
 |---------|-----------|---------------|
@@ -909,19 +986,19 @@ If AAACorp wants floating and BBBCorp wants fixed:
 
 Both are better off: AAACorp pays SOFR - 0.35% (vs. SOFR + 0.3%) and BBBCorp pays 5.35% (vs. 5.2%). Total gain: 50bp, split between them.
 
-> **Practitioner Note:** Hull cautions that the comparative advantage argument is "open to question" because it assumes the spread differential reflects only credit risk, when liquidity and other factors also contribute. Nevertheless, the argument provides useful intuition for why swaps exist.
+> **Practitioner Note:** Treat this as intuition, not an arbitrage. In real markets, liquidity, balance sheet, regulation, and transaction costs complicate the story.
 
 ### 25.17.3 Mortgage Market Hedging
 
-"Perhaps the largest use of swaps is related to the mortgage market." Government-sponsored enterprises (GSEs) like Fannie Mae and Freddie Mac sell fixed-rate debt and buy mortgages. As the interest rate risk of their portfolios changes with rates and curve shape, they use swaps to manage duration.
+Mortgage-related portfolios and other callable exposures have duration that changes as rates move. Swaps let desks add or remove fixed-rate duration without buying/selling large bond positions.
 
 Mortgage servicers, who collect fees for processing mortgage payments, also face interest rate exposure and hedge with swaps. Chapter 27 discusses the interaction between mortgage hedging and swap spreads.
 
 ### 25.17.4 Hedging Future Debt Issuance
 
-A corporation planning to issue bonds can hedge against rising rates: "To hedge the future issuance of 10-year debt, for example, it can pay fixed on a 10-year swap at the time of its decision and unwind the swap at the time of its bond sale."
+A corporation planning to issue bonds can hedge against rising rates by paying fixed on a swap (or entering a forward-starting swap) when the issuance decision is made, and then unwinding the hedge when the bond is priced.
 
-**Advantage over Treasury hedging**: Swaps hedge not only the general level of rates but also, to some extent, changes in credit spreads. Tuckman notes: "The magnitude of the correlation between swap rates and credit spreads is a matter of empirical debate." However, substantial basis risk remains because swap rates reflect banking credit specifically rather than the particular corporate's credit.
+**Versus Treasury hedging:** depending on the issuer and market, swaps can track funding-relevant rates more closely than Treasuries, but substantial basis risk remains.
 
 ---
 
@@ -940,8 +1017,8 @@ Interest rate swaps exchange fixed for floating payments on a notional principal
 **Market mechanics:**
 
 6. Swaps are quoted as a spread to Treasuries in USD markets
-7. CCP clearing is mandatory for standard swaps between financial institutions
-8. SOFR swaps use compounded overnight rates with 2-day lookback conventions
+7. Many standardized swaps are centrally cleared and/or collateralized; discounting and exposure depend on the collateral/margining setup
+8. SOFR swaps use compounded overnight rates in arrears, with an observation schedule and payment timing specified in the confirmation
 9. Off-market swaps require upfront payments equal to NPV
 
 **Swap dynamics and credit:**
@@ -957,7 +1034,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -976,20 +1053,22 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $N$ | Notional principal |
-| $c$ | Fixed swap rate (annualized) |
-| $c_{\text{par}}$ | Par swap rate |
-| $\tau_j^{\text{fix}}$ | Fixed leg accrual factor for period $j$ |
-| $\tau_i^{\text{flt}}$ | Floating leg accrual factor for period $i$ |
-| $P_d(0, T)$ | Discount factor from discount curve |
-| $P_k(0, T)$ | Discount factor from projection curve for index $k$ |
-| $L_k(0; T_i, T_{i+1})$ | Forward rate for index $k$ over $[T_i, T_{i+1}]$ |
-| $A^{\text{fix}}(0)$ | Fixed-leg annuity |
-| $R_{\text{compound}}$ | Compounded SOFR rate for a period |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| $N$ | Notional principal | currency (e.g., USD) |
+| $c$ | Contractual fixed swap rate | per year; fixed-leg day count applies |
+| $c_{\text{par}}$ | Par swap rate | per year; makes $V=0$ at inception (given curves) |
+| $\tau_j^{\text{fix}}$ | Fixed leg accrual factor for period $j$ | years; fixed-leg day count (e.g., 30/360) |
+| $\tau_i^{\text{flt}}$ | Floating leg accrual factor for period $i$ | years; floating-leg day count (e.g., ACT/360) |
+| $P_d(0, T)$ | Discount factor from discount curve | unitless; used for PV of all cashflows |
+| $P_k(0, T)$ | Projection-curve discount factor for index $k$ | unitless; used to imply forwards for leg $k$ |
+| $L_k(0; T_i, T_{i+1})$ | Forward rate for index $k$ over $[T_i, T_{i+1}]$ | per year; money-market convention for $k$ |
+| $A^{\text{fix}}(0)$ | Fixed-leg annuity (sum of $\tau P_d$ on fixed schedule) | years |
+| $\text{PVBP}_{\text{fixed}}$ | PV change from bumping the contractual fixed rate by 1bp (curves fixed) | currency per 1bp; sign depends on pay/receive |
+| $DV01$ | PV change from a stated curve bump (book convention: rates down 1bp) | currency per 1bp; bump object must be specified |
+| $R_{\text{compound}}$ | Compounded overnight (RFR) rate for a period | per year; compounding-in-arrears convention |
 
 ---
 
@@ -1019,14 +1098,14 @@ The separation of projection and discounting curves is not academic pedantry—i
 | 20 | What happens to payer swap if rates rise? | Gains value (receive higher float, pay same fixed) |
 | 21 | What does "5s are 10.5 out" mean? | 5-year swap spread is 10.5bp over Treasuries |
 | 22 | What is SOFR compounding in arrears? | Daily overnight rates are compounded over the period to determine payment |
-| 23 | What is the standard SOFR observation shift? | 2 business days lookback |
+| 23 | What defines the RFR observation schedule? | The confirmation: observation dates, compounding convention, and any payment delay/lockout; do not assume a single “standard” rule |
 | 24 | Why is SOFR backward-looking vs LIBOR forward-looking? | SOFR compounds actual observed daily rates; LIBOR was a term rate known at period start |
 | 25 | What is a CCP? | Central counterparty—stands between both parties to a cleared swap |
 | 26 | For a par swap, is each cash flow exchange worth zero? | No—sum of exchange values is zero, but individual exchanges have positive/negative values |
 | 27 | If term structure is upward sloping and you receive fixed, how does swap value evolve? | Expected to become negative over time as positive-value early exchanges settle |
 | 28 | Why is swap credit risk much lower than bond credit risk? | Notional is never exchanged; loss limited to swap value at default, not principal |
 | 29 | How does collateral posting reduce swap credit risk? | Party with negative value posts margin; default loss covered by margin |
-| 30 | What creates synthetic floating-rate funding? | Issue fixed-rate debt + receive fixed / pay float in a swap |
+| 30 | DV01 (book convention): what is it and what is bumped? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object (e.g., discounting-curve zeros); units are currency per bp |
 
 ---
 
@@ -1050,7 +1129,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **Q9.** The term structure is upward-sloping and you enter a 5-year receiver swap at par. Should you expect your counterparty credit exposure to increase or decrease over the first few years? Explain.
 
-**Q10.** A $100 million swap has net DV01 of 0.045. If rates move 75bp since inception, approximately what is the maximum credit exposure?
+**Q10.** A $100 million receiver-fixed swap has $DV01 = \$45{,}000/\text{bp}$ (book convention; stated bump object). If discounting rates move **up** by 75bp since inception and the swap was entered at par, approximate the PV change and state which side has positive exposure (ignore collateral and convexity).
 
 **Q11.** The 10-year Treasury yields 4.50% and 10-year swap spreads are quoted at -5/+2 basis points. What are the bid and offer swap rates?
 
@@ -1058,7 +1137,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 ---
 
-### Solution Sketches
+### Solution Sketches (Selected)
 
 **A1.** $1 - P(0,1) = 1 - 0.965 = 0.035$
 
@@ -1078,7 +1157,11 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A9.** Decrease. With upward-sloping curve, early exchanges favor you (receive fixed > expected floating). As these positive-value exchanges settle, remaining swap expected to have negative value to you—counterparty exposure declines.
 
-**A10.** $\$100M \times (0.045/100) \times 75 = \$3.375$ million. This is the approximate mark-to-market value at risk—much smaller than the $100M notional.
+**A10.** Receiver-fixed has $DV01>0$ under the book convention, so a **rates up** move is approximately the opposite sign:
+\[
+\Delta PV \approx -DV01 \times 75 \approx -\$45{,}000 \times 75 = -\$3.375\text{ million.}
+\]
+So the receiver-fixed position is roughly \(-\$3.375\) million; the payer-fixed counterparty has positive exposure of about \$3.375 million (ignoring collateral and convexity).
 
 **A11.** Bid: 4.50% - 0.05% = 4.45%; Offer: 4.50% + 0.02% = 4.52%
 
@@ -1088,6 +1171,9 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 ## References
 
-- Hull, *Options, Futures, and Other Derivatives* (swap mechanics, valuation, and SOFR compounding examples).
-- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets* (swap PV01/annuity intuition, discounting vs projection, and desk conventions).
-- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1) (multi-curve valuation framework and curve-consistent swap pricing).
+- Hull, *Options, Futures, and Other Derivatives*, “Swaps” and “Day Count Issues”.
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets*, “Interest Rate Swaps” and “Floating Rate Notes”.
+- Andersen & Piterbarg, *Interest Rate Modeling* (Vol 1), “Multi-Curve Framework” and collateral discounting discussion.
+- Brigo & Mercurio, *Interest Rate Models — Theory and Practice*, par swap rate / annuity formulation.
+- Neftci, *Principles of Financial Engineering*, swap replication and “swap as a portfolio of FRAs”.
+- Luenberger, *Investment Science*, swap valuation intuition (floater-at-par perspective).

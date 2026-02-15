@@ -4,11 +4,20 @@
 
 ## Introduction
 
+Prerequisites: [Chapter 09 — Repo and the Funding Engine](chapters/chapter_09_repo_funding_engine.md), [Chapter 10 — Treasuries Microstructure and Relative Value](chapters/chapter_10_treasury_microstructure_relative_value.md), [Chapter 18 — OIS Discounting Curve](chapters/chapter_18_ois_discounting_curve.md), [Chapter 19 — Projection Curves (LIBOR/SOFR) and Multi-Curve](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md), [Chapter 20 — Tenor Basis](chapters/chapter_20_tenor_basis.md), [Chapter 23 — Treasury Futures](chapters/chapter_23_treasury_futures.md), [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapters/chapter_26_swap_pv01_dv01_hedging.md), [Chapter 27 — Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapters/chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md)  
+Follow-on: [Chapter 29 — FX Spot and Forwards](chapters/chapter_29_fx_spot_forwards.md), [Chapter 30 — FX Swaps and Cross-Currency Swaps](chapters/chapter_30_fx_swaps_cross_currency_swaps.md), [Chapter 31 — Multi-Currency Risk](chapters/chapter_31_multi_currency_risk.md), [Chapter 32 — Counterparty Exposure Basics](chapters/chapter_32_counterparty_exposure_basics.md), [Chapter 33 — Collateral Discounting and OIS](chapters/chapter_33_collateral_discounting_ois.md), [Chapter 34 — XVA Overview](chapters/chapter_34_xva_overview.md)
+
+## Learning Objectives
+- Decompose a rates RV/basis idea into level risk, spread risk, and residual funding/liquidity risk.
+- Translate common basis quotes into the cashflow/rate objects that drive PV.
+- Compute and interpret risk measures with explicit bump object, bump size (`1 bp = 1e-4`), units, and sign.
+- Explain why “convergence” is not arbitrage when leverage, margining, and liquidity constraints matter.
+
 In 1998, Long-Term Capital Management ran leveraged convergence and relative-value trades designed to be "rate neutral" to first order. A toy example of the archetype is long one instrument and short a closely related instrument to earn a small spread (a *basis*)—then lever it up. When Russia defaulted and markets panicked, the residual risks (liquidity premia, funding, margin) moved violently, and the positions became catastrophically unprofitable. The lesson was not that the trade was wrong in some fundamental sense—the spread eventually narrowed—but that the *path* and the *financing* can kill you long before "convergence" arrives.
 
 Every basis trade is, at its core, a bet on the difference between two similar-looking instruments. You are long one rate and short another. The instruments appear related—they might share the same maturity, reference the same credit quality, or track the same economic variable—but they are not identical. The spread between them is the *basis*, and movements in this basis determine your profit or loss.
 
-This sounds simple, but basis trades are among the most treacherous in fixed income. A trader who believes they have isolated a clean relative value opportunity often discovers, painfully, that they are exposed to risks they never intended to take. As Tuckman emphasizes in his analysis of swap spreads: "While quoted swap spreads are useful for investigating broad themes... in the small these data can be misleading." A swap spread trade is not just a bet on "credit spreads." It is simultaneously a bet on Treasury financing, on-the-run dynamics, regulatory capital treatment, mortgage hedging flows, and a dozen other factors that may not be apparent at inception.
+This sounds simple, but basis trades are among the most treacherous in fixed income. A trader who believes they have isolated a clean relative value opportunity often discovers, painfully, that they are exposed to risks they never intended to take. A swap spread position, for example, is rarely “just credit vs risk-free”: it also embeds Treasury financing, benchmark (on-the-run) dynamics, regulatory/capital effects, and convexity-hedging flows.
 
 This chapter develops a systematic framework for analyzing basis trades in rates:
 
@@ -17,7 +26,7 @@ This chapter develops a systematic framework for analyzing basis trades in rates
 3. **The OIS-IBOR Basis** (Section 28.3): The discounting vs. projection spread and how the multi-curve framework creates new basis exposures, including detailed mathematical foundations
 4. **Treasury Futures Basis** (Section 28.4): Gross/net basis, CTD optionality, and P&L mechanics—"the basis trade" that hedge funds run
 5. **Curve Relative Value** (Section 28.5): Trading the "spread of spreads" across the term structure
-6. **What Can Go Wrong: Case Studies** (Section 28.6): LTCM 1998, March 2020, and the funding/margin mechanics that blow up basis trades
+6. **What Can Go Wrong: Case Studies** (Section 28.6): LTCM 1998 and the funding/margin mechanics that blow up basis trades
 7. **Hidden Risks and Practical Execution** (Section 28.7): Funding, roll, liquidity, convexity, and the exposures traders forget
 8. **Extended Worked Examples** (Section 28.8): Twelve comprehensive numerical examples covering multi-curve valuation, basis swap pricing, DV01 hedging, and curve trades
 
@@ -31,7 +40,7 @@ The material builds directly on Chapter 20's multi-curve framework, Chapter 23's
 
 Before entering any basis position, a trader should be able to articulate precisely what they are buying and what they are selling. This sounds obvious, yet the failure to decompose trades properly has destroyed more P&L than almost any other analytical failure in fixed income.
 
-Tuckman emphasizes this principle in the context of Treasury futures basis trades: "the P&L from the long basis position equals the size of the bond position times the change in the net basis." But understanding *what drives* the net basis requires decomposing the trade into its fundamental exposures. The formula tells you how to calculate P&L; decomposition tells you *why* you will make or lose money.
+A useful identity in Treasury futures basis trades is: the P&L of a long-basis position is approximately position size times the change in **net basis**. But net basis moves for many reasons; the formula tells you how to compute P&L, while decomposition tells you *why* you will make or lose money.
 
 Consider a trader who wants to "buy the swap spread"—that is, bet that swap rates will fall relative to Treasury yields. The naive decomposition is simple: long credit risk, short risk-free rates. But this misses critical details:
 
@@ -51,6 +60,11 @@ For any rates basis trade, there are typically three layers of exposure:
 | **Level Risk** | Directional exposure to the overall level of rates | Unhedged DV01, curve parallel shift |
 | **Spread Risk** | Exposure to the spread between two rate curves | Swap spread, OIS-IBOR basis, tenor basis |
 | **Residual Risk** | Exposures that remain after hedging | Funding, roll, convexity, liquidity, positioning |
+
+A desk-friendly refinement is to split “spread risk” into three questions you can answer in a trade write-up:
+- **Discounting basis:** which curve discounts your cashflows (and under what collateral/funding assumption)?
+- **Projection basis:** which forward index/curve sets each floating coupon (and what basis quotes link it to other curves)?
+- **Liquidity/funding component:** what financing rate (repo/term funding/haircuts/margin) you are implicitly long/short?
 
 A well-structured basis trade should have *zero* level risk (be DV01-neutral), *intentional* spread risk (the view being expressed), and *minimized* residual risk (or at least, understood and accepted residual risk). The decomposition process forces the trader to verify that each layer is appropriately managed.
 
@@ -72,7 +86,7 @@ What instruments are you using to isolate the spread?
 
 **Step 3: Decompose the Hedge Imperfections**
 
-Even a "DV01-neutral" hedge is never perfect. Tuckman's analysis of trading TED spreads illustrates this: "Without the DV01 hedge, the net position in Eurodollar futures contracts would not be zero and the trade would make or lose money if bond prices stayed the same while all futures rates rose or fell by one basis point."
+Even a "DV01-neutral" hedge is never perfect. For example, if your DV01 hedge is wrong, you will make or lose money on a 1bp parallel move in the hedging rate object even if the basis itself does not move.
 
 The residual exposures include:
 - **Curve shape risk**: Steepening/flattening affects bonds and swaps differently
@@ -85,43 +99,54 @@ The residual exposures include:
 
 The critical question: If my primary view is correct (the spread moves as expected), but each residual risk moves against me by a reasonable amount, do I still make money? If the answer is "maybe not," the trade is poorly structured.
 
+### 28.1.4 Risk Language: Bump Object, Units, and Sign
+
+Basis trades are “small-spread, big-notional” positions, so tiny convention mismatches can swamp the intended view. Throughout this chapter, every risk number should come with four labels:
+
+- **Bump object:** what is actually perturbed (a yield, zero curve nodes, par quotes with rebuild, a quoted basis spread, etc.).
+- **Bump size:** `1 bp = 1e-4`.
+- **Units:** currency per 1 bp per stated notional (e.g., “$ per 1 bp per $1mm”).
+- **Sign convention:** this book uses **\(DV01 := PV(\text{rates down }1\text{ bp}) - PV(\text{base})\)** for the stated bump object.
+
+For spread/basis risks, use the same discipline. If a quoted spread \(e\) enters PV linearly (e.g., you pay “OIS + \(e\)”):
+- A natural “basis PV01” is \(PV(e\downarrow 1\text{ bp}) - PV(\text{base})\) in the same units.
+- If the spread enters through curve construction (bump quote → rebuild curve → reprice), the bump object is the **market quote** and the rebuild rule must be stated.
+
+A quick sanity check: if you cannot answer “what exactly did we bump?”, you do not yet know what your DV01/PV01 number means.
+
 ---
 
 ## 28.2 The Swap Spread Trade: Anatomy and Hidden Complexity
 
 ### 28.2.1 What Is a Swap Spread?
 
-Tuckman defines swap spreads as "simply the difference between swap rates and government bond yields of a particular maturity." The 10-year swap spread is the 10-year par swap rate minus the 10-year on-the-run Treasury yield.
+A swap spread is the difference between a swap rate and a government bond yield at (roughly) the same maturity. A common quote is the **on-the-run** Treasury yield versus the par swap rate.
 
-On the surface, this measures the credit premium of swaps (which historically referenced bank credit via LIBOR, now referencing SOFR) over Treasuries. Tuckman provides historical context: "The fall in swap spreads in the early 1990s reflected the recovery of the banking sector from its problems in the 1980s." But this simple interpretation—swap spreads as a credit barometer—conceals substantial complexity.
+The important desk caveat is that a quoted swap spread is not a “pure credit spread.” It is a spread between two instruments with different liquidity, financing, and optionality features, so its movements can mix multiple effects.
 
 ### 28.2.2 What Actually Drives Swap Spreads?
 
-Swap spreads reflect multiple factors, not just credit risk:
+Swap spreads can move for multiple reasons:
 
-**1. Credit Risk of the Banking Sector**
+**1. Funding / credit conditions**
 
-Historically, LIBOR incorporated bank credit risk; Treasuries are considered "risk-free." Even in the post-LIBOR SOFR world, the swap market reflects dealer credit conditions through funding costs. But credit alone cannot explain swap spread dynamics.
+Historically, term reference rates embedded bank term-funding premia. Even with RFR-based swaps, balance-sheet and funding conditions still affect swap pricing.
 
-**2. Supply and Demand for Treasuries**
+**2. Treasury supply/demand and liquidity premia**
 
-Treasury scarcity pushes yields down, widening swap spreads. Tuckman documents this effect: "The rise in swap spreads in the late 1990s... can be best explained by a perceived scarcity in the supply of U.S. Treasury securities relative to demand." The U.S. budget surpluses of the late 1990s reduced Treasury issuance, making Treasuries more expensive and widening swap spreads.
+The Treasury leg (especially if it is an on-the-run issue) can embed liquidity premia that have nothing to do with swap-market credit.
 
-**3. Repo Financing Dynamics**
+**3. Repo financing (“special” vs GC)**
 
-On-the-run Treasuries trade "special" in the repo market—their repo rates are below general collateral rates because of high borrowing demand. As Tuckman explains: "Investors and traders long an on-the-run security for liquidity reasons require compensation to sacrifice liquidity by lending those securities in the repo market. At the same time, investors and traders wanting to short the on-the-run securities are willing to pay for the liquidity of shorting these securities when borrowing them in the repo market."
+If the benchmark Treasury is expensive to borrow (trades “special”), the economics of shorting it can change materially. Financing can dominate the P&L of a “swap spread” package even if the spread view is correct.
 
-This financing advantage lowers the effective yield of on-the-run Treasuries, inflating measured swap spreads.
+**4. Balance-sheet / regulatory constraints**
 
-**4. Regulatory Capital**
+Changes in balance-sheet costs can shift demand between swaps and cash Treasuries, moving the spread.
 
-Swaps and Treasuries have different capital treatments under Basel III and other regulatory frameworks. Changes in these rules can shift the relative demand for swaps versus Treasury hedging.
+**5. Convexity-hedging flows (e.g., mortgages)**
 
-**5. Mortgage Hedging Flows**
-
-GSEs, mortgage servicers, and mortgage REITs use swaps extensively to hedge the duration of mortgage-backed securities. Tuckman documents this effect in detail: "Given the size and convexity of the universe of MBS, and an estimate of how much of that market is actively hedged, a 25 basis point change in the swap rate requires a hedge adjustment of about $30 billion face amount of 10-year swaps."
-
-This creates *directional behavior* in swap spreads: when rates fall, MBS duration shortens and hedgers receive fixed in swaps (narrowing spreads); when rates rise, MBS duration extends and hedgers pay fixed (widening spreads).
+Large convexity-hedging flows can create “directionality” in swap spreads: widening in selloffs and narrowing in rallies, for reasons unrelated to credit.
 
 ### 28.2.3 The "Classic" Swap Spread Trade
 
@@ -144,19 +169,17 @@ This creates *directional behavior* in swap spreads: when rates fall, MBS durati
 
 ### 28.2.4 Hidden Exposures in the Swap Spread Trade
 
-Tuckman explicitly warns that "while quoted swap spreads are useful for investigating broad themes... in the small these data can be misleading."
+Quoted swap spreads are useful for broad themes, but trade-level P&L can be dominated by details of benchmark choice, repo financing, and hedge drift.
 
 **Exposure 1: On-the-Run / Off-the-Run Dynamics**
 
-The swap spread is typically quoted against the *on-the-run* Treasury. But on-the-run securities have special characteristics that contaminate the spread:
-
-> "Liquidity premiums and special financing have a large impact on the yield of on-the-run government bonds. This means that the swap spread is not a clean measure of the credit of the banking system and of demand and supply in the swap and government bond markets." — Tuckman
+The swap spread is typically quoted against the *on-the-run* Treasury. On-the-run yields can embed liquidity and special-financing effects, so the quoted spread can be a noisy measure of the underlying relative value you think you are trading.
 
 If you short the on-the-run 10Y to trade swap spreads, you are also implicitly long the "on-the-run premium." When that premium compresses (as the bond ages off-the-run and a new issue takes its place), you may lose money even if your credit view is correct.
 
 **Exposure 2: Repo Financing**
 
-Shorting the Treasury requires borrowing it in repo. If the bond goes "special" (trades at a repo rate well below general collateral), your financing cost increases. The 5-year on-the-run/off-the-run case study from Tuckman shows the magnitude: the spread between OTR and old five-year term repo rates was 119.2 basis points.
+Shorting the Treasury requires borrowing it in repo. If the bond goes "special" (trades at a repo rate well below general collateral), your financing cost increases. In stressed or crowded conditions, specials can become large enough that financing, not spread convergence, dominates realized P&L.
 
 **Exposure 3: DV01 Mismatch Over Time**
 
@@ -172,7 +195,7 @@ To avoid contamination by on-the-run dynamics, practitioners often:
 
 1. **Use Off-the-Run Treasuries**: Trade the spread to a seasoned Treasury, accepting less liquidity but cleaner economics
 2. **Trade Asset Swaps**: Use the asset swap structure (Chapter 27) to isolate the credit component more precisely
-3. **Trade "Adjusted" Swap Spreads**: Explicitly adjust for financing advantages and liquidity premiums, though as Tuckman notes, "Both of these solutions require a good deal of subjective judgement"
+3. **Trade "Adjusted" Swap Spreads**: Explicitly adjust for financing advantages and liquidity premia (recognizing that the adjustment itself is model-dependent)
 
 ---
 
@@ -186,9 +209,9 @@ As developed in Chapter 20, the post-crisis derivatives world uses separate curv
 
 The spread between these curves is the **OIS-IBOR basis** (or in the modern SOFR-dominated world, the spread between term rates and overnight rates).
 
-Andersen and Piterbarg document the magnitude of this basis during the crisis: "While the spread between the Fed funds rate and 3 month Libor rate used to be very small—in the order of a few basis points—after September 2007 it went up to as much as 275 basis points, and it is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades."
+In stress, term unsecured funding rates can rise far above overnight secured/collateralized rates. This gap was one motivation for the multi-curve framework and for using an overnight collateral curve for discounting in many derivatives contexts.
 
-This basis is not an anomaly to be arbitraged away; it reflects genuine economic differences between overnight and term funding.
+This basis is not an anomaly to be “arbitraged away” for free: it reflects genuine economic differences (credit horizon, liquidity, and balance-sheet constraints) between overnight and term funding.
 
 ### 28.3.2 Why the Basis Exists
 
@@ -235,11 +258,7 @@ Chapter 20 covered the economic drivers of tenor basis. For the OIS-IBOR basis s
 
 ### 28.3.4 Risk Decomposition in the Multi-Curve Framework
 
-Andersen and Piterbarg provide a clean decomposition of sensitivities in the multi-curve world:
-
-> "Perturbations to instruments used in building the base index curve... define risk sensitivities to the overall levels of interest rates... Perturbations to funding instruments define sensitivities to discounting. Perturbations to basis swap spreads... define basis risk, i.e. the risk that index curves of different tenors do not move in lock step."
-
-This gives us three orthogonal risk factors:
+In a multi-curve world, it is helpful to separate three conceptually different “rate risks”:
 
 | Risk Type | What Drives It | Hedge Instrument |
 |-----------|---------------|------------------|
@@ -254,18 +273,16 @@ The framework allows traders to isolate specific risk exposures while hedging un
 **The basis widens when:**
 - **Credit stress**: Bank credit concerns push up term rates relative to OIS
 - **Liquidity hoarding**: Banks prefer to hold cash rather than lend at term tenors
-- **Quarter-end/year-end**: Regulatory constraints tighten bank balance sheets
 
 **The basis narrows when:**
 - **Risk-on sentiment**: Credit concerns abate
-- **Abundant liquidity**: Central bank operations flood the system with reserves
-- **Reduced interbank borrowing**: With ample reserves, banks don't need to borrow at term
+- **Liquidity improves**: Term funding premia fall relative to overnight
 
 ### 28.3.6 Practical Considerations for Basis Trading
 
 **Correlation with Other Positions**: OIS-IBOR basis is often *correlated* with other credit spreads. A position that is long basis may perform poorly precisely when your other spread positions (corporate bonds, CDS protection sales) also suffer. This is wrong-way risk in disguise.
 
-**Mark-to-Market Volatility**: Basis positions can show significant interim P&L swings. Andersen's 275bp figure illustrates the potential magnitude. Even if your long-term view is correct, position limits or margin calls may force liquidation at the worst time.
+**Mark-to-Market Volatility**: Basis positions can show large interim P&L swings. Even if your long-term view is correct, position limits or margin calls may force liquidation at the worst time.
 
 ### 28.3.7 Mathematical Foundations of Multi-Curve Pricing
 
@@ -354,29 +371,34 @@ holding discount curve fixed.
 
 ## 28.4 Treasury Futures Basis: The Cash-Futures Trade
 
-The Treasury futures basis trade is often called simply "the basis trade" on rates desks. It is the strategy that keeps futures priced correctly relative to cash bonds—and a strategy that can experience severe stress when funding and margin mechanics interact badly (as highlighted in episodes like March 2020). This section develops the mechanics in detail.
+The Treasury futures basis trade is often called simply "the basis trade" on rates desks. It is the strategy that keeps futures priced correctly relative to cash bonds—and a strategy that can experience severe stress when funding and margin mechanics interact badly. This section develops the mechanics in detail.
 
 ### 28.4.1 Gross Basis and Net Basis
 
-Tuckman defines these precisely. Let $P^i(t)$ be the spot price of bond $i$ at time $t$, let $P^i_{fwd}(t)$ be its forward price to the last delivery date, let $F(t)$ be the futures price, and let $cf^i$ be the conversion factor. Then:
+Let $P^i(t)$ be the spot price of bond $i$ at time $t$, let $P^i_{fwd}(t)$ be its forward price to the last delivery date, let $F(t)$ be the futures price, and let $cf^i$ be the conversion factor. Then:
 
 $$\boxed{GB^i(t) = P^i(t) - cf^i \times F(t)}$$
 
 $$\boxed{NB^i(t) = P^i_{fwd}(t) - cf^i \times F(t) = GB^i(t) - \text{carry}^i(t)}$$
 
-Tuckman explains the terminology: "The right-hand side of equation (20.12) explains the term net basis: It is the gross basis net of carry."
+The term *net* basis is “gross basis net of carry.”
 
 At delivery, the forward price equals the spot price (carry equals zero), so gross basis equals net basis. Furthermore, both measures equal the cost of delivery.
 
+> **Pitfall — Gross vs. net basis (carry double-counting):** Gross basis is a spot–futures gap; net basis adjusts gross basis for carry/financing to delivery.
+> **Why it matters:** If you forecast/mark P&L using net basis changes, and then separately add “carry”, you can overstate expected returns and mis-size leverage.
+> **Quick check:** If you compute P&L as \(G^i\,[NB^i(t')-NB^i(t)]\) (or its short-basis analog), stop—do **not** add coupon minus repo carry again unless you are using *gross* basis consistently.
+
 ### 28.4.2 The Long Basis Trade Construction
 
-A long basis trade in bond $i$, as Tuckman describes:
+A long basis trade in bond \(i\) can be implemented as:
+- Buy \(G^i\) face amount of deliverable bond \(i\).
+- Finance it in repo to the last delivery date.
+- Sell \(cf^i \times G^i / 100{,}000\) futures contracts.
 
-> "Buy $G^i$ face amount of deliverable bond $i$. Sell the repo of bond $i$ to the last delivery date. Sell $cf^i \times G^i / 100,000$ futures contracts."
+Economically, “buy bond + repo financing” is a bond **forward** position to the delivery date, so the package is long the bond forward and short the futures (in conversion-factor-adjusted size).
 
-This is equivalent to buying the bond forward and selling the futures. Tuckman notes an important feature: "Note that buying or selling the basis in this form involves no cash outlay: The repo position finances or invests the bond proceeds, and the futures trade, by definition, requires no cash."
-
-However, Tuckman immediately adds the critical caveat: "This discussion, of course, abstracts from futures margin requirements and repo haircuts." This abstraction is precisely what makes the basis trade *not* an arbitrage—you need capital for margin and haircuts.
+In a frictionless description this looks “zero-cash” (repo finances the bond; a futures position is entered at zero cost), but in practice you must fund **repo haircuts** and **futures margin**, so the trade consumes capital and can be forced out by funding/margin shocks.
 
 **Long Basis Trade:**
 - Buy bond, finance via repo, sell futures
@@ -392,32 +414,55 @@ The P&L from a long basis trade is remarkably simple:
 
 $$\boxed{\text{P\&L} = G^i \times [NB^i(t') - NB^i(t)]}$$
 
-Tuckman states: "In words, (20.15) says that the P&L from the long basis position equals the size of the bond position times the change in the net basis."
-
 This formula encapsulates everything: you profit if the net basis widens, lose if it narrows.
 
-> **Worked Example: Treasury Futures Basis Trade P&L**
->
-> A trader sells $100 million face of the 4.75s of November 15, 2008 net basis at 7.45 ticks into TYM0.
->
-> **Initial position:**
-> - Short $100mm bond forward
-> - Long futures (conversion-factor weighted)
-> - Net basis = 7.45 ticks = 7.45/32 per 100 face
->
-> **Scenario 1: Net basis narrows to 3 ticks**
-> - P&L = $100mm × (7.45 - 3)/32 / 100 = $100mm × 4.45/3200 = **+$139,063**
->
-> **Scenario 2: Net basis widens to 22 ticks**
-> - P&L = $100mm × (7.45 - 22)/32 / 100 = $100mm × (-14.55)/3200 = **-$454,688**
->
-> The trade profits if the net basis narrows (as it will at delivery), but can lose significantly if the basis widens in the interim.
+**Example Title**: Net-basis P&L on a short-basis position (ticks → dollars)
+
+**Context**
+- You are short net basis in a deliverable bond vs futures: you expect convergence (net basis to fall) and you are trying to be close to rate-neutral.
+- The goal is to see how small tick moves translate into large dollar P&L on big notionals.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: 2000-02-28
+- Horizon / mark date: 2000-05-19
+- Last delivery date: 2000-06-30
+
+**Inputs**
+- Face amount: \(G = \$100{,}000{,}000\).
+- Net basis at entry: \(NB_{\text{entry}} = 7.45\) ticks.
+- Scenario A (convergence): \(NB = 3.00\) ticks.
+- Scenario B (adverse widening): \(NB = 22.00\) ticks.
+- Quote convention: 1 tick = \(1/32\) of a price point; price points are per 100 face.
+
+**Outputs (What You Produce)**
+- P&L at horizon for a **short-basis** position:
+  - Scenario A: \(+\$139{,}063\)
+  - Scenario B: \(-\$454{,}688\)
+- Scaling: for \(G=\$100\)mm face, 1 tick \(\approx \$31{,}250\).
+
+**Step-by-step**
+1. Tick change: \(\Delta NB_{\text{ticks}} = NB_{\text{exit}} - NB_{\text{entry}}\).
+2. Convert ticks to points per 100: \(\Delta P = \Delta NB_{\text{ticks}}/32\).
+3. Convert to dollars: \(P\&L_{\text{long}} = G \cdot (\Delta P/100)\), so \(P\&L_{\text{short}} = -P\&L_{\text{long}}\).
+4. Scenario A: \(\Delta NB = 3.00-7.45=-4.45\) ticks ⇒ \(P\&L_{\text{short}}=+\$100\text{mm}\cdot(4.45/32)/100=+\$139{,}063\).
+5. Scenario B: \(\Delta NB = 22.00-7.45=14.55\) ticks ⇒ \(P\&L_{\text{short}}=-\$100\text{mm}\cdot(14.55/32)/100=-\$454{,}688\).
+
+**Cashflows (table)**
+| Date | Cashflow | Explanation |
+|---|---|---|
+| 2000-05-19 | MTM P&L | From change in net basis; ignores funding cost and the *timing* of margin/haircut cashflows |
+
+**P&L / Risk Interpretation**
+- “Rate-neutral” is not the same as “path-safe”: net basis near CTD behaves like an option, so it can widen in either a rally or a selloff.
+- Margin and repo haircuts can force liquidation before delivery convergence.
+
+**Sanity Checks**
+- Units: ticks → points per 100 → dollars.
+- Sign: short basis profits when net basis falls.
 
 ### 28.4.4 What the Net Basis Represents: CTD Optionality
 
-The net basis captures the value of the delivery options embedded in the futures contract. Tuckman explains:
-
-> "Continuing to assume that futures positions are properly tailed, the net basis at time $t$ is the value of the quality option at delivery, with respect to bond $i$, that can be locked in as of date $t$."
+The net basis captures the value of the delivery options embedded in the futures contract. Under proper “tailing” conventions, the net basis of a particular bond can be interpreted as the value (with respect to that bond) of the short’s **quality option** at delivery: the cost of being committed to deliver bond \(i\) rather than being free to deliver the CTD.
 
 The short futures holder has embedded options:
 
@@ -427,13 +472,11 @@ The short futures holder has embedded options:
 
 **3. End-of-Month Option**: After the last trading day, the short can still deliver based on the final settlement price while bond prices may have moved
 
-Tuckman explains the key intuition: "If the net basis of any bond is near zero, then the quality option embedded in the contract is nearly worthless and selling that bond forward is equivalent to selling the futures contract."
+Key intuition: if a bond’s net basis is near zero, then the quality option “with respect to that bond” is nearly worthless—selling that bond forward is close to selling the futures contract (because the bond is close to CTD under current conditions).
 
 ### 28.4.5 Net Basis Behavior: Like a Straddle on Rates
 
-This is one of the most important practical insights from Tuckman's analysis. The net basis of a bond close to CTD behaves *like a straddle on rates or prices*:
-
-> "The net basis of the 6.50s of February 15, 2010, increases when rates fall and when rates rise. The 6.50s of February 15, 2010, are very close to CTD at yield levels as of November 26, 2001. Any change in rates pushes them away from CTD and raises their net basis. Thus, the net basis of a bond close to CTD behaves like a straddle on rates or prices."
+One of the most useful “feel” results is that a bond close to CTD can have net basis that behaves *like a straddle on yields*: it can increase when yields fall and also when yields rise, because either move can push the bond away from CTD and increase the value of the delivery optionality.
 
 For bonds away from CTD, the behavior is directional:
 - **Short-duration bonds**: Net basis behaves like a call on rates (put on prices)—rises when rates rise
@@ -441,11 +484,9 @@ For bonds away from CTD, the behavior is directional:
 
 This option-like behavior explains why basis trades have significant tail risk: a large rate move in either direction can cause substantial losses for a short basis position in a near-CTD bond.
 
-> **Desk Reality: The CTD Switch Risk**
->
-> When you sell the basis in a near-CTD bond, you are implicitly short volatility. A large parallel move in either direction will push your bond away from CTD, widening the net basis and generating losses. This is why many basis traders hedge with futures options—to protect against the "straddle-like" downside.
->
-> Tuckman's case study shows this: traders who sold the November '08 net basis at 7.45 ticks saw it widen to over 22 ticks during a rally—a loss of $455,000 on $100mm before option hedges.
+> **Desk Reality:** Near-CTD short-basis positions are implicitly short “CTD-switch” optionality (short volatility).
+> **Common break:** A parallel rally or selloff pushes your bond away from CTD and the net basis widens, generating losses even if you expect delivery convergence.
+> **What to check:** Stress net basis under \(\pm 50\) bp parallel shifts and plausible CTD switches; size so that interim widening + margin/haircuts are survivable (options are sometimes used to cap the tail).
 
 ### 28.4.6 CTD Dynamics: When the Cheapest Bond Changes
 
@@ -473,7 +514,7 @@ When yields move significantly, the CTD can switch to a different bond. For a sh
 > **Scenario:** Yields fall 50bp in parallel
 > - Short-duration bonds (4.75s, 5.50s) move toward CTD
 > - The 6.50s move away from CTD
-> - Net basis of 6.50s might widen from 13.8 to 25+ ticks
+> - Suppose the net basis of the 6.50s widens from 13.8 to 25.0 ticks
 >
 > A $50mm short basis position in the 6.50s would lose approximately:
 > - $50mm × (25 - 13.8)/32 / 100 = $175,000
@@ -485,8 +526,7 @@ When yields move significantly, the CTD can switch to a different bond. For a sh
 ### 28.5.1 What Is a Spread of Spreads Trade?
 
 Often the absolute level of a spread is uncertain, but the *relative* relationship between two spreads appears mispriced. This leads to "spread of spreads" trades—positions designed to profit from the convergence of two spreads regardless of their absolute levels.
-
-Tuckman discusses this explicitly in the context of TED spreads: "This trade is typically designed not to express an opinion about the absolute level of TED spreads but, rather, to express the opinion that the TED of the 4.75s of November 15, 2003, is too high relative to that of the 4s of August 15, 2003. In trader jargon, this trade is usually intended to express an opinion about the spread of spreads."
+In trader language, you are expressing a view on *relative richness/cheapness* (spread A vs spread B), not on the absolute level of rates.
 
 ### 28.5.2 Example: Trading TED Spread Differentials
 
@@ -503,7 +543,7 @@ Tuckman discusses this explicitly in the context of TED spreads: "This trade is 
 **What You're Short**:
 - Bond B's cheapness relative to Bond A
 
-**Critical Hedge Construction**: As Tuckman emphasizes, "Without the DV01 hedge, the net position in Eurodollar futures contracts would not be zero and the trade would make or lose money if bond prices stayed the same while all futures rates rose or fell by one basis point."
+**Critical Hedge Construction**: A spread-of-spreads trade should be (approximately) DV01-neutral (or key-rate-neutral) so that a parallel shift in rates does not dominate the P&L.
 
 The trade must be constructed so that:
 1. Each bond is hedged against its own rate risk using futures
@@ -514,7 +554,7 @@ Only then does the trade generate P&L solely from the spread of spreads.
 
 ### 28.5.3 The Five-Year OTR/Old Five-Year Trade
 
-Tuckman's Appendix 18A provides a detailed case study of trading the spread between on-the-run and off-the-run five-year Treasuries via asset swaps.
+A classic spread-of-spreads example is trading the spread between on-the-run and off-the-run Treasuries via asset swaps.
 
 **Setup on January 17, 2001:**
 - OTR 5Y (5.75% Nov 2005): Yield 4.852%, Spread to swaps -91.3 bp
@@ -525,11 +565,9 @@ Tuckman's Appendix 18A provides a detailed case study of trading the spread betw
 
 **The Trade**: Sell the OTR asset swap, buy the old 5Y asset swap, sized so DV01s match.
 
-**Result**: Tuckman reports: "The spread of spreads fell so that the OTR five-year was 2.9 basis points rich to the old five-year. On January 17, 2001, that spread had been sold forward to May 8, 2001, at 7.6 basis points. Therefore, on a position short $100,000,000 5.75s of November 15, 2005, with a forward DV01 of .04086, the profit from the trade was approximately" $192,000.
+**Result (computed below)**: The forward spread of spreads narrows from 7.6 bp to 2.9 bp, producing a profit of about $192k for a $100mm position with forward DV01 0.04086 per bp.
 
 > **Worked Example: Spread of Spreads P&L**
->
-> From Tuckman's case study:
 >
 > **Initial Position (Jan 17, 2001):**
 > - Short $100mm OTR 5Y asset swap at -91.3 bp spread
@@ -572,91 +610,38 @@ This section examines three historical episodes where basis trades failed catast
 
 ### 28.6.1 Case Study 1: Long-Term Capital Management, 1998
 
-Hull's Business Snapshot 22.1 provides the canonical description of LTCM's failure:
+LTCM is a canonical failure mode for convergence/RV trades. The investment strategy was known as **convergence arbitrage**: buy a less-liquid instrument and short a corresponding more-liquid instrument, expecting their prices to converge.
 
-> "Long-Term Capital Management (LTCM), a hedge fund formed in the mid-1990s, always collateralized its transactions. The hedge fund's investment strategy was known as convergence arbitrage. A very simple example of what it might do is the following. It would find two bonds, X and Y, issued by the same company promising the same payoffs, with X being less liquid (i.e., less actively traded) than Y. The market always places a value on liquidity. As a result, the price of X would be less than the price of Y. LTCM would buy X, short Y, and wait, expecting the prices of the two bonds to converge at some future time."
+In the summer of 1998, a Russian debt default triggered a flight to quality. LTCM tended to be long illiquid instruments and short the corresponding liquid instruments (e.g., long off-the-run bonds and short on-the-run bonds). The spreads widened sharply. Because LTCM was highly leveraged, the losses generated margin calls that were difficult to meet.
 
-The strategy seemed safe: LTCM was hedged against parallel moves in interest rates. When rates rose, both bonds fell; when rates fell, both rose. The positions were designed to profit from *relative* convergence, not directional rate moves.
+Trading takeaway: run scenario analysis and stress testing for “worst of all worlds” outcomes, not just expected convergence.
 
-**What Went Wrong:**
+### 28.6.2 Case Study 2: Funding Shock (Repo and Term Funding)
 
-Hull continues: "In August 1998, Russia defaulted on its debt and this led to what is termed a 'flight to quality' in capital markets. One result was that investors valued liquid instruments more highly than usual and the spreads between the prices of the liquid and illiquid instruments in LTCM's portfolio increased dramatically."
+Even outside marquee crisis windows, funding liquidity can tighten abruptly. For a basis trade that is long a cash bond financed in repo, higher repo rates and/or worse financing terms can:
+- Reduce carry (coupon minus financing cost).
+- Force deleveraging if the financing horizon shortens or haircuts rise.
 
-The key insight is that LTCM's positions were *not* hedged against changes in the liquidity premium. When investors panicked, they paid *more* for liquidity, causing the liquid instruments LTCM had shorted to rally and the illiquid instruments it owned to fall. The spread widened instead of narrowing.
+**Toy sizing example (illustrative, not historical):** financing \(\$1\) billion overnight, moving repo from \(2\%\) to \(10\%\) changes daily interest cost from
+- \(\$1\text{bn} \times 2\% \times (1/360) = \$55{,}556\) per day to
+- \(\$1\text{bn} \times 10\% \times (1/360) = \$277{,}778\) per day,
+an extra \(\$222{,}222\) per day. On a trade targeting a few ticks/bp of convergence, that can dominate the economics.
 
-Hull describes the margin dynamics: "The prices of the bonds LTCM had bought went down and the prices of those it had shorted increased. It was required to post collateral on both. The company was highly leveraged and found it difficult to make the payments required under the collateralization agreements. The result was that positions had to be closed out and there was a total loss of about $4 billion."
+Lesson: term repo reduces funding cliff risk but usually costs more; sizing needs to reflect the worst plausible funding path, not just the expected convergence.
 
-**The Knock-On Effect:**
+### 28.6.3 Case Study 3: Margin and Liquidity Feedback Loop (Cash–Futures)
 
-Hull emphasizes the feedback loop: "Many hedge funds were following similar trading strategies to those of LTCM in 1998. When the flight to quality started, they were all forced to unwind their positions at the same time. Unwinding meant selling illiquid securities and buying liquid securities, reinforcing the flight to quality and making it more severe than previous flights to quality."
+Cash–futures basis trades combine two very different settlement mechanics.
 
-This is the "crowded trade" problem: when everyone has the same position, forced liquidation becomes self-reinforcing.
+Futures positions are settled daily: at the end of each day the position is marked to market and gains/losses are settled through variation margin (pay variation margin when you lose; receive it when you gain). In significant price volatility, intraday variation margin can also be required; if margin requirements are not met, positions can be closed out.
 
-**The Trading Lesson:**
+Cash bonds are typically funded (e.g., via repo). They are marked to market, but the gain is not automatically converted into cash on the futures settlement timeline. Turning the bond gain into usable cash depends on repo terms or on selling the bond, and haircuts can rise.
 
-Tuckman makes this point directly in the context of basis trades: "the explanation at the time for the cheapening of the futures contract from April 3, 2000, to April 10, 2000, was that many traders were forced to liquidate short basis positions. Since such liquidations entail selling futures and buying bonds, enough activity of this sort will cheapen the contract relative to bonds."
+This creates a common failure mode: the position can be “economically hedged” but fail a liquidity test. You can owe cash on the futures leg today while the bond gain is not immediately usable (or becomes expensive to monetize) on the same timeline.
 
-### 28.6.2 Case Study 2: September 2019 Repo Spike
-
-> **Practitioner Note (Claude-extended):** This event post-dates most textbook sources but illustrates funding risk in basis trades.
-
-In mid-September 2019, overnight repo rates spiked sharply over a short window (the exact level depends on the segment, collateral, and venue). The episode is often associated with timing effects like Treasury settlements and corporate tax dates—highlighting that "overnight" funding is not a constant.
-
-**Impact on Basis Trades:**
-
-The basis trade requires financing the long bond position via repo. When repo rates spike:
-- The cost of carrying the long bond position increases dramatically
-- If the repo is overnight (not term), the trader faces immediate funding pressure
-- The "carry" component of the basis calculation becomes more negative
-
-For a levered basis trader financing $1 billion of Treasuries overnight, a move in repo from 2% to 10% would change daily financing cost from:
-- $1bn × 2% × (1/360) = $55,556 per day
-- $1bn × 10% × (1/360) = $277,778 per day
-
-The extra $222,222 daily cost erodes the thin profits that basis trades generate. More importantly, if repo markets seize up entirely, the trader may not be able to finance at all and be forced to liquidate.
-
-**The Lesson:**
-
-Term repo (locking in financing for the duration of the trade) is more expensive than overnight repo but reduces funding cliff risk. The September 2019 episode is a reminder that funding can move abruptly even outside the marquee crisis windows.
-
-### 28.6.3 Case Study 3: March 2020 Treasury Dislocation
-
-> **Practitioner Note (Claude-extended):** This event post-dates most textbook sources but is the most important recent example of basis trade failure.
-
-In March 2020, the COVID-19 shock coincided with severe liquidity stress ("dash for cash"). In that environment, the cash-futures relationship became dislocated and the Treasury basis widened sharply.
-
-**What Happened:**
-
-The basis—the spread between cash Treasuries and Treasury futures—widened instead of narrowing. Levered basis trades (long cash Treasuries, short futures) can lose money even if the trader thinks they are "rate neutral," because the P&L is dominated by the relative cash-vs-futures move. Futures are daily-margined, so losses translate into immediate cash outflows; funding the cash Treasury leg at the same time can become harder and more expensive.
-
-The "dash for cash" meant that even the safest assets—U.S. Treasuries—were being sold to raise liquidity. As leveraged basis traders faced margin calls, they were forced to sell their Treasury holdings, driving prices lower and widening the basis further.
-
-**Federal Reserve Intervention:**
-
-The dislocation was severe enough that the Federal Reserve took extraordinary steps to restore Treasury market functioning (including large-scale purchases and liquidity facilities). The basis eventually narrowed—but not before many basis traders had been forced out of their positions at poor levels.
-
-**The Key Lesson:**
-
-The March 2020 episode demonstrated that:
-1. **Flight to quality doesn't always mean Treasury rally:** When the flight is to cash itself, even Treasuries can be sold
-2. **Leverage creates forced selling:** Margin calls create a feedback loop where selling begets more selling
-3. **Basis convergence is not guaranteed:** Even trades that are correct at maturity can force you out before convergence
-4. **Central bank intervention may be required:** The dislocation was only resolved by extraordinary Fed action
-
-> **The Critical Warning:**
->
-> **Basis Trades Are NOT Arbitrage**
->
-> True arbitrage requires guaranteed convergence with no capital at risk. The Treasury basis trade has:
-> - **Funding risk:** Repo rates can spike; term financing is limited
-> - **Margin risk:** Futures are daily-margined; margin calls create liquidity demands
-> - **CTD risk:** Your bond may stop being cheapest-to-deliver
-> - **Liquidity risk:** You may not be able to unwind at reasonable prices
-> - **Path risk:** Even if you're right at maturity, interim losses can force liquidation
->
-> Hull emphasizes: "If the company had been less highly leveraged it would probably have been able to survive the flight to quality and could have waited for the prices of the liquid and illiquid bonds to become closer."
->
-> The lesson: size positions for the worst-case drawdown path, not just the expected terminal P&L.
+> **Desk Reality:** A basis book can be PV-hedged and still blow up on cashflow timing.
+> **Common break:** Futures variation margin outflows arrive faster than bond P&L can be monetized, forcing deleveraging into a widening basis.
+> **What to check:** run a liquidity stress that combines (i) adverse basis move, (ii) higher haircuts/margins, and (iii) reduced funding horizon.
 
 ---
 
@@ -666,7 +651,7 @@ The March 2020 episode demonstrated that:
 
 Almost every basis trade requires financing. Changes in funding costs directly affect P&L.
 
-Tuckman illustrates this with asset swap mechanics: "The net cash flow from the asset swap trade... is LIBOR plus 15 basis points minus the repo rate."
+In an asset-swap-like package, the net “carry” is roughly: floating index + spread − financing rate. If financing spikes, carry shrinks or turns negative.
 
 If you enter a basis trade earning a spread over financing, and financing rates spike, your periodic income shrinks or turns negative. This is particularly dangerous for leveraged positions where the spread earned is small relative to the total financing cost.
 
@@ -687,17 +672,13 @@ Basis trades age. The passage of time affects P&L through multiple channels:
 
 ### 28.7.3 Liquidity Risk: The Crowded Trade Problem
 
-Tuckman's FNMA case study provides a stark illustration:
-
-> "Many investors and traders had reasoned along the lines of the previous paragraph, had taken account of recent history, and had bought the agency against swaps at asset swap spreads of 0, 10, 15, and so on. As spreads continued to widen, these positions lost a good deal of money and forced liquidations that, in turn, widened the spreads even further."
-
-This is the danger of "crowded trades"—when everyone has the same basis position, liquidation pressure becomes self-reinforcing. The trade may be fundamentally correct (FNMA was extremely unlikely to default), but the path can be devastating. The asset swap spread of the FNMA 6.25s of May 15, 2029 widened from near zero to over 50 basis points before eventually normalizing.
+This is the danger of "crowded trades"—when many participants have the same basis position, adverse moves trigger forced unwinds. Those liquidations can further widen the basis, creating a feedback loop. A trade can be “fundamentally” right and still be forced out on the path.
 
 ### 28.7.4 Convexity Mismatches
 
 For large rate moves, the different convexity profiles of the instruments in a basis trade create P&L that was not part of the original thesis.
 
-The most significant example is mortgage hedging. Tuckman documents the mechanics: when rates fall, MBS duration shortens (negative convexity), and hedgers receive fixed in swaps to compensate. This concentrated receiving pressure narrows swap spreads. When rates rise, the reverse occurs—hedgers pay fixed, widening spreads.
+A major example is mortgage convexity hedging. When rates fall, MBS duration shortens (negative convexity), and hedgers receive fixed in swaps to compensate. This concentrated receiving pressure can narrow swap spreads. When rates rise, the reverse occurs—hedgers pay fixed, widening spreads.
 
 The implication: swap spreads exhibit "directionality." They tend to widen in selloffs and narrow in rallies, not because of credit fundamentals, but because of the convexity hedging needs of the MBS market. A trader who is short swap spreads (receiving fixed, short Treasuries) is implicitly short the volatility of the mortgage market.
 
@@ -727,7 +708,7 @@ The daily margining of futures creates cash flow volatility even when the net P&
 
 Basis trades should be sized based on three factors:
 
-**Maximum drawdown tolerance**: How much interim loss can you sustain without being forced to exit? The FNMA case shows that even fundamentally sound trades can experience drawdowns of 50+ basis points.
+**Maximum drawdown tolerance**: How much interim widening can you sustain without being forced to exit? Even trades that eventually converge can experience large drawdowns on the path.
 
 **Bid-offer costs**: Basis trades often have multiple legs; each has execution cost. A trade earning 5bp that costs 2bp to enter and 2bp to exit has thin economics.
 
@@ -735,7 +716,7 @@ Basis trades should be sized based on three factors:
 
 ### 28.7.7 Entry and Exit
 
-**Entry**: Look for both technical dislocations (forced selling, quarter-end distortions) and fundamental mispricings. The best basis trades combine a sound economic thesis with a catalyst that will cause convergence.
+**Entry**: Look for both technical dislocations (forced selling, balance-sheet constraints) and fundamental mispricings. The best basis trades combine a sound economic thesis with a catalyst that will cause convergence.
 
 **Exit**: Define the exit criteria before entry:
 - Target profit level
@@ -795,8 +776,8 @@ $$P_d(0,1) = 0.9700,\quad P_d(0,2) = 0.9400,\quad P_d(0,3) = 0.9100.$$
 
 - Projection forwards (IBOR) taken from the legacy curve via simple no-arb identities:
 $$\begin{aligned}
-L(0,0,1) &= \frac{1}{P_L(0,1)} - 1 = \frac{1}{0.9650} - 1 = 0.036269,\\[4pt]
-L(0,1,2) &= \frac{P_L(0,1)}{P_L(0,2)} - 1 = \frac{0.9650}{0.9250} - 1 = 0.043243,\\[4pt]
+L(0,0,1) &= \frac{1}{P_L(0,1)} - 1 = \frac{1}{0.9650} - 1 = 0.036269,\\
+L(0,1,2) &= \frac{P_L(0,1)}{P_L(0,2)} - 1 = \frac{0.9650}{0.9250} - 1 = 0.043243,\\
 L(0,2,3) &= \frac{P_L(0,2)}{P_L(0,3)} - 1 = \frac{0.9250}{0.8850} - 1 = 0.045197.
 \end{aligned}$$
 
@@ -1611,9 +1592,9 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 1. **Every basis trade has a decomposition**: Before entering, articulate precisely what you are long, what you are short, and what residual risks remain after hedging. Use the three-layer framework: level risk, spread risk, residual risk.
 
-2. **Swap spreads are not "pure credit"**: They reflect Treasury supply/demand, repo specialness, regulatory capital, and mortgage hedging flows. The on-the-run benchmark contaminates the measurement. Tuckman warns that quoted swap spreads can be "misleading in the small."
+2. **Swap spreads are not "pure credit"**: They mix Treasury liquidity/financing (including repo specialness), balance-sheet effects, and convexity-hedging flows. Benchmark choice (on-the-run vs fitted) can contaminate the signal.
 
-3. **The OIS-IBOR basis** separates discounting from projection: Trading it means taking a view on bank credit, liquidity conditions, and the term structure of funding. Andersen documents the potential magnitude: 275bp during the crisis.
+3. **The OIS-IBOR basis** separates discounting from projection: Trading it means taking a view on term funding premia and liquidity/credit conditions, not a free arbitrage. The basis can widen materially in stress.
 
 4. **Treasury futures basis** captures delivery option value: The net basis equals the value of the short's delivery options minus any mispricing. P&L follows the simple formula: position size × change in net basis. Near-CTD net basis behaves like a straddle on rates.
 
@@ -1631,7 +1612,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -1653,7 +1634,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 ---
 
-## Notation for This Chapter
+## Notation
 
 | Symbol | Definition |
 |--------|------------|
@@ -1690,22 +1671,22 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | 7 | How does net basis of a short-duration bond behave? | Like a call on rates (put on prices)—increases when rates rise |
 | 8 | How does net basis of a long-duration bond behave? | Like a put on rates (call on prices)—increases when rates fall |
 | 9 | Why is the swap spread not a "pure" measure of bank credit? | It also reflects Treasury supply/demand, repo specialness, regulatory capital, and mortgage hedging flows |
-| 10 | What three risk types exist in the multi-curve framework according to Andersen? | Rate level risk, discounting risk, and basis risk |
+| 10 | What three risk types exist in a multi-curve framework? | Rate level risk, discounting risk, and basis risk |
 | 11 | What is a "spread of spreads" trade? | A trade that profits from convergence between two spreads, neutral to the absolute level of either |
 | 12 | What does a long basis trade in Treasury futures bet on? | That the delivery options embedded in the futures contract have value that will be realized (net basis widens) |
-| 13 | Why did the OIS-IBOR basis widen dramatically in 2007-2008? | Bank credit concerns and liquidity hoarding drove term rates up relative to overnight rates—to 275bp per Andersen |
+| 13 | Why did the OIS-IBOR (or LIBOR–OIS) basis widen in 2007–2009 stress? | Term unsecured funding embedded credit/liquidity premia relative to overnight rates; in stress, lenders demand much larger compensation for term bank exposure |
 | 14 | Why is using on-the-run Treasuries problematic for swap spread trades? | The on-the-run premium and special repo contaminate the spread; it's not purely about credit |
 | 15 | What is "funding risk" in a basis trade? | The risk that financing costs change during the life of the trade, affecting the carry earned |
 | 16 | How should a spread of spreads trade be DV01-constructed? | Each leg hedged so the combined DV01 is zero; profits only from spread convergence |
-| 17 | What is the "crowded trade" problem illustrated by FNMA and LTCM? | When many traders have the same position, forced liquidation becomes self-reinforcing |
+| 17 | What is the "crowded trade" problem? | When many traders have the same position, forced liquidation becomes self-reinforcing |
 | 18 | How does the passage of time affect a Treasury futures basis trade? | The net basis must converge to the cost of delivery at expiration |
 | 19 | What residual risks remain even in a "DV01-neutral" basis trade? | Curve shape, convexity, funding, roll, and liquidity/positioning risks |
 | 20 | What market factor creates "directionality" in swap spreads? | Mortgage hedging: hedgers receive fixed when rates fall (narrowing spreads), pay fixed when rates rise (widening spreads) |
-| 21 | What does Tuckman say about quoted swap spreads for detailed analysis? | "While quoted swap spreads are useful for investigating broad themes... in the small these data can be misleading" |
+| 21 | Why can quoted swap spreads mislead in detailed trade analysis? | Benchmark choice (OTR vs fitted) and on-the-run liquidity/financing can dominate short-horizon P&L |
 | 22 | In the multi-curve world, what do perturbations to basis swap spreads measure? | Basis risk—the risk that index curves of different tenors do not move in lock step |
 | 23 | Why might a fundamentally correct basis trade still lose money? | Residual risks (funding, positioning, convexity) can overwhelm the primary thesis during adverse mark-to-market moves |
-| 24 | What happened to LTCM in 1998? | Flight to quality widened spreads instead of narrowing; leverage + margin calls forced liquidation; $4 billion loss |
-| 25 | What happened in March 2020 to Treasury basis trades? | Severe funding/liquidity stress widened the cash-futures basis; margin/funding pressure forced deleveraging; the Fed intervened to stabilize market functioning |
+| 24 | What happened to LTCM in 1998 (high level)? | Flight to quality widened liquidity spreads; leverage + margin calls forced deleveraging before convergence |
+| 25 | What is a common failure mode of levered cash–futures basis trades? | Funding/haircuts tighten and futures variation margin drains cash faster than bond P&L can be monetized, forcing deleveraging into a widening basis |
 | 26 | What are the four reasons basis trades are NOT arbitrage? | Funding risk, margin risk, CTD risk, liquidity risk (plus path risk to add a fifth) |
 | 27 | What is a long basis trade construction? | Buy bond, finance via repo, sell futures (equivalent to long forward, short futures) |
 | 28 | What is a short basis trade construction? | Sell bond, invest proceeds, buy futures (equivalent to short forward, long futures) |
@@ -1714,15 +1695,15 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | 31 | What drives CTD to short-duration bonds? | High yields (above the notional coupon rate) |
 | 32 | What drives CTD to long-duration bonds? | Low yields (below the notional coupon rate) |
 | 33 | What does a steep yield curve do to CTD? | Richens shorter-duration bonds, pushes CTD toward longer-duration bonds |
-| 34 | What was the spread between 3M LIBOR and Fed funds at the peak of the 2008 crisis? | 275 basis points (per Andersen and Piterbarg) |
+| 34 | How large can the LIBOR–OIS spread get in stress? | It can move from single-digit bp in calm markets to hundreds of bp in severe stress (exact peak depends on definition and episode) |
 | 35 | What is term repo vs overnight repo? | Term repo locks in financing for a fixed period; overnight repo must be rolled daily (funding cliff risk) |
 | 36 | Why is the basis trade "not an arbitrage" despite requiring no net cash outlay? | It abstracts from margin requirements and haircuts—you need capital for margin |
 | 37 | What is the "tail" in a basis trade? | Adjustment to futures position for mark-to-market (financing the variation margin) |
 | 38 | What is the timing option in Treasury futures? | Short can deliver on any day during the delivery month |
 | 39 | What is the end-of-month option? | After last trade date, settlement price is fixed but short can switch bonds if CTD changes |
-| 40 | What lesson does Hull emphasize about LTCM's failure? | If less highly leveraged, LTCM could have survived and waited for convergence |
+| 40 | What is the risk-management lesson from convergence-trade blowups? | Stress test “worst of all worlds” paths (spreads widen while funding tightens and margins rise) |
 | 41 | What is a TED spread? | The spread such that discounting at Eurodollar rates minus the spread produces the bond's market price |
-| 42 | How did Tuckman's basis traders hedge rally risk in the November '08 basis trade? | Purchased futures call options to protect against the straddle-like downside |
+| 42 | How can a short-basis position cap tail risk? | Use options (or reduce size) to limit losses from large moves / CTD switches |
 | 43 | What is the multi-curve par rate formula? | $K_{\text{par}} = \frac{\sum \tau_i P_d L_i}{\sum \tau_i P_d}$ (discounted average of projected forwards) |
 | 44 | What is the OIS floating payment formula? | $\displaystyle\frac{R_{01}(0,T) - 1}{\tau}$ where $R_{01} = \prod(1 + f_i \tau_i)$ is the compounded growth factor |
 | 45 | How is basis PV01 computed? | $-N(\sum \tau_i P_d(0,T_i)) \cdot 10^{-4}$ for a position paying the basis spread |
@@ -1732,7 +1713,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | 49 | What is the par condition for a basis swap? | $\sum \tau P_d L_2 = \sum \tau P_d (L_1 + e)$ where $e$ is the quoted spread on the $L_1$ leg |
 | 50 | How can you replicate a basis swap with two vanilla swaps? | Long IBOR pay-fixed swap and short OIS pay-fixed swap at same fixed rate; fixed legs cancel |
 | 51 | Why do risk numbers depend on "what gets bumped"? | Different bump methodologies (zero-rate bump vs par-quote bump with rebuild) produce different PV01 values |
-| 52 | What is the Tuckman repo P&L decomposition? | Price change + interest income − financing cost = price change + carry |
+| 52 | What is a repo-financed bond P&L decomposition? | Price change + interest income − financing cost = price change + carry |
 | 53 | What is "specialness" in repo? | When specific collateral financing advantage causes repo rate < general collateral; can be volatile |
 | 54 | What is a steepener trade? | Trade that profits when long-term rates rise relative to short-term rates (slope increases); typically receive short-end, pay long-end |
 | 55 | What is a butterfly trade? | Trade that isolates curvature; long belly vs short wings (or reverse); DV01-neutral to parallel shifts |
@@ -1761,7 +1742,7 @@ A bond has spot price 106-19.5, conversion factor 0.9999, and the futures price 
 ### Problem 3 (Basic — Swap Spread)
 The 10Y swap rate is 4.50% and the 10Y on-the-run Treasury yields 4.05%. What is the swap spread? If the on-the-run trades 10bp special in repo, how does this affect interpretation?
 
-*Solution:* Swap spread = 4.50% - 4.05% = **45bp**. The 10bp repo specialness artificially lowers the Treasury yield (investors accept lower yields for the financing advantage). Adjusting for specialness, the "true" Treasury yield might be closer to 4.15%, giving an adjusted swap spread of about 35bp. Per Tuckman, the quoted spread is "misleading in the small."
+*Solution:* Swap spread = 4.50% - 4.05% = **45bp**. The 10bp repo specialness artificially lowers the Treasury yield (investors accept lower yields for the financing advantage). Adjusting for specialness, the "true" Treasury yield might be closer to 4.15%, giving an adjusted swap spread of about 35bp. The point: quoted swap spreads can be misleading for trade-level analysis.
 
 ### Problem 4 (Intermediate — Funding Impact)
 You enter a swap spread trade: receive fixed on $100MM 10Y swap, short $95MM 10Y Treasury (sized for DV01 match). The Treasury goes very special, costing you 15bp annualized in repo vs. GC. How does this affect your trade over 3 months?
@@ -1803,7 +1784,7 @@ Explain why a DV01-neutral swap spread trade is still exposed to curve steepenin
 ### Problem 9 (Hard — Margin Dynamics)
 A basis trader is long $200MM Treasury bonds and short 2,000 TY futures. Rates fall 50bp overnight. The bond gains approximately $10MM in value, but the futures lose $10MM. Why might the trader still face a liquidity crisis?
 
-*Solution:* Futures are daily-margined; the $10MM futures loss requires **immediate cash payment** as variation margin. The bond gain is unrealized until sold or monetized via repo. The trader must fund the margin call from available cash or credit lines. If liquidity is tight or the market is stressed, this asymmetry can force liquidation even though the net P&L is approximately zero. Episodes like March 2020 illustrate how this dynamic can dominate the realized outcome.
+*Solution:* Futures are daily-margined; the $10MM futures loss requires **immediate cash payment** as variation margin. The bond gain is unrealized until sold or monetized via repo. The trader must fund the margin call from available cash or credit lines. If liquidity is tight or the market is stressed, this asymmetry can force liquidation even though the net P&L is approximately zero.
 
 ### Problem 10 (Hard — LTCM Analysis)
 Explain why LTCM's "convergence arbitrage" strategy was not true arbitrage. What would have been required for it to be arbitrage?
@@ -1818,10 +1799,10 @@ LTCM's strategy failed these tests:
 2. **Capital required:** Margin and collateral were needed; funding was leveraged
 3. **Path risk:** Margin calls could force liquidation before convergence
 
-Hull states: "If the company had been less highly leveraged it would probably have been able to survive the flight to quality and could have waited for the prices of the liquid and illiquid bonds to become closer." The lesson: **convergence is not arbitrage because the path matters**.
+The lesson: **convergence is not arbitrage because the path matters** (funding and margin can force you out before convergence).
 
 ### Problem 11 (Hard — Net Basis as Straddle)
-Tuckman says "the net basis of a bond close to CTD behaves like a straddle on rates." Explain this using the concept of the quality option.
+Explain why the net basis of a near-CTD bond can behave like a straddle on rates. Use the concept of the quality option.
 
 *Solution:* The net basis equals the value of the quality option with respect to that bond—the cost of committing to deliver it instead of whichever bond is optimal. When your bond is CTD, any move in rates pushes it away from CTD:
 - **Rates rise:** Short-duration bonds become cheaper to deliver; your bond (if medium/long duration) moves away from CTD
@@ -1847,13 +1828,11 @@ In Tuckman's November '08 basis trade case study, traders sold net basis at 7.45
 - **Crowded trade:** "many traders were forced to liquidate short basis positions"—forced selling by others made the contract cheaper, extending the drawdown
 
 ### Problem 13 (Intermediate — OIS-IBOR Basis Trade)
-A trader believes the Term SOFR-OIS basis is too wide at 25bp and will narrow to 15bp. They enter a $100MM notional 5-year basis swap receiving Term SOFR flat and paying OIS + 25bp. If the basis narrows to 15bp after 6 months (with 4.5 years remaining), and the annuity factor for the remaining term is approximately 4.2, what is the approximate mark-to-market gain?
+A trader believes the Term SOFR–OIS basis is too wide at 25bp and will narrow to 15bp. They enter a $100MM notional 5-year basis swap **paying Term SOFR flat and receiving OIS + 25bp**. If the basis narrows to 15bp after 6 months (with 4.5 years remaining), and the annuity factor for the remaining term is approximately 4.2, what is the approximate mark-to-market gain?
 
-*Solution:* The trader receives Term SOFR and pays OIS + 25bp. If the fair spread narrows to 15bp, they are paying 10bp above market. But wait—they are *receiving* the higher rate and paying the spread. If the basis narrows, the swap they entered at 25bp is now worth 10bp of annuity value because they locked in the wider spread.
+*Solution:* If the fair spread narrows from 25bp to 15bp, a position that receives the spread is receiving 10bp above market on the remaining annuity. Approximate MTM gain:
 
 MTM gain ≈ $100MM × 0.10% × 4.2 = **$420,000**
-
-The trader profits because they locked in receiving the wider basis spread.
 
 ### Problem 14 (Hard — Carry and Roll in Basis Trades)
 A basis trader is short $50MM net basis at 15 ticks in the TY contract, expecting delivery convergence. The trade has 60 days to expiration. The bond carries at 3 ticks per month (positive carry). If the net basis converges to 2 ticks at delivery (the quality option value at expiration), calculate:
@@ -1913,10 +1892,20 @@ You want to express the view that 5-year swap spreads are too wide relative to 1
 
 **Residual risks:** Curve twist (5s10s steepening/flattening), convexity differences between swaps and Treasuries, repo financing on Treasury legs.
 
+### Solution Sketches (Selected)
+- Problem 1: \(+\$78{,}125\) profit for short basis when net basis falls \(5\) ticks: \(\$50\text{MM}\times(5/32)/100\).
+- Problem 2: Gross basis \(=56.3\) ticks; net basis \(=13.6\) ticks.
+- Problem 13: \(+\$420{,}000\) (receiving OIS + spread): \(\$100\text{MM}\times 10\text{ bp}\times 4.2\).
+- Problem 9: Liquidity crisis risk comes from futures variation margin timing vs. monetizing bond P&L (repo terms/haircuts/cash availability), even when net PV is ~0.
+
 ---
 
 ## References
 
-- Tuckman & Serrat, *Fixed Income Securities* (swap spreads; repo specialness; Treasury futures basis and net basis framework)
-- Andersen & Piterbarg, *Interest Rate Modeling* (multi-curve and basis risk decomposition)
-- Hull, *Risk Management and Financial Institutions* (LTCM case study; leverage, collateral, and forced liquidation dynamics)
+- Tuckman & Serrat, *Fixed Income Securities*, “Gross and Net Basis”; “Liquidity Premiums of Recent Issues”
+- Andersen & Piterbarg, *Interest Rate Modeling*, “Forward Rate Approach” (multi-curve curves; risk sensitivities; Fed funds vs Libor discussion)
+- Neftci, *Principles of Financial Engineering*, “Special Versus General Collateral”; “LIBOR and Other Benchmarks”
+- Jarrow, *Modeling Fixed Income Securities and Interest Rate Options*, “Treasury Futures Markets” (delivery/wildcard/quality options)
+- Hull, *Options, Futures, and Other Derivatives*, “Business Snapshot 2.2 Long-Term Capital Management’s Big Loss”; “Do Not Ignore Liquidity Risk”; “Daily Settlement”; “The Clearing House and Its Members”
+- Hull, *Risk Management and Financial Institutions*, “The OIS Rate” (LIBOR–OIS spread as a stress indicator)
+- *Market Liquidity Risk*, “2.1 Liquidity and liquidity risk” (market vs funding liquidity)
