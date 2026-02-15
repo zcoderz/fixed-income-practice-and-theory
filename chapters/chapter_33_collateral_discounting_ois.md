@@ -114,6 +114,10 @@ $$V(t) = \mathbb{E}_t\left[\sum_k P^c(t,t_k)\,CF(t_k)\right],$$
 
 under the usual “clean” idealizations listed below.
 
+**Check (units and direction):**
+- \(P^c(t,T)\) is a discount factor (unitless), \(CF\) is currency \(\Rightarrow V(t)\) is currency.
+- For a deterministic positive cashflow, a higher discount factor means a higher PV. Equivalently, lowering \(c(t)\) increases \(P^c\) and increases PV.
+
 **What assumptions are doing the work?** The statement above is exact only in an idealized setting. At minimum, you are assuming:
 - cash collateral with remuneration specified by the CSA (the \(c(t)\) process)
 - perfect collateralization (collateral tracks MTM with no thresholds/MTA and no settlement lag)
@@ -324,6 +328,12 @@ Interpretation: start from domestic “risk-free” discounting in \(x\), then *
 
 These checks are not just “math niceties”: they tell you what must be true for slogans like “OIS everywhere” to be safe in your specific CSA.
 
+**Check (toy numeric, hypothetical):** Suppose rates are flat and constant with \(r^x=2.00\%\), \(r^y=1.00\%\), and the collateral remuneration in \(y\) is \(c^y=1.30\%\). Then
+\[
+r_{\text{eff}}^{x|y}=2.00\%+(1.30\%-1.00\%)=2.30\%.
+\]
+A domestic \(x\)-currency receive cashflow of \(X_T^x=\$1{,}000{,}000\) at \(T=1\) has PV \(\approx e^{-0.023}\times 1{,}000{,}000=\$977{,}270\). If instead \(c^y=r^y\), then \(r_{\text{eff}}^{x|y}=2.00\%\) and PV \(\approx e^{-0.020}\times 1{,}000{,}000=\$980{,}199\). The \(\sim\$2.9\text{k}\) difference comes purely from the collateral spread \(c^y-r^y\).
+
 ### 33.5.4 Cheapest-to-Deliver (CTD) and Standardization (SCSA)
 
 If a CSA allows multiple collateral currencies and the poster can switch, then “which \(y\) applies” can become a **choice** rather than a fixed input. This makes valuation potentially non-linear/path-dependent because the optimal choice can change over time and across scenarios.
@@ -362,6 +372,8 @@ where:
 - **Other adjustments:** Effects of collateral imperfections, funding costs (FVA), capital costs (KVA)
 
 This chapter focuses on the **clean** collateral-discounted logic and on how CSA terms move you away from the clean idealization. Chapter 34 develops the XVA objects and their modeling in more detail.
+
+**Check (limiting case):** In the perfect-collateralization, no-default idealization, unsecured exposure is (approximately) zero and the adjustment layer vanishes, so \(V_{\text{all-in}}\approx V_{\text{clean}}\). Non-zero CVA/DVA/FVA/KVA arise exactly when the “clean” assumptions fail (thresholds/MTAs, MPOR, default, funding frictions).
 
 > **Desk Reality — “clean PV” vs “all-in PV”:**
 > A common operating model is to compute a clean PV for promised cashflows using a collateral-consistent discount curve, and then compute valuation adjustments (CVA/FVA/etc.) in a separate layer.
@@ -448,6 +460,10 @@ $$\text{PAI}_t = \$10{,}000{,}000 \times 0.0525 \times \frac{1}{360} = \$1{,}458
 
 We **pay** this amount to the counterparty (who posted the VM).
 
+**Check (sign and day-count):**
+- If you record a “VM balance” with the sign convention \(+\) = cash VM held by us, then PAI is a cash **outflow** when VM is positive (we pay interest to the poster) and a cash **inflow** when VM is negative (we receive interest on posted VM).
+- The accrual factor should use the actual day count for the accrual window. For example, if VM is held over 3 calendar days under ACT/360, use \(3/360\) rather than \(1/360\).
+
 ### 33.7.3 PAI vs. Traditional Coupon Accrual
 
 PAI fundamentally changes how swap economics work compared to legacy bilateral trades:
@@ -508,6 +524,12 @@ For deterministic cashflows \(CF(t_i)\), a first-order approximation under conti
 $$DV01 \;\approx\; 10^{-4}\sum_i t_i \cdot P^{\text{OIS}}(0,t_i) \cdot CF(t_i).$$
 
 **Sign check:** for a positive cashflow stream, OIS rates down \(\Rightarrow\) discount factors up \(\Rightarrow\) PV up, so \(DV01>0\).
+
+**Check (toy magnitude):** For a single receive cashflow of \(+\$1{,}000{,}000\) at \(t=5\)y with \(P^{\text{OIS}}(0,5)=0.90\), the approximation gives
+\[
+DV01 \approx 10^{-4}\times 5 \times 0.90 \times 1{,}000{,}000 \approx \$450 \text{ per 1bp}.
+\]
+If you compute a DV01 that is 10× or 100× larger for this kind of toy stream, suspect a units (bp vs %) or time (years vs days) mismatch.
 
 ### 33.8.2 Discounting Basis Exposure
 

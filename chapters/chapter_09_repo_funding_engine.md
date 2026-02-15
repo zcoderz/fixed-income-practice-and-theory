@@ -127,13 +127,13 @@ If no buyer emerges the next day, the desk must **roll** its repo—either exten
 
 ### 9.2.3 Mapping Cash to Invoice Price
 
-The cash borrowed in repo is typically set equal to (or close to) the **invoice/dirty cash settlement amount** of the collateral. If clean price \(P(0)\) and accrued interest \(AI(0)\) are quoted **per 100** of face, define the invoice price per 100 as \(I(0)=P(0)+AI(0)\). Then:
+The cash borrowed in repo is typically set equal to (or close to) the **invoice/dirty cash settlement amount** of the collateral. If clean price $P(0)$ and accrued interest $AI(0)$ are quoted **per 100** of face, define the invoice price per 100 as $I(0)=P(0)+AI(0)$. Then:
 
 $$\text{Invoice cash} = \frac{N}{100} I(0) = \frac{N}{100}\left(P(0) + AI(0)\right)$$
 
-In a stylized "no-haircut" repo, \(L_0 \approx \text{Invoice cash}\). With a haircut \(h\), \(L_0=(1-h)\times \text{Invoice cash}\).
+In a stylized "no-haircut" repo, $L_0 \approx \text{Invoice cash}$. With a haircut $h$, $L_0=(1-h)\times \text{Invoice cash}$.
 
-> **Pitfall — Clean vs invoice (dirty) funding:** Repo cash is linked to the **invoice** price \(I=P+AI\), not the clean quote \(P\).
+> **Pitfall — Clean vs invoice (dirty) funding:** Repo cash is linked to the **invoice** price $I=P+AI$, not the clean quote $P$.
 > **Why it matters:** Using clean instead of invoice under-funds the purchase and breaks carry/forward calculations.
 > **Quick check:** For \$100mm face, 1.00 of accrued interest (per 100) is \$1.0mm of settlement cash.
 
@@ -190,11 +190,11 @@ $$\boxed{\text{Carry}_{100} = (AI(d)-AI(0)) - (P(0)+AI(0))\left(r\frac{d}{360}\r
 
 To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/100$.
 
-**Mechanics (what changes with a haircut):** The formulas above assume you finance the full invoice amount. With a haircut \(h\), you typically borrow only \((1-h)\times\) invoice cash and post the remaining \(h\times\) invoice cash as equity. That means the repo-interest term applies to the *borrowed cash* \(L_0\), while the equity portion has its own funding/opportunity rate. A good desk habit is to write carry as “bond income” minus “repo interest on \(L_0\)” minus “equity funding cost (if any)” so you do not accidentally apply the repo rate to the full invoice amount when a haircut is present.
+**Mechanics (what changes with a haircut):** The formulas above assume you finance the full invoice amount. With a haircut $h$, you typically borrow only $(1-h)\times$ invoice cash and post the remaining $h\times$ invoice cash as equity. That means the repo-interest term applies to the *borrowed cash* $L_0$, while the equity portion has its own funding/opportunity rate. A good desk habit is to write carry as “bond income” minus “repo interest on $L_0$” minus “equity funding cost (if any)” so you do not accidentally apply the repo rate to the full invoice amount when a haircut is present.
 
-> **Pitfall — "per 100" vs "%" vs decimals:** Bond prices and accrued interest are usually quoted **per 100** of face (price "points"), while rates like repo are quoted in **% per year**, and \(1\text{ bp}=10^{-4}\).
+> **Pitfall — "per 100" vs "%" vs decimals:** Bond prices and accrued interest are usually quoted **per 100** of face (price "points"), while rates like repo are quoted in **% per year**, and $1\text{ bp}=10^{-4}$.
 > **Why it matters:** Mixing these units is a common way to be off by 100× or 10,000× in carry/financing P&L.
-> **Quick check:** If \(I(0)=102.90\) per 100 and \(N=\$100\text{mm}\), invoice cash should be \((N/100)\,I(0)=\$102.9\text{mm}\), not \(\$10.29\text{bn}\).
+> **Quick check:** If $I(0)=102.90$ per 100 and $N=\$100\text{mm}$, invoice cash should be $(N/100)\,I(0)=\$102.9\text{mm}$, not $\$10.29\text{bn}$.
 
 ### 9.4.2 Worked Example (Template): Funding a Long Bond for 7 Days
 
@@ -211,62 +211,62 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 - Coupon: assume no coupon payment inside the 7-day horizon
 
 **Inputs**
-- Face amount: \(N=\$100{,}000{,}000\)
-- Clean price quote: \(P(0)=102\text{-}16 = 102.50\) (per 100)
-- Accrued interest at settlement: \(AI(0)=0.40\) (per 100) so invoice \(I(0)=P(0)+AI(0)=102.90\)
-- Repo rate: \(r=4.80\%\) (simple; 360-day basis), \(d=7\)
-- Haircut: \(h=2\%\) (cash borrowed is \((1-h)\times\) invoice cash)
-- Coupon for accrual illustration: assume coupon rate \(c=6\%\) (semiannual coupons) and current coupon period length \(D=182\) days
+- Face amount: $N=\$100{,}000{,}000$
+- Clean price quote: $P(0)=102\text{-}16 = 102.50$ (per 100)
+- Accrued interest at settlement: $AI(0)=0.40$ (per 100) so invoice $I(0)=P(0)+AI(0)=102.90$
+- Repo rate: $r=4.80\%$ (simple; 360-day basis), $d=7$
+- Haircut: $h=2\%$ (cash borrowed is $(1-h)\times$ invoice cash)
+- Coupon for accrual illustration: assume coupon rate $c=6\%$ (semiannual coupons) and current coupon period length $D=182$ days
 
 **Outputs (What You Produce)**
-- Repo start cash \(L_0\), repo interest, coupon accrual, carry (repo-only)
+- Repo start cash $L_0$, repo interest, coupon accrual, carry (repo-only)
 - Funding-rate risk: `Repo01` (bump object + units + sign)
 
 **Step-by-step**
 1. Invoice cash at settlement:
-   \[
+   $$
    \text{Invoice cash}=N\times I(0)/100 = 100{,}000{,}000\times 102.90/100 = \$102{,}900{,}000.
-   \]
+   $$
 2. Repo start cash with haircut:
-   \[
+   $$
    L_0=(1-h)\times \text{Invoice cash}=0.98\times 102{,}900{,}000=\$100{,}842{,}000.
-   \]
-   Equity posted \(E_0 = \text{Invoice cash}-L_0 = \$2{,}058{,}000\).
+   $$
+   Equity posted $E_0 = \text{Invoice cash}-L_0 = \$2{,}058{,}000$.
 3. Repo interest over 7 days:
-   \[
+   $$
    \text{Repo interest}=L_0 \times r \times d/360 = 100{,}842{,}000 \times 0.048 \times 7/360 = \$94{,}119.20.
-   \]
+   $$
 4. Coupon accrual over 7 days (assumption above):
-   \[
+   $$
    \text{Accrual}=N\times (c/2)\times (d/D) = 100{,}000{,}000\times 0.03 \times 7/182 = \$115{,}384.62.
-   \]
+   $$
 5. Repo carry (ignoring price changes and ignoring the funding cost of the haircut equity):
-   \[
+   $$
    \text{Carry}\approx \text{Accrual} - \text{Repo interest} = \$21{,}265.42.
-   \]
+   $$
 6. Funding-rate risk (`Repo01`):
-   Define `Repo01` as \(\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)\) holding \(L_0\) and everything else fixed. With simple interest on a 360-day basis,
-   \[
+   Define `Repo01` as $\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)$ holding $L_0$ and everything else fixed. With simple interest on a 360-day basis,
+   $$
    \text{Repo01}=L_0 \times (d/360) \times 10^{-4} = \$196.08 \text{ per 1bp}.
-   \]
+   $$
    This is **positive** for a funded long: a 1bp drop in the repo rate reduces financing cost.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-03 | \(-\$102{,}900{,}000\) | Pay invoice price to acquire the bond |
-| 2026-02-03 | \(+\$100{,}842{,}000\) | Receive repo cash (haircut-adjusted) |
-| 2026-02-10 | \(-\$100{,}842{,}000 - \$94{,}119.20\) | Repay repo principal plus repo interest |
-| (over 2026-02-03→10) | \(+\$115{,}384.62\) | Accrual P&L from holding the bond (not a cash coupon unless a payment date occurs) |
+| 2026-02-03 | $-\$102{,}900{,}000$ | Pay invoice price to acquire the bond |
+| 2026-02-03 | $+\$100{,}842{,}000$ | Receive repo cash (haircut-adjusted) |
+| 2026-02-10 | $-\$100{,}842{,}000 - \$94{,}119.20$ | Repay repo principal plus repo interest |
+| (over 2026-02-03→10) | $+\$115{,}384.62$ | Accrual P&L from holding the bond (not a cash coupon unless a payment date occurs) |
 
 **P&L / Risk Interpretation**
 - `Repo01` is a funding-rate DV01: it tells you how much P&L improves if your repo rate is 1bp lower for the same term and borrowed amount.
 - Haircuts reduce the repo interest you pay (because you borrow less), but they also create an unfunded equity portion; your all-in carry depends on how you fund that equity.
 
 **Sanity Checks**
-- Units check: \(r\) is per year, \(d/360\) is years, so \(L_0 r d/360\) is currency.
-- Sign check: for a funded long, repo rate down \(\Rightarrow\) lower financing cost \(\Rightarrow\) higher P&L, so `Repo01` should be positive.
-- Limit check: as \(d\to 0\), both repo interest and `Repo01` go to zero.
+- Units check: $r$ is per year, $d/360$ is years, so $L_0 r d/360$ is currency.
+- Sign check: for a funded long, repo rate down $\Rightarrow$ lower financing cost $\Rightarrow$ higher P&L, so `Repo01` should be positive.
+- Limit check: as $d\to 0$, both repo interest and `Repo01` go to zero.
 
 ### 9.4.3 Quick Numerical Example
 
@@ -283,7 +283,7 @@ Continuing the example of Section 9.2, suppose the desk sells the bond the next 
 In the example above, carry is positive because the bond's coupon rate (5.875%) exceeds the repo rate (5.10%). However, the relationship is not exact:
 
 1. Interest income is earned on **face value**, while financing cost is applied to the **full (invoice) price**
-2. Coupon accrual uses the bond's day count, while repo uses a **360-day basis** (\(d/360\))
+2. Coupon accrual uses the bond's day count, while repo uses a **360-day basis** ($d/360$)
 
 These differences can cause carry to be slightly different from a naive coupon-minus-repo calculation.
 
@@ -335,7 +335,7 @@ Define the **specialness spread**:
 
 $$\boxed{s = r_{\text{GC}} - r_{\text{spec}}}$$
 
-When a bond is special, \(r_{\text{spec}} < r_{\text{GC}}\), so \(s>0\). "Specialness" is the scarcity value of that security, expressed as a funding advantage.
+When a bond is special, $r_{\text{spec}} < r_{\text{GC}}$, so $s>0$. "Specialness" is the scarcity value of that security, expressed as a funding advantage.
 
 ### 9.5.4 A Concrete Snapshot (2001-02-15)
 
@@ -351,11 +351,11 @@ The key point is not the exact numbers but the mechanism: on-the-run collateral 
 
 ### 9.5.5 The Dollar Value of Specialness (Carry Impact)
 
-Specialness matters because it directly changes financing cost. Over \(d\) days, the difference between financing at GC and financing at a special rate is approximately:
+Specialness matters because it directly changes financing cost. Over $d$ days, the difference between financing at GC and financing at a special rate is approximately:
 
 $$\text{Financing difference} \approx L_0 \times s \times \frac{d}{360}$$
 
-For example, if \(L_0=\$100{,}000{,}000\), \(s=159\) bp, and \(d=1\),
+For example, if $L_0=\$100{,}000{,}000$, $s=159$ bp, and $d=1$,
 
 $$\text{Daily benefit} \approx \$100{,}000{,}000 \times \frac{0.0159}{360} \approx \$4{,}417.$$
 
@@ -389,7 +389,7 @@ $$r_{\text{spec}} \geq 0\% \quad \Rightarrow \quad s \leq r_{\text{GC}}$$
 
 In the fall of 2001, with GC near 2%, the maximum special spread was about 200 basis points.
 
-**Check (what assumption drives the floor):** This “0% floor” comes from comparing borrowing to the alternative of failing delivery when failing is assumed to have no explicit penalty beyond losing the use of sale proceeds for a day. If there is an explicit fails charge or other penalty, the correct comparison changes: replace the “0%” alternative with the effective cost of failing under your market’s rules, and the implied floor on \(r_{\text{spec}}\) (and therefore the bound on \(s\)) moves accordingly.
+**Check (what assumption drives the floor):** This “0% floor” comes from comparing borrowing to the alternative of failing delivery when failing is assumed to have no explicit penalty beyond losing the use of sale proceeds for a day. If there is an explicit fails charge or other penalty, the correct comparison changes: replace the “0%” alternative with the effective cost of failing under your market’s rules, and the implied floor on $r_{\text{spec}}$ (and therefore the bound on $s$) moves accordingly.
 
 ---
 
@@ -437,7 +437,7 @@ Under one common convention, the haircut $h$ is a percentage reduction of collat
 
 $$\boxed{L_0 = (1 - h) \times \frac{N}{100} \times I(0)}$$
 
-where \(\frac{N}{100}I(0)\) is the invoice (dirty) market value of the collateral in currency units (when \(I(0)\) is quoted per 100 of face).
+where $\frac{N}{100}I(0)$ is the invoice (dirty) market value of the collateral in currency units (when $I(0)$ is quoted per 100 of face).
 
 Always verify how haircuts are defined and quoted in your documentation.
 
@@ -457,7 +457,7 @@ $$\boxed{\text{Leverage} = \frac{(N/100)\, I(0)}{E_0} = \frac{1}{h}}$$
 
 If collateral value falls, the loan may exceed the permitted amount under the haircut. The borrower must either post additional collateral or repay cash—this is a **margin call**.
 
-**Example:** Collateral market value falls from \$103 million to \$101 million with a 2% haircut. Maximum permitted loan is \(0.98 \times 101 = \$98.98\) million. If the outstanding loan is \$100.94 million, the margin call is \$1.96 million.
+**Example:** Collateral market value falls from \$103 million to \$101 million with a 2% haircut. Maximum permitted loan is $0.98 \times 101 = \$98.98$ million. If the outstanding loan is \$100.94 million, the margin call is \$1.96 million.
 
 This creates **liquidity risk**: price declines generate immediate cash demands. In stress scenarios, inability to meet margin calls can force liquidation at unfavorable prices.
 
@@ -487,7 +487,7 @@ A fundamental insight is that buying a bond spot and financing it through repo r
 
 No-arbitrage says the net cashflows of Path A and Path B must match once you account for coupons and accrued interest, which is why repo rates and forward prices are tightly linked in relative-value trading.
 
-**Check (toy sign/scale):** Suppose the invoice price per 100 today is \(I(0)=102.90\), the repo rate is \(r=5.00\%\), and the horizon is \(d=30\) days. Ignoring intermediate coupons, the invoice amount grows to \(102.90\times(1+0.05\times 30/360)\approx 103.33\). If accrued interest at the horizon is \(AI(d)=1.20\), then the implied **forward clean** price is about \(P_{\text{fwd}}\approx 103.33-1.20=102.13\). The forward clean price is below spot clean when carry is positive because part of the “value” over the horizon shows up as accrued interest and coupon economics rather than as a higher clean price.
+**Check (toy sign/scale):** Suppose the invoice price per 100 today is $I(0)=102.90$, the repo rate is $r=5.00\%$, and the horizon is $d=30$ days. Ignoring intermediate coupons, the invoice amount grows to $102.90\times(1+0.05\times 30/360)\approx 103.33$. If accrued interest at the horizon is $AI(d)=1.20$, then the implied **forward clean** price is about $P_{\text{fwd}}\approx 103.33-1.20=102.13$. The forward clean price is below spot clean when carry is positive because part of the “value” over the horizon shows up as accrued interest and coupon economics rather than as a higher clean price.
 
 ### 9.9.2 Forward Invoice Price (No Intermediate Coupon)
 
@@ -524,7 +524,7 @@ Intuition: the security lender continues to receive the coupon, so the borrower 
 
 **Mechanics (dividend-style forward logic):** This is the bond analogue of a forward on a dividend-paying stock: coupons paid during the forward period reduce the forward invoice price because the forward buyer is not receiving those interim cashflows. The repo-financed spot position *does* receive them (via the manufactured coupon), so the no-arbitrage forward must reflect that by subtracting the coupon (and then accruing repo interest on the reduced balance).
 
-**Check (toy numbers):** Take \(I(0)=103.00\) per 100, a coupon \(C=2.00\) paid after \(d_1=30\) days, and delivery \(d_2=30\) days later, with \(r=5.00\%\). The balance grows to \(103.00\times(1+0.05\times 30/360)\approx 103.43\), then the coupon reduces it to \(101.43\), and it grows again to \(101.43\times(1+0.05\times 30/360)\approx 101.85\). That is the intuition behind the coupon-term in the forward formula.
+**Check (toy numbers):** Take $I(0)=103.00$ per 100, a coupon $C=2.00$ paid after $d_1=30$ days, and delivery $d_2=30$ days later, with $r=5.00\%$. The balance grows to $103.00\times(1+0.05\times 30/360)\approx 103.43$, then the coupon reduces it to $101.43$, and it grows again to $101.43\times(1+0.05\times 30/360)\approx 101.85$. That is the intuition behind the coupon-term in the forward formula.
 
 **Sanity check:** If $C = 0$, this collapses to the no-coupon formula.
 
@@ -538,9 +538,9 @@ $$\boxed{r_{\text{implied}} = \frac{P_{\text{fwd}} + AI(d) - (P(0) + AI(0))}{(P(
 
 **Worked Example: Computing Implied Repo**
 
-- Spot invoice \(P(0)+AI(0)=102.50\)
-- Forward invoice \(P_{\text{fwd}}+AI(d)=102.75\)
-- Days to delivery \(d=30\)
+- Spot invoice $P(0)+AI(0)=102.50$
+- Forward invoice $P_{\text{fwd}}+AI(d)=102.75$
+- Days to delivery $d=30$
 
 $$r_{\text{implied}} = \frac{102.75 - 102.50}{102.50} \times \frac{360}{30} = 0.00244 \times 12 = 2.93\%$$
 
@@ -602,7 +602,7 @@ For this chapter, the key operational distinction is:
 
 | Issue | Notes |
 |-------|-------|
-| **Rate convention** | Repo uses simple interest on a 360-day basis (\(d/360\)) in this chapter. Bond accrual may use different day counts. |
+| **Rate convention** | Repo uses simple interest on a 360-day basis ($d/360$) in this chapter. Bond accrual may use different day counts. |
 | **Invoice vs clean** | Repo cash is typically based on invoice price, not clean price. |
 | **Coupon during repo** | Coupon belongs to security lender; borrower must pass through a "manufactured coupon." |
 | **Settlement timing** | Getting dates wrong creates P&L noise. Use consistent calendar engines. |
@@ -623,7 +623,7 @@ For this chapter, the key operational distinction is:
 | **Special rate reasonableness** | Specials can be very low. If you see extreme specials, sanity-check against "borrow vs fail" economics and your sign conventions |
 | **Leverage check** | With haircut $h$, leverage should be near $1/h$ |
 | **Sensitivity sign** | Higher repo rate → higher financing cost → $\partial \text{P\&L}/\partial r < 0$ for funded longs |
-| **`Repo01` sign** | With `Repo01 := \text{P\&L}(r-1\text{bp})-\text{P\&L}(r)`, a funded long should have `Repo01 > 0` |
+| **`Repo01` sign** | With `Repo01` defined as $\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)$, a funded long should have `Repo01 > 0` |
 
 ---
 
@@ -666,7 +666,7 @@ For this chapter, the key operational distinction is:
 | Specialness spread | $r_{\text{GC}} - r_{\text{spec}}$ | Dollar value of owning special bonds |
 | Haircut | Reduction in collateral value for lending | Controls leverage, protects lender |
 | Carry | Interest income minus financing cost | Key component of funded P&L |
-| `Repo01` | Funding-rate sensitivity: \(\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)\) holding \(L_0,d\) fixed (currency per 1bp) | Makes funding risk explicit (separate from yield DV01) |
+| `Repo01` | Funding-rate sensitivity: $\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)$ holding $L_0,d$ fixed (currency per 1bp) | Makes funding risk explicit (separate from yield DV01) |
 | Implied repo | Financing rate implied by spot/forward prices | Reveals embedded financing in positions |
 | SOFR | The secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States | Based on overnight repo transactions |
 | Settlement fail | Failure to deliver a security on settlement | Creates "borrow vs fail" economics for specials and shorts |
@@ -677,20 +677,20 @@ For this chapter, the key operational distinction is:
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(N\) | Face amount (notional) | currency |
-| \(P\) | Clean price | points per 100 of face |
-| \(AI\) | Accrued interest | points per 100 of face |
-| \(I=P+AI\) | Invoice (dirty) price | points per 100 of face |
-| \(L_0\) | Repo start cash (cash borrowed/lent at start leg) | currency; in this chapter \(L_0 \approx (1-h)\,(N/100)\,I(0)\) |
-| \(L_1\) | Repo end cash (repurchase cash) | currency; \(L_1=L_0(1+r\,d/360)\) in the simple 360-day convention |
-| \(r\) | Repo rate | per year; simple interest; 360-day basis in examples |
-| \(d\) | Repo term length | days |
-| \(h\) | Haircut | unitless fraction; \(L_0=(1-h)\times\) collateral market value |
-| \(r_{\\text{GC}}\) | General collateral repo rate | per year |
-| \(r_{\\text{spec}}\) | Special repo rate (specific CUSIP) | per year |
-| \(s=r_{\\text{GC}}-r_{\\text{spec}}\) | Specialness spread | per year (or bp); positive when collateral is "special" |
-| \(r_{\\text{implied}}\) | Implied repo rate | per year; backed out from spot/forward (or futures) pricing |
-| `Repo01` | Funding-rate sensitivity for a funded position | currency per 1bp; defined as \(\text{P\\&L}(r-1\\text{bp})-\\text{P\\&L}(r)\) holding \(L_0\) and \(d\) fixed |
+| $N$ | Face amount (notional) | currency |
+| $P$ | Clean price | points per 100 of face |
+| $AI$ | Accrued interest | points per 100 of face |
+| $I=P+AI$ | Invoice (dirty) price | points per 100 of face |
+| $L_0$ | Repo start cash (cash borrowed/lent at start leg) | currency; in this chapter $L_0 \approx (1-h)\,(N/100)\,I(0)$ |
+| $L_1$ | Repo end cash (repurchase cash) | currency; $L_1=L_0(1+r\,d/360)$ in the simple 360-day convention |
+| $r$ | Repo rate | per year; simple interest; 360-day basis in examples |
+| $d$ | Repo term length | days |
+| $h$ | Haircut | unitless fraction; $L_0=(1-h)\times$ collateral market value |
+| $r_{\text{GC}}$ | General collateral repo rate | per year |
+| $r_{\text{spec}}$ | Special repo rate (specific CUSIP) | per year |
+| $s=r_{\text{GC}}-r_{\text{spec}}$ | Specialness spread | per year (or bp); positive when collateral is "special" |
+| $r_{\text{implied}}$ | Implied repo rate | per year; backed out from spot/forward (or futures) pricing |
+| `Repo01` | Funding-rate sensitivity for a funded position | currency per 1bp; defined as $\text{P\&L}(r-1\text{bp})-\text{P\&L}(r)$ holding $L_0$ and $d$ fixed |
 
 ---
 
@@ -725,27 +725,27 @@ For this chapter, the key operational distinction is:
 
 ## Mini Problem Set
 
-1. (Compute) A repo starts with \(L_0=\$25{,}000{,}000\), \(r=3.75\%\), \(d=3\) days (360-day basis). Compute \(L_1\) and the interest.
-2. (Compute) A bond has clean price 99.75 and accrued interest 1.10 (both per 100 notional). For \(N=\$50{,}000{,}000\) face, compute the invoice cash exchanged.
+1. (Compute) A repo starts with $L_0=\$25{,}000{,}000$, $r=3.75\%$, $d=3$ days (360-day basis). Compute $L_1$ and the interest.
+2. (Compute) A bond has clean price 99.75 and accrued interest 1.10 (both per 100 notional). For $N=\$50{,}000{,}000$ face, compute the invoice cash exchanged.
 3. (Concept) When is carry positive for a funded long? Name two convention effects that can make "coupon - repo" misleading.
-4. (Compute) For \(N=\$100{,}000{,}000\), invoice price 102% of face, and \(d=7\), compute the P&L change for a +10bp move in the repo rate (hold everything else fixed).
-5. (Compute) Collateral market value is \(\$80{,}000{,}000\); haircut is 5%. Compute cash lent and leverage.
-6. (Compute) Using Problem 5, if collateral falls to \(\$76{,}000{,}000\), compute the margin call.
-7. (Compute) \(r_{\text{GC}}=4.5\%\), \(r_{\text{spec}}=0.5\%\), \(L_0=\$200{,}000{,}000\), \(d=1\). Compute the daily specialness benefit.
+4. (Compute) For $N=\$100{,}000{,}000$, invoice price 102% of face, and $d=7$, compute the P&L change for a +10bp move in the repo rate (hold everything else fixed).
+5. (Compute) Collateral market value is $\$80{,}000{,}000$; haircut is 5%. Compute cash lent and leverage.
+6. (Compute) Using Problem 5, if collateral falls to $\$76{,}000{,}000$, compute the margin call.
+7. (Compute) $r_{\text{GC}}=4.5\%$, $r_{\text{spec}}=0.5\%$, $L_0=\$200{,}000{,}000$, $d=1$. Compute the daily specialness benefit.
 8. (Compute/Desk) Build a 40-day repo spanning a coupon. Show cashflows under a stated coupon/loan adjustment convention.
-9. (Derive) Given spot invoice \(I_0\) and repo rate \(r\), derive the forward clean price formula.
+9. (Derive) Given spot invoice $I_0$ and repo rate $r$, derive the forward clean price formula.
 10. (Derive) Repeat Problem 9 with one coupon inside the forward horizon.
 11. (Desk) Describe two distinct risks when funding a term trade by rolling overnight repo.
 12. (Desk) A bond becomes more special after you short it. How does that affect your P&L and funding?
 
 ### Solution Sketches (Selected)
-1. \(L_1=L_0(1+r d/360)=25{,}000{,}000(1+0.0375\times 3/360)=\$25{,}007{,}812.50\). Interest \(=\$7{,}812.50\).
-2. Invoice per 100 \(=99.75+1.10=100.85\). Cash \(=50{,}000{,}000\times 100.85/100=\$50{,}425{,}000\).
+1. $L_1=L_0(1+r d/360)=25{,}000{,}000(1+0.0375\times 3/360)=\$25{,}007{,}812.50$. Interest $=\$7{,}812.50$.
+2. Invoice per 100 $=99.75+1.10=100.85$. Cash $=50{,}000{,}000\times 100.85/100=\$50{,}425{,}000$.
 3. Carry is positive when coupon accrual exceeds financing cost. Two common "gotchas": financing is applied to invoice (not face), and coupon accrual day count differs from the repo 360-day basis.
-4. Financing cost change \(\approx -(N\times 1.02)\times (7/360)\times 0.0010=-\$1{,}983.33\).
-5. Cash lent \(L_0=0.95\times 80{,}000{,}000=\$76{,}000{,}000\). Equity \(=\$4{,}000{,}000\). Leverage \(=1/0.05=20\times\).
-6. Max permitted loan \(=0.95\times 76{,}000{,}000=\$72{,}200{,}000\). Margin call \(=76{,}000{,}000-72{,}200{,}000=\$3{,}800{,}000\).
-7. Daily benefit \(=L_0(r_{\text{GC}}-r_{\text{spec}})/360=200{,}000{,}000\times 0.04/360=\$22{,}222.22\).
+4. Financing cost change $\approx -(N\times 1.02)\times (7/360)\times 0.0010=-\$1{,}983.33$.
+5. Cash lent $L_0=0.95\times 80{,}000{,}000=\$76{,}000{,}000$. Equity $=\$4{,}000{,}000$. Leverage $=1/0.05=20\times$.
+6. Max permitted loan $=0.95\times 76{,}000{,}000=\$72{,}200{,}000$. Margin call $=76{,}000{,}000-72{,}200{,}000=\$3{,}800{,}000$.
+7. Daily benefit $=L_0(r_{\text{GC}}-r_{\text{spec}})/360=200{,}000{,}000\times 0.04/360=\$22{,}222.22$.
 
 ---
 

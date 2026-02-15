@@ -464,6 +464,14 @@ Full swap risk reports and hedging workflows are covered in Chapter 26, but you 
 - **Units:** currency per 1bp for the stated notional (e.g., USD per 1bp for \(N=\$100\text{ million}\)).
 - **Sign (implied by the definition):** receiver-fixed has \(DV01>0\); payer-fixed has \(DV01<0\).
 
+**Pitfall — PVBP vs DV01:** \(\text{PVBP}_{\text{fixed}}\) answers “what happens if I bump the *contractual fixed rate* \(c\) by 1 bp, holding curves fixed?” DV01 answers “what happens if I bump a *curve object* by 1 bp and rebuild/reprice?” Both are currency per bp, but they are sensitivities to different objects; if a report says “PVBP” without stating the bump object, treat it as ambiguous.
+
+**Expand (multi-curve risk buckets):** In a two-curve setup, it is common to report at least:
+- **Discount DV01:** bump the discount curve (projection held fixed).
+- **Projection DV01:** bump the projection curve for the floating index (discount held fixed).
+- **Basis DV01:** bump the spread/basis linking projection to discount (or between projection curves).
+These buckets are all “rate-like” but hedge with different instruments; Chapter 26 covers the standard hedging workflow.
+
 A useful intermediate object is the fixed-leg annuity \(A^{\text{fix}}(0)\). Holding curves fixed, bumping the contractual fixed rate \(c\) up by 1bp changes the receiver-fixed PV by approximately:
 $$\boxed{\text{PVBP}_{\text{fixed}} \approx N \cdot A^{\text{fix}}(0) \cdot 10^{-4}.}$$
 

@@ -4,15 +4,15 @@
 
 ## Introduction
 
-A STIR futures contract quotes 94.50. Does that imply a forward rate of 5.50%? Not quite: \(100-94.50\) is a **futures-implied rate**, and converting it to a **forward/FRA-equivalent rate** generally requires a **convexity adjustment**.
+A STIR futures contract quotes 94.50. Does that imply a forward rate of 5.50%? Not quite: $100-94.50$ is a **futures-implied rate**, and converting it to a **forward/FRA-equivalent rate** generally requires a **convexity adjustment**.
 
 The adjustment exists because futures are **marked to market daily**. Gains and losses are paid/received throughout the life of the contract, not only at the end of the underlying accrual period. When rates are stochastic, these interim cashflows are reinvested or financed at rates that are correlated with the futures payoff. For interest-rate futures this correlation is mechanically strong, so the futures-implied rate is systematically different from the corresponding forward rate.
 
-**Sign and magnitude (rule of thumb).** Under standard assumptions, the convexity adjustment \(c\) is typically **positive**, so
+**Sign and magnitude (rule of thumb).** Under standard assumptions, the convexity adjustment $c$ is typically **positive**, so
 
 $$\text{forward rate} \;=\; \text{futures-implied rate} \;-\; c.$$
 
-In simple approximations, \(c\) grows with rate volatility and (roughly) with the square of time-to-expiry. With annualized absolute volatility on the order of \(100\) bp/year, \(c\) is usually well below 1 bp for very short expiries but can reach \(\sim 10\)–15 bp around 5 years and \(\sim 50\) bp around 10 years.
+In simple approximations, $c$ grows with rate volatility and (roughly) with the square of time-to-expiry. With annualized absolute volatility on the order of $100$ bp/year, $c$ is usually well below 1 bp for very short expiries but can reach $\sim 10$–15 bp around 5 years and $\sim 50$ bp around 10 years.
 
 This matters whenever you use STIR futures to (i) build or sanity-check a forward curve, (ii) hedge forward-rate exposure, or (iii) interpret policy expectations from Fed Funds (or similar) futures.
 
@@ -20,10 +20,10 @@ Prerequisites: [Chapter 4 — Money-Market Building Blocks](chapter_04_money_mar
 Follow-on: [Chapter 25 — Interest Rate Swaps — Mechanics and Valuation](chapter_25_interest_rate_swaps_mechanics_valuation.md), [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapter_26_swap_pv01_dv01_hedging.md), [Chapter 28 — Basis Trades in Rates](chapter_28_basis_trades.md)
 
 ## Learning Objectives
-- Convert a STIR futures quote \(Q\) into a futures-implied rate, and then into a forward/FRA-equivalent rate using a convexity adjustment.
+- Convert a STIR futures quote $Q$ into a futures-implied rate, and then into a forward/FRA-equivalent rate using a convexity adjustment.
 - Explain (in words and with a timeline) why daily settlement makes futures economically different from forwards.
 - Estimate the order of magnitude of the convexity adjustment and perform quick sign/unit sanity checks.
-- Compute contract DV01 with an explicit bump object, bump size (1 bp \(=10^{-4}\)), and sign convention; size a hedge (including “tailing”).
+- Compute contract DV01 with an explicit bump object, bump size (1 bp $=10^{-4}$), and sign convention; size a hedge (including “tailing”).
 - Extract a one-meeting “implied post-meeting rate” and a simple hike/cut probability from a Fed Funds futures price.
 
 In this chapter, we cover:
@@ -71,6 +71,8 @@ where $Q$ is the quoted futures price and $R^{\text{fut}}$ is the implied future
 $$R^{\text{fut}} = 100 - 95.25 = 4.75\%$$
 
 In decimal form: $r^{\text{fut}} = 0.0475$.
+
+**Check (percent vs decimal):** The quote convention uses **percent** ($R^{\text{fut}}=4.75\%$), while most curve and convexity formulas use **decimals** ($r^{\text{fut}}=0.0475$). Convert once and be consistent: a 100× mistake in rate units becomes a 10,000× mistake in any $\sigma^2$ convexity term.
 
 This convention means that a one-basis-point increase in the implied rate corresponds to a 0.01 decrease in price. The standardized relationship makes DV01 calculations straightforward (see Section 24.10).
 
@@ -140,11 +142,11 @@ The difference between the two shows up as a systematic wedge between the future
 
 ### 24.2.3 The Sign Convention
 
-Define the convexity adjustment \(c\) by:
+Define the convexity adjustment $c$ by:
 
 $$\boxed{\text{Forward rate} = \text{Futures rate} - c}$$
 
-For standard STIR futures, \(c\) is typically **positive**, meaning the futures-implied rate exceeds the forward/FRA-equivalent rate.
+For standard STIR futures, $c$ is typically **positive**, meaning the futures-implied rate exceeds the forward/FRA-equivalent rate.
 
 > **Sign check:** Forward = Futures - (positive number), so Forward < Futures. This matches: futures rates are higher than forward rates.
 
@@ -183,11 +185,11 @@ This captures the nonlinearity (convexity) in the relationship between rates and
 $$\boxed{r^{\text{fut}} - r^{\text{fwd}} \approx \frac{\sigma^2 t^2}{2} + \frac{\sigma^2 \beta t}{2}}$$
 
 where:
-- $\sigma$ = annual absolute volatility of the short rate (decimal; e.g., 100 bp/year \(\approx 0.01\))
+- $\sigma$ = annual absolute volatility of the short rate (decimal; e.g., 100 bp/year $\approx 0.01$)
 - $t$ = time to futures expiration (years)
 - $\beta$ = underlying deposit period (years, typically 0.25 for 3-month)
 
-> **Unit check:** \(c\) is in **decimal rate** units. Multiply by 10,000 to convert to basis points.
+> **Unit check:** $c$ is in **decimal rate** units. Multiply by 10,000 to convert to basis points.
 
 **Key observations:**
 
@@ -215,31 +217,31 @@ When precision matters, treat the approximation as an order-of-magnitude tool an
 
 **Timeline (Make Dates Concrete)**
 - Valuation date: 2001-11-30 (chosen to match the classic “EDZ6” illustration)
-- Futures expiry / start of the underlying 3M period: 2006-12-20 (about \(t=5.05\) years later)
-- Accrual start/end: 2006-12-20 to 2007-03-20 (about 90 days; ACT/360 \(\approx 0.25\))
+- Futures expiry / start of the underlying 3M period: 2006-12-20 (about $t=5.05$ years later)
+- Accrual start/end: 2006-12-20 to 2007-03-20 (about 90 days; ACT/360 $\approx 0.25$)
 - Payment date: 2007-03-20
 
 **Inputs**
-- Futures quote: \(Q=95.00\) \(\Rightarrow\) futures-implied rate \(R^{\text{fut}}=5.00\%\) (so \(r^{\text{fut}}=0.0500\))
-- Volatility assumption: \(\sigma=100\) bp/year \(=0.01\) (absolute volatility, in decimal rate units)
-- Deposit period: \(\beta\approx 0.25\) years; time-to-expiry \(t=5.05\) years
+- Futures quote: $Q=95.00$ $\Rightarrow$ futures-implied rate $R^{\text{fut}}=5.00\%$ (so $r^{\text{fut}}=0.0500$)
+- Volatility assumption: $\sigma=100$ bp/year $=0.01$ (absolute volatility, in decimal rate units)
+- Deposit period: $\beta\approx 0.25$ years; time-to-expiry $t=5.05$ years
 
 **Outputs (What You Produce)**
-- Convexity adjustment \(c\) (decimal and bp)
-- Forward/FRA-equivalent rate \(r^{\text{fwd}} = r^{\text{fut}} - c\)
+- Convexity adjustment $c$ (decimal and bp)
+- Forward/FRA-equivalent rate $r^{\text{fwd}} = r^{\text{fut}} - c$
 
 **Step-by-step**
-1. Quote \(\rightarrow\) futures-implied rate: \(r^{\text{fut}}=(100-Q)/100=0.0500\).
-2. Compute \(\sigma^2 = 0.01^2 = 0.0001\).
+1. Quote $\rightarrow$ futures-implied rate: $r^{\text{fut}}=(100-Q)/100=0.0500$.
+2. Compute $\sigma^2 = 0.01^2 = 0.0001$.
 3. Compute the adjustment:
-   - Pure term: \(\frac{\sigma^2 t^2}{2}=\frac{0.0001\times 5.05^2}{2}=0.001275\)
-   - Convexity term: \(\frac{\sigma^2 \beta t}{2}=\frac{0.0001\times 0.25\times 5.05}{2}=0.000063\)
-   - Total: \(c\approx 0.001338\), i.e. \(13.4\) bp.
-4. Convert futures \(\rightarrow\) forward:
+   - Pure term: $\frac{\sigma^2 t^2}{2}=\frac{0.0001\times 5.05^2}{2}=0.001275$
+   - Convexity term: $\frac{\sigma^2 \beta t}{2}=\frac{0.0001\times 0.25\times 5.05}{2}=0.000063$
+   - Total: $c\approx 0.001338$, i.e. $13.4$ bp.
+4. Convert futures $\rightarrow$ forward:
    $$r^{\text{fwd}} \approx 0.0500 - 0.001338 = 0.048662 \;\; (4.866\%).$$
 
 **Cashflows (what the adjustment “means” in dollars)**
-If you mistakenly use the futures-implied rate as a forward rate for a \$100,000,000 notional 3-month accrual, the rate error is about \(13.4\) bp. The interest difference over \(\tau\approx 0.25\) years is:
+If you mistakenly use the futures-implied rate as a forward rate for a \$100,000,000 notional 3-month accrual, the rate error is about $13.4$ bp. The interest difference over $\tau\approx 0.25$ years is:
 
 $$100{,}000{,}000 \times 0.25 \times 0.001338 \approx \$33{,}450.$$
 
@@ -248,9 +250,9 @@ $$100{,}000{,}000 \times 0.25 \times 0.001338 \approx \$33{,}450.$$
 - In hedging, “\$25 per bp” is only meaningful if your exposure DV01 is computed for the same forward bucket and settlement assumptions.
 
 **Sanity Checks**
-- Limit check: if \(\sigma=0\), then \(c=0\) and futures and forwards coincide.
-- Units check: \(c\) is in **decimal rate units**; multiply by 10,000 to get bp.
-- Sign check: \(c>0\Rightarrow r^{\text{fwd}}<r^{\text{fut}}\) (forward below futures).
+- Limit check: if $\sigma=0$, then $c=0$ and futures and forwards coincide.
+- Units check: $c$ is in **decimal rate units**; multiply by 10,000 to get bp.
+- Sign check: $c>0\Rightarrow r^{\text{fwd}}<r^{\text{fut}}$ (forward below futures).
 
 ### 24.3.5 Adjustment Magnitude by Maturity
 
@@ -265,7 +267,7 @@ The following table shows how the convexity adjustment grows with contract matur
 | 5 years | 12.50 bp | 0.63 bp | 13.1 bp |
 | 10 years | 50.00 bp | 1.25 bp | 51.3 bp |
 
-The pattern is clear: very short expiries have negligible adjustment, but beyond 2–3 years the adjustment becomes material for pricing and hedging. In this approximation, the dominant term grows like \(t^2\).
+The pattern is clear: very short expiries have negligible adjustment, but beyond 2–3 years the adjustment becomes material for pricing and hedging. In this approximation, the dominant term grows like $t^2$.
 
 > **Visual: The Convexity Gap**
 >
@@ -301,7 +303,7 @@ Doubling volatility from 100 bp to 200 bp would quadruple the adjustment to appr
 
 When using futures to hedge a forward exposure, a subtle but important adjustment is required: the **tail**. The issue arises because futures gains and losses settle daily, while the forward exposure settles at maturity. Even if the DV01s match perfectly, the timing mismatch creates hedge slippage.
 
-Consider a hedger with a $100 million forward exposure at time $T$. The DV01 of this exposure, measured today, reflects discounting back to the present. A futures position with matching face amount would have the same DV01—but futures gains arrive today while the forward exposure settles at $T$. If the hedger reinvests futures gains until $T$, or finances futures losses until $T$, the effective exposure differs from the nominal DV01 match.
+Consider a hedger with a \$100 million forward exposure at time $T$. The DV01 of this exposure, measured today, reflects discounting back to the present. A futures position with matching face amount would have the same DV01—but futures gains arrive today while the forward exposure settles at $T$. If the hedger reinvests futures gains until $T$, or finances futures losses until $T$, the effective exposure differs from the nominal DV01 match.
 
 ### 24.4.2 The Tailing Formula
 
@@ -323,7 +325,7 @@ The intuition: because futures gains can be invested (or losses must be financed
 
 ### 24.4.3 Worked Example: Tailing a 6-Month Hedge
 
-**Problem:** You need to hedge a $500 million 6-month forward rate exposure. The financing rate is 5%. How many Eurodollar futures contracts should you use?
+**Problem:** You need to hedge a \$500 million 6-month forward rate exposure. The financing rate is 5%. How many Eurodollar futures contracts should you use?
 
 **Step 1: Compute the untailed hedge**
 
@@ -344,7 +346,7 @@ The 12-contract reduction (from 500 to 488) accounts for the fact that futures g
 
 > **Desk Reality:** A “tailed hedge” is a present-value adjustment: it aligns the timing of daily variation-margin cashflows with the cashflow date of the exposure you are hedging.
 > **Common break:** Ignoring tailing for long horizons can lead to systematic over-hedging/under-hedging (the gap grows with the financing horizon and rate level).
-> **What to check:** compute both untailed and tailed contract counts and sanity-check that \(\text{tailed} < \text{untailed}\) when \(r>0\).
+> **What to check:** compute both untailed and tailed contract counts and sanity-check that $\text{tailed} < \text{untailed}$ when $r>0$.
 
 ### 24.4.4 When to Tail
 
@@ -367,7 +369,7 @@ Fed Funds futures settle based on the arithmetic average of the daily effective 
 
 - **Notional:** \$5,000,000
 - **Settlement:** Cash, based on average rate over the contract month
-- **Quote:** $100 - \bar{r}_{\text{FF}}$ where $\bar{r}_{\text{FF}}$ is the monthly average in percent
+- **Quote:** \$100 - \bar{r}_{\text{FF}}$ where $\bar{r}_{\text{FF}}$ is the monthly average in percent
 - **DV01:** \$41.67 per bp (30-day month)
 
 The averaging feature creates unique properties: the contract is sensitive to the *path* of rates during the month, not just the end-of-month level. This makes Fed Funds futures particularly useful for reading market expectations about Federal Reserve policy.
@@ -397,21 +399,23 @@ $$P(\text{hike}) = \frac{r_{\text{post}} - r_{\text{pre}}}{0.25}$$
 
 Here rates are in **percent** (so 25 bp = 0.25). If you work in decimals, replace 0.25 with 0.0025.
 
+**Check (probability bounds):** Under this two-outcome setup, the implied probability must satisfy $0\le p\le 1$. If you compute $p<0$ or $p>1$, at least one assumption is inconsistent with the futures-implied average (common culprits: day weights around the meeting date, effective-vs-target spreads, or needing more than two outcomes).
+
 ### 24.5.3 Worked Example: FOMC Meeting Extraction
 
-**Problem (toy but internally consistent):** The April Fed Funds futures contract trades at 95.20, implying \(\bar{r}=4.80\%\) for the month. An FOMC meeting occurs on April 16 in a 30-day month. Assume the effective rate equals the target and is \(r_{\text{pre}}=4.75\%\) before the meeting. If the only two outcomes are “no change” (4.75%) or “+25 bp hike” (5.00%), what hike probability is implied?
+**Problem (toy but internally consistent):** The April Fed Funds futures contract trades at 95.20, implying $\bar{r}=4.80\%$ for the month. An FOMC meeting occurs on April 16 in a 30-day month. Assume the effective rate equals the target and is $r_{\text{pre}}=4.75\%$ before the meeting. If the only two outcomes are “no change” (4.75%) or “+25 bp hike” (5.00%), what hike probability is implied?
 
 **Step 1: Translate the quote**
-- Futures price \(Q=95.20 \Rightarrow \bar{r}=100-Q=4.80\%\).
+- Futures price $Q=95.20 \Rightarrow \bar{r}=100-Q=4.80\%$.
 
 **Step 2: Solve for the implied post-meeting rate**
 
-Assume 15 days at \(r_{\text{pre}}\) and 15 days at \(r_{\text{post}}\):
+Assume 15 days at $r_{\text{pre}}$ and 15 days at $r_{\text{post}}$:
 $$4.80=\frac{15\times 4.75 + 15\times r_{\text{post}}}{30}\quad\Rightarrow\quad r_{\text{post}}=4.85\%.$$
 
 **Step 3: Map to a simple two-outcome probability**
 
-If \(r_{\text{post}}=4.75+0.25\times p\), then
+If $r_{\text{post}}=4.75+0.25\times p$, then
 $$p=\frac{4.85-4.75}{0.25}=0.40.$$
 
 **Answer:** about **40%** probability of a 25 bp hike under this simplified setup.
@@ -470,17 +474,17 @@ Traders use TED spreads to:
 
 ### 24.6.4 TED Spread Worked Example
 
-**Problem (one-period toy):** A 6-month zero-coupon note pays 100 at maturity and trades at 97.75. Assume the relevant 6-month simple rate from your STIR-implied curve is \(r^{\text{fut}}=5.00\%\) (ACT/360, \(\tau=0.5\)), and assume convexity adjustment is negligible at this horizon (or already applied). What TED spread \(s\) makes discounting at \(r^{\text{fut}}-s\) match the price?
+**Problem (one-period toy):** A 6-month zero-coupon note pays 100 at maturity and trades at 97.75. Assume the relevant 6-month simple rate from your STIR-implied curve is $r^{\text{fut}}=5.00\%$ (ACT/360, $\tau=0.5$), and assume convexity adjustment is negligible at this horizon (or already applied). What TED spread $s$ makes discounting at $r^{\text{fut}}-s$ match the price?
 
 **Step-by-step**
 1. Price with a spread-subtracted simple rate:
-   $$97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.$$
+   $$\$97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.$$
 2. Solve for the implied spread-subtracted rate:
    $$r^{\text{fut}}-s = \frac{100/97.75 - 1}{0.5} \approx 4.60\%.$$
 3. Therefore,
    $$s \approx 5.00\% - 4.60\% = 0.40\% = 40\text{ bp}.$$
 
-**Interpretation:** A positive \(s\) means the note trades **cheap** (higher yield) versus the STIR-implied reference curve.
+**Interpretation:** A positive $s$ means the note trades **cheap** (higher yield) versus the STIR-implied reference curve.
 
 ---
 
@@ -543,7 +547,7 @@ SOFR (Secured Overnight Financing Rate) futures are widely used in USD STIR mark
 - **Settlement:** At the *end* of the reference period (unlike ED, which settled at the start)
 - **Notional:** \$1,000,000
 - **DV01:** \$25 per bp per contract
-- **Quote convention:** $100 - R^{\text{SOFR}}$
+- **Quote convention:** \$100 - R^{\text{SOFR}}$
 
 **1-Month SOFR Futures:**
 - **Reference rate:** Arithmetic average of daily SOFR over the contract month
@@ -620,7 +624,7 @@ The proper procedure applies convexity adjustments before bootstrapping:
 5. **Bootstrap discount factors:** Use the adjusted forward rates
 6. **Stitch to longer instruments:** Beyond the liquid futures strip (typically 4-5 years), switch to swap rates
 
-> **Desk Reality:** “Curve from futures” is a stitching workflow: stub \(\rightarrow\) adjusted forwards \(\rightarrow\) chained discount factors \(\rightarrow\) switch to swaps beyond the liquid strip.
+> **Desk Reality:** “Curve from futures” is a stitching workflow: stub $\rightarrow$ adjusted forwards $\rightarrow$ chained discount factors $\rightarrow$ switch to swaps beyond the liquid strip.
 > **Common break:** mixing conventions (day count/compounding), skipping the stub, or feeding a risk system “forwards” that were built from unadjusted futures quotes.
 > **What to check:** ensure discount factors are continuous at IMM dates and sanity-check adjusted forwards against nearby FRA/swap quotes where available.
 
@@ -682,11 +686,11 @@ The difference is small (0.01%) for one quarter but compounds across multiple pe
 
 $$\boxed{DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})}$$
 
-where \(1\text{bp}=10^{-4}\) in **decimal** rate units, and “rates” means the **bump object** you choose (a forward bucket, a curve node, a futures-implied rate, etc.). Under this convention, DV01 is positive for positions that gain when rates fall.
+where $1\text{bp}=10^{-4}$ in **decimal** rate units, and “rates” means the **bump object** you choose (a forward bucket, a curve node, a futures-implied rate, etc.). Under this convention, DV01 is positive for positions that gain when rates fall.
 
-For STIR futures, the natural bump object is the contract’s **implied futures rate** (the rate underlying \(Q=100-R^{\text{fut}}\)). A 1 bp *down* bump in the implied rate corresponds to a +0.01 move in the quoted price.
+For STIR futures, the natural bump object is the contract’s **implied futures rate** (the rate underlying $Q=100-R^{\text{fut}}$). A 1 bp *down* bump in the implied rate corresponds to a +0.01 move in the quoted price.
 
-**Contract DV01 (units).** The standardized tick value makes hedge ratios straightforward. For a contract designed to hedge a money-market deposit with notional \(N\) and accrual fraction \(\tau\) (ACT/360),
+**Contract DV01 (units).** The standardized tick value makes hedge ratios straightforward. For a contract designed to hedge a money-market deposit with notional $N$ and accrual fraction $\tau$ (ACT/360),
 
 $$\boxed{DV01_{\text{contract}} \approx N\cdot \tau \cdot 10^{-4}\;\;(\$ \text{ per 1bp, for a long futures position})}$$
 
@@ -695,7 +699,7 @@ In USD STIR contracts this yields the familiar constants:
 - Eurodollar/3M SOFR futures: \$25 per bp per contract
 - Fed Funds/1M SOFR futures: \$41.67 per bp per contract (30-day month)
 
-**Hedge ratio.** For an exposure with DV01 of \(\text{DV01}_{\text{target}}\) (in \$ per bp, computed under the same bump object definition), the hedge ratio is:
+**Hedge ratio.** For an exposure with DV01 of $\text{DV01}_{\text{target}}$ (in \$ per bp, computed under the same bump object definition), the hedge ratio is:
 
 $$\boxed{\text{\# contracts} = -\frac{\text{DV01}_{\text{target}}}{\text{DV01}_{\text{fut}}}}$$
 
@@ -703,7 +707,7 @@ The negative sign says you take the opposite position: a long exposure (positive
 
 > **Pitfall — “What is being bumped?”** A STIR futures contract’s DV01 is “\$ per 1 bp of the contract’s implied rate.” Your exposure DV01 might instead be computed from a **curve** bump (zeros/par quotes) or from a different forward bucket.
 > **Why it matters:** the hedge ratio can be wrong in size or even sign if the bump objects are not the same.
-> **Quick check:** re-compute \(\text{DV01}_{\text{target}}\) as \(PV(\text{forward bucket }[T_1,T_2]\text{ down }1\text{bp})-PV(\text{base})\) and verify that dividing by \$25 (or \$41.67) gives a sensible contract count.
+> **Quick check:** re-compute $\text{DV01}_{\text{target}}$ as $PV(\text{forward bucket }[T_1,T_2]\text{ down }1\text{bp})-PV(\text{base})$ and verify that dividing by \$25 (or \$41.67) gives a sensible contract count.
 
 ### 24.10.2 Bucket Hedging with STIR Futures
 
@@ -780,7 +784,7 @@ Real markets deviate from these assumptions in several ways:
 
 **Discrete settlement:** Settlement is daily, not continuous. The daily-vs-continuous difference is often second-order compared with volatility and model-choice uncertainty, but it can matter in a precise implementation.
 
-**Volatility smiles:** The simple formula assumes constant volatility. Smile-aware approaches infer an effective adjustment from options across strikes rather than from a single \(\sigma\).
+**Volatility smiles:** The simple formula assumes constant volatility. Smile-aware approaches infer an effective adjustment from options across strikes rather than from a single $\sigma$.
 
 Bottom line: for most practical purposes, the simple approximation provides reasonable order-of-magnitude estimates. When precision matters, use a model/implementation that is consistent with your curve construction and risk.
 
@@ -827,13 +831,13 @@ When building a curve from STIR futures:
 
 ## Summary
 
-1. STIR futures are quoted as \(Q=100-R\) and are marked to market daily; daily settlement is the root cause of the futures-vs-forward wedge.
-2. Forward rates used for curve building come from discount factors: \(L(t;T_1,T_2)=\frac{P(t,T_1)-P(t,T_2)}{\tau\,P(t,T_2)}\) with \(\tau\) defined by day count.
-3. Define the convexity adjustment by \(\text{forward}=\text{futures}-c\); typically \(c>0\), so forward rates are lower than futures-implied rates.
-4. A usable approximation for the wedge is \(c \approx \frac{\sigma^2 t^2}{2} + \frac{\sigma^2 \beta t}{2}\) (with \(\beta\approx 0.25\) for a 3M deposit).
-5. Order-of-magnitude: with \(\sigma\sim 100\) bp/year, \(c\) is sub-1bp at short expiries but can be \(\sim 10\)–15 bp around 5y and \(\sim 50\) bp around 10y.
+1. STIR futures are quoted as $Q=100-R$ and are marked to market daily; daily settlement is the root cause of the futures-vs-forward wedge.
+2. Forward rates used for curve building come from discount factors: $L(t;T_1,T_2)=\frac{P(t,T_1)-P(t,T_2)}{\tau\,P(t,T_2)}$ with $\tau$ defined by day count.
+3. Define the convexity adjustment by $\text{forward}=\text{futures}-c$; typically $c>0$, so forward rates are lower than futures-implied rates.
+4. A usable approximation for the wedge is $c \approx \frac{\sigma^2 t^2}{2} + \frac{\sigma^2 \beta t}{2}$ (with $\beta\approx 0.25$ for a 3M deposit).
+5. Order-of-magnitude: with $\sigma\sim 100$ bp/year, $c$ is sub-1bp at short expiries but can be $\sim 10$–15 bp around 5y and $\sim 50$ bp around 10y.
 6. Curve workflow: pre-process futures quotes into forward/FRA-equivalent rates (convexity-adjusted) before bootstrapping discount factors.
-7. Risk workflow: DV01 must specify the bump object, bump size (1 bp \(=10^{-4}\)), units, and sign; for USD 3M contracts, the per-contract DV01 is about \$25/bp.
+7. Risk workflow: DV01 must specify the bump object, bump size (1 bp $=10^{-4}$), units, and sign; for USD 3M contracts, the per-contract DV01 is about \$25/bp.
 8. Fed Funds futures prices embed a month-weighted average of pre- and post-meeting rates; a one-meeting implied rate (and simple hike/cut probability) comes from the day-weighting identity.
 
 ---
@@ -862,20 +866,20 @@ When building a curve from STIR futures:
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(Q\) | STIR futures quoted price | price points; typically \(Q=100-R^{\text{fut}}\) |
-| \(R^{\text{fut}}\) | Futures-implied rate | percent per year (convert to decimal by dividing by 100) |
-| \(r^{\text{fut}}\) | Futures-implied rate | decimal per year; \(r^{\text{fut}}=R^{\text{fut}}/100\) |
-| \(L(t;T_1,T_2)\) | Simple forward rate for \([T_1,T_2]\) | per year; simple accrual \(1+\tau L\); day count must be stated |
-| \(c\) | Convexity adjustment | decimal rate units; \(\text{forward}=\text{futures}-c\); bp \(=10{,}000\,c\) |
-| \(\sigma\) | Absolute volatility used in \(c\) | per year in decimal rate units (e.g., 0.01 = 100 bp/year) |
-| \(t\) | Time to futures expiry | years |
-| \(\beta\) | Underlying deposit period | years; \(\approx 0.25\) for 3M |
-| \(\tau\) | Accrual year-fraction | years (e.g., ACT/360) |
-| \(P(t,T)\) | Discount factor | unitless; \(P(T,T)=1\) |
-| \(N\) | Notional | currency |
-| \(DV01\) | PV sensitivity scalar | currency per 1bp; \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) |
-| \(N_{\text{fut}}, N_{\text{fwd}}\) | Hedge notionals (futures vs forward) | currency notionals; “tailing” adjusts for timing |
-| \(\bar{r}_{\text{FF}}\) | Monthly average Fed Funds rate | percent per year in the policy-extraction formulas (state if using decimals) |
+| $Q$ | STIR futures quoted price | price points; typically $Q=100-R^{\text{fut}}$ |
+| $R^{\text{fut}}$ | Futures-implied rate | percent per year (convert to decimal by dividing by 100) |
+| $r^{\text{fut}}$ | Futures-implied rate | decimal per year; $r^{\text{fut}}=R^{\text{fut}}/100$ |
+| $L(t;T_1,T_2)$ | Simple forward rate for $[T_1,T_2]$ | per year; simple accrual $1+\tau L$; day count must be stated |
+| $c$ | Convexity adjustment | decimal rate units; $\text{forward}=\text{futures}-c$; bp $=10{,}000\,c$ |
+| $\sigma$ | Absolute volatility used in $c$ | per year in decimal rate units (e.g., 0.01 = 100 bp/year) |
+| $t$ | Time to futures expiry | years |
+| $\beta$ | Underlying deposit period | years; $\approx 0.25$ for 3M |
+| $\tau$ | Accrual year-fraction | years (e.g., ACT/360) |
+| $P(t,T)$ | Discount factor | unitless; $P(T,T)=1$ |
+| $N$ | Notional | currency |
+| $DV01$ | PV sensitivity scalar | currency per 1bp; $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ |
+| $N_{\text{fut}}, N_{\text{fwd}}$ | Hedge notionals (futures vs forward) | currency notionals; “tailing” adjusts for timing |
+| $\bar{r}_{\text{FF}}$ | Monthly average Fed Funds rate | percent per year in the policy-extraction formulas (state if using decimals) |
 
 ---
 
@@ -889,7 +893,7 @@ When building a curve from STIR futures:
 | 4 | What is the DV01 of one Eurodollar futures contract? | \$25 per basis point |
 | 5 | How is the forward rate derived from discount factors? | $L = (P(T_1) - P(T_2)) / (\tau \cdot P(T_2))$ |
 | 6 | When are futures and forward rates equal? | When interest rates are deterministic (constant) |
-| 7 | How do we define the convexity adjustment \(c\) in this chapter? | Forward rate = Futures rate $- c$ |
+| 7 | How do we define the convexity adjustment $c$ in this chapter? | Forward rate = Futures rate $- c$ |
 | 8 | Is the convexity adjustment typically positive or negative? | Positive |
 | 9 | What does $c > 0$ imply about futures vs forward rates? | Futures rate exceeds forward rate |
 | 10 | What is the key mechanism causing futures-forward differences? | Daily mark-to-market settlement |
@@ -972,9 +976,9 @@ When building a curve from STIR futures:
 
 **10.** Two quick diagnostics:
 - Compare the futures-implied forwards (with and without convexity adjustment) against nearby FRA/swap quotes; a persistent “too-high forwards” bias is a red flag.
-- Recompute long-dated PVs/forwards using the same strip with and without convexity adjustment and check whether mispricings grow with maturity roughly like \(t^2\) (as the simple approximation predicts).
+- Recompute long-dated PVs/forwards using the same strip with and without convexity adjustment and check whether mispricings grow with maturity roughly like $t^2$ (as the simple approximation predicts).
 
-**11.** For a 31-day month: \(DV01 = 5{,}000{,}000\times 0.0001\times 31/360 \approx \$43.06\) per bp per contract.
+**11.** For a 31-day month: $DV01 = 5{,}000{,}000\times 0.0001\times 31/360 \approx \$43.06$ per bp per contract.
 
 ---
 

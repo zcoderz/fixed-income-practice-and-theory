@@ -344,9 +344,9 @@ $$\text{Average Rate} = \frac{1}{N}\sum_{i=1}^{N} r_i$$
 
 where $N$ is the number of calendar days in the month and $r_i$ is the effective Fed Funds rate on day $i$.
 
-> **Desk Reality:** Fed funds futures are often explained as hedges of a \(\$5{,}000{,}000\) 30-day deposit in fed funds. The final settlement price is set to \(100 - 100\times \bar r\), where \(\bar r\) is the month’s average effective fed funds rate (in percent).
-> **Common break:** In fed funds futures, changing the rate of the \(\$5{,}000{,}000\) 30-day underlying by 1 bp changes the interest payment by \(\$41.67\) (= \(\$5{,}000{,}000 \times (.0001 \times 30)/360\)).
-> **What to check:** Hedging a \(\$100{,}000{,}000\) investment over a 31-day month requires \(20\times(31/30)\approx 20.67\), i.e., 21 fed funds futures contracts (rounding up to an integer contract count).
+> **Desk Reality:** Fed funds futures are often explained as hedges of a $\$5{,}000{,}000$ 30-day deposit in fed funds. The final settlement price is set to $100 - 100\times \bar r$, where $\bar r$ is the month’s average effective fed funds rate (in percent).
+> **Common break:** In fed funds futures, changing the rate of the $\$5{,}000{,}000$ 30-day underlying by 1 bp changes the interest payment by $\$41.67$ (= $\$5{,}000{,}000 \times (.0001 \times 30)/360$).
+> **What to check:** Hedging a $\$100{,}000{,}000$ investment over a 31-day month requires $20\times(31/30)\approx 20.67$, i.e., 21 fed funds futures contracts (rounding up to an integer contract count).
 
 ### 4.3.5 The "Staircase" Curve: Fed Funds at FOMC Meetings
 

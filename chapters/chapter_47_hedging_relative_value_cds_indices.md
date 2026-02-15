@@ -6,11 +6,21 @@
 
 You hold $20 million notional of Ford CDS protection and want to hedge with CDX.IG. How much index notional do you need? The answer seems straightforward: match CS01s, calculate a hedge ratio, and execute. But the experienced credit trader knows this is where the real work begins.
 
-A CS01-matched hedge can still produce substantial P&L when Ford widens by 50 basis points while the index moves only 10. Your "hedged" position just generated nearly $200,000 of profit—or loss—depending on direction. The hedge neutralized systematic credit risk, but the idiosyncratic component remained fully exposed. As O'Kane emphasizes in his treatment of portfolio CDS indices, "the portfolio CDS index allows investors to take a broad exposure to the credit markets in a single transaction," but this very feature means the hedge you construct may not behave as expected when individual constituents move independently of the index.
+A CS01-matched hedge can still produce substantial P&L when Ford widens by 50 basis points while the index moves only 10. Your *hedged* position just generated nearly $200,000 of profit—or loss—depending on direction. The hedge neutralized *one component* of spread risk, but the residual (idiosyncratic and basis-related) component remained exposed.
 
-This distinction between *systemic* and *idiosyncratic* risk lies at the heart of index hedging. O'Kane makes this explicit in his treatment of tranche hedging: "the idiosyncratic delta is calculated by widening one credit while keeping all of the other credits fixed... This is quite different from how the systemic delta is calculated. This involves widening all of the issuer curves simultaneously." The same framework applies directly to index hedging, where choosing between these approaches—or finding the right blend—determines hedge effectiveness. As O'Kane notes, "In practice, spread movements exhibit a mixture of systemic and idiosyncratic moves and the correct hedge will be somewhere between the idiosyncratic hedge and the systemic hedge."
+This distinction between *systemic* and *idiosyncratic* moves is at the heart of index hedging. A “systemic” bump design assumes many names move together (market-wide repricing). An “idiosyncratic” bump design assumes one name moves while peers stay put. Real spread moves mix the two, so hedge ratios depend on what you are trying to neutralize and what you are willing to keep.
 
 This chapter provides a rigorous, risk-first framework for CDS index hedging and relative value analysis. We cover the complete workflow: identifying what exposures you actually have, selecting appropriate hedge instruments, computing hedge ratios with explicit assumptions, and validating those hedges with scenario analysis. Throughout, we maintain the discipline established in Chapter 43 (CDS Risks) and Chapter 44 (Single-Name RV): define the risk precisely, then design the hedge.
+
+Prerequisites: [Chapter 43 — Risks in CDS and Hedging Strategies](chapter_43_cds_risks_hedging.md); [Chapter 45 — CDS Indices — Structure, Quoting, and Lifecycle](chapter_45_cds_indices_structure_quoting_lifecycle.md); [Chapter 46 — Intrinsic Index Spread and Index Basis](chapter_46_intrinsic_index_spread_and_index_basis.md)  
+Follow-on: [Chapter 48 — CDO / Tranche Products — What They Are (Product Map)](chapter_48_cdo_tranche_products_product_map.md) (systemic/idiosyncratic risk generalized to tranches)
+
+## Learning Objectives
+- Translate index and single-name CDS quotes into the PV/risk objects you actually hedge (upfront, RPV01, CS01, VOD), with explicit units and sign.
+- Size a top-down hedge (single name → index) using CS01 and (optionally) beta, and interpret the residual tracking error.
+- Size a bottom-up hedge (index → constituents) and explain what risks remain (basis, dispersion, lifecycle/defaults, execution).
+- Distinguish systemic vs idiosyncratic bump designs and why “what is being bumped?” changes hedge ratios.
+- Validate a hedge with a scenario suite and a simple hedge-effectiveness diagnostic.
 
 **Chapter roadmap:**
 
@@ -27,11 +37,11 @@ This chapter builds directly on Chapter 46 (Intrinsic Index Spread and Index Bas
 
 ---
 
-## Conventions & Notation
+## Bumps, Units, and Signs
 
 This chapter is **risk-first**: we describe exposures, hedges, residuals, and validation—not trade recommendations.
 
-No index rulebook specifics (standard coupons, exact roll calendars, operational settlement mechanics) are asserted unless supported by the provided sources. Where a statement depends on your exact confirmation / rulebook / valuation policy, we flag the dependency explicitly and state the missing input.
+We avoid contract/rulebook specifics (exact roll calendars, settlement mechanics, series coupons) unless they are explicitly stated as an assumption in a worked example. Where a statement depends on your rulebook/confirmation or valuation policy, treat it as an input and restate it in your own documentation.
 
 All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decimal rate per year).
 
@@ -39,18 +49,18 @@ All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decim
 
 | Symbol | Definition |
 |--------|------------|
-| $t$ | Valuation time ("today") |
+| $t$ | Valuation time (today) |
 | $T$ | Maturity date of the CDS / index swap |
 | $M$ | Number of index constituents (alive at inception; defaults remove names without replacement) |
 | $m \in \{1, \ldots, M\}$ | Constituent name index |
 | $N$ | Trade notional (USD); $N_I$ for index notional, $N_m$ for constituent notional |
 | $S_m(t,T)$ | Market spread for name $m$ to $T$ |
-| $S_I(t,T)$ | Quoted index spread (market "index curve" level) to $T$ |
-| $C(T)$ | Contractual index coupon (fixed for the series; typically chosen to be a multiple of 5 bp) |
+| $S_I(t,T)$ | Quoted index spread (market index-curve level) to $T$ |
+| $C(T)$ | Contractual index coupon (fixed for the series) |
 | $U_I(t)$ | Upfront as percent of notional (positive = paid by protection buyer; negative = received) |
 | $V_I(t)$ | Intrinsic value of the index (constituent-implied) |
-| $\text{RPV01}(t,T)$ | Risky PV01 (PV of premium leg per unit spread; includes accrued-at-default) |
-| CS01 / Credit DV01 | Spread sensitivity; O'Kane's definition uses sign convention so short-protection CS01 is positive |
+| $\text{RPV01}(t,T)$ | Risky PV01 (PV of paying 1 bp/year on the premium leg until default/maturity; includes accrued-at-default) |
+| CS01 | Spread sensitivity defined as PV change for a **1 bp tightening** (spread down 1 bp) of the stated bump object; units $\$/\text{bp}$; typically positive for short protection |
 | VOD | Value-on-default (jump-to-default style risk); see Chapter 43 for the single-name treatment |
 | $FP$ | Auction final price / recovery proxy in cash settlement (per 100) |
 | $\beta_{m,I}$ | Spread beta: sensitivity of name $m$ spread changes to index spread changes |
@@ -58,15 +68,17 @@ All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decim
 | $\sigma_m$, $\sigma_I$ | Standard deviation of spread changes for name $m$ and index $I$ |
 | HE | Hedge effectiveness ratio |
 
+**Convention bridge (spread up vs spread down):** you will also see CS01 defined as an **up-bump** \(PV(\text{spread up }1\text{bp})-PV(\text{base})\), under which long protection is typically positive. For small bumps under the same “held fixed” assumptions, up-bump and down-bump conventions are approximately related by a sign flip. The number only becomes operational once you pin down the bump object (spread vs price), whether the curve is rebuilt, and the sign convention used by your risk reports.
+
 ---
 
 ## 47.1 Core Concepts
 
-### 47.1.1 The CDS Index as "One Trade, Many Names"
+### 47.1.1 The CDS Index as One Trade on Many Names
 
-A CDS portfolio index is a contract on a fixed set of reference entities for the life of the series. O'Kane describes the key structural features: "Since the indices contain as many as 125 credits, the portfolio CDS index allows investors to take a broad exposure to the credit markets in a single transaction." The index pays a fixed contractual coupon $C(T)$ on the outstanding notional and is traded with an upfront $U_I(t)$ that can be positive or negative.
+A CDS portfolio index is a contract on a fixed set of reference entities for the life of the series, giving broad credit exposure in a single transaction. The index pays a fixed contractual coupon $C(T)$ on the outstanding notional and is traded with an upfront $U_I(t)$ that can be positive or negative.
 
-When a constituent defaults, it is removed without replacement—the remaining portfolio continues with reduced notional. As O'Kane notes, "the size of the coupon is reduced as the face value is reduced by $1/M$" after each credit event. This creates a dynamic composition that evolves through the index lifecycle.
+When a constituent defaults, it is removed without replacement. The remaining portfolio continues with reduced notional; under the equal-weight stylization, outstanding notional (and therefore premium) steps down in $1/M$ increments after each default.
 
 **Why indices matter for hedging:**
 
@@ -79,11 +91,11 @@ When a constituent defaults, it is removed without replacement—the remaining p
 
 The distinction between *intrinsic* and *quoted* index values is fundamental to index hedging. Chapter 46 develops this in detail; here we summarize the key points.
 
-**Intrinsic value** $V_I(t)$ is the value implied by constituent CDS curves—building the index "from the bottom up" as a weighted sum of single-name values. O'Kane writes the intrinsic value of an index (short protection) as:
+**Intrinsic value** $V_I(t)$ is the value implied by constituent CDS curves—building the index from the bottom up as an aggregate of single-name values. One representation for the intrinsic value of a short-protection index position is:
 
 $$\boxed{V_I(t) = \frac{1}{M} \sum_{m=1}^{M} \bigl(C(T) - S_m(t,T)\bigr) \cdot \text{RPV01}_m(t,T)}$$
 
-**Quoted index level** uses a simplified flat index curve $S_I(t,T)$ to price the index "as though it were a single name." This market convention sacrifices precision for liquidity and quoting efficiency.
+**Quoted index level** uses a simplified flat index curve $S_I(t,T)$ to price the index as if it were a single-name contract. This market convention sacrifices precision for quoting and trading convenience.
 
 **Index basis** (in spread terms) is:
 
@@ -91,21 +103,21 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 O'Kane documents that quoted and intrinsic spreads often differ and lists several drivers:
 
-- **Restructuring clause differences**: Index often trades "No Restructuring" while underlying CDS may trade "Modified Restructuring" or other variants
-- **Liquidity premium**: "The considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium than the less liquid CDS spreads"
-- **Lead-lag effects**: "The CDS index may be considered to lead the CDS market. This is especially true in a widening market where investors use long protection positions in the index to hedge illiquid long credit positions"
+- **Restructuring clause differences**: index vs single-name documentation can differ (e.g., No-Restructuring vs Modified-Restructuring)
+- **Liquidity effects**: indices can embed different liquidity premia than individual CDS
+- **Lead-lag effects**: in fast markets, index levels can move before many single-name quotes update
 
 For hedging purposes, basis represents a residual risk—you cannot simultaneously match index spread exposure *and* constituent spread exposures unless you account for basis explicitly.
 
 ### 47.1.3 Portfolio Swap Adjustment (PSA)
 
-When hedging index products (particularly options or tranches) with constituents, practitioners often use a **portfolio swap adjustment** to reconcile intrinsic and quoted values. O'Kane describes PSA as "a way to adjust the individual CDS issuer curves so that the intrinsic of the adjusted CDS curves exactly matches the CDS index quotes."
+When hedging index products (particularly options or tranches) with constituents, practitioners often use a **portfolio swap adjustment** to reconcile intrinsic and quoted values. PSA is a curve adjustment that forces the intrinsic (built from adjusted constituent curves) to match the market index quote.
 
 A common implementation applies a spread multiplier $\alpha(T)$:
 
 $$S_m^*(t,T) = \alpha(T) \cdot S_m(t,T)$$
 
-and solves for $\alpha(T)$ so that the adjusted intrinsic equals the market index upfront. The adjustment is described as "somewhat arbitrary, chosen for stability/speed/reasonableness."
+and solves for $\alpha(T)$ so that the adjusted intrinsic equals the market index upfront. The adjustment choice is ultimately a modeling decision (stability vs speed vs “reasonableness”) rather than a unique arbitrage-free implication.
 
 **When PSA matters:**
 - Hedging index options with constituents
@@ -114,28 +126,42 @@ and solves for $\alpha(T)$ so that the adjusted intrinsic equals the market inde
 
 ### 47.1.4 Spread Risk Measures: CS01 and RPV01
 
-**CS01 (Credit DV01)** measures the dollar change in value for a 1 bp parallel increase in the CDS curve. O'Kane defines it with a sign convention so short protection DV01 is positive:
+**Anchor (pricing identity).** For a CDS-style contract, a convenient mark-to-market decomposition for a long-protection position is:
 
-$$\boxed{\text{CS01} = -\bigl(V(S + 1\text{ bp}) - V(S)\bigr)}$$
+$$V(t,T)=\text{ProtectionLegPV}(t,T)-S(t,T)\,\text{RPV01}(t,T)$$
 
-This is the primary risk measure for non-defaulting spread moves. Chapter 43 provides the complete treatment; here we note that:
+RPV01 (“risky PV01”) is the premium-leg PV factor, and it includes the effect of accrued premium paid at default.
 
-- **What is bumped matters**: A "1 bp bump" to the quoted index curve differs from bumping each constituent curve by 1 bp
-- **Units are \$/bp**: For a position with notional $N$ and RPV01 of 4.0 years, approximate CS01 is $N \times 4.0 \times 10^{-4} = N \times 0.0004$
+**Convention (bump, units, sign).** In this chapter:
 
-**RPV01** (risky PV01) is the premium-leg PV factor, representing the expected present value of receiving 1 unit of spread until default or maturity. For small spread changes:
+- **Bump size:** $1$ bp, where $1\text{ bp} = 10^{-4}$ (decimal spread per year).
+- **CS01:** PV change for a **1 bp tightening** of the stated spread factor:
 
-$$\Delta V \approx -\text{CS01} \cdot \Delta S$$
+$$\boxed{\text{CS01} := V(S-1\text{ bp}) - V(S)}$$
 
-where the sign depends on buyer/seller convention.
+To first order, $\text{CS01} \approx -\bigl(V(S+1\text{ bp})-V(S)\bigr)$. Units are $\$/\text{bp}$ for the stated notional; short protection typically has **positive** CS01 under this convention.
+
+**Expand (intuition).** CS01 is the “credit DV01”: it tells you how many dollars you make/lose for a small spread move, holding everything else fixed per the bump design. RPV01 is the “risky annuity”: it is the PV of paying/receiving 1 bp per year (on running premium) until default or maturity, reduced by default risk.
+
+**Bump object (make it explicit).** Any CS01 depends on “what is being bumped.” One common choice is to bump the quoted par-spread curve in parallel and recalibrate the hazard/intensity curve consistently, holding the discount curve fixed. If your system bumps hazards directly or bumps constituents instead of the index curve, you must restate CS01 accordingly before sizing hedges.
+
+For a near-par position, a useful approximation is:
+
+$$\text{CS01} \approx N \cdot \text{RPV01} \cdot 10^{-4}\quad (\$/\text{bp})$$
+
+**Check (sign + units).** If you are **short protection** with $N=\$10$mm and $\text{RPV01}=4.2$ years, then $\text{CS01}\approx 10{,}000{,}000 \times 4.2 \times 10^{-4}=4{,}200\ \$/\text{bp}$. A +20 bp widening implies $\Delta V \approx -4{,}200 \times 20 = -84{,}000$ (loss for short protection), consistent with “wider spreads hurt long-credit exposure.”
+
+> **Pitfall — What is being bumped?:** “Index CS01” can mean “bump the quoted index par-spread curve” or “bump each constituent spread curve and re-aggregate.”
+> **Why it matters:** Those two objects can produce different hedge ratios and different residuals (especially in dispersion and basis scenarios).
+> **Quick check:** Run a +10 bp parallel scenario and confirm the PV change matches $\Delta V \approx -\text{CS01}\cdot \Delta S$ for the *same bump object* you intend to neutralize.
 
 ### 47.1.5 Default-Event Risk: VOD (Value on Default)
 
 Even with perfect spread hedging, a sudden default creates discrete P&L. Chapter 43 defines Value on Default (VOD) for a single-name CDS using O'Kane's formula:
 
-$$\text{VOD}_{\\text{buy protection}} = -V(t) + (1-R) - \\Delta_0 S_0$$
+$$\text{VOD}_{\text{buy protection}} = -V(t) + (1-R) - \Delta_0 S_0$$
 
-where $V(t)$ is the CDS mark-to-market immediately before default and $\\Delta_0 S_0$ is the accrued premium at default. For a par position with $V(t) \\approx 0$, VOD per unit notional is approximately $(1-R) - \\Delta_0 S_0$.
+where $V(t)$ is the CDS mark-to-market immediately before default and $\Delta_0 S_0$ is the accrued premium at default. For a par position with $V(t) \approx 0$, VOD per unit notional is approximately $(1-R) - \Delta_0 S_0$.
 
 For indices, VOD concepts extend with portfolio scaling. A constituent default:
 
@@ -147,11 +173,11 @@ O'Kane's index valuation treats each name as contributing $(1 - R_m)/M$ losses t
 
 ### 47.1.6 Roll / Series Risk
 
-O'Kane describes indices as "rolled semi-annually" with important risk implications:
+CDS portfolio indices trade in **series** that roll every six months. A roll changes what the index refers to, so hedges can pick up unintended basis risk if you mix series.
 
-- **Maturity extension**: "The new index has a longer maturity, by six months, than the previous index. As credit curves tend to be upward sloping, this would tend to cause the new index spread to be wider"
-- **Membership changes**: The new roll may add or remove names based on credit quality and liquidity criteria
-- **Liquidity migration**: After a roll, liquidity concentrates in the new on-the-run series; hedging costs for off-the-run positions increase
+- **Maturity extension:** the new index has a longer maturity, by six months, than the previous index. If credit curves slope upward, the new series can price at a wider spread even with no change in credit quality.
+- **Membership changes:** the new series can add/remove constituents (e.g., downgrades or liquidity screens), changing sector mix and idiosyncratic risk.
+- **Liquidity migration:** liquidity typically concentrates in the on-the-run series; off-the-run hedges can become more expensive and harder to adjust.
 
 ---
 
@@ -197,7 +223,7 @@ A practitioner's menu of hedge instruments, with their strengths and limitations
 
 1. **What risk dominates?** If macro spread risk dominates, use index hedges. If name-specific risk dominates, consider single-name hedges.
 
-2. **Liquidity and cost**: O'Kane notes that "the considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium." Index hedges typically cost less to execute than equivalent single-name positions.
+2. **Liquidity and cost**: if the index market is deeper/tighter than many single names, an index hedge can be cheaper to execute. Differences in liquidity premia can also show up as index–constituent basis.
 
 3. **Precision vs efficiency**: Single-name hedges are more precise but require more trades and monitoring. Index hedges are efficient but leave idiosyncratic exposure.
 
@@ -206,7 +232,7 @@ A practitioner's menu of hedge instruments, with their strengths and limitations
 The fundamental hedge sizing approaches:
 
 **CS01 / Credit DV01 matching**
-The primary "first-pass" method. Choose hedge notional so total CS01 equals zero:
+The primary first-pass method. Choose hedge notional so total CS01 equals zero:
 
 $$N_{\text{hedge}} = -\frac{\text{CS01}_{\text{position}}}{\text{CS01}_{\text{hedge}}(1)}$$
 
@@ -225,17 +251,19 @@ When hedging a single name with an index, the name's spread may move more or les
 > *   **The Hedge**: If the Speedboat moves 2 inches for every 1 inch the Liner moves ($\beta=2$), you need 2x the Index notional to offset the motion.
 > *   **The Risk**: Sometimes the Speedboat engine fails (idiosyncratic shock) while the Liner sits still. Your hedge does nothing.
 
-$$N_I = -\frac{\text{CS01}_m}{\beta_{m,I} \cdot \text{CS01}_I(1)}$$
+$$N_I = -\frac{\beta_{m,I}\,\text{CS01}_m}{\text{CS01}_I(1)}$$
+
+**Check (units + toy sizing):** \(\beta\) is unitless. If your CS01s are reported in \(\$/\text{bp}\) per \(\$10\text{mm}\) notional and include direction (under this chapter’s spread-down convention: long protection typically negative, short protection typically positive), the ratio produces a notional. Example: a \(\$10\text{mm}\) long-protection name position has \(\text{CS01}_m=-\$4{,}000/\text{bp}\), the index has \(\text{CS01}_I(1)=+\$3{,}000/\text{bp}\) per \(\$10\text{mm}\) of **short** index protection, and \(\beta=1.5\). Then \(N_I \approx -(1.5\times -4{,}000)/3{,}000 \approx 2\) “units”, i.e., about \(\$20\text{mm}\) of short index protection.
 
 > **Deep Dive: The Regression Hedge**
 >
-> How do you find $\beta$? Traders run a simple OLS regression on spread changes:
+> How do you find $\beta$? One practical approach is an OLS regression on spread changes:
 >
 > $$\Delta S_{\text{name}} = \alpha + \beta \Delta S_{\text{index}} + \epsilon$$
 >
 > *   **$\beta$ (Systematic)**: What you hedge.
 > *   **$\epsilon$ (Idiosyncratic)**: What you keep.
-> *   **$R^2$**: How much of the name's spread variance is explained by the index move. Low $R^2$ means large residual tracking error—an index hedge may still reduce macro exposure, but it will not make the position "quiet."
+> *   **$R^2$**: How much of the name's spread variance is explained by the index move. Low $R^2$ means large residual tracking error—an index hedge may still reduce macro exposure, but it will not make the position P&L-stable.
 
 ### 47.2.4 Estimating Spread Beta in Practice
 
@@ -243,26 +271,22 @@ While the previous section introduced beta-adjusted hedging conceptually, this s
 
 **The Minimum Variance Hedge Framework**
 
-Hull provides the foundational framework in Chapter 3. For cross-hedging (hedging one asset with a related but different instrument), the minimum variance hedge ratio is:
+A minimum-variance hedge chooses a hedge ratio to minimize the variance of the *hedged* change. In a two-variable setting, if you write the hedged change as
+$$v = x + hF,$$
+then the hedge ratio that minimizes $\operatorname{Var}(v)$ is:
+$$\boxed{h^* = -\frac{\operatorname{Cov}(x, F)}{\operatorname{Var}(F)}}$$
 
-$$\boxed{h^* = \rho \frac{\sigma_S}{\sigma_F}}$$
-
-where $\rho$ is the correlation between changes in the position value ($\Delta S$) and changes in the hedge value ($\Delta F$), $\sigma_S$ is the standard deviation of $\Delta S$, and $\sigma_F$ is the standard deviation of $\Delta F$.
-
-Hull shows this is equivalent to the regression slope: "It follows from the formula for the slope in linear regression that $h^* = b$" where $b$ is the slope from regressing $\Delta S$ on $\Delta F$.
+If instead you write $v = x - hF$, the optimal $h$ is $+\operatorname{Cov}(x,F)/\operatorname{Var}(F)$. These are the same result with different sign conventions.
 
 **Application to Credit Spreads**
 
-For CDS hedging, translate Hull's framework:
-- $\Delta S$ = daily change in single-name spread (the position)
-- $\Delta F$ = daily change in index spread (the hedge)
-- $h^*$ = spread beta $\beta_{m,I}$
+For CDS hedging, take $x=\Delta S_m$ (daily change in single-name spread) and $F=\Delta S_I$ (daily change in index spread). With the residual written as $\Delta S_m-\beta\,\Delta S_I$, the minimum-variance hedge ratio is the familiar covariance-over-variance slope.
 
 The spread beta formula becomes:
 
 $$\boxed{\beta_{m,I} = \rho_{m,I} \frac{\sigma_m}{\sigma_I} = \frac{\text{Cov}(\Delta S_m, \Delta S_I)}{\text{Var}(\Delta S_I)}}$$
 
-This is the standard OLS estimator.
+This is also the OLS regression slope from regressing $\Delta S_m$ on $\Delta S_I$.
 
 **Variance Decomposition**
 
@@ -279,9 +303,9 @@ This decomposition shows that $R^2$ measures *what fraction of the name's spread
 > **Desk Reality: Beta Estimation Workflow**
 >
 > **Data requirements:**
-> - **History length**: Use enough observations to get a stable estimate, but short enough to reflect the current regime. Many desks use a rolling window of daily changes and monitor stability across short vs long windows.
-> - **Frequency**: Daily spread changes preferred over weekly for CDS (weekly loses information)
-> - **Data quality**: Stale quotes are the enemy—exclude days where the name didn't trade
+> - **History length**: Use enough observations to get a stable estimate, but short enough to reflect the current regime; monitor stability across short vs long windows.
+> - **Frequency**: Daily spread changes are a common choice; weekly data can hide short-lived dislocations.
+> - **Data quality**: Watch for stale quotes (e.g., days where the name didn’t update).
 >
 > **Estimation steps:**
 > 1. Collect daily spread changes: $\Delta S_m(t) = S_m(t) - S_m(t-1)$
@@ -290,9 +314,9 @@ This decomposition shows that $R^2$ measures *what fraction of the name's spread
 > 4. Extract: $\beta$ (slope), $\alpha$ (intercept, usually near zero), $R^2$ (fit quality)
 >
 > **Outlier handling:**
-> - **Truncation**: Cap extreme moves at ±3 standard deviations
+> - **Truncation**: Cap extreme moves at a chosen threshold (e.g., a few standard deviations)
 > - **Winsorization**: Replace outliers with boundary values
-> - **Exclusion**: Drop days with major credit events (these are jump risk, not spread risk)
+> - **Exclusion**: Consider dropping major credit-event days if you want a “diffusive spread” beta (not jump risk)
 >
 > **Common pitfalls:**
 > - **Stale quotes**: Illiquid names appear to have low beta because their quotes don't update
@@ -334,11 +358,13 @@ Interpretation:
 
 **Connection to $R^2$**
 
-For a regression-based hedge with optimal beta, hedge effectiveness approximately equals $R^2$:
+In the linear regression setup ($\Delta S \approx a + b\,\Delta F + \epsilon$) with the optimal hedge ratio, the hedge effectiveness (variance eliminated) is the $R^2$ from the regression and equals $\rho^2$:
 
-$$\text{HE} \approx R^2 \quad \text{(when hedge ratio is optimal)}$$
+$$\text{HE} = R^2 = \rho^2 \quad \text{(within the regression setup)}$$
 
-This follows because the hedged P&L variance equals the residual variance from the regression, and $R^2 = 1 - \text{Var}(\epsilon) / \text{Var}(y)$.
+**Check (how much risk is left):** if \(\rho=0.7\), then \(R^2\approx 0.49\): the hedge removes about 49% of the *variance*, but the residual standard deviation is still \(\sqrt{1-R^2}\approx 0.71\) of the unhedged level. This is why a “high correlation” hedge can still have large day-to-day tracking error.
+
+When you apply this idea to a CDS hedge, treat it as a diagnostic: if the relationship is nonlinear, regime-dependent, or dominated by idiosyncratic jumps, the realized HE can deviate from the historical $R^2$.
 
 **Tracking Error**
 
@@ -415,7 +441,7 @@ $$\text{CS01}_{\text{tot}} = \text{CS01}_A + N_B \cdot \text{CS01}_B(1)$$
 
 $$\boxed{N_B^* = -\frac{\text{CS01}_A}{\text{CS01}_B(1)}}$$
 
-**Sign sanity check:** If A is long protection (typically negative CS01 under O'Kane's convention for the holder) and B is short protection (positive CS01 per notional), then $N_B^* > 0$—you sell protection on the hedge instrument.
+**Sign sanity check:** If A is long protection (negative CS01) and B is short protection (positive CS01 per notional), then $N_B^* > 0$—you sell protection on the hedge instrument.
 
 ### 47.3.2 Multi-Factor Hedge (Two Risk Buckets)
 
@@ -448,11 +474,11 @@ The exact optimization constraints are desk-specific (liquidity universe, concen
 
 ### 47.3.4 Systemic vs Idiosyncratic Delta: The O'Kane Framework
 
-O'Kane's treatment of tranche hedging in Chapter 17 introduces a fundamental distinction that applies directly to index hedging: the difference between *systemic delta* and *idiosyncratic delta*. Understanding this distinction is critical for designing hedges that perform as expected.
+O'Kane’s tranche-hedging discussion highlights a distinction that carries over directly to index hedging: **“delta” depends on the bump design**.
 
-**Idiosyncratic delta** measures the sensitivity to a single name's spread moving while all other names remain fixed. As O'Kane explains: "The idiosyncratic delta is calculated by widening one credit while keeping all of the other credits fixed. A scenario like this has only a small impact on the shape of the portfolio loss distribution. Its main effect is to make this one credit more likely to default before the rest of the credits."
+**Idiosyncratic delta (one-name bump)** widens/tightens one issuer’s spread curve while holding all other issuer curves fixed. This is the right object for name-specific shocks and dispersion risk.
 
-**Systemic delta** measures the sensitivity to all spreads moving together. O'Kane notes: "This is quite different from how the systemic delta is calculated. This involves widening all of the issuer curves simultaneously, which will shift the entire portfolio loss to the right and make all credits more likely to impact more senior tranches. There is no change in their order of default."
+**Systemic delta (all-names bump)** widens/tightens all issuer spread curves simultaneously. This is the right object for broad market repricing where many credits move together.
 
 **Why the distinction matters for hedge sizing:**
 
@@ -461,7 +487,7 @@ For indices (not just tranches), these two approaches can produce different hedg
 - **Idiosyncratic hedge**: Sizes the hedge assuming only the single name moves
 - **Systemic hedge**: Sizes the hedge assuming all credits move together
 
-O'Kane provides numerical examples for tranches that illustrate the magnitude of difference:
+O'Kane’s tranche examples illustrate that the difference can be material:
 
 | Tranche | Total Systemic Delta (\$m) | Total Idiosyncratic Delta (\$m) |
 |---------|---------------------------|--------------------------------|
@@ -470,19 +496,7 @@ O'Kane provides numerical examples for tranches that illustrate the magnitude of
 | 7-10% | 170 | 167.5 |
 | 10-15% | 133 | 108.75 |
 
-The differences are material—over 10% in some cases.
-
-**The practical reality**: O'Kane acknowledges that "In practice, spread movements exhibit a mixture of systemic and idiosyncratic moves and the correct hedge will be somewhere between the idiosyncratic hedge and the systemic hedge. To know where in this range would require us to know in advance the likelihood of idiosyncratic versus systemic spread moves."
-
-**Practitioner approaches:**
-
-1. **Factor models**: "An empirical approach to this problem might be to construct a factor model for spreads which we can calibrate to historical spread data and use to predict the proportion of systemic versus idiosyncratic moves."
-
-2. **Discretionary adjustment**: O'Kane suggests that "the trader to take a view on the relative importance of systemic versus idiosyncratic risk depending on current events in the credit market. For example, suppose the trader expects that a specific credit is about to be downgraded. If this credit is a small issuer in the credit markets and if its downgrade would be for a totally idiosyncratic reason, the trader will tend to adjust his hedges to make sure that credits in the portfolio are hedged according to their idiosyncratic delta."
-
-3. **Hybrid approach**: "However, if the credit is a large issuer whose downgrade could have a contagious effect on other credits, then the trader would hedge this name idiosyncratically using CDS and then hedge the other credits systemically using the CDS indices."
-
-O'Kane summarizes: "In practice, the delta hedging of these risks is often as much an art as it is a science, i.e. it requires judgement and experience, not just a model."
+In practice, realized spread moves mix systematic and idiosyncratic components, so hedge sizing often blends the two extremes. Two common approaches are (i) empirical factor/regression models to estimate the systematic fraction, and (ii) scenario-weighted blends (lean systemic in broad macro regimes; lean idiosyncratic around name catalysts). A pragmatic hybrid is to hedge the name-specific piece with single-name CDS and the remainder with indices.
 
 **Decision Heuristics for Systemic vs Idiosyncratic Weighting:**
 
@@ -596,9 +610,9 @@ START: What is your primary exposure?
 
 ### 47.4.4 Cost Comparison
 
-Transaction costs often determine hedge choice. As a rule of thumb, the index is usually cheaper to trade (one line item, tighter markets), while replicating with many single names is operationally heavier and exposes you to many bid-ask spreads.
+Transaction costs often determine hedge choice. An index hedge is one line item and can trade tighter than the full single-name basket, while replication is operationally heavier and exposes you to many bid-ask spreads.
 
-O'Kane notes that liquidity differences contribute to index basis: "The considerable size and liquidity of the CDS index market means that the CDS index spread embeds a lower liquidity risk premium than the less liquid CDS spreads."
+If index and single-name CDS embed different liquidity premia, quoted and intrinsic spreads can diverge even with the same underlying credit risk.
 
 **Illustrative arithmetic:** execution cost (USD) ≈ bid-ask (bp) × CS01 (USD/bp).
 Example: for a CS01 of \$22,500/bp, a 0.25 bp bid-ask costs ≈ \$5,625. If the effective all-in replication cost were 1.5 bp, that would be ≈ \$33,750. Plug in your own bid-ask and CS01.
@@ -629,7 +643,7 @@ The dramatic difference in spread dispersion between IG and HY indices has profo
 
 > **Desk Reality: HY Hedging Is Fundamentally Noisier**
 >
-> O'Kane explains the HY dispersion: "The very high standard deviation of the high-yield index spreads can be explained by a number of distressed credits with spreads greater than 1000 bp which were in this index on the date these spreads were quoted."
+> In a high-yield CDS index, a very high standard deviation can be driven by distressed credits with spreads above 1000 bp in the sample, inflating dispersion measures and tracking error.
 >
 > **Practical consequences:**
 > 1. **Expect larger residuals:** HY index hedges often leave more idiosyncratic tracking error than IG hedges.
@@ -685,7 +699,7 @@ $$\beta_{\text{position, hedge}} = \frac{\text{Cov}(\Delta S_{\text{position}}, 
 
 Apply the beta-adjusted formula from Section 47.2.4:
 
-$$N_{\text{proxy}} = -\frac{\text{CS01}_{\text{position}}}{\beta_{\text{position, proxy}} \cdot \text{CS01}_{\text{proxy}}(1)}$$
+$$N_{\text{proxy}} = -\frac{\beta_{\text{position, proxy}}\,\text{CS01}_{\text{position}}}{\text{CS01}_{\text{proxy}}(1)}$$
 
 **Example:** Hedge Brazilian corporate with CDX.EM
 
@@ -694,7 +708,9 @@ Setup:
 - Proxy: CDX.EM, CS01 per \$1mm = +\$380/bp
 - Estimated beta (Brazilian corporate to CDX.EM) = 1.3
 
-$$N_{\text{proxy}} = -\frac{-8{,}000}{1.3 \times 380} = \frac{8{,}000}{494} = 16.2 \text{ mm}$$
+Because $\Delta S_{\text{position}} \approx \beta\,\Delta S_{\text{proxy}}$, the systematic sizing multiplies the CS01 exposure:
+
+$$N_{\text{proxy}} = -\frac{1.3 \times (-8{,}000)}{380} = \frac{10{,}400}{380} = 27.4 \text{ mm}$$
 
 **Residual risk**: Idiosyncratic Brazilian corporate vs EM sovereign basket, country allocation mismatch, corporate-sovereign basis.
 
@@ -723,7 +739,7 @@ While this chapter focuses on credit-to-credit hedging, credit indices are somet
 > **When to use:**
 > - Portfolio has significant equity exposure and seeks crash protection
 > - Equity put skew is expensive relative to credit spreads
-> - Investor accepts that protection only "works" in severe stress
+> - Investor accepts that protection primarily pays off in severe stress
 
 There is no universal “right” hedge ratio: it depends on your equity benchmark, sector mix, horizon, and hedge objective (tail-loss protection vs day-to-day tracking). Estimate it via stress-scenario sizing and/or a regression/backtest over a chosen window, then monitor tracking error and regime drift.
 
@@ -738,7 +754,7 @@ There is no universal “right” hedge ratio: it depends on your equity benchma
 1. **Credit event determination**: Bankruptcy, failure to pay, or restructuring triggers the CDS contract
 2. **Auction process**: For cash-settled indices, a credit event auction determines the final price (see Chapter 40)
 3. **Protection payment**: Index protection buyer receives $(1 - FP/100)$ per unit notional on the defaulted name's share
-4. **Notional reduction**: Index premium leg is reduced by $1/M$ after each default; O'Kane: "the size of the coupon is reduced as the face value is reduced by $1/M$"
+4. **Notional reduction**: In a CDS index, after each default, the size of the coupon payments is reduced because the face value / outstanding notional is reduced by $1/M$ (equal-weight stylization)
 5. **Accrued premium**: Protection buyer pays accrued premium for the period since last coupon
 
 **How index risk evolves after defaults:**
@@ -748,6 +764,8 @@ After $k$ defaults on an index with original $M$ constituents:
 - Premium payments reduced proportionally
 - Remaining names may have different average credit quality
 - Index CS01 per trade decreases (fewer premium dollars at risk)
+
+**Check (factor scale):** with \(M=125\), one default reduces the outstanding fraction by \(1/125\approx 0.8\%\). To first order, premium cashflows and index CS01 scale down by the same fraction, so any hedge ratios that ignore the updated factor can drift immediately after defaults.
 
 ### 47.5.2 VOD for Indices and Tranches: O'Kane's Framework
 
@@ -759,38 +777,7 @@ $$\text{VOD}_{\text{index}} = \frac{N}{M}(1 - R) - \text{PV of cancelled premium
 
 where $R$ is the recovery rate and the premium cancellation affects only the defaulted name's share.
 
-**For tranches**, O'Kane describes a more complex calculation that depends on whether the default triggers a loss payment:
-
-*Case 1: Default does not trigger loss payment (tranche still has subordination)*
-
-O'Kane's procedure:
-1. "Remove the defaulted credit from the reference portfolio. This will change the average portfolio spread and the notional of the reference portfolio."
-2. "Reduce the attachment and detachment points of the tranche so that $K_1 \rightarrow K_1 - H_0(1-R_0)$ and $K_2 \rightarrow K_2 - H_0(1-R_0)$"
-3. "Price the tranche using the pricing model giving $V'(t)$"
-4. "The VOD equals $V'(t) - V(t)$"
-
-*Case 2: Default triggers loss payment*
-
-If the total loss after default exceeds the attachment point ($L_1 + (1-R_0)H_0 > K_1$), then:
-1. Remove defaulted credit from portfolio
-2. Make payment of $G = \max[L_1 + H_0(1-R_0) - K_1, 0]$ from protection seller to buyer
-3. Reduce tranche notional by $G$
-4. Price adjusted tranche to get $V'(t)$
-5. "The VOD equals $V'(t) - V(t) \pm G$ where we have a plus for a long protection position and a minus for a short protection position"
-
-**Numerical example from O'Kane** (125-credit portfolio, $10m per name, average spread 60bp, 40% recovery):
-
-| Tranche | Loss Payment (\$m) | Change in MTM (\$m) | VOD (\$m) |
-|---------|-------------------|---------------------|-----------|
-| 0-3% | +6.0 | +2.596 | +8.596 |
-| 3-7% | 0 | +1.398 | +1.398 |
-| 7-10% | 0 | +0.321 | +0.321 |
-| 10-15% | 0 | +0.195 | +0.195 |
-| 15-30% | 0 | +0.085 | +0.085 |
-
-O'Kane explains the perhaps surprising result for equity tranches: "It may seem surprising that the value of the protection has increased even though some of the protection has been used up. To see why, recall that the value of the equity tranche is the value of the protection leg minus the value of the premium leg. While the value of the protection leg has been reduced due to the smaller amount of remaining protection, the value of the premium leg has fallen by even more because of the reduction in the notional on which the very high equity spread has to be paid."
-
-For senior tranches, VOD is positive for protection buyers because "each default means they lose subordination and so become more likely to sustain a loss in the future."
+**For tranches**, “VOD” is more complex because a default can (i) change the portfolio loss distribution, (ii) trigger an immediate loss payment for equity/mezz tranches, and (iii) reduce tranche notional and therefore future premium. Computing tranche VOD requires revaluing the tranche after updating portfolio composition and tranche attachment/detachment mechanics; that is out of scope here (see the tranche chapters and follow-on Chapter 48).
 
 ### 47.5.3 Default Timeline and Hedge Adjustment
 
@@ -815,7 +802,7 @@ A comprehensive index risk report should include:
 
 | Risk Measure | Definition | Why It Matters |
 |--------------|------------|----------------|
-| Index CS01 | $-[V(S_I + 1\text{bp}) - V(S_I)]$ | Day-to-day spread risk |
+| Index CS01 | $V(S_I-1\text{bp}) - V(S_I)$ | Day-to-day spread risk |
 | Constituent CS01s | Per-name sensitivities | Concentration monitoring |
 | Aggregate VOD | Sum of $(1-R_m)/M$ exposures | Event risk if any name defaults |
 | Worst-case VOD | Max single-name event impact | Tail risk |
@@ -829,7 +816,7 @@ A comprehensive index risk report should include:
 
 Chapter 46 develops basis computation in detail. For hedging purposes, the key insight is:
 
-**A "basis-neutral" position** (index vs intrinsic replication) has near-zero parallel CS01 but remains exposed to:
+**A basis-neutral position** (index vs intrinsic replication) has near-zero parallel CS01 but remains exposed to:
 - Liquidity premia shifts
 - Restructuring clause differences
 - Lead-lag effects (index may move before constituents in stress)
@@ -857,7 +844,7 @@ When the index appears rich or cheap versus constituents, your exposure is typic
 - Liquidity differential (index tighter than names)
 - Event mapping (basket vs single-name default mechanics)
 
-A "cheap intrinsic" trade (long index, short constituents) profits if the index tightens relative to intrinsic, but loses if dispersion increases without index movement.
+A cheap intrinsic trade (long index, short constituents) profits if the index tightens relative to intrinsic, but loses if dispersion increases without index movement.
 
 ---
 
@@ -877,30 +864,74 @@ A short-protection index position has the following PVs at different spread leve
 
 $$\frac{\partial V}{\partial S} \approx \frac{V(S+1) - V(S-1)}{2} = \frac{45{,}800 - 54{,}300}{2} = -4{,}250 \text{ \$/bp}$$
 
-**CS01 (O'Kane convention):**
+**Finite-difference CS01 (this chapter):**
 
-$$\text{CS01}_I = -\frac{\partial V}{\partial S} = +4{,}250 \text{ \$/bp}$$
+$$\text{CS01}_I \approx V(S-1) - V(S) = 54{,}300 - 50{,}000 = 4{,}300\ \text{ \$/bp}$$
 
-**Unit check:** dollars per basis point. Positive sign indicates short protection (value falls when spreads rise).
+**Cross-check (link to slope):** Since $\text{CS01}\approx -\partial V/\partial S$, the central-difference estimate implies $\text{CS01}\approx -(-4{,}250)=4{,}250\ \$/\text{bp}$, close to the one-sided $V(S-1)-V(S)$ estimate.
+
+**Unit/sign check:** dollars per basis point. Positive CS01 indicates short protection (value falls when spreads rise).
 
 ---
 
 ### Example 2: Proxy Hedge — Single Name Hedged with Index
 
-**Position:** Long protection on Ford CDS, \$20mm notional, CS01 = -4,900 \$/bp (long protection is negative under O'Kane convention).
+**Example Title**: Hedge a single-name CDS with an index (CS01 match + beta adjustment)
 
-**Hedge instrument:** CDX.IG, CS01 per \$1mm (short protection) = +425 \$/bp.
+**Context**
+- You hold **long protection** on a single name (Ford) and want to hedge the **systematic** component with a liquid index (CDX.IG).
+- The desk goal is *not* “eliminate all risk,” but “make P&L less sensitive to broad market moves,” while understanding the residual (idiosyncratic, basis, event risk).
 
-**Hedge ratio:**
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-03-20
+- Settlement date (upfront): 2026-03-24 *(example assumption; use your confirmation/venue conventions)*
+- Accrual start/end for the next premium period: 2026-03-20 to 2026-06-20
+- Next payment date: 2026-06-20 (then quarterly)
 
-$$N_I = -\frac{\text{CS01}_{\text{Ford}}}{\text{CS01}_I(1)} = -\frac{-4{,}900}{425} = 11.53 \text{ mm}$$
+**Inputs**
+- **Position:** Ford CDS, notional $N_{\text{Ford}}=\$20$mm, long protection.
+  - Risk system output (under this chapter’s CS01 convention): $\text{CS01}_{\text{Ford}}=-4{,}900\ \$/\text{bp}$.
+- **Hedge instrument:** CDX.IG index (same maturity bucket), short protection CS01 per \$1mm:
+  - $\text{CS01}_{I}(1)=+425\ \$/\text{bp per \$1mm}$.
+- **Cashflow assumptions (for settlement intuition only):** index coupon $C=100$ bp, quarterly ACT/360; quoted upfront to the protection buyer $U=2.20\%$ of notional. *(All numbers are hypothetical inputs for the example.)*
 
-**Action:** Sell protection on \$11.53mm CDX.IG notional.
+**Outputs (What You Produce)**
+- CS01-matched index hedge notional: $N_I=11.53$mm (sell protection).
+- Beta-adjusted index hedge notional (if $\beta_{\text{Ford,IG}}=1.5$): $N_I=17.29$mm.
+- Example settlement cash on the index hedge (seller receives upfront on settlement): $\$0.0220 \times 11.53\text{mm} \approx \$253{,}660$ (accrual is zero here because we trade on a coupon date).
 
-**Verification (parallel +10 bp):**
-- Ford P&L: $-(-4{,}900) \times 10 = +49{,}000$
-- Index P&L: $-(+4{,}900) \times 10 = -49{,}000$
-- Net: \$0 (hedged for parallel moves)
+**Step-by-step**
+1. **Align definitions:** confirm both CS01s use the same bump size (1 bp), bump object (par spreads with hazard recalibration), and units (\$/bp).
+2. **Compute CS01 hedge ratio:**
+   $$N_I = -\frac{\text{CS01}_{\text{Ford}}}{\text{CS01}_I(1)} = -\frac{-4{,}900}{425} = 11.53\ \text{mm}$$
+3. **Add beta (systematic scaling):** if $\Delta S_{\text{Ford}} \approx \beta\,\Delta S_I$ with $\beta=1.5$, then size to hedge *systematic* Ford moves:
+   $$N_I^{(\beta)} = -\frac{\beta\,\text{CS01}_{\text{Ford}}}{\text{CS01}_I(1)} = -\frac{1.5 \times (-4{,}900)}{425} = 17.29\ \text{mm}$$
+4. **Validate with scenarios (first-order):**
+   - Parallel +10 bp (systematic): CS01-matched hedge should be ~0 P&L by construction.
+   - Name-specific gap: Ford +50 bp while index +10 bp leaves residual P&L (dispersion).
+   - Basis move: if index vs intrinsic basis moves, an index-vs-constituent hedge can leak even when CS01 matched.
+
+**Cashflows (table)**
+| Date | Cashflow (seller of index protection) | Explanation |
+|---|---:|---|
+| 2026-03-24 | +\$253,660 | Upfront received on $N_I=11.53$mm at $U=2.20\%$ (example) |
+| 2026-06-20 | +\$29,500 | Premium: $C\times \Delta \times N$ with $C=100$ bp and $\Delta\approx 92/360$ |
+| Default date (if any constituent defaults) | $-\frac{N_I}{M}\left(1-\frac{FP}{100}\right)$ | Protection payment for one defaulted name share (equal-weight stylization) |
+
+**P&L / Risk Interpretation**
+- CS01 matching neutralizes **first-order PV sensitivity** to the chosen spread factor; it does *not* neutralize dispersion (idiosyncratic $\epsilon$), basis, or default-event risk.
+- Beta adjustment changes *what you mean by “systematic hedge”*: you are hedging Ford’s expected move conditional on the index moving.
+
+**Sanity Checks**
+- Units: $\text{CS01}$ in \$/bp and $N$ in \$mm → P&L in dollars.
+- Sign: long protection CS01 < 0; selling index protection creates CS01 > 0, so the hedge notional comes out positive.
+- Limit: if $\beta=0$, the beta-adjusted notional goes to 0 (index is not a useful systematic hedge for that name).
+
+**Debug Checklist (When Your Result Looks Wrong)**
+- Quote direction: are you *buying* or *selling* protection, and is upfront quoted as “to buyer” or “to seller”?
+- “What was bumped?”: index par-spread curve vs constituent curves vs hazard rates.
+- Bucket mismatch: same maturity and series? if not, expect residual curve/series basis.
+- Accrual timeline: trade date vs settlement vs coupon date (accrued premium can dominate small upfronts for tight indices).
 
 ---
 
@@ -939,7 +970,7 @@ $$N_I = -\frac{-7{,}350}{425} = 17.29 \text{ mm}$$
 - Index hedge P&L: $-(425 \times 17.29) \times 20 = -147{,}000$
 - Net: \$0
 
-**Lesson:** Beta adjustment requires careful definition of "CS01 to what."
+**Lesson:** Beta adjustment requires careful definition of “CS01 to what?”
 
 ---
 
@@ -1281,7 +1312,7 @@ $$\text{HE} = 1 - \frac{120{,}000{,}000}{400{,}000{,}000} = 1 - 0.30 = 0.70$$
 ### 47.8.2 Implementation Pitfalls
 
 **Constituent weights and membership:**
-O'Kane notes constituents are "fixed for series life, removed on default; new series can change membership." Your analytics must track this.
+Index constituents are fixed for the life of a series; defaults remove names; a new series can change membership. Your analytics must track this.
 
 **Missing data / stale quotes:**
 Single-name CDS on illiquid names may have stale quotes. Mark-to-model risk compounds hedging challenges.
@@ -1312,13 +1343,13 @@ Before relying on any hedge:
 
 ---
 
-## 47.9 Summary
+## Summary
 
 ### Executive Summary (10 Points)
 
 1. CDS indices bundle many names into one liquid macro instrument; constituents are fixed except that defaults remove names without replacement.
 
-2. Market quotes use a simplified "index curve" and contractual coupon $C(T)$, producing an upfront $U_I(t)$.
+2. Market quotes use a simplified index curve and contractual coupon $C(T)$, producing an upfront $U_I(t)$.
 
 3. Intrinsic valuation builds index PV from constituent CDS curves; the gap between quoted and intrinsic is the **index basis**.
 
@@ -1330,7 +1361,7 @@ Before relying on any hedge:
 
 7. **Bottom-up hedges** (index → constituents) aim to replicate intrinsic but keep basis, execution dispersion, and membership evolution risks.
 
-8. **Systemic vs idiosyncratic delta**: O'Kane distinguishes hedges designed for parallel market moves (systemic) from hedges designed for single-name moves (idiosyncratic). The correct hedge is typically "somewhere between."
+8. **Systemic vs idiosyncratic delta**: the right hedge depends on whether you want to neutralize market-wide moves, name-specific moves, or a blend (real moves typically mix both components).
 
 9. **Default events** change index cashflows and notional; premium leg reduces by $1/M$ increments, and event payout depends on auction final price.
 
@@ -1338,17 +1369,17 @@ Before relying on any hedge:
 
 ### Cheat Sheet
 
-**CS01 definition (O'Kane convention):**
-$$\text{CS01} = -(V(S+1\text{bp}) - V(S))$$
+**CS01 definition (this chapter):**
+$$\text{CS01} := V(S-1\text{bp}) - V(S) \approx -(V(S+1\text{bp}) - V(S))$$
 
 **First-order P&L:**
-$$\Delta V \approx -\text{CS01} \cdot \Delta S$$
+$$\Delta V \approx -\text{CS01} \cdot \Delta S \qquad (\Delta S\ \text{in bp})$$
 
 **CS01 hedge notional:**
 $$N_{\text{hedge}} = -\frac{\text{CS01}_{\text{position}}}{\text{CS01}_{\text{hedge}}(1)}$$
 
-**Minimum variance hedge ratio (Hull):**
-$$h^* = \rho \frac{\sigma_S}{\sigma_F}$$
+**Minimum-variance hedge ratio (cross-hedge):**
+$$h^* = -\frac{\operatorname{Cov}(x,F)}{\operatorname{Var}(F)} \qquad \text{(sign depends on how you write the hedge)}$$
 
 **Spread beta:**
 $$\beta_{m,I} = \frac{\text{Cov}(\Delta S_m, \Delta S_I)}{\text{Var}(\Delta S_I)}$$
@@ -1365,10 +1396,10 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 - Index trade notional $N_I$ with $M$ names (equal-weight per-name notional $N_I/M$):
   $$\text{Payout per default} = \frac{N_I}{M}\left(1 - \frac{FP}{100}\right)$$
 
-**Systemic vs idiosyncratic (O'Kane):**
+**Systemic vs idiosyncratic (bump design):**
 - Systemic delta: all spreads move together
 - Idiosyncratic delta: one spread moves, others fixed
-- Reality: "a mixture of systemic and idiosyncratic moves"
+- Reality: spread moves mix both components
 
 **Validation scenario suite:**
 
@@ -1383,12 +1414,12 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 ---
 
-## 47.10 Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
 | Index basis | $S_I - S_I^{\text{intrinsic}}$ | Determines residual when hedging index with constituents |
-| CS01 (Credit DV01) | Dollar P&L per 1bp spread move | Primary risk measure for non-default scenarios |
+| CS01 (Credit DV01) | PV change per 1 bp tightening of the stated spread factor (\$/bp) | Primary risk measure for non-default scenarios |
 | VOD (Value on Default) | Jump P&L on immediate default | Captures event risk not in CS01 |
 | Top-down hedge | Single name hedged with index | Efficient but keeps idiosyncratic exposure |
 | Bottom-up hedge | Index replicated with constituents | Precise but expensive |
@@ -1401,13 +1432,13 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 ---
 
-## 47.11 Flashcards
+## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is the index basis? | $S_I - S_I^{\text{intrinsic}}$; drivers include restructuring differences, liquidity, lead/lag |
-| 2 | Define Credit DV01/CS01 | $-[V(S + 1\text{bp}) - V(S)]$ for a 1bp parallel spread increase |
-| 3 | Why sign convention with negative? | So short-protection DV01 is positive |
+| 2 | Define Credit DV01/CS01 | PV change for **1 bp tightening**: $V(S-1\text{bp}) - V(S)$ (≈ $-[V(S+1\text{bp}) - V(S)]$) |
+| 3 | Why do some CS01 definitions include a minus sign? | To report short-protection exposure as positive and align with $\text{CS01}\approx -\partial V/\partial S$ |
 | 4 | What is RPV01 conceptually? | Risky annuity: PV of receiving 1 unit spread until default/maturity |
 | 5 | What happens to index premium after default? | Reduced by $1/M$ (per-name fraction) |
 | 6 | Are constituents replaced after default? | No; removed without replacement for series life |
@@ -1419,7 +1450,7 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 | 12 | What residual remains in bottom-up hedge? | Basis, execution dispersion, missing names, membership evolution |
 | 13 | What is systemic delta? | Sensitivity when all spreads move together |
 | 14 | What is idiosyncratic delta? | Sensitivity when one spread moves, others fixed |
-| 15 | What does O'Kane say about choosing between them? | "The correct hedge will be somewhere between" |
+| 15 | How do you choose between systemic and idiosyncratic hedges? | Real moves blend both; a blended hedge is common and should be validated with scenarios |
 | 16 | What is series/roll risk? | Hedging across series with different maturity/membership/liquidity |
 | 17 | How is cash settlement payout determined? | Face minus recovery (auction final price) |
 | 18 | Sensitivity of payout to final price? | $-N/100$ dollars per price point |
@@ -1433,131 +1464,64 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 ---
 
-## 47.12 Mini Problem Set
-
-*Solution sketches provided for questions 1–10.*
+## Mini Problem Set
 
 **1.** Compute CS01 from PVs: $V(S-1) = 101{,}200$, $V(S) = 100{,}000$, $V(S+1) = 98{,}700$.
 
-**Sketch:** Slope $= (98{,}700 - 101{,}200)/2 = -1{,}250$ \$/bp; CS01 $= +1{,}250$ \$/bp.
-
----
-
 **2.** A long-protection position has CS01 $-6{,}000$ \$/bp. What is first-order P&L for +8bp widening?
 
-**Sketch:** $\Delta V \approx -(-6{,}000) \times 8 = +48{,}000$.
+**3.** Index CS01 per \$1mm is 420 \$/bp. You need +12,600 \$/bp of hedge CS01. What index notional?
 
----
+**4.** Single name widens +40bp, index +15bp. CS01s: name = -5,000 \$/bp, hedge = +5,000 \$/bp. Residual first-order P&L?
 
-**3.** Index CS01 per \$1mm is 420 \$/bp. You need +12,600 \$/bp of hedge CS01. What notional?
-
-**Sketch:** $N = 12{,}600 / 420 = 30$ mm.
-
----
-
-**4.** Single name widens +40bp, index +15bp. CS01s: name = -5,000 \$/bp, hedge = +5,000 \$/bp. Residual P&L?
-
-**Sketch:** $\Delta V = -(-5{,}000)(40) - (+5{,}000)(15) = 200{,}000 - 75{,}000 = +125{,}000$.
-
----
-
-**5.** Two-factor hedge: exposures $(10{,}000, 6{,}000)$, instruments B = $(400, 100)$, C = $(100, 300)$ per \$1mm. Solve.
-
-**Sketch:** System: $10{,}000 + 400x_B + 100x_C = 0$; $6{,}000 + 100x_B + 300x_C = 0$. Solution: $x_C = -12.73$ mm, $x_B = -21.82$ mm.
-
----
+**5.** Two-factor hedge: exposures $(10{,}000, 6{,}000)$, instruments B = $(400, 100)$, C = $(100, 300)$ per \$1mm. Solve for notionals $(x_B, x_C)$.
 
 **6.** Intrinsic spread from 3 names: spreads = [80, 120, 200] bp, RPV01 weights = [4.0, 3.5, 2.5].
 
-**Sketch:** Numerator = $80(4) + 120(3.5) + 200(2.5) = 320 + 420 + 500 = 1{,}240$. Denominator = 10. Intrinsic = 124 bp.
+**7.** Cash-settled default on a single name (or on an index per-name share): $N_{\text{name}} = 5$ mm, $FP = 35$. Payout?
 
----
+**8.** Accrued premium: $C = 500$ bp, $\Delta_0 = 0.10$ years, $N = 5$ mm. Accrued amount?
 
-**7.** Cash-settled default on a single name (or on an index per-name share): $N_{\\text{name}} = 5$ mm, $FP = 35$. Payout?
-
-**Sketch:** $5{,}000{,}000 \times (1 - 0.35) = 3{,}250{,}000$.
-
----
-
-**8.** Accrued premium: $C = 500$ bp, $\Delta_0 = 0.10$ years, $N = 5$ mm.
-
-**Sketch:** $0.05 \times 0.10 \times 5{,}000{,}000 = 25{,}000$.
-
----
-
-**9.** Index has $M = 100$, notional 200mm. After 3 defaults, remaining notional?
-
-**Sketch:** Per-default reduction = $200/100 = 2$ mm. Remaining = $200 - 3(2) = 194$ mm.
-
----
+**9.** Index has $M = 100$, notional 200mm. After 3 defaults, remaining index notional?
 
 **10.** Given 5 days of data: $\Delta S_{\text{name}}$ = [+4, -2, +6, +1, -3] bp, $\Delta S_{\text{index}}$ = [+2, -1, +4, 0, -2] bp. Calculate beta and $R^2$.
 
-**Sketch:** Using sample moments (demean both series): Cov ≈ 9.10, Var(index) ≈ 5.80, so $\beta \\approx 9.10/5.80 = 1.57$. The sample correlation is ≈ 0.986, so $R^2 \\approx 0.986^2 \\approx 0.97$.
+**11.** Explain why hedging off-the-run with on-the-run leaves residual risk.
 
----
+**12.** Describe how PSA changes a bottom-up hedge.
 
-**11.** Explain why hedging off-the-run with on-the-run leaves residual risk. *(No sketch)*
+**13.** Design a 5-scenario validation suite for a basis-neutral position.
 
----
+**14.** Given the systemic vs idiosyncratic delta distinction, when would you weight toward systemic hedge sizing?
 
-**12.** Describe how PSA changes a bottom-up hedge. *(No sketch)*
+**15.** Show how dispersion produces P&L with zero average move.
 
----
-
-**13.** Design a 5-scenario validation suite for a basis-neutral position. *(No sketch)*
-
----
-
-**14.** Given O'Kane's distinction between systemic and idiosyncratic delta, when would you weight toward systemic hedge sizing? *(No sketch)*
-
----
-
-**15.** Show how dispersion produces P&L with zero average move. *(No sketch)*
-
----
-
-**16.** How does recovery risk differ between single-name and index defaults? *(No sketch)*
-
----
+**16.** How does recovery risk differ between single-name and index defaults?
 
 **17.** If HE = 0.45 for a single-name → index hedge, is this acceptable? What action would you take?
 
-**Sketch:** HE = 0.45 means the hedge reduced variance by about 45% over the measurement window. Whether this is “acceptable” depends on mandate and risk limits. Next actions: review residual drivers (idiosyncratic moves, basis, event risk), check beta stability, and consider adding single-name overlays if tracking error is too large.
+**18.** A Brazilian corporate has estimated beta of 1.3 to CDX.EM (i.e., $\Delta S_{\text{name}} \approx \beta\,\Delta S_{\text{index}}$). Position CS01 = -\$10,000/bp. CDX.EM CS01/\$1mm = +\$400/bp. Calculate proxy hedge notional.
 
----
-
-**18.** A Brazilian corporate has estimated beta of 1.3 to CDX.EM. Position CS01 = -\$10,000/bp. CDX.EM CS01/\$1mm = +\$400/bp. Calculate proxy hedge notional.
-
-**Sketch:** $N = -(-10{,}000)/(1.3 \times 400) = 10{,}000/520 = 19.23$ mm.
-
----
-
-**19.** O'Kane reports example dispersion where HY constituent spreads have much higher standard deviation than IG (e.g., 340 bp vs 20 bp at 5Y in his data). What is the ratio of variance proxies $(\\sigma^2)$?
-
-**Sketch:** $(340/20)^2 = 17^2 = 289$.
-
----
+**19.** O'Kane reports example dispersion where HY constituent spreads have much higher standard deviation than IG (e.g., 340 bp vs 20 bp at 5Y in his data). What is the ratio of variance proxies $(\sigma^2)$?
 
 **20.** You hedge a \$100mm equity portfolio with long HY protection. Describe two scenarios where this hedge (a) works well and (b) fails.
 
-**Sketch:** (a) Works: sharp equity sell-off where credit spreads widen broadly and liquidity demand concentrates in credit hedges; the CDS protection gains value and offsets part of the equity loss. (b) Fails: equities grind higher or rotate by sector while credit is stable/tightens slowly; you keep paying premium and the hedge provides little day-to-day offset (tracking error).
+### Solution Sketches (Selected)
 
----
+**1.** Central-difference slope $\approx (98{,}700-101{,}200)/2=-1{,}250$ \$/bp, so $\text{CS01}\approx -\partial V/\partial S \approx 1{,}250$ \$/bp.
+
+**6.** Intrinsic spread $\approx \frac{80(4.0)+120(3.5)+200(2.5)}{4.0+3.5+2.5}=\frac{1{,}240}{10}=124$ bp.
+
+**11.** OTR vs off-the-run differs in (i) maturity and coupon (series basis), (ii) membership (index composition), and (iii) liquidity. Even if CS01 matched, those differences show up in dispersion/basis scenarios and in execution P&L.
+
+**17.** HE = 0.45 means the hedge reduced variance by about 45% over the measurement window. Next actions: attribute residual drivers (idiosyncratic, basis, event), check beta stability, and decide whether to resize or add single-name overlays based on tracking-error limits.
+
+**18.** Systematic sizing: $N_{\text{proxy}}=-\\frac{\\beta\\,\\text{CS01}_{\\text{position}}}{\\text{CS01}_{\\text{proxy}}(1)}=-\\frac{1.3\\times(-10{,}000)}{400}=32.5$ mm.
 
 ## References
 
-- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (indices, basis, PSA, systemic vs idiosyncratic deltas)
-- John C. Hull, *Options, Futures, and Other Derivatives* (minimum-variance hedge ratio; regression hedging)
-
-## Cross-References
-
-- **Chapter 43 (CDS Risks and Hedging)**: CS01, VOD, and recovery risk definitions for single-name CDS
-- **Chapter 44 (CDS Relative Value)**: Single-name curve trades and RV framework
-- **Chapter 46 (Intrinsic Index Spread and Index Basis)**: Detailed basis computation and drivers
-- **Chapter 40 (CDS Auction Process)**: Recovery determination mechanics
-- **Chapter 48-51 (Tranches)**: Extended treatment of systemic vs idiosyncratic delta for tranches
-
----
-
-*Chapter 47 complete.*
+- Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives* (CDS indices: mechanics, valuation, intrinsic spread, basis, PSA; systemic vs idiosyncratic delta; RPV01/CS01/VOD conventions).
+- John C. Hull, *Risk Management and Financial Institutions* (credit indices overview; fixed coupon + upfront quoting intuition).
+- John C. Hull, *Options, Futures, and Other Derivatives* (minimum-variance hedge ratio; regression hedging; hedge effectiveness; CDS payment date conventions and fixed-coupon quoting).
+- Salih N. Neftci, *Principles of Financial Engineering* (risky annuity / RPV01 intuition in credit).
+- David G. Luenberger, *Investment Science* (minimum-variance hedge in cov/var form).

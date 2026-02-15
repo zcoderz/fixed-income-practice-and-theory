@@ -79,6 +79,8 @@ $$\text{PV} = P(0,T)\,Q(0,T).$$
 
 This is the cleanest place to see what \(Q\) does: it “shrinks” risky cashflows for the chance that the issuer is not alive to pay them. Later credit pricing chapters add coupons, recovery assumptions, discretization, and curve bootstrapping.
 
+**Check (small-hazard approximation):** If cumulative hazard \(H(T)=\int_0^T h(s)\,ds\) is small, then \(Q(T)=e^{-H(T)}\approx 1-H(T)\). So, to first order, “credit discounting” reduces PV by about \(P(0,T)\times H(T)\) for a \$1 survival-contingent payoff. This is a useful magnitude check for very high-quality names where \(H(T)\ll 1\).
+
 > **On-Ramp:** If you already think of \(P(0,T)\) as “today’s value of \$1 at \(T\),” think of \(Q(0,T)\) as “today’s probability the name is still alive at \(T\).”
 
 ### 36.2.3 Interval Default Probability
@@ -88,6 +90,12 @@ The probability of default occurring in a specific interval is:
 $$\boxed{\Pr(t_1 < \tau \leq t_2) = Q(t_1) - Q(t_2)}$$
 
 This identity is the workhorse for turning a survival curve into period-by-period default probabilities.
+
+**Check (telescoping on a grid):** On a grid \(0=t_0<t_1<\dots<t_n\), the interval default probabilities add up:
+\[
+\sum_{i=1}^n \Pr(t_{i-1}<\tau\le t_i)=\sum_{i=1}^n \bigl(Q(t_{i-1})-Q(t_i)\bigr)=1-Q(t_n).
+\]
+If your interval probabilities do not sum to the cumulative default probability \(1-Q(t_n)\), something is inconsistent.
 
 ---
 
@@ -351,6 +359,11 @@ Given survival probabilities at grid points, we can recover the piecewise hazard
 
 $$\boxed{h_i = -\frac{1}{\Delta t_i} \ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\right)}$$
 
+**Check (toy numbers):** Suppose an annual grid with \(Q(0)=1\), \(Q(1)=0.98\), and \(Q(2)=0.94\).
+- \(h_1=-\ln(0.98/1)/1\approx 2.02\%\)/year.
+- \(h_2=-\ln(0.94/0.98)/1\approx 4.17\%\)/year.
+Plugging back, \(Q(2)=Q(1)e^{-h_2}\approx 0.98\times e^{-0.0417}\approx 0.94\) as required.
+
 This formula is central to survival curve bootstrapping from CDS spreads (Chapter 42). Given a term structure of CDS quotes, we price the shortest maturity CDS to find $Q(t_1)$, extract $h_1$, then use this to price the next maturity and find $Q(t_2)$, and so on.
 
 ### 36.6.4 Interpolation Schemes
@@ -610,6 +623,12 @@ When someone says “credit risk went up,” ask: *what object moved and what wa
 - **Bump size:** \(1\) bp/year \(=10^{-4}\) added to \(h(t)\) (parallel shift), unless a bucketed bump is stated.
 - **Units:** currency per 1 bp/year for the stated notional.
 - **Sign (common-sense check):** higher \(h\) means more default risk \(\Rightarrow\) long risky cashflows usually lose PV.
+
+**Check (magnitude of a 1bp/year hazard bump):** A parallel bump \(\Delta h=10^{-4}\) changes deterministic survival multiplicatively:
+\[
+Q_{\text{bumped}}(t)=Q(t)\,e^{-\Delta h\,t}.
+\]
+At \(t=5\)y, this factor is \(e^{-0.0005}\approx 0.9995\), i.e., about a 0.05% relative drop in survival. The survival change can look small, but the PV impact can still be meaningful on large notionals because it multiplies large cashflows.
 
 **(2) CS01 (spread risk)** (definition used in this book)
 - **Bump object:** the quoted spread \(S\) (decimal per year).

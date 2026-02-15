@@ -248,6 +248,8 @@ Restructuring is sometimes excluded in North American credit default swap contra
 
 For this chapter, the important point is the operational consequence: economic distress can be extreme while the contractual trigger has not yet occurred, and the settlement price used for CDS can differ from a “workout” notion of recovery.
 
+**Check (limiting case):** If no contractual credit event occurs before the CDS matures, the protection leg pays **0**—even if the issuer traded at distressed prices for months. CDS protection pays on the *contract trigger*, not on “how bad things look on the screen.”
+
 ### 35.4.3 Check: Why Soft Events Create a Delivery Problem
 
 After a hard event, many deliverable obligations collapse to similar prices, so “deliver any bond for par” is close to “pay cash at one recovery price.”
@@ -302,6 +304,8 @@ This chapter focuses on translating quotes into cashflows and risk intuition; th
 - **Physical settlement (conceptual):** the protection buyer can deliver eligible obligations (bonds/loans) and receive par in cash. The contract allows a *basket* of deliverables rather than a single bond.
 - **Cash settlement (common in practice):** an ISDA-organized auction is used to determine the mid-market value of the **cheapest deliverable** bond several days after the credit event. The auction price (per 100 of face value) defines \(R\) via \(R=P/100\).
 
+**Check (hard-event “one price” limit):** If, after a credit event, all deliverable obligations trade at essentially the same cash price \(P\) per 100, then cash and physical settlement are economically equivalent: physical settlement delivers a bond worth \(P\) and receives par, implying a payoff of \(N(1-P/100)=N(1-R)\), which is exactly the cash-settlement formula.
+
 ### 35.5.5 The Delivery Option
 
 The ability to choose among deliverable obligations is a **delivery option**. It only has value when different deliverables trade at different prices following a credit event (which is why it is most naturally associated with a soft credit event like restructuring).
@@ -309,6 +313,8 @@ The ability to choose among deliverable obligations is a **delivery option**. It
 For a protection buyer hedging a particular security, the delivery-option value after a credit event is (conceptually) the difference between the value of the security they hold and the value of the cheapest deliverable.
 
 **Check (toy example, hypothetical):** suppose you are hedging a bond quoted at 43 per 100, but after a restructuring another deliverable is quoted at 37. You can (i) sell the 43 bond, (ii) buy the 37 deliverable, and (iii) deliver the cheapest bond into physical settlement. The delivery option is worth about \(43-37=6\) points per 100 (i.e., \(6\%\) of notional).
+
+**Check (non-negativity and dollars):** For the protection buyer, the delivery option value is non-negative: you can always choose to deliver the cheapest eligible obligation available. In the toy example, “6 points” is \(6\%\) of notional, so on \(N=\$100\text{mm}\) the delivery-option value is about \(\$6\text{mm}\).
 
 ### 35.5.6 Risk Scalars (Bump Object, Size, Units, Sign)
 
@@ -416,6 +422,8 @@ $$d_{1}=\\frac{\\ln(V_{0}/D)+(r+\\sigma_{V}^{2}/2)T}{\\sigma_{V}\\sqrt{T}}, \\qq
 The debt value in this simple setup is \(V_0-E_0\).
 
 This is not how CDS curves are built in practice, but it explains why equity and credit move together: both are claims on the same underlying asset value.
+
+**Check (distance-to-default intuition):** In this setup, default occurs when \(V_T<D\). The term \(d_2\) is often interpreted as a “distance to default”: larger \(V_0\) (all else equal) increases \(d_2\) and makes default less likely; higher asset volatility \(\sigma_V\) tends to reduce \(d_2\) and make default more likely even while it increases the option value of equity. This is one reason equity volatility and credit spreads often co-move.
 
 ### 35.6.3 Check: Limiting Cases (Intuition)
 

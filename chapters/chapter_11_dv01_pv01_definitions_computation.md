@@ -8,7 +8,7 @@ A portfolio manager reports that her bond position has a "DV01 of $50,000." A sw
 
 Consider the portfolio manager's $50,000 DV01. Does that number assume the bond's yield moves by 1 basis point? Or does it assume every zero rate on the discount curve shifts by 1bp? Perhaps it reflects bumping *par instrument quotes* (like swap rates) and rebuilding a curve? These are different economic scenarios, and they can produce materially different dollar sensitivities for the same position. A DV01/PV01 quote is only meaningful after you specify:
 - **Bump object:** yield, zero curve, par quotes, key rates, etc.
-- **Bump size:** typically \(1\text{bp}=10^{-4}\) in decimal rate units.
+- **Bump size:** typically $1\text{bp}=10^{-4}$ in decimal rate units.
 - **Units + sign:** “$ per 1bp” and for what notional (per 100 face, per $1mm, etc.), and whether DV01 is defined for rates **down** or **up**.
 
 The consequences of ambiguity are real—and expensive. A trader who hedges using yield-based DV01 but marks-to-market against a curve-based pricing engine will experience unexplained P&L when the curve twists. A risk system that aggregates DV01s computed under inconsistent bump definitions will produce portfolio sensitivities that don't add up. And a hedger who matches total DV01 without understanding key-rate exposures may find the hedge worthless when the curve steepens instead of shifting in parallel.
@@ -39,43 +39,43 @@ Follow-on: [Chapter 12](chapters/chapter_12_duration_macaulay_modified_dv01.md),
 
 In practice, a number of different approaches are used to calculate interest rate deltas.
 
-One approach is to define delta as the **dollar duration**, the sensitivity of the portfolio to a parallel shift in the zero-coupon yield curve. A measure related to this definition of delta is **DV01**, the impact of a one-basis-point increase in all rates. Under this definition, DV01 is the dollar duration multiplied by \(0.0001\). Alternatively, it is the duration of the portfolio multiplied by the value of the portfolio multiplied by \(0.0001\).
+One approach is to define delta as the **dollar duration**, the sensitivity of the portfolio to a parallel shift in the zero-coupon yield curve. A measure related to this definition of delta is **DV01**, the impact of a one-basis-point increase in all rates. Under this definition, DV01 is the dollar duration multiplied by $0.0001$. Alternatively, it is the duration of the portfolio multiplied by the value of the portfolio multiplied by $0.0001$.
 
 It is important to emphasize that DV01 depends on the rate shift definition.
 
-- **Yield DV01 (single-bond risk):** the dollar price change for a 1bp change in the bond’s yield-to-maturity \(y\).
-- **Curve DV01 (portfolio/derivatives risk):** DV01 computed under a curve shift \(b\) (e.g., a parallel zero-curve shift), as developed in Section 11.3 and Section 11.6.
+- **Yield DV01 (single-bond risk):** the dollar price change for a 1bp change in the bond’s yield-to-maturity $y$.
+- **Curve DV01 (portfolio/derivatives risk):** DV01 computed under a curve shift $b$ (e.g., a parallel zero-curve shift), as developed in Section 11.3 and Section 11.6.
 
 **House convention (used in this book):**
 
 $$\boxed{\text{DV01}_b := V(\text{rates down }1\text{bp under }b)-V(\text{base})}$$
 
-where \(1\text{bp}=10^{-4}\) in decimal rate units and \(b\) names the bump object / rebuild rule.
+where $1\text{bp}=10^{-4}$ in decimal rate units and $b$ names the bump object / rebuild rule.
 
-Many sources instead define DV01 for a \(+1\text{bp}\) move and attach an explicit minus sign so that DV01 is positive for standard fixed-rate bonds; this is just a sign convention as long as you state it.
+Many sources instead define DV01 for a $+1\text{bp}$ move and attach an explicit minus sign so that DV01 is positive for standard fixed-rate bonds; this is just a sign convention as long as you state it.
 
-If a price–rate function \(P(y)\) is differentiable in a **scalar** rate \(y\) (e.g., bond YTM), then yield DV01 can be written as:
+If a price–rate function $P(y)$ is differentiable in a **scalar** rate $y$ (e.g., bond YTM), then yield DV01 can be written as:
 
 $$\boxed{\text{DV01} = -\frac{1}{10{,}000}\frac{dP}{dy}}$$
 
-A common numerical approach is to compute **dollar duration** (and hence DV01) from the **average price change** when the chosen rate measure is increased and decreased by the same number of basis points. With a symmetric \(\pm 1\text{bp}\) bump:
+A common numerical approach is to compute **dollar duration** (and hence DV01) from the **average price change** when the chosen rate measure is increased and decreased by the same number of basis points. With a symmetric $\pm 1\text{bp}$ bump:
 
 $$\boxed{\text{DV01}_b \approx \frac{V_{\downarrow}-V_{\uparrow}}{2}}$$
 
-where \(V_{\uparrow}\) and \(V_{\downarrow}\) are the PVs after applying a \(+1\text{bp}\) and \(-1\text{bp}\) bump under the *same* bump definition \(b\).
+where $V_{\uparrow}$ and $V_{\downarrow}$ are the PVs after applying a $+1\text{bp}$ and $-1\text{bp}$ bump under the *same* bump definition $b$.
 
 **Units**
-- If \(P\) is “price per 100 face”, then DV01 is “price points per 100 per 1bp”.
-- Position DV01 (currency per 1bp) is \(\text{DV01}_{\text{per 100}}\times \frac{\text{Face}}{100}\).
+- If $P$ is “price per 100 face”, then DV01 is “price points per 100 per 1bp”.
+- Position DV01 (currency per 1bp) is $\text{DV01}_{\text{per 100}}\times \frac{\text{Face}}{100}$.
 
 **Default conventions for examples (unless stated otherwise)**
-- Settlement on a coupon date so \(AI=0\) and \(P_{\text{clean}}=P_{\text{dirty}}\).
+- Settlement on a coupon date so $AI=0$ and $P_{\text{clean}}=P_{\text{dirty}}$.
 - Bond YTM uses semiannual compounding; curve examples state compounding locally.
 - Cashflows/PV are signed from the holder’s perspective (positive = receive).
 
 > **Pitfall — DV01 sign + bump mismatch:** Two systems can both report “DV01” but mean different shocks (rates up vs down; yield vs curve vs par-quote rebuild).
 > **Why it matters:** Hedge ratios flip sign, and portfolio DV01s stop being additive in any meaningful economic sense.
-> **Quick check:** Ask: (i) what is bumped, (ii) is it \(+1\text{bp}\) or \(-1\text{bp}\), and (iii) does repricing under that shock move PV by approximately the reported DV01?
+> **Quick check:** Ask: (i) what is bumped, (ii) is it $+1\text{bp}$ or $-1\text{bp}$, and (iii) does repricing under that shock move PV by approximately the reported DV01?
 
 ### 11.1.2 What DV01 Answers
 
@@ -89,7 +89,7 @@ A closely related object is **dollar duration** (for a yield-based bump):
 
 $$D_{\$}:=-\frac{dP}{dy}$$
 
-Under the “rates down” DV01 convention used in this chapter, \(D_{\$}=10{,}000\times \text{DV01}\).
+Under the “rates down” DV01 convention used in this chapter, $D_{\$}=10{,}000\times \text{DV01}$.
 
 > **The Einstein Formula of Fixed Income**
 >
@@ -103,7 +103,7 @@ Crucially, the DV01 definition requires specifying the "rate measure" $y$ being 
 
 ### 11.1.3 Portfolio Aggregation and Additivity
 
-DV01 is additive when it is computed under a **consistent bump definition**. If portfolio value is a sum of position values, \(V_{\text{port}}=\sum_i V_i\), then under the same bump definition \(b\):
+DV01 is additive when it is computed under a **consistent bump definition**. If portfolio value is a sum of position values, $V_{\text{port}}=\sum_i V_i$, then under the same bump definition $b$:
 
 $$\text{DV01}_{\text{portfolio}} = \sum_i \text{DV01}_i$$
 
@@ -160,7 +160,7 @@ we can derive:
 
 $$\boxed{\text{DV01} = \frac{P \times D_{\text{Mod}}}{10{,}000}}$$
 
-Here \(P\) is the bond’s price in the same units you want DV01 to be reported in (often **dirty price per 100 face**).
+Here $P$ is the bond’s price in the same units you want DV01 to be reported in (often **dirty price per 100 face**).
 
 > **Example 11.2: Worked DV01 (Yield Bump) for a 2-Year Bond**
 >
@@ -169,24 +169,24 @@ Here \(P\) is the bond’s price in the same units you want DV01 to be reported 
 >
 > **Timeline (make dates concrete)**
 > - Trade date: 2026-02-17
-> - Settlement date: 2026-02-19 (assume settlement on a coupon date so \(AI=0\))
+> - Settlement date: 2026-02-19 (assume settlement on a coupon date so $AI=0$)
 > - Payment dates: 2026-08-19, 2027-02-19, 2027-08-19, 2028-02-19 (maturity)
 >
 > **Inputs**
-> - Face \(N=\$25{,}000{,}000\)
-> - Coupon \(c=4.00\\%\\) per year, paid semiannually (2.00 per 100 every 6 months)
-> - Yield \(y=4.50\\%\\) (bond-style YTM with semiannual compounding)
+> - Face $N=\$25{,}000{,}000$
+> - Coupon $c=4.00\%\$ per year, paid semiannually (2.00 per 100 every 6 months)
+> - Yield $y=4.50\%\$ (bond-style YTM with semiannual compounding)
 >
 > **Outputs**
-> - Dirty price per 100 (here \(AI=0\), so clean = dirty): \(P_0 \\approx 99.0538\)
-> - DV01 per 100 (rates **down** 1bp in yield): \(\text{DV01} \\approx 0.01881\)
-> - Position DV01: \(\text{DV01}_{\\$} \\approx 0.01881\\times\\frac{25{,}000{,}000}{100} \\approx \\$4{,}702\\) per 1bp
+> - Dirty price per 100 (here $AI=0$, so clean = dirty): $P_0 \approx 99.0538$
+> - DV01 per 100 (rates **down** 1bp in yield): $\text{DV01} \approx 0.01881$
+> - Position DV01: $\text{DV01}_{\$} \approx 0.01881\times\frac{25{,}000{,}000}{100} \approx \$4{,}702\$ per 1bp
 >
 > **Step-by-step**
-> 1. Price the bond at \(y\): \(P_0=\\sum_{t=1}^{4} \\frac{CF_t}{(1+y/2)^t}\\).
-> 2. Reprice at \(y\\pm 1\\text{bp}\): \(P_{\\uparrow}=P(y+10^{-4})\\), \(P_{\\downarrow}=P(y-10^{-4})\\).
-> 3. Central-difference DV01: \(\text{DV01}=(P_{\\downarrow}-P_{\\uparrow})/2\\).
-> 4. Scale to position: \(\text{DV01}_{\\$}=\\text{DV01}_{\\text{per 100}}\\times N/100\\).
+> 1. Price the bond at $y$: $P_0=\sum_{t=1}^{4} \frac{CF_t}{(1+y/2)^t}\$.
+> 2. Reprice at $y\pm 1\text{bp}$: $P_{\uparrow}=P(y+10^{-4})\$, $P_{\downarrow}=P(y-10^{-4})\$.
+> 3. Central-difference DV01: $\text{DV01}=(P_{\downarrow}-P_{\uparrow})/2\$.
+> 4. Scale to position: $\text{DV01}_{\$}=\text{DV01}_{\text{per 100}}\times N/100\$.
 >
 > **Cashflows (per 100 face)**
 >
@@ -198,12 +198,12 @@ Here \(P\) is the bond’s price in the same units you want DV01 to be reported 
 > | 2028-02-19 | 102.00 | final coupon + principal |
 >
 > **P&L / risk interpretation**
-> - DV01 \(\approx \\$4{,}702/\\text{bp}\) means a 10bp rally in yield (all else equal) is about \(+\\$47k\) of price P&L.
+> - DV01 $\approx \$4{,}702/\text{bp}$ means a 10bp rally in yield (all else equal) is about $+\$47k$ of price P&L.
 > - A yield-DV01 hedge assumes the two yields you are matching will actually move together.
 >
 > **Sanity checks**
-> - Units: “per 100” \(\times\) “face/100” \(\rightarrow\) dollars per bp.
-> - Sign: a lower yield raises price, so DV01 \(>0\) for a long fixed-rate bond under this convention.
+> - Units: “per 100” $\times$ “face/100” $\rightarrow$ dollars per bp.
+> - Sign: a lower yield raises price, so DV01 $>0$ for a long fixed-rate bond under this convention.
 
 ---
 
@@ -297,32 +297,32 @@ $$P_{\text{shifted}}(0,t) = e^{-(z(t) + 0.0001) \times t}$$
 and reprice the instrument.
 
 **Mechanics (discount-factor view):** A parallel +1bp shift in continuously compounded zero rates multiplies every discount factor by the same maturity-dependent factor:
-\[
+$$
 P_{\text{shifted}}(0,t)=P(0,t)\,e^{-0.0001\,t}.
-\]
-Longer-dated cashflows are hit more because the exponential factor depends on \(t\).
+$$
+Longer-dated cashflows are hit more because the exponential factor depends on $t$.
 
-**Check (duration-style scaling):** For small bumps, \(e^{-0.0001 t}\approx 1-0.0001 t\), so the PV change is approximately
-\[
+**Check (duration-style scaling):** For small bumps, $e^{-0.0001 t}\approx 1-0.0001 t$, so the PV change is approximately
+$$
 \Delta V \approx -0.0001\sum_i t_i\,CF_i\,P(0,t_i),
-\]
-which is why curve DV01 is closely related to a PV-weighted average maturity. As a rough desk check: if \(V\approx 100\) (per 100 face) and the PV-weighted time is about 4 years, then a 1bp parallel shift should move value by roughly \(100\times 4/10{,}000 \approx 0.04\) price points per 100.
+$$
+which is why curve DV01 is closely related to a PV-weighted average maturity. As a rough desk check: if $V\approx 100$ (per 100 face) and the PV-weighted time is about 4 years, then a 1bp parallel shift should move value by roughly $100\times 4/10{,}000 \approx 0.04$ price points per 100.
 
 ### 11.3.2 Worked Example: Curve DV01 via Zero-Curve Bump
 
 > **Example 11.4: Curve DV01 via a Parallel Zero-Curve Bump**
 >
-> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at \(z=4.50\\%\\), so \(P(0,t)=e^{-z t}\).
+> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at $z=4.50\%\$, so $P(0,t)=e^{-z t}$.
 >
 > **Base PV**
-> $$P_0=\\sum_{t=1}^{4} 5e^{-0.045t}+105e^{-0.045\\cdot 5}\\approx 101.7388$$
+> $$P_0=\sum_{t=1}^{4} 5e^{-0.045t}+105e^{-0.045\cdot 5}\approx 101.7388$$
 >
 > **Bump the curve up and down by 1bp**
-> $$P_{\\uparrow}\\approx 101.6925 \\quad (z=4.51\\%)$$
-> $$P_{\\downarrow}\\approx 101.7851 \\quad (z=4.49\\%)$$
+> $$P_{\uparrow}\approx 101.6925 \quad (z=4.51\%)$$
+> $$P_{\downarrow}\approx 101.7851 \quad (z=4.49\%)$$
 >
 > **Curve DV01 (rates down convention)**
-> $$\\text{DV01}_{\\text{curve}}=\\frac{P_{\\downarrow}-P_{\\uparrow}}{2}\\approx 0.0463\\ \\text{per 100 face}$$
+> $$\text{DV01}_{\text{curve}}=\frac{P_{\downarrow}-P_{\uparrow}}{2}\approx 0.0463\ \text{per 100 face}$$
 
 ### 11.3.3 Why Yield DV01 and Curve DV01 Differ
 
@@ -423,8 +423,8 @@ In a **multi-curve** pricing framework (common for collateralized swaps), we sep
 This splits "PV01" into two components: **OIS PV01** (discount curve sensitivity) and **Projection PV01** (forecast curve sensitivity).
 
 A practical way to report multi-curve risk is to compute “one-curve-at-a-time” PV01s:
-- **Discount PV01:** bump the discounting curve by \(\pm 1\text{bp}\) (projection held fixed) and reprice.
-- **Projection PV01:** bump the projection curve by \(\pm 1\text{bp}\) (discount held fixed) and reprice.
+- **Discount PV01:** bump the discounting curve by $\pm 1\text{bp}$ (projection held fixed) and reprice.
+- **Projection PV01:** bump the projection curve by $\pm 1\text{bp}$ (discount held fixed) and reprice.
 
 For swaps near par, discount-curve PV01 is often smaller because discounting affects both legs similarly and partly cancels, while the projection curve directly changes expected floating cashflows. As the swap’s MTM moves away from zero, discount-curve PV01 becomes more important.
 
@@ -473,7 +473,7 @@ averages the upward and downward sensitivities, effectively canceling the convex
 
 > **Example 11.7: Central vs One-Sided Comparison**
 >
-> For a 10-year 5% bond at 4% yield (semiannual compounding; price \(\approx 108.175717\) per 100 face):
+> For a 10-year 5% bond at 4% yield (semiannual compounding; price $\approx 108.175717$ per 100 face):
 >
 > | Bump Direction | New Rate | New Price | DV01 Estimate |
 > |----------------|----------|-----------|---------------|
@@ -540,11 +540,11 @@ Yes. The relationship $DF = 1/(1+r)^T$ is nonlinear.
 > - $DF_{\uparrow} = 1/(1.0501)^{10} \approx 0.6133$, so $V_{\uparrow} \approx 61.33$
 > - $DF_{\downarrow} = 1/(1.0499)^{10} \approx 0.6145$, so $V_{\downarrow} \approx 61.45$
 >
-> Central DV01 \(\approx (V_{\downarrow}-V_{\uparrow})/2 \approx \mathbf{0.0585}\).
+> Central DV01 $\approx (V_{\downarrow}-V_{\uparrow})/2 \approx \mathbf{0.0585}$.
 >
 > **Method 2: Linear DF Approximation**
 > Approximate $\Delta DF \approx -T \cdot DF \cdot \Delta r / (1+r) \approx -10 \times 0.6139 \times 0.0001 / 1.05 \approx -0.000585$.
-> This gives \(V_{\uparrow}\approx 100(DF_0+\Delta DF)\), \(V_{\downarrow}\approx 100(DF_0-\Delta DF)\), so central DV01 \(\approx 100|\Delta DF| \approx \mathbf{0.0585}\).
+> This gives $V_{\uparrow}\approx 100(DF_0+\Delta DF)$, $V_{\downarrow}\approx 100(DF_0-\Delta DF)$, so central DV01 $\approx 100|\Delta DF| \approx \mathbf{0.0585}$.
 >
 > The difference is small for 1bp, but for larger shocks (VaR, stress tests), linear approximations break down significantly. **Production systems should always use exact re-pricing.**
 
@@ -684,14 +684,14 @@ Full treatment of key-rate analysis is in **Chapter 14**.
 ### 11.7.1 Common Ambiguity Traps
 
 **1. Sign conventions:** Two common conventions differ by sign:
-- **Rates-down DV01 (used in this book):** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\).
-- **Rates-up DV01:** \(DV01^{(+)} := PV(\text{rates up }1\text{bp})-PV(\text{base})\).
+- **Rates-down DV01 (used in this book):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$.
+- **Rates-up DV01:** $DV01^{(+)} := PV(\text{rates up }1\text{bp})-PV(\text{base})$.
 
-For symmetric \(\pm 1\text{bp}\) bumps, \(DV01^{(+)} \approx -DV01\).
+For symmetric $\pm 1\text{bp}$ bumps, $DV01^{(+)} \approx -DV01$.
 
 **Check (quick sign sanity):** Under the “rates down 1bp” convention in this book:
-- A long option-free fixed-rate bond typically has \(DV01>0\) (rates down \(\Rightarrow\) price up).
-- A receiver fixed swap (receive fixed, pay float) typically has \(DV01>0\); a payer swap typically has \(DV01<0\).
+- A long option-free fixed-rate bond typically has $DV01>0$ (rates down $\Rightarrow$ price up).
+- A receiver fixed swap (receive fixed, pay float) typically has $DV01>0$; a payer swap typically has $DV01<0$.
 If your report shows the opposite sign, first check whether the system is using a “rates up” convention or reporting a loss-on-up number as “DV01” without the sign flip.
 
 > **Example: Sign Convention Translation**
@@ -702,10 +702,10 @@ If your report shows the opposite sign, first check whether the system is using 
 >
 > **Ask:** "Is that for a 1bp up or 1bp down move?"
 
-**2. Clean vs dirty (and cash settlement):** A quoted clean price excludes accrued interest \(AI\). Dirty price is
-\(P_{\text{dirty}}=P_{\text{clean}}+AI\), and the cash settlement amount for face \(N\) is \(\frac{N}{100}P_{\text{dirty}}\).
+**2. Clean vs dirty (and cash settlement):** A quoted clean price excludes accrued interest $AI$. Dirty price is
+$P_{\text{dirty}}=P_{\text{clean}}+AI$, and the cash settlement amount for face $N$ is $\frac{N}{100}P_{\text{dirty}}$.
 
-Accrued interest is time-dependent, so for yield/curve bumps it is usually treated as insensitive to rates. As a result, **clean DV01 \(\approx\) dirty DV01** when the bump only changes discounting/projection rates.
+Accrued interest is time-dependent, so for yield/curve bumps it is usually treated as insensitive to rates. As a result, **clean DV01 $\approx$ dirty DV01** when the bump only changes discounting/projection rates.
 
 **3. Compounding/day count:** Apply the bump in the curve’s **native quote units** (day count + compounding). A “1bp bump” is not meaningful unless you also specify which rate representation is being bumped.
 
@@ -894,17 +894,17 @@ For active hedging, traders rebalance periodically—daily for large books, less
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **DV01 (rates-down)** | \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) for a stated bump object | Fixes sign and makes DV01 comparable within a report |
-| **DV01 (rates-up)** | \(DV01^{(+)} := PV(\text{rates up }1\text{bp})-PV(\text{base}) \approx -DV01\) | Many systems use this; translate before aggregating |
-| **Yield DV01** | Bump a bond’s YTM \(y\) by \(\pm 1\text{bp}\) | Natural for bond trading, but assumes the yields you match move together |
-| **Curve DV01** | Bump a curve object (e.g., all zero rates) by \(\pm 1\text{bp}\) | Consistent for portfolios/derivatives priced off a curve |
-| **Dollar duration** | \(D_{\$}:=-dP/dy\) (yield-based) | Connects DV01 to duration: \(DV01=D_{\$}/10{,}000\) |
-| **PVBP (swap “rate PV01”)** | PV change from bumping swap fixed rate \(K\) by 1bp (curve held fixed) | Used in swap pricing and risk; equals \(N\\times A\\times 10^{-4}\) |
-| **Annuity factor \(A\)** | \(A=\\sum_i \\tau_i P(0,T_i)\) | Present value of 1 unit paid on fixed-leg dates |
+| **DV01 (rates-down)** | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object | Fixes sign and makes DV01 comparable within a report |
+| **DV01 (rates-up)** | $DV01^{(+)} := PV(\text{rates up }1\text{bp})-PV(\text{base}) \approx -DV01$ | Many systems use this; translate before aggregating |
+| **Yield DV01** | Bump a bond’s YTM $y$ by $\pm 1\text{bp}$ | Natural for bond trading, but assumes the yields you match move together |
+| **Curve DV01** | Bump a curve object (e.g., all zero rates) by $\pm 1\text{bp}$ | Consistent for portfolios/derivatives priced off a curve |
+| **Dollar duration** | $D_{\$}:=-dP/dy$ (yield-based) | Connects DV01 to duration: $DV01=D_{\$}/10{,}000$ |
+| **PVBP (swap “rate PV01”)** | PV change from bumping swap fixed rate $K$ by 1bp (curve held fixed) | Used in swap pricing and risk; equals $N\times A\times 10^{-4}$ |
+| **Annuity factor $A$** | $A=\sum_i \tau_i P(0,T_i)$ | Present value of 1 unit paid on fixed-leg dates |
 | **Quote PV01 (par-point delta)** | Bump one input quote, rebuild curve, reprice | Maps sensitivities directly to hedging instruments |
 | **Key-Rate 01** | Localized bump around a tenor (triangular bump) | Decomposes curve risk by maturity “sectors” |
-| **Clean vs dirty** | \(P_{dirty}=P_{clean}+AI\); settle \(\frac{N}{100}P_{dirty}\) | Prevents settlement and coupon-date P&L errors |
-| **Hedge ratio** | \(F_{hedge}=(DV01_{pos}/DV01_{hedge})\\times F_{pos}\) | Converts risk numbers into trade sizes |
+| **Clean vs dirty** | $P_{dirty}=P_{clean}+AI$; settle $\frac{N}{100}P_{dirty}$ | Prevents settlement and coupon-date P&L errors |
+| **Hedge ratio** | $F_{hedge}=(DV01_{pos}/DV01_{hedge})\times F_{pos}$ | Converts risk numbers into trade sizes |
 
 ---
 
@@ -912,18 +912,18 @@ For active hedging, traders rebalance periodically—daily for large books, less
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(P_{\text{clean}}, P_{\text{dirty}}\) | clean/dirty price | price per 100 face; \(P_{\text{dirty}}=P_{\text{clean}}+AI\) |
-| \(AI\) | accrued interest | price points per 100; time-dependent |
-| \(y\) | bond YTM | per year; state compounding (examples use semiannual) |
-| \(P(y)\) | bond price–yield function | price per 100 face |
-| \(V\) | present value (PV) | currency; signed (positive = receive) |
-| \(DV01\) | DV01 (rates-down) | currency per 1bp, or price points per 100 per 1bp |
-| \(DV01^{(+)}\) | DV01 (rates-up) | \(\approx -DV01\) for symmetric bumps |
-| \(P(0,T)\) | discount factor | unitless |
-| \(z(T)\) | zero/spot rate | per year; compounding stated locally |
-| \(\tau_i\) | accrual year fraction | years; depends on day count |
-| \(A\) | swap annuity | years (unitless PV weight); \(A=\\sum \\tau_i P(0,T_i)\) |
-| \(K, S\) | swap fixed rate / par swap rate | per year; same compounding/day count as the leg |
+| $P_{\text{clean}}, P_{\text{dirty}}$ | clean/dirty price | price per 100 face; $P_{\text{dirty}}=P_{\text{clean}}+AI$ |
+| $AI$ | accrued interest | price points per 100; time-dependent |
+| $y$ | bond YTM | per year; state compounding (examples use semiannual) |
+| $P(y)$ | bond price–yield function | price per 100 face |
+| $V$ | present value (PV) | currency; signed (positive = receive) |
+| $DV01$ | DV01 (rates-down) | currency per 1bp, or price points per 100 per 1bp |
+| $DV01^{(+)}$ | DV01 (rates-up) | $\approx -DV01$ for symmetric bumps |
+| $P(0,T)$ | discount factor | unitless |
+| $z(T)$ | zero/spot rate | per year; compounding stated locally |
+| $\tau_i$ | accrual year fraction | years; depends on day count |
+| $A$ | swap annuity | years (unitless PV weight); $A=\sum \tau_i P(0,T_i)$ |
+| $K, S$ | swap fixed rate / par swap rate | per year; same compounding/day count as the leg |
 
 ---
 
@@ -931,8 +931,8 @@ For active hedging, traders rebalance periodically—daily for large books, less
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What DV01 sign convention does this book use? | Rates-down DV01: \(DV01 = PV(\text{rates down }1\text{bp})-PV(\text{base})\); typically positive for a long fixed-rate bond. |
-| 2 | How do you translate a “rates-up DV01” into this book’s convention? | For symmetric bumps, \(DV01^{(+)} \\approx -DV01\). Always confirm the bump object. |
+| 1 | What DV01 sign convention does this book use? | Rates-down DV01: $DV01 = PV(\text{rates down }1\text{bp})-PV(\text{base})$; typically positive for a long fixed-rate bond. |
+| 2 | How do you translate a “rates-up DV01” into this book’s convention? | For symmetric bumps, $DV01^{(+)} \approx -DV01$. Always confirm the bump object. |
 | 3 | What is the difference between Yield DV01 and Curve DV01? | Yield DV01 bumps a single scalar (bond's YTM); Curve DV01 bumps the entire term structure of zero rates. |
 | 4 | Formula for DV01 using central finite differences? | $\text{DV01} = (V(y-1\text{bp}) - V(y+1\text{bp})) / 2$ |
 | 5 | If Portfolio A has yield-based DV01 and Portfolio B has curve-based DV01, can you add them? | No, they represent sensitivities to different stress scenarios and are not comparable. |
@@ -948,7 +948,7 @@ For active hedging, traders rebalance periodically—daily for large books, less
 | 15 | For a zero-coupon bond, what is the DV01 formula? | $\text{DV01} = T \times P / (1+y) / 10{,}000$ where $P$ is price and $T$ is maturity. |
 | 16 | Why does bumping rates vs bumping discount factors give different results? | The relationship $DF = 1/(1+r)^T$ is nonlinear, so linear DF bumps don't match exact rate bumps. |
 | 17 | What is the hedge ratio formula? | $F_{\text{hedge}} = (\text{DV01}_{\text{position}} / \text{DV01}_{\text{hedge}}) \times F_{\text{position}}$ |
-| 18 | Why is discount-curve PV01 often smaller for an at-par swap? | When swap PV \(\approx 0\), discounting changes affect both legs similarly and partly cancel; projection changes move expected floating cashflows more directly. |
+| 18 | Why is discount-curve PV01 often smaller for an at-par swap? | When swap PV $\approx 0$, discounting changes affect both legs similarly and partly cancel; projection changes move expected floating cashflows more directly. |
 | 19 | What does immunization via DV01 matching achieve? | It protects portfolio value against small parallel rate shifts by matching asset and liability durations. |
 | 20 | Why do key-rate 01s sum to total DV01? | Because the sum of triangular key-rate shifts equals a parallel shift. |
 
@@ -1014,7 +1014,7 @@ A pension fund has liabilities with DV01 of $125,000. Available bonds have DV01 
 
 **8.** The swap starts with PV ≈ 0. The discount factor sensitivity scales with the net PV. If PV is small, the "discounting effect" is minor.
 
-**9.** Under a rates-up convention, DV01 = -500 means the portfolio loses $500 when rates rise 1bp. Under the rates-down convention, this is \(DV01 \\approx +500\). The position is long rates (benefits from rate declines).
+**9.** Under a rates-up convention, DV01 = -500 means the portfolio loses $500 when rates rise 1bp. Under the rates-down convention, this is $DV01 \approx +500$. The position is long rates (benefits from rate declines).
 
 **10.** Total DV01 = $0.005 + 0.025 + 0.035 + 0.003 = 0.068$. The 10-year sector has the most risk (51% of total).
 

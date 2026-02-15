@@ -295,6 +295,10 @@ $$F(t,T) - S_t = S_t \left( \frac{P_F(t,T)}{P_D(t,T)} - 1 \right)$$
 
 This shows that forward points are driven entirely by the ratio of discount factors—which reflects the interest rate differential between the two currencies.
 
+**Check (small-tenor approximation):** For short tenors, you can linearize the discount-factor ratio. Under continuous compounding with year fraction \(\tau\),
+$$P_D(t,T)\approx e^{-r\tau},\quad P_F(t,T)\approx e^{-r_f\tau}\quad\Rightarrow\quad F-S \approx S\,(r-r_f)\,\tau.$$
+Example: if \(S=1.10\), \(r-r_f=2\%\), and \(\tau=0.25\), then forward points are \(\approx 1.10\times 0.02\times 0.25=0.0055\), i.e. about 55 pips when 1 pip \(=0.0001\).
+
 ### 29.5.2 Premium vs Discount
 
 - **Forward premium (in $D/F$ quotes):** If $F > S$, the foreign currency trades at a forward premium. This occurs when $P_F / P_D > 1$, meaning domestic rates are higher than foreign rates (equivalently, $P_D < P_F$ for the same maturity).
@@ -525,6 +529,8 @@ Under the standard “foreign currency earns the foreign risk-free rate” inter
 
 **Units:** \(V^{(D)}\) is in domestic currency and \(S\) is in domestic-per-foreign, so \(\partial V/\partial S\) has units of **foreign currency** (e.g., EUR). Some risk systems report a “domestic delta” by multiplying by spot; always check your report’s units.
 
+**Check (spot hedge sizing):** If you are long the forward (buy foreign), your spot delta is \(+N_F P_F(t,T)\) in foreign units. A first-order spot hedge is therefore to **sell** \(N_F P_F(t,T)\) units of foreign in spot (so the combined \(dV\approx (N_F P_F - N_{\text{spot}})\,dS\) is near zero). The remaining risk is then mainly curve/basis risk and any mismatch in bump/mark conventions.
+
 > **Desk Reality:** Many risk reports show FX delta in *foreign units* as \(N_F P_F(t,T)\), not the contractual notional \(N_F\).
 > **Common break:** Spot hedges are sized off notional and ignore \(P_F\), creating a tenor-dependent residual delta.
 > **What to check:** Confirm whether your system reports delta in foreign units, domestic units, or “per 1% move,” and reconcile via unit conversions.
@@ -549,6 +555,8 @@ Let \(\tau(t,T)\) be the year fraction implied by the curve’s day count betwee
   $$DV01_D \approx -N_F \cdot K \cdot \tau(t,T) \cdot P_D(t,T)\cdot 10^{-4}.$$
 
 These two curve risks can partially offset, but the sign and magnitude depend on \(S_t\), \(K\), and the relative curve levels.
+
+**Check (at-market forward, DV01 magnitudes match):** For a forward struck at the fair rate \(K=F^*(t,T)\), no-arbitrage implies \(K\,P_D(t,T)=S_t\,P_F(t,T)\). Plugging this into the toy single-maturity DV01 expressions shows \(|DV01_F|\approx |DV01_D|\) (opposite signs). In that toy setting, a simultaneous 1bp down shift to **both** curves has a much smaller net PV impact than bumping one curve alone—the forward is primarily exposed to **relative** moves between the curves (a cross-currency “basis” move), not just level.
 
 ### 29.9.3 Delta of Forward vs Delta of Spot Position
 
@@ -585,6 +593,10 @@ Two common parameterizations:
      (again, the opposite position flips the sign).
 
 Both formulas are the same economics written under different quote directions. A good unit check is that the payoff currency is the settlement currency and the payoff has “notional × price difference” structure.
+
+**Check (reconciling the two payoffs):** If the market quote is “foreign per USD,” call it \(Q := S^{F/D}\), then the inverse quote is \(S^{D/F}=1/Q\) (and similarly \(K^{D/F}=1/K^{F/D}\)). Substituting \(S_{\text{fix}}^{D/F}=1/S_{\text{fix}}\) and \(K^{D/F}=1/K\) into the chapter-convention payoff \(N_F(S_{\text{fix}}^{D/F}-K^{D/F})\) gives \(N_F(1/S_{\text{fix}}-1/K)\), which matches the “foreign per USD” expression up to sign. That sign difference is exactly the trade-direction difference: “buy foreign” vs “buy USD.” This is why confirmations must state quote direction, notional currency, and settlement currency explicitly.
+
+**PV note:** Because an NDF settles as a single cash amount in the settlement currency, the mark-to-market at time \(t\) discounts that settlement-currency cash amount using the settlement-currency discount curve (the same “single-currency PV” idea as any cash-settled forward).
 
 ### 29.10.3 Worked NDF Example (Foreign per USD Quote)
 

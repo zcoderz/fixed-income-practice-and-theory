@@ -201,6 +201,8 @@ $$\boxed{P_{\text{bond}} = \sum_i \frac{c/f}{\left(1 + \frac{r(0,t_i) + z}{f}\ri
 
 and similarly for continuous compounding.
 
+**Check (direction and units):** The Z-spread \(z\) is an annualized rate (decimal per year). Increasing \(z\) lowers each discount factor and lowers \(P_{\text{bond}}\). Setting \(z=0\) recovers the base-curve PV of the cashflows.
+
 **Intuition:**
 
 It is a single spread number that "tilts" the entire discount curve to match the market price.
@@ -319,6 +321,8 @@ For an option-free fixed-rate bond under the simple yield decomposition \(y = y_
 
 $$\boxed{D_s = D_{y_T} \quad \text{(for fixed-rate bonds)}}$$
 
+**Check (what is held fixed):** This equality is about a *stylized yield decomposition* \(y=y_T+s\). In practice, your **DV01** might be defined by shifting a zero curve (holding credit inputs fixed), while your **CS01** might be defined by bumping a Z-spread (holding the base curve fixed). Those bump designs need not produce identical numbers, especially for non-flat curves, large spreads, or bonds with embedded options. Treat \(D_s=D_{y_T}\) as a useful intuition for option-free bonds—not a universal identity.
+
 **Implication:** "A fixed rate corporate bond is therefore as much an interest rate play as it is a credit play." A trader who is long a 10-year corporate bond has 10-year duration exposure to BOTH rates AND spreads.
 
 **Intuition:**
@@ -397,6 +401,8 @@ $$\boxed{P = \sum_{i=1}^{N} CF_i \, Z(0, t_i) \, Q(0, t_i) \;+\; RF \cdot D(0,T)
 
 where $D(0,T) = -\int_0^T Z(0,s) \, dQ(0,s)$.
 
+**Check (per-100 vs dollars):** The decomposition above produces \(P\) “per 100 face.” For notional \(N\) in dollars, convert to dollar PV via \(PV_{\$}=N\cdot P/100\). Many 10,000× errors in credit analytics come from mixing “per 100” prices with dollar notionals.
+
 **Derivation Sketch (Step-by-Step):**
 
 1. Decompose payoff into survival and default pieces:
@@ -456,6 +462,8 @@ Equivalently (to first order), \(CS01 \approx -\bigl(P(s + 1\text{ bp}) - P(s)\b
 $$CS01\text{ (per 100)} \approx \frac{P \, D_s}{10{,}000}$$
 
 This mirrors the DV01 relation in Tuckman: $DV01 = \frac{PD}{10{,}000}$.
+
+**Check (toy magnitude):** If a bond is priced at \(P=90\) (per 100) with spread duration \(D_s=5\), then \(CS01 \approx 90\times 5/10{,}000 = 0.045\) points per 100 per bp. On \(N=\$100\text{mm}\) notional, that is about \(\$45{,}000\) per 1bp spread move.
 
 ---
 

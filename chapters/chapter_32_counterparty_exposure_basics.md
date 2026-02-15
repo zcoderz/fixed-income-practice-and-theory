@@ -149,6 +149,8 @@ $$\boxed{\max\left(\sum_{i=1}^{N} V_i, 0\right) \leq \sum_{i=1}^{N} \max(V_i, 0)
 
 This follows from the subadditivity of the $\max(\cdot, 0)$ function. The inequality is strict whenever some trades are positive and some are negative—exactly the situation where gains offset losses.
 
+**Check (when netting does *not* help):** If all trades have the same sign at close-out (all \(V_i\ge 0\) or all \(V_i\le 0\)), then the inequality becomes an equality. Netting only creates a benefit when positive and negative MTMs coexist so that gains can offset losses in the close-out amount.
+
 **Perfect offset example:** Suppose trade 1 has $V_1 = +10$ and trade 2 has $V_2 = -10$ (perfectly offsetting). Without netting, exposure is $\max(10,0) + \max(-10,0) = 10$. With netting, exposure is $\max(0,0) = 0$. The netting benefit is complete.
 
 **Imperfect offset example:** Suppose $V_1 = +10$ and $V_2 = -8$. Without netting, exposure is $10 + 0 = 10$. With netting, exposure is $\max(2,0) = 2$. Netting reduces exposure from 10 to 2.
@@ -180,6 +182,8 @@ $$\boxed{E(t) = \max(V(t) - C(t), 0)}$$
 - If \(V=50\) and \(C=45\), then \(E=\max(50-45,0)=5\). (A residual unsecured claim.)
 - If \(V=50\) and \(C=55\), then \(E=0\) and the bank returns \(55-50=5\) of collateral.
 - If \(V=-50\) and \(C=-55\), then \(E=\max(-50-(-55),0)=5\). (Excess collateral posted may not come back.)
+
+**Check (interpret the “\(V<0\) but \(E>0\)” case):** The last line is often the surprise. Exposure is about what you can lose if the counterparty defaults, not about whether your MTM is positive. If you have posted more collateral than you currently owe (because of timing, thresholds, haircuts, or disputes), that excess collateral is effectively a receivable from the counterparty and can be at risk while they hold it.
 
 ### 32.3.2 Variation Margin (VM)
 
@@ -334,6 +338,17 @@ Even with a two-way, zero-threshold collateral agreement, exposure at default ca
 
 This stale-collateral effect means that even under "perfect collateralization," exposure can emerge from market moves during MPOR.
 
+**Expand (timeline in words):**
+- Up to some last “good” margin date, both sides exchange VM based on an agreed MTM, and collateral settles with an operational lag.
+- Near default, margin calls may be disputed or unanswered; after default, no further collateral moves while close-out occurs.
+- The net effect is that at close-out time \(\tau\), the collateral you actually hold is closer to a *past* MTM than to \(V(\tau)\). The MPOR parameter \(c\) is a modeling knob that represents this margin-outage window.
+
+**Check (magnitude):** In the stylized two-way, zero-threshold VM convention \(C(\tau)\approx V(\tau-c)\), the gap exposure is the positive part of the MTM change over the outage window:
+\[
+E(\tau)=\max(V(\tau)-V(\tau-c),0).
+\]
+So if a portfolio MTM can move by “a few million” over \(c\) days in stressed scenarios, a few million of gap exposure is not a bug—it is the mechanism.
+
 > **Analogy: The Stale GPS**
 >
 > Collateral under MPOR is like a GPS that shows where you were 20 minutes ago, not where you are now. If you're driving fast on a twisting road, your "position" shown on the GPS (collateral) can be very different from your actual position (MTM). The faster the market moves, the larger this gap.
@@ -487,6 +502,13 @@ Exposure metrics are functions of \(V(t)\), which in turn depends on risk factor
 - **Sign convention (book-wide):** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\). For a plain long fixed-income position, rates down \(\Rightarrow PV\) up \(\Rightarrow DV01>0\).
 
 To get an “exposure DV01,” you would bump the curve, revalue \(V^{(\omega)}(t_i)\) on each path, recompute \(E^{(\omega)}(t_i)\), then re-aggregate into bumped \(EE(t_i)\) or \(PFE_q(t_i)\). This is conceptually simple but computationally expensive, so many implementations use proxies.
+
+**Expand (the \(\max\) makes exposure “option-like”):** Because \(E=\max(V-C,0)\) is a positive-part function, exposure is *one-sided*. On a path where \(V^{(\omega)}(t_i)-C^{(\omega)}(t_i)\) is comfortably negative, \(E^{(\omega)}(t_i)=0\) and a small risk-factor bump often leaves exposure unchanged (pathwise exposure sensitivity \(\approx 0\)). Near the boundary \(V\approx C\), small bumps can switch exposure on/off, so finite-difference bump size and central-difference schemes matter.
+
+**Check (two-path toy):** Suppose at a future date \(t\) there are two equally likely states, and on both states the *portfolio PV* has \(DV01=+\$100\text{k}\) per 1bp (rates down \(\Rightarrow V\) up by \(0.10\text{mm}\)).
+- State A: \(V-C=+\$1.00\text{mm}\Rightarrow E=1.00\text{mm}\). After a 1bp rates-down bump, \(E\) increases to \(1.10\text{mm}\).
+- State B: \(V-C=-\$1.00\text{mm}\Rightarrow E=0\). After the same bump, \(V-C=-0.90\text{mm}\Rightarrow E\) stays 0.
+So the expected-exposure DV01 is about \(0.5\times \$100\text{k}=\$50\text{k}\) per 1bp, not \$100k: the negative-exposure state contributes no exposure sensitivity.
 
 ### 32.7.4 The Exposure Cone
 
@@ -645,6 +667,11 @@ The exposure work in this chapter is about computing the $v_i$. The credit work 
 $$CVA \approx (1-R) \sum_i D(0, t_i) \cdot EE(t_i) \cdot \Delta PD(t_i)$$
 
 This is a desk-friendly approximation of the generic \((1-R)\,q_i\,v_i\) structure.
+
+**Check (units and limiting cases):**
+- Units: \((1-R)\) is unitless, \(q_i\) is unitless, and \(v_i\) is currency \(\Rightarrow\) CVA is currency.
+- Limits: if \(R=1\) (full recovery) or \(q_i=0\) (no default risk), CVA is 0. If \(EE(t)=0\) for all \(t\), CVA is 0.
+- Scaling: for a roughly linear portfolio, doubling notional roughly doubles \(EE(t)\) and therefore doubles this CVA approximation.
 
 ---
 

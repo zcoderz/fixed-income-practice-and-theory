@@ -48,7 +48,7 @@ Why a basket? Two practical reasons:
 1. **Liquidity protection:** if one specific issue becomes illiquid or “locked up,” the futures contract can still function.
 2. **Anti-squeeze design:** allowing multiple deliverables makes it harder (though not impossible) to corner a single issue and force distorted delivery economics.
 
-In common U.S. Treasury futures, the contract face amount is \(N=\$100{,}000\). The delivery cash amount is an **invoice price** based on the futures settlement price and a bond-specific **conversion factor**.
+In common U.S. Treasury futures, the contract face amount is $N=\$100{,}000$. The delivery cash amount is an **invoice price** based on the futures settlement price and a bond-specific **conversion factor**.
 
 > **Key insight:** This futures is not a forward on a single bond. It is a standardized promise to deliver *some* eligible bond, and the short gets to choose.
 
@@ -81,9 +81,9 @@ Bonds in the delivery basket differ in coupon and maturity. Without any adjustme
 
 For U.S. Treasury bond/note futures, a common definition sets a bond’s conversion factor equal to the bond’s quoted price per dollar of principal on the first day of the delivery month, assuming a flat **6%** yield curve with semiannual compounding (with contract-specific standardization/rounding of coupon timing and maturity).
 
-In practice, you treat \(cf_i\) as an exchange-published input for each eligible bond.
+In practice, you treat $cf_i$ as an exchange-published input for each eligible bond.
 
-**Illustrative calculation (stylized, on-cycle bond):** Consider a 10% coupon bond with 20 years to maturity (40 semiannual periods). If the yield is 6% per year with semiannual compounding (3% per half-year), the theoretical clean price per $100 is:
+**Illustrative calculation (stylized, on-cycle bond):** Consider a 10% coupon bond with 20 years to maturity (40 semiannual periods). If the yield is 6% per year with semiannual compounding (3% per half-year), the theoretical clean price per \$100 is:
 
 $$\text{Value at 6\%} = \sum_{i=1}^{40} \frac{5}{1.03^{i}} + \frac{100}{1.03^{40}} = \$146.23$$
 
@@ -93,7 +93,7 @@ Dividing by the face value gives a conversion factor of **1.4623**.
 
 $$4 + \sum_{i=1}^{36} \frac{4}{1.03^{i}} + \frac{100}{1.03^{36}} = \$125.8323$$
 
-The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\%$. Hence, discounting back to the present gives the bond's value as $125.8323 / 1.014889 = \$123.99$. Subtracting the accrued interest of 2.0 gives $\$121.99$. The conversion factor is therefore **1.2199**.
+The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\%$. Hence, discounting back to the present gives the bond's value as \$125.8323 / 1.014889 = \$123.99$. Subtracting the accrued interest of 2.0 gives $\$121.99$. The conversion factor is therefore **1.2199**.
 
 > **Note:** Some older references (or non-U.S. contracts) may use a different notional yield or different rounding rules. For trading and operations, always use the exchange’s published conversion factors for the contract month.
 
@@ -117,7 +117,7 @@ When bond $i$ is delivered into the futures contract, the short receives:
 
 $$\boxed{\text{Invoice}_i(t) = cf_i \times F(t) + AI_i(t)}$$
 
-In words: the clean delivery price is \(cf_i \times F(t)\), and the invoice price adds accrued interest (delivery price + accrued interest).
+In words: the clean delivery price is $cf_i \times F(t)$, and the invoice price adds accrued interest (delivery price + accrued interest).
 
 where:
 - $cf_i$ is the conversion factor for bond $i$
@@ -126,22 +126,22 @@ where:
 
 **Intuition:** The futures price is quoted like a clean price. The invoice adds accrued interest because the delivered bond exchanges at its dirty (cash) price.
 
-**Quick example:** Suppose the most recent settlement price is 120.00, the conversion factor for the bond delivered is 1.3800, and accrued interest at delivery is $3 per $100 face value. The cash received is:
+**Quick example:** Suppose the most recent settlement price is 120.00, the conversion factor for the bond delivered is 1.3800, and accrued interest at delivery is \$3 per \$100 face value. The cash received is:
 
 $$(1.3800 \times 120.00) + 3.00 = \$168.60$$
 
-per $100 face value. A party with the short position in one contract would deliver bonds with face value of $100,000 and receive $168,600.
+per \$100 face value. A party with the short position in one contract would deliver bonds with face value of \$100,000 and receive \$168,600.
 
 > **Pitfall — Invoice vs clean quote:** Mixing futures quotes, bond clean prices, and dirty cash settlement amounts.  
-> **Why it matters:** You will miscompute delivery economics, implied repo, and hedge ratios by dollars per $100 (which becomes thousands per contract).  
-> **Quick check:** At delivery, cash paid/received must be “dirty”: verify the same \(AI(t)\) term is added on both sides before canceling it in any spread.
+> **Why it matters:** You will miscompute delivery economics, implied repo, and hedge ratios by dollars per \$100 (which becomes thousands per contract).  
+> **Quick check:** At delivery, cash paid/received must be “dirty”: verify the same $AI(t)$ term is added on both sides before canceling it in any spread.
 
 ### 23.3.2 Cost of Delivery
 
 The short’s delivery economics are driven by the difference between:
 
-- the **dirty** cost to acquire the bond: \(P_i(t)+AI_i(t)\),
-- the **dirty** invoice received: \(cf_iF(t)+AI_i(t)\).
+- the **dirty** cost to acquire the bond: $P_i(t)+AI_i(t)$,
+- the **dirty** invoice received: $cf_iF(t)+AI_i(t)$.
 
 Accrued interest cancels, giving the clean-price expression:
 
@@ -149,7 +149,7 @@ $$\text{CostDel}_i(t)=\left(P_i(t)+AI_i(t)\right)-\left(cf_i \times F(t)+AI_i(t)
 
 $$\boxed{\text{CostDel}_i(t) = P_i(t) - cf_i \times F(t)}$$
 
-**Unit check:** All terms are in dollars per $100 face. A negative cost of delivery means delivering bond \(i\) is profitable for the short at that futures price.
+**Unit check:** All terms are in dollars per \$100 face. A negative cost of delivery means delivering bond $i$ is profitable for the short at that futures price.
 
 ---
 
@@ -164,32 +164,32 @@ $$\boxed{\text{CTD} = \arg\min_i \{P_i(t) - cf_i \times F(t)\}}$$
 > **Analogy: The Fixed Price Menu**
 >
 > Imagine you are a short seller committed to buying dinner for the long holder.
-> *   **The Contract**: You sold a "Dinner Futures" contract for $20. You must deliver *one* item from the menu.
+> *   **The Contract**: You sold a "Dinner Futures" contract for \$20. You must deliver *one* item from the menu.
 > *   **The Menu**:
->     *   Burger: Cost $10. Adjusted Price = $10 / 1.0 = $10.
->     *   Steak: Cost $25. Adjusted Price = $25 / 2.0 = $12.50.
->     *   Salad: Cost $8. Adjusted Price = $8 / 0.9 = $8.88.
+>     *   Burger: Cost \$10. Adjusted Price = \$10 / 1.0 = \$10.
+>     *   Steak: Cost \$25. Adjusted Price = \$25 / 2.0 = \$12.50.
+>     *   Salad: Cost \$8. Adjusted Price = \$8 / 0.9 = \$8.88.
 >
-> *   **The Choice**: You will obviously buy the salad ($8) because it's the cheapest way to fulfill the contract, even though the contract price is fixed.
-> *   **The Switch**: If salad prices skyrocket to $15, you will switch to buying the burger. This ability to *switch* is the "Quality Option." It's valuable to you (Short), and risky for the eater (Long).
+> *   **The Choice**: You will obviously buy the salad (\$8) because it's the cheapest way to fulfill the contract, even though the contract price is fixed.
+> *   **The Switch**: If salad prices skyrocket to \$15, you will switch to buying the burger. This ability to *switch* is the "Quality Option." It's valuable to you (Short), and risky for the eater (Long).
 
 **Example:** A short considers three deliverable bonds when the most recent settlement price is 93-08 (93.25):
 
 | Bond | Quoted Price | Conversion Factor | Cost of Delivery |
 |------|--------------|-------------------|------------------|
-| 1 | $99.50 | 1.0382 | $99.50 - 93.25 × 1.0382 = $2.69 |
-| 2 | $143.50 | 1.5188 | $143.50 - 93.25 × 1.5188 = $1.87 |
-| 3 | $119.75 | 1.2615 | $119.75 - 93.25 × 1.2615 = $2.12 |
+| 1 | \$99.50 | 1.0382 | \$99.50 - 93.25 × 1.0382 = \$2.69 |
+| 2 | \$143.50 | 1.5188 | \$143.50 - 93.25 × 1.5188 = \$1.87 |
+| 3 | \$119.75 | 1.2615 | \$119.75 - 93.25 × 1.2615 = \$2.12 |
 
 Bond 2 has the lowest cost of delivery and is therefore CTD.
 
 ### 23.4.2 Final Settlement Price at Delivery
 
-At the final delivery date \(T\), no-arbitrage implies the settlement price must satisfy:
+At the final delivery date $T$, no-arbitrage implies the settlement price must satisfy:
 
 $$\boxed{F(T) = \min_i \frac{P_i(T)}{cf_i} = \frac{P^{\text{CTD}}(T)}{cf^{\text{CTD}}}}$$
 
-Reason (intuition): if \(F(T)\) were above the minimum \(P/cf\), you could buy the cheapest bond, sell futures, deliver, and lock in a profit. If \(F(T)\) were below the minimum \(P/cf\), you could sell the cheapest bond, buy futures, take delivery, and lock in a profit. In frictionless markets, these arbitrages force the equality.
+Reason (intuition): if $F(T)$ were above the minimum $P/cf$, you could buy the cheapest bond, sell futures, deliver, and lock in a profit. If $F(T)$ were below the minimum $P/cf$, you could sell the cheapest bond, buy futures, take delivery, and lock in a profit. In frictionless markets, these arbitrages force the equality.
 
 A key consequence: **the cost of delivering the CTD at final settlement is zero**:
 
@@ -207,9 +207,9 @@ The cost of delivering a non-CTD bond is positive.
 
 ### 23.5.1 The Imperfection of Conversion Factors
 
-Conversion factors would equalize delivery attractiveness only in a special case (think: a flat curve at the notional yield and no rounding frictions). In reality, yields are not exactly 6% and the curve is not flat. Because \(cf_i\) is fixed, bonds with different durations respond differently to yield changes, and the identity of the CTD can change.
+Conversion factors would equalize delivery attractiveness only in a special case (think: a flat curve at the notional yield and no rounding frictions). In reality, yields are not exactly 6% and the curve is not flat. Because $cf_i$ is fixed, bonds with different durations respond differently to yield changes, and the identity of the CTD can change.
 
-A useful local approximation is to look at the “adjusted price” \(P_i/cf_i\). Around a given yield level,
+A useful local approximation is to look at the “adjusted price” $P_i/cf_i$. Around a given yield level,
 
 $$\frac{d(P_i/cf_i)}{dy} \approx -\frac{P_i}{cf_i} \times D_i$$
 
@@ -263,18 +263,18 @@ With a non-flat curve, intermediate-maturity bonds can become CTD even when yiel
 
 ### 23.6.1 Gross Basis
 
-The **gross basis** for bond \(i\) at time \(t\) is the clean cash–futures difference after conversion-factor adjustment:
+The **gross basis** for bond $i$ at time $t$ is the clean cash–futures difference after conversion-factor adjustment:
 
 $$\boxed{GB^i(t) = P^i(t) - cf^i \times F(t)}$$
 
 This is the same object as the cost of delivery (away from the final delivery date it is *not* an arbitrage-free “profit,” because financing and option value matter).
 
-- \(GB>0\): cash bond is rich vs CF-adjusted futures.
-- \(GB<0\): cash bond is cheap vs CF-adjusted futures.
+- $GB>0$: cash bond is rich vs CF-adjusted futures.
+- $GB<0$: cash bond is cheap vs CF-adjusted futures.
 
 ### 23.6.2 Net Basis and the Role of Carry
 
-Gross basis ignores financing and coupon carry between \(t\) and delivery \(T\). The **net basis** incorporates carry by using the bond’s forward (or financed) price:
+Gross basis ignores financing and coupon carry between $t$ and delivery $T$. The **net basis** incorporates carry by using the bond’s forward (or financed) price:
 
 $$\boxed{NB^i(t) = P_{\text{fwd}}^i(t) - cf^i \times F(t)}$$
 
@@ -288,7 +288,7 @@ Substituting into the net basis definition:
 
 $$\boxed{NB^i(t) \approx GB^i(t) - \text{Carry}^i(t \to T)}$$
 
-At the final delivery date, carry to \(T\) is zero and \(NB(T)=GB(T)=\text{CostDel}(T)\). The CTD has \(NB^{CTD}(T)=0\).
+At the final delivery date, carry to $T$ is zero and $NB(T)=GB(T)=\text{CostDel}(T)$. The CTD has $NB^{CTD}(T)=0$.
 
 In many practical setups, **net basis is the carry-adjusted measure used for cash–futures relative value**, and its level/dispersion across deliverables is a proxy for CTD uncertainty and delivery-option value.
 
@@ -298,7 +298,7 @@ For bonds that are close competitors for CTD, net basis behaves like an option-v
 
 > **Desk Reality:** Net basis (not gross basis) is the number many cash–futures relative-value desks monitor, because it embeds funding (GC vs special) and carry.  
 > **Common break:** A bond can look “cheap” on gross basis but be unattractive once you use *your actual* funding assumption (haircuts, specials, fails).  
-> **What to check:** compute \(GB\), carry, and \(NB\) under both GC and plausible special financing, and compare implied repo to your marginal funding rate.
+> **What to check:** compute $GB$, carry, and $NB$ under both GC and plausible special financing, and compare implied repo to your marginal funding rate.
 
 ### 23.6.4 Basis Trade P&L
 
@@ -306,7 +306,9 @@ At a high level, a long-basis trade is: buy the cash bond, finance it, and short
 
 $$\text{P\&L} \approx \frac{N_{\text{bond}}}{100}\,[NB^i(t')-NB^i(t)]$$
 
-where \(N_{\text{bond}}\) is the bond face amount (in dollars) and \(NB\) is quoted per $100 face.
+where $N_{\text{bond}}$ is the bond face amount (in dollars) and $NB$ is quoted per \$100 face.
+
+**Check (scale):** A \$100mm face position corresponds to $N_{\text{bond}}/100 = 1{,}000{,}000$ “per-100” units. So a 0.10 point move in net basis (from $NB$ changing by $-0.10$ per \$100) is about $-0.10\times 1{,}000{,}000 = -\$100{,}000$ of P&L. This is a quick sanity check on basis P&L reports.
 
 ---
 
@@ -323,6 +325,8 @@ $$(P_i(0) + AI_i(0))(1 + r_{\text{imp}} \times d/360) = cf_i \times F + AI_i(T)$
 Solving:
 
 $$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F + AI_i(T)}{P_i(0) + AI_i(0)} - 1\right) \frac{360}{d}}$$
+
+**Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small delivery profit over 30–90 days annualizes into a non-trivial rate. For small profits, $r_{\text{imp}}\approx (\text{profit}/\text{dirty today})\times 360/d$. Toy: if $d=90$ days and the invoice is 0.10 per \$100 higher than the financed cost on a dirty price near 102, then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\%$ (about 39 bp).
 
 ### 23.7.2 Interpretation
 
@@ -351,7 +355,7 @@ Some bonds finance **special** (at repo rates below general collateral) due to s
 
 If a bond in the delivery basket can be financed special, its carry improves. This can make it CTD even if its cash price is slightly higher than alternatives.
 
-**Example logic:** Bond A costs $101.20 to buy, but finances at 3.5% (special). Bond B costs $100.90 but finances at 5% (GC). The lower financing cost for A may more than offset its higher price, making A the CTD.
+**Example logic:** Bond A costs \$101.20 to buy, but finances at 3.5% (special). Bond B costs \$100.90 but finances at 5% (GC). The lower financing cost for A may more than offset its higher price, making A the CTD.
 
 > **Cross-reference:** Chapter 9 develops the mechanics of special repo. Here we focus on its implications for futures pricing.
 
@@ -367,11 +371,11 @@ All else equal, these options are valuable to the short. In competitive markets,
 
 ### 23.9.2 Quality Option Value
 
-A convenient way to think about the quality option is through net basis. For each bond \(i\),
+A convenient way to think about the quality option is through net basis. For each bond $i$,
 
 $$NB^i(t)=P_{\text{fwd}}^i(t)-cf^iF(t)$$
 
-is the carry-adjusted cost of delivering that bond (expressed as a price difference per $100 face).
+is the carry-adjusted cost of delivering that bond (expressed as a price difference per \$100 face).
 
 - The short will prefer the deliverable with the **lowest** net basis (equivalently, the highest implied repo).
 - The dispersion of net bases across deliverables is an indicator of option value: if several bonds have similar low net basis, CTD is unstable; if one bond is clearly lowest, CTD is stable.
@@ -403,11 +407,11 @@ Delivery timing is a trade-off between carry and optionality:
 
 ### 23.9.4 End-of-Month Option
 
-In many contracts, the last trading day comes before the last delivery day. After trading stops, the final settlement price \(\bar F\) is fixed while delivery choices remain. The short effectively holds an option to choose the minimum cost of delivery given \(\bar F\):
+In many contracts, the last trading day comes before the last delivery day. After trading stops, the final settlement price $\bar F$ is fixed while delivery choices remain. The short effectively holds an option to choose the minimum cost of delivery given $\bar F$:
 
 $$\text{CostDel}_i(T)=P_i(T)-cf_i\,\bar F.$$
 
-If you were planning to deliver bond \(i\) but bond \(j\) later becomes cheaper to deliver, switching improves P&L by \(\text{CostDel}_i-\text{CostDel}_j\). The window is short, so the value is usually smaller than the main quality option, but it can matter if relative values in the basket move sharply after the last trading day.
+If you were planning to deliver bond $i$ but bond $j$ later becomes cheaper to deliver, switching improves P&L by $\text{CostDel}_i-\text{CostDel}_j$. The window is short, so the value is usually smaller than the main quality option, but it can matter if relative values in the basket move sharply after the last trading day.
 
 ### 23.9.5 Wild Card Play
 
@@ -415,11 +419,13 @@ On some days there is a gap between the time the futures daily settlement is fix
 
 > **Deep Dive: The Wild Card Arbitrage**
 >
-> - **Settlement time:** futures daily settlement \(F\) is fixed.
+> - **Settlement time:** futures daily settlement $F$ is fixed.
 > - **Later:** the cash bond market still trades, and delivery notice can still be submitted.
 > - **Scenario:** cash bond prices fall after futures settlement.
 > - **Mechanics:** delivering after the fall lets the short buy the bond cheaper in cash while still receiving an invoice based on the earlier futures settlement.
 > - **Takeaway:** this is not “free”; its expected value is embedded in the futures price.
+
+**Check (toy scale):** If the CTD cash price drops by 1/32 (0.03125 points per \$100) after futures settlement but before the notice deadline, and the invoice remains pinned to the earlier settlement price, delivering after the drop improves economics by about 0.03125 per \$100. That is about $\$31.25$ per contract (since $N/100=1000$) — small per event, but meaningful when it happens repeatedly or on large short positions.
 
 ---
 
@@ -431,13 +437,13 @@ Throughout this book, we use the convention:
 
 $$\boxed{DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})}$$
 
-for the **stated bump object**. Here \(1\text{bp}=10^{-4}\) in rate units, and DV01 units are **currency per 1bp**. With this convention, DV01 is positive for a long position in rates (rates down → price up → PV up).
+for the **stated bump object**. Here $1\text{bp}=10^{-4}$ in rate units, and DV01 units are **currency per 1bp**. With this convention, DV01 is positive for a long position in rates (rates down → price up → PV up).
 
 For a Treasury futures contract you must be explicit about *what is being bumped*. In this chapter, we use a CTD-based mapping:
 
-1. **Assume a CTD bond** at time \(t\) (hold CTD identity fixed for the bump).
-2. **Map futures to CTD near delivery:** \(F \approx P^{CTD}/cf^{CTD}\) (per $100).
-3. **Bump object:** bump the CTD yield/curve down by 1bp, reprice \(P^{CTD}\), and translate that price change to \(F\) using the mapping above.
+1. **Assume a CTD bond** at time $t$ (hold CTD identity fixed for the bump).
+2. **Map futures to CTD near delivery:** $F \approx P^{CTD}/cf^{CTD}$ (per \$100).
+3. **Bump object:** bump the CTD yield/curve down by 1bp, reprice $P^{CTD}$, and translate that price change to $F$ using the mapping above.
 
 This is a practical desk approximation. A more complete methodology would allow CTD to re-optimize under the bump (which can matter when net bases are tight).
 
@@ -455,28 +461,30 @@ So, under the bump object above (CTD held fixed), a 1bp yield-down bump gives:
 
 $$\text{DV01}_{\text{fut, per \$100}} \approx \frac{P^{\text{CTD}}(y-1\text{bp})-P^{\text{CTD}}(y)}{cf^{\text{CTD}}}.$$
 
-If you denote \(\text{DV01}_{\text{CTD, per \$100}} := P^{\text{CTD}}(y-1\text{bp})-P^{\text{CTD}}(y)\), then:
+If you denote $\text{DV01}_{\text{CTD, per \$100}} := P^{\text{CTD}}(y-1\text{bp})-P^{\text{CTD}}(y)$, then:
 
 $$\boxed{\text{DV01}_{\text{fut, per \$100}} \approx \frac{\text{DV01}_{\text{CTD, per \$100}}}{cf^{\text{CTD}}}}$$
 
-For a contract with face \(N\) (commonly \(N=\$100{,}000\Rightarrow N/100=1000\)):
+For a contract with face $N$ (commonly $N=\$100{,}000\Rightarrow N/100=1000$):
 
 $$\boxed{\text{DV01}_{\text{fut, per contract}} \approx \frac{N}{100} \times \frac{\text{DV01}_{\text{CTD, per \$100}}}{cf^{\text{CTD}}}}$$
+
+**Check (points $\leftrightarrow$ dollars):** Futures and bond prices here are “per \$100 face.” With $N=\$100{,}000$, one price point (1.00 per \$100) is $\$1000$ per contract. So a futures DV01 of 0.094 points per bp is $\$94$ per bp per contract — the same scaling as the formula above.
 
 ### 23.10.3 Hedge Ratios (Duration or DV01)
 
 You can size a futures hedge using either duration or DV01:
 
-- **Duration form (conceptual):** number of contracts \(\propto \frac{(\text{PV of exposure})\times(\text{duration of exposure})}{(\text{PV per futures contract})\times(\text{duration of assumed CTD})}\).
+- **Duration form (conceptual):** number of contracts $\propto \frac{(\text{PV of exposure})\times(\text{duration of exposure})}{(\text{PV per futures contract})\times(\text{duration of assumed CTD})}$.
 - **DV01 form (most practical):**
 
 $$\boxed{n = \frac{\text{DV01}_{\text{exposure}}}{\text{DV01}_{\text{fut}}}}$$
 
-The key point is that \(\text{DV01}_{\text{fut}}\) depends on the assumed CTD (via DV01 and conversion factor), so you must monitor it over time.
+The key point is that $\text{DV01}_{\text{fut}}$ depends on the assumed CTD (via DV01 and conversion factor), so you must monitor it over time.
 
 ### 23.10.4 CTD Switching Risk (Why “DV01-Neutral” Hedges Break)
 
-If CTD switches, the futures DV01 changes abruptly (because both \(\text{DV01}_{CTD}\) and \(cf_{CTD}\) change). A hedge that was DV01-neutral under yesterday’s CTD can become materially over- or under-hedged overnight.
+If CTD switches, the futures DV01 changes abruptly (because both $\text{DV01}_{CTD}$ and $cf_{CTD}$ change). A hedge that was DV01-neutral under yesterday’s CTD can become materially over- or under-hedged overnight.
 
 This is not a subtle effect: if CTD switches between bonds with meaningfully different duration or conversion factor, the hedge ratio can jump by double-digit percentages. Monitoring near-CTDs and recalculating hedge ratios under alternative CTDs is part of operating Treasury futures hedges on a desk.
 
@@ -539,7 +547,7 @@ Hedgers with positions extending beyond the front delivery month must **roll** t
 The net cost of rolling equals the roll spread at execution. If roll = 0.50 (front above deferred) and you're rolling a short hedge:
 - You buy back front at 108.00
 - You sell back at 107.50
-- Cost per contract: $0.50 × 1000 = $500
+- Cost per contract: \$0.50 × 1000 = \$500
 
 > **Desk Reality:** Roll liquidity often concentrates as the front contract approaches delivery, and many traders quote the roll directly rather than legging two outrights.  
 > **Common break:** Roll slippage can dominate “hedged” P&L during roll periods (it is real P&L, not noise).  
@@ -668,7 +676,7 @@ Over the next few months:
 2. **CTD switching is a first-order risk driver:** it changes DV01 and changes which bond you are economically long.
 3. **Option protection is an explicit trade-off:** pay premium to reduce convexity/CTD-switch drawdowns.
 4. **Funding assumptions matter:** GC vs special can move net basis independently of yields.
-5. **Tailing and unit discipline matter:** basis is per $100; hedge is in contracts; a small scaling error becomes a big P&L error.
+5. **Tailing and unit discipline matter:** basis is per \$100; hedge is in contracts; a small scaling error becomes a big P&L error.
 
 > **Desk Reality:** P&L on basis trades is rarely “rates only”; it is rates + funding + delivery optionality interacting.  
 > **Common break:** Risk systems that hold CTD fixed can misattribute P&L when CTD is switching or repo is moving.  
@@ -688,49 +696,49 @@ Over the next few months:
 
 **Timeline (Make Dates Concrete)**
 - Trade date: 2026-02-17
-- Delivery date (assumed): 2026-05-17 (\(d = 90\) days)
+- Delivery date (assumed): 2026-05-17 ($d = 90$ days)
 - Bond coupon accrual period: 2026-02-15 to 2026-08-15 (semiannual)
 - Next coupon payment date: 2026-08-15 (after delivery; we work via accrued interest)
 
 **Inputs**
-- Futures settlement price: \(F = 112.50\) (per $100)
-- Bond clean price today: \(P(0) = 101.20\) (per $100)
-- Conversion factor: \(cf = 0.9012\)
-- Accrued interest: \(AI(0) = 0.45\), \(AI(T) = 1.35\) (per $100)
-- Repo rate: \(r = 5.00\%\), simple interest, ACT/360
-- Contract face amount: \(N = \$100{,}000\)
+- Futures settlement price: $F = 112.50$ (per \$100)
+- Bond clean price today: $P(0) = 101.20$ (per \$100)
+- Conversion factor: $cf = 0.9012$
+- Accrued interest: $AI(0) = 0.45$, $AI(T) = 1.35$ (per \$100)
+- Repo rate: $r = 5.00\%$, simple interest, ACT/360
+- Contract face amount: $N = \$100{,}000$
 
 **Outputs (What You Produce)**
-- Invoice at delivery: 102.735 per $100 (=$102,735 per contract)
-- Delivery profit (cash-and-carry snapshot, before haircuts/fees): \(-0.186\) per $100 (=-$186 per contract)
+- Invoice at delivery: 102.735 per \$100 (=\$102,735 per contract)
+- Delivery profit (cash-and-carry snapshot, before haircuts/fees): $-0.186$ per \$100 (=-\$186 per contract)
 - Implied repo rate: 4.27% (annualized ACT/360)
-- Futures DV01 (CTD mapping): $94.32 per 1bp per contract  
-  (bump object: CTD yield down 1bp, CTD held fixed; bump size: 1bp \(=10^{-4}\))
+- Futures DV01 (CTD mapping): \$94.32 per 1bp per contract  
+  (bump object: CTD yield down 1bp, CTD held fixed; bump size: 1bp $=10^{-4}$)
 
 **Step-by-step**
 1. Translate futures quote to invoice:
-   - Clean delivery price: \(cfF = 0.9012 \times 112.50 = 101.385\).
-   - Invoice: \(cfF + AI(T) = 101.385 + 1.35 = 102.735\).
+   - Clean delivery price: $cfF = 0.9012 \times 112.50 = 101.385$.
+   - Invoice: $cfF + AI(T) = 101.385 + 1.35 = 102.735$.
 2. Compute financed purchase cost to delivery:
-   - Dirty today: \(P(0) + AI(0) = 101.20 + 0.45 = 101.65\).
-   - Repo interest: \(101.65 \times 0.05 \times 90/360 = 1.271\).
-   - Repayment at \(T\): \(101.65 + 1.271 = 102.921\).
+   - Dirty today: $P(0) + AI(0) = 101.20 + 0.45 = 101.65$.
+   - Repo interest: $101.65 \times 0.05 \times 90/360 = 1.271$.
+   - Repayment at $T$: $101.65 + 1.271 = 102.921$.
 3. Compute delivery profit:
-   - \(\Pi = \text{Invoice}(T) - \text{Repayment}(T) = 102.735 - 102.921 = -0.186\) per $100.
+   - $\Pi = \text{Invoice}(T) - \text{Repayment}(T) = 102.735 - 102.921 = -0.186$ per \$100.
 4. Compute implied repo:
-   - \(r_{\text{imp}} = \left(\frac{\text{Invoice}(T)}{P(0) + AI(0)} - 1\right)\frac{360}{90} = 4.27\%\).
+   - $r_{\text{imp}} = \left(\frac{\text{Invoice}(T)}{P(0) + AI(0)} - 1\right)\frac{360}{90} = 4.27\%$.
 5. Compute futures DV01 and hedge ratio (illustrative):
-   - Assume CTD DV01 per $100 is 0.085.
-   - Futures DV01 per contract \(\approx (N/100)\times 0.085/cf = 1000\times0.085/0.9012 = \$94.32\) per bp.
-   - If a cash exposure has DV01 $42,500/bp, hedge needs \(42{,}500/94.32 \approx 451\) contracts.
+   - Assume CTD DV01 per \$100 is 0.085.
+   - Futures DV01 per contract $\approx (N/100)\times 0.085/cf = 1000\times0.085/0.9012 = \$94.32$ per bp.
+   - If a cash exposure has DV01 \$42,500/bp, hedge needs $42{,}500/94.32 \approx 451$ contracts.
 
 **Cashflows (table)**
-| Date | Cashflow (per $100) | Explanation |
+| Date | Cashflow (per \$100) | Explanation |
 |---|---:|---|
-| 2026-02-17 | \(-101.65\) | Buy bond dirty (simplified; financed in repo) |
-| 2026-05-17 | \(+102.735\) | Invoice received on delivery |
-| 2026-05-17 | \(-102.921\) | Repo repayment (principal + interest) |
-| 2026-05-17 | \(-0.186\) | Net profit/loss from cash-and-carry snapshot |
+| 2026-02-17 | $-101.65$ | Buy bond dirty (simplified; financed in repo) |
+| 2026-05-17 | $+102.735$ | Invoice received on delivery |
+| 2026-05-17 | $-102.921$ | Repo repayment (principal + interest) |
+| 2026-05-17 | $-0.186$ | Net profit/loss from cash-and-carry snapshot |
 
 **P&L / Risk Interpretation**
 - Implied repo (4.27%) below your funding rate (5.00%) → the cash-and-carry loses money; the bond is not “cheap enough” versus the futures under GC funding.
@@ -738,14 +746,14 @@ Over the next few months:
 - DV01 mapping assumes CTD stays the same; if CTD is near switching, hedge ratios can jump.
 
 **Sanity Checks**
-- Units: all prices/basis are per $100; per-contract scaling is \(N/100=1000\).
-- Sign: rates down 1bp should increase \(P^{CTD}\) and \(F\), so DV01 is positive for long futures.
-- Limit: if you plug \(r=r_{imp}\) into the financing step, \(\Pi\) should be ~0.
+- Units: all prices/basis are per \$100; per-contract scaling is $N/100=1000$.
+- Sign: rates down 1bp should increase $P^{CTD}$ and $F$, so DV01 is positive for long futures.
+- Limit: if you plug $r=r_{imp}$ into the financing step, $\Pi$ should be ~0.
 
 ### Conventions for Examples
 
 Unless otherwise stated:
-- Prices are per $100 face
+- Prices are per \$100 face
 - Repo uses simple interest with ACT/360
 - Futures contract size $N = \$100{,}000$ (so $N/100 = 1000$)
 - Invoice price formula: $\text{Invoice} = cf \times F + AI$
@@ -761,9 +769,9 @@ Unless otherwise stated:
 
 Delivery price: $cf \times F = 0.9012 \times 112.50 = 101.385$
 
-Invoice price: $101.385 + 1.35 = 102.735$ per $100 face
+Invoice price: \$101.385 + 1.35 = 102.735$ per \$100 face
 
-Per contract: $102.735 \times 1000 = \$102{,}735$
+Per contract: \$102.735 \times 1000 = \$102{,}735$
 
 ### Example B: Delivery Economics
 
@@ -833,7 +841,7 @@ $$GB = 101.20 - 0.9012 \times 112.50 = 101.20 - 101.385 = -0.185$$
 **Carry:**
 Interest income: $AI(T) - AI(0) = 1.35 - 0.45 = 0.90$
 
-Financing cost: $101.65 \times 0.05 \times 90/360 = 1.271$
+Financing cost: \$101.65 \times 0.05 \times 90/360 = 1.271$
 
 $$\text{Carry} = 0.90 - 1.271 = -0.371$$
 
@@ -845,8 +853,8 @@ Positive net basis means cash-and-carry loses money at this financing rate (cons
 ### Example F: Implied Repo Rate
 
 **Inputs:**
-- Dirty price today: $101.65$
-- Invoice at delivery: $102.735$
+- Dirty price today: \$101.65$
+- Invoice at delivery: \$102.735$
 - Days: $d = 90$
 
 **Break-even condition:**
@@ -859,7 +867,7 @@ If you can finance below 4.27%, cash-and-carry is profitable. At 5% GC, it loses
 ### Example G: Futures DV01 and Hedge Ratio
 
 **Inputs:**
-- Cash position: long $50 million face, DV01 = 0.085 per $100
+- Cash position: long \$50 million face, DV01 = 0.085 per \$100
 - CTD: Bond A with DV01 = 0.085, cf = 0.9012
 
 **Cash DV01 in dollars:**
@@ -892,10 +900,10 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 **Cost of rolling 100 contracts (short hedge):**
 - Buy back Mar at 112.50
 - Sell Jun at 112.15
-- Net cost per contract: $0.35 \times 1000 = \$350$
-- Total roll cost: $100 \times \$350 = \$35,000$
+- Net cost per contract: \$0.35 \times 1000 = \$350$
+- Total roll cost: \$100 \times \$350 = \$35,000$
 
-**Sanity check:** The roll should approximate carry from Mar to Jun delivery. If carry is approximately $\$0.35$ per $100 over 3 months, this is consistent.
+**Sanity check:** The roll should approximate carry from Mar to Jun delivery. If carry is approximately $\$0.35$ per \$100 over 3 months, this is consistent.
 
 ---
 
@@ -932,13 +940,13 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 ## Summary
 
 1. Treasury futures are deliverable-basket contracts; the short holds delivery options (bond choice, timing, and sometimes notice timing).
-2. Conversion factors map a single futures quote into bond-specific delivery economics; invoice at delivery is \(cf\cdot F + AI\).
-3. Cost of delivery is \(P - cf\cdot F\) (clean); CTD minimizes it. At final delivery, \(F(T)=\min_i P_i(T)/cf_i\) and the CTD cost of delivery is 0.
+2. Conversion factors map a single futures quote into bond-specific delivery economics; invoice at delivery is $cf\cdot F + AI$.
+3. Cost of delivery is $P - cf\cdot F$ (clean); CTD minimizes it. At final delivery, $F(T)=\min_i P_i(T)/cf_i$ and the CTD cost of delivery is 0.
 4. CTD can switch with yield level, curve shape, and financing; this makes futures risk state-dependent and creates “negative convexity” intuition.
-5. Gross basis \(GB=P-cfF\) is the clean cash–futures spread; net basis \(NB=P_{fwd}-cfF\approx GB-\text{carry}\) is carry-adjusted and desk-relevant.
+5. Gross basis $GB=P-cfF$ is the clean cash–futures spread; net basis $NB=P_{fwd}-cfF\approx GB-\text{carry}$ is carry-adjusted and desk-relevant.
 6. Implied repo is the break-even financing rate for buy-and-deliver; compare it to your marginal funding (GC vs special).
 7. Delivery options transfer value from long to short and explain why exact theoretical pricing is harder than a single-bond cost-of-carry forward.
-8. Futures DV01 depends on the bump object and the assumed CTD mapping; under a CTD-held-fixed mapping, \(\text{DV01}_{fut}\approx \text{DV01}_{CTD}/cf\).
+8. Futures DV01 depends on the bump object and the assumed CTD mapping; under a CTD-held-fixed mapping, $\text{DV01}_{fut}\approx \text{DV01}_{CTD}/cf$.
 9. Hedges break when CTD switches; re-run DV01 and hedge ratios under alternative CTDs.
 10. Rolls and squeezes are funding-and-delivery phenomena; carry and specials can dominate yield moves near delivery.
 
@@ -948,7 +956,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| Conversion factor | Bond price at 6% yield per $1 face; scales invoice price | Links futures price to individual bond delivery |
+| Conversion factor | Bond price at 6% yield per \$1 face; scales invoice price | Links futures price to individual bond delivery |
 | Cost of delivery | $P - cf \times F$; bond cost minus invoice | Determines which bond is CTD |
 | CTD (Cheapest-to-deliver) | Bond minimizing cost of delivery | Central to pricing, hedging, and basis trading |
 | Gross basis | $P - cf \times F$ (same as cost of delivery) | Measures cash-futures price relationship |
@@ -966,21 +974,21 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(t,T\) | valuation time; delivery time | date (or year-fraction if stated) |
-| \(F(t)\) | futures settlement price | quoted per $100 notional; clean-like |
-| \(cf_i\) | conversion factor for bond \(i\) | unitless; exchange-published |
-| \(P_i(t)\) | clean cash price of bond \(i\) | dollars per $100 face |
-| \(AI_i(t)\) | accrued interest of bond \(i\) | dollars per $100 face; \(P_{dirty}=P_{clean}+AI\) |
-| \(\text{Invoice}_i(t)\) | delivery cash amount per $100 | \(cf_iF(t)+AI_i(t)\) |
-| \(\text{CostDel}_i(t)\) | delivery economics per $100 | \(P_i(t)-cf_iF(t)\) (clean) |
-| \(GB^i(t)\) | gross basis per $100 | \(P_i(t)-cf_iF(t)\) |
-| \(NB^i(t)\) | net basis per $100 | \(P_{\text{fwd}}^i(t)-cf_iF(t)\approx GB-\text{carry}\) |
-| \(r_{\text{repo}}\) | repo rate used for financing | annualized; simple; ACT/360 in examples |
-| \(r_{\text{imp}}\) | implied repo rate | annualized; ACT/360 in examples |
-| \(d\) | days to delivery | days (calendar) |
-| \(N\) | futures contract face | dollars; examples use \(N=\$100{,}000\) |
-| \(DV01\) | PV sensitivity scalar | dollars per 1bp; convention: \(PV(\text{rates down }1\text{bp})-PV(\text{base})\) for the stated bump object |
-| \(\text{DV01}_{fut}\) | futures DV01 | dollars per 1bp per contract; bump object in this chapter: CTD yield down 1bp, CTD held fixed |
+| $t,T$ | valuation time; delivery time | date (or year-fraction if stated) |
+| $F(t)$ | futures settlement price | quoted per \$100 notional; clean-like |
+| $cf_i$ | conversion factor for bond $i$ | unitless; exchange-published |
+| $P_i(t)$ | clean cash price of bond $i$ | dollars per \$100 face |
+| $AI_i(t)$ | accrued interest of bond $i$ | dollars per \$100 face; $P_{dirty}=P_{clean}+AI$ |
+| $\text{Invoice}_i(t)$ | delivery cash amount per \$100 | $cf_iF(t)+AI_i(t)$ |
+| $\text{CostDel}_i(t)$ | delivery economics per \$100 | $P_i(t)-cf_iF(t)$ (clean) |
+| $GB^i(t)$ | gross basis per \$100 | $P_i(t)-cf_iF(t)$ |
+| $NB^i(t)$ | net basis per \$100 | $P_{\text{fwd}}^i(t)-cf_iF(t)\approx GB-\text{carry}$ |
+| $r_{\text{repo}}$ | repo rate used for financing | annualized; simple; ACT/360 in examples |
+| $r_{\text{imp}}$ | implied repo rate | annualized; ACT/360 in examples |
+| $d$ | days to delivery | days (calendar) |
+| $N$ | futures contract face | dollars; examples use $N=\$100{,}000$ |
+| $DV01$ | PV sensitivity scalar | dollars per 1bp; convention: $PV(\text{rates down }1\text{bp})-PV(\text{base})$ for the stated bump object |
+| $\text{DV01}_{fut}$ | futures DV01 | dollars per 1bp per contract; bump object in this chapter: CTD yield down 1bp, CTD held fixed |
 
 ---
 
@@ -990,52 +998,52 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 |---|----------|--------|
 | 1 | What is a deliverable-basket futures contract? | A futures where the short can choose which eligible bond to deliver (and often when) within a delivery window |
 | 2 | Who owns the delivery options? | The short position holder |
-| 3 | What is a conversion factor \(cf_i\)? | A fixed scale that maps the futures quote into a bond-specific delivery price for bond \(i\) (often defined off a notional 6% yield, semiannual) |
-| 4 | What is the invoice price formula? | \(\text{Invoice}_i(t)=cf_iF(t)+AI_i(t)\) |
+| 3 | What is a conversion factor $cf_i$? | A fixed scale that maps the futures quote into a bond-specific delivery price for bond $i$ (often defined off a notional 6% yield, semiannual) |
+| 4 | What is the invoice price formula? | $\text{Invoice}_i(t)=cf_iF(t)+AI_i(t)$ |
 | 5 | Why is accrued interest added at delivery? | Cash bonds settle dirty; accrued interest is part of the cash amount |
-| 6 | Write the cost-of-delivery formula | \(\text{CostDel}_i(t)=P_i(t)-cf_iF(t)\) (clean) |
+| 6 | Write the cost-of-delivery formula | $\text{CostDel}_i(t)=P_i(t)-cf_iF(t)$ (clean) |
 | 7 | Why does accrued interest cancel in cost of delivery? | It is added to both the dirty purchase cost and the invoice received |
 | 8 | Define CTD | The bond that minimizes cost of delivery (equivalently, minimizes net basis under a funding assumption) |
-| 9 | What is the futures price at final delivery in a no-arbitrage setting? | \(F(T)=\min_i P_i(T)/cf_i\) |
-| 10 | What does gross basis measure? | Clean cash price minus CF-adjusted futures price: \(GB=P-cfF\) |
-| 11 | What does net basis measure? | Carry-adjusted cash–futures difference: \(NB=P_{fwd}-cfF\approx GB-\text{carry}\) |
-| 12 | What does implied repo measure? | The break-even financing rate for buy-and-deliver given \(F\), \(cf\), and accrued interest |
+| 9 | What is the futures price at final delivery in a no-arbitrage setting? | $F(T)=\min_i P_i(T)/cf_i$ |
+| 10 | What does gross basis measure? | Clean cash price minus CF-adjusted futures price: $GB=P-cfF$ |
+| 11 | What does net basis measure? | Carry-adjusted cash–futures difference: $NB=P_{fwd}-cfF\approx GB-\text{carry}$ |
+| 12 | What does implied repo measure? | The break-even financing rate for buy-and-deliver given $F$, $cf$, and accrued interest |
 | 13 | When is cash-and-carry attractive? | When implied repo exceeds your marginal funding rate (under the same assumptions) |
 | 14 | Name the main short-owned delivery options | Quality (bond choice), timing (delivery date), end-of-month switching, notice-timing (“wild card” style) |
 | 15 | Why can delivery options depress the futures price? | The long effectively pays for options owned by the short, so the futures can trade below a naive single-bond forward |
-| 16 | What is the DV01 convention in this book? | \(DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})\), positive for long rates risk |
+| 16 | What is the DV01 convention in this book? | $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$, positive for long rates risk |
 | 17 | What is being bumped for futures DV01 in this chapter? | CTD yield (or CTD pricing curve) down 1bp, holding CTD identity fixed |
-| 18 | Give the CTD-mapped futures DV01 approximation | \(\text{DV01}_{fut,\$100}\approx \text{DV01}_{CTD,\$100}/cf_{CTD}\) |
-| 19 | Give the DV01 hedge ratio | \(\#\text{contracts}=\text{DV01}_{exposure}/\text{DV01}_{fut}\) |
+| 18 | Give the CTD-mapped futures DV01 approximation | $\text{DV01}_{fut,\$100}\approx \text{DV01}_{CTD,\$100}/cf_{CTD}$ |
+| 19 | Give the DV01 hedge ratio | $\#\text{contracts}=\text{DV01}_{exposure}/\text{DV01}_{fut}$ |
 | 20 | What is CTD switching risk? | Risk that the CTD changes, causing DV01 and hedge ratios to jump |
 | 21 | What does “special” repo mean? | A bond finances below GC because it is scarce/in demand to borrow |
 | 22 | How can specialness change CTD? | Lower financing cost improves carry, lowers net basis, and can make a bond cheapest after financing |
-| 23 | What is a roll (calendar spread)? | \(F_{front}-F_{deferred}\): the cost of extending a futures position to a later delivery month |
+| 23 | What is a roll (calendar spread)? | $F_{front}-F_{deferred}$: the cost of extending a futures position to a later delivery month |
 | 24 | What can move the roll away from “carry”? | Different CTDs across months, funding shifts, squeeze risk, and delivery uncertainty |
 | 25 | What is a squeeze (in this context)? | CTD scarcity → extreme specialness → distorted basis/roll near delivery |
 
 ---
 
 ## Mini Problem Set
-1. (Compute) Compute invoice price given \(F = 108.50\), \(cf = 0.8750\), \(AI = 2.10\).
-2. (Compute) Given three deliverables with \((P,cf)=[(98.50,0.92),(105.00,0.98),(91.20,0.85)]\) and \(F = 106.00\), identify CTD using \(P-cfF\).
-3. (Compute) Compute gross basis for Bond A: \(P = 102.50\), \(cf = 0.9500\), \(F = 108.00\).
-4. (Compute) Compute carry for 60 days: \(P + AI(0)=103.20\), \(AI(T)-AI(0)=1.00\), \(r=4.50\%\), ACT/360 simple.
-5. (Compute) Compute net basis from gross basis \(-0.10\) and carry \(0.226\).
-6. (Compute) Compute implied repo: dirty today \(=103.20\), invoice at delivery \(=103.85\), \(d=60\) days.
-7. (Compute) Cash DV01 \(=\$30{,}000/\text{bp}\). CTD DV01 \(=0.072\) per $100, \(cf=0.8500\). Compute futures DV01 per contract and the hedge ratio.
-8. (Compute) Roll: \(F_{Mar}=112.50\), \(F_{Jun}=112.15\). Compute roll and the cost to roll 100 short contracts.
+1. (Compute) Compute invoice price given $F = 108.50$, $cf = 0.8750$, $AI = 2.10$.
+2. (Compute) Given three deliverables with $(P,cf)=[(98.50,0.92),(105.00,0.98),(91.20,0.85)]$ and $F = 106.00$, identify CTD using $P-cfF$.
+3. (Compute) Compute gross basis for Bond A: $P = 102.50$, $cf = 0.9500$, $F = 108.00$.
+4. (Compute) Compute carry for 60 days: $P + AI(0)=103.20$, $AI(T)-AI(0)=1.00$, $r=4.50\%$, ACT/360 simple.
+5. (Compute) Compute net basis from gross basis $-0.10$ and carry $0.226$.
+6. (Compute) Compute implied repo: dirty today $=103.20$, invoice at delivery $=103.85$, $d=60$ days.
+7. (Compute) Cash DV01 $=\$30{,}000/\text{bp}$. CTD DV01 $=0.072$ per \$100, $cf=0.8500$. Compute futures DV01 per contract and the hedge ratio.
+8. (Compute) Roll: $F_{Mar}=112.50$, $F_{Jun}=112.15$. Compute roll and the cost to roll 100 short contracts.
 9. (Concept) Explain why the futures price is not a pure cost-of-carry forward price on a single bond.
 10. (Desk) Describe how a CTD switch can create P&L on an otherwise DV01-neutral hedge.
 11. (Desk) Construct a scenario where gross basis is negative but net basis is positive. Why might a basis trade lose money?
 12. (Desk) Write a daily monitoring checklist for a live Treasury futures hedge (CTD status, net basis, implied repo, roll, specials).
 
 ### Solution Sketches (Selected)
-1. Invoice \(=0.8750\times108.50+2.10=97.04\) per $100. Per contract: \(97.04\times1000=\$97{,}040\).
-2. Compute \(P-cfF\): 0.98, 1.12, 1.10 → CTD is Bond 1 (minimum).
-3. \(GB=102.50-0.95\times108.00=-0.10\) per $100.
-6. \(r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\%\).
-7. Futures DV01 per contract \(=1000\times(0.072/0.85)=\$84.71/\text{bp}\). Hedge \(\approx 30{,}000/84.71\approx 354\) contracts.
+1. Invoice $=0.8750\times108.50+2.10=97.04$ per \$100. Per contract: $97.04\times1000=\$97{,}040$.
+2. Compute $P-cfF$: 0.98, 1.12, 1.10 → CTD is Bond 1 (minimum).
+3. $GB=102.50-0.95\times108.00=-0.10$ per \$100.
+6. $r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\%$.
+7. Futures DV01 per contract $=1000\times(0.072/0.85)=\$84.71/\text{bp}$. Hedge $\approx 30{,}000/84.71\approx 354$ contracts.
 
 ---
 

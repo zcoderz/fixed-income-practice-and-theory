@@ -194,6 +194,12 @@ From here on, when we say **curve DV01** we mean a *market* sensitivity with an 
   $$\boxed{DV01 := PV(\text{rates down }1\text{ bp}) - PV(\text{base})}$$
   so long-duration positions have positive DV01.
 
+**Check (sign, payer vs receiver):** With $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, a **receiver** swap is DV01-positive and a **payer** swap DV01-negative under a simple parallel bump that lowers par swap rates. Intuition: when rates fall, receiving fixed at a locked rate becomes more valuable, while paying fixed becomes less valuable.
+
+Because $PV_{\text{pay}}=-PV_{\text{rec}}$ for the same curve inputs, any bump rule implies $DV01_{\text{pay}}=-DV01_{\text{rec}}$ (same bump object, same units).
+
+If you also use the local approximation $PV_{\text{rec}}\approx N\,A\,(K-K^*)$ and assume a 1bp move shifts $K^*$ by about 1bp while $A$ is roughly unchanged, then $DV01_{\text{rec}}\approx N\,A\times 10^{-4}$ and $DV01_{\text{pay}}\approx -N\,A\times 10^{-4}$. For the toy annuity $A=2.865$ on $N=\$100$mm, that scale is $\pm\$28{,}650$ per bp under that bump definition.
+
 > **Desk Reality:** risk reports often label multiple different objects “PV01” or “DV01”.
 > **Common break:** the bump rule differs across systems (zero-curve shift vs par-quote shift; “bump and rebuild” vs direct node bump; discount vs projection curve).
 > **What to check:** ask for the bump definition and reproduce a 1bp bump-and-reprice in your own pricer with the same curve inputs and units.
@@ -215,6 +221,13 @@ In practice, it is often clearer to manage:
 ### 26.4.4 The Floating Leg's Short Duration
 
 Intuition: a standard floating-rate note (and, by analogy, the floating leg of a par swap) tends to be **near par at reset dates** because the coupon is reset to a market rate. Between resets, the dominant rate sensitivity comes from discounting the next known payment and the par value at the next reset date. As a result, the floating leg’s duration is typically on the order of the time to the next reset/payment (months, not years).
+
+Here is a simple timeline mental model. Let $T_{\text{next}}$ be the next reset/payment date.
+
+- **Right after a reset:** the floating coupon for the coming accrual period is set to a then-current fixing. The floating leg resembles a par floater, so there is little long-horizon fixed-cashflow exposure left to “drag around.”
+- **Between resets:** the most “locked” cashflow is the next coupon amount implied by the last fixing (plus any short stub). The main PV sensitivity is therefore discounting over the short horizon to $T_{\text{next}}$, which is why the floating leg’s DV01 is small compared with the fixed leg’s DV01.
+
+**Toy scale check:** Suppose $T_{\text{next}}=0.25$y (3 months), $\alpha=0.25$, $N=\$100$mm, and the last fixing is $L=4\%$. The next coupon cash amount is $N\alpha L\approx 100\text{mm}\times 0.25\times 0.04=\$1.0$mm. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=\$25$. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional—hence “short duration.”
 
 ---
 
@@ -261,6 +274,8 @@ Holding forwards fixed:
 $$PV_{\text{pay}}^{\text{bump,disc}} \approx -\$1,739,268$$
 
 $$DV01_{\text{disc}} = PV(\text{rates down }1\text{bp})-PV(\text{base}) \approx -1,739,268 - (-1,739,000) = -\$268$$
+
+**Check (why discount DV01 can be small):** A discount-curve shift mainly rescales *present values*. If the swap is near par, the fixed and floating legs are both large and mostly offset, so the net PV being rescaled is small. A back-of-the-envelope scale is $DV01_{\text{disc}}\sim (\text{net PV})\times (\text{average maturity})\times 10^{-4}$. Here the net PV is about $-\$1.74$mm and the average cashflow horizon is a couple of years, so the scale is on the order of a few hundred dollars per bp—consistent with $-\$268$.
 
 **Projection curve bump (rates down 1bp, projection curve only):**
 
@@ -463,6 +478,10 @@ The procedure is straightforward:
 Consider receiving fixed on $100\text{mm}$ of a 6-year par swap under a flat curve (for illustration). To compute the exposure to the six-month forward rate 2.5 years forward, bump **that** forward rate by +1bp, keep all other forwards the same, rebuild the discount factors implied by the perturbed forwards, and reprice the swap.
 
 $$-\$100,000,000 \times (99.995813\% - 100\%) = \$4,187$$
+
+**Check (order of magnitude):** A single 6-month forward bucket bumped by 1bp changes expected cashflows for roughly one accrual period. A crude scale is
+$$|\Delta PV|\approx N\times \alpha \times P(0,T)\times 10^{-4}.$$
+With $N=\$100$mm, $\alpha\approx 0.5$, and a mid-curve discount factor around $0.95$–$0.99$, this gives about $\$4.75\text{k}$–$\$4.95\text{k}$ per bp—consistent with the same ballpark as $\$4{,}187$. The exact number depends on the bump-and-rebuild rule and the position’s bucket weights.
 
 Across all buckets, the **sum of bucket exposures** is (approximately) the exposure to a simultaneous 1bp shift in all forwards. Under simplifying assumptions (e.g., a flat curve and consistent bump/rebuild rules), this sum can be very close to the fixed-leg DV01.
 

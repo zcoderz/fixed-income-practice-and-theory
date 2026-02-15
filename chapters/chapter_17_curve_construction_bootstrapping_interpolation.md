@@ -24,7 +24,7 @@ Follow-on: [Chapter 18 — OIS Discounting Curve](chapters/chapter_18_ois_discou
 
 > **Desk Reality:** Two systems can reprice benchmarks but disagree on off-node trades because interpolation choices differ.
 > **Common break:** “Model difference” appears in valuation reconciliations and daily P&L explain, especially for irregular cashflow schedules.
-> **What to check:** Interpolation space (zero rates vs \(\ln P\) vs forwards), knot set, and locality under single-quote bumps.
+> **What to check:** Interpolation space (zero rates vs $\ln P$ vs forwards), knot set, and locality under single-quote bumps.
 
 **Roadmap:** This chapter will:
 
@@ -109,7 +109,7 @@ A deposit earning a simple rate $L$ over time $\tau$ pays $(1 + L\tau)$ at matur
 
 $$\boxed{P(\tau) = \frac{1}{1 + L\tau}}$$
 
-**Check (units and limiting cases):** \(L\) is a per-year rate, \(\tau\) is a year-fraction, so \(L\tau\) is dimensionless. Sanity checks: if \(L=0\), then \(P(\tau)=1\); if \(L>0\), then \(0<P(\tau)<1\) and \(P(\tau)\) decreases as \(\tau\) increases. If \(L<0\) (possible in some regimes), then \(P(\tau)>1\); that is not a bug—it is the arithmetic consequence of being paid to borrow.
+**Check (units and limiting cases):** $L$ is a per-year rate, $\tau$ is a year-fraction, so $L\tau$ is dimensionless. Sanity checks: if $L=0$, then $P(\tau)=1$; if $L>0$, then $0<P(\tau)<1$ and $P(\tau)$ decreases as $\tau$ increases. If $L<0$ (possible in some regimes), then $P(\tau)>1$; that is not a bug—it is the arithmetic consequence of being paid to borrow.
 
 **Par Swaps**
 
@@ -121,7 +121,7 @@ If we already know the discount factors for all previous coupons $P(t_1), \ldots
 
 $$\boxed{P(t_n) = \frac{1 - c \sum_{j=1}^{n-1} \tau_j P(t_j)}{1 + c \tau_n}}$$
 
-**Check (does the last discount factor look plausible?):** For positive rates, you should typically get \(0<P(t_n)<P(t_{n-1})<1\). If the algebra produces a negative discount factor or a discount factor greater than 1 in a positive-rate environment, it is almost always a unit mistake (e.g., using \(c\) in percent instead of decimal, or mixing \(\tau\) day-count conventions). A quick internal check is to recompute the fixed-leg PV at the solved \(P(t_n)\) and verify it sums to 1 with the final principal term (the “reprice test”).
+**Check (does the last discount factor look plausible?):** For positive rates, you should typically get $0<P(t_n)<P(t_{n-1})<1$. If the algebra produces a negative discount factor or a discount factor greater than 1 in a positive-rate environment, it is almost always a unit mistake (e.g., using $c$ in percent instead of decimal, or mixing $\tau$ day-count conventions). A quick internal check is to recompute the fixed-leg PV at the solved $P(t_n)$ and verify it sums to 1 with the final principal term (the “reprice test”).
 
 ### 17.2.3 The Stub Rate: Handling the First Period
 
@@ -376,7 +376,7 @@ $$\boxed{f(T) = y(T) + T y'(T)}$$
 
 This is the key equation. The forward rate equals the zero rate plus a term proportional to the *slope* of the zero rate curve times the maturity.
 
-**Check (directionality):** If the zero curve is locally flat (\(y'(T)=0\)), then \(f(T)=y(T)\). If the zero curve is locally upward sloping (\(y'(T)>0\)), then \(f(T)>y(T)\); if the zero curve is downward sloping (\(y'(T)<0\)), then \(f(T)<y(T)\). This is a useful mental model: forwards “amplify” the local slope of the zero curve by a factor of \(T\).
+**Check (directionality):** If the zero curve is locally flat ($y'(T)=0$), then $f(T)=y(T)$. If the zero curve is locally upward sloping ($y'(T)>0$), then $f(T)>y(T)$; if the zero curve is downward sloping ($y'(T)<0$), then $f(T)<y(T)$. This is a useful mental model: forwards “amplify” the local slope of the zero curve by a factor of $T$.
 
 ### 17.4.2 The Saw-Tooth Pattern
 
@@ -442,15 +442,15 @@ When you choose an interpolation method, you aren't just picking a shape; you ar
 There is no single “DV01 of the curve” until you specify the **bump object**.
 
 **Book conventions used in this chapter**
-- **Bump size:** \(1\text{bp} = 10^{-4}\) in rate units.
-- **Sign:** \(\displaystyle DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\). For long fixed-income PV, DV01 is typically positive.
+- **Bump size:** $1\text{bp} = 10^{-4}$ in rate units.
+- **Sign:** $\displaystyle DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For long fixed-income PV, DV01 is typically positive.
 - **Units:** report in currency per 1bp for the stated portfolio (and state the notional / scaling).
 
 Two common bump objects in curve work are:
 
-1. **Par-point DV01 (benchmark bump):** pick benchmark quote \(q_i\) (deposit rate, futures-implied rate, par swap rate, etc.). Shift that quote **down** by 1bp, rebuild the curve using the same construction settings, then reprice. This produces a vector \(\{DV01_i\}\) in currency per 1bp.
+1. **Par-point DV01 (benchmark bump):** pick benchmark quote $q_i$ (deposit rate, futures-implied rate, par swap rate, etc.). Shift that quote **down** by 1bp, rebuild the curve using the same construction settings, then reprice. This produces a vector $\{DV01_i\}$ in currency per 1bp.
 
-2. **Forward-bucket DV01 (functional bump):** pick a maturity bucket \([t_k,t_{k+1})\) and shift the instantaneous forward curve down by 1bp on that bucket (keeping other buckets unchanged), then reprice. This produces \(\{DV01^{(f)}_k\}\) and cleanly answers “which part of the time axis is driving PV?”
+2. **Forward-bucket DV01 (functional bump):** pick a maturity bucket $[t_k,t_{k+1})$ and shift the instantaneous forward curve down by 1bp on that bucket (keeping other buckets unchanged), then reprice. This produces $\{DV01^{(f)}_k\}$ and cleanly answers “which part of the time axis is driving PV?”
 
 > **Pitfall — What is being bumped?:** Mixing par-quote bumps, zero-node bumps, and forward-bucket bumps without stating which one you used.
 > **Why it matters:** Hedge ratios and risk attribution differ across bump designs even when the base curve reprices the same benchmarks.
@@ -458,7 +458,7 @@ Two common bump objects in curve work are:
 
 ### 17.5.2 Par-Point Deltas and the Locality Requirement
 
-Let \(V_0\) be the PV of the portfolio you care about, and let \(V_i\) be the PV/price of benchmark instrument \(i\) used in the curve build. The simplest approach to computation of the delta \(\partial V_0/\partial V_i\) involves a manual bump to \(V_i\). Then reconstruct the yield curve and reprice the portfolio \(V_0\) (a finite-difference approximation to \(\partial V_0/\partial V_i\)). This procedure is sometimes known as the par-point approach, and the resulting derivatives are par-point deltas.
+Let $V_0$ be the PV of the portfolio you care about, and let $V_i$ be the PV/price of benchmark instrument $i$ used in the curve build. The simplest approach to computation of the delta $\partial V_0/\partial V_i$ involves a manual bump to $V_i$. Then reconstruct the yield curve and reprice the portfolio $V_0$ (a finite-difference approximation to $\partial V_0/\partial V_i$). This procedure is sometimes known as the par-point approach, and the resulting derivatives are par-point deltas.
 
 In practice, the “bump” is often implemented as a 1bp shift to the benchmark’s quoted rate (or price), followed by a rebuild with the *same* interpolation and smoothing settings. That means par-point deltas are not just “about the market quotes”; they also depend on the construction choices that govern how a local change in one input propagates to off-node discount factors and forwards.
 
@@ -479,29 +479,29 @@ For instance, perturbing a short-dated FRA price should not cause noticeable mov
 - Payment date: 2027-08-15
 
 **Inputs**
-- Cashflow: receive \(CF = +1{,}000{,}000\) USD on 2027-08-15
+- Cashflow: receive $CF = +1{,}000{,}000$ USD on 2027-08-15
 - Day count: ACT/365 (toy convention for transparency)
-- Curve object: instantaneous forward \(f(t)\) is piecewise-flat (continuous compounding)
-  - \(f(t)=5.00\\%\) for \([0,1Y)\)
-  - \(f(t)=5.50\\%\) for \([1Y,2Y)\)
+- Curve object: instantaneous forward $f(t)$ is piecewise-flat (continuous compounding)
+  - $f(t)=5.00\\%$ for $[0,1Y)$
+  - $f(t)=5.50\\%$ for $[1Y,2Y)$
 
 **Outputs (What You Produce)**
-- Discount factor \(P(0,T)\)
+- Discount factor $P(0,T)$
 - PV
-- Forward-bucket \(DV01_{[1Y,2Y)}\) in USD per 1bp (book sign convention)
+- Forward-bucket $DV01_{[1Y,2Y)}$ in USD per 1bp (book sign convention)
 
 **Step-by-step**
 1. Year fractions (ACT/365):
-   - \(\tau_{0\to 1Y} = 365/365 = 1.0000\)
-   - \(\tau_{1Y\to T} = 181/365 \approx 0.4959\) (2027-02-15 to 2027-08-15)
+   - $\tau_{0\to 1Y} = 365/365 = 1.0000$
+   - $\tau_{1Y\to T} = 181/365 \approx 0.4959$ (2027-02-15 to 2027-08-15)
 2. Discount factor under piecewise-flat forwards:
    $$P(0,T)=\exp\left(-0.0500\cdot 1.0000 -0.0550\cdot 0.4959\right) \approx 0.92564$$
 3. PV:
    $$PV = CF\cdot P(0,T) \approx 1{,}000{,}000\times 0.92564 = 925{,}636$$
-4. Bucket DV01 for the \([1Y,2Y)\) forward segment:
-   - Bump object: \(f(t)\) for \(t\in[1Y,2Y)\)
-   - Bump size: down 1bp = \(-10^{-4}\)
-   - Exact reprice (by bumping \(f_1\) only):
+4. Bucket DV01 for the $[1Y,2Y)$ forward segment:
+   - Bump object: $f(t)$ for $t\in[1Y,2Y)$
+   - Bump size: down 1bp = $-10^{-4}$
+   - Exact reprice (by bumping $f_1$ only):
      $$DV01_{[1Y,2Y)} = PV(f_1-10^{-4}) - PV(f_1) \approx 45.9$$
    - First-order check:
      $$DV01_{[1Y,2Y)} \approx CF\cdot P(0,T)\cdot \tau_{1Y\to T}\cdot 10^{-4} \approx 45.9$$
@@ -513,22 +513,22 @@ For instance, perturbing a short-dated FRA price should not cause noticeable mov
 
 **P&L / Risk Interpretation**
 - “\$45.9 per bp” means: if forwards between 1Y and 2Y fall by 1bp (with other buckets unchanged), PV increases by about \$45.9.
-- The bucket allocation is time-local: only the portion of the discount integral inside the bucket contributes (here \(\tau_{1Y\to T}\)).
+- The bucket allocation is time-local: only the portion of the discount integral inside the bucket contributes (here $\tau_{1Y\to T}$).
 
 **Sanity Checks**
-- Units: \(CF \times P \times \tau \times 10^{-4}\) is currency.
+- Units: $CF \times P \times \tau \times 10^{-4}$ is currency.
 - Sign: rates down increases PV for a receivable cashflow, so DV01 is positive.
-- Limit: if the payment date moved to before 1Y, \(DV01_{[1Y,2Y)}\to 0\).
+- Limit: if the payment date moved to before 1Y, $DV01_{[1Y,2Y)}\to 0$.
 
 ### 17.5.4 Ringing: When Smoothness Becomes Non-Local
 
-Global smoothness conditions (e.g., some \(C^2\) spline choices) can create **non-local perturbations**: a single-quote bump produces oscillations that spread into distant forwards and deltas. This is a property of the interpolation algorithm, not a market signal.
+Global smoothness conditions (e.g., some $C^2$ spline choices) can create **non-local perturbations**: a single-quote bump produces oscillations that spread into distant forwards and deltas. This is a property of the interpolation algorithm, not a market signal.
 
 **Check (a fast ringing diagnostic):** Pick one short-dated benchmark quote, bump it by 1bp, rebuild the curve, and plot (or tabulate) the change in instantaneous forwards across the whole maturity axis. If a short bump produces alternating “up/down” ripples far out the curve (or materially moves long-dated forwards), you are seeing spline non-locality. This matters because a par-point risk report can then suggest implausible hedges (e.g., “hedge a 20Y swap with a 1M instrument”) even though the base curve reprices perfectly.
 
 ### 17.5.5 Managing the Trade-Off
 
-- If you need locality (risk reports and hedging), prefer methods designed to be local (bootstrapped \(C^0\), Hermite \(C^1\), or tension splines with enough tension).
+- If you need locality (risk reports and hedging), prefer methods designed to be local (bootstrapped $C^0$, Hermite $C^1$, or tension splines with enough tension).
 - If you need very smooth forwards (some option models), you may accept less locality—but you should test bump response, and consider shape-preserving or tension variants.
 
 > **Desk Reality:** Some organizations separate “pricing curves” (very smooth) from “risk curves” (very local).
@@ -586,8 +586,8 @@ $$\text{RMSE} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2}$$
 
 RMSE is a compact way to summarize “typical” fit error in the same units as your inputs (often basis points if you measure errors in bp).
 
-**How to choose \(\lambda\) / an RMSE target (practical, convention-light)**
-- Choose weights \(\mathbf{W}\) that reflect quote uncertainty (bid/ask, staleness, liquidity).
+**How to choose $\lambda$ / an RMSE target (practical, convention-light)**
+- Choose weights $\mathbf{W}$ that reflect quote uncertainty (bid/ask, staleness, liquidity).
 - Increase smoothing until the curve passes sanity checks (monotone discount factors, plausible forwards) and the risk response is stable under small bumps.
 - Avoid smoothing as a substitute for bad data: remove or down-weight obvious outliers first, then smooth what remains.
 
@@ -622,21 +622,21 @@ The standard bootstrapping discussion treats maturities as “tenors” (1W, 1M,
 
 Many curve construction algorithms are designed around the implicit idea that the forward curve should ideally be smooth, but the **turn-of-year (TOY)** effect is a well-known exception: short-dated loan premiums can spike for loans between the last business day of the year and the first business day of the following calendar year.
 
-One common way of incorporating TOY-type effects is to exogenously specify an **overlay** curve \(\varepsilon_{f}(t)\) on the instantaneous forward curve. Specifically, the forward curve \(f(t)=f(0,t)\) is written as \(f(t)=\varepsilon_{f}(t)+f^{*}(t)\):
+One common way of incorporating TOY-type effects is to exogenously specify an **overlay** curve $\varepsilon_{f}(t)$ on the instantaneous forward curve. Specifically, the forward curve $f(t)=f(0,t)$ is written as $f(t)=\varepsilon_{f}(t)+f^{*}(t)$:
 
 $$\boxed{f(t)=f(0,t)=\varepsilon_{f}(t)+f^{*}(t)}$$
 
-where \(\varepsilon_{f}(t)\) is user-specified (and most likely contains discontinuities around special event dates) and \(f^{*}(t)\) is the unknown curve to be fitted. The yield curve algorithm is then applied to the construction of \(f^{*}(t)\). Under continuous compounding:
+where $\varepsilon_{f}(t)$ is user-specified (and most likely contains discontinuities around special event dates) and $f^{*}(t)$ is the unknown curve to be fitted. The yield curve algorithm is then applied to the construction of $f^{*}(t)$. Under continuous compounding:
 
 $$P(T)=e^{-\int_0^T f(u)\,du}=e^{-\int_0^T \varepsilon_{f}(u)\,du}\,e^{-\int_0^T f^{*}(u)\,du}\triangleq P_{\varepsilon}(T)\,P^{*}(T).$$
 
-Once the curve \(P^{*}(t)\) is constructed, any subsequent use of the curve for cash flow discounting requires a multiplicative adjustment of time-\(t\) discount factors by the quantity \(P_{\varepsilon}(t)\).
+Once the curve $P^{*}(t)$ is constructed, any subsequent use of the curve for cash flow discounting requires a multiplicative adjustment of time-$t$ discount factors by the quantity $P_{\varepsilon}(t)$.
 
-**Check (toy magnitude):** Suppose you model a short “turn” window as an overlay of \(+200\)bp for 3 calendar days and zero elsewhere (purely illustrative). Under continuous compounding, the multiplicative factor for any maturity beyond the window is
-\[
+**Check (toy magnitude):** Suppose you model a short “turn” window as an overlay of $+200$bp for 3 calendar days and zero elsewhere (purely illustrative). Under continuous compounding, the multiplicative factor for any maturity beyond the window is
+$$
 P_{\varepsilon} \approx e^{-0.02\times 3/365}\approx 0.999836,
-\]
-which is a \(0.0164\%\) PV hit (about 0.0164 price points per 100) applied uniformly to all cashflows beyond the window. The point of the overlay is not that it is “large” in PV terms, but that it localizes a calendar premium to the short window rather than forcing the fitted curve to twist in unrelated maturities.
+$$
+which is a $0.0164\%$ PV hit (about 0.0164 price points per 100) applied uniformly to all cashflows beyond the window. The point of the overlay is not that it is “large” in PV terms, but that it localizes a calendar premium to the short window rather than forcing the fitted curve to twist in unrelated maturities.
 
 ### 17.7.2 Event Dates and Step-Like Forwards
 
@@ -658,7 +658,7 @@ Par-point deltas bundle “curve construction + risk” into one number: you bum
 
 ### 17.8.1 Forward-Bucket Shocks and Deltas
 
-Choose basis functions \(\mu_k(t)\) that localize shocks in maturity:
+Choose basis functions $\mu_k(t)$ that localize shocks in maturity:
 
 $$f(t) \mapsto f(t) - \varepsilon \mu_k(t)$$
 
@@ -670,35 +670,35 @@ Define the **forward-bucket DV01** (book convention) as:
 
 $$DV01^{(f)}_k := PV\!\left(f - 10^{-4}\mu_k\right) - PV(f)$$
 
-Units are currency per 1bp for the stated portfolio. For a long PV, \(DV01^{(f)}_k\) is typically positive.
+Units are currency per 1bp for the stated portfolio. For a long PV, $DV01^{(f)}_k$ is typically positive.
 
 ### 17.8.2 The Jacobian Method
 
 Let:
-- \(\mathbf{d}\in\mathbb{R}^K\) be the portfolio’s forward-bucket DV01 vector (currency per 1bp).
-- \(\mathbf{J}\in\mathbb{R}^{K\times L}\) be the matrix of hedging-instrument bucket DV01s per unit notional (or per \$1mm notional, as stated).
-- \(\mathbf{p}\in\mathbb{R}^L\) be the hedge notionals.
+- $\mathbf{d}\in\mathbb{R}^K$ be the portfolio’s forward-bucket DV01 vector (currency per 1bp).
+- $\mathbf{J}\in\mathbb{R}^{K\times L}$ be the matrix of hedging-instrument bucket DV01s per unit notional (or per \$1mm notional, as stated).
+- $\mathbf{p}\in\mathbb{R}^L$ be the hedge notionals.
 
-To hedge, we want \(\mathbf{J}\mathbf{p}\approx -\mathbf{d}\). A common weighted/regularized formulation is:
+To hedge, we want $\mathbf{J}\mathbf{p}\approx -\mathbf{d}$. A common weighted/regularized formulation is:
 
 $$\hat{\mathbf{p}} = \underset{\mathbf{p}}{\text{argmin}} \left\|\mathbf{W}(\mathbf{J}\mathbf{p}+\mathbf{d})\right\|^2 + \left\|\mathbf{U}\mathbf{p}\right\|^2$$
 
-Written in terms of \(\mathbf{d}\) and \(\mathbf{J}\), the normal equations become:
+Written in terms of $\mathbf{d}$ and $\mathbf{J}$, the normal equations become:
 
 $$(\mathbf{J}^\top \mathbf{W}^2 \mathbf{J} + \mathbf{U}^2)\hat{\mathbf{p}} = -\mathbf{J}^\top \mathbf{W}^2 \mathbf{d}$$
 
-Interpretation: \(\mathbf{W}\) prioritizes matching some buckets more than others; \(\mathbf{U}\) discourages overly large notionals (a ridge penalty).
+Interpretation: $\mathbf{W}$ prioritizes matching some buckets more than others; $\mathbf{U}$ discourages overly large notionals (a ridge penalty).
 
-**Check (dimensions and units):** \(\mathbf{J}\mathbf{p}\) lives in bucket space (\(\mathbb{R}^K\)), so it can be compared directly to \(-\mathbf{d}\). A practical way to keep units straight is:
-- \(\mathbf{d}\): currency per bp (per portfolio)
-- \(\mathbf{J}\): currency per bp **per unit notional** of each hedge instrument (state the unit, e.g., per \(\$1\)mm)
-- \(\mathbf{p}\): hedge notionals (in the same units used for \(\mathbf{J}\))
+**Check (dimensions and units):** $\mathbf{J}\mathbf{p}$ lives in bucket space ($\mathbb{R}^K$), so it can be compared directly to $-\mathbf{d}$. A practical way to keep units straight is:
+- $\mathbf{d}$: currency per bp (per portfolio)
+- $\mathbf{J}$: currency per bp **per unit notional** of each hedge instrument (state the unit, e.g., per $\$1$mm)
+- $\mathbf{p}$: hedge notionals (in the same units used for $\mathbf{J}$)
 
-After solving, compute the residual bucket vector \(\mathbf{r}=\mathbf{J}\hat{\mathbf{p}}+\mathbf{d}\). If \(\mathbf{r}\) is large in a particular bucket, the hedge instruments you allowed cannot span that exposure (or you intentionally down-weighted it via \(\mathbf{W}\)).
+After solving, compute the residual bucket vector $\mathbf{r}=\mathbf{J}\hat{\mathbf{p}}+\mathbf{d}$. If $\mathbf{r}$ is large in a particular bucket, the hedge instruments you allowed cannot span that exposure (or you intentionally down-weighted it via $\mathbf{W}$).
 
 ### 17.8.3 Worked Example: Simple Hedge Calculation
 
-**Setup:** A portfolio has forward-bucket DV01s \((+5, +3, -2, -6)\) across 1Y, 2Y, 3Y, 5Y buckets (in thousands of currency per bp, using the “rates down” convention). Available hedges are 2Y and 5Y swaps.
+**Setup:** A portfolio has forward-bucket DV01s $(+5, +3, -2, -6)$ across 1Y, 2Y, 3Y, 5Y buckets (in thousands of currency per bp, using the “rates down” convention). Available hedges are 2Y and 5Y swaps.
 
 **Step 1: Hedge Instrument Deltas**
 
@@ -724,19 +724,19 @@ $$\mathbf{J} = \begin{pmatrix} 0.5 & 0.2 \\ 1.5 & 0.4 \\ 0 & 0.6 \\ 0 & 3.8 \end
 
 $$\hat{\mathbf{p}} = (\mathbf{J}^\top \mathbf{J})^{-1} \mathbf{J}^\top \mathbf{d}$$
 
-Solving gives approximately \(p_1 \approx -3.25\) and \(p_2 \approx +1.60\) (USD millions).
+Solving gives approximately $p_1 \approx -3.25$ and $p_2 \approx +1.60$ (USD millions).
 
-The hedge is: short \(\$3.25\)mm 2Y swaps and long \(\$1.60\)mm 5Y swaps.
+The hedge is: short $\$3.25$mm 2Y swaps and long $\$1.60$mm 5Y swaps.
 
 ---
 
 ## Summary
 
-1. Curve construction maps benchmark quotes \(\to\) a curve object \(\to\) discount factors \(\to\) PV for cashflows on any date.
+1. Curve construction maps benchmark quotes $\to$ a curve object $\to$ discount factors $\to$ PV for cashflows on any date.
 2. Bootstrapping is sequential inversion; interpolation is the extra assumption that defines off-node values and (therefore) implied forwards.
-3. Interpolating in different “spaces” creates different forward artifacts: linear \(y(T)\) \(\to\) saw-tooth \(f(T)\); log-linear \(P(0,T)\) \(\to\) piecewise-flat \(f(T)\); very smooth \(C^2\) choices \(\to\) smooth forwards but potential non-local behavior.
+3. Interpolating in different “spaces” creates different forward artifacts: linear $y(T)$ $\to$ saw-tooth $f(T)$; log-linear $P(0,T)$ $\to$ piecewise-flat $f(T)$; very smooth $C^2$ choices $\to$ smooth forwards but potential non-local behavior.
 4. Risk depends on the bump object: par-point DV01 bumps a benchmark quote and rebuilds; forward-bucket DV01 bumps the forward curve on a maturity bucket.
-5. Always state bump size (\(1\text{bp}=10^{-4}\)), units (currency per 1bp for the stated notional/portfolio), and sign (\(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\)).
+5. Always state bump size ($1\text{bp}=10^{-4}$), units (currency per 1bp for the stated notional/portfolio), and sign ($DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$).
 6. Locality matters: a short-dated bump should not materially move far-dated forwards; “ringing” produces misleading hedge ratios and P&L explain.
 7. Smoothing/regularization trades fit vs stability; use weights to reflect quote quality and avoid smoothing as a substitute for bad data.
 8. Calendar features (turns, event dates, stubs) are best treated as localized knots/overlays so they do not “pollute” the rest of the curve.
@@ -747,17 +747,17 @@ The hedge is: short \(\$3.25\)mm 2Y swaps and long \(\$1.60\)mm 5Y swaps.
 
 | Concept | Definition | Why It Matters |
 |---|---|---|
-| Discount factor \(P(0,T)\) | PV of 1 unit paid at \(T\) | Primary curve object used for PV |
-| Zero rate \(y(T)\) | \(P(0,T)=e^{-y(T)T}\) under continuous compounding | A convenient “rate” view; interpolation here affects forwards |
-| Instantaneous forward \(f(T)\) | \(f(T)=-\\frac{d}{dT}\\ln P(0,T)\) | Forward shape drives option inputs and some risk attribution |
-| Bootstrapping | Solve curve nodes short \(\to\) long to match benchmarks | Standard construction; clear dependency chain |
+| Discount factor $P(0,T)$ | PV of 1 unit paid at $T$ | Primary curve object used for PV |
+| Zero rate $y(T)$ | $P(0,T)=e^{-y(T)T}$ under continuous compounding | A convenient “rate” view; interpolation here affects forwards |
+| Instantaneous forward $f(T)$ | $f(T)=-\\frac{d}{dT}\\ln P(0,T)$ | Forward shape drives option inputs and some risk attribution |
+| Bootstrapping | Solve curve nodes short $\to$ long to match benchmarks | Standard construction; clear dependency chain |
 | Benchmark set | Chosen quotes/instruments used to pin the curve | Defines what the curve “is” (and what it isn’t) |
-| Interpolation space | The object you interpolate (\(y\), \(\ln P\), \(f\), …) | Different choices \(\Rightarrow\) different artifacts and hedges |
-| Piecewise-linear \(y(T)\) | \(y\) is linear between knots | Typically implies saw-tooth instantaneous forwards |
-| Log-linear \(P(0,T)\) | \(\ln P\) linear between knots | Equivalent to piecewise-flat forwards (staircase \(f\)) |
+| Interpolation space | The object you interpolate ($y$, $\ln P$, $f$, …) | Different choices $\Rightarrow$ different artifacts and hedges |
+| Piecewise-linear $y(T)$ | $y$ is linear between knots | Typically implies saw-tooth instantaneous forwards |
+| Log-linear $P(0,T)$ | $\ln P$ linear between knots | Equivalent to piecewise-flat forwards (staircase $f$) |
 | Locality | A bump mainly affects nearby maturities | Needed for stable, interpretable risk reports |
 | Ringing | Non-local oscillations after a local bump | Creates spurious far-dated deltas and confusing P&L explain |
-| Tension spline | \(C^2\) spline with stiffness parameter \(\sigma\) | Tunable compromise between smoothness and locality |
+| Tension spline | $C^2$ spline with stiffness parameter $\sigma$ | Tunable compromise between smoothness and locality |
 | Smoothing / regularization | Allow small mispricings to stabilize the curve | Prevents overfitting noisy quotes; improves risk stability |
 | Bump object | What is perturbed (quote, node, forward bucket) | Different bump objects produce different “DV01” vectors |
 | Par-point DV01 | Rebuild-the-curve sensitivity to one benchmark quote | Natural for benchmark hedging; depends on build choices |
@@ -769,22 +769,22 @@ The hedge is: short \(\$3.25\)mm 2Y swaps and long \(\$1.60\)mm 5Y swaps.
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(P(0,T)\) | discount factor to \(T\) | unitless; \(>0\) |
-| \(y(T)\) | zero rate (continuous comp in this chapter) | 1/year |
-| \(f(T)\) | instantaneous forward rate | 1/year; \(f(T)=-\\frac{d}{dT}\\ln P(0,T)\) |
-| \(\tau\) | year fraction | day-count dependent (ACT/365 in toy example) |
-| \(1\\text{bp}\) | one basis point | \(10^{-4}\) in rate units |
-| \(q_i\) | benchmark quote \(i\) | rate or price; definition must be stated |
-| \(DV01_i\) | par-point DV01 for quote \(q_i\) | currency per 1bp; \(PV(\\text{rates down})-PV(\\text{base})\) |
-| \(DV01^{(f)}_k\) | forward-bucket DV01 for bucket \(k\) | currency per 1bp; bucket bump on \(f(t)\) |
-| \(T_i\) | knot / benchmark maturity \(i\) | years from valuation date |
-| \(h_i\) | interval length \(T_{i+1}-T_i\) | years |
-| \(\mu_k(t)\) | bucket basis function | unitless; localized in time |
-| \(\sigma\) | tension parameter | controls cubic \(\leftrightarrow\) linear limit |
-| \(\lambda\) | smoothing strength | larger \(\lambda\Rightarrow\) smoother, less exact fit |
-| \(\mathbf{C}\) | cashflow matrix | currency per unit notional |
-| \(\mathbf{V}\) | observed benchmark prices | currency |
-| \(\mathbf{W}\) | quote-quality weights | often inverse-uncertainty |
+| $P(0,T)$ | discount factor to $T$ | unitless; $>0$ |
+| $y(T)$ | zero rate (continuous comp in this chapter) | 1/year |
+| $f(T)$ | instantaneous forward rate | 1/year; $f(T)=-\\frac{d}{dT}\\ln P(0,T)$ |
+| $\tau$ | year fraction | day-count dependent (ACT/365 in toy example) |
+| $1\\text{bp}$ | one basis point | $10^{-4}$ in rate units |
+| $q_i$ | benchmark quote $i$ | rate or price; definition must be stated |
+| $DV01_i$ | par-point DV01 for quote $q_i$ | currency per 1bp; $PV(\\text{rates down})-PV(\\text{base})$ |
+| $DV01^{(f)}_k$ | forward-bucket DV01 for bucket $k$ | currency per 1bp; bucket bump on $f(t)$ |
+| $T_i$ | knot / benchmark maturity $i$ | years from valuation date |
+| $h_i$ | interval length $T_{i+1}-T_i$ | years |
+| $\mu_k(t)$ | bucket basis function | unitless; localized in time |
+| $\sigma$ | tension parameter | controls cubic $\leftrightarrow$ linear limit |
+| $\lambda$ | smoothing strength | larger $\lambda\Rightarrow$ smoother, less exact fit |
+| $\mathbf{C}$ | cashflow matrix | currency per unit notional |
+| $\mathbf{V}$ | observed benchmark prices | currency |
+| $\mathbf{W}$ | quote-quality weights | often inverse-uncertainty |
 
 ---
 
@@ -792,23 +792,23 @@ The hedge is: short \(\$3.25\)mm 2Y swaps and long \(\$1.60\)mm 5Y swaps.
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is the fundamental unknown in curve construction? | The discount factor function \(P(0,T)\) (or an equivalent representation like \(y(T)\) or \(f(T)\)). |
+| 1 | What is the fundamental unknown in curve construction? | The discount factor function $P(0,T)$ (or an equivalent representation like $y(T)$ or $f(T)$). |
 | 2 | Why is the curve problem underdetermined? | A finite set of benchmark quotes cannot uniquely determine a continuous function; interpolation/smoothing closes the gap. |
-| 3 | What is bootstrapping? | Solving curve nodes sequentially (short \(\to\) long) so each benchmark reprices. |
-| 4 | What formula gives \(P(\tau)\) from a simple deposit rate \(L\)? | \(P(\tau)=\\frac{1}{1+L\\tau}\\). |
-| 5 | What formula gives \(P(t_n)\) from a par swap rate \(c\) (when earlier \(P(t_j)\) are known)? | \(P(t_n)=\\frac{1-c\\sum_{j=1}^{n-1}\\tau_j P(t_j)}{1+c\\tau_n}\\). |
-| 6 | What does “interpolation space” mean? | Which object you interpolate (e.g., \(y(T)\), \(\ln P(0,T)\), or \(f(T)\)). |
+| 3 | What is bootstrapping? | Solving curve nodes sequentially (short $\to$ long) so each benchmark reprices. |
+| 4 | What formula gives $P(\tau)$ from a simple deposit rate $L$? | $P(\tau)=\\frac{1}{1+L\\tau}\$. |
+| 5 | What formula gives $P(t_n)$ from a par swap rate $c$ (when earlier $P(t_j)$ are known)? | $P(t_n)=\\frac{1-c\\sum_{j=1}^{n-1}\\tau_j P(t_j)}{1+c\\tau_n}\$. |
+| 6 | What does “interpolation space” mean? | Which object you interpolate (e.g., $y(T)$, $\ln P(0,T)$, or $f(T)$). |
 | 7 | What forward artifact does linear yield interpolation typically produce? | A discontinuous, saw-tooth instantaneous forward curve. |
 | 8 | What forward artifact does log-linear discount-factor interpolation produce? | Piecewise-flat (staircase) instantaneous forwards. |
-| 9 | Under continuous compounding, what links zero rates and forwards? | \(f(T)=y(T)+T y'(T)\\). |
+| 9 | Under continuous compounding, what links zero rates and forwards? | $f(T)=y(T)+T y'(T)$. |
 | 10 | What is locality? | A bump to one quote mainly affects nearby maturities (not the whole curve). |
 | 11 | What is ringing? | Non-local oscillations in the curve (and deltas) caused by global smoothness constraints. |
-| 12 | What does the tension parameter \(\sigma\) control? | The trade-off between \(C^2\) smoothness and locality (as \(\sigma\\to\\infty\) the curve approaches piecewise linear). |
+| 12 | What does the tension parameter $\sigma$ control? | The trade-off between $C^2$ smoothness and locality (as $\sigma\to\infty$ the curve approaches piecewise linear). |
 | 13 | What must you state to make a DV01 meaningful? | Bump object, bump size, units, and sign convention. |
-| 14 | What is the book DV01 sign convention? | \(DV01 := PV(\\text{rates down }1\\text{bp})-PV(\\text{base})\\). |
+| 14 | What is the book DV01 sign convention? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. |
 | 15 | What is par-point DV01? | Sensitivity computed by bumping one benchmark quote and rebuilding the curve. |
 | 16 | What is forward-bucket DV01? | Sensitivity to shifting the forward curve down by 1bp on a maturity bucket (with other buckets unchanged). |
-| 17 | Desk: Two systems reprice benchmarks but disagree on an off-node PV. What is the first thing to compare? | Interpolation space (\(y\) vs \(\ln P\) vs \(f\)), knot set, and short-end stub treatment. |
+| 17 | Desk: Two systems reprice benchmarks but disagree on an off-node PV. What is the first thing to compare? | Interpolation space ($y$ vs $\ln P$ vs $f$), knot set, and short-end stub treatment. |
 | 18 | Desk: A 1bp bump to a short quote generates big long-end deltas. What might be going on? | Non-locality/ringing (or an inconsistent bump design). Test bump response and consider more local or tension/shape-preserving methods. |
 | 19 | What does RMSE summarize in a smoothed fit? | The typical size of pricing/yield errors across benchmarks (in the units you measure errors). |
 | 20 | What is the Jacobian method used for? | Mapping forward-bucket DV01s into hedge instrument notionals via a (weighted) linear system. |
@@ -817,29 +817,29 @@ The hedge is: short \(\$3.25\)mm 2Y swaps and long \(\$1.60\)mm 5Y swaps.
 
 ## Mini Problem Set
 
-1. (Compute) A 6-month deposit rate is 4.00% (simple, ACT/360, assume 180 days). Compute \(P(0.5)\).
-2. (Compute) You know \(P(1)=0.96\). A 2-year annual par swap has fixed rate 5.00%. Compute \(P(2)\).
-3. (Compute) Given \(P(1)=0.95\) and \(P(2)=0.90\), compute \(P(1.5)\) using log-linear (geometric mean) interpolation.
-4. (Compute) Using your \(P(1.5)\) from (3), compute the annualized forward rate from 1.0 to 1.5 years. Verify it equals the forward from 1.5 to 2.0 years under log-linear \(P\).
-5. (Compute) Use the setup of Section 17.5.3 (ACT/365; \(CF=+1{,}000{,}000\) on 2027-08-15; piecewise-flat forwards \(f_0=5.00\\%\) on \([0,1Y)\) and \(f_1=5.50\\%\) on \([1Y,2Y)\)). Compute PV and \(DV01_{[1Y,2Y)}\).
-6. (Compute) Suppose \(y(1)=5\\%\\) and \(y(2)=6\\%\\) with piecewise linear interpolation. Write \(f(T)\) on \([1,2]\) and compute \(f(1.5)\) and \(f(2^-)\).
-7. (Concept) Explain qualitatively what happens to forward curves as the tension parameter \(\sigma\) increases from 0 to \(\infty\).
+1. (Compute) A 6-month deposit rate is 4.00% (simple, ACT/360, assume 180 days). Compute $P(0.5)$.
+2. (Compute) You know $P(1)=0.96$. A 2-year annual par swap has fixed rate 5.00%. Compute $P(2)$.
+3. (Compute) Given $P(1)=0.95$ and $P(2)=0.90$, compute $P(1.5)$ using log-linear (geometric mean) interpolation.
+4. (Compute) Using your $P(1.5)$ from (3), compute the annualized forward rate from 1.0 to 1.5 years. Verify it equals the forward from 1.5 to 2.0 years under log-linear $P$.
+5. (Compute) Use the setup of Section 17.5.3 (ACT/365; $CF=+1{,}000{,}000$ on 2027-08-15; piecewise-flat forwards $f_0=5.00\\%$ on $[0,1Y)$ and $f_1=5.50\\%$ on $[1Y,2Y)$). Compute PV and $DV01_{[1Y,2Y)}$.
+6. (Compute) Suppose $y(1)=5\%$ and $y(2)=6\%$ with piecewise linear interpolation. Write $f(T)$ on $[1,2]$ and compute $f(1.5)$ and $f(2^-)$.
+7. (Concept) Explain qualitatively what happens to forward curves as the tension parameter $\sigma$ increases from 0 to $\infty$.
 8. (Desk) A colleague proposes a natural cubic spline that exactly fits 15 swap rates. What risk-report behavior might surprise them after a 1bp bump to one quote?
 9. (Desk) Your benchmark set has one clearly suspicious quote. Why is “exact fit” risky, and what should you do before turning on smoothing?
 10. (Concept) Two banks reprice the same benchmark swaps but quote different rates for an off-node maturity. Explain why neither quote is “the” market rate.
 11. (Desk) A short end curve shows an obvious event-date discontinuity. How should you represent it so it does not contaminate the rest of the curve?
 12. (Concept) Give two reasons a low-parameter functional form (e.g., Nelson–Siegel) can be problematic for trading-curve hedging.
-13. (Compute) A portfolio has forward-bucket DV01s (rates down 1bp) of \((+10,-5)\) at 2Y and 5Y buckets (in thousands per bp). A 2Y swap has bucket DV01 loadings \((+2,0)\) per \$1mm notional; a 5Y swap has \((+0.5,+4)\) per \$1mm notional. Find hedge notionals \((p_1,p_2)\) in \$mm that offset the portfolio DV01s.
+13. (Compute) A portfolio has forward-bucket DV01s (rates down 1bp) of $(+10,-5)$ at 2Y and 5Y buckets (in thousands per bp). A 2Y swap has bucket DV01 loadings $(+2,0)$ per \$1mm notional; a 5Y swap has $(+0.5,+4)$ per \$1mm notional. Find hedge notionals $(p_1,p_2)$ in \$mm that offset the portfolio DV01s.
 
 ### Solution Sketches (Selected)
-1. \(P(0.5)=\\frac{1}{1+0.04\\times 0.5}=0.9804\).
-2. \(1=0.05P(1)+1.05P(2)\\Rightarrow P(2)=\\frac{1-0.05\\times 0.96}{1.05}=0.9067\).
-3. \(P(1.5)=\\sqrt{0.95\\times 0.90}=0.9247\).
-4. \(F_{1.0\\to 1.5}=\\frac{1}{0.5}\\left(\\frac{P(1)}{P(1.5)}-1\\right)=5.48\\%\\). Under log-linear \(P\), the forward is constant on \([1,2]\), so \(F_{1.5\\to 2.0}=5.48\\%\\) as well.
-5. From Section 17.5.3, \(PV\\approx 925{,}636\). Bucket DV01: \(DV01_{[1Y,2Y)}=PV(f_1-10^{-4})-PV(f_1)\\approx 45.9\\) (USD per 1bp). Sign check: rates down \(\Rightarrow\) PV up for a receivable cashflow.
-6. On \([1,2]\), \(y(T)=0.05+0.01(T-1)\) so \(y'(T)=0.01\) and \(f(T)=y(T)+T y'(T)\). Then \(f(1.5)=0.055+1.5\\times 0.01=7.0\\%\\) and \(f(2^-)=0.06+2\\times 0.01=8.0\\%\\).
+1. $P(0.5)=\frac{1}{1+0.04\times 0.5}=0.9804$.
+2. $1=0.05P(1)+1.05P(2)\Rightarrow P(2)=\frac{1-0.05\times 0.96}{1.05}=0.9067$.
+3. $P(1.5)=\sqrt{0.95\times 0.90}=0.9247$.
+4. $F_{1.0\to 1.5}=\frac{1}{0.5}\left(\frac{P(1)}{P(1.5)}-1\right)=5.48\%$. Under log-linear $P$, the forward is constant on $[1,2]$, so $F_{1.5\to 2.0}=5.48\%$ as well.
+5. From Section 17.5.3, $PV\approx 925{,}636$. Bucket DV01: $DV01_{[1Y,2Y)}=PV(f_1-10^{-4})-PV(f_1)\approx 45.9$ (USD per 1bp). Sign check: rates down $\Rightarrow$ PV up for a receivable cashflow.
+6. On $[1,2]$, $y(T)=0.05+0.01(T-1)$ so $y'(T)=0.01$ and $f(T)=y(T)+T y'(T)$. Then $f(1.5)=0.055+1.5\times 0.01=7.0\%$ and $f(2^-)=0.06+2\times 0.01=8.0\%$.
 8. Ringing / non-locality: a single-quote bump can induce oscillations in far-dated forwards, creating spurious deltas far from the bumped quote.
-13. Hedge should offset \((+10,-5)\), so solve \(2p_1+0.5p_2=-10\) and \(4p_2=+5\). Then \(p_2=1.25\) and \(p_1=-5.31\). Hedge: short \(\$5.31\)mm 2Y swaps and long \(\$1.25\)mm 5Y swaps.
+13. Hedge should offset $(+10,-5)$, so solve $2p_1+0.5p_2=-10$ and $4p_2=+5$. Then $p_2=1.25$ and $p_1=-5.31$. Hedge: short $\$5.31$mm 2Y swaps and long $\$1.25$mm 5Y swaps.
 
 ---
 

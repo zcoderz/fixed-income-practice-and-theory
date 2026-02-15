@@ -124,6 +124,8 @@ Exact notice requirements, deadlines, and evidence standards are **documentation
 
 Physical settlement creates a practical problem when the outstanding amount of CDS protection that expects physical delivery is large relative to the supply of deliverable obligations. Protection buyers may be forced to buy deliverables in a hurry, pushing prices up and reducing the effective payout.
 
+**Check (direction and magnitude):** A short squeeze that pushes the CTD price up by \(\Delta P\) points reduces the physical-settlement payout for long protection by \(N\,\Delta P/100\). For example, on \(N=\$100\text{mm}\), a 5‑point squeeze in CTD reduces payout by \(\$5\text{mm}\).
+
 > **Desk Reality:** Under physical settlement, “CTD” is not only a valuation concept—it can become an operational constraint if deliverables are scarce.
 
 ---
@@ -202,6 +204,8 @@ $$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
 The incremental value of being able to “switch deliverables” is the delivery option.
 
 **Check (toy CTD switch):** Suppose the bond you were hedging trades at 43, but another deliverable trades at 37 (prices in points per 100). Per \$100 face, delivering CTD instead of your hedged bond increases payout by \(43-37=6\) points.
+
+**Check (dollar conversion):** “6 points” is 6% of notional. On \(N=\$100\text{mm}\), the incremental value of switching to CTD is about \(\$6\text{mm}\).
 
 ### 39.4.3 Valuing the Delivery Option (Simple Framework)
 
@@ -287,6 +291,12 @@ $$\text{Net cash to buyer} \approx N\left(1-\frac{P_{\text{final}}}{100}\right) 
 
 where $P_{\text{final}}$ is the cash‑settlement final price (points per 100).
 
+**Check (rule of thumb):** If the credit event happens roughly mid‑coupon, accrued premium is roughly half a coupon:
+\[
+\text{Accrued}\approx \tfrac{1}{2}\,N\,s\,\Delta(\text{full period}).
+\]
+This is only an intuition aid—production systems accrue to the actual event date using the contract day count.
+
 **Check (dated accrual):** Consider the example timeline used in Section 39.9: last premium date March 20, 2023 and credit event May 20, 2023. Using ACT/360 for illustration, $\alpha=61/360$. If $N=\$100\text{mm}$ and $s=90$ bp $=0.009$, then accrued premium is:
 
 $$100{,}000{,}000 \times 0.009 \times \frac{61}{360} = \$152{,}500.$$
@@ -358,6 +368,8 @@ Mechanism‑level drivers include:
 4. **Loss‑on‑default mismatch when bonds trade away from par:** CDS protection is tied to a par‑based loss‑from‑par settlement convention, while a bond purchased at price $P$ has a different dollar loss profile than a par instrument.
 5. **Accrued premium on default:** The buyer pays the accrued premium to the event date (Section 39.6), which affects the net economics of long protection versus holding the cash bond.
 6. **Market microstructure:** Differences in liquidity, supply/demand for protection, and technical positioning can dominate in stressed markets.
+
+**Check (toy mismatch):** If you buy a bond at 70 and the auction final price is 35, the bond’s loss is 35 points (70 → 35), while a CDS on \$100 notional pays 65 points (100 → 35). A 1:1 notional hedge can therefore **over‑hedge** a discounted bond; hedge ratios depend on your bond entry price and on the settlement price you expect.
 
 **Check:** The basis is not an arbitrage identity; it can be positive in some periods and negative in others.
 

@@ -100,6 +100,10 @@ Let \(\tau\) be the year fraction from the near-leg settlement date to maturity 
 
 $$\boxed{1+r_d\,\tau=\frac{F(0,T)}{X(0)}\left(1+r_f\,\tau\right)} \tag{FXSWAP-IMPL}$$
 
+**Check (units and toy numbers):** \(F/X\) is dimensionless, and \((1+r\,\tau)\) is a dimensionless “growth factor,” so the identity is unit-consistent. Solving explicitly,
+$$r_d=\frac{1}{\tau}\left(\frac{F}{X}(1+r_f\,\tau)-1\right).$$
+For example, if \(\tau=1\), \(r_f=2\%\), and \(F/X=1.1150/1.10\), then \(r_d\approx 3.38\%\) (as in Example B). The key idea is translation: forward points are just an interest differential expressed in FX units once day counts/compounding are made consistent.
+
 When CIP holds and the discount factors are consistent, this relationship lines up with the interest differential embedded in \(P_d\) and \(P_f\). When it does not (after making conventions consistent), the difference is often described as a **cross-currency basis**.
 
 ### 30.2.3 FX Swap vs. Cross-Currency Swap: A Detailed Comparison
@@ -126,6 +130,8 @@ Both achieve the same economic transfer. However, for multi-period swaps:
 - **Multi-period XCCY:** The schedule and basis spread are locked at inception (given curve/CSA assumptions).
 
 This “roll” risk is one reason long-dated hedgers often prefer multi-period cross-currency swaps to repeated short-dated rolls.
+
+**Check (roll-cost scaling):** Rolling is economically “re-fixing” your funding spread. If the implied funding differential moves by 10 bp between rolls, then on a \(\$100\)m notional the cash impact over a quarter is roughly \(\$100\)m \(\times 10\) bp \(\times 0.25 \approx \$25{,}000\) (ignoring compounding). That is small per roll but meaningful when leveraged or when basis moves are large in stress.
 
 ---
 
@@ -197,7 +203,9 @@ This separation matters whenever the floating index embeds credit/liquidity prem
 
 ### 30.4.3 The Full XCCY PV Formula
 
-One concrete example (USD/JPY basis swap, PV reported in USD): receive USD floating flat and pay JPY floating plus a spread \(b\), with a notional \$1 exchanged for \(X(0)\) JPY at inception and re-exchanged at maturity.
+One concrete example (USD/JPY basis swap, PV reported in USD): receive USD floating flat and pay JPY floating plus a spread \(b\), with notionals exchanged at inception (at spot) and re-exchanged at maturity.
+
+To keep notation compact, the expression below suppresses explicit notionals. In practice you compute each leg PV in its own currency using its contractual notional (e.g., \(N_{\mathrm{USD}}\) and \(N_{\mathrm{JPY}}\)), then convert the JPY PV into USD using the spot \(X(0)\) under the chapter quote direction (domestic per 1 foreign).
 
 $$\boxed{
 \begin{aligned}
@@ -206,7 +214,9 @@ V_{\text{basisswap},\mathrm{USD}}(0) &= \sum_{i=0}^{n-1} L_{\mathrm{USD}}(0; t_i
 \end{aligned}
 } \tag{XCCY-PV}$$
 
-If the USD projection curve equals the USD discount curve, the PV of the USD floating leg (including the final notional payment) is 1 at inception; the non-trivial part of the valuation is then the FX-converted foreign leg (plus basis).
+If the USD projection curve equals the USD discount curve, the PV of the USD floating leg (including the final notional payment) is approximately 1 *per unit USD notional* at inception; the non-trivial part of the valuation is then the FX-converted foreign leg (plus basis).
+
+**Check (single-curve limiting case):** In an idealized single-curve world where each floating index is projected and discounted on the same curve and \(b=0\), each “float + final notional” leg prices to par (≈ 1 per unit notional). If notionals are spot-matched at inception (e.g., \(N_{\mathrm{USD}} = X(0)\,N_{\mathrm{JPY}}\) under USD-per-JPY quoting), the two par legs cancel at inception and the swap is near zero PV. A non-zero par basis \(b\) in practice comes from curve/collateral choices and frictions, not from the mechanical notional exchanges.
 
 **What each curve does:**
 

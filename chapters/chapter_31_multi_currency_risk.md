@@ -84,6 +84,10 @@ Here $1\\text{bp}=10^{-4}$ in rate units. This corresponds to a **-1bp** paralle
 
 Different desks use different bump methodologies (par-quote bumps with curve rebuild, key-rate bumps, which curves are held fixed, etc.). Always record the bump object and rebuild rules before comparing DV01/Basis01 across systems.
 
+**Check (DV01 scale for a single cashflow):** For a deterministic domestic cashflow $C$ at maturity $T$, $PV=C\,P(0,T)$. Under a continuously-compounded zero-rate bump, $\partial P/\partial y = -T\,P$, so
+$$\frac{\partial PV}{\partial y}\approx -T\,PV\quad\Rightarrow\quad DV01 \approx PV\times T\times 10^{-4}.$$
+This “PV times maturity times 1bp” rule of thumb is a fast magnitude check. Example: a \$100 PV at \(T=10\)y has \(DV01\sim 100\times 10\times 10^{-4}=0.10\) dollars per bp (about 10 bp of DV01 per 1% of PV).
+
 ---
 
 ## 31.2 PV in a Reporting Currency
@@ -99,6 +103,13 @@ This formula captures the essential structure: domestic cashflows are discounted
 **Unit check:** The first term has units of $d$ (domestic currency times dimensionless discount factor). The second term has units of $(d/f) \times f = d$. Both terms are in domestic currency, as required.
 
 Equivalently, the domestic value of one foreign zero-coupon bond paying 1 unit of $f$ at $T$ is $S_0\,P_f(0,T)$. Once you accept that statement, the usual no-arbitrage relation for an FX forward (covered interest parity) follows as a ratio of domestic and foreign discount factors (Section 31.3.4).
+
+**Expand (two equivalent PV routes):** A useful consistency check is that you can PV the same foreign cashflow in domestic currency in two equivalent ways:
+
+- **Spot + foreign discounting:** \(PV_d = S_0\,P_f(0,T)\,C_f(T)\).
+- **Forward + domestic discounting:** \(PV_d = P_d(0,T)\,F_{0,T}\,C_f(T)\).
+
+They agree when \(F_{0,T}=S_0\,P_f(0,T)/P_d(0,T)\) (covered interest parity). In practice, valuation breaks often come from mixing an FX forward surface and two discount curves that are not mutually consistent under the chosen collateral/basis assumptions.
 
 ### 31.2.2 Why Curve Choice Matters
 
@@ -149,6 +160,10 @@ $$DV01_{c,\text{disc}} := PV_d(\text{discount zero rates in }c\text{ down }1\tex
 $$DV01_{c,\text{proj}} := PV_d(\text{projection zero rates in }c\text{ down }1\text{bp; discount fixed}) - PV_d$$
 
 The same definitions apply for domestic ($c=d$) and foreign ($c=f$) curves. For deterministic cashflows, only the relevant **discount** curve enters PV. For floating legs (swaps, XCCY legs), a **projection** curve affects expected coupons, so you can have both discount DV01 and projection DV01.
+
+**Check (derivative form and sign):** With the book convention \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\), a first-order approximation is
+$$DV01 \approx -\frac{\partial PV}{\partial y}\times 10^{-4},$$
+where \(y\) is the bumped continuously-compounded zero rate object. For an option-free long fixed cashflow, \(\partial PV/\partial y<0\), so DV01 is positive. For a liability (you pay the cashflow), the sign flips.
 
 > **Pitfall — What is being bumped?:** two systems can both report “DV01” but bump different objects (zero rates vs par rates; with/without curve rebuild; discount vs projection).
 > **Why it matters:** hedge ratios become meaningless if you are hedging “DV01-A” with “DV01-B”.
@@ -230,6 +245,11 @@ Large $|\Gamma|$ means delta drifts quickly, so a “set-and-forget” hedge bec
 Cross-gamma can be computed by finite differences:
 
 $$\Gamma_{S,r_d} \approx \frac{PV(S+h_S, r_d+h_r) - PV(S+h_S, r_d) - PV(S, r_d+h_r) + PV(S, r_d)}{h_S \cdot h_r}$$
+
+**Check (bump sizes and numerical noise):** Cross-gamma is a *second derivative*, so it is easy to estimate poorly if bumps are too small (rounding noise) or too large (nonlinear regime).
+- A common choice is to set \(h_S\) as a small **percentage** of spot (e.g., 10–25 bp of spot, i.e. 0.10%–0.25%), and set \(h_r\) as a small **rate** move (e.g., 1 bp or 5 bp).
+- Verify scale by checking the cross term in the Taylor expansion: \(\Gamma_{S,r}\Delta S\,\Delta r\) should be small for near-linear instruments and grow for options/long horizons.
+- Prefer **central differences** if possible (bump up and down) to reduce bias; compare \(\Gamma\) computed from \((+h_S,+h_r)\) with \((+h_S,-h_r)\) as a stability check.
 
 In practice, risk systems often report:
 
@@ -318,6 +338,11 @@ A common approximation for aggregating these is:
 $$\boxed{\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \, \text{VaR}_j \, \rho_{ij}}}$$
 
 where $\text{VaR}_i$ is the VaR (or economic-capital estimate) for segment $i$ and $\rho_{ij}$ is the correlation between segment losses. This quadratic form is sometimes called a correlation (or “hybrid”) aggregation approach: it is simple and transparent, but it can understate tail risk when segment losses are skewed/kurtotic or correlations rise in stress.
+
+**Check (limiting cases + correlation sanity):**
+- If all segments are perfectly correlated (\(\rho_{ij}=1\)), then \(\text{VaR}_{\text{total}}=\sum_i \text{VaR}_i\) (no diversification).
+- If segments are uncorrelated (\(\rho_{ij}=0\) for \(i\neq j\)), then \(\text{VaR}_{\text{total}}=\sqrt{\sum_i \text{VaR}_i^2}\).
+- The correlation matrix \([\rho_{ij}]\) must be symmetric and positive semidefinite; otherwise the square root can produce nonsensical results. In practice, “correlation sets” are often adjusted to enforce consistency (or replaced by factor models).
 
 ### 31.5.2 Diversification Effects
 

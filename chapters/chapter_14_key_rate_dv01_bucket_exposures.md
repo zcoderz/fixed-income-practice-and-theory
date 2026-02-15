@@ -36,15 +36,15 @@ $$
 \mathrm{DV01} := PV(\text{rates down }1\text{bp}) - PV(\text{base}),
 $$
 
-where **1bp = \(10^{-4}\)** in rate units and the **bump object** must be stated (yield, zero rate, par rate, benchmark quote, etc.). For a small move \(\Delta y\) expressed in **basis points**, the linear approximation is
+where **1bp = $10^{-4}$** in rate units and the **bump object** must be stated (yield, zero rate, par rate, benchmark quote, etc.). For a small move $\Delta y$ expressed in **basis points**, the linear approximation is
 
 $$
 \Delta PV \approx -\mathrm{DV01}\,\Delta y.
 $$
 
-A “parallel DV01” implicitly assumes a particular curve move: every relevant maturity shifts by the same \(\Delta y\). That makes DV01 a useful one-number summary, but it cannot describe non-parallel moves.
+A “parallel DV01” implicitly assumes a particular curve move: every relevant maturity shifts by the same $\Delta y$. That makes DV01 a useful one-number summary, but it cannot describe non-parallel moves.
 
-**Check (units and signs):** \(\Delta y\) is in **bp** in the formula above. If \(\mathrm{DV01}=+\$50{,}000/\text{bp}\) and rates sell off by \(+12\)bp under the stated bump object, then \(\Delta PV\approx -50{,}000\times 12=-\$600{,}000\). If your DV01 is reported “per 100 notional” (price points per bp), convert to dollars by multiplying by notional/100 before doing this calculation.
+**Check (units and signs):** $\Delta y$ is in **bp** in the formula above. If $\mathrm{DV01}=+\$50{,}000/\text{bp}$ and rates sell off by $+12$bp under the stated bump object, then $\Delta PV\approx -50{,}000\times 12=-\$600{,}000$. If your DV01 is reported “per 100 notional” (price points per bp), convert to dollars by multiplying by notional/100 before doing this calculation.
 
 ### 14.1.2 What Parallel DV01 Misses
 
@@ -63,11 +63,11 @@ One way to see the problem is to look at **partial durations** (or “key-rate d
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Duration | 0.2 | 0.6 | 0.9 | 1.6 | 2.0 | -2.1 | -3.0 | 0.2 |
 
-The total duration is only 0.2, so the portfolio looks nearly immune to a parallel move. But consider a **rotation** of the curve (a twist) where the changes are proportional to \((3e, 2e, e, 0, -e, -3e, -6e)\) for maturities 1y through 10y. The first-order P&L is
+The total duration is only 0.2, so the portfolio looks nearly immune to a parallel move. But consider a **rotation** of the curve (a twist) where the changes are proportional to $(3e, 2e, e, 0, -e, -3e, -6e)$ for maturities 1y through 10y. The first-order P&L is
 
 $$\Delta P/P = -[0.2 \times (-3e) + 0.6 \times (-2e) + 0.9 \times (-e) + 1.6 \times 0 + 2.0 \times e - 2.1 \times 3e - 3.0 \times 6e] = +25.0e$$
 
-Despite having near-zero total duration, the portfolio has massive twist exposure. For a parallel shift of \(e\), the percentage change would be only \(-0.2e\).
+Despite having near-zero total duration, the portfolio has massive twist exposure. For a parallel shift of $e$, the percentage change would be only $-0.2e$.
 
 Parallel DV01 cannot distinguish between these risks. To differentiate them, we need to decompose the single "rate" variable $y$ into a vector of rates.
 
@@ -81,7 +81,7 @@ Key-rate DV01 answers a simple question: *which part of the curve drives my PV s
 
 Key rates are usually defined as **par yields** or **spot/zero rates**. Key-rate DV01 then depends on a **methodology**—you must choose:
 
-1. **Key tenors** \(0<T_1<\dots<T_K\) (e.g., 2y/5y/10y/30y).
+1. **Key tenors** $0<T_1<\dots<T_K$ (e.g., 2y/5y/10y/30y).
 2. What you treat as the **key rates** at those tenors (par yields vs spot/zero rates).
 3. An **interpolation / curve-rebuild rule** that turns the key rates into a full curve.
 4. A **localized shock shape** (“shift function”) for each key.
@@ -92,7 +92,7 @@ To measure *local* risk, we cannot simply “move one point” without saying ho
 - the impacts change smoothly across maturities, and
 - the sum of the key-rate shifts is a parallel shift of the curve.
 
-Denote the resulting shock at maturity \(t\) by \(\text{Shift}_k(t)\) (in bp).
+Denote the resulting shock at maturity $t$ by $\text{Shift}_k(t)$ (in bp).
 
 A convenient property is:
 
@@ -102,7 +102,7 @@ $$
 
 If the key-rate shifts sum to a parallel shift, then the key-rate 01s add up (approximately) to the parallel DV01 computed under the same bump design.
 
-**Mechanics (why a “single key” bump moves more than one maturity):** A key-rate shift is implemented by (i) shocking one key input and (ii) re-interpolating/rebuilding the full curve. Even if you “bump the 5y key,” the implied shock \(\text{Shift}_k(t)\) typically affects a whole maturity *region* between neighboring keys. That is why KR01s are exposure to a **shock shape + rebuild rule**, not exposure to an infinitesimal point on a continuous curve.
+**Mechanics (why a “single key” bump moves more than one maturity):** A key-rate shift is implemented by (i) shocking one key input and (ii) re-interpolating/rebuilding the full curve. Even if you “bump the 5y key,” the implied shock $\text{Shift}_k(t)$ typically affects a whole maturity *region* between neighboring keys. That is why KR01s are exposure to a **shock shape + rebuild rule**, not exposure to an infinitesimal point on a continuous curve.
 
 ### 14.2.2 Arbitrariness and Comparability
 
@@ -112,30 +112,30 @@ Key-rate 01 vectors can differ across methodologies if you bump different object
 
 > **Pitfall — What is being bumped?:** Key-rate DV01s are not comparable across systems unless the bump object and curve-rebuild rule match.
 > **Why it matters:** A hedge ratio sized on one system’s KR01 can be the wrong sign/magnitude in another.
-> **Quick check:** Confirm (i) bump object, (ii) bump size (1bp = \(10^{-4}\)), (iii) interpolation, and (iv) that \(\sum_k \mathrm{KR01}_k\) is close to the reported parallel DV01.
+> **Quick check:** Confirm (i) bump object, (ii) bump size (1bp = $10^{-4}$), (iii) interpolation, and (iv) that $\sum_k \mathrm{KR01}_k$ is close to the reported parallel DV01.
 
 ### 14.2.3 Definition, Units, and Sign
 
-Fix a bump design and let \(PV(\cdot)\) denote the re-priced PV under that design. For key \(k\), define
+Fix a bump design and let $PV(\cdot)$ denote the re-priced PV under that design. For key $k$, define
 
 $$
 \mathrm{KR01}_k := PV(\text{key }k\text{ down }1\text{bp}) - PV(\text{base}).
 $$
 
-(Many texts/reporting systems instead define “01” as \(PV(\text{base})-PV(\text{key }k\text{ up }1\text{bp})\); to first order these agree.)
+(Many texts/reporting systems instead define “01” as $PV(\text{base})-PV(\text{key }k\text{ up }1\text{bp})$; to first order these agree.)
 
-- **Bump object:** the chosen key rate (e.g., a zero rate \(y(0,T_k)\) on a stated basis).
-- **Bump size:** 1bp \(=10^{-4}\) in rate units.
+- **Bump object:** the chosen key rate (e.g., a zero rate $y(0,T_k)$ on a stated basis).
+- **Bump size:** 1bp $=10^{-4}$ in rate units.
 - **Units:** currency per 1bp, for the stated notional/price convention (e.g., “per 100 notional” or “per \$1mm”).
-- **Sign convention (this book):** \(\mathrm{KR01}_k>0\) means you gain when that part of the curve rallies (rates fall).
+- **Sign convention (this book):** $\mathrm{KR01}_k>0$ means you gain when that part of the curve rallies (rates fall).
 
-For a small move \(\Delta r_k\) in **bp** at each key,
+For a small move $\Delta r_k$ in **bp** at each key,
 
 $$
 \Delta PV \approx -\sum_{k=1}^K \mathrm{KR01}_k\,\Delta r_k.
 $$
 
-If your shift functions satisfy \(\sum_k \text{Shift}_k(t)=1\text{bp}\), then a practical checksum is
+If your shift functions satisfy $\sum_k \text{Shift}_k(t)=1\text{bp}$, then a practical checksum is
 
 $$
 \sum_k \mathrm{KR01}_k \approx \mathrm{DV01}_{\parallel}.
@@ -146,27 +146,27 @@ $$
 **Example Title**: Key-rate DV01 of a 10-year coupon bond
 
 **Context**
-- What is being measured? A key-rate DV01 vector \(\{\mathrm{KR01}_k\}\) and its checksum versus parallel DV01.
+- What is being measured? A key-rate DV01 vector $\{\mathrm{KR01}_k\}$ and its checksum versus parallel DV01.
 - Why this matters on the desk: it tells you *where* your rates risk sits and what a “DV01-neutral” hedge might still leave behind.
 
 **Timeline (Make Dates Concrete)**
 - Trade/valuation date (assumed): 2026-02-15 (chosen to make the example easy to reproduce)
-- Accrual convention: ACT/365F (here each yearly accrual factor is exactly \(1.0\))
+- Accrual convention: ACT/365F (here each yearly accrual factor is exactly $1.0$)
 - Payment dates: 2027-02-15, 2028-02-15, …, 2036-02-15
 
 **Inputs**
-- Instrument: fixed-rate bond with notional \(N=100\) (price per 100), annual coupon \(c=5\%\), maturity 2036-02-15.
-- Curve object: continuously-compounded zero rates \(y(0,T)\) at key tenors \(T\in\{1,2,5,10\}\) (years):
-  - \(y(0,1)=3.80\%\), \(y(0,2)=4.00\%\), \(y(0,5)=4.20\%\), \(y(0,10)=4.40\%\).
-- Interpolation: linear in maturity for \(y(0,T)\) between key tenors.
-- Discounting: \(P(0,T)=e^{-y(0,T)\,T}\).
+- Instrument: fixed-rate bond with notional $N=100$ (price per 100), annual coupon $c=5\%$, maturity 2036-02-15.
+- Curve object: continuously-compounded zero rates $y(0,T)$ at key tenors $T\in\{1,2,5,10\}$ (years):
+  - $y(0,1)=3.80\%$, $y(0,2)=4.00\%$, $y(0,5)=4.20\%$, $y(0,10)=4.40\%$.
+- Interpolation: linear in maturity for $y(0,T)$ between key tenors.
+- Discounting: $P(0,T)=e^{-y(0,T)\,T}$.
 
 **Outputs (What You Produce)**
-- Clean price (and PV): \(PV_0 = 104.2683\) per 100 (assume zero accrued interest, so dirty = clean in this toy setup).
-- Parallel DV01 (all key zero rates down 1bp): \(DV01_{\parallel} \approx 0.0849\) per 100 per 1bp.
+- Clean price (and PV): $PV_0 = 104.2683$ per 100 (assume zero accrued interest, so dirty = clean in this toy setup).
+- Parallel DV01 (all key zero rates down 1bp): $DV01_{\parallel} \approx 0.0849$ per 100 per 1bp.
 - Key-rate DV01s (one node down 1bp, others fixed, re-interpolate):
 
-| Key tenor \(T_k\) | \(\mathrm{KR01}_k\) (per 100 per 1bp) | Share of total |
+| Key tenor $T_k$ | $\mathrm{KR01}_k$ (per 100 per 1bp) | Share of total |
 |:---:|---:|---:|
 | 1y | 0.0005 | 0.6% |
 | 2y | 0.0024 | 2.8% |
@@ -174,13 +174,13 @@ $$
 | 10y | 0.0733 | 86.3% |
 | **Sum** | **0.0849** | **100.0%** |
 
-**Check (scale to dollars):** In this example, \(\mathrm{KR01}_{10y}=0.0733\) is in **price points per 100 per 1bp**. On \(N=\$100\text{mm}\) face, that is \((0.0733/100)\times 100\text{mm} \approx \$73{,}300/\text{bp}\). The total parallel DV01 of \(0.0849\) points per 100 corresponds to about \(\$84{,}900/\text{bp}\) on \(\$100\text{mm}\).
+**Check (scale to dollars):** In this example, $\mathrm{KR01}_{10y}=0.0733$ is in **price points per 100 per 1bp**. On $N=\$100\text{mm}$ face, that is $(0.0733/100)\times 100\text{mm} \approx \$73{,}300/\text{bp}$. The total parallel DV01 of $0.0849$ points per 100 corresponds to about $\$84{,}900/\text{bp}$ on $\$100\text{mm}$.
 
 **Step-by-step**
-1. Cashflows: yearly coupon \(=N\cdot c\cdot 1.0=5\). Final cashflow at maturity \(=105\).
+1. Cashflows: yearly coupon $=N\cdot c\cdot 1.0=5$. Final cashflow at maturity $=105$.
 2. Build discount factors from the interpolated zero curve.
-3. Compute \(PV_0=\sum_i CF_i\,P(0,T_i)\).
-4. For each key tenor \(T_k\): bump \(y(0,T_k)\) **down** by 1bp, rebuild the curve by interpolation, reprice, and take \(\mathrm{KR01}_k = PV_k - PV_0\).
+3. Compute $PV_0=\sum_i CF_i\,P(0,T_i)$.
+4. For each key tenor $T_k$: bump $y(0,T_k)$ **down** by 1bp, rebuild the curve by interpolation, reprice, and take $\mathrm{KR01}_k = PV_k - PV_0$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -199,15 +199,15 @@ $$
 **P&L / Risk Interpretation**
 - Most of the key-rate DV01 sits in the longest node because the principal repayment is long-dated.
 - Intermediate nodes matter because coupons are discounted by intermediate maturities; a “10y-only hedge” can leave residual exposure in the belly.
-- If the key rates move by \(\Delta r_k\) (bp), the first-order P&L per 100 is \(\Delta PV \approx -\sum_k \mathrm{KR01}_k\,\Delta r_k\).
-  - Example twist: if \(r_{2y}\) rises by \(+5\)bp and \(r_{10y}\) falls by \(-5\)bp (others unchanged), then \(\Delta PV \approx -(0.0024)(+5) -(0.0733)(-5) \approx +0.3546\) price points per 100.
+- If the key rates move by $\Delta r_k$ (bp), the first-order P&L per 100 is $\Delta PV \approx -\sum_k \mathrm{KR01}_k\,\Delta r_k$.
+  - Example twist: if $r_{2y}$ rises by $+5$bp and $r_{10y}$ falls by $-5$bp (others unchanged), then $\Delta PV \approx -(0.0024)(+5) -(0.0733)(-5) \approx +0.3546$ price points per 100.
 
-**Check (twist P&L in dollars):** \(+0.3546\) price points per 100 is \(0.3546\%\) of face. On \(\$100\text{mm}\) notional, that is about \(0.003546\times 100\text{mm}=\$354{,}600\).
+**Check (twist P&L in dollars):** $+0.3546$ price points per 100 is $0.3546\%$ of face. On $\$100\text{mm}$ notional, that is about $0.003546\times 100\text{mm}=\$354{,}600$.
 
 **Sanity Checks**
-- Units check: \(\mathrm{KR01}\) is “price points per 100 per 1bp” in this setup; scaling to a notional \(N^\$\) uses \(N^\$/100\).
-- Sign check: rates down \(\Rightarrow\) discount factors up \(\Rightarrow\) \(PV\) up \(\Rightarrow\) \(\mathrm{KR01}_k>0\) for a long bond.
-- Checksum: \(\sum_k \mathrm{KR01}_k\) should be close to \(DV01_{\parallel}\) under a consistent bump design.
+- Units check: $\mathrm{KR01}$ is “price points per 100 per 1bp” in this setup; scaling to a notional $N^\$$ uses $N^\$/100$.
+- Sign check: rates down $\Rightarrow$ discount factors up $\Rightarrow$ $PV$ up $\Rightarrow$ $\mathrm{KR01}_k>0$ for a long bond.
+- Checksum: $\sum_k \mathrm{KR01}_k$ should be close to $DV01_{\parallel}$ under a consistent bump design.
 
 ### 14.2.5 The Swap Profile: A Different Story
 
@@ -215,7 +215,7 @@ A bond is a stream of fixed cashflows. Its key-rate DV01 comes from how each cas
 
 A plain-vanilla swap is a difference of two legs. In a single-curve setting, the floating leg resets frequently and tends to behave like “short duration” cash, while the fixed leg is an annuity that runs to maturity. Under many bump designs, the swap’s key-rate DV01 therefore concentrates in longer buckets (where the annuity ends), but the exact shape is **methodology-dependent**.
 
-**Practical implication:** do not assume a swap hedge built by “matching bond durations” will be stable bucket-by-bucket. Always check the full \(\mathrm{KR01}\) (or forward-bucket) vector produced by your risk system.
+**Practical implication:** do not assume a swap hedge built by “matching bond durations” will be stable bucket-by-bucket. Always check the full $\mathrm{KR01}$ (or forward-bucket) vector produced by your risk system.
 
 ### 14.2.6 Trade Nomenclature and KRDV01 Profiles
 
@@ -233,16 +233,16 @@ One of the most important skills for transitioning from middle office to the tra
 
 > **Desk Reality:** Trader language is usually a shorthand for a **KR01 vector** (or a small set of buckets), not for parallel DV01.
 > **Common break:** The same phrase can map to different definitions (DV01 vs PV01, up-bump vs down-bump, per 100 vs per \$1mm).
-> **What to check:** Recreate yesterday’s rates P&L with \(-\sum_k \mathrm{KR01}_k\,\Delta r_k\) and confirm unit scaling and sign.
+> **What to check:** Recreate yesterday’s rates P&L with $-\sum_k \mathrm{KR01}_k\,\Delta r_k$ and confirm unit scaling and sign.
 >
-> Example: “long 50k DV01 in 2s–10s” typically means \(\mathrm{KR01}_{2y}\approx +\$50{,}000/\text{bp}\), \(\mathrm{KR01}_{10y}\approx -\$50{,}000/\text{bp}\), with net parallel DV01 close to 0.
+> Example: “long 50k DV01 in 2s–10s” typically means $\mathrm{KR01}_{2y}\approx +\$50{,}000/\text{bp}$, $\mathrm{KR01}_{10y}\approx -\$50{,}000/\text{bp}$, with net parallel DV01 close to 0.
 
 **Worked Example: Constructing a 2s-5s-10s Butterfly**
 
 A butterfly isolates curvature risk while hedging level and slope. The trader wants to express the view that the 5-year is "rich" (yield too low) relative to 2-year and 10-year.
 
 **Setup:**
-- **Body (sell):** $100mm face of 5y bonds. If the DV01 of a $100mm **long** position is +$4,500/bp, then selling it gives \(\mathrm{KR01}_{5y}\approx -\$4{,}500/\text{bp}\).
+- **Body (sell):** $100mm face of 5y bonds. If the DV01 of a $100mm **long** position is +$4,500/bp, then selling it gives $\mathrm{KR01}_{5y}\approx -\$4{,}500/\text{bp}$.
 - **Wings (buy):** 2y and 10y bonds
 
 **Step 1: Determine wing DV01s**
@@ -276,7 +276,7 @@ Key-rate DV01 uses a small set of tenors. **Bucket analysis** takes the same ide
 
 ### 14.3.1 Forward-Rate Buckets
 
-Divide the timeline into buckets, e.g. \([T_j,T_{j+1}]\) for \(j=1,\dots,J\). Let \(f_j\) be the forward rate for bucket \(j\). A bucket sensitivity is the PV change when **only that bucket** is shifted.
+Divide the timeline into buckets, e.g. $[T_j,T_{j+1}]$ for $j=1,\dots,J$. Let $f_j$ be the forward rate for bucket $j$. A bucket sensitivity is the PV change when **only that bucket** is shifted.
 
 One convenient convention consistent with our DV01 sign is
 
@@ -284,34 +284,34 @@ $$
 \mathrm{FD01}_j := PV(\text{bucket }j\text{ down }1\text{bp}) - PV(\text{base}),
 $$
 
-so that for small bucket moves \(\Delta f_j\) in **bp**,
+so that for small bucket moves $\Delta f_j$ in **bp**,
 
 $$
 \Delta PV \approx -\sum_{j=1}^J \mathrm{FD01}_j\,\Delta f_j.
 $$
 
-To formalize bucket shocks, it is useful to write (loosely) \(V_0=V_0(f)\) to highlight the dependence of PV on a forward curve \(f\), and compute a functional (Gâteaux) derivative under a shaped forward-curve shock \(\mu_k(t)\):
+To formalize bucket shocks, it is useful to write (loosely) $V_0=V_0(f)$ to highlight the dependence of PV on a forward curve $f$, and compute a functional (Gâteaux) derivative under a shaped forward-curve shock $\mu_k(t)$:
 
 $$\partial_{k} V_{0}=\left.\frac{d V_{0}\left(f(t)+\varepsilon \mu_{k}(t)\right)}{d \varepsilon}\right|_{\varepsilon=0}$$
 
-Standard choices for \(\mu_k(t)\) are piecewise-triangular or piecewise-flat functions localized to one (or a small number of) buckets.
+Standard choices for $\mu_k(t)$ are piecewise-triangular or piecewise-flat functions localized to one (or a small number of) buckets.
 
 ### 14.3.2 Worked Example: Hedging with Eurodollar/SOFR Futures
 
 Quarterly short-term rate futures are a natural hedge instrument for forward buckets because each contract targets a specific 3-month accrual period (up to details of convexity and the exact contract definition).
 
 **The Instrument:**
-If a contract corresponds to a \(3\) month accrual period (about \(0.25\) years) on a \( \$1{,}000{,}000\) notional, then a 1bp rate change is approximately
+If a contract corresponds to a $3$ month accrual period (about $0.25$ years) on a $ \$1{,}000{,}000$ notional, then a 1bp rate change is approximately
 
 $$1{,}000{,}000 \times 1 \text{ bp} \times 0.25 \text{ years} = \$25$$
 
-Thus, a convenient “per contract” scale is about \(\$25\) per bp (exact details depend on contract spec and the risk system’s mapping).
+Thus, a convenient “per contract” scale is about $\$25$ per bp (exact details depend on contract spec and the risk system’s mapping).
 
 **The Hedge Problem:**
-You have a position whose exposure to a particular quarterly bucket is \(\mathrm{FD01}=-\$2{,}500/\text{bp}\) (you lose money if that bucket’s rate rises).
+You have a position whose exposure to a particular quarterly bucket is $\mathrm{FD01}=-\$2{,}500/\text{bp}$ (you lose money if that bucket’s rate rises).
 
 **The Solution:**
-To hedge, you need approximately \(+\$2{,}500/\text{bp}\) in that bucket. If one contract provides about \(\$25/\text{bp}\), then
+To hedge, you need approximately $+\$2{,}500/\text{bp}$ in that bucket. If one contract provides about $\$25/\text{bp}$, then
 
 $$\text{Contracts Needed} = \frac{\text{Exposure}}{\text{DV01 per Contract}} = \frac{2{,}500}{25} = 100 \text{ contracts}$$
 
@@ -418,9 +418,9 @@ $$\mathbf{k} + \mathbf{H}\mathbf{n} = \mathbf{0}$$
 
 ### 14.5.1 The Diagonal Case (Matched Hedge Tenors)
 
-If you choose key rates and hedge instruments so that each hedge instrument loads almost entirely on one key (e.g., par bonds at the key maturities when key rates are defined as par yields), then the matrix \(\mathbf{H}\) is close to diagonal.
+If you choose key rates and hedge instruments so that each hedge instrument loads almost entirely on one key (e.g., par bonds at the key maturities when key rates are defined as par yields), then the matrix $\mathbf{H}$ is close to diagonal.
 
-In this idealized case, the hedge ratio for key \(k\) is simple:
+In this idealized case, the hedge ratio for key $k$ is simple:
 
 $$\boxed{n_k = -\frac{\mathrm{KR01}_k^{\text{portfolio}}}{\mathrm{DV01}_k^{\text{hedge bond}}}}$$
 
@@ -436,13 +436,13 @@ This "unwinds" the cross-correlations, telling you, for example, to short slight
 
 ### 14.5.3 When You Can’t Solve Exactly: Weighted Least Squares
 
-Often you have **more buckets than hedge instruments** (\(K>L\)). Then you cannot set every bucket to zero; you choose an *approximate* hedge by prioritizing buckets and penalizing expensive instruments.
+Often you have **more buckets than hedge instruments** ($K>L$). Then you cannot set every bucket to zero; you choose an *approximate* hedge by prioritizing buckets and penalizing expensive instruments.
 
 One generic formulation is a weighted least squares (with penalty) problem:
 
 $$\widehat{\mathbf{p}}=\underset{\mathbf{p}}{\operatorname{argmin}}\left(\sum_{k=1}^{K} W_{k}^{2}\left(\partial_{k} H_{0}(\mathbf{p})-\partial_{k} V_{0}\right)^{2}+\sum_{l=1}^{L} U_{l}^{2} p_{l}^{2}\right)$$
 
-where \(W_k\) weights the importance of offsetting the \(k\)-th bucket and \(U_l\) penalizes use of expensive or illiquid hedging instruments. This is the rates analogue of ridge regression: you trade off residual risk versus instrument usage.
+where $W_k$ weights the importance of offsetting the $k$-th bucket and $U_l$ penalizes use of expensive or illiquid hedging instruments. This is the rates analogue of ridge regression: you trade off residual risk versus instrument usage.
 
 The simple case with $L = K$ and invertible Jacobian yields:
 
@@ -466,13 +466,13 @@ The mathematically optimal hedge $\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$ is ra
 
 **The practical approach: hedging with liquid benchmarks only**
 
-In practice, hedging is often restricted to a small set of liquid instruments. This means \(L\) can be much smaller than \(K\) (many risk buckets, few hedges).
+In practice, hedging is often restricted to a small set of liquid instruments. This means $L$ can be much smaller than $K$ (many risk buckets, few hedges).
 
 The result: **residual risk at non-hedged tenors**.
 
-> **Desk Reality:** When \(K\) (buckets) exceeds \(L\) (tradable hedges), the hedge is necessarily approximate.
+> **Desk Reality:** When $K$ (buckets) exceeds $L$ (tradable hedges), the hedge is necessarily approximate.
 > **Common break:** Mapping intermediate buckets to liquid tenors embeds an interpolation assumption; when reality deviates, you get residual P&L.
-> **What to check:** Look at the *post-hedge* \(\mathrm{KR01}\) vector and track the largest residual buckets alongside realized key-rate moves.
+> **What to check:** Look at the *post-hedge* $\mathrm{KR01}$ vector and track the largest residual buckets alongside realized key-rate moves.
 
 **Worked Example: Hedging a 15-Year Swap with Only 10y and 30y Bonds**
 
@@ -504,7 +504,7 @@ Implementing KRDV01 in a production risk engine requires navigating several "got
 
 ### 14.6.1 Forward-Curve Pathologies from Par-Yield Bumps
 
-The bump design is not harmless. A simple way to compute deltas with respect to benchmark instruments is: apply a **manual bump** to one benchmark quote \(V_i\), **reconstruct the yield curve**, and then **reprice** the portfolio \(V_0\). This procedure is sometimes known as the **par-point approach**, and resulting derivatives **par-point deltas**.
+The bump design is not harmless. A simple way to compute deltas with respect to benchmark instruments is: apply a **manual bump** to one benchmark quote $V_i$, **reconstruct the yield curve**, and then **reprice** the portfolio $V_0$. This procedure is sometimes known as the **par-point approach**, and resulting derivatives **par-point deltas**.
 
 For the par-point approach to work well, it is important that the curve construction algorithm produces **clean, local perturbations** when benchmark prices are shifted.
 
@@ -513,7 +513,7 @@ One practical variant is the **cumulative par-point** method. The implied forwar
 **Consequence:** For portfolios sensitive to forward-curve shape, par-yield bumps can make “first-order” deltas noisy and unstable.
 
 **Mitigations (methodology choices):**
-1. **Zero-rate or forward-rate bucket bumps:** Work directly with a forward curve \(f(t)\) (or spot/zero curve) so locality is controlled on the object that drives cashflow discounting/projection.
+1. **Zero-rate or forward-rate bucket bumps:** Work directly with a forward curve $f(t)$ (or spot/zero curve) so locality is controlled on the object that drives cashflow discounting/projection.
 2. **Cumulative par-point bumps:** Retain earlier shocks as you move along the curve; the resulting shift roughly corresponds to a piecewise-flat forward-curve move between successive benchmarks.
 
 ### 14.6.2 Choosing Key Rates
@@ -664,7 +664,7 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 
 1. **Parallel Limit:** DV01 summarizes risk into a single number, effectively assuming perfect correlation across the curve. It hides exposure to twists and butterflies.
 
-2. **Key Rates (KRDV01):** Decompose risk into a vector of \(\mathrm{KR01}\) sensitivities across key tenors. Under a consistent bump design, \(\sum_k \mathrm{KR01}_k\) is close to parallel DV01.
+2. **Key Rates (KRDV01):** Decompose risk into a vector of $\mathrm{KR01}$ sensitivities across key tenors. Under a consistent bump design, $\sum_k \mathrm{KR01}_k$ is close to parallel DV01.
 
 3. **Trade Vocabulary:** Steepeners, flatteners, and butterflies are specific KRDV01 profiles. Understanding this vocabulary is essential for trading desk communication.
 
@@ -687,16 +687,16 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 | Concept | Definition | Why It Matters |
 |:---|:---|:---|
 | **Parallel DV01** | Value change for uniform 1 bp shift | Quick summary; fails for curve twists |
-| **Key-Rate Shift** | A localized curve shock tied to key tenor \(T_k\) | Makes “which tenor?” risk explicit |
-| **\(\mathrm{KR01}_k\)** | \(PV(\text{key }k\text{ down }1\text{bp})-PV(\text{base})\) | Core bucket risk number (units + sign) |
-| **Sum-to-Parallel (Checksum)** | \(\sum_k \mathrm{KR01}_k \approx \mathrm{DV01}_{\parallel}\) under consistent bumps | Catches missing buckets / mismatched definitions |
+| **Key-Rate Shift** | A localized curve shock tied to key tenor $T_k$ | Makes “which tenor?” risk explicit |
+| **$\mathrm{KR01}_k$** | $PV(\text{key }k\text{ down }1\text{bp})-PV(\text{base})$ | Core bucket risk number (units + sign) |
+| **Sum-to-Parallel (Checksum)** | $\sum_k \mathrm{KR01}_k \approx \mathrm{DV01}_{\parallel}$ under consistent bumps | Catches missing buckets / mismatched definitions |
 | **Partial Duration** | Duration with respect to a single curve point/bucket | Duration-form view of key-rate risk |
-| **Forward Bucket** | A forward-rate segment \([T_j,T_{j+1}]\) | Natural unit for front-end hedging |
-| **\(\mathrm{FD01}_j\)** | \(PV(\text{bucket }j\text{ down }1\text{bp})-PV(\text{base})\) | Bucket DV01 for forwards |
+| **Forward Bucket** | A forward-rate segment $[T_j,T_{j+1}]$ | Natural unit for front-end hedging |
+| **$\mathrm{FD01}_j$** | $PV(\text{bucket }j\text{ down }1\text{bp})-PV(\text{base})$ | Bucket DV01 for forwards |
 | **Forward-Rate Delta** | Directional derivative under shaped forward-curve shocks | A continuous-time view of bucketing |
 | **Twist/Steepener** | Non-parallel curve movement | The main risk missed by parallel DV01 |
 | **Butterfly** | Long wings, short belly (or reverse) | Isolates curvature while hedging level/slope |
-| **Hedge Matrix \(\mathbf{H}\)** | Columns are hedge-instrument bucket vectors | Turns hedging into linear algebra |
+| **Hedge Matrix $\mathbf{H}$** | Columns are hedge-instrument bucket vectors | Turns hedging into linear algebra |
 | **Pack/Bundle (Aggregation)** | Grouping of consecutive quarterly buckets | Reduces reporting dimension on desks |
 | **Pin Risk** | Residual exposure at unhedged tenors | Why discrete hedges leave gaps |
 
@@ -709,11 +709,11 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 | $\text{DV01}$ | Dollar value of 01 (parallel shift sensitivity) |
 | $\text{KR01}_k$ | Key-rate DV01 at key $k$ |
 | $\text{FD01}_j$ | Forward-bucket DV01 for segment $j$ |
-| $\Delta r_k$ | Key-rate move at key \(k\) | 
+| $\Delta r_k$ | Key-rate move at key $k$ | 
 | $\mathbf{k}$ | Vector of portfolio key-rate exposures |
 | $\mathbf{H}$ | Matrix of hedge instrument key-rate sensitivities |
 | $\mathbf{n}$ | Vector of hedge notionals |
-| $D_i$ | Partial duration at maturity/bucket \(i\) |
+| $D_i$ | Partial duration at maturity/bucket $i$ |
 | $\partial_k V_0$ | Forward-rate delta (directional derivative) |
 | $W_k$ | Bucket importance weight (hedging objective) |
 | $U_l$ | Hedge-instrument penalty weight (cost/liquidity) |
@@ -726,13 +726,13 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 |:---|:---|:---|
 | 1 | What is the sum-to-parallel property of key rates? | The sum of all key-rate partial DV01s equals the parallel DV01 (approximately). |
 | 2 | Why is a 10-year bond exposed to the 5-year key rate? | Its intermediate coupons are discounted by rates in the 5-year region. |
-| 3 | Contrast the \(\mathrm{KR01}\) profile of a bond vs. a swap. | A bond’s profile reflects coupon discounting; a swap’s profile depends on bump design but often has larger weight in longer buckets where the fixed-leg annuity ends. |
-| 4 | How do you hedge a forward-bucket exposure of \(-\$5{,}000/\text{bp}\) with quarterly rate futures? | Roughly \(5{,}000/25=200\) contracts if one contract is about \(\$25/\text{bp}\); choose buy/sell direction to offset the sign under your system’s convention. |
-| 5 | Where does the “\(\$25\) per bp per contract” scale come from? | It’s notional × accrual × 1bp: e.g., \(1{,}000{,}000\times 0.25\times 10^{-4}=\$25\). |
+| 3 | Contrast the $\mathrm{KR01}$ profile of a bond vs. a swap. | A bond’s profile reflects coupon discounting; a swap’s profile depends on bump design but often has larger weight in longer buckets where the fixed-leg annuity ends. |
+| 4 | How do you hedge a forward-bucket exposure of $-\$5{,}000/\text{bp}$ with quarterly rate futures? | Roughly $5{,}000/25=200$ contracts if one contract is about $\$25/\text{bp}$; choose buy/sell direction to offset the sign under your system’s convention. |
+| 5 | Where does the “$\$25$ per bp per contract” scale come from? | It’s notional × accrual × 1bp: e.g., $1{,}000{,}000\times 0.25\times 10^{-4}=\$25$. |
 | 6 | A portfolio has DV01=0 but loses money when the curve steepens. What is this? | Curve risk (or twist/shape risk). |
 | 7 | What is the hedge solution formula for the linear system? | $\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$. |
 | 8 | Why can “bump one par yield” create unstable deltas? | Holding neighboring par yields fixed can force large implied forward-rate moves, breaking the “small shock” intuition behind first-order sensitivities. |
-| 9 | What is the hedge matrix \(\mathbf{H}\)? | A matrix whose columns are hedge-instrument bucket vectors (e.g., \(\mathrm{KR01}\) vectors per unit notional). |
+| 9 | What is the hedge matrix $\mathbf{H}$? | A matrix whose columns are hedge-instrument bucket vectors (e.g., $\mathrm{KR01}$ vectors per unit notional). |
 | 10 | What is "Basis Risk" in key-rate hedging? | Risk that the spread between instrument (e.g., Corp) and hedge (e.g., Treasury) changes. |
 | 11 | Does KRDV01 capture convexity? | No, it is a first-order (linear) measure only. |
 | 12 | What is a partial duration? | A duration-like sensitivity to a move at a specific point/bucket on the curve, holding other points fixed (per the bump design). |
@@ -750,25 +750,25 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 ## Mini Problem Set
 
 1. (Compute) A 3-year zero-coupon bond is priced on a flat 5% curve (continuously compounded). Compute its parallel DV01 per $100 face.
-2. (Compute) You are long a 2y position with \(\mathrm{KR01}_{2y}=+\$1{,}800/\text{bp}\) and short a 10y position with \(\mathrm{KR01}_{10y}=-\$1{,}800/\text{bp}\). (a) If 2y rates fall 10bp and 10y rates rise 10bp, what is the first-order P&L? (b) Name the trade.
-3. (Compute) Your risk report shows a forward-bucket exposure \(\mathrm{FD01}=+\$1{,}250/\text{bp}\) to a quarterly bucket. If a futures contract provides about \(\$25/\text{bp}\) per contract, how many contracts hedge the exposure and in what direction?
-4. (Compute) You have \(\mathbf{k}=[100,200]^\top\) (in \$/bp). Two hedge instruments have bucket vectors \([10,2]^\top\) and \([5,8]^\top\) (in \$/bp per unit). (a) Write \(\mathbf{H}\mathbf{n}=-\mathbf{k}\). (b) Solve for \(\mathbf{n}\).
+2. (Compute) You are long a 2y position with $\mathrm{KR01}_{2y}=+\$1{,}800/\text{bp}$ and short a 10y position with $\mathrm{KR01}_{10y}=-\$1{,}800/\text{bp}$. (a) If 2y rates fall 10bp and 10y rates rise 10bp, what is the first-order P&L? (b) Name the trade.
+3. (Compute) Your risk report shows a forward-bucket exposure $\mathrm{FD01}=+\$1{,}250/\text{bp}$ to a quarterly bucket. If a futures contract provides about $\$25/\text{bp}$ per contract, how many contracts hedge the exposure and in what direction?
+4. (Compute) You have $\mathbf{k}=[100,200]^\top$ (in \$/bp). Two hedge instruments have bucket vectors $[10,2]^\top$ and $[5,8]^\top$ (in \$/bp per unit). (a) Write $\mathbf{H}\mathbf{n}=-\mathbf{k}$. (b) Solve for $\mathbf{n}$.
 5. (Compute) Using Table 14.1 as partial durations, estimate the P&L for a $10 million portfolio if rates move: 1y +5bp, 2y +4bp, 3y +3bp, 4y +2bp, 5y +1bp, 7y −1bp, 10y −3bp.
 6. (Concept) Why can bumping a single long-dated par swap rate by 1bp (holding neighbors fixed) imply large forward-rate moves? Why is this problematic for “first-order” sensitivities?
-7. (Compute) You want a 2s–10s steepener with \(\$50{,}000/\text{bp}\) of risk. The 2y bond has DV01 of \(\$1{,}900\) per \(\$1\)mm face and the 10y bond has DV01 of \(\$8{,}200\) per \(\$1\)mm face. Compute the notionals (long 2y, short 10y) and verify net parallel DV01 \(\approx 0\).
-8. (Compute/Desk) A portfolio has \(\mathrm{KR01}_{2y}=+\$2{,}000\), \(\mathrm{KR01}_{5y}=+\$4{,}000\), \(\mathrm{KR01}_{10y}=-\$3{,}000\) and the day’s moves are \(-3\)bp, \(+2\)bp, \(+5\)bp respectively. (a) Compute explained rates P&L. (b) If actual P&L is +$15,000, what is residual? (c) List two possible causes.
-9. (Desk) You have key-rate exposures \([+1000,+2000,+1500,+500]\) at 2y/5y/10y/20y, but you can only hedge with 2y and 10y instruments. Propose a simple mapping and describe the residual risk.
-10. (Concept) Name the trade for each KR01 vector: (a) [+100, −200, +100] at 2y/5y/10y, (b) [0, +500, 0] at 2y/5y/10y, (c) [−300, +300, 0] at 2y/10y/30y.
-11. (Desk) A portfolio has \([\mathrm{KR01}_{2y},\mathrm{KR01}_{5y},\mathrm{KR01}_{30y}]=[+\$20\text{k},0,-\$20\text{k}]\). Yesterday, 2y fell 1bp, 5y fell 3bp, 30y fell 4bp. Explain the sign of the P&L and compute the first-order rates P&L.
+7. (Compute) You want a 2s–10s steepener with $\$50{,}000/\text{bp}$ of risk. The 2y bond has DV01 of $\$1{,}900$ per $\$1$mm face and the 10y bond has DV01 of $\$8{,}200$ per $\$1$mm face. Compute the notionals (long 2y, short 10y) and verify net parallel DV01 $\approx 0$.
+8. (Compute/Desk) A portfolio has $\mathrm{KR01}_{2y}=+\$2{,}000$, $\mathrm{KR01}_{5y}=+\$4{,}000$, $\mathrm{KR01}_{10y}=-\$3{,}000$ and the day’s moves are $-3$bp, $+2$bp, $+5$bp respectively. (a) Compute explained rates P&L. (b) If actual P&L is +$15,000, what is residual? (c) List two possible causes.
+9. (Desk) You have key-rate exposures $[+1000,+2000,+1500,+500]$ at 2y/5y/10y/20y, but you can only hedge with 2y and 10y instruments. Propose a simple mapping and describe the residual risk.
+10. (Concept) Name the trade for each KR01 vector: (a) $[+100, -200, +100]$ at 2y/5y/10y, (b) $[0, +500, 0]$ at 2y/5y/10y, (c) $[-300, +300, 0]$ at 2y/10y/30y.
+11. (Desk) A portfolio has $[\mathrm{KR01}_{2y},\mathrm{KR01}_{5y},\mathrm{KR01}_{30y}]$=$[+\$20\text{k},0,-\$20\text{k}]$. Yesterday, 2y fell 1bp, 5y fell 3bp, 30y fell 4bp. Explain the sign of the P&L and compute the first-order rates P&L.
 12. (Compute) After hedging a 10y swap with only 5y and 10y bonds, your residual KR01s are +$800/bp at 7y and +$400/bp at 8y. If 5y and 10y both rise 5bp but 7y rises 10bp and 8y rises 8bp, estimate the unexplained P&L.
 
 ### Solution Sketches (Selected)
-1. Price \(=100e^{-0.05\cdot 3}=86.07\). \(DV01\approx 3\times 86.07\times 10^{-4}=0.0258\) per $100.
-2. \(\Delta PV\approx -(1800)(-10)-(-1800)(+10)=+\$36{,}000\). This is a steepener (long front-end, short back-end).
-3. If one contract is \(\approx \$25/\text{bp}\), then \(1{,}250/25=50\) contracts. Since \(\mathrm{FD01}>0\) (you lose when rates rise), the hedge needs \(-\$1{,}250/\text{bp}\) (typically a short position).
-4. \(\mathbf{H}=\begin{pmatrix}10&5\\2&8\end{pmatrix}\). \(\mathbf{n}=-\mathbf{H}^{-1}\mathbf{k}=[2.86,\,-25.71]^\top\).
-5. Using \(\Delta P/P\approx-\sum_i D_i\Delta y_i\) with \(\Delta y\) in decimals gives total \(\approx 0.00224\). P&L \(\approx -\$10{,}000{,}000\times 0.00224=-\$22{,}400\).
-11. First-order P&L \(= -[(+20{,}000)(-1)+(0)(-3)+(-20{,}000)(-4)]=-\$60{,}000\). DV01 neutrality does not help when the 30y move is larger than the 2y move (a flattening rally).
+1. Price $=100e^{-0.05\cdot 3}=86.07$. $DV01\approx 3\times 86.07\times 10^{-4}=0.0258$ per $100.
+2. $\Delta PV\approx -(1800)(-10)-(-1800)(+10)=+\$36{,}000$. This is a steepener (long front-end, short back-end).
+3. If one contract is $\approx \$25/\text{bp}$, then $1{,}250/25=50$ contracts. Since $\mathrm{FD01}>0$ (you lose when rates rise), the hedge needs $-\$1{,}250/\text{bp}$ (typically a short position).
+4. $\mathbf{H}=\begin{pmatrix}10&5\\2&8\end{pmatrix}$. $\mathbf{n}=-\mathbf{H}^{-1}\mathbf{k}=[2.86,\,-25.71]^\top$.
+5. Using $\Delta P/P\approx-\sum_i D_i\Delta y_i$ with $\Delta y$ in decimals gives total $\approx 0.00224$. P&L $\approx -\$10{,}000{,}000\times 0.00224=-\$22{,}400$.
+11. First-order P&L $= -[(+20{,}000)(-1)+(0)(-3)+(-20{,}000)(-4)]=-\$60{,}000$. DV01 neutrality does not help when the 30y move is larger than the 2y move (a flattening rally).
 
 ---
 

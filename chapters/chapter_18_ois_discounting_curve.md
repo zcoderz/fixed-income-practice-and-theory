@@ -66,6 +66,10 @@ $$\boxed{\bar{L}_n = \frac{A^{\text{flt}}_n - 1}{\tau_n}}$$
 
 so the floating-leg coupon amount is $N\tau_n\bar{L}_n = N\left(A^{\text{flt}}_n-1\right)$.
 
+**Mechanics intuition:** $A^{\text{flt}}_n$ is the growth factor of \$1 rolled overnight through the period. Each day you earn simple interest $r_{n,i}\delta_{n,i}$, and the product multiplies those daily growth factors. Weekends/holidays appear as larger $\delta_{n,i}$ (e.g., a Friday fixing may apply for 3 calendar days), so the same rate accrues interest for a longer interval.
+
+**Checks (units + limiting cases):** $r_{n,i}$ is “per year” and $\delta_{n,i}$ is “years”, so $r_{n,i}\delta_{n,i}$ is dimensionless and $A^{\text{flt}}_n$ is unitless. If all fixings equal a constant $r$ and the period is short, then $A^{\text{flt}}_n \approx 1+r\tau_n$ and $\bar{L}_n \approx r$; compounding shows up only at order $r^2\tau_n$. Toy number: if $r=5\%$ and $\tau_n=0.25$, then $\bar{L}_n \approx (e^{0.05\cdot 0.25}-1)/0.25 \approx 5.03\%$ (about +3 bp from compounding).
+
 The **net payment** at $T_{n+1}$ for notional $N$ (positive from the perspective of receiving floating / paying fixed) is:
 
 $$\boxed{\text{Payoff at } T_{n+1} = N \tau_n (\bar{L}_n - k)}$$
@@ -205,6 +209,10 @@ Equivalently, with the “add principal at maturity” fiction, the par conditio
 $$\boxed{1 = k\sum_{i=1}^{N} \tau_i P(0,T_i) + P(0,T_N)}$$
 
 Here, the left side (1) represents the floating leg value, and the right side represents the fixed leg coupons plus the return of notional at maturity $T_N$.
+
+**Expand (replication story):** The identity $PV_{\text{flt}} = 1 - P(0,T_N)$ is easiest to remember as a “roll an overnight deposit” argument. Imagine lending \$1 overnight and rolling it each day until $T_N$; the value process grows by the same daily factors that define the compounded overnight coupon. If you also discount cashflows using that same overnight curve, then “\$1 today” and “\$1 at $T_N$ discounted back” are the two endpoints, and the present value of the floating coupons is the difference between them.
+
+**Check (one-period sanity):** With a single payment at $T$ and accrual $\tau$, the par equation reads $1 = k\,\tau P(0,T) + P(0,T)$, so $k = (1-P(0,T))/(\tau P(0,T))$. Using the 1Y toy DF above $P(0,1)=0.975610$ (and $\tau=1$) gives $k\approx 2.50\%$, matching the 1Y input quote.
 
 > **Preview: Multi-Curve Complication**
 >
@@ -391,6 +399,10 @@ $$P(T) = P(T_i) e^{-f_i(T-T_i)}$$
 
 The forward rate is flat between grid points. This is robust and creates stable local sensitivities, which is why it is preferred for trading systems over splines (which can oscillate).
 
+**Check (recover the forward and the midpoint shortcut):** On an interval $[T_1,T_2]$ where the forward is constant, the endpoint discount factors imply
+$$f_{1,2} = -\frac{\ln(P(0,T_2)/P(0,T_1))}{T_2-T_1}.$$
+Then $P(0,t)=P(0,T_1)e^{-f_{1,2}(t-T_1)}$ for any $t\in[T_1,T_2]$, and at the midpoint this reduces to $P(0,(T_1+T_2)/2)=\sqrt{P(0,T_1)P(0,T_2)}$.
+
 ### 18.5.2 Why It Matters: Comparing Methods
 
 If we interpolate our 2Y ($P=0.9481$) and 3Y ($P=0.9176$) points to 2.5 years:
@@ -463,6 +475,10 @@ You can formalize “locality” with a Jacobian matrix that maps quote bumps to
 
 For a sequential bootstrap where each new quote solves for a new longest-maturity discount factor, this Jacobian is *lower triangular*: long-dated quote bumps do not change short-dated discount factors.
 
+**Check (toy “lower-triangular” bump):** In the toy annual-pay build in Section 18.3.2, the 3Y bootstrap is
+$$P(0,3) = \frac{1 - k_3\left(\tau_1 P(0,1)+\tau_2 P(0,2)\right)}{1 + k_3\tau_3}.$$
+If you bump only the 3Y input quote by +1 bp (rebootstrap), $P(0,1)$ and $P(0,2)$ stay fixed and $P(0,3)$ falls (higher par rate $\rightarrow$ lower discount factor). With $P(0,1)=0.975610$, $P(0,2)=0.948061$, $k_3=2.90\%$, and $\tau_i=1$, bumping $k_3$ to 2.91% gives $\Delta P(0,3)\approx -0.000276$. On a \$100mm cashflow at 3Y, that is about \-$27.6k PV — a reasonable “par-point bucket delta” scale.
+
 ### 18.6.2 Risk Measures and “What Is Being Bumped?”
 
 To make curve risk actionable, you must say **what is bumped**, by **how much**, and how the curve is **re-built** after the bump. Otherwise two systems can report “DV01” numbers that are not comparable.
@@ -501,6 +517,10 @@ $$PV = 3 \times 4.4772 + 83.25 = 13.43 + 83.25 = 96.68$$
 
 The difference is approximately **2.4% of notional**. In the fixed income world, where we fight for fractions of a basis point, a 240 basis point discrepancy is enormous. It represents the entire profit margin of the trade many times over.
 
+**Check (DV01 × spread heuristic):** A quick sanity check is to translate a curve difference into a DV01-style number. If “LIBOR discounting” is roughly “OIS discounting + 50 bp” (treated as a parallel shift in continuously-compounded zero rates), then you should expect
+$$PV_{\text{OIS}}-PV_{\text{LIBOR}} \;\approx\; 50\times DV01,$$
+where $DV01$ is defined here as the PV change for an OIS-zero curve **down** 1 bp. For the OIS-discounted bond above, a cashflow-weighted check gives $DV01 \approx 0.0467$ price points per bp (per 100 notional), so $50\times DV01\approx 2.3$ points — close to the $2.4$ points obtained by re-discounting.
+
 > **The $1 Million Mistake**
 >
 > On a $\$100,000,000$ swap book:
@@ -538,7 +558,7 @@ Practitioners may explicitly mark a "turn" spread (e.g., a special forward premi
 
 ### 18.8.2 Fed Funds vs SOFR
 
-Fed Funds and SOFR are both USD overnight benchmarks that appear in OIS markets and in collateral remuneration conventions. Fed Funds is an overnight interbank borrowing rate; SOFR is a secured overnight financing rate derived from overnight repo transactions. Because repo is secured, repo rates (and hence SOFR) are often thought of as slightly below the corresponding fed funds rate, though the difference varies with market conditions.
+Fed Funds and SOFR are both USD overnight benchmarks that appear in OIS markets and in collateral remuneration conventions. Fed Funds is an overnight interbank borrowing rate; SOFR is a secured overnight financing rate derived from overnight repo transactions. Because one is unsecured and the other is secured, the two fixings can differ; the sign and size of the basis is an empirical input and can vary with market structure and policy implementation.
 
 | Characteristic | Fed Funds | SOFR |
 |----------------|-----------|------|
@@ -567,7 +587,7 @@ Negative interest rates became a feature of some major markets in the 2010s. Fro
 
 When OIS rates go negative, discount factors exceed 1. Mathematically:
 
-$$P(0,T) = \frac{1}{1 + R \cdot T} > 1 \text{ when } R < 0$$
+$$P(0,T) = \frac{1}{1 + R \cdot \tau(0,T)} > 1 \text{ when } R < 0$$
 
 This is mathematically valid—receiving $1 in the future is worth more than $1 today if you'd have to pay to store cash.
 
@@ -838,12 +858,12 @@ For curve building and risk reporting, what matters is:
 12. (Compute) IM is approximately \$5mm for 10 years and your funding spread is 50 bp. Estimate the undiscounted funding cost and give a rough PV if the average discount factor over the horizon is 0.85.
 
 ### Solution Sketches (Selected)
-1. $\tau=182/360=0.5056$. $P\approx 1/(1+0.04\tau)=0.9802$. $y_c(T)=-\ln P/\tau \approx 3.96\\%$.
+1. $\tau=182/360=0.5056$. $P\approx 1/(1+0.04\tau)=0.9802$. $y_c(T)=-\ln P/\tau \approx 3.96\%$.
 2. $P(0,1)=1/1.03=0.9709$. $P(0,2)=(1-0.035P(0,1))/(1.035)=0.9334$.
-4. (a) $\ln P(0,2.5)=\\tfrac{1}{2}\\ln(0.94)+\\tfrac{1}{2}\\ln(0.90)$ so $P(0,2.5)=\\sqrt{0.94\\cdot 0.90}=0.9198$. (b) Linear in $P$: $0.5(0.94+0.90)=0.9200$.
+4. (a) $\ln P(0,2.5)=\tfrac{1}{2}\ln(0.94)+\tfrac{1}{2}\ln(0.90)$ so $P(0,2.5)=\sqrt{0.94\cdot 0.90}=0.9198$. (b) Linear in $P$: $0.5(0.94+0.90)=0.9200$.
 7. PVs are 91.00 and 89.65, so the difference is 1.35 price points = 135 bp of face value.
-8. Ask for (i) bump object (zero curve? which representation?), (ii) bump size/direction, (iii) whether the curve is rebuilt and how (rebootstrap vs direct shift), (iv) units/notional basis and sign convention. Quick check: on a single cashflow $PV=N\\,P(0,T)$, a continuous-zero parallel shift gives $DV01\\approx PV\\,T\\,10^{-4}$.
-12. Undiscounted cost $\approx 5{,}000{,}000\\times 0.005\\times 10=250{,}000$. Rough PV $\approx 250{,}000\\times 0.85\\approx 210{,}000$ (level-cost approximation).
+8. Ask for (i) bump object (zero curve? which representation?), (ii) bump size/direction, (iii) whether the curve is rebuilt and how (rebootstrap vs direct shift), (iv) units/notional basis and sign convention. Quick check: on a single cashflow $PV=N\,P(0,T)$, a continuous-zero parallel shift gives $DV01\approx PV\,T\,10^{-4}$.
+12. Undiscounted cost $\approx 5{,}000{,}000\times 0.005\times 10=250{,}000$. Rough PV $\approx 250{,}000\times 0.85\approx 210{,}000$ (level-cost approximation).
 
 ## References
 

@@ -550,18 +550,18 @@ $$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \;-\; \sum
 1. **Quote → decimal clean price**
    $$P_{\\text{clean}} = 101 + \\frac{12}{32} = 101.3750$$
 2. **Coupon per period (per $100$ face)**
-   $$\\text{Cpn} = 100\\times \\frac{c}{2} = 2.00$$
+   $$\text{Cpn} = 100\times \frac{c}{2} = 2.00$$
 3. **Accrued interest to settlement (per $100$ face)**
-   $$AI = \\frac{32}{181}\\times 2.00 = 0.3536$$
+   $$AI = \frac{32}{181}\times 2.00 = 0.3536$$
 4. **Dirty price and invoice cash amount**
-   $$P_{\\text{dirty}} = P_{\\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
-   $$\\text{Invoice} = \\frac{N}{100}\\times P_{\\text{dirty}} = 500{,}000\\times 101.7286 = \\$50{,}864{,}300$$
+   $$P_{\text{dirty}} = P_{\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
+   $$\text{Invoice} = \frac{N}{100}\times P_{\text{dirty}} = 500{,}000\times 101.7286 = \$50{,}864{,}300$$
 5. **PV from discount factors (per $100$ face)**
    - Cashflows: $CF_1=2.00$ (2026-07-15), $CF_2=102.00$ (2027-01-15)
-   $$PV = 2.00(0.9900) + 102.00(0.977927) \\approx 101.7286$$
+   $$PV = 2.00(0.9900) + 102.00(0.977927) \approx 101.7286$$
 6. **DV01 (per $100$ face, then scaled to notional)**
-   $$DV01_{\\text{per }100} = \\left[2.00(0.9900404)+102.00(0.9780162)\\right]-\\left[2.00(0.9900)+102.00(0.977927)\\right]\\approx 0.00918$$
-   $$DV01_{\\$50mm} \\approx 0.00918\\times 500{,}000 = \\$4{,}591 \\text{ per bp}$$
+   $$DV01_{\text{per }100} = \left[2.00(0.9900404)+102.00(0.9780162)\right]-\left[2.00(0.9900)+102.00(0.977927)\right]\approx 0.00918$$
+   $$DV01_{\$50mm} \approx 0.00918\times 500{,}000 = \$4{,}591 \text{ per bp}$$
 
 **Cashflows (per $100$ face)**
 | Date | Cashflow | Explanation |

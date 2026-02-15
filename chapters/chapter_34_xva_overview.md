@@ -164,6 +164,8 @@ Then \(Q(t_i)\approx e^{-\bar{h}_i t_i}\), and a discrete interval default proba
 q_i = Q(t_{i-1})-Q(t_i).
 \]
 
+**Check (units and quick magnitude):** A spread \(s\) and hazard \(h\) both have units of “per year.” For example, if \(s=200\text{bp}=0.02\) and \(R=40\%\), then \(\bar{h}\approx 0.02/0.6\approx 0.0333\) per year. Over 5 years this implies \(Q(5)\approx e^{-0.0333\times 5}\approx 0.846\), i.e., a cumulative default probability of about \(15.4\%\). If your curve mapping produces a higher survival probability when spreads go up, something is inverted.
+
 This connects directly to the survival-probability framework in Chapter 36 and the CDS curve bootstrapping mechanics in Chapter 42.
 
 **Why risk-neutral probabilities?** CVA is a *price* (an expectation of discounted cashflows), so it uses risk-neutral default probabilities rather than real-world “physical” default probabilities.
@@ -343,6 +345,12 @@ where:
 - \(v_i^*\): PV of the counterparty’s expected exposure to the bank at the midpoint of interval \(i\)
 - \(R^*\): recovery rate in the event the bank defaults
 
+**Expand (link to negative exposure):** From the bank’s perspective, CVA is driven by scenarios where we are owed money (\(V-C>0\)). DVA is driven by the mirror scenarios where we owe the counterparty (\(V-C<0\)): it is closely related to the **expected negative exposure** (ENE) object from Chapter 32, just viewed through the counterparty’s eyes.
+
+**Check (limiting cases):**
+- If a portfolio is always an asset to the bank (netted and collateralized \(V(t)-C(t)\ge 0\) on all relevant scenarios), then the counterparty has no claim on us and DVA should be near 0.
+- If a portfolio is always a liability to the bank (\(V(t)-C(t)\le 0\)), then CVA should be near 0 while DVA can be material.
+
 ### 34.4.2 Why DVA Exists: The Zero-Sum Argument
 
 The logic for DVA rests on a basic symmetry: ignoring default, derivatives are (approximately) zero-sum. If the counterparty is worse off because the bank might fail to pay when it owes money, then the bank (or its creditors) must be better off in expectation.
@@ -505,6 +513,10 @@ $$\text{FCA} \approx \sum_{i=1}^{N} D(0, t_i^*) \cdot s_f \cdot F(t_i^*) \cdot \
 
 where $s_f$ is the funding spread over the discounting rate (units: 1/year), $F(t)$ is the expected funding requirement (currency), and $\Delta t$ is the year fraction.
 
+**Check (units and limits):**
+- Units: \(D\) is unitless, \(s_f\) is 1/year, \(F\) is currency, and \(\Delta t\) is years \(\Rightarrow\) each term is currency, as it should be for FCA.
+- Limits: if \(s_f=0\) or \(F(t)\equiv 0\), then FCA collapses to 0. If you halve the time step (e.g., from annual to semiannual) while keeping the same funding profile, the sum should be broadly stable once you scale \(\Delta t\) consistently.
+
 **Example 34.5 — FCA Calculation (Toy)**
 
 | Interval | Midpoint | Funding Requirement $F$ | $D(0, t_i^*)$ |
@@ -525,6 +537,8 @@ If the bank also recognizes funding benefit (FBA) for negative funding requireme
 The **margin valuation adjustment (MVA)** captures the cost of funding **initial margin (IM)**. IM arises for cleared trades and (in some setups) for bilateral portfolios. The exact IM methodology (and interest on IM) is product-, venue-, and policy-dependent.
 
 Unlike FVA, **incremental MVA** for CCP-cleared transactions is usually **portfolio-dependent**, because IM is calculated on the cleared portfolio: a new trade can increase, decrease, or barely change total IM depending on offsets.
+
+**Check (toy magnitude):** If incremental IM is \(\$10\text{M}\), the incremental funding spread is \(50\text{bp}=0.50\%\) per year, and the effective horizon is 2 years, then a back-of-the-envelope IM funding cost is \(\$10\text{M}\times 0.50\%\times 2=\$100\text{k}\) (before discounting). If your MVA is orders of magnitude larger or smaller, first check units (bp vs %) and what “IM balance” you are funding (posted vs net).
 
 ---
 
@@ -577,6 +591,10 @@ where:
 
 In discrete form:
 $$\text{KVA} = \sum_{i=1}^{n} h_c \times K_i \times \Delta t_i \times d_i$$
+
+**Check (units and toy magnitude):**
+- Units: \(h_c\) is 1/year, \(K\) is currency, \(d\) is unitless, and \(\Delta t\) is years \(\Rightarrow\) KVA is currency.
+- Toy magnitude: if \(K(t)\approx \$1\text{M}\) is roughly flat over 5 years and \(h_c\approx 8\%\), then ignoring discounting \(\text{KVA}\approx 0.08\times 1\text{M}\times 5\approx \$400\text{k}\).
 
 ### 34.7.4 The Complete XVA Stack
 

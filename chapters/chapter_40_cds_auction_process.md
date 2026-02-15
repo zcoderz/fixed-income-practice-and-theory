@@ -156,6 +156,8 @@ Administrators match the OI starting from the lowest offers:
 
 The marginal matched offer is 36.00, so (ignoring any cap adjustment in the settlement terms) **Auction Final Price = 36.00**.
 
+**Check (why the final price can differ from IMM):** IMM is a Stage‑1 reference level, not the settlement price. The final price is set by where the Stage‑2 order book clears the open interest. In the toy example, clearing a net **buy** open interest against offers makes the marginal matched offer (36.00) the final price, even though the Stage‑1 midpoint was 35.00.
+
 ---
 
 ## 40.4 Historical Context and Examples
@@ -256,6 +258,8 @@ For a contract with spread $s$ (annualized), notional $N$, and accrual fraction 
 
 $$\boxed{\text{Accrued Premium} = N \cdot s \cdot \alpha}$$
 
+**Check (rule of thumb):** If the event is “roughly mid‑coupon” and the coupon period is roughly a quarter (\(\Delta\approx 0.25\)), then \(\alpha\approx 0.125\) and accrued premium is on the order of \(0.125\times N\times s\). Use this only as intuition; production accrual uses the actual event date and contract day count.
+
 This is paid by the protection buyer to the seller and is separate from the protection payout.
 
 > **Pitfall — CDS premium accrual on default:** forgetting the accrued premium cashflow (or getting its sign wrong).
@@ -324,6 +328,7 @@ This is paid by the protection buyer to the seller and is separate from the prot
 - Unit check: payout and accrued premium are in USD; \(FP_{100}\) is “points per 100”; \(\alpha\) is a year fraction.
 - Sign check (long protection): \(\Delta FP_{100}>0 \Rightarrow \Delta \text{Payout}<0\).
 - Limit check: \(FP_{100}=100 \Rightarrow\) payout \(=0\); \(FP_{100}=0 \Rightarrow\) payout \(=N\).
+- Accrued premium should be between 0 and the full‑period premium \(N\,s\,\Delta(\text{last premium date},\text{next premium date})\). In this toy timeline the full coupon is about \(\$10\text{mm}\times 5\%\times 0.25 \approx \$125\text{k}\), so \(\$72\text{k}\) is plausible.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you use points (35) vs fractions (0.35) consistently?

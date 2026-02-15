@@ -52,7 +52,7 @@ A critical terminology point: "buying a CDS" in market language typically means 
 
 ## 38.2 The Premium Leg: Periodic Payments from Buyer to Seller
 
-The premium leg consists of periodic payments from the protection buyer to the protection seller. In standard conventions, premiums are typically paid quarterly using ACT/360, and they terminate at maturity or immediately following a credit event (with accrued premium still owed up to the event time).
+The premium leg is the series of payments made by the protection buyer to the protection seller to pay for the protection being provided. The premium leg payments are typically made quarterly according to an Actual 360 basis. The payments terminate at the contract maturity or immediately following a credit event (with accrued premium still owed up to the credit event time).
 
 ### 38.2.1 The Premium Payment Formula
 
@@ -66,13 +66,21 @@ $$\Delta(t_{n-1}, t_n) = \frac{\text{DayDiff}(t_{n-1}, t_n)}{360}$$
 
 **Unit check:** $N$ (dollars) × $s$ (1/year) × $\Delta$ (years) = dollars. The spread is quoted per annum, and the accrual fraction converts the annual rate to the period's portion.
 
+**Sign check:** If you write cashflows from the position-holder perspective (positive = received), then premium payments are **negative** for the protection buyer and **positive** for the protection seller:
+\[
+\text{PremiumCashflow}_{\text{buyer}}(t_n)=-N\,s\,\Delta(t_{n-1},t_n),\qquad
+\text{PremiumCashflow}_{\text{seller}}(t_n)=+N\,s\,\Delta(t_{n-1},t_n).
+\]
+
 **Example:** Consider a \$10 million notional CDS with a 35 bp running spread. For a 91-day quarter:
 
 $$\text{PremiumPay} = 10{,}000{,}000 \times 0.0035 \times \frac{91}{360} = 10{,}000{,}000 \times 0.0035 \times 0.2528 = \$8{,}847$$
 
 ### 38.2.2 Payment Schedule Construction: The Step-by-Step Algorithm
 
-Standard CDS premium schedules are built around quarterly **standard dates** (commonly March 20, June 20, September 20, and December 20). These are sometimes informally called “CDS IMM dates,” but note the distinction: CDS uses the **20th** of the month, whereas futures IMM dates are on the **third Wednesday**.
+Standard CDS premium schedules are built around quarterly **standard dates**. Usually, contracts mature on the following standard dates: March 20, June 20, September 20, and December 20.
+
+These are sometimes informally called “CDS IMM dates,” but note the distinction: the CDS market always chooses the 20th date of the month while the official IMM date is the 3rd Wednesday of the month.
 
 **Step 1 — Determine the Maturity Date:**
 Choose the scheduled termination date as the first standard date that falls **at least** $T$ years after the effective date.
@@ -144,13 +152,15 @@ On a \$10 million trade, that's a \$2,625 error on day one—enough to trigger a
 
 ### 38.2.4 Effective Date: T+1 Calendar
 
-Under common CDS conventions, the effective date is the calendar day after trade date (**T+1 calendar**) and it need not be a business day. The intuition is simple: credit events can occur on weekends/holidays, so shifting the start of protection to the next business day can create an economically meaningful coverage gap.
+For the worked examples in this chapter, we will use an effective date equal to the calendar day after the trade date (**T+1 calendar**). The confirmation governs the exact effective-date rule and any business-day adjustments.
+
+**Expand (why this exists):** Credit events (e.g., bankruptcy filings) can occur on weekends/holidays. If protection always started on a business day, a trade executed right before a weekend could have a non-trivial gap in coverage.
 
 > **Desk Reality: The Weekend Coverage Question**
 >
 > When a trade is executed on Friday, the effective date is Saturday. If the reference entity files for bankruptcy on Sunday, is the protection buyer covered?
 >
-> **Yes.** This is precisely why the T+1 calendar convention exists. The alternative—T+1 business day—would create a gap in coverage. For a company in financial distress, this gap could be worth millions.
+> Under a T+1 calendar effective date, protection can start on Saturday. A weekend credit event after the effective date is inside the protection period; under a T+1 business-day rule, the same event could fall into a coverage gap.
 >
 > Middle office staff marking positions should verify that systems correctly handle weekend effective dates. A common error is systems that "helpfully" adjust weekend dates to Monday.
 
@@ -206,6 +216,12 @@ $$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = \$4{
 
 **Sanity check:** The accrued amount (\$4,764) is less than a full quarter's premium (\$8,847), as expected since default occurred roughly halfway through the period.
 
+**Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium:
+\[
+\text{AccruedPrem}(\tau)\approx \tfrac{1}{2}\,N\,s\,\Delta(t_{n-1},t_n).
+\]
+This is the same mid-period-default intuition used later when approximating the accrued-at-default contribution to `RPV01`.
+
 ### 38.4.2 Premium Payments Stop at Default
 
 After a credit event:
@@ -253,6 +269,8 @@ They are connected by:
 $$\boxed{\text{RPV01}(t,T) = N \times 10^{-4} \times A(t,T)}$$
 
 where $1\text{ bp}=10^{-4}$ and $N$ is the CDS notional.
+
+**Check (order of magnitude):** For a 5Y quarterly CDS, the risky annuity \(A(t,T)\) is typically a few “years” (less than the risk-free annuity because survival \(Q\) downweights later coupons). So for \(N=\$10\text{mm}\), you expect `RPV01` to be on the order of \(10{,}000{,}000\times 10^{-4}\times A \approx 1{,}000\times A\), i.e., a few thousand dollars per bp—not \$100k/bp and not \$10/bp.
 
 ### 38.5.1 Premium Leg Present Value
 
@@ -371,7 +389,7 @@ $$\boxed{CS01 \equiv -\bigl(P(S+1\text{ bp}) - P(S)\bigr)}$$
 
 so that spread widening ($+1$ bp) implies $P \downarrow$ and $CS01>0$ for **long-credit** positions (e.g., selling protection).
 
-Using the linearized MTM identity $V(t) \approx (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01}(t,T)$ (holding `RPV01` fixed), a $+1$ bp widening changes PV by approximately:
+Using the MTM identity $V(t) = (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01}(t,T)$ (and holding `RPV01` fixed), a $+1$ bp widening changes PV by approximately:
 
 - **Long protection:** $\Delta PV_{+1\text{ bp}} \approx +\text{RPV01}$, so $CS01 \approx -\text{RPV01}$
 - **Short protection:** $\Delta PV_{+1\text{ bp}} \approx -\text{RPV01}$, so $CS01 \approx +\text{RPV01}$
@@ -386,17 +404,17 @@ Using the linearized MTM identity $V(t) \approx (S_{\text{bp}}(t,T)-S_{0,\text{b
 
 ## 38.6 The Upfront-Plus-Coupon Trading Regime
 
-Following CDS standardization (often referred to as the 2009 “Big Bang”), many CDS and CDS indices trade with **fixed running coupons** plus an **upfront payment**. Instead of trading every contract at a bespoke running spread, the contract uses a standard coupon $c$ and the trade is brought to fair value by exchanging an upfront amount.
+Following CDS standardization (often referred to as the April 2009 “Big Bang”), many CDS and CDS indices trade with **fixed running coupons** plus an **upfront payment**. Instead of trading every contract at a bespoke running spread, the contract uses a standard coupon $c$ and the trade is brought to fair value by exchanging an upfront amount.
 
 > **Deep Dive: The Big Bang (April 2009)**
 >
-> On April 8, 2009, CDS contracts and trading conventions were standardized in ways that (i) hardwired auction settlement, (ii) standardized trading conventions (including fixed coupons with upfront payments), and (iii) supported central clearing.
+> On April 8, 2009, a "Big Bang" occurred in the market for CDS contracts and the way in which they are traded. The standardization had three main parts: auction hardwiring, standardizing trading conventions, and central clearing.
 >
-> Under a points-upfront convention, contracts commonly use fixed coupons (e.g., 100 bp or 500 bp). The upfront payment exchanged at initiation is the present value of the difference between the market’s quoted spread and the fixed coupon.
+> Under the running spread convention, no money was exchanged upfront which implied that CDS positions were implicitly leveraged. The upfront payments are made at initiation and are equal to the present value of the difference between the current market credit spread and the fixed coupon.
 
 ### 38.6.1 Standard Coupons
 
-Common fixed coupons are 100 bp (0.01) and 500 bp (0.05); the specific coupon used is part of the market/contract convention for the product being traded.
+To facilitate trading, a fixed coupon is specified for standard transactions that trade. For illustration in this chapter, we will use coupons like 100 bp (0.01) and 500 bp (0.05); the specific coupon used is contract-defined and product-dependent.
 
 This standardization makes CDS trade like bonds—the running payments are fixed, and the contract price adjusts via an upfront payment.
 
@@ -414,6 +432,11 @@ where:
 - $P$ = price per \$100 notional
 - $A(t,T)$ = risky annuity (years)
 - $s$ = quoted spread (decimal)
+
+**Check (units and sign):** \(A\) has units of years and \((s-c)\) has units of 1/year, so \(U\) is dimensionless (a fraction of notional). If \(s>c\) (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
+\[
+\text{Upfront}_\$\approx (s-c)_{\text{bp}}\times \text{RPV01}(t,T).
+\]
 - $c$ = fixed coupon (decimal)
 
 **Settlement mechanics:**
@@ -439,7 +462,7 @@ $$\text{Upfront} = 0.021 \times 10{,}000{,}000 = \$210{,}000$$
 
 ### 38.6.3 When Coupon Exceeds Spread
 
-**Example:** For a safer credit with spread below the standard coupon:
+**Example:** For a safer credit with spread below the fixed coupon:
 - Quoted spread: $s = 34$ bp = 0.0034
 - Standard coupon: $c = 100$ bp = 0.01
 - Risky annuity: $A = 4.447$ years
@@ -460,13 +483,19 @@ Mechanically, this reduces the number of bespoke coupons on the book and makes i
 
 ### 38.6.5 Distressed Credits: Pure Upfront Format
 
-When a credit becomes distressed, some sources note that trading convention may shift from quoting a running spread to quoting in an **upfront** format. In an **upfront CDS**, the premium leg is a single upfront payment at inception (rather than a running premium stream), while the protection leg is unchanged.
+Upfront contracts are non-standard for most issuers. However, when an issuer is in distress typically the market CDS spread is of the order of 1000 bp - the market switches from trading using the standard running spread to trading in an upfront format.
 
-A practical heuristic is that upfront quoting becomes relevant when running spreads are very wide (on the order of 1000 bp), because the survival-weighted premium stream becomes highly uncertain.
+**Expand (why this happens):** A protection seller may prefer a sure but heavily discounted premium now rather than waiting for a very risky stream of premium cashflows.
+
+The upfront CDS replaces the premium leg of a CDS with a single payment of $U(0)$ at the initiation of the contract. The protection leg is unchanged.
 
 **Valuation identity (par at inception):** For a long-protection buyer who pays upfront $U(0)$, setting the contract value to zero at trade time gives:
 
-$$\boxed{U(0) = (1-R)\int_0^T Z(0,s)\,(-dQ(0,s))}$$
+$$\boxed{V(0)=(1-R)\int_0^T Z(0,s)\,(-dQ(0,s)) - U(0)=0}$$
+
+so that:
+
+$$\boxed{U(0)=(1-R)\int_0^T Z(0,s)\,(-dQ(0,s))}$$
 
 i.e., the upfront equals the present value of the protection leg (per unit notional) when there is no running premium leg.
 
@@ -491,13 +520,15 @@ Let:
 - $S_{\text{bp}}(t,T)$ be the current market par spread for maturity $T$ (in bp),
 - $\text{RPV01}(t,T)$ be the risky PV of 1 bp of running premium (currency per bp for the stated notional).
 
-Then a common approximation for the MTM of a **long protection** position is:
+**Anchor (per \$1 face value):** $V(t)=(S(t,T)-S(0,T))\times \text{RPV01}(t,T)$.
 
-$$\boxed{V(t) \approx \bigl(S_{\text{bp}}(t,T)-S_{0,\text{bp}}\bigr)\,\text{RPV01}(t,T)}$$
+Using spreads in bp and `RPV01` in currency per bp for the stated notional, a practical MTM identity for a **long protection** position is:
+
+$$\boxed{V(t) = \bigl(S_{\text{bp}}(t,T)-S_{0,\text{bp}}\bigr)\,\text{RPV01}(t,T)}$$
 
 For a **short protection** position, the value is the negative of this.
 
-**Expand (what is held fixed):** This identity treats `RPV01` as the scaling between spreads and PV. In a full model, `RPV01` depends on discounting and survival; if you rebuild curves when spreads move, the relationship is only approximately linear.
+**Expand (what is held fixed):** If $S_{\text{bp}}(t,T)$ is the current par spread implied by the same curves used to compute `RPV01`, this identity is exact. It becomes an approximation when you use it to translate an exogenous spread shock into PV while treating `RPV01` as fixed (because `RPV01` itself changes with the curves).
 
 **Check (units):** $(\text{bp})\times(\text{currency/bp})=\text{currency}$.
 
@@ -513,7 +544,7 @@ $$\text{RPV01} = N \times 10^{-4} \times A = 10{,}000{,}000 \times 10^{-4} \time
 
 Then:
 
-$$V(t) \approx (320-75)\times 4{,}208 = \$1{,}030{,}960$$
+$$V(t) = (320-75)\times 4{,}208 = \$1{,}030{,}960$$
 
 The protection buyer has a mark-to-market gain of approximately \$1.03 million.
 
@@ -532,6 +563,8 @@ There are three economically related but operationally different ways to remove 
 ### 38.7.3 Clean versus Full Mark-to-Market
 
 Like bonds, CDS can be quoted **clean** (excluding accrued premium since the last coupon date) or **full/dirty** (including accrued). Define:
+
+The clean value of the CDS contract is calculated by subtracting away the accrued coupon.
 
 $$\boxed{\text{Clean MTM}=\text{Full MTM}-\text{Accrued}}$$
 
@@ -568,7 +601,7 @@ The cashflows are exactly symmetric: every dollar the buyer pays, the seller rec
 **Example Title:** A 5Y CDS trade that defaults mid-quarter
 
 **Context**
-- A protection buyer enters a 5Y CDS at the standard 100 bp coupon when the market par spread is 150 bp, so an upfront is paid.
+- A protection buyer enters a 5Y CDS at a fixed 100 bp coupon (example) when the market par spread is 150 bp, so an upfront is paid.
 - The name defaults mid-quarter; we track upfront, running premium, accrued-at-default, and the protection payment.
 
 **Timeline (Make Dates Concrete)**
@@ -683,7 +716,7 @@ Before booking a CDS trade, verify:
 1. A CDS transfers credit risk: the protection buyer pays the premium leg and receives a contingent protection payment after a credit event.
 2. Market language: “buy protection” = short credit risk; “sell protection” = long credit risk.
 3. Premium payments are typically quarterly on ACT/360, scheduled on standard dates (20 Mar/Jun/Sep/Dec) with stubs as needed.
-4. The effective date is commonly T+1 calendar (it can fall on a weekend/holiday).
+4. In this chapter’s examples, the effective date is the calendar day after trade date (T+1 calendar); the confirmation governs any business-day adjustments.
 5. On a credit event, future premiums stop, but accrued premium up to the event date is owed.
 6. The protection payment is bounded by $0 \le N(1-R) \le N$ and can settle physically or in cash (often via auction).
 7. The risky annuity $A(t,T)$ values the survival-weighted premium stream (including accrued-at-default under a mid-period approximation).
@@ -703,7 +736,7 @@ Before booking a CDS trade, verify:
 | Protection leg | Contingent payment of $N(1-R)$ after credit event | Determines the payout on default |
 | Accrued premium | Premium owed from last coupon date to credit event | Real cashflow often missed in pricing |
 | Roll dates | 20 Mar/Jun/Sep/Dec schedule dates | All standard CDS follow this calendar |
-| T+1 calendar | Effective date is next calendar day (not business day) | Ensures weekend/holiday coverage |
+| T+1 calendar | Example convention: effective date is the calendar day after trade date (confirmation governs adjustments) | Affects start-of-protection timing and breaks |
 | Risky annuity $A(t,T)$ | Survival-weighted PV factor for the premium stream (years) | Turns spreads into PV and into RPV01 |
 | RPV01 | PV of 1 bp running premium (currency per bp for stated notional) | Upfront and CS01 scaling |
 | Upfront payment | Cash exchanged at inception when $s \neq c$ | Standardized coupons require this adjustment |
@@ -742,14 +775,14 @@ Before booking a CDS trade, verify:
 | 3 | What does "buying protection" mean economically? | Short credit risk (profit if credit deteriorates) |
 | 4 | What day count does CDS premium use? | ACT/360 |
 | 5 | What are the CDS roll dates? | 20 Mar, 20 Jun, 20 Sep, 20 Dec |
-| 6 | What is the effective date convention? | T+1 calendar (next calendar day, even if weekend) |
-| 7 | Why can effective date be a non-business day? | Credit events can occur on weekends/holidays |
+| 6 | What effective date convention do we use in examples? | T+1 calendar (calendar day after trade date; confirmation governs adjustments) |
+| 7 | Why does effective-date convention matter? | It determines when protection starts; weekend/holiday handling can create coverage or break-risk differences |
 | 8 | Formula for premium payment? | $N \cdot s \cdot \text{DayDiff}/360$ |
 | 9 | What happens to premiums after a credit event? | Future payments cancelled; accrued to $\tau$ is owed |
 | 10 | Formula for protection payment? | $N(1 - R)$ where $R$ is recovery rate |
 | 11 | What is physical settlement? | Buyer delivers face value of bonds, seller pays par |
 | 12 | What is cash settlement? | Seller pays par minus recovery price (auction) |
-| 13 | What are common fixed coupons in points-upfront CDS? | 100 bp or 500 bp (product-dependent) |
+| 13 | Give example fixed coupons used in points-upfront trading. | 100 bp or 500 bp (illustrative; product-dependent) |
 | 14 | What is RPV01? | PV of 1 bp of running premium (currency per bp for the stated notional) |
 | 15 | What is the risky annuity $A(t,T)$? | The survival-weighted PV factor (years) that underlies RPV01: $RPV01 = N \times 10^{-4}\times A$ |
 | 16 | If spread > coupon, who pays upfront? | Protection buyer pays |
@@ -758,9 +791,9 @@ Before booking a CDS trade, verify:
 | 19 | Approx MTM identity (long protection)? | $V\approx (S_{\text{bp}}-S_{0,\text{bp}})\times RPV01$ |
 | 20 | What is clean vs full MTM? | Clean excludes accrued; full includes accrued: Clean = Full − Accrued |
 | 21 | When might trades be quoted in upfront format? | When spreads are very wide (distressed); quotes naturally become upfront % of notional |
-| 22 | What is the settlement timing for CDS unwind? | T+3 business days |
+| 22 | What is the settlement timing for CDS unwind? | Often a short lag (e.g., T+3 business days; confirmation-specific) |
 | 23 | Effect of accrued at default on breakeven spread? | Lowers it (approximately $\frac{S^2}{2(1-R)f}$ under simplifying assumptions) |
-| 25 | Why do protection sellers prefer upfront on distressed? | Certain money now vs. risky premium stream |
+| 24 | Why do protection sellers prefer upfront on distressed? | Certain money now vs. risky premium stream |
 
 ---
 

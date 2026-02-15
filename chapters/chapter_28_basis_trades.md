@@ -4,7 +4,7 @@
 
 ## Introduction
 
-Prerequisites: [Chapter 09 — Repo and the Funding Engine](chapters/chapter_09_repo_funding_engine.md), [Chapter 10 — Treasuries Microstructure and Relative Value](chapters/chapter_10_treasury_microstructure_relative_value.md), [Chapter 18 — OIS Discounting Curve](chapters/chapter_18_ois_discounting_curve.md), [Chapter 19 — Projection Curves (LIBOR/SOFR) and Multi-Curve](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md), [Chapter 20 — Tenor Basis](chapters/chapter_20_tenor_basis.md), [Chapter 23 — Treasury Futures](chapters/chapter_23_treasury_futures.md), [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapters/chapter_26_swap_pv01_dv01_hedging.md), [Chapter 27 — Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapters/chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md)  
+Prerequisites: [Chapter 09 — Repo and the Funding Engine](chapters/chapter_09_repo_funding_engine.md), [Chapter 10 — Treasuries Microstructure and Relative Value](chapters/chapter_10_treasury_microstructure_relative_value.md), [Chapter 18 — OIS Discounting Curve](chapters/chapter_18_ois_discounting_curve.md), [Chapter 19 — Projection Curves $LIBOR/SOFR$ and Multi-Curve](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md), [Chapter 20 — Tenor Basis](chapters/chapter_20_tenor_basis.md), [Chapter 23 — Treasury Futures](chapters/chapter_23_treasury_futures.md), [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapters/chapter_26_swap_pv01_dv01_hedging.md), [Chapter 27 — Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapters/chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md)  
 Follow-on: [Chapter 29 — FX Spot and Forwards](chapters/chapter_29_fx_spot_forwards.md), [Chapter 30 — FX Swaps and Cross-Currency Swaps](chapters/chapter_30_fx_swaps_cross_currency_swaps.md), [Chapter 31 — Multi-Currency Risk](chapters/chapter_31_multi_currency_risk.md), [Chapter 32 — Counterparty Exposure Basics](chapters/chapter_32_counterparty_exposure_basics.md), [Chapter 33 — Collateral Discounting and OIS](chapters/chapter_33_collateral_discounting_ois.md), [Chapter 34 — XVA Overview](chapters/chapter_34_xva_overview.md)
 
 ## Learning Objectives
@@ -17,7 +17,7 @@ In 1998, Long-Term Capital Management ran leveraged convergence and relative-val
 
 Every basis trade is, at its core, a bet on the difference between two similar-looking instruments. You are long one rate and short another. The instruments appear related—they might share the same maturity, reference the same credit quality, or track the same economic variable—but they are not identical. The spread between them is the *basis*, and movements in this basis determine your profit or loss.
 
-This sounds simple, but basis trades are among the most treacherous in fixed income. A trader who believes they have isolated a clean relative value opportunity often discovers, painfully, that they are exposed to risks they never intended to take. A swap spread position, for example, is rarely “just credit vs risk-free”: it also embeds Treasury financing, benchmark (on-the-run) dynamics, regulatory/capital effects, and convexity-hedging flows.
+This sounds simple, but basis trades are among the most treacherous in fixed income. A trader who believes they have isolated a clean relative value opportunity often discovers, painfully, that they are exposed to risks they never intended to take. A swap spread position, for example, is rarely “just credit vs risk-free”: it also embeds Treasury financing, benchmark (on-the-run\) dynamics, regulatory/capital effects, and convexity-hedging flows.
 
 This chapter develops a systematic framework for analyzing basis trades in rates:
 
@@ -62,11 +62,11 @@ For any rates basis trade, there are typically three layers of exposure:
 | **Residual Risk** | Exposures that remain after hedging | Funding, roll, convexity, liquidity, positioning |
 
 A desk-friendly refinement is to split “spread risk” into three questions you can answer in a trade write-up:
-- **Discounting basis:** which curve discounts your cashflows (and under what collateral/funding assumption)?
+- **Discounting basis:** which curve discounts your cashflows $and under what collateral/funding assumption$?
 - **Projection basis:** which forward index/curve sets each floating coupon (and what basis quotes link it to other curves)?
-- **Liquidity/funding component:** what financing rate (repo/term funding/haircuts/margin) you are implicitly long/short?
+- **Liquidity/funding component:** what financing rate $repo/term funding/haircuts/margin\$ you are implicitly long/short?
 
-A well-structured basis trade should have *zero* level risk (be DV01-neutral), *intentional* spread risk (the view being expressed), and *minimized* residual risk (or at least, understood and accepted residual risk). The decomposition process forces the trader to verify that each layer is appropriately managed.
+A well-structured basis trade should have *zero* level risk $be DV01-neutral$, *intentional* spread risk (the view being expressed), and *minimized* residual risk (or at least, understood and accepted residual risk). The decomposition process forces the trader to verify that each layer is appropriately managed.
 
 ### 28.1.3 The Decomposition Process
 
@@ -105,11 +105,11 @@ Basis trades are “small-spread, big-notional” positions, so tiny convention 
 
 - **Bump object:** what is actually perturbed (a yield, zero curve nodes, par quotes with rebuild, a quoted basis spread, etc.).
 - **Bump size:** `1 bp = 1e-4`.
-- **Units:** currency per 1 bp per stated notional (e.g., “$ per 1 bp per $1mm”).
-- **Sign convention:** this book uses **\(DV01 := PV(\text{rates down }1\text{ bp}) - PV(\text{base})\)** for the stated bump object.
+- **Units:** currency per 1 bp per stated notional (e.g., “\) per 1 bp per \\\$1mm”$.
+- **Sign convention:** this book uses **\$DV01 := PV(\text{rates down }1\text{ bp}\) - PV(\text{base})\$** for the stated bump object.
 
-For spread/basis risks, use the same discipline. If a quoted spread \(e\) enters PV linearly (e.g., you pay “OIS + \(e\)”):
-- A natural “basis PV01” is \(PV(e\downarrow 1\text{ bp}) - PV(\text{base})\) in the same units.
+For spread/basis risks, use the same discipline. If a quoted spread \$e\$ enters PV linearly (e.g., you pay “OIS + \(e\)”):
+- A natural “basis PV01” is \$PV(e\downarrow 1\text{ bp}\) - PV(\text{base})\$ in the same units.
 - If the spread enters through curve construction (bump quote → rebuild curve → reprice), the bump object is the **market quote** and the rebuild rule must be stated.
 
 A quick sanity check: if you cannot answer “what exactly did we bump?”, you do not yet know what your DV01/PV01 number means.
@@ -134,7 +134,7 @@ Historically, term reference rates embedded bank term-funding premia. Even with 
 
 **2. Treasury supply/demand and liquidity premia**
 
-The Treasury leg (especially if it is an on-the-run issue) can embed liquidity premia that have nothing to do with swap-market credit.
+The Treasury leg (especially if it is an on-the-run issue\) can embed liquidity premia that have nothing to do with swap-market credit.
 
 **3. Repo financing (“special” vs GC)**
 
@@ -155,8 +155,8 @@ Large convexity-hedging flows can create “directionality” in swap spreads: w
 **Intended Bet**: Swap spreads will narrow (swap rate will fall relative to Treasury yield)
 
 **Execution**:
-- Receive fixed on $100MM 10Y swap at, say, 4.50%
-- Short $X face of 10Y Treasury (sized to match DV01)
+- Receive fixed on \$100MM 10Y swap at, say, 4.50%
+- Short $X face of 10Y Treasury $sized to match DV01(
 - Fund the short Treasury position via repo
 
 **What You're Long**:
@@ -175,7 +175,7 @@ Quoted swap spreads are useful for broad themes, but trade-level P&L can be domi
 
 The swap spread is typically quoted against the *on-the-run* Treasury. On-the-run yields can embed liquidity and special-financing effects, so the quoted spread can be a noisy measure of the underlying relative value you think you are trading.
 
-If you short the on-the-run 10Y to trade swap spreads, you are also implicitly long the "on-the-run premium." When that premium compresses (as the bond ages off-the-run and a new issue takes its place), you may lose money even if your credit view is correct.
+If you short the on-the-run 10Y to trade swap spreads, you are also implicitly long the "on-the-run premium." When that premium compresses )as the bond ages off-the-run and a new issue takes its place$, you may lose money even if your credit view is correct.
 
 **Exposure 2: Repo Financing**
 
@@ -211,7 +211,7 @@ The spread between these curves is the **OIS-IBOR basis** (or in the modern SOFR
 
 In stress, term unsecured funding rates can rise far above overnight secured/collateralized rates. This gap was one motivation for the multi-curve framework and for using an overnight collateral curve for discounting in many derivatives contexts.
 
-This basis is not an anomaly to be “arbitraged away” for free: it reflects genuine economic differences (credit horizon, liquidity, and balance-sheet constraints) between overnight and term funding.
+This basis is not an anomaly to be “arbitraged away” for free: it reflects genuine economic differences $credit horizon, liquidity, and balance-sheet constraints\$ between overnight and term funding.
 
 ### 28.3.2 Why the Basis Exists
 
@@ -228,9 +228,9 @@ Chapter 20 covered the economic drivers of tenor basis. For the OIS-IBOR basis s
 > Basis trades are like measuring the temperature of money using two different thermometers.
 >
 > - **Thermometer A (OIS)**: Measures the "Risk-Free" temperature. (Is money expensive because the Fed hiked rates?)
-> - **Thermometer B (LIBOR/IBOR)**: Measures the "Bank Risk" temperature. (Is money expensive because banks are scared to lend to each other?)
+> - **Thermometer B $LIBOR/IBOR$**: Measures the "Bank Risk" temperature. (Is money expensive because banks are scared to lend to each other?)
 >
-> In normal times, they move together (0°C = 32°F). But in a crisis, Thermometer B spikes while Thermometer A might stay low.
+> In normal times, they move together \$0°C = 32°F$. But in a crisis, Thermometer B spikes while Thermometer A might stay low.
 >
 > **The Basis Trade**: You are betting on the *difference* between the readings. If you think the gap is too wide, you sell Thermometer B and buy Thermometer A.
 >
@@ -268,6 +268,16 @@ In a multi-curve world, it is helpful to separate three conceptually different �
 
 The framework allows traders to isolate specific risk exposures while hedging unwanted ones.
 
+**Expand (what is held fixed):** These “three risks” only become operationally meaningful when you state a bump rule.
+
+- A **level** move usually means “shift the relevant curve set together” (e.g., bump both discount and projection curves in a consistent way).
+- A **discounting** move means “bump the discount curve only” (hold the projection curve fixed).
+- A **basis** move means “bump a *basis quote* $or basis-spread parameter\$ and rebuild the affected projection curve(s), holding the discount curve fixed.”
+
+Two trades can both be “DV01-neutral” to a level move and still have very different discount/basis exposures because they are sensitive to *different objects*.
+
+**Check (toy scaling):** For a floating–floating basis swap where you pay “OIS + \$e\$” on notional \$N\$, the PV impact of a 1 bp widening in the quoted basis is of order \$N \times $\text{basis annuity}\$ \times 10^{-4}\$. If \$N=\$100\(mm and the discounted annuity is about \)4.2\$ years, then a 1 bp move is roughly \$\$100\text{mm}\times 4.2\times 10^{-4}\approx \$42{,}000\$ $sign depends on whether you pay or receive \$e\.
+
 ### 28.3.5 Why OIS-IBOR Basis Moves
 
 **The basis widens when:**
@@ -290,13 +300,13 @@ This section provides the rigorous mathematical framework underlying multi-curve
 
 #### OIS Payoff and Discounting
 
-The OIS floating payment at maturity $T$ is derived from compounding daily overnight rates. The compounded growth factor is:
+The OIS floating payment at maturity (T\$ is derived from compounding daily overnight rates. The compounded growth factor is:
 
-$$\boxed{R_{01}(t,T) = \prod_{i=1}^{M}\bigl(1 + f_{i-1}\,\tau_i\bigr),}$$
+\boxed{R_{01}(t,T) = \prod_{i=1}^{M}\bigl\$1 + f_{i-1}\,\tau_i\bigr)}
 
-where $f_i$ are daily overnight rates and $\tau_i$ are day-count fractions. The floating payment is $\displaystyle\frac{R_{01}(0,T) - 1}{\tau(0,T)}$ (scaled by accrual).
+where (f_i\$ are daily overnight rates and )\tau_i\$ are day-count fractions. The floating payment is (\displaystyle\frac{R_{01}(0,T) - 1}{\tau(0,T)}\$ (scaled by accrual).
 
-**Unit check:** $R_{01}$ is dimensionless (a growth factor). $(R_{01} - 1)/\tau$ is an annualized rate (1/year).
+**Unit check:** )R_{01}\$ is dimensionless (a growth factor). R_{01} - 1$/\tau\$ is an annualized rate \$1/year$.
 
 When OIS rates are used for discounting, you must build a zero curve from OIS rates analogous to building a swap zero curve from swap rates.
 
@@ -304,64 +314,66 @@ When OIS rates are used for discounting, you must build a zero curve from OIS ra
 
 Generic swap PV is a sum of discounted net cashflows:
 
-$$V_{\text{swap}}(t) = \sum_n \tau_n\,P(t,T_{n+1})\,(L_n(t) - k_n),$$
+V_{\text{swap}}(t) = \sum_n \tau_n\,P(t,T_{n+1})\,(L_n(t\) - k_n),
 
-where $P(t,T)$ is the discount factor and $L_n$ comes from the relevant projection curve.
+where $P(t,T)$ is the discount factor and $L_n\$ comes from the relevant projection curve.
 
 Under multi-curve, a clean "rates-only" PV (per notional) is:
 
-$$PV_{\text{swap}}(0) = \sum_{i=1}^{n} \tau_i\,P_d(0,T_i)\bigl(L_{\text{IBOR}}(0,T_{i-1},T_i) - K\bigr).$$
+PV_{\text{swap}}(0) = \sum_{i=1}^{n} \tau_i\,P_d\$0,T_i(\bigl) $L_{\text{IBOR}}(0,T_{i-1},T_i\$ - K\bigr).
 
 Discount vs projection appears explicitly:
-- $P_d(0,T_i)$ — discount curve
-- $L_{\text{IBOR}}$ — projection curve
+- $P_d\$0,T_i$\$ — discount curve
+- $L_{\text{IBOR}}\$ — projection curve
 
 #### Multi-Curve Par Rate Formula
 
-Setting $PV_{\text{swap}}(0) = 0$ and solving:
+Setting $PV_{\text{swap}}(0) = 0\$ and solving:
 
-$$\boxed{K_{\text{par}}^{\text{(multi)}} = \frac{\sum_{i=1}^{n} \tau_i P_d(0,T_i)\,L_{\text{IBOR}}(0,T_{i-1},T_i)}{\sum_{i=1}^{n} \tau_i P_d(0,T_i)}.}$$
+\boxed{K_{\text{par}}^{\text{(multi)}} = \frac{\sum_{i=1}^{n} \tau_i P_d\$0,T_i(\,L_{\text{IBOR}}\$0,T_{i-1},T_i)}{\sum_{i=1}^{n} \tau_i P_d\$0,T_i(}.}
 
 This is the "discounted average" of projected forwards.
 
 **Unit check:**
-- Numerator: (year) × (dimensionless) × (1/year) summed ⇒ dimensionless
+- Numerator: (year) × (dimensionless) × \$1/year$ summed ⇒ dimensionless
 - Denominator: (year) × (dimensionless) summed ⇒ years
 - Ratio: 1/year (a rate) ✅
 
 #### Basis Swap Par Condition
 
-A floating–floating basis swap exchanges floating payments linked to two indices $L_1$ and $L_2$, typically plus a quoted spread $e$ on one leg. At par, PV of legs must match:
+A floating–floating basis swap exchanges floating payments linked to two indices $L_1\$ and $L_2(, typically plus a quoted spread )e\$ on one leg. At par, PV of legs must match:
 
-$$\sum_i L_2(0,t_i^2,t_{i+1}^2)\,\tau_i^2\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{1,2}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1),$$
+\sum_i L_2\$0,t_i^2,t_{i+1}^2(\,\tau_i^2\,P)t_{i+1}^2\$ = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1\) + e_{1,2}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1),
 
-with $e_{1,2}(T)$ quoted on the $L_1$ leg and possibly positive or negative.
+with $e_{1,2}(T)\$ quoted on the $L_1\$ leg and possibly positive or negative.
 
 For the common case of same payment schedule, solving for the par basis spread:
 
-$$\boxed{e_{\text{par}} = \frac{\sum_i \tau_i P_d(0,T_i)(L_i^2 - L_i^1)}{\sum_i \tau_i P_d(0,T_i)}.}$$
+\boxed{e_{\text{par}} = \frac{\sum_i \tau_i P_d\$0,T_iL_i^2 - L_i^1$}{\sum_i \tau_i P_d\$0,T_i$}.}
 
 #### Basis DV01 (Sensitivity to Quoted Basis)
 
-For a position where $e$ is paid (i.e., PV decreases when $e$ increases):
+For a position where (e\$ is paid (i.e., PV decreases when )e\$ increases):
 
-$$\frac{\partial PV}{\partial e} = -N \sum_i \tau_i P_d(0,T_i), \quad\text{so}\quad \Delta PV \approx -N\Bigl(\sum_i \tau_i P_d(0,T_i)\Bigr)\Delta e.$$
+\frac{\partial PV}{\partial e} = -N \sum_i \tau_i P_d\$0,T_i(, \quad\text{so}\quad \Delta PV \approx -N\Bigl)\sum_i \tau_i P_d(0,T_i)\Bigr)\Delta e.
 
-If $\Delta e = +1\text{ bp} = 10^{-4}$, then "basis PV01" (in $) is:
+If (\Delta e = +1\text{ bp} = 10^{-4}), then "basis PV01" (in )\$ is:
 
-$$\boxed{\text{Basis PV01} = -N\Bigl(\sum_i \tau_i P_d(0,T_i)\Bigr) \cdot 10^{-4}.}$$
+\boxed{\text{Basis PV01} = -N\Bigl(\sum_i \tau_i P_d(0,T_i)\Bigr) \cdot 10^{-4}.}
+
+**Check (units and sign):** The sum \$\sum_i \tau_i P_d(0,T_i)\$ has units of discounted years. Multiplying by \$N\$ gives “discounted dollars,” and multiplying by \$10^{-4}\$ turns a per-1 move into a per-1bp move. For example, if \$N=\$100\$mm and \$\sum_i \tau_i P_d\approx 4.2\(, then paying the basis ($e$ up makes PV down)e\( up makes PV down) gives \)\text{Basis PV01}\approx -\$100\text{mm}\times 4.2\times 10^{-4}=-\$42{,}000\$ per bp, while receiving the basis flips the sign.
 
 #### Discount PV01 vs. Projection PV01
 
 **Discount PV01** (finite-difference definition):
 
-$$\text{PV01}_{\text{discount}} \equiv PV(P_{d,+1\text{bp}}, \{L_k\}) - PV(P_d, \{L_k\}),$$
+\text{PV01}_{\text{discount}} \equiv PV(P_{d,+1\text{bp}}, \{L_k\}) - PV(P_d, \{L_k\}),
 
 where only the discount curve is bumped.
 
 **Projection PV01** (finite-difference definition):
 
-$$\text{PV01}_{\text{projection}}^{(k)} \equiv PV(P_d, L_{k,+1\text{bp}}) - PV(P_d, L_k),$$
+\text{PV01}_{\text{projection}}^{(k)} \equiv PV(P_d, L_{k,+1\text{bp}}\) - PV(P_d, L_k),
 
 holding discount curve fixed.
 
@@ -375,26 +387,30 @@ The Treasury futures basis trade is often called simply "the basis trade" on rat
 
 ### 28.4.1 Gross Basis and Net Basis
 
-Let $P^i(t)$ be the spot price of bond $i$ at time $t$, let $P^i_{fwd}(t)$ be its forward price to the last delivery date, let $F(t)$ be the futures price, and let $cf^i$ be the conversion factor. Then:
+Let )P^i(t)\( be the spot price of bond )i\) at time (t), let (P^i_{fwd}(t)\( be its forward price to the last delivery date, let )F(t)\) be the futures price, and let (cf^i\$ be the conversion factor. Then:
 
-$$\boxed{GB^i(t) = P^i(t) - cf^i \times F(t)}$$
+\boxed{GB^i(t) = P^i(t) - cf^i \times F(t)}
 
-$$\boxed{NB^i(t) = P^i_{fwd}(t) - cf^i \times F(t) = GB^i(t) - \text{carry}^i(t)}$$
+\boxed{NB^i(t) = P^i_{fwd}(t) - cf^i \times F(t) = GB^i(t) - \text{carry}^i(t)}
 
 The term *net* basis is “gross basis net of carry.”
 
 At delivery, the forward price equals the spot price (carry equals zero), so gross basis equals net basis. Furthermore, both measures equal the cost of delivery.
 
+**Check (units and a toy decomposition):** \$GB\$, \$NB\$, and “carry” are all **price units** (points per 100 of face), not dollars. A simple decomposition is:
+- if \$GB=+0.50\$ points and carry-to-delivery is \$+0.30\$ points (coupon income exceeds financing), then \$NB=GB-\text{carry}=+0.20\$ points;
+- for \$G=\$100\$mm face, \$0.20\$ points corresponds to \$\$100\text{mm}\times 0.20/100=\$200{,}000\$ of net-basis PV (before mark-to-market and margin timing).
+
 > **Pitfall — Gross vs. net basis (carry double-counting):** Gross basis is a spot–futures gap; net basis adjusts gross basis for carry/financing to delivery.
 > **Why it matters:** If you forecast/mark P&L using net basis changes, and then separately add “carry”, you can overstate expected returns and mis-size leverage.
-> **Quick check:** If you compute P&L as \(G^i\,[NB^i(t')-NB^i(t)]\) (or its short-basis analog), stop—do **not** add coupon minus repo carry again unless you are using *gross* basis consistently.
+> **Quick check:** If you compute P&L as \$G^i\,[NB^i(t')-NB^i(t)]\$ (or its short-basis analog), stop—do **not** add coupon minus repo carry again unless you are using *gross* basis consistently.
 
 ### 28.4.2 The Long Basis Trade Construction
 
-A long basis trade in bond \(i\) can be implemented as:
-- Buy \(G^i\) face amount of deliverable bond \(i\).
+A long basis trade in bond \$i\$ can be implemented as:
+- Buy \$G^i\$ face amount of deliverable bond \$i\$.
 - Finance it in repo to the last delivery date.
-- Sell \(cf^i \times G^i / 100{,}000\) futures contracts.
+- Sell \$cf^i \times G^i / 100{,}000\$ futures contracts.
 
 Economically, “buy bond + repo financing” is a bond **forward** position to the delivery date, so the package is long the bond forward and short the futures (in conversion-factor-adjusted size).
 
@@ -412,7 +428,7 @@ In a frictionless description this looks “zero-cash” (repo finances the bond
 
 The P&L from a long basis trade is remarkably simple:
 
-$$\boxed{\text{P\&L} = G^i \times [NB^i(t') - NB^i(t)]}$$
+\boxed{\text{P\&L} = G^i \times [NB^i(t') - NB^i(t)]}
 
 This formula encapsulates everything: you profit if the net basis widens, lose if it narrows.
 
@@ -428,24 +444,24 @@ This formula encapsulates everything: you profit if the net basis widens, lose i
 - Last delivery date: 2000-06-30
 
 **Inputs**
-- Face amount: \(G = \$100{,}000{,}000\).
-- Net basis at entry: \(NB_{\text{entry}} = 7.45\) ticks.
-- Scenario A (convergence): \(NB = 3.00\) ticks.
-- Scenario B (adverse widening): \(NB = 22.00\) ticks.
-- Quote convention: 1 tick = \(1/32\) of a price point; price points are per 100 face.
+- Face amount: \$G = \$100{,}000{,}000\$.
+- Net basis at entry: \$NB_{\text{entry}} = 7.45\$ ticks.
+- Scenario A (convergence): \$NB = 3.00\$ ticks.
+- Scenario B (adverse widening): \$NB = 22.00\$ ticks.
+- Quote convention: 1 tick = \$1/32\$ of a price point; price points are per 100 face.
 
 **Outputs (What You Produce)**
 - P&L at horizon for a **short-basis** position:
-  - Scenario A: \(+\$139{,}063\)
-  - Scenario B: \(-\$454{,}688\)
-- Scaling: for \(G=\$100\)mm face, 1 tick \(\approx \$31{,}250\).
+  - Scenario A: \$+\$139{,}063\$
+  - Scenario B: \$-\$454{,}688\$
+- Scaling: for \$G=\$100\$mm face, 1 tick \$\approx \$31{,}250\$.
 
 **Step-by-step**
-1. Tick change: \(\Delta NB_{\text{ticks}} = NB_{\text{exit}} - NB_{\text{entry}}\).
-2. Convert ticks to points per 100: \(\Delta P = \Delta NB_{\text{ticks}}/32\).
-3. Convert to dollars: \(P\&L_{\text{long}} = G \cdot (\Delta P/100)\), so \(P\&L_{\text{short}} = -P\&L_{\text{long}}\).
-4. Scenario A: \(\Delta NB = 3.00-7.45=-4.45\) ticks ⇒ \(P\&L_{\text{short}}=+\$100\text{mm}\cdot(4.45/32)/100=+\$139{,}063\).
-5. Scenario B: \(\Delta NB = 22.00-7.45=14.55\) ticks ⇒ \(P\&L_{\text{short}}=-\$100\text{mm}\cdot(14.55/32)/100=-\$454{,}688\).
+1. Tick change: \$\Delta NB_{\text{ticks}} = NB_{\text{exit}} - NB_{\text{entry}}\$.
+2. Convert ticks to points per 100: \$\Delta P = \Delta NB_{\text{ticks}}/32\$.
+3. Convert to dollars: \$P\&L_{\text{long}} = G \cdot (\Delta P/100)\$, so \$P\&L_{\text{short}} = -P\&L_{\text{long}}\$.
+4. Scenario A: \$\Delta NB = 3.00-7.45=-4.45\$ ticks ⇒ \$P\&L_{\text{short}}=+\$100\text{mm}\cdot(4.45/32)/100=+\$139{,}063\$.
+5. Scenario B: \$\Delta NB = 22.00-7.45=14.55\$ ticks ⇒ \$P\&L_{\text{short}}=-\$100\text{mm}\cdot(14.55/32)/100=-\$454{,}688\$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -462,7 +478,7 @@ This formula encapsulates everything: you profit if the net basis widens, lose i
 
 ### 28.4.4 What the Net Basis Represents: CTD Optionality
 
-The net basis captures the value of the delivery options embedded in the futures contract. Under proper “tailing” conventions, the net basis of a particular bond can be interpreted as the value (with respect to that bond) of the short’s **quality option** at delivery: the cost of being committed to deliver bond \(i\) rather than being free to deliver the CTD.
+The net basis captures the value of the delivery options embedded in the futures contract. Under proper “tailing” conventions, the net basis of a particular bond can be interpreted as the value (with respect to that bond) of the short’s **quality option** at delivery: the cost of being committed to deliver bond \$i\$ rather than being free to deliver the CTD.
 
 The short futures holder has embedded options:
 
@@ -473,6 +489,12 @@ The short futures holder has embedded options:
 **3. End-of-Month Option**: After the last trading day, the short can still deliver based on the final settlement price while bond prices may have moved
 
 Key intuition: if a bond’s net basis is near zero, then the quality option “with respect to that bond” is nearly worthless—selling that bond forward is close to selling the futures contract (because the bond is close to CTD under current conditions).
+
+**Expand (two-path story):** A Treasury future is economically like “sell a forward on the *cheapest* deliverable bond.” The short is allowed to pick which bond to deliver, so the futures short effectively owns an option to choose the cheapest invoice cost. That choice makes the futures price behave like a **minimum** over deliverable forward prices (after conversion-factor adjustment). Your bond-specific net basis \$NB^i\$ is then “how much worse it would be” to be forced to deliver bond \$i\$ instead of the eventual CTD.
+
+**Check (limiting cases):**
+- If one bond is *clearly* CTD under a wide range of yield scenarios, the quality option is small and its net basis tends to be close to the CTD-implied benchmark.
+- If two bonds are near-indifferent (both plausible CTD), the quality option becomes valuable and net basis becomes more convex (“short volatility” for a short-basis trade), because small rate moves can flip the identity of CTD.
 
 ### 28.4.5 Net Basis Behavior: Like a Straddle on Rates
 
@@ -486,7 +508,7 @@ This option-like behavior explains why basis trades have significant tail risk: 
 
 > **Desk Reality:** Near-CTD short-basis positions are implicitly short “CTD-switch” optionality (short volatility).
 > **Common break:** A parallel rally or selloff pushes your bond away from CTD and the net basis widens, generating losses even if you expect delivery convergence.
-> **What to check:** Stress net basis under \(\pm 50\) bp parallel shifts and plausible CTD switches; size so that interim widening + margin/haircuts are survivable (options are sometimes used to cap the tail).
+> **What to check:** Stress net basis under \$\pm 50\$ bp parallel shifts and plausible CTD switches; size so that interim widening + margin/haircuts are survivable (options are sometimes used to cap the tail).
 
 ### 28.4.6 CTD Dynamics: When the Cheapest Bond Changes
 
@@ -516,8 +538,8 @@ When yields move significantly, the CTD can switch to a different bond. For a sh
 > - The 6.50s move away from CTD
 > - Suppose the net basis of the 6.50s widens from 13.8 to 25.0 ticks
 >
-> A $50mm short basis position in the 6.50s would lose approximately:
-> - $50mm × (25 - 13.8)/32 / 100 = $175,000
+> A \\\$50mm short basis position in the 6.50s would lose approximately:
+> - \\\$50mm × \$25 - 13.8(/32 / 100 = \$175,000
 
 ---
 
@@ -530,7 +552,7 @@ In trader language, you are expressing a view on *relative richness/cheapness* (
 
 ### 28.5.2 Example: Trading TED Spread Differentials
 
-**Setup**: Two bonds have different TED spreads (spreads to Eurodollar/SOFR futures rates):
+**Setup**: Two bonds have different TED spreads )spreads to Eurodollar/SOFR futures rates(:
 - Bond A: TED spread of 15.6 bp
 - Bond B: TED spread of 20.5 bp
 
@@ -543,7 +565,7 @@ In trader language, you are expressing a view on *relative richness/cheapness* (
 **What You're Short**:
 - Bond B's cheapness relative to Bond A
 
-**Critical Hedge Construction**: A spread-of-spreads trade should be (approximately) DV01-neutral (or key-rate-neutral) so that a parallel shift in rates does not dominate the P&L.
+**Critical Hedge Construction**: A spread-of-spreads trade should be (approximately) DV01-neutral )or key-rate-neutral\$ so that a parallel shift in rates does not dominate the P&L.
 
 The trade must be constructed so that:
 1. Each bond is hedged against its own rate risk using futures
@@ -565,12 +587,12 @@ A classic spread-of-spreads example is trading the spread between on-the-run and
 
 **The Trade**: Sell the OTR asset swap, buy the old 5Y asset swap, sized so DV01s match.
 
-**Result (computed below)**: The forward spread of spreads narrows from 7.6 bp to 2.9 bp, producing a profit of about $192k for a $100mm position with forward DV01 0.04086 per bp.
+**Result (computed below)**: The forward spread of spreads narrows from 7.6 bp to 2.9 bp, producing a profit of about \$192k for a \\\$100mm position with forward DV01 0.04086 per bp.
 
 > **Worked Example: Spread of Spreads P&L**
 >
 > **Initial Position (Jan 17, 2001):**
-> - Short $100mm OTR 5Y asset swap at -91.3 bp spread
+> - Short \\\$100mm OTR 5Y asset swap at -91.3 bp spread
 > - Long offsetting DV01 in old 5Y asset swap at -75.4 bp spread
 > - Forward spread of spreads = 7.6 bp
 >
@@ -582,7 +604,7 @@ A classic spread-of-spreads example is trading the spread between on-the-run and
 > **P&L Calculation:**
 > - Change in spread of spreads = 7.6 - 2.9 = 4.7 bp
 > - Forward DV01 = 0.04086 per bp
-> - P&L ≈ $100mm × 0.04086 × 4.7 = **$192,042**
+> - P&L ≈ \\\$100mm × 0.04086 × 4.7 = **\$192,042**
 >
 > The trade generated P&L purely from the spread-of-spreads convergence.
 
@@ -622,10 +644,10 @@ Even outside marquee crisis windows, funding liquidity can tighten abruptly. For
 - Reduce carry (coupon minus financing cost).
 - Force deleveraging if the financing horizon shortens or haircuts rise.
 
-**Toy sizing example (illustrative, not historical):** financing \(\$1\) billion overnight, moving repo from \(2\%\) to \(10\%\) changes daily interest cost from
-- \(\$1\text{bn} \times 2\% \times (1/360) = \$55{,}556\) per day to
-- \(\$1\text{bn} \times 10\% \times (1/360) = \$277{,}778\) per day,
-an extra \(\$222{,}222\) per day. On a trade targeting a few ticks/bp of convergence, that can dominate the economics.
+**Toy sizing example (illustrative, not historical):** financing \$\$1\$ billion overnight, moving repo from \$2\%\$ to \$10\%\$ changes daily interest cost from
+- \$\$1\text{bn} \times 2\% \times (1/360\$ = \$55{,}556\$ per day to
+- \$\$1\text{bn} \times 10\% \times )1/360\$ = \$277{,}778\$ per day,
+an extra \$\$222{,}222\$ per day. On a trade targeting a few ticks/bp of convergence, that can dominate the economics.
 
 Lesson: term repo reduces funding cliff risk but usually costs more; sizing needs to reflect the worst plausible funding path, not just the expected convergence.
 
@@ -693,7 +715,7 @@ Understanding the difference between futures and cash positions is essential:
 
 **Cash Bonds (financed via repo):**
 - No daily margin (unless using cleared repo)
-- Haircuts tie up capital: a 2% haircut means $2mm capital per $100mm financed
+- Haircuts tie up capital: a 2% haircut means \\\$2mm capital per \\\$100mm financed
 - Repo can be overnight (funding cliff risk) or term (more expensive)
 
 **The Asymmetry:**
@@ -716,7 +738,7 @@ Basis trades should be sized based on three factors:
 
 ### 28.7.7 Entry and Exit
 
-**Entry**: Look for both technical dislocations (forced selling, balance-sheet constraints) and fundamental mispricings. The best basis trades combine a sound economic thesis with a catalyst that will cause convergence.
+**Entry**: Look for both technical dislocations (forced selling, balance-sheet constraints\$ and fundamental mispricings. The best basis trades combine a sound economic thesis with a catalyst that will cause convergence.
 
 **Exit**: Define the exit criteria before entry:
 - Target profit level
@@ -737,9 +759,9 @@ When you write up (or review) any rates basis/RV trade, explicitly list:
 
 | Exposure | Questions to Answer |
 |----------|---------------------|
-| **Discount curve exposure** | Are you long/short OIS discount factors $P_d$? Do you report $\text{PV01}_{\text{discount}}$ separately? |
-| **Projection curve exposure** | Which forward curve(s) drive your coupons (IBOR 3M, IBOR 6M, OIS, etc.)? Do you report $\text{PV01}_{\text{projection}}^{(k)}$ per index? |
-| **Quoted basis exposure** | Which basis quote(s) enter PV (e.g., $e_{1,2}(T)$)? What is your basis PV01 (per $1mm)? |
+| **Discount curve exposure** | Are you long/short OIS discount factors $P_d$? Do you report \text{PV01}_{\text{discount}}$ separately? |
+| **Projection curve exposure** | Which forward curve(s) drive your coupons (IBOR 3M, IBOR 6M, OIS, etc.)? Do you report $\text{PV01}_{\text{projection}}^{(k)}\$ per index? |
+| **Quoted basis exposure** | Which basis quote(s) enter PV (e.g., )e_{1,2}(T)? What is your basis PV01 (per \\\$1mm)? |
 | **Benchmark choice exposure (swap spreads)** | Are you measuring swap spread vs on-the-run Treasury yields, or fitted/interpolated Treasury curve yields? Tuckman emphasizes this choice can distort the signal due to liquidity and special financing in on-the-run issues. |
 | **Funding/repo exposure (cash legs)** | If you hold/short a cash bond, what repo rate is assumed? What is carry (interest income − financing cost) and how sensitive is it to repo moves? |
 | **Convexity and curve-shape residuals** | Are you truly DV01-neutral (parallel) but exposed to twists/curvature? Are there convexity mismatches? |
@@ -762,82 +784,82 @@ and quantify PV and par-rate differences.
 
 #### A.1 Conventions
 
-- Notional $N = \$1{,}000{,}000$.
-- Annual payments at $T_1 = 1$, $T_2 = 2$, $T_3 = 3$.
-- Accruals $\tau_i = 1$ (toy).
-- Swap direction: pay fixed $K$, receive floating IBOR.
+- Notional (N = \$1{,}000{,}000).
+- Annual payments at (T_1 = 1), (T_2 = 2), (T_3 = 3).
+- Accruals (\tau_i = 1\$ (toy).
+- Swap direction: pay fixed )K(, receive floating IBOR.
 
 **Legacy single-curve inputs (IBOR curve):** discount factors
-$$P_L(0,1) = 0.9650,\quad P_L(0,2) = 0.9250,\quad P_L(0,3) = 0.8850.$$
+P_L(0,1) = 0.9650,\quad P_L(0,2) = 0.9250,\quad P_L(0,3) = 0.8850.
 
 **Multi-curve inputs:**
 - Discount factors (OIS):
-$$P_d(0,1) = 0.9700,\quad P_d(0,2) = 0.9400,\quad P_d(0,3) = 0.9100.$$
+P_d(0,1) = 0.9700,\quad P_d(0,2) = 0.9400,\quad P_d(0,3) = 0.9100.
 
 - Projection forwards (IBOR) taken from the legacy curve via simple no-arb identities:
-$$\begin{aligned}
+\begin{aligned}
 L(0,0,1) &= \frac{1}{P_L(0,1)} - 1 = \frac{1}{0.9650} - 1 = 0.036269,\\
 L(0,1,2) &= \frac{P_L(0,1)}{P_L(0,2)} - 1 = \frac{0.9650}{0.9250} - 1 = 0.043243,\\
 L(0,2,3) &= \frac{P_L(0,2)}{P_L(0,3)} - 1 = \frac{0.9250}{0.8850} - 1 = 0.045197.
-\end{aligned}$$
+\end{aligned}
 
 (Toy: forwards remain unchanged between frameworks.)
 
-#### A.2 Step 1 — Compute Legacy Single-Curve Par Rate $K_{\text{par}}^{\text{(single)}}$
+#### A.2 Step 1 — Compute Legacy Single-Curve Par Rate (K_{\text{par}}^{\text{(single)}})
 
 Use the par swap-rate concept (floating leg at par implies fixed leg at par).
 
 **Annuity:**
-$$A_L = \sum_{i=1}^{3} \tau_i P_L(0,T_i) = 0.9650 + 0.9250 + 0.8850 = 2.7750.$$
+A_L = \sum_{i=1}^{3} \tau_i P_L\$0,T_i\$ = 0.9650 + 0.9250 + 0.8850 = 2.7750.
 
-**Float PV (single-curve):** $1 - P_L(0,3) = 1 - 0.8850 = 0.1150$.
+**Float PV (single-curve):** \$1 - P_L(0,3) = 1 - 0.8850 = 0.1150(.
 
 **Par fixed rate:**
-$$K_{\text{par}}^{\text{(single)}} = \frac{0.1150}{2.7750} = 0.04144 \approx 4.144\%.$$
+K_{\text{par}}^{\text{(single)}} = \frac{0.1150}{2.7750} = 0.04144 \approx 4.144\%.
 
 Define the "same swap" as the contractual fixed rate:
-$$K \equiv 4.144\%.$$
+K \equiv 4.144\%.
 
 #### A.3 Step 2 — Price the Same Swap Under Legacy Single-Curve
 
-Because $K$ is the single-curve par rate, $PV_{\text{single}} = 0$ (by construction).
+Because (K\( is the single-curve par rate, )PV_{\text{single}} = 0\) (by construction).
 
 #### A.4 Step 3 — Price Under Multi-Curve (OIS Discounting, IBOR Projection)
 
 PV per unit notional (toy linear PV):
-$$PV_{\text{multi}}(0) = \sum_{i=1}^{3} \tau_i P_d(0,T_i)\bigl(L(0,T_{i-1},T_i) - K\bigr).$$
+)(PV_{\text{multi}}(0) = \sum_{i=1}^{3} \tau_i P_d\$0,T_i)\bigl(L(0,T_{i-1},T_i\) - K\bigr).
 
 Compute each term:
 - $T_1$: $L - K = 0.036269 - 0.04144 = -0.005171$;
-  $0.9700 \times (-0.005171) = -0.005016$.
+  \$0.9700 \times $-0.005171\$ = -0.005016$.
 
 - $T_2$: $L - K = 0.043243 - 0.04144 = +0.001803$;
-  $0.9400 \times 0.001803 = 0.001694$.
+  \$0.9400 \times 0.001803 = 0.001694$.
 
 - $T_3$: $L - K = 0.045197 - 0.04144 = +0.003757$;
-  $0.9100 \times 0.003757 = 0.003418$.
+  \$0.9100 \times 0.003757 = 0.003418$.
 
 **Sum:**
-$$PV_{\text{multi}}/N \approx -0.005016 + 0.001694 + 0.003418 = 0.000095.$$
+PV_{\text{multi}}/N \approx -0.005016 + 0.001694 + 0.003418 = 0.000095.
 
 So:
-$$PV_{\text{multi}} \approx 0.000095 \times 1{,}000{,}000 = \$95.$$
+PV_{\text{multi}} \approx 0.000095 \times 1{,}000{,}000 = \$95.
 
 #### A.5 Step 4 — Compare Par Rates Under the Two Frameworks
 
 **Multi-curve annuity:**
-$$A_d = 0.9700 + 0.9400 + 0.9100 = 2.8200.$$
+A_d = 0.9700 + 0.9400 + 0.9100 = 2.8200.
 
 **Multi-curve numerator:**
-$$\sum P_d L = 0.9700(0.036269) + 0.9400(0.043243) + 0.9100(0.045197) = 0.116959.$$
+\sum P_d L = 0.9700(0.036269) + 0.9400(0.043243) + 0.9100(0.045197) = 0.116959.
 
 **Multi-curve par rate:**
-$$K_{\text{par}}^{\text{(multi)}} = \frac{0.116959}{2.8200} = 0.041475 \approx 4.1475\%.$$
+K_{\text{par}}^{\text{(multi)}} = \frac{0.116959}{2.8200} = 0.041475 \approx 4.1475\%.
 
 #### A.6 Interpretation ("Discount vs Projection Basis")
 
-- The same contractual swap can have different PV when discounting switches from a legacy IBOR curve to OIS (multi-curve).
-- The par rate shift $K_{\text{par}}^{\text{(multi)}} - K_{\text{par}}^{\text{(single)}} \approx 0.34$ bp is a clean way to quantify the discounting/projection separation in this toy setup.
+- The same contractual swap can have different PV when discounting switches from a legacy IBOR curve to OIS $multi-curve$.
+- The par rate shift $K_{\text{par}}^{\text{(multi)}} - K_{\text{par}}^{\text{(single)}} \approx 0.34\$ bp is a clean way to quantify the discounting/projection separation in this toy setup.
 
 ---
 
@@ -848,153 +870,153 @@ $$K_{\text{par}}^{\text{(multi)}} = \frac{0.116959}{2.8200} = 0.041475 \approx 4
 #### B.1 Conventions
 
 - Notional $N = \$1{,}000{,}000$.
-- Maturity $T = 2$ years.
+- Maturity $T = 2\$ years.
 - Semiannual payments: $T = \{0.5, 1.0, 1.5, 2.0\}$, $\tau = 0.5$.
 
 **Discounting curve:** OIS discount factors (toy):
-$$P_d(0,0.5) = 0.9850,\; P_d(0,1) = 0.9700,\; P_d(0,1.5) = 0.9550,\; P_d(0,2) = 0.9400.$$
+P_d(0,0.5) = 0.9850,\; P_d(0,1) = 0.9700,\; P_d(0,1.5) = 0.9550,\; P_d(0,2) = 0.9400.
 
 **Projection curves:**
 - IBOR-6M forwards (toy inputs):
-$$L_{\text{IBOR}} = \{3.60\%, 3.80\%, 4.00\%, 4.10\%\} \text{ for the four periods}.$$
+$(L_{\text{IBOR}} = \{3.60\%, 3.80\%, 4.00\%, 4.10\%\} \text{ for the four periods}.)$
 
 - OIS forwards (implied from discount factors; simple-comp, consistent with the curve):
-$$L_{\text{OIS}}(0,T_{i-1},T_i) = \frac{1}{\tau}\Bigl(\frac{P_d(0,T_{i-1})}{P_d(0,T_i)} - 1\Bigr).$$
+L_{\text{OIS}}\$0,T_{i-1},T_i\$ = \frac{1}{\tau}\Bigl(\frac{P_d(0,T_{i-1})}{P_d\$0,T_i)} - 1\Bigr(.
 
 **Quoting convention (must be explicit):**
 
 We define:
-- $L_1 \equiv$ OIS leg,
-- $L_2 \equiv$ IBOR leg,
-- quoted spread $e$ is added to the OIS leg (so the OIS leg pays $L_{\text{OIS}} + e$).
+- $L_1 \equiv\$ OIS leg,
+- $L_2 \equiv\$ IBOR leg,
+- quoted spread $e\$ is added to the OIS leg (so the OIS leg pays $L_{\text{OIS}} + e$).
 
 #### B.2 Step 1 — Compute OIS Forwards from Discount Factors
 
-Using $\tau = 0.5$:
+Using (\tau = 0.5):
 
-- $0 \to 0.5$:
-$$L_{\text{OIS}} = \frac{1}{0.5}\Bigl(\frac{1}{0.9850} - 1\Bigr) = 2(1.015228 - 1) = 0.030456 = 3.0456\%.$$
+- \$0 \to 0.5(:
+L_{\text{OIS}} = \frac{1}{0.5}\Bigl(\frac{1}{0.9850} - 1\Bigr\$ = 2\$1.015228 - 1\$ = 0.030456 = 3.0456\%.
 
-- $0.5 \to 1.0$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9850}{0.9700} - 1\Bigr) = 2(1.015464 - 1) = 0.030928 = 3.0928\%.$$
+- \$0.5 \to 1.0(:
+L_{\text{OIS}} = 2\Bigl(\frac{0.9850}{0.9700} - 1\Bigr\$ = 2\$1.015464 - 1\$ = 0.030928 = 3.0928\%.
 
-- $1.0 \to 1.5$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9700}{0.9550} - 1\Bigr) = 0.031416 = 3.1416\%.$$
+- \$1.0 \to 1.5(:
+L_{\text{OIS}} = 2\Bigl(\frac{0.9700}{0.9550} - 1\Bigr\$ = 0.031416 = 3.1416\%.
 
-- $1.5 \to 2.0$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9550}{0.9400} - 1\Bigr) = 0.031914 = 3.1914\%.$$
+- \$1.5 \to 2.0(:
+L_{\text{OIS}} = 2\Bigl(\frac{0.9550}{0.9400} - 1\Bigr\$ = 0.031914 = 3.1914\%.
 
-#### B.3 Step 2 — Write Par Condition and Solve for $e$
+#### B.3 Step 2 — Write Par Condition and Solve for (e)
 
 From the par floating–floating basis swap condition, PV(IBOR leg) = PV(OIS+spread leg).
 
 Using common schedule:
-$$\sum_{i=1}^{4} \tau P_d(0,T_i)\,L_i^{\text{IBOR}} = \sum_{i=1}^{4} \tau P_d(0,T_i)\,(L_i^{\text{OIS}} + e).$$
+\sum_{i=1}^{4} \tau P_d\$0,T_i$\,L_i^{\text{IBOR}} = \sum_{i=1}^{4} \tau P_d\$0,T_i$\,$L_i^{\text{OIS}} + e$.
 
 Rearrange:
-$$e = \frac{\sum_{i=1}^{4} \tau P_d(0,T_i)(L_i^{\text{IBOR}} - L_i^{\text{OIS}})}{\sum_{i=1}^{4} \tau P_d(0,T_i)}.$$
+e = \frac{\sum_{i=1}^{4} \tau P_d\$0,T_iL_i^{\text{IBOR}} - L_i^{\text{OIS}}(}{\sum_{i=1}^{4} \tau P_d\$0,T_i)}.
 
-**Compute weights** $w_i = \tau P_d(0,T_i)$:
-- $w_{0.5} = 0.5(0.9850) = 0.4925$
-- $w_{1.0} = 0.5(0.9700) = 0.4850$
-- $w_{1.5} = 0.5(0.9550) = 0.4775$
-- $w_{2.0} = 0.5(0.9400) = 0.4700$
+**Compute weights** $w_i = \tau P_d\$0,T_i:
+- (w_{0.5} = 0.5(0.9850) = 0.4925)
+- (w_{1.0} = 0.5(0.9700) = 0.4850)
+- (w_{1.5} = 0.5(0.9550) = 0.4775)
+- (w_{2.0} = 0.5(0.9400) = 0.4700)
 
-**Sum** $W = \sum w_i = 1.9250$.
+**Sum** (W = \sum w_i = 1.9250).
 
-**Compute differences** $\Delta_i = L_i^{\text{IBOR}} - L_i^{\text{OIS}}$:
-- $0 \to 0.5$: $0.03600 - 0.030456 = 0.005544$
-- $0.5 \to 1.0$: $0.03800 - 0.030928 = 0.007072$
-- $1.0 \to 1.5$: $0.04000 - 0.031416 = 0.008584$
-- $1.5 \to 2.0$: $0.04100 - 0.031914 = 0.009086$
+**Compute differences** (\Delta_i = L_i^{\text{IBOR}} - L_i^{\text{OIS}}):
+- \$0 \to 0.5(: \$0.03600 - 0.030456 = 0.005544)
+- \$0.5 \to 1.0(: \$0.03800 - 0.030928 = 0.007072)
+- \$1.0 \to 1.5(: \$0.04000 - 0.031416 = 0.008584)
+- \$1.5 \to 2.0(: \$0.04100 - 0.031914 = 0.009086)
 
 **Compute numerator:**
-$$\sum w_i \Delta_i = 0.4925(0.005544) + 0.4850(0.007072) + 0.4775(0.008584) + 0.4700(0.009086) \approx 0.014530.$$
+\sum w_i \Delta_i = 0.4925(0.005544) + 0.4850(0.007072) + 0.4775(0.008584) + 0.4700(0.009086) \approx 0.014530.
 
 **Therefore:**
-$$e \approx \frac{0.014530}{1.9250} = 0.007548 \approx 0.7548\% = 75.5\text{ bp}.$$
+e \approx \frac{0.014530}{1.9250} = 0.007548 \approx 0.7548\% = 75.5\text{ bp}.
 
 #### B.4 Sanity Check
 
-Because IBOR forwards are higher than OIS forwards in all periods, the spread $e$ added to the OIS leg must be positive to make the legs equal PV. ✅
+Because IBOR forwards are higher than OIS forwards in all periods, the spread (e\$ added to the OIS leg must be positive to make the legs equal PV. ✅
 
 ---
 
-### Example C — Discount PV01 vs Projection PV01 for a Swap (Finite-Difference)
+### Example C — Discount PV01 vs Projection PV01 for a Swap )Finite-Difference(
 
-**Goal:** Compute (finite-difference):
-- $\text{PV01}_{\text{discount}}$: bump OIS discount curve $+1$ bp, hold projection fixed,
-- $\text{PV01}_{\text{projection}}$: bump IBOR projection curve $+1$ bp, hold discount fixed.
+**Goal:** Compute )finite-difference(:
+- )\text{PV01}_{\text{discount}}(: bump OIS discount curve )+1\$ bp, hold projection fixed,
+- (\text{PV01}_{\text{projection}}): bump IBOR projection curve (+1\$ bp, hold discount fixed.
 
 #### C.1 Conventions
 
 - Use a 3Y annual-pay swap, same dates as Example A.
-- Notional $N = \$1{,}000{,}000$.
-- Pay fixed $K = 4.00\%$, receive IBOR forwards $L = \{3.6269\%, 4.3243\%, 4.5197\%\}$.
-- Discount curve = OIS discount factors $P_d(0,1) = 0.97$, $P_d(0,2) = 0.94$, $P_d(0,3) = 0.91$.
-- Accruals $\tau = 1$.
+- Notional )N = \$1{,}000{,}000(.
+- Pay fixed )K = 4.00\%(, receive IBOR forwards )L = \{3.6269\%, 4.3243\%, 4.5197\%\}(.
+- Discount curve = OIS discount factors )P_d(0,1) = 0.97(, )P_d(0,2) = 0.94(, )P_d(0,3) = 0.91(.
+- Accruals )\tau = 1(.
 
 **Bump rules (must be explicit):**
-- **Discount-curve bump:** parallel zero-rate bump $+1$ bp approximated by
-$$P_{d,+}(0,T) = P_d(0,T)\,e^{-0.0001\,T}.$$
+- **Discount-curve bump:** parallel zero-rate bump )+1\$ bp approximated by
+P_{d,+}(0,T) = P_d(0,T)\,e^{-0.0001\,T}.
 
-- **Projection-curve bump:** add $+1$ bp to each forward:
-$$L_i^{+} = L_i + 0.0001.$$
+- **Projection-curve bump:** add (+1\$ bp to each forward:
+L_i^{+} = L_i + 0.0001.
 
 In both cases, hold the other curve fixed.
 
 #### C.2 Step 1 — Base PV
 
 PV per unit notional:
-$$PV(0) = \sum_{i=1}^{3} P_d(0,T_i)\,(L_i - K).$$
+PV(0) = \sum_{i=1}^{3} P_d\$0,T_i$\,$L_i - K$.
 
-Compute $L_i - K$:
-- $T_1$: $0.036269 - 0.040000 = -0.003731$
-- $T_2$: $0.043243 - 0.040000 = +0.003243$
-- $T_3$: $0.045197 - 0.040000 = +0.005197$
+Compute (L_i - K):
+- (T_1): \$0.036269 - 0.040000 = -0.003731(
+- )T_2(: \$0.043243 - 0.040000 = +0.003243)
+- (T_3): \$0.045197 - 0.040000 = +0.005197(
 
 Multiply by discount factors:
-- $0.9700(-0.003731) = -0.003619$
-- $0.9400(0.003243) = 0.003048$
-- $0.9100(0.005197) = 0.004729$
+- \$0.9700)-0.003731\$ = -0.003619(
+- \$0.9400(0.003243) = 0.003048)
+- \$0.9100(0.005197) = 0.004729(
 
 **Sum:**
-$$PV/N \approx -0.003619 + 0.003048 + 0.004729 = 0.004159.$$
+PV/N \approx -0.003619 + 0.003048 + 0.004729 = 0.004159.
 
 So:
-$$PV \approx 0.004159 \times 1{,}000{,}000 = \$4{,}159.$$
+PV \approx 0.004159 \times 1{,}000{,}000 = \$4{,}159.
 
 #### C.3 Step 2 — Discount PV01 (Bump Discount Only)
 
 **Compute bumped discount factors:**
-- $T = 1$: $0.97\,e^{-0.0001} \approx 0.97(0.9999) = 0.969903$
-- $T = 2$: $0.94\,e^{-0.0002} \approx 0.939812$
-- $T = 3$: $0.91\,e^{-0.0003} \approx 0.909727$
+- (T = 1): \$0.97\,e^{-0.0001} \approx 0.97(0.9999) = 0.969903(
+- )T = 2(: \$0.94\,e^{-0.0002} \approx 0.939812)
+- (T = 3): \$0.91\,e^{-0.0003} \approx 0.909727(
 
-Recompute PV with same $L_i$ and $K$:
-$$PV_{d,+}/N \approx 0.969903(-0.003731) + 0.939812(0.003243) + 0.909727(0.005197).$$
+Recompute PV with same ) $L_i\$ and (K):
+PV_{d,+}/N \approx 0.969903$-0.003731\$ + 0.939812(0.003243) + 0.909727(0.005197).
 
 Numerically:
-$$\approx -0.003619 + 0.003048 + 0.004728 = 0.004157.$$
+\approx -0.003619 + 0.003048 + 0.004728 = 0.004157.
 
-So $PV_{d,+} \approx \$4{,}157$.
+So (PV_{d,+} \approx \$4{,}157).
 
 **Therefore:**
-$$\boxed{\text{PV01}_{\text{discount}} = PV_{d,+} - PV \approx 4{,}157 - 4{,}159 = -\$2 \text{ per \$1mm}.}$$
+\boxed{\text{PV01}_{\text{discount}} = PV_{d,+} - PV \approx 4{,}157 - 4{,}159 = -\$2 \text{ per \\\$1mm}.}
 
 #### C.4 Step 3 — Projection PV01 (Bump Projection Only)
 
-Bump forwards by $+1$ bp: $L_i^{+} = L_i + 0.0001$.
+Bump forwards by (+1\$ bp: ) $L_i^{+} = L_i + 0.0001(.
 
 PV change per unit notional:
-$$\Delta PV / N = \sum_{i=1}^{3} P_d(0,T_i) \cdot 0.0001 = 0.0001(0.97 + 0.94 + 0.91) = 0.000282.$$
+\Delta PV / N = \sum_{i=1}^{3} P_d\$0,T_i\$ \cdot 0.0001 = 0.0001\$0.97 + 0.94 + 0.91\$ = 0.000282.
 
 So:
-$$\boxed{\text{PV01}_{\text{projection}} \approx 0.000282 \times 1{,}000{,}000 = \$282 \text{ per \$1mm}.}$$
+\boxed{\text{PV01}_{\text{projection}} \approx 0.000282 \times 1{,}000{,}000 = \$282 \text{ per \\\$1mm}.}
 
 #### C.5 Interpretation ("Where the Risk Lives")
 
-In this decomposition, the swap's PV is far more sensitive to projection ($+\$282$/bp) than to discounting ($\approx -\$2$/bp).
+In this decomposition, the swap's PV is far more sensitive to projection +\$282$/bp$ than to discounting \approx -\$2(/bp).
 
 **Intuition:** bumping forwards changes the size of projected coupons, while bumping discount factors changes primarily the present-valuing of already-nearly-offsetting legs.
 
@@ -1004,26 +1026,26 @@ In this decomposition, the swap's PV is far more sensitive to projection ($+\$28
 
 ### Example D — Basis Spread Sensitivity ("Basis PV01") for Example B
 
-**Goal:** PV change per $+1$ bp change in quoted basis spread $e$, per $\$1$mm notional.
+**Goal:** PV change per (+1\$ bp change in quoted basis spread )e(, per )\$1(mm notional.
 
 #### D.1 Conventions
 
 - Use Example B basis swap (2Y semiannual).
-- Spread $e$ is on the OIS leg; position is receive IBOR, pay (OIS + e).
-- Notional $N = \$1{,}000{,}000$.
-- Discount factors and weights from Example B: $W = \sum \tau P_d = 1.9250$.
+- Spread )e\$ is on the OIS leg; position is receive IBOR, pay (OIS + e).
+- Notional (N = \$1{,}000{,}000).
+- Discount factors and weights from Example B: (W = \sum \tau P_d = 1.9250).
 
 #### D.2 Calculation
 
 PV of spread leg (per unit basis rate) is:
-$$PV_{\text{spread}} = -N \sum_i \tau P_d(0,T_i)\,e = -N\,W\,e.$$
+PV_{\text{spread}} = -N \sum_i \tau P_d\$0,T_i$\,e = -N\,W\,e.
 
-So per $+1$ bp ($\Delta e = 0.0001$):
-$$\Delta PV \approx -N\,W\,0.0001 = -(1{,}000{,}000)(1.9250)(0.0001) = -\$192.50.$$
+So per (+1\$ bp \Delta e = 0.0001:
+\Delta PV \approx -N\,W\,0.0001 = -(1{,}000{,}000)(1.9250)(0.0001) = -\$192.50.
 
 #### D.3 Output
 
-$$\boxed{\text{Basis PV01 (for this position): } -\$192.50 \text{ per +1 bp of } e \text{ per \$1mm notional}.}$$
+\boxed{\text{Basis PV01 (for this position): } -\$192.50 \text{ per +1 bp of } e \text{ per \\\$1mm notional}.}
 
 ---
 
@@ -1034,46 +1056,46 @@ $$\boxed{\text{Basis PV01 (for this position): } -\$192.50 \text{ per +1 bp of }
 #### E.1 Conventions
 
 - Use the same 2Y semiannual schedule as Example B.
-- Discount curve $P_d$ same as Example B.
+- Discount curve (P_d\$ same as Example B.
 - Projection forwards:
-  - IBOR forwards: $\{0.036, 0.038, 0.040, 0.041\}$.
-  - OIS forwards: from Example B $\{0.030456, 0.030928, 0.031416, 0.031914\}$.
-- Notional $N = \$1{,}000{,}000$.
-- Accrual $\tau = 0.5$.
-- Choose a common fixed rate for replication: $K_{\text{rep}} = 3.50\%$ (arbitrary).
-- Define weights $w_i = \tau P_d(0,T_i)$ (from Example B):
-$$w = \{0.4925, 0.4850, 0.4775, 0.4700\}.$$
+  - IBOR forwards: )\{0.036, 0.038, 0.040, 0.041\}(.
+  - OIS forwards: from Example B )\{0.030456, 0.030928, 0.031416, 0.031914\}(.
+- Notional )N = \$1{,}000{,}000(.
+- Accrual )\tau = 0.5(.
+- Choose a common fixed rate for replication: )K_{\text{rep}} = 3.50\%\$ (arbitrary).
+- Define weights (w_i = \tau P_d\$0,T_i)\$ (from Example B):
+w = \{0.4925, 0.4850, 0.4775, 0.4700\}.
 
-#### E.2 Step 1 — PV of the "IBOR Pay-Fixed Swap" at $K_{\text{rep}}$
+#### E.2 Step 1 — PV of the "IBOR Pay-Fixed Swap" at (K_{\text{rep}})
 
 PV per unit notional:
-$$PV_{\text{IBORswap}} = \sum_i w_i(L_i^{\text{IBOR}} - K_{\text{rep}}).$$
+PV_{\text{IBORswap}} = \sum_i w_i$L_i^{\text{IBOR}} - K_{\text{rep}}$.
 
-Differences $L_{\text{IBOR}} - K_{\text{rep}}$:
-- $0.036 - 0.035 = 0.001$
-- $0.038 - 0.035 = 0.003$
-- $0.040 - 0.035 = 0.005$
-- $0.041 - 0.035 = 0.006$
-
-Weighted sum:
-$$PV/N = 0.4925(0.001) + 0.4850(0.003) + 0.4775(0.005) + 0.4700(0.006) = 0.007155.$$
-
-So $PV_{\text{IBORswap}} = \$7{,}155$.
-
-#### E.3 Step 2 — PV of the "OIS Pay-Fixed Swap" at $K_{\text{rep}}$
-
-$$PV_{\text{OISswap}} = \sum_i w_i(L_i^{\text{OIS}} - K_{\text{rep}}).$$
-
-Differences $L_{\text{OIS}} - 0.035$:
-- $0.030456 - 0.035 = -0.004544$
-- $0.030928 - 0.035 = -0.004072$
-- $0.031416 - 0.035 = -0.003584$
-- $0.031914 - 0.035 = -0.003086$
+Differences (L_{\text{IBOR}} - K_{\text{rep}}):
+- \$0.036 - 0.035 = 0.001(
+- \$0.038 - 0.035 = 0.003)
+- \$0.040 - 0.035 = 0.005(
+- \$0.041 - 0.035 = 0.006)
 
 Weighted sum:
-$$PV/N \approx -0.4925(0.004544) - 0.4850(0.004072) - 0.4775(0.003584) - 0.4700(0.003086) = -0.007375.$$
+PV/N = 0.4925(0.001) + 0.4850(0.003) + 0.4775(0.005) + 0.4700(0.006) = 0.007155.
 
-So $PV_{\text{OISswap}} \approx -\$7{,}375$.
+So (PV_{\text{IBORswap}} = \$7{,}155).
+
+#### E.3 Step 2 — PV of the "OIS Pay-Fixed Swap" at (K_{\text{rep}})
+
+PV_{\text{OISswap}} = \sum_i w_i$L_i^{\text{OIS}} - K_{\text{rep}}$.
+
+Differences (L_{\text{OIS}} - 0.035):
+- \$0.030456 - 0.035 = -0.004544(
+- \$0.030928 - 0.035 = -0.004072)
+- \$0.031416 - 0.035 = -0.003584(
+- \$0.031914 - 0.035 = -0.003086)
+
+Weighted sum:
+PV/N \approx -0.4925(0.004544) - 0.4850(0.004072) - 0.4775(0.003584) - 0.4700(0.003086) = -0.007375.
+
+So (PV_{\text{OISswap}} \approx -\$7{,}375).
 
 #### E.4 Step 3 — Replication Portfolio
 
@@ -1081,25 +1103,25 @@ Take:
 - **Long** the IBOR pay-fixed swap (pay fixed, receive IBOR).
 - **Short** the OIS pay-fixed swap (so you receive fixed, pay OIS).
 
-Then fixed legs at $K_{\text{rep}}$ cancel, leaving net receive IBOR, pay OIS (a zero-spread basis swap).
+Then fixed legs at (K_{\text{rep}}\$ cancel, leaving net receive IBOR, pay OIS )a zero-spread basis swap(.
 
 **PV of portfolio:**
-$$PV_{\text{rep}} = PV_{\text{IBORswap}} - PV_{\text{OISswap}} \approx 7{,}155 - (-7{,}375) = \$14{,}530.$$
+PV_{\text{rep}} = PV_{\text{IBORswap}} - PV_{\text{OISswap}} \approx 7{,}155 - $-7{,}375\$ = \$14{,}530.
 
-#### E.5 Step 4 — Direct PV of the (No-Spread) Basis Swap
+#### E.5 Step 4 — Direct PV of the (No-Spread\$ Basis Swap
 
 Directly:
-$$PV_{\text{basis,no-spread}} = \sum_i w_i(L_i^{\text{IBOR}} - L_i^{\text{OIS}}).$$
+PV_{\text{basis,no-spread}} = \sum_i w_i$L_i^{\text{IBOR}} - L_i^{\text{OIS}}$.
 
-But this numerator was computed in Example B as $\approx 0.014530$ per unit notional, so:
-$$PV \approx 0.014530 \times 1{,}000{,}000 = \$14{,}530.$$
+But this numerator was computed in Example B as (\approx 0.014530\$ per unit notional, so:
+PV \approx 0.014530 \times 1{,}000{,}000 = \$14{,}530.
 
-**Match:** $PV_{\text{rep}} = PV_{\text{basis,no-spread}}$ (to rounding). ✅
+**Match:** (PV_{\text{rep}} = PV_{\text{basis,no-spread}}\$ (to rounding). ✅
 
-#### E.6 Adding the Quoted Spread $e$
+#### E.6 Adding the Quoted Spread )e(
 
-If the basis swap pays $(OIS + e)$, its PV becomes:
-$$PV_{\text{basis}} = PV_{\text{basis,no-spread}} - N\,W\,e.$$
+If the basis swap pays OIS + e, its PV becomes:
+PV_{\text{basis}} = PV_{\text{basis,no-spread}} - N\,W\,e.
 
 At the par spread from Example B, this equals zero.
 
@@ -1112,22 +1134,22 @@ At the par spread from Example B, this equals zero.
 #### F.1 Conventions
 
 - Maturity: 5Y.
-- Swap rate: $S_{\text{swap}} = 4.25\%$.
+- Swap rate: (S_{\text{swap}} = 4.25\%).
 - Government yield benchmarks:
-  - On-the-run yield $y_{\text{OTR}} = 4.00\%$,
-  - Fitted curve yield $y_{\text{fit}} = 3.92\%$.
+  - On-the-run yield (y_{\text{OTR}} = 4.00\%),
+  - Fitted curve yield (y_{\text{fit}} = 3.92\%).
 - Swap spread defined as swap rate − government yield.
 
 #### F.2 Calculations
 
 **Using on-the-run:**
-$$\text{SwapSpread}_{\text{OTR}} = 4.25\% - 4.00\% = 0.25\% = 25\text{ bp}.$$
+\text{SwapSpread}_{\text{OTR}} = 4.25\% - 4.00\% = 0.25\% = 25\text{ bp}.
 
 **Using fitted curve:**
-$$\text{SwapSpread}_{\text{fit}} = 4.25\% - 3.92\% = 0.33\% = 33\text{ bp}.$$
+\text{SwapSpread}_{\text{fit}} = 4.25\% - 3.92\% = 0.33\% = 33\text{ bp}.
 
 **Difference:**
-$$33\text{ bp} - 25\text{ bp} = 8\text{ bp}.$$
+(\$33\text{ bp} - 25\text{ bp} = 8\text{ bp}.
 
 #### F.3 Interpretation
 
@@ -1137,7 +1159,7 @@ Therefore, a swap-spread "signal" can move by several bp without economics chang
 
 ---
 
-### Example G — Swap Spread RV Trade: DV01-Hedged Construction ("What are you long/short?")
+### Example G — Swap Spread RV Trade: DV01-Hedged Construction $"What are you long/short?"$
 
 **Goal:** Build a toy swap-spread trade and DV01-hedge it with a Treasury bond.
 
@@ -1150,39 +1172,39 @@ Therefore, a swap-spread "signal" can move by several bp without economics chang
 - Swap fixed payment frequency: annual (toy), $\tau = 1$.
 
 **Discount factors used for swap annuity (toy OIS DFs):**
-$$P_d(0,1..5) = \{0.97, 0.94, 0.91, 0.88, 0.85\}.$$
+P_d(0,1..5) = \{0.97, 0.94, 0.91, 0.88, 0.85\}.
 
 **Treasury bond characteristics (toy):**
-- Clean price $P = 100$ per $100 face.
+- Clean price $P = 100\$ per \$100 face.
 - Modified duration $D_{\text{mod}} = 4.60$.
 - DV01 formula: $\text{DV01} = P \cdot D_{\text{mod}} / 10{,}000$.
 
 #### G.2 Step 1 — DV01 of the Swap (PV01 to Fixed Rate, Magnitude)
 
 **Swap annuity:**
-$$A = \sum_{i=1}^{5} \tau P_d(0,i) = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 = 4.55.$$
+A = \sum_{i=1}^{5} \tau P_d(0,i) = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 = 4.55.
 
 PV change for a 1 bp change in fixed rate (magnitude):
-$$\text{DV01}_{\text{swap}} \approx N_{\text{swap}} \cdot A \cdot 10^{-4} = 100{,}000{,}000 \times 4.55 \times 10^{-4} = \$45{,}500.$$
+\text{DV01}_{\text{swap}} \approx N_{\text{swap}} \cdot A \cdot 10^{-4} = 100{,}000{,}000 \times 4.55 \times 10^{-4} = \$45{,}500.
 
-**Sign check:** for a pay-fixed swap, rates up tends to increase value, so the PV01 sign is $+$ for a +1bp rate shift (toy linear view).
+**Sign check:** for a pay-fixed swap, rates up tends to increase value, so the PV01 sign is $+\$ for a +1bp rate shift (toy linear view).
 
-#### G.3 Step 2 — DV01 of the Treasury Bond per $100 Face
+#### G.3 Step 2 — DV01 of the Treasury Bond per \$100 Face
 
-$$\text{DV01}_{\text{bond, per \$100}} = \frac{P \cdot D_{\text{mod}}}{10{,}000} = \frac{100 \times 4.60}{10{,}000} = 0.046.$$
+\text{DV01}_{\text{bond, per \$100}} = \frac{P \cdot D_{\text{mod}}}{10{,}000} = \frac{100 \times 4.60}{10{,}000} = 0.046.
 
-Thus DV01 per $1 face is $0.046/100 = 0.00046$.
+Thus DV01 per \$1 face is \$0.046/100 = 0.00046$.
 
 #### G.4 Step 3 — Hedge Ratio
 
-Let Treasury face amount be $F$ dollars. Then:
-$$\text{DV01}_{\text{bond}} = 0.00046 \times F.$$
+Let Treasury face amount be $F\$ dollars. Then:
+\text{DV01}_{\text{bond}} = 0.00046 \times F.
 
 DV01 neutrality requires (using the standard hedge-ratio idea):
-$$0.00046\,F \approx 45{,}500 \quad\Rightarrow\quad F = \frac{45{,}500}{0.00046} = 98{,}913{,}043 \approx \$98.9\text{ mm face}.$$
+$\$0.00046\,F \approx 45{,}500 \quad\Rightarrow\quad F = \frac{45{,}500}{0.00046} = 98{,}913{,}043 \approx \$98.9\text{ mm face}.
 
 **Hedge ratio:**
-$$h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989.$$
+h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989.
 
 #### G.5 "What are you long/short?"
 
@@ -1201,63 +1223,63 @@ $$h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989.$$
 
 #### H.1 Conventions
 
-- Use Example G hedge: pay-fixed swap $N_{\text{swap}} = \$100$mm, long Treasury face $F = \$98.913$mm.
+- Use Example G hedge: pay-fixed swap (N_{\text{swap}} = \$100)mm, long Treasury face (F = \$98.913)mm.
 - Use DV01 approximation:
-  - Swap: $\$45{,}500$/bp (pay-fixed gains when rates rise).
-  - Bond: $\$45{,}500$/bp (long bond loses when yields rise).
-- Horizon: $d = 30$ days.
-- Treasury bond coupon: $c = 4\%$ annual, paid semiannually (2% per 180 days).
-- Repo financing rate: initial $r = 3.50\%$ (Actual/360-like approximation consistent with Tuckman's $rd/360$ term).
-- Assume settle on coupon date so $AI(0) = 0$ for simplicity.
+  - Swap: (\$45{,}500)/bp (pay-fixed gains when rates rise).
+  - Bond: (\$45{,}500)/bp (long bond loses when yields rise).
+- Horizon: (d = 30\$ days.
+- Treasury bond coupon: )c = 4\%\$ annual, paid semiannually (2% per 180 days).
+- Repo financing rate: initial (r = 3.50\%\$ )Actual/360-like approximation consistent with Tuckman's (rd/360\$ term).
+- Assume settle on coupon date so (AI(0) = 0\$ for simplicity.
 
 #### H.2 Scenario 1 — Parallel Shift: Swap Rate +10bp, Treasury Yield +10bp
 
 **Swap P&L:**
-$$\Delta PV_{\text{swap}} \approx +45{,}500 \times 10 = +\$455{,}000.$$
+\Delta PV_{\text{swap}} \approx +45{,}500 \times 10 = +\$455{,}000.
 
 **Bond price P&L** (long bond loses when yields rise):
-$$\Delta PV_{\text{bond}} \approx -45{,}500 \times 10 = -\$455{,}000.$$
+\Delta PV_{\text{bond}} \approx -45{,}500 \times 10 = -\$455{,}000.
 
-**Net (ignoring carry):** $\approx 0$.
+**Net (ignoring carry):** (\approx 0).
 
 **Interpretation:** DV01 hedge worked for parallel moves.
 
 #### H.3 Scenario 2 — Swap Spread Widening: Swap Rate +5bp, Treasury Yield Unchanged
 
 **Swap P&L:**
-$$+45{,}500 \times 5 = +\$227{,}500.$$
++45{,}500 \times 5 = +\$227{,}500.
 
-**Bond price P&L:** $\approx 0$.
+**Bond price P&L:** (\approx 0).
 
 **Add carry on the Treasury over 30 days** using Tuckman's decomposition:
-$$\text{P\&L} = \text{Price change} + \text{Interest income} - \text{Financing cost}.$$
+\text{P\&L} = \text{Price change} + \text{Interest income} - \text{Financing cost}.
 
 **Interest income over 30 days** (semiannual coupon accrual):
-$$\text{Interest} = F \times 0.02 \times \frac{30}{180} = 98.913\text{ mm} \times 0.0033333 \approx \$329{,}710.$$
+\text{Interest} = F \times 0.02 \times \frac{30}{180} = 98.913\text{ mm} \times 0.0033333 \approx \$329{,}710.
 
 **Financing cost:**
-$$\text{FinCost} = (F)(rd/360) = 98.913\text{ mm} \times 0.035 \times \frac{30}{360} = 98.913\text{ mm} \times 0.0029167 \approx \$288{,}496.$$
+\text{FinCost} = (F)$rd/360$ = 98.913\text{ mm} \times 0.035 \times \frac{30}{360} = 98.913\text{ mm} \times 0.0029167 \approx \$288{,}496.
 
 **Carry:**
-$$\text{Carry} \approx 329{,}710 - 288{,}496 = +\$41{,}214.$$
+\text{Carry} \approx 329{,}710 - 288{,}496 = +\$41{,}214.
 
 **Total scenario-2 P&L (toy):**
-$$\boxed{227{,}500 + 41{,}214 = \$268{,}714.}$$
+\boxed{227{,}500 + 41{,}214 = \$268{,}714.}
 
 #### H.4 Scenario 3 — Funding/Specialness Shock: Repo Rate +100bp (3.50% → 4.50%), No Price Move
 
-**Swap P&L:** $0$.
+**Swap P&L:** \$0(.
 
-**Bond carry under new repo** $r = 4.50\%$:
-$$\text{FinCost} = 98.913\text{ mm} \times 0.045 \times \frac{30}{360} = 98.913\text{ mm} \times 0.00375 \approx \$370{,}924.$$
+**Bond carry under new repo** )r = 4.50\%(:
+\text{FinCost} = 98.913\text{ mm} \times 0.045 \times \frac{30}{360} = 98.913\text{ mm} \times 0.00375 \approx \$370{,}924.
 
-Interest income unchanged $\approx \$329{,}710$.
+Interest income unchanged (\approx \$329{,}710).
 
 **Carry:**
-$$\text{Carry} \approx 329{,}710 - 370{,}924 = -\$41{,}214.$$
+\text{Carry} \approx 329{,}710 - 370{,}924 = -\$41{,}214.
 
-Relative to the base carry $+\$41{,}214$, the funding shock changes P&L by:
-$$\boxed{-41{,}214 - (+41{,}214) = -\$82{,}428.}$$
+Relative to the base carry (+\$41{,}214), the funding shock changes P&L by:
+\boxed{-41{,}214 - $+41{,}214\$ = -\$82{,}428.}
 
 #### H.5 Interpretation
 
@@ -1275,55 +1297,55 @@ This is why "swap spread" is not a pure derivatives spread: the cash leg drags i
 
 - Instruments: par swaps on 2Y and 10Y points.
 - Use annual-pay toy annuities from OIS discount factors:
-$$P_d(0,1..10) = \{0.97, 0.94, 0.91, 0.88, 0.85, 0.82, 0.79, 0.76, 0.73, 0.70\}.$$
+P_d(0,1..10) = \{0.97, 0.94, 0.91, 0.88, 0.85, 0.82, 0.79, 0.76, 0.73, 0.70\}.
 
-- PV01 of a swap's fixed leg per $1mm notional (magnitude):
-$$\text{PV01} \approx 1{,}000{,}000 \Bigl(\sum_{i=1}^{n} P_d(0,i)\Bigr) \cdot 10^{-4}.$$
+- PV01 of a swap's fixed leg per \\\$1mm notional (magnitude):
+\text{PV01} \approx 1{,}000{,}000 \Bigl(\sum_{i=1}^{n} P_d(0,i)\Bigr) \cdot 10^{-4}.
 
 **Trade direction (as required):**
 - Receive fixed 2Y (long duration).
 - Pay fixed 10Y (short duration).
 - Notional scaling to DV01-neutralize.
 
-#### I.2 Step 1 — Compute PV01s (per $1mm Notional)
+#### I.2 Step 1 — Compute PV01s (per \\\$1mm Notional)
 
 **2Y annuity:**
-$$A_2 = 0.97 + 0.94 = 1.91 \quad\Rightarrow\quad \text{PV01}_{2Y} = 1{,}000{,}000(1.91) \cdot 10^{-4} = \$191.$$
+A_2 = 0.97 + 0.94 = 1.91 \quad\Rightarrow\quad \text{PV01}_{2Y} = 1{,}000{,}000(1.91) \cdot 10^{-4} = \$191.
 
 **10Y annuity:**
-$$A_{10} = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 + 0.82 + 0.79 + 0.76 + 0.73 + 0.70 = 8.35$$
-$$\Rightarrow\quad \text{PV01}_{10Y} = 1{,}000{,}000(8.35) \cdot 10^{-4} = \$835.$$
+A_{10} = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 + 0.82 + 0.79 + 0.76 + 0.73 + 0.70 = 8.35
+\Rightarrow\quad \text{PV01}_{10Y} = 1{,}000{,}000(8.35) \cdot 10^{-4} = \$835.
 
 #### I.3 Step 2 — Choose Notionals for DV01-Neutralization
 
-Let 10Y notional be $N_{10} = \$1$mm, and 2Y notional be $N_2$. We want:
-$$N_2(191) \approx N_{10}(835) \quad\Rightarrow\quad N_2 \approx \frac{835}{191} = 4.372\text{ mm}.$$
+Let 10Y notional be (N_{10} = \$1)mm, and 2Y notional be (N_2). We want:
+N_2(191) \approx N_{10}(835) \quad\Rightarrow\quad N_2 \approx \frac{835}{191} = 4.372\text{ mm}.
 
 So:
-- Receive 2Y fixed on $4.372mm notional.
-- Pay 10Y fixed on $1.000mm notional.
+- Receive 2Y fixed on \$4.372mm notional.
+- Pay 10Y fixed on \$1.000mm notional.
 
 **Parallel DV01 check (magnitudes):**
-- Receive-2Y DV01 $\approx 4.372 \times 191 \approx \$835$.
-- Pay-10Y DV01 $\approx \$835$.
-- Net $\approx 0$. ✅
+- Receive-2Y DV01 (\approx 4.372 \times 191 \approx \$835).
+- Pay-10Y DV01 (\approx \$835).
+- Net (\approx 0). ✅
 
 #### I.4 Step 3 — Twist Scenario P&L
 
 **Twist scenario ("steepening"):**
-- 2Y rate increases by $+5$ bp,
-- 10Y rate increases by $+20$ bp.
+- 2Y rate increases by (+5\$ bp,
+- 10Y rate increases by )+20\$ bp.
 
 **P&L approximations:**
 
 Receive fixed loses when rates rise:
-$$\Delta PV_{2Y} \approx -(835) \times 5 = -\$4{,}175.$$
+\Delta PV_{2Y} \approx -(835) \times 5 = -\$4{,}175.
 
 Pay fixed gains when rates rise:
-$$\Delta PV_{10Y} \approx +(835) \times 20 = +\$16{,}700.$$
+\Delta PV_{10Y} \approx +(835) \times 20 = +\$16{,}700.
 
 **Net:**
-$$\boxed{\Delta PV \approx +\$12{,}525.}$$
+\boxed{\Delta PV \approx +\$12{,}525.}
 
 #### I.5 Interpretation
 
@@ -1340,10 +1362,10 @@ $$\boxed{\Delta PV \approx +\$12{,}525.}$$
 
 Use same OIS discount factors as Example I.
 
-**PV01 per $1mm:**
-- 2Y: $191.
-- 5Y: $A_5 = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 = 4.55 \Rightarrow \text{PV01}_{5Y} = \$455$.
-- 10Y: $835.
+**PV01 per \\\$1mm:**
+- 2Y: \$191.
+- 5Y: (A_5 = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 = 4.55 \Rightarrow \text{PV01}_{5Y} = \$455).
+- 10Y: \$835.
 
 **Position structure:**
 - Receive fixed 2Y and 10Y (wings),
@@ -1352,16 +1374,16 @@ Use same OIS discount factors as Example I.
 
 #### J.2 Step 1 — Choose Weights
 
-Let $N_2 = N_{10} = \$1$mm. Total wing DV01:
-$$191 + 835 = 1026.$$
+Let (N_2 = N_{10} = \$1)mm. Total wing DV01:
+(\$191 + 835 = 1026.
 
-Choose belly notional $N_5$ such that:
-$$N_5(455) \approx 1026 \quad\Rightarrow\quad N_5 = \frac{1026}{455} = 2.255\text{ mm}.$$
+Choose belly notional $N_5\$ such that:
+N_5(455) \approx 1026 \quad\Rightarrow\quad N_5 = \frac{1026}{455} = 2.255\text{ mm}.
 
 So the butterfly is:
-- Receive 2Y fixed on $1mm.
-- Pay 5Y fixed on $2.255mm.
-- Receive 10Y fixed on $1mm.
+- Receive 2Y fixed on \\\$1mm.
+- Pay 5Y fixed on \$2.255mm.
+- Receive 10Y fixed on \\\$1mm.
 
 **DV01 check:**
 - Receive wings DV01 $\approx 1026$.
@@ -1370,15 +1392,15 @@ So the butterfly is:
 
 #### J.3 Step 2 — Curvature Shock P&L
 
-**Curvature shock:** belly yield increases $+10$ bp, wings unchanged.
+**Curvature shock:** belly yield increases $+10\$ bp, wings unchanged.
 
 **Pay-fixed 5Y gains:**
-$$\Delta PV_{5Y} \approx +(1026) \times 10 = \$10{,}260.$$
+\Delta PV_{5Y} \approx +(1026) \times 10 = \$10{,}260.
 
 **Wings unchanged:** $\approx 0$.
 
 **Net:**
-$$\boxed{+\$10{,}260.}$$
+\boxed{+\$10{,}260.}
 
 #### J.4 Interpretation
 
@@ -1394,39 +1416,39 @@ DV01-neutral butterfly isolates relative movement of the belly vs wings, i.e., c
 
 - Use Example B 2Y semiannual basis swap.
 - Notional $N = \$1{,}000{,}000$.
-- Position: receive IBOR, pay (OIS + e) where $e = 0.7548\%$ (par at $t = 0$).
-- Horizon: first coupon date $t = 0.5$ years.
+- Position: receive IBOR, pay $OIS + e\$ where $e = 0.7548\%\$ $par at $t = 0.
+- Horizon: first coupon date (t = 0.5\$ years.
 - **Assumption for carry/rolldown:**
   - realized fixings equal initial forwards (toy),
   - discount and projection curves unchanged.
 
-#### K.2 Step 1 — First-Period Realized Net Coupon at $t = 0.5$
+#### K.2 Step 1 — First-Period Realized Net Coupon at )t = 0.5(
 
 **Receive IBOR coupon:**
-$$CF_{\text{IBOR}} = N\tau L_{0\to0.5}^{\text{IBOR}} = 1{,}000{,}000(0.5)(0.036) = \$18{,}000.$$
+CF_{\text{IBOR}} = N\tau L_{0\to0.5}^{\text{IBOR}} = 1{,}000{,}000(0.5)(0.036) = \$18{,}000.
 
 **Pay OIS + spread coupon:**
-$$CF_{\text{OIS}+e} = N\tau(L_{0\to0.5}^{\text{OIS}} + e) = 1{,}000{,}000(0.5)(0.030456 + 0.007548).$$
+CF_{\text{OIS}+e} = $$N\tau(L_{0\to0.5}^{\text{OIS}} + e\$ = 1{,}000{,}000(0.5)\$0.030456 + 0.007548$.
 
-Note $0.030456 + 0.007548 = 0.038004$, so:
-$$CF_{\text{OIS}+e} = 1{,}000{,}000(0.5)(0.038004) = \$19{,}002.$$
+Note \$0.030456 + 0.007548 = 0.038004(, so:
+CF_{\text{OIS}+e} = 1{,}000{,}000(0.5)(0.038004) = \$19{,}002.
 
 **Net cashflow (receive − pay):**
-$$CF_{0.5} = 18{,}000 - 19{,}002 = -\$1{,}002.$$
+CF_{0.5} = 18{,}000 - 19{,}002 = -\$1{,}002.
 
-#### K.3 Step 2 — Mark-to-Market of Remaining Swap at $t = 0.5$ (Curves Unchanged)
+#### K.3 Step 2 — Mark-to-Market of Remaining Swap at (t = 0.5\$ (Curves Unchanged)
 
-Remaining payment dates: $1.0, 1.5, 2.0$.
+Remaining payment dates: \$1.0, 1.5, 2.0).
 
-**Discount factors from $t = 0.5$:**
-$$P(0.5,T) = \frac{P(0,T)}{P(0,0.5)}.$$
+**Discount factors from (t = 0.5):**
+P(0.5,T) = \frac{P(0,T)}{P(0,0.5)}.
 
 So:
-- $P(0.5,1) = 0.9700/0.9850 = 0.985279$
-- $P(0.5,1.5) = 0.9550/0.9850 = 0.969543$
-- $P(0.5,2) = 0.9400/0.9850 = 0.954314$
+- (P(0.5,1) = 0.9700/0.9850 = 0.985279)
+- (P(0.5,1.5) = 0.9550/0.9850 = 0.969543)
+- (P(0.5,2) = 0.9400/0.9850 = 0.954314)
 
-**Weights at $t = 0.5$:** $w_i' = \tau P(0.5,T_i)$:
+**Weights at (t = 0.5):** (w_i' = \tau P\$0.5,T_i:
 - $w_1' = 0.5(0.985279) = 0.492640$
 - $w_2' = 0.5(0.969543) = 0.484772$
 - $w_3' = 0.5(0.954314) = 0.477157$
@@ -1434,41 +1456,41 @@ So:
 **Sum** $W' = 1.454568$.
 
 **Compute remaining par spread** (same formula as Example B but on remaining periods):
-$$e_{\text{rem}} = \frac{\sum w_i'(L_{\text{IBOR}} - L_{\text{OIS}})}{\sum w_i'}.$$
+e_{\text{rem}} = \frac{\sum w_i'(L_{\text{IBOR}} - L_{\text{OIS}})}{\sum w_i'}.
 
 Using remaining diffs:
-- $0.5 \to 1$: $0.007072$
-- $1 \to 1.5$: $0.008584$
-- $1.5 \to 2$: $0.009086$
+- \$0.5 \to 1$: \$0.007072$
+- \$1 \to 1.5$: \$0.008584$
+- \$1.5 \to 2$: \$0.009086$
 
 **Numerator:**
-$$0.492640(0.007072) + 0.484772(0.008584) + 0.477157(0.009086) \approx 0.011981.$$
+$\$0.492640(0.007072) + 0.484772(0.008584) + 0.477157(0.009086) \approx 0.011981.
 
 Hence:
-$$e_{\text{rem}} \approx \frac{0.011981}{1.454568} = 0.008237 = 0.8237\% = 82.4\text{ bp}.$$
+e_{\text{rem}} \approx \frac{0.011981}{1.454568} = 0.008237 = 0.8237\% = 82.4\text{ bp}.
 
-**Value of remaining swap** to the position (receive IBOR, pay OIS+$e_{\text{contract}}$) is:
-$$PV_{t=0.5} = N\,(e_{\text{rem}} - e_{\text{contract}})\,W' = 1{,}000{,}000(0.008237 - 0.007548)(1.454568).$$
+**Value of remaining swap** to the position (receive IBOR, pay OIS+)e_{\text{contract}}(\$ is:
+PV_{t=0.5} = N\,$e_{\text{rem}} - e_{\text{contract}}$\,W' = 1{,}000{,}000\$0.008237 - 0.007548$(1.454568).
 
-Difference $= 0.000689$. Multiply:
-$$PV_{t=0.5} \approx 1{,}000{,}000(0.000689)(1.454568) \approx \$1{,}002.$$
+Difference (= 0.000689). Multiply:
+PV_{t=0.5} \approx 1{,}000{,}000(0.000689)(1.454568) \approx \$1{,}002.
 
 #### K.4 Step 3 — Deterministic Carry/Rolldown P&L (Curves Unchanged)
 
-**Total P&L at $t = 0.5$** (realized coupon + MTM of remaining):
-$$\text{P\&L} \approx CF_{0.5} + PV_{t=0.5} \approx (-1{,}002) + (+1{,}002) \approx 0.$$
+**Total P&L at (t = 0.5)** (realized coupon + MTM of remaining):
+\text{P\&L} \approx CF_{0.5} + PV_{t=0.5} \approx $-1{,}002\$ + $+1{,}002\$ \approx 0.
 
 **Interpretation:** at-par basis swap has ~zero deterministic carry/rolldown in this toy setup.
 
 #### K.5 Step 4 — Basis Widening Scenario (+10bp on Remaining Basis)
 
-At $t = 0.5$, suppose IBOR–OIS basis widens by +10 bp for remaining periods (projection change), discount curve unchanged.
+At (t = 0.5), suppose IBOR–OIS basis widens by +10 bp for remaining periods (projection change), discount curve unchanged.
 
 **Approximate PV impact on remaining swap:**
-$$\Delta PV_{t=0.5} \approx N\,W'\,(0.0010) = 1{,}000{,}000(1.454568)(0.0010) = +\$1{,}455.$$
+\Delta PV_{t=0.5} \approx N\,W'\,(0.0010) = 1{,}000{,}000(1.454568)(0.0010) = +\$1{,}455.
 
 **Total P&L becomes:**
-$$\boxed{\text{P\&L} \approx 0 + 1{,}455 = +\$1{,}455.}$$
+\boxed{\text{P\&L} \approx 0 + 1{,}455 = +\$1{,}455.}
 
 **Message:** realized P&L departs from carry/rolldown when the basis moves.
 
@@ -1484,107 +1506,107 @@ and show the difference. This illustrates curve-model dependence (par-point meth
 
 #### L.1 Conventions
 
-**Single-curve (legacy-style) toy curve, annual payments.**
+**Single-curve (legacy-style\$ toy curve, annual payments.**
 
 **Instruments used to bootstrap:**
-- 1Y deposit discount factor $P(0,1) = 0.9700$.
-- 2Y par swap rate $S_2 = 3.50\%$.
-- 3Y par swap rate $S_3 = 3.80\%$.
+- 1Y deposit discount factor )P(0,1) = 0.9700(.
+- 2Y par swap rate )S_2 = 3.50\%(.
+- 3Y par swap rate )S_3 = 3.80\%(.
 
 **Swap to measure PV01 on:**
-- 3Y pay-fixed swap with fixed rate $K = 4.00\%$,
-- Notional $N = \$1{,}000{,}000$,
-- Annual $\tau = 1$.
+- 3Y pay-fixed swap with fixed rate )K = 4.00\%(,
+- Notional )N = \$1{,}000{,}000(,
+- Annual )\tau = 1(.
 
 **Swap PV under single curve** (derived from standard par logic):
-- $PV_{\text{float}} = 1 - P(0,3)$, $PV_{\text{fixed}} = K \sum_{i=1}^{3} P(0,i)$.
+- )PV_{\text{float}} = 1 - P(0,3)(, )PV_{\text{fixed}} = K \sum_{i=1}^{3} P(0,i)(.
 
 (Conceptually consistent with "floating leg at par implies par fixed rate.")
 
-#### L.2 Step 1 — Bootstrap Base Discount Factors $P(0,2), P(0,3)$
+#### L.2 Step 1 — Bootstrap Base Discount Factors )P(0,2), P(0,3)(
 
-**2Y par swap condition** (annual-pay, single curve):
-$$S_2 = \frac{1 - P_2}{P_1 + P_2} \quad\Rightarrow\quad P_2 = \frac{1 - S_2 P_1}{1 + S_2}.$$
+**2Y par swap condition** )annual-pay, single curve(:
+S_2 = \frac{1 - P_2}{P_1 + P_2} \quad\Rightarrow\quad P_2 = \frac{1 - S_2 P_1}{1 + S_2}.
 
-Plugging $P_1 = 0.9700$, $S_2 = 0.0350$:
-$$P_2 = \frac{1 - 0.035(0.9700)}{1.035} = \frac{0.96605}{1.035} = 0.93338.$$
+Plugging (P_1 = 0.9700), (S_2 = 0.0350):
+P_2 = \frac{1 - 0.035(0.9700)}{1.035} = \frac{0.96605}{1.035} = 0.93338.
 
 **3Y par swap condition:**
-$$S_3 = \frac{1 - P_3}{P_1 + P_2 + P_3} \quad\Rightarrow\quad P_3 = \frac{1 - S_3(P_1 + P_2)}{1 + S_3}.$$
+S_3 = \frac{1 - P_3}{P_1 + P_2 + P_3} \quad\Rightarrow\quad P_3 = \frac{1 - S_3$P_1 + P_2$}{1 + S_3}.
 
-Compute $P_1 + P_2 = 0.9700 + 0.93338 = 1.90338$. Then:
-$$P_3 = \frac{1 - 0.038(1.90338)}{1.038} = \frac{1 - 0.072328}{1.038} = \frac{0.927672}{1.038} = 0.89371.$$
+Compute (P_1 + P_2 = 0.9700 + 0.93338 = 1.90338). Then:
+P_3 = \frac{1 - 0.038(1.90338)}{1.038} = \frac{1 - 0.072328}{1.038} = \frac{0.927672}{1.038} = 0.89371.
 
 #### L.3 Step 2 — Base PV of the 3Y Swap (Pay Fixed 4.00%)
 
 **Float PV:**
-$$PV_{\text{float}} = 1 - P_3 = 1 - 0.89371 = 0.10629.$$
+PV_{\text{float}} = 1 - P_3 = 1 - 0.89371 = 0.10629.
 
 **Fixed PV:**
-$$PV_{\text{fixed}} = K(P_1 + P_2 + P_3) = 0.04(0.9700 + 0.93338 + 0.89371) = 0.04(2.79709) = 0.11188.$$
+PV_{\text{fixed}} = K$P_1 + P_2 + P_3\$ = 0.04\$0.9700 + 0.93338 + 0.89371\$ = 0.04(2.79709) = 0.11188.
 
 **Swap PV (receive float − pay fixed):**
-$$PV/N = 0.10629 - 0.11188 = -0.00559 \quad\Rightarrow\quad PV \approx -\$5{,}594.$$
+PV/N = 0.10629 - 0.11188 = -0.00559 \quad\Rightarrow\quad PV \approx -\$5{,}594.
 
 #### L.4 Method 1 — Parallel Zero-Rate Bump (+1bp), No Rebuild
 
 **Bump rule:**
-$$P^{+}(0,T) = P(0,T)\,e^{-0.0001\,T}.$$
+P^{+}(0,T) = P(0,T)\,e^{-0.0001\,T}.
 
 So:
-- $P_1^{+} = 0.9700\,e^{-0.0001} \approx 0.969903$
-- $P_2^{+} = 0.93338\,e^{-0.0002} \approx 0.933193$
-- $P_3^{+} = 0.89371\,e^{-0.0003} \approx 0.893442$
+- (P_1^{+} = 0.9700\,e^{-0.0001} \approx 0.969903)
+- (P_2^{+} = 0.93338\,e^{-0.0002} \approx 0.933193)
+- (P_3^{+} = 0.89371\,e^{-0.0003} \approx 0.893442)
 
 **Recompute PV:**
 
-$PV_{\text{float}}^{+} = 1 - P_3^{+} = 0.106558$.
+(PV_{\text{float}}^{+} = 1 - P_3^{+} = 0.106558).
 
-$\sum P^{+} = 0.969903 + 0.933193 + 0.893442 = 2.796538$.
+(\sum P^{+} = 0.969903 + 0.933193 + 0.893442 = 2.796538).
 
-$PV_{\text{fixed}}^{+} = 0.04(2.796538) = 0.111862$.
+(PV_{\text{fixed}}^{+} = 0.04(2.796538) = 0.111862).
 
-$PV^{+}/N = 0.106558 - 0.111862 = -0.005304 \Rightarrow PV^{+} \approx -\$5{,}304$.
+(PV^{+}/N = 0.106558 - 0.111862 = -0.005304 \Rightarrow PV^{+} \approx -\$5{,}304).
 
 **So PV01:**
-$$\boxed{\text{PV01}_{\text{zero-bump}} = PV^{+} - PV = (-5{,}304) - (-5{,}594) = +\$290 \text{ per \$1mm}.}$$
+\boxed{\text{PV01}_{\text{zero-bump}} = PV^{+} - PV = $-5{,}304\$ - $-5{,}594\$ = +\$290 \text{ per \\\$1mm}.}
 
-#### L.5 Method 2 — Par-Quote Bump (+1bp) with Bootstrap Rebuild
+#### L.5 Method 2 — Par-Quote Bump (+1bp\$ with Bootstrap Rebuild
 
-This matches the "bump the market quote, rebuild, reprice" idea (par-point approach).
+This matches the "bump the market quote, rebuild, reprice" idea )par-point approach(.
 
 **Bump the market quotes:**
 
 - Bump 1Y deposit rate by +1bp (toy).
-  - Base simple 1Y rate $r_1 = \frac{1}{P_1} - 1 = \frac{1}{0.97} - 1 = 0.030928$.
-  - Bumped: $r_1^{+} = 0.031028$.
-  - New $P_1^{\text{reb}} = \frac{1}{1 + r_1^{+}} \approx \frac{1}{1.031028} \approx 0.9699$.
+  - Base simple 1Y rate )r_1 = \frac{1}{P_1} - 1 = \frac{1}{0.97} - 1 = 0.030928(.
+  - Bumped: )r_1^{+} = 0.031028(.
+  - New )P_1^{\text{reb}} = \frac{1}{1 + r_1^{+}} \approx \frac{1}{1.031028} \approx 0.9699(.
 
 - Bump par swap quotes:
-  - $S_2^{+} = 0.0351$,
-  - $S_3^{+} = 0.0381$.
+  - )S_2^{+} = 0.0351(,
+  - )S_3^{+} = 0.0381(.
 
 **Rebuild:**
-$$P_2^{\text{reb}} = \frac{1 - S_2^{+} P_1^{\text{reb}}}{1 + S_2^{+}} \approx 0.93320,\quad P_3^{\text{reb}} = \frac{1 - S_3^{+}(P_1^{\text{reb}} + P_2^{\text{reb}})}{1 + S_3^{+}} \approx 0.89345.$$
+P_2^{\text{reb}} = \frac{1 - S_2^{+} P_1^{\text{reb}}}{1 + S_2^{+}} \approx 0.93320,\quad P_3^{\text{reb}} = \frac{1 - S_3^{+}$P_1^{\text{reb}} + P_2^{\text{reb}}$}{1 + S_3^{+}} \approx 0.89345.
 
 **Reprice swap:**
 
-$PV_{\text{float}}^{\text{reb}} = 1 - 0.89345 = 0.10655$.
+(PV_{\text{float}}^{\text{reb}} = 1 - 0.89345 = 0.10655).
 
-$\sum P^{\text{reb}} \approx 0.9699 + 0.93320 + 0.89345 = 2.79655$.
+(\sum P^{\text{reb}} \approx 0.9699 + 0.93320 + 0.89345 = 2.79655).
 
-$PV_{\text{fixed}}^{\text{reb}} = 0.04(2.79655) = 0.11186$.
+(PV_{\text{fixed}}^{\text{reb}} = 0.04(2.79655) = 0.11186).
 
-$PV^{\text{reb}}/N \approx 0.10655 - 0.11186 = -0.00531 \Rightarrow PV^{\text{reb}} \approx -\$5{,}313$.
+(PV^{\text{reb}}/N \approx 0.10655 - 0.11186 = -0.00531 \Rightarrow PV^{\text{reb}} \approx -\$5{,}313).
 
 **So PV01:**
-$$\boxed{\text{PV01}_{\text{par-bump+rebuild}} = PV^{\text{reb}} - PV = (-5{,}313) - (-5{,}594) = +\$281 \text{ per \$1mm}.}$$
+\boxed{\text{PV01}_{\text{par-bump+rebuild}} = PV^{\text{reb}} - PV = $-5{,}313\$ - $-5{,}594\$ = +\$281 \text{ per \\\$1mm}.}
 
 #### L.6 Interpretation
 
-The PV01 differs ($290 vs $281 per $1mm) purely because "1bp shift" was implemented differently.
+The PV01 differs $\$290 vs \$281 per \\\$1mm\$ purely because "1bp shift" was implemented differently.
 
-This is why you must specify "what gets bumped?" and whether curves are rebuilt (par-point approach).
+This is why you must specify "what gets bumped?" and whether curves are rebuilt $par-point approach$.
 
 ---
 
@@ -1592,7 +1614,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 1. **Every basis trade has a decomposition**: Before entering, articulate precisely what you are long, what you are short, and what residual risks remain after hedging. Use the three-layer framework: level risk, spread risk, residual risk.
 
-2. **Swap spreads are not "pure credit"**: They mix Treasury liquidity/financing (including repo specialness), balance-sheet effects, and convexity-hedging flows. Benchmark choice (on-the-run vs fitted) can contaminate the signal.
+2. **Swap spreads are not "pure credit"**: They mix Treasury liquidity/financing (including repo specialness), balance-sheet effects, and convexity-hedging flows. Benchmark choice (on-the-run vs fitted\) can contaminate the signal.
 
 3. **The OIS-IBOR basis** separates discounting from projection: Trading it means taking a view on term funding premia and liquidity/credit conditions, not a free arbitrage. The basis can widen materially in stress.
 
@@ -1616,9 +1638,9 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **Gross Basis** | $GB^i = P^i - cf^i \times F$ | Starting point for futures basis analysis |
-| **Net Basis** | $NB^i = P^i_{fwd} - cf^i \times F = GB^i - carry$ | The actual value traded in a basis position |
-| **Basis P&L Formula** | P&L = $G^i \times [NB^i(t') - NB^i(t)]$ | Simple formula for basis trade profit/loss |
+| **Gross Basis** | $GB^i = P^i - cf^i \times F\$ | Starting point for futures basis analysis |
+| **Net Basis** | $NB^i = P^i_{fwd} - cf^i \times F = GB^i - carry\$ | The actual value traded in a basis position |
+| **Basis P&L Formula** | P&L = $G^i \times [NB^i(t') - NB^i(t)]\$ | Simple formula for basis trade profit/loss |
 | **Swap Spread** | Par swap rate − Treasury yield | Key measure of rates market dynamics, but not purely credit |
 | **OIS-IBOR Basis** | Term rate − OIS rate for equivalent tenor | Captures bank credit/liquidity premium in funding |
 | **Spread of Spreads** | Difference between two spread measures | Allows trading relative value without directional views |
@@ -1627,8 +1649,8 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | **CTD** | Cheapest-to-deliver bond | Determines which bond drives futures pricing |
 | **Residual Risk** | Exposures remaining after hedging | Often the source of unexpected P&L |
 | **Convergence Trade** | Trade that profits from spread narrowing, not at maturity | Basis trades are convergence trades, NOT arbitrage |
-| **Multi-Curve Par Rate** | $K_{\text{par}} = \frac{\sum \tau_i P_d L_i}{\sum \tau_i P_d}$ | Discounted average of projection forwards |
-| **Basis PV01** | $-N(\sum \tau_i P_d) \cdot 10^{-4}$ | Sensitivity to quoted basis spread |
+| **Multi-Curve Par Rate** | $K_{\text{par}} = \frac{\sum \tau_i P_d L_i}{\sum \tau_i P_d}\$ | Discounted average of projection forwards |
+| **Basis PV01** | $-N$\sum \tau_i P_d\$ \cdot 10^{-4}\$ | Sensitivity to quoted basis spread |
 | **Discount PV01** | PV sensitivity bumping discount curve only | Measures exposure to OIS/funding curve |
 | **Projection PV01** | PV sensitivity bumping projection curve only | Measures exposure to forward rate expectations |
 
@@ -1638,22 +1660,22 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 
 | Symbol | Definition |
 |--------|------------|
-| $GB^i(t)$ | Gross basis of bond $i$ at time $t$ |
-| $NB^i(t)$ | Net basis of bond $i$ at time $t$ |
-| $cf^i$ | Conversion factor for bond $i$ |
-| $P^i(t)$ | Spot price of bond $i$ |
-| $P^i_{fwd}(t)$ | Forward price of bond $i$ to last delivery |
-| $F(t)$ | Futures price |
-| $G^i$ | Face amount of bond position |
-| $\text{SS}_T$ | Swap spread at maturity $T$ |
-| $P_d(0,T)$ | Discount factor to $T$ from discount curve (OIS) |
-| $L_k(0,T_i,T_{i+1})$ | Forward rate for index $k$ over $[T_i, T_{i+1}]$ |
-| $\tau_i$ | Accrual year fraction for $[T_i, T_{i+1}]$ |
-| $N$ | Notional (dollars) |
-| $K$ | Fixed rate on a vanilla swap |
-| $e_{1,2}(T)$ | Quoted basis spread exchanging $L_1$ vs $L_2$, quoted on $L_1$ leg |
-| $\text{PV01}_{\text{discount}}$ | PV sensitivity to 1 bp bump to discount curve |
-| $\text{PV01}_{\text{projection}}$ | PV sensitivity to 1 bp bump to projection curve |
+| $GB^i(t)\$ | Gross basis of bond $i\$ at time $t\$ |
+| $NB^i(t)\$ | Net basis of bond $i\$ at time $t\$ |
+| $cf^i\$ | Conversion factor for bond $i\$ |
+| $P^i(t)\$ | Spot price of bond $i\$ |
+| $P^i_{fwd}(t)\$ | Forward price of bond $i\$ to last delivery |
+| $F(t)\$ | Futures price |
+| $G^i\$ | Face amount of bond position |
+| $\text{SS}_T\$ | Swap spread at maturity $T\$ |
+| $P_d(0,T)\$ | Discount factor to $T\$ from discount curve (OIS) |
+| $L_k\$0,T_i,T_{i+1}$\$ | Forward rate for index $k\$ over $[T_i, T_{i+1}]\$ |
+| $\tau_i\$ | Accrual year fraction for $[T_i, T_{i+1}]\$ |
+| $N\$ | Notional (dollars) |
+| $K\$ | Fixed rate on a vanilla swap |
+| $e_{1,2}(T)\$ | Quoted basis spread exchanging $L_1\$ vs $L_2(, quoted on ) $L_1\$ leg |
+| $\text{PV01}_{\text{discount}}\$ | PV sensitivity to 1 bp bump to discount curve |
+| $\text{PV01}_{\text{projection}}\$ | PV sensitivity to 1 bp bump to projection curve |
 | TED spread | Spread of bond yield to Eurodollar/SOFR futures implied rate |
 
 ---
@@ -1663,8 +1685,8 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is the fundamental question before entering any basis trade? | What am I long? What am I short? What residuals remain after hedging? |
-| 2 | What is the formula for gross basis in Treasury futures? | $GB^i = P^i - cf^i \times F$ (Spot price minus conversion factor times futures price) |
-| 3 | What is the formula for net basis in Treasury futures? | $NB^i = P^i_{fwd} - cf^i \times F$ (Forward price minus CF × futures) = Gross basis − carry |
+| 2 | What is the formula for gross basis in Treasury futures? | $GB^i = P^i - cf^i \times F\$ (Spot price minus conversion factor times futures price) |
+| 3 | What is the formula for net basis in Treasury futures? | $NB^i = P^i_{fwd} - cf^i \times F\$ (Forward price minus CF × futures) = Gross basis − carry |
 | 4 | What is the P&L formula for a Treasury futures basis trade? | P&L = $G^i \times [NB^i(t') - NB^i(t)]$, or position size times change in net basis |
 | 5 | What does the net basis represent economically? | The value of the quality option with respect to that bond—the cost of committing to deliver that specific bond |
 | 6 | How does net basis near CTD behave? | Like a straddle on rates—increases whether rates rise or fall, because any rate move pushes the bond away from CTD |
@@ -1690,7 +1712,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | 26 | What are the four reasons basis trades are NOT arbitrage? | Funding risk, margin risk, CTD risk, liquidity risk (plus path risk to add a fifth) |
 | 27 | What is a long basis trade construction? | Buy bond, finance via repo, sell futures (equivalent to long forward, short futures) |
 | 28 | What is a short basis trade construction? | Sell bond, invest proceeds, buy futures (equivalent to short forward, long futures) |
-| 29 | At delivery, what do gross basis and net basis equal? | The cost of delivery (carry = 0, so GB = NB = cost of delivery) |
+| 29 | At delivery, what do gross basis and net basis equal? | The cost of delivery (carry = 0, so GB = NB = cost of delivery\) |
 | 30 | When is the quality option worthless? | When net basis is near zero—selling the bond forward is equivalent to selling futures |
 | 31 | What drives CTD to short-duration bonds? | High yields (above the notional coupon rate) |
 | 32 | What drives CTD to long-duration bonds? | Low yields (below the notional coupon rate) |
@@ -1704,20 +1726,20 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | 40 | What is the risk-management lesson from convergence-trade blowups? | Stress test “worst of all worlds” paths (spreads widen while funding tightens and margins rise) |
 | 41 | What is a TED spread? | The spread such that discounting at Eurodollar rates minus the spread produces the bond's market price |
 | 42 | How can a short-basis position cap tail risk? | Use options (or reduce size) to limit losses from large moves / CTD switches |
-| 43 | What is the multi-curve par rate formula? | $K_{\text{par}} = \frac{\sum \tau_i P_d L_i}{\sum \tau_i P_d}$ (discounted average of projected forwards) |
-| 44 | What is the OIS floating payment formula? | $\displaystyle\frac{R_{01}(0,T) - 1}{\tau}$ where $R_{01} = \prod(1 + f_i \tau_i)$ is the compounded growth factor |
-| 45 | How is basis PV01 computed? | $-N(\sum \tau_i P_d(0,T_i)) \cdot 10^{-4}$ for a position paying the basis spread |
+| 43 | What is the multi-curve par rate formula? | $K_{\text{par}} = \frac{\sum \tau_i P_d L_i}{\sum \tau_i P_d}\$ (discounted average of projected forwards) |
+| 44 | What is the OIS floating payment formula? | $\displaystyle\frac{R_{01}(0,T) - 1}{\tau}\$ where $R_{01} = \prod\$1 + f_i \tau_i$\$ is the compounded growth factor |
+| 45 | How is basis PV01 computed? | $-N$\sum \tau_i P_d(0,T_i)\$ \cdot 10^{-4}\$ for a position paying the basis spread |
 | 46 | What is discount PV01 in the multi-curve framework? | PV change from bumping the OIS discount curve only, holding projection curves fixed |
 | 47 | What is projection PV01? | PV change from bumping the IBOR projection curve only, holding discount curve fixed |
 | 48 | Why does projection PV01 often dominate discount PV01 for near-par swaps? | Forward bumps change coupon amounts directly; discount bumps rescale both legs and can partially cancel |
-| 49 | What is the par condition for a basis swap? | $\sum \tau P_d L_2 = \sum \tau P_d (L_1 + e)$ where $e$ is the quoted spread on the $L_1$ leg |
+| 49 | What is the par condition for a basis swap? | $\sum \tau P_d L_2 = \sum \tau P_d $L_1 + e$\$ where $e\$ is the quoted spread on the $L_1\$ leg |
 | 50 | How can you replicate a basis swap with two vanilla swaps? | Long IBOR pay-fixed swap and short OIS pay-fixed swap at same fixed rate; fixed legs cancel |
-| 51 | Why do risk numbers depend on "what gets bumped"? | Different bump methodologies (zero-rate bump vs par-quote bump with rebuild) produce different PV01 values |
+| 51 | Why do risk numbers depend on "what gets bumped"? | Different bump methodologies $zero-rate bump vs par-quote bump with rebuild\$ produce different PV01 values |
 | 52 | What is a repo-financed bond P&L decomposition? | Price change + interest income − financing cost = price change + carry |
 | 53 | What is "specialness" in repo? | When specific collateral financing advantage causes repo rate < general collateral; can be volatile |
 | 54 | What is a steepener trade? | Trade that profits when long-term rates rise relative to short-term rates (slope increases); typically receive short-end, pay long-end |
 | 55 | What is a butterfly trade? | Trade that isolates curvature; long belly vs short wings (or reverse); DV01-neutral to parallel shifts |
-| 56 | What does DV01-neutral mean for curve RV trades? | Net PV01 to parallel shifts is approximately zero; remaining exposure is to curve shape (twist/curvature) |
+| 56 | What does DV01-neutral mean for curve RV trades? | Net PV01 to parallel shifts is approximately zero; remaining exposure is to curve shape $twist/curvature$ |
 | 57 | What is benchmark-choice exposure in swap spreads? | Dependence of measured swap spread on which government yield is used (OTR vs fitted curve) |
 | 58 | What links index curves in multi-curve framework? | Floating–floating basis swaps that enforce par conditions tying curves together |
 | 59 | Why specify which leg carries the spread in a basis swap? | PV sign conventions and sensitivities depend on which index is the "quoted leg" |
@@ -1728,15 +1750,15 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 ## Mini Problem Set
 
 ### Problem 1 (Basic — Definition)
-A Treasury futures basis trade has initial net basis of 8 ticks. The trade is for $50 million face. If the net basis narrows to 3 ticks, what is the P&L for a short basis position?
+A Treasury futures basis trade has initial net basis of 8 ticks. The trade is for \$50 million face. If the net basis narrows to 3 ticks, what is the P&L for a short basis position?
 
-*Solution:* P&L = $50MM × (8 - 3)/32 / 100 = $50MM × 5/3200 = **$78,125 profit**. (A short basis trader profits when the basis narrows.)
+*Solution:* P&L = \$50MM × \$8 - 3$/32 / 100 = \$50MM × 5/3200 = **\$78,125 profit**. (A short basis trader profits when the basis narrows.)
 
-### Problem 2 (Basic — Gross/Net Basis)
+### Problem 2 $Basic — Gross/Net Basis$
 A bond has spot price 106-19.5, conversion factor 0.9999, and the futures price is 104-27.5. The carry to delivery is 42.7 ticks. Calculate the gross basis and net basis.
 
 *Solution:*
-- Gross basis = 106 + 19.5/32 - 0.9999 × (104 + 27.5/32) = 106.6094 - 0.9999 × 104.8594 = 1.7605 = **56.3 ticks**
+- Gross basis = 106 + 19.5/32 - 0.9999 × \$104 + 27.5/32\$ = 106.6094 - 0.9999 × 104.8594 = 1.7605 = **56.3 ticks**
 - Net basis = Gross basis - carry = 56.3 - 42.7 = **13.6 ticks**
 
 ### Problem 3 (Basic — Swap Spread)
@@ -1745,14 +1767,14 @@ The 10Y swap rate is 4.50% and the 10Y on-the-run Treasury yields 4.05%. What is
 *Solution:* Swap spread = 4.50% - 4.05% = **45bp**. The 10bp repo specialness artificially lowers the Treasury yield (investors accept lower yields for the financing advantage). Adjusting for specialness, the "true" Treasury yield might be closer to 4.15%, giving an adjusted swap spread of about 35bp. The point: quoted swap spreads can be misleading for trade-level analysis.
 
 ### Problem 4 (Intermediate — Funding Impact)
-You enter a swap spread trade: receive fixed on $100MM 10Y swap, short $95MM 10Y Treasury (sized for DV01 match). The Treasury goes very special, costing you 15bp annualized in repo vs. GC. How does this affect your trade over 3 months?
+You enter a swap spread trade: receive fixed on \$100MM 10Y swap, short \$95MM 10Y Treasury $sized for DV01 match$. The Treasury goes very special, costing you 15bp annualized in repo vs. GC. How does this affect your trade over 3 months?
 
-*Solution:* Additional financing cost = $95MM × 0.15% × (3/12) = **$35,625**. This is a hidden drag on P&L regardless of what happens to swap spreads. If your spread thesis earns less than this, the trade loses money even if you're "right."
+*Solution:* Additional financing cost = \$95MM × 0.15% × \$3/12$ = **\$35,625**. This is a hidden drag on P&L regardless of what happens to swap spreads. If your spread thesis earns less than this, the trade loses money even if you're "right."
 
 ### Problem 5 (Intermediate — Spread of Spreads Sizing)
-Bond A has a TED spread of 20bp with DV01 of $4,500 per $1MM face. Bond B has a TED spread of 30bp with DV01 of $5,000 per $1MM face. You want to trade the spread of spreads with $10MM of Bond B. How much of Bond A do you need?
+Bond A has a TED spread of 20bp with DV01 of \$4,500 per \$1MM face. Bond B has a TED spread of 30bp with DV01 of \$5,000 per \$1MM face. You want to trade the spread of spreads with \$10MM of Bond B. How much of Bond A do you need?
 
-*Solution:* Bond B total DV01 = $10MM × $5,000/$1MM = $50,000. To match: need Bond A DV01 = $50,000. So face = $50,000 / $4,500 × $1MM = **$11.11MM of Bond A**. You buy $11.11MM of Bond A (cheap to TED) and sell $10MM of Bond B (rich to TED).
+*Solution:* Bond B total DV01 = \$10MM × \$5,000/\$1MM = \$50,000. To match: need Bond A DV01 = \$50,000. So face = \$50,000 / \$4,500 × \$1MM = **\$11.11MM of Bond A**. You buy \$11.11MM of Bond A (cheap to TED) and sell \$10MM of Bond B (rich to TED).
 
 ### Problem 6 (Intermediate — CTD Switch)
 TYH2 has three relevant bonds on November 26, 2001:
@@ -1760,14 +1782,14 @@ TYH2 has three relevant bonds on November 26, 2001:
 - 4.75% Nov '08: Net basis 17.6 ticks
 - 5.00% Aug '11: Net basis 34.8 ticks
 
-If yields fall 50bp in parallel, which direction does CTD move? If you were short the net basis in the 6.00s (currently near-CTD), what happens to your P&L?
+If yields fall 50bp in parallel, which direction does CTD move? If you were short the net basis in the 6.00s $currently near-CTD$, what happens to your P&L?
 
-*Solution:* When yields fall (below notional coupon), longer-duration bonds become relatively cheaper → CTD shifts to longer-duration bonds. The 6.00s move *away* from CTD, and their net basis widens. A short basis position (which profits when net basis narrows) would **lose money**. If net basis widened from 13.6 to, say, 25 ticks on $100MM position: Loss = $100MM × (25-13.6)/32 / 100 = **$356,250**.
+*Solution:* When yields fall (below notional coupon), longer-duration bonds become relatively cheaper → CTD shifts to longer-duration bonds. The 6.00s move *away* from CTD, and their net basis widens. A short basis position (which profits when net basis narrows) would **lose money**. If net basis widened from 13.6 to, say, 25 ticks on \$100MM position: Loss = \$100MM × \$25-13.6$/32 / 100 = **\$356,250**.
 
-### Problem 7 (Intermediate — Multi-Curve Risk)
+### Problem 7 $Intermediate — Multi-Curve Risk$
 In the multi-curve framework, a portfolio has:
-- $10MM pay-fixed 5Y swap referencing 3M Term SOFR
-- $10MM receive-fixed 5Y OIS swap
+- \$10MM pay-fixed 5Y swap referencing 3M Term SOFR
+- \$10MM receive-fixed 5Y OIS swap
 
 What are the three risk sensitivities (rate level, discounting, basis) of this combined position?
 
@@ -1782,9 +1804,9 @@ Explain why a DV01-neutral swap spread trade is still exposed to curve steepenin
 *Solution:* The swap and Treasury have different DV01 profiles across the curve (different key rate durations). A swap has distributed coupon exposure; a Treasury has concentrated maturity exposure. A steepening move might benefit the Treasury more than the swap, or vice versa, creating P&L even at zero aggregate DV01. **To hedge:** decompose into key rate DV01 buckets and hedge each, or use additional curve instruments (e.g., a 5s10s steepener/flattener overlay).
 
 ### Problem 9 (Hard — Margin Dynamics)
-A basis trader is long $200MM Treasury bonds and short 2,000 TY futures. Rates fall 50bp overnight. The bond gains approximately $10MM in value, but the futures lose $10MM. Why might the trader still face a liquidity crisis?
+A basis trader is long \$200MM Treasury bonds and short 2,000 TY futures. Rates fall 50bp overnight. The bond gains approximately \$10MM in value, but the futures lose \$10MM. Why might the trader still face a liquidity crisis?
 
-*Solution:* Futures are daily-margined; the $10MM futures loss requires **immediate cash payment** as variation margin. The bond gain is unrealized until sold or monetized via repo. The trader must fund the margin call from available cash or credit lines. If liquidity is tight or the market is stressed, this asymmetry can force liquidation even though the net P&L is approximately zero.
+*Solution:* Futures are daily-margined; the \$10MM futures loss requires **immediate cash payment** as variation margin. The bond gain is unrealized until sold or monetized via repo. The trader must fund the margin call from available cash or credit lines. If liquidity is tight or the market is stressed, this asymmetry can force liquidation even though the net P&L is approximately zero.
 
 ### Problem 10 (Hard — LTCM Analysis)
 Explain why LTCM's "convergence arbitrage" strategy was not true arbitrage. What would have been required for it to be arbitrage?
@@ -1805,7 +1827,7 @@ The lesson: **convergence is not arbitrage because the path matters** (funding a
 Explain why the net basis of a near-CTD bond can behave like a straddle on rates. Use the concept of the quality option.
 
 *Solution:* The net basis equals the value of the quality option with respect to that bond—the cost of committing to deliver it instead of whichever bond is optimal. When your bond is CTD, any move in rates pushes it away from CTD:
-- **Rates rise:** Short-duration bonds become cheaper to deliver; your bond (if medium/long duration) moves away from CTD
+- **Rates rise:** Short-duration bonds become cheaper to deliver; your bond $if medium/long duration\$ moves away from CTD
 - **Rates fall:** Long-duration bonds become cheaper; your bond may still move away from CTD
 
 Either way, the quality option value with respect to your bond *increases*—just like a straddle that profits from volatility in either direction. **A short basis position in a near-CTD bond is implicitly short volatility.**
@@ -1817,40 +1839,40 @@ In Tuckman's November '08 basis trade case study, traders sold net basis at 7.45
 (c) Why might a trader not capture the final profit?
 
 *Solution:*
-(a) Interim loss = $100MM × (22 - 7.45)/32 / 100 = $100MM × 14.55/3200 = **$454,688 loss**
+(a) Interim loss = \$100MM × \$22 - 7.45$/32 / 100 = \$100MM × 14.55/3200 = **\$454,688 loss**
 
-(b) Final profit = $100MM × (7.45 - 3.51)/32 / 100 = $100MM × 3.94/3200 = **$123,125 profit**
+(b) Final profit = \$100MM × \$7.45 - 3.51$/32 / 100 = \$100MM × 3.94/3200 = **\$123,125 profit**
 
 (c) A trader might not capture the final profit because:
-- **Risk limits:** A $455,000 loss might breach position limits, forcing liquidation
+- **Risk limits:** A \$455,000 loss might breach position limits, forcing liquidation
 - **Margin calls:** The interim widening requires funding; the trader may lack liquidity
-- **Management pressure:** Tuckman notes "a trader showing a loss of $455,000 or $327,219 on this trade might have been ordered to reduce or close the position"
+- **Management pressure:** Tuckman notes "a trader showing a loss of \$455,000 or \$327,219 on this trade might have been ordered to reduce or close the position"
 - **Crowded trade:** "many traders were forced to liquidate short basis positions"—forced selling by others made the contract cheaper, extending the drawdown
 
-### Problem 13 (Intermediate — OIS-IBOR Basis Trade)
-A trader believes the Term SOFR–OIS basis is too wide at 25bp and will narrow to 15bp. They enter a $100MM notional 5-year basis swap **paying Term SOFR flat and receiving OIS + 25bp**. If the basis narrows to 15bp after 6 months (with 4.5 years remaining), and the annuity factor for the remaining term is approximately 4.2, what is the approximate mark-to-market gain?
+### Problem 13 $Intermediate — OIS-IBOR Basis Trade$
+A trader believes the Term SOFR–OIS basis is too wide at 25bp and will narrow to 15bp. They enter a \$100MM notional 5-year basis swap **paying Term SOFR flat and receiving OIS + 25bp**. If the basis narrows to 15bp after 6 months (with 4.5 years remaining), and the annuity factor for the remaining term is approximately 4.2, what is the approximate mark-to-market gain?
 
 *Solution:* If the fair spread narrows from 25bp to 15bp, a position that receives the spread is receiving 10bp above market on the remaining annuity. Approximate MTM gain:
 
-MTM gain ≈ $100MM × 0.10% × 4.2 = **$420,000**
+MTM gain ≈ \$100MM × 0.10% × 4.2 = **\$420,000**
 
 ### Problem 14 (Hard — Carry and Roll in Basis Trades)
-A basis trader is short $50MM net basis at 15 ticks in the TY contract, expecting delivery convergence. The trade has 60 days to expiration. The bond carries at 3 ticks per month (positive carry). If the net basis converges to 2 ticks at delivery (the quality option value at expiration), calculate:
+A basis trader is short \$50MM net basis at 15 ticks in the TY contract, expecting delivery convergence. The trade has 60 days to expiration. The bond carries at 3 ticks per month (positive carry). If the net basis converges to 2 ticks at delivery (the quality option value at expiration), calculate:
 (a) The gross P&L from net basis convergence
 (b) The carry earned over 60 days
 (c) The total trade P&L
 
 *Solution:*
-(a) Net basis P&L = $50MM × (15 - 2)/32 / 100 = $50MM × 13/3200 = **$203,125 profit**
+(a) Net basis P&L = \$50MM × \$15 - 2$/32 / 100 = \$50MM × 13/3200 = **\$203,125 profit**
 
-(b) Carry = 3 ticks/month × 2 months = 6 ticks. But carry is already embedded in the net basis formula (net basis = gross basis − carry). The $203,125 already accounts for the carry convergence.
+(b) Carry = 3 ticks/month × 2 months = 6 ticks. But carry is already embedded in the net basis formula $net basis = gross basis − carry$. The \$203,125 already accounts for the carry convergence.
 
-(c) Total P&L = **$203,125** (the carry is not additive; it's the mechanism by which net basis converges)
+(c) Total P&L = **\$203,125** (the carry is not additive; it's the mechanism by which net basis converges)
 
-*Key insight:* The P&L formula $G^i \times [NB^i(t') - NB^i(t)]$ already incorporates carry because net basis is defined as gross basis minus carry. Don't double-count.
+*Key insight:* The P&L formula $G^i \times [NB^i(t') - NB^i(t)]\$ already incorporates carry because net basis is defined as gross basis minus carry. Don't double-count.
 
 ### Problem 15 (Hard — Tenor Basis Risk)
-A portfolio contains a $200MM 5-year swap that pays 3M Term SOFR quarterly. The swap is hedged with $200MM of 5-year OIS swaps. Both swaps are DV01-matched for parallel rate moves. However, the portfolio has residual exposure to the 3M-OIS tenor basis.
+A portfolio contains a \(200MM 5-year swap that pays 3M Term SOFR quarterly. The swap is hedged with \)200MM of 5-year OIS swaps. Both swaps are DV01-matched for parallel rate moves. However, the portfolio has residual exposure to the 3M-OIS tenor basis.
 
 (a) What is the sign of the tenor basis exposure?
 (b) If the 3M-OIS basis widens by 10bp, estimate the approximate P&L impact.
@@ -1859,11 +1881,11 @@ A portfolio contains a $200MM 5-year swap that pays 3M Term SOFR quarterly. The 
 *Solution:*
 (a) The portfolio pays 3M Term SOFR and receives OIS (net). If the 3M-OIS basis widens (3M rate rises relative to OIS), the portfolio **loses money** because it pays more on the floating leg without receiving more. The position is **short the tenor basis**.
 
-(b) Approximate P&L = $200MM × 0.10% × ~4.5 (annuity factor) ≈ **$900,000 loss**
+(b) Approximate P&L = \$200MM × 0.10% × ~4.5 (annuity factor) ≈ **\$900,000 loss**
 
 (c) **Hedge:** Enter a basis swap receiving 3M Term SOFR and paying OIS. This directly offsets the tenor basis exposure. Alternatively, replace some of the OIS hedge with Term SOFR swaps.
 
-### Problem 16 (Integration — Multi-Leg RV Trade)
+### Problem 16 $Integration — Multi-Leg RV Trade$
 You want to express the view that 5-year swap spreads are too wide relative to 10-year swap spreads (the "spread of swap spreads" is too high). Design a trade with four legs that:
 - Is DV01-neutral overall
 - Is DV01-neutral within each maturity
@@ -1890,22 +1912,22 @@ You want to express the view that 5-year swap spreads are too wide relative to 1
 - 10Y swap spread exposure: Short (profit if 10Y spread widens)
 - Net: Profit if 5Y spread narrows *relative to* 10Y spread (spread of spreads compresses)
 
-**Residual risks:** Curve twist (5s10s steepening/flattening), convexity differences between swaps and Treasuries, repo financing on Treasury legs.
+**Residual risks:** Curve twist \$5s10s steepening/flattening$, convexity differences between swaps and Treasuries, repo financing on Treasury legs.
 
 ### Solution Sketches (Selected)
-- Problem 1: \(+\$78{,}125\) profit for short basis when net basis falls \(5\) ticks: \(\$50\text{MM}\times(5/32)/100\).
-- Problem 2: Gross basis \(=56.3\) ticks; net basis \(=13.6\) ticks.
-- Problem 13: \(+\$420{,}000\) (receiving OIS + spread): \(\$100\text{MM}\times 10\text{ bp}\times 4.2\).
-- Problem 9: Liquidity crisis risk comes from futures variation margin timing vs. monetizing bond P&L (repo terms/haircuts/cash availability), even when net PV is ~0.
+- Problem 1: \$+\$78{,}125\$ profit for short basis when net basis falls \$5\$ ticks: \$\$50\text{MM}\times(5/32)/100\$.
+- Problem 2: Gross basis \$=56.3\$ ticks; net basis \$=13.6\$ ticks.
+- Problem 13: \$+\$420{,}000\$ $receiving OIS + spread$: \$\$100\text{MM}\times 10\text{ bp}\times 4.2\$.
+- Problem 9: Liquidity crisis risk comes from futures variation margin timing vs. monetizing bond P&L $repo terms/haircuts/cash availability$, even when net PV is ~0.
 
 ---
 
 ## References
 
 - Tuckman & Serrat, *Fixed Income Securities*, “Gross and Net Basis”; “Liquidity Premiums of Recent Issues”
-- Andersen & Piterbarg, *Interest Rate Modeling*, “Forward Rate Approach” (multi-curve curves; risk sensitivities; Fed funds vs Libor discussion)
+- Andersen & Piterbarg, *Interest Rate Modeling*, “Forward Rate Approach” $multi-curve curves; risk sensitivities; Fed funds vs Libor discussion$
 - Neftci, *Principles of Financial Engineering*, “Special Versus General Collateral”; “LIBOR and Other Benchmarks”
-- Jarrow, *Modeling Fixed Income Securities and Interest Rate Options*, “Treasury Futures Markets” (delivery/wildcard/quality options)
+- Jarrow, *Modeling Fixed Income Securities and Interest Rate Options*, “Treasury Futures Markets” $delivery/wildcard/quality options$
 - Hull, *Options, Futures, and Other Derivatives*, “Business Snapshot 2.2 Long-Term Capital Management’s Big Loss”; “Do Not Ignore Liquidity Risk”; “Daily Settlement”; “The Clearing House and Its Members”
 - Hull, *Risk Management and Financial Institutions*, “The OIS Rate” (LIBOR–OIS spread as a stress indicator)
 - *Market Liquidity Risk*, “2.1 Liquidity and liquidity risk” (market vs funding liquidity)

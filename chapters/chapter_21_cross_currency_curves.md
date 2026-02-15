@@ -16,7 +16,7 @@ Follow-on: [Chapter 22](chapter_22_multi_curve_risk_jacobians.md), [Chapter 30](
 
 A trader in London wants to fund a USD position using EUR. She could borrow EUR, convert to USD at spot, invest the dollars, and hedge the FX exposure with a forward. In a frictionless setting this “round trip” is pinned down by **covered interest parity (CIP)**: the FX forward must be consistent with the interest rate differential, otherwise a cash-and-carry trade produces an arbitrage.
 
-By convention cross-currency swap spreads are quoted on the currency side against USD LIBOR: USD LIBOR versus Foreign Currency LIBOR plus a spread. The spread can be positive or negative. Before 2007 the EUR/USD crosscurrency swap spread was close to zero, but during the GFC it reached 120 bp.
+Cross-currency swap and basis quotes are convention-heavy: which leg carries the spread, which index is referenced, and the sign convention all vary by product, venue, and currency pair. A common legacy framing is “foreign floating + \(e\) vs USD floating flat,” but you should treat the term sheet (or the market-data definition) as the source of truth. The practical point for curve construction is that the basis is a traded input that can be materially non-zero, especially in stressed funding regimes.
 
 For curve construction, the key takeaway is operational: **FX forwards and cross-currency basis swaps impose constraints that your multi-currency curves must satisfy.** If you bootstrap USD and JPY curves independently and ignore the FX side, the resulting curves will generally violate these constraints and imply inconsistencies.
 
@@ -257,7 +257,7 @@ The cross-currency basis represents the cost (or benefit) of synthesizing fundin
 
 ### 21.3.2 What the Market Quotes (Leg + Sign)
 
-By convention cross-currency swap spreads are quoted on the currency side against USD LIBOR: USD LIBOR versus Foreign Currency LIBOR plus a spread. The spread can be positive or negative. Always confirm the quote definition (which leg, pay/receive, sign) before calibrating.
+A common market convention is to quote a spread \(e\) on one leg of a cross-currency basis swap (often described in legacy IBOR terms such as “foreign floating + \(e\) vs USD floating flat”), but conventions vary. Always confirm the quote definition (which leg, pay/receive, sign, and index) before calibrating.
 
 ### 21.3.3 Why the Basis Can Be Non-Zero
 
@@ -267,7 +267,7 @@ The reasons for the spread are twofold:
 1. **Daily demand–supply imbalances**: there may be more demand for paying a LIBOR in a particular currency, which can lead to a positive basis spread.
 2. **Corporate supply and hedging activity** (e.g., issuing in EUR and swapping cashflows into USD), which can create one-way basis demand.
 
-Scale check: before 2007 the EUR/USD crosscurrency swap spread was close to zero, but during the GFC it reached 120 bp. The practical implication is simple: treat the basis as a **market input** and a **risk factor**, not as a rounding error that “should” be zero.
+Scale check: basis can be small in calm regimes and can move materially in stress. The practical implication is simple: treat the basis as a **market input** and a **risk factor**, not as a rounding error that “should” be zero.
 
 ### 21.3.4 Desk Reality Checklist
 
@@ -295,6 +295,10 @@ Briefly speaking, CRX basis swaps exchange floating LIBOR payments in one curren
 | **Maturities** | Quoted out to 30+ years |
 
 **Critical insight:** A one-period CRX basis swap is identical to an FX forward contract. This establishes the continuity between short-dated FX forwards and long-dated basis swaps: the basis swap generalizes the FX forward to multiple periods with intermediate floating payments.
+
+**Expand (one-period equivalence):** With only one accrual period, an xccy swap is essentially “exchange notionals + pay the funding on each notional.” If you PV each currency leg under its own curve and convert at spot, the par condition collapses to the FX-forward constraint. That is why short-dated FX forwards/FX swaps and one-period xccy structures all pin down the same triangle \(F = X\,P_f/P_d\); the differences are mostly conventions (spot lag, day count, which index accrues interest, and which leg carries any spread).
+
+**Check (reduce to the FX-forward PV):** A forward that receives 1 foreign at \(T\) and pays \(K\) domestic has domestic PV \(V = X(0)P_f(0,T) - K P_d(0,T)\). Setting \(V=0\) gives \(K=F(0,T)=X(0)P_f(0,T)/P_d(0,T)\). One-period xccy par conditions are just this identity written with the instrument’s coupon conventions.
 
 > **The Plumbing Diagram: Cashflows of a 5Y EUR/USD Xccy Basis Swap**
 >
@@ -346,6 +350,10 @@ $$V_{\text{basisswap},\$}(0) = 1 - X(0) \times \left(\sum_{i=0}^{n-1}\left(\frac
 where:
 - The USD floating leg plus notional repayment collapses to par (\$1) under the simplifying assumption that the USD index curve coincides with the USD discount curve
 - The JPY leg is valued using forward JPY floating rates from $P_¥^{(L)}$ and discounted at $P_¥$
+
+**Expand (what this expression is doing):** The bracketed term is the PV (in JPY, per unit JPY notional) of “foreign floating coupons + foreign principal,” where the one-period floating coupon is generated by the forward ratio \(P_¥^{(L)}(0,t_i)/P_¥^{(L)}(0,t_{i+1})-1\) and then discounted with \(P_¥(0,t_{i+1})\). The basis spread \(e_¥\) enters as an additive coupon shift \(e_¥\tau_i\) and therefore affects PV approximately linearly. Multiplying by spot \(X(0)\) converts the foreign-leg PV into USD; subtracting from 1 reflects “USD leg at par minus converted foreign-leg PV” under the stated simplifying assumptions.
+
+**Checks (units + limits):** The forward ratio and \(e_¥\tau_i\) are dimensionless, \(P_¥\) is unitless, and the bracket is unitless; multiplying by \(X(0)\) (USD per JPY) produces USD per unit JPY notional. If \(e_¥=0\) and the curve set is internally consistent, the par swap should price near 0 (after consistent notional scaling and conventions). If you bump \(e_¥\) by +1 bp on the leg you receive, PV should move by roughly “foreign spread annuity × spot,” which is a quick sign/scale sanity check.
 
 Market quotes a term structure of par basis spreads $e^{par}(T)$ across maturities (often out to 30Y+).
 
@@ -575,6 +583,12 @@ For a fully collateralized swap where collateral earns the overnight rate:
 This linkage arises because the posted collateral earns the overnight rate. The counterparty receiving collateral funds the position at the same rate, making the overnight rate the appropriate discount rate.
 
 ### 21.6.2 What If Collateral Currency Differs from Trade Currency?
+
+**Expand (two equivalent ways to PV):** If the trade pays USD cashflows but the CSA collateral currency is EUR, you can value a USD cashflow \(C_\$(T)\) either by:
+1. Converting the future USD cashflow into EUR at the maturity-\(T\) FX forward \(F(0,T)\) (USD per EUR): \(C_\$(T)/F(0,T)\) EUR at \(T\); discount on the EUR curve; then convert the PV back to USD at spot \(X(0)\); or
+2. Using an implied USD discount factor consistent with EUR collateral:
+   $$P_{\$|\text{EUR coll}}(0,T)=\frac{X(0)}{F(0,T)}\,P_{€}(0,T).$$
+Both views are the same identity rearranged; the important discipline is to use an FX forward curve that is consistent with the collateral regime (i.e., includes the relevant xccy basis inputs).
 
 > **Example 21.6: Same Swap, Different Collateral, Different Value**
 >
