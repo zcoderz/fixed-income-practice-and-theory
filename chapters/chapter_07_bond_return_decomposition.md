@@ -10,6 +10,17 @@
 
 This matters for three reasons. First, it enables **accountability**: if your mandate is to capture carry without taking directional rate risk, you need to prove that's what happened. Second, it supports **risk management**: understanding which component dominated your P&L tells you which risk you were actually exposed to. Third, it informs **trading decisions**: the breakeven yield move that wipes out your carry determines how confident you need to be in your directional view.
 
+Prerequisites: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 6 — Yield-to-Maturity (YTM) and Yield-Based Risk](chapters/chapter_06_ytm_yield_based_risk.md), [Chapter 8 — Spreads 101](chapters/chapter_08_spreads_101.md), [Chapter 9 — Repo — The Bond Market’s Funding Engine](chapters/chapter_09_repo_funding_engine.md)
+
+Follow-on: [Chapter 11 — DV01/PV01 — Definitions, Computation, and "What's Being Bumped"](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 13 — Convexity](chapters/chapter_13_convexity.md), [Chapter 14 — Key-Rate DV01](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 15 — DV01 Hedging](chapters/chapter_15_dv01_hedging.md), [Chapter 16 — Curve Hedging (Twists, Butterflies, PCA)](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
+
+## Learning Objectives
+- After this chapter, you can compute holding-period P&L/return using clean vs dirty prices, accrued interest, and coupon timing.
+- You can compute net carry for a repo-financed bond position and translate it into a breakeven yield/price move.
+- You can compute rolldown by repricing an aged bond on an unchanged curve/spread surface.
+- You can decompose clean-price change into rolldown, benchmark-curve effect, and spread effect (exact via counterfactual repricing; approximate via DV01/DVOAS).
+- You can interpret the decomposition as desk P&L explain and diagnose residuals/pitfalls (convexity, cross-terms, curve shape, funding assumptions).
+
 This chapter develops the full machinery of return decomposition:
 
 - **Section 7.1** establishes the foundation: clean vs dirty prices and the holding-period P&L identity.
@@ -38,9 +49,13 @@ $$\boxed{AI = \frac{c}{2} \cdot \frac{t - t_0}{t_1 - t_0}}$$
 
 Here $c$ is the annual coupon rate (as a decimal), $t_0$ is the last coupon date, and $t_1$ is the next coupon date.
 
-Clean price isolates the "market value" of the bond from the mechanical accrual of coupon interest. Dirty price is what you actually pay or receive at settlement—it reflects the fact that the seller has earned some coupon interest since the last coupon date. As Tuckman explains in Chapters 1–4, the dirty (or "invoice") price equals the clean (or "flat") price plus accrued interest.
+Market convention: the bond price quoted in the market is the **clean price**, while the amount exchanged at settlement is the **full/dirty price**. The difference is **accrued interest**, and it exists so the quoted clean price does not experience a mechanical drop when a coupon is paid.
 
 **Why this matters for P&L:** Traders quote and hedge clean prices because clean prices don't jump mechanically on coupon dates. But P&L calculations must ultimately use dirty prices (plus coupons received) to capture actual cash flows. Many P&L explain errors trace back to mixing clean and dirty inconsistently—especially around coupon payment dates.
+
+> **Pitfall — Clean vs dirty mixing:** Using clean price change as “P&L” without adding coupons and the accrued-interest change.
+> **Why it matters:** Your P&L explain will show artificial “jumps” around coupon dates and mis-attribute carry vs MTM.
+> **Quick check:** Verify that \(P_{\text{dirty}}(h)-P_{\text{dirty}}(0)+\sum C_n\) equals \(\Delta P_{\text{clean}} + \sum C_n + AI(h)-AI(0)\).
 
 ### 7.1.2 The Holding-Period P&L Identity
 
@@ -70,7 +85,7 @@ This is the basic cash-on-cash return: what you earned relative to what you paid
 
 Most bond positions are financed. A trading desk buying $100 million face of Treasury bonds typically borrows the purchase amount in the repo market, pledging the bonds as collateral. The cost of this financing must be netted against the interest income to arrive at true economic P&L.
 
-Tuckman provides the definitive formulation in Chapter 15. Defining:
+Tuckman derives a desk-style funded P&L identity in Chapter 15. Defining:
 
 - $P(0), P(d)$: Clean prices on the trade date and $d$ days later
 - $AI(0), AI(d)$: Accrued interest on the trade date and $d$ days later
@@ -93,7 +108,7 @@ where Carry = $cd/D - (P(0) + AI(0))(rd/360)$. When coupons are received during 
 
 $$\boxed{\text{Carry} = \sum C_n + AI(d) - AI(0) - (P(0) + AI(0)) \cdot r\frac{d}{360}}$$
 
-This equation is powerful because it cleanly separates the mark-to-market (price change) from the carry (interest income minus financing cost). Tuckman notes that "practitioners like to divide the profit or loss of a trade into a component due to price changes and a component due to carry."
+This identity cleanly separates the mark-to-market (price change) from carry (interest income minus financing cost)—the desk-style split used for P&L explain.
 
 ### 7.2.2 Understanding the Carry Formula
 
@@ -115,9 +130,9 @@ The carry term has three components:
 2. **Accrual change**: $AI(d) - AI(0)$—the change in accrued interest (which you'll collect when you sell)
 3. **Financing cost**: $(P(0) + AI(0)) \cdot r \cdot d/360$—the cost of borrowing the full (dirty) price at the repo rate
 
-Note that repo interest uses an Actual/360 day count in this formulation—you borrow for $d$ actual days but divide by 360. This is standard U.S. money market convention.
+Note that the financing term is written as \(r\,d/360\) in this formulation. In practice, repo accrual uses a stated money-market day-count convention; always document it, because carry can differ slightly across systems that make different day-count assumptions.
 
-**Intuition:** Carry is positive when the bond's coupon rate exceeds the repo rate. Tuckman explains: "Intuitively, the carry in this trade is positive because the coupon rate of the bond... is greater than the repo rate." But the relationship isn't exact—interest income is earned on face value using actual/actual, while repo interest is paid on the dirty price using 30/360.
+**Intuition:** Carry tends to be positive when the bond's coupon rate exceeds its financing rate, but two nuances matter: (i) coupon income accrues on face value while repo interest is paid on the full (dirty) price, and (ii) the day count used for coupon accrual can differ from the day count used for repo interest.
 
 ### 7.2.3 Breakeven Price Moves
 
@@ -136,7 +151,7 @@ Carry enables a critical calculation: how much can the bond's price fall before 
 >
 > **Result**: You can survive a 10bp adverse move in rates over the next month and still break even.
 
-Tuckman provides a worked example: An investor purchases a 5⅞% Treasury at invoice price 105.103073 and holds for 30 days at a 5.10% repo rate. The carry calculation proceeds:
+Tuckman provides a worked example: An investor purchases a \(5\frac{7}{8}\%\) Treasury at invoice price 105.103073 and holds for 30 days at a 5.10% repo rate. The carry calculation proceeds:
 
 **Interest income** (30 days in a 181-day coupon period):
 $$\$100{,}000{,}000 \times \frac{1}{2} \times 5.875\% \times \frac{30}{181} = \$486{,}878$$
@@ -156,15 +171,9 @@ Tuckman illustrates with a short position. If a trader shorts a bond at 105.0555
 
 ### 7.2.5 Carry Is Not Expected Return
 
-A critical warning: positive carry does not imply superior expected return. Tuckman emphasizes this point:
+A critical warning: positive carry does not imply superior expected return. In equilibrium-style framing, a fairly priced position has a required expected return (often described as the short-term rate plus a risk premium); that required return can show up as **carry**, as **expected price change**, or as a mix of the two.
 
-> "Positive carry trades have the desirable property that they earn money as they go. But this by no means implies that the expected return of a positive carry trade is greater than that of a negative carry trade."
-
-Consider the choice between a premium bond (positive carry, but price pulled down toward par) and a discount bond (negative carry, but price pulled up toward par). Carry alone cannot determine which offers better risk-adjusted return.
-
-Tuckman provides the theoretical foundation: "Viewing carry from a theoretical standpoint, Part Three showed that the expected return of any fairly priced portfolio equals the short-term rate plus an appropriate risk premium. This required expected return is the same whether it comes in the form of positive carry and a relatively small or negative expected price change or in the form of negative carry and a relatively large expected price change."
-
-The key insight is that markets price bonds so that expected total returns (carry plus expected price change) are consistent with equilibrium required returns. A bond with high positive carry will have an expected price decline that offsets some of that carry; a bond with negative carry will have an expected price increase. The carry component tells you about the *composition* of expected return, not its *level*.
+This is why carry comparisons can be misleading. A premium bond can have positive carry while (under unchanged yields) its price drifts down toward par; a discount bond can have negative carry while its price drifts up toward par. Carry tells you about the *composition* of return, not the level of expected return.
 
 ### 7.2.6 Desk Conventions for Carry
 
@@ -208,7 +217,7 @@ Tuckman explains this effect clearly in Chapter 3. Consider bonds yielding 5.50%
 - A 7.50% coupon 30-year bond trades around 129; as it matures, the value of above-market coupons declines, and the price falls toward par
 - A 3.50% coupon 30-year bond trades around 71; as it matures, the disadvantage of below-market coupons diminishes, and the price rises toward par
 
-Tuckman emphasizes: "It is important to emphasize that to illustrate simply the pull to par [this] assumes that the bonds yield 5.50% at all times. The actual price paths of these bonds over time will differ dramatically from those in the figure depending on the realization of yields."
+Important caveat: this “pull-to-par” intuition is a *holding-yields-constant* thought experiment. Realized price paths depend on how yields actually evolve.
 
 ### 7.3.3 Defining Rolldown Operationally
 
@@ -353,11 +362,9 @@ Return: $\frac{93.543 - 91.484}{91.484} = 2.25\%$ (annualized ~4.5%)
 
 You've earned less than the initial yield—the curve flattening eroded your rolldown.
 
-**Extreme Case: Curve Inversion (2022 Experience)**
+**Extreme Case: Curve Inversion**
 
-In 2022, the U.S. Treasury curve inverted significantly. A roll-down strategy that assumed steep curves would persist suffered losses as short rates rose above long rates. Traders who were positioned for persistent rolldown found their "carry trades" bleeding money.
-
-> **Practitioner Note:** The 2022-2023 curve inversion caught many systematic curve-riding strategies off guard. When the 2-year yield exceeded the 10-year yield by over 100bp, "rolling down the curve" meant rolling into *higher* yields, producing capital losses rather than gains.
+If the curve is inverted, “aging” can move you into *higher* yields rather than lower yields. In that case the unchanged-curve counterfactual can produce **negative rolldown** (you are effectively rolling *up* the curve).
 
 **P&L Scenarios Table (Zero-Coupon Illustration):**
 
@@ -372,54 +379,21 @@ Your **breakeven exit yield** is the 1.5-year yield that makes the exit price eq
 | Breakeven (forward-ish) | 6.02% | 91.484 | 0.000 | 0.00% |
 | Adverse sell-off | 6.50% | 90.851 | -0.633 | -0.69% |
 
-### 7.3.8 Term Premium: Why Rolldown May Be Fair Compensation
+### 7.3.8 Expectations vs Risk Premia: Why Rolldown May Be Compensation
 
-Why is the yield curve typically upward-sloping? Two explanations compete:
+In “Maturity and Bond Return,” Tuckman notes that when the **six-month rate evolves according to the initial forward rate curve**, investors rolling short-term bonds and investors buying long-term bonds perform equally well. More generally, he states that rollover investors do better when realized short-term rates exceed the forward rates built into bond prices, while longer-maturity bond investors do better when realized short-term rates fall below those forwards.
 
-**1. Pure Expectations Hypothesis:**
+But this breakeven logic does *not* imply that forward rates are forecasts of future spot rates. Jarrow gives a simple example where \(f(0,T) \neq E[r(T)]\), and where the slope of the forward curve does not forecast the direction of expected future spot rates.
 
-Under pure expectations, forward rates equal expected future spot rates:
+Tuckman then frames the wedge in expected-return terms: risk-neutral investors require an expected return equal to the short rate, while risk-averse investors demand a risk premium proportional to interest-rate risk (often proxied by duration). In his stylized formulation (Equation 10.25):
 
-$$f(t, t+\Delta t) = E[r(t, t+\Delta t)]$$
+$$E\!\left[\frac{dP}{P}\right] + \frac{c\,dt}{P} = r\,dt + \lambda D\,dt$$
 
-If this holds, an upward-sloping curve simply means investors expect short rates to rise. Earning rolldown in this world is a lucky outcome—rates didn't rise as much as expected.
+From a data perspective, Tuckman notes an identification problem: increasing the risk premium by a fixed amount can be empirically indistinguishable from increasing the expected path of short rates by the same amount. So the term structure at a point in time does not, by itself, uniquely separate “expectations” from “risk premium.”
 
-**2. Term Premium Hypothesis:**
-
-Under this view, forward rates exceed expected future spot rates by a **term premium**:
-
-$$\boxed{f(t, t+\Delta t) = E[r(t, t+\Delta t)] + \text{Term Premium}}$$
-
-The term premium compensates investors for bearing interest rate risk over longer horizons. Tuckman explains in Chapter 10:
-
-> "Risk-averse investors demand higher expected returns for bonds with more interest rate risk... the expected return equation becomes $E[dP/P] = r \, dt + \lambda D \, dt$"
-
-where $\lambda$ is the risk premium per unit of duration. If duration risk earns 10bp per year of modified duration, a 5-year duration bond should earn 50bp above the short rate.
-
-**Implications for Rolldown:**
-
-If term premium is positive, the yield curve is "too steep" relative to rate expectations. Earning rolldown is **fair compensation for bearing duration risk**—not alpha.
-
-Tuckman's application in Chapter 10 decomposes U.S. Treasury par yields into expectations, risk premium, and convexity components. He notes that "separating [expectations and risk premium] by observing a given term structure of yields" is fundamentally difficult—they are "observationally equivalent" from prices alone.
-
-> **Practitioner Note:** Term premium is difficult to measure in real-time. The New York Fed's ACM model estimates historical term premium, but these estimates are noisy and revision-prone. Treat "harvesting rolldown" with caution—you may be earning a risk premium, not generating alpha.
-
-**Conceptual Example:**
-
-Suppose term premium is 30bp per year of duration. A 5-year bond has ~4.5 years of modified duration. The term premium embedded in 5-year yields is roughly:
-
-$$\text{Term Premium Contribution} \approx 0.30\% \times 4.5 = 1.35\%$$
-
-This means that if the 5-year yield is 4.50% when the 1-year yield is 3.00%, approximately 1.35% of that 1.50% slope might be term premium rather than expected rate increases. Systematic curve riders may be capturing this premium—but they're taking duration risk to do so.
-
-> **Desk Reality: Why Some Funds Harvest Rolldown**
->
-> Many fixed income hedge funds and asset managers run persistent "carry and roll" strategies. They argue:
-> - Term premium exists and is reasonably stable
-> - Rolling bonds systematically captures this premium
-> - Duration risk is bearable with appropriate position sizing
->
-> Critics counter: you're running a levered duration bet dressed up as a "carry trade." When term premium compresses or inverts, you lose.
+> **Desk Reality — “Carry + roll” is a risk position:**
+> Carry and rolldown are computed under a counterfactual (“unchanged curve/spread”). Your realized P&L is dominated by what actually happens to the curve, spreads, and funding.
+> **What to check:** stress test the trade under a flattening and an inversion scenario; verify that the expected carry/roll is large enough relative to the DV01 you are warehousing.
 
 ---
 
@@ -441,15 +415,21 @@ This is an exact calculation using full repricing.
 
 ### 7.4.2 First-Order Approximation: DV01
 
-For small curve moves, the curve effect is approximately linear. Tuckman defines DV01 as:
+For small moves, we often linearize the curve effect using a one-basis-point sensitivity.
 
-$$\boxed{\text{DV01} = -\frac{1}{10000}\frac{\partial P}{\partial y}}$$
+**Yield-based definition (DV01; sign convention):** In the book-wide convention (matching Chapter 11), DV01 is the change in full price for a 1bp **decline** in the chosen rate measure, so a long option-free bond typically has a positive DV01:
 
-where $y$ is yield (in decimals). The negative sign ensures DV01 is positive for typical bonds (which lose value when rates rise). The 10,000 factor converts from "per unit rate" to "per basis point."
+$$\boxed{\text{DV01} := P(y-1\text{bp})-P(y) \approx -\frac{\partial P}{\partial y}\cdot (1\text{bp})}$$
 
-For a yield change of $\Delta y_{\text{bp}}$ basis points:
+**Curve-bump DV01 for attribution (bump object):** in this chapter’s curve/spread decomposition, the object being “bumped” is the **benchmark curve** \(z(\cdot)\) (parallel shift), holding the spread \(s\) fixed. Define the curve DV01 at a valuation point (e.g., at horizon \(h\)) by:
 
-$$\Delta P \approx -\text{DV01} \times \Delta y_{\text{bp}}$$
+$$\boxed{\text{DV01}_z(h) := P_{\text{clean}}(h;\,z(\cdot)-1\text{bp},\,s)-P_{\text{clean}}(h;\,z(\cdot),\,s)}$$
+
+Units: **price points per 1bp per 100 notional** (multiply by \(N/100\) to convert to currency DV01 for notional \(N\)).
+
+With the sign convention above, a parallel *up* move of \(\Delta z_{\text{bp}}>0\) gives the first-order approximation:
+
+$$\boxed{\Delta P_{\text{curve}} \approx -\text{DV01}_z \cdot \Delta z_{\text{bp}}}$$
 
 ### 7.4.3 Second-Order Approximation: Convexity
 
@@ -459,7 +439,7 @@ $$\boxed{\frac{\Delta P}{P} \approx -D \cdot \Delta y + \frac{1}{2} \cdot Cvx \c
 
 where $D$ is modified duration and $Cvx$ is convexity. This is Tuckman's equation (5.20).
 
-The convexity term is always positive for option-free bonds: the price-yield relationship is curved, and the curvature benefits the bondholder. As Tuckman notes, "equation (5.20) implied that positive convexity increases return whether rates rise or fall." The greater the change in yield, the greater the performance advantage of bonds with high convexity relative to bonds with low convexity.
+The convexity term is always positive for option-free bonds: the price-yield relationship is curved, and the curvature benefits the bondholder. With positive convexity, the convexity term increases return for large moves in either direction.
 
 ---
 
@@ -475,11 +455,17 @@ where $s_0$ and $s_1$ are the spread at time 0 and horizon, respectively.
 
 ### 7.5.2 Spread DV01 and DVOAS
 
-Just as curve effects can be approximated by DV01, spread effects can be approximated by a spread sensitivity. Tuckman defines DVOAS as "the dollar value of a 0.01 (i.e., 1bp) change in OAS"—essentially a spread DV01 for the option-adjusted spread.
+Just as curve effects can be approximated by a curve DV01, spread effects can be approximated by a spread sensitivity.
 
-For a Z-spread or similar additive spread measure:
+**Definition (bump object):** Tuckman defines DVOAS as the sensitivity of model price to a 1bp **decrease** in OAS, computed analogously to DV01 (central difference). In this chapter we use the same “tightening bump” convention for any additive spread \(s\) (Z-spread or OAS, as stated):
 
-$$\Delta P_{\text{spread}} \approx -\text{DVOAS} \times \Delta s_{\text{bp}}$$
+$$\boxed{\text{DVOAS}(h) := P_{\text{clean}}(h;\,z(\cdot),\,s-1\text{bp})-P_{\text{clean}}(h;\,z(\cdot),\,s)}$$
+
+Units: **price points per 1bp per 100 notional** (multiply by \(N/100\) for currency DVOAS on notional \(N\)).
+
+With \(\Delta s_{\text{bp}}>0\) meaning *spread widening*, the first-order approximation is:
+
+$$\boxed{\Delta P_{\text{spread}} \approx -\text{DVOAS} \cdot \Delta s_{\text{bp}}}$$
 
 ### 7.5.3 Which Spread? Why Definitions Matter
 
@@ -535,53 +521,27 @@ $$\text{Residual} = \Delta P_{\text{exact}} - \Delta P_{\text{DV01}}$$
 This residual captures:
 
 1. **Convexity**: The price-yield relationship is curved; linear approximations miss second-order effects
-2. **Cross-terms**: If both curve and spread move, a Taylor expansion includes a $\frac{\partial^2 P}{\partial r \partial s} \cdot dr \cdot ds$ cross term
+2. **Cross-terms**: If both curve and spread move, a Taylor expansion includes a $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ interaction term
 3. **Non-parallel moves**: DV01 assumes parallel shifts; actual curve changes may twist or butterfly
 
-Tuckman provides a second-order expansion for corporate bond price changes including the cross term. The residual is a diagnostic: it should shrink for smaller shocks and grow with longer duration, higher convexity, and larger rate/spread moves.
+A second-order expansion explains why the residual tends to shrink for smaller shocks and grow with longer duration, higher convexity, and larger rate/spread moves.
 
 ### 7.6.3 When Decomposition Breaks Down: Crisis Behavior
 
-In normal markets, rate moves and spread moves are relatively independent. The decomposition into "curve effect" and "spread effect" makes intuitive sense because you can imagine one moving while the other stays fixed.
+Hull’s discussion of the 2007–2009 financial crisis is a useful mental model: he describes a “flight to quality” and liquidity problems for institutions that relied on short-term funding. He also notes that credit spreads increased dramatically during the crisis. In such regimes, curve moves, spread moves, and funding conditions can all shift at the same time.
 
-In **crisis periods**, this clean separation breaks down.
+For a corporate bond, that can produce offsetting first-order components:
+- benchmark yields down (a rally) → **positive curve effect**
+- credit spreads up (wider) → **negative spread effect**
 
-**Flight-to-Quality Dynamics:**
+Two additional effects then make attribution harder:
+1. **Big moves:** both first-order and second-order approximations work well for very small changes in rate; for larger changes the second-order (convexity-adjusted) approximation works better, but for very large changes it, too, can fail.
+2. **Joint moves:** when both the curve and the spread move, a second-order expansion includes an interaction term proportional to \(dz\,ds\) (often called a “cross-gamma”).
 
-During stress events (2008, March 2020, regional bank crisis 2023), a common pattern emerges:
-- Treasury yields **fall** as investors flee to safety
-- Credit spreads **widen** as investors dump risky assets
-- These moves are **highly correlated** (negatively: rates down, spreads up)
+When the residual in your P&L explain becomes large, treat DV01/DVOAS × bp as a rough approximation and lean on **exact repricing** via counterfactual curves (curve-only, spread-only) to validate the explain.
 
-**The Cross-Gamma Problem:**
-
-When rates and spreads move together, the interaction term $\frac{\partial^2 P}{\partial r \partial s} \cdot dr \cdot ds$ becomes significant. This "cross-gamma" captures how spread sensitivity changes with rates and vice versa.
-
-For a corporate bond:
-- If spreads widen while rates fall, the bond loses value from spread widening
-- But it gains from rate decline
-- The net effect depends on which dominates—and on the cross-term
-
-**Practical Implications:**
-
-When the residual in your P&L explain becomes large (say, more than 10-15% of total P&L), the linear decomposition is not capturing reality well. This is a signal that:
-- Markets are stressed
-- Risk factors are moving together
-- Your hedges may not perform as expected
-
-> **Desk Reality: March 2020**
->
-> In March 2020, both rates and spreads moved violently—Treasury 10-year yields fell from 1.6% to 0.5% while investment-grade spreads blew out from 100bp to 400bp. P&L attribution systems produced noisy results because the "independent components" assumption was badly violated.
->
-> The lesson: In a crisis, focus on **total P&L** and **net risk**, not component attribution. The decomposition is a clear-weather tool.
-
-**Guidance for Crisis Attribution:**
-
-| Residual Size | Interpretation |
-|---------------|---------------|
-| < 5% of total P&L | Normal conditions; decomposition is meaningful |
-| 5-15% of total P&L | Elevated correlation or larger moves; interpret with caution |
-| > 15% of total P&L | Stress conditions; linear model inadequate; focus on total risk |
+> **Desk Reality:** in crisis regimes, treat component attribution as approximate.
+> **What to check:** compute the exact counterfactual prices (curve-only, spread-only) and compare them to the linear approximation; if the residual is large, focus first on total P&L and net risk.
 
 ---
 
@@ -601,13 +561,11 @@ He interprets these components as:
 | $\text{DV01}_x \cdot (dx - E[dx])$ | **Factor exposure**: Return from unexpected rate moves |
 | $\text{DVOAS} \times d\text{OAS}$ | **Convergence**: Return from spread normalization |
 
-Tuckman notes: "The term convergence is used since, for models with predictive power, the OAS tends to zero or, equivalently, the security price tends toward its fair value according to the model."
+Tuckman calls the spread-move component “convergence” because, in a model-based view, a positive OAS represents mispricing relative to that model and (with predictive power) should tend to move back toward fair value.
 
 **Understanding Convergence:**
 
-If a bond is "cheap" (positive OAS relative to the model), the model predicts it should appreciate toward fair value over time. The convergence term captures this normalization. Tuckman elaborates:
-
-> "A long position in a cheap security earns superior returns in two ways. First, it earns the OAS over time intervals in which the security does not converge to its fair value. Second, it earns the DVOAS times the extent of any convergence."
+In this framing, a “cheap” security (positive OAS) earns extra return in two ways: (1) by accruing OAS over time while the mispricing persists, and (2) by earning when OAS narrows, scaled by DVOAS.
 
 **When OAS-Based Attribution Makes Sense:**
 
@@ -963,6 +921,46 @@ Using the same second-difference logic, the convexity correction for $\Delta s =
 
 ### Example F — Full Decomposition Over a Horizon (Carry + Rolldown + Curve + Spread + Residual)
 
+**Example Title**: Full 6-month return decomposition for a bullet bond (unfunded vs repo-funded)
+
+**Context**
+- We want a desk-style P&L explain: carry, rolldown, benchmark-curve effect, spread effect, and the residual from linear approximations.
+- This is the “quote → cashflows → PV → risk” pipeline in one concrete example.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: Jul 30, 2026
+- Settlement date: Jul 30, 2026 (assume settlement on a coupon date, so \(AI(0)=0\))
+- Accrual start/end: Jul 30, 2026 → Jan 30, 2027
+- Payment date(s): Jan 30, 2027 (coupon)
+- Horizon date: Jan 30, 2027 (coupon date, so \(AI(1)=0\))
+
+**Inputs**
+- Instrument: 5.00% annual coupon bond, semiannual coupons, face 100, maturity Jul 30, 2028 (2.0y from trade date)
+- Pricing conventions: prices per 100 notional; discounting uses semiannual-compounded rates
+- Curves/spreads: use the benchmark zero curve and additive Z-spread from Example C
+- Financing (repo-funded variant): repo rate \(r=4.50\%\) with money-market style \(d/360\) accrual
+
+**Outputs (What You Produce)**
+- Clean-price components (per 100): carry (unfunded and repo-funded), rolldown, curve effect, spread effect, residual
+- Total P&L (per 100) and holding-period return (unfunded and repo-funded)
+- Risk (as used in the approximation): \(DV01_z\) at the horizon (price points per bp per 100)
+
+**Step-by-step**
+1. Record the initial quote and settlement convention (\(P_0^{clean}\), \(AI(0)\), horizon \(h\)).
+2. Compute carry over the horizon (unfunded vs repo-funded using the stated day counts).
+3. Reprice the aged bond on the **unchanged** curve/spread to get rolldown.
+4. Reprice on the shifted **benchmark curve** (spread fixed) to get the curve effect.
+5. Reprice on the shifted **spread** (curve fixed at the shifted level) to get the spread effect.
+6. Check the telescoping identity, then compute total P&L and holding-period return.
+7. Compute \(DV01_z(h)\), compare linear vs exact effects, and interpret the residual.
+
+**Cashflows (table; unfunded, per 100 notional)**
+| Date | Cashflow | Explanation |
+|---|---:|---|
+| 2026-07-30 | \(-99.0831\) | Buy bond at dirty price (here \(=P^{clean}\) since \(AI(0)=0\)) |
+| 2027-01-30 | \(+2.50\) | Coupon received |
+| 2027-01-30 | \(+99.1840\) | Sell bond at dirty price (here \(=P^{clean}\) since \(AI(1)=0\)) |
+
 Use the bond and initial curve/spread from Example C.
 
 **Horizon:**
@@ -1077,8 +1075,21 @@ $$\widehat{\text{P\&L}} = 2.50 + 0.42644877 - 0.11347776 - 0.21277079 = 2.600200
 
 $$\text{Residual} = \text{P\&L}_{\text{exact}} - \widehat{\text{P\&L}} = 2.60092367 - 2.60020022 = 0.00072345$$
 
-**Interpretation:**
-This is the convexity/cross-term remainder from linearizing curve and spread effects, consistent with second-order expansions that include squared and cross terms in rate/spread changes.
+**P&L / Risk Interpretation**
+- Clean-price explain (per 100): rolldown \(+0.4264\) is mostly offset by rates \(-0.1134\) and spread widening \(-0.2121\), leaving only \(+0.1009\) of net clean-price change.
+- Unfunded: the coupon dominates total P&L (\(+2.50\) income + \(+0.1009\) MTM \(= +2.6009\) points over 6 months).
+- Repo-funded: financing absorbs most of the coupon (carry drops to \(+0.2706\)), so the same MTM now drives a much smaller total (\(+0.3716\)). This is why “carry trades” are funding-sensitive.
+- Risk view: with \(DV01_z(h)\approx 0.0142\) points per bp per 100, an 8bp parallel sell-off costs about \(0.11\) points—consistent with the curve effect; the residual (~0.0007) is the second-order remainder (convexity + cross-terms) at these move sizes.
+
+**Sanity Checks**
+- Units check: all price/P&L numbers are “per 100 notional”; convert to currency by multiplying by \(N/100\).
+- Sign check: rates/spreads up → price down for a long option-free bond.
+- Limit check: as \(\Delta z,\Delta s \to 0\), linear (DV01/DVOAS) and exact repricing should coincide and the residual should go to zero.
+- Reproduction check: a spreadsheet that reprices the cashflows under the three counterfactual curves (\(z_0,s_0\)), (\(z_1,s_0\)), (\(z_1,s_1\)) should recover the same components.
+
+**References**
+- (Bruce Tuckman, *Fixed Income Securities: Tools for Today’s Markets*, “Carry”)
+- (Bruce Tuckman, *Fixed Income Securities: Tools for Today’s Markets*, “Estimating Price Changes and Returns with DV01, Duration, and Convexity”)
 
 ---
 
@@ -1188,7 +1199,7 @@ This chapter developed a complete framework for decomposing bond returns:
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -1199,33 +1210,33 @@ This chapter developed a complete framework for decomposing bond returns:
 | Term premium | Forward − expected future spot | May explain why rolldown is "earnable" |
 | Curve effect | Price change from benchmark moves | Rate risk attribution |
 | Spread effect | Price change from spread moves | Credit/liquidity risk attribution |
-| DV01 | Price sensitivity per 1bp | First-order approximation for rate moves |
-| DVOAS | Price sensitivity to OAS per 1bp | First-order approximation for spread moves |
+| DV01 | PV change for a 1bp **decline** in the stated rate/curve bump object (units: price points per bp per 100) | First-order approximation for rate moves and hedges |
+| DVOAS | PV change for a 1bp **tightening** in the stated spread/OAS bump object (units: price points per bp per 100) | First-order approximation for spread moves and hedges |
 | Residual | Exact minus approximate | Convexity + cross-terms + model error |
-| Cross-gamma | $\partial^2 P / \partial r \partial s$ | Interaction term; large in crises |
+| Cross-gamma | $\frac{\partial^2 P}{\partial z \,\partial s}$ (interaction between curve and spread) | Interaction term; can matter when curve and spreads move together |
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $P_{\text{clean}}(t)$ | Clean price at time $t$ (per 100 face) |
-| $P_{\text{dirty}}(t)$ | Dirty/full price at time $t$ (per 100 face), $= P_{\text{clean}}(t) + AI(t)$ |
-| $AI(t)$ | Accrued interest at time $t$ |
-| $c$ | Annual coupon rate (decimal, e.g., 0.05 for 5%) |
-| $C_n$ | Coupon payment received during the horizon |
-| $h$ or $d$ | Horizon length (years or days) |
-| $r$ | Repo rate (decimal) |
-| $z(t)$ | Benchmark zero rate for maturity $t$ |
-| $s$ | Spread measure (Z-spread / ZVS) |
-| $y(t)$ | Total discount rate ($= z(t) + s$ in this chapter) |
-| $f(t_1, t_2)$ | Forward rate from $t_1$ to $t_2$ |
-| $df(t)$ | Discount factor to maturity $t$ |
-| DV01 | Dollar value of a 1bp change in yield |
-| DVOAS | Dollar value of a 1bp change in OAS/spread |
-| $D$ | (Modified) duration |
-| $Cvx$ | Convexity |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| \(P_{\text{clean}}(t)\) | Clean price at time \(t\) | price points per 100 notional; market quote convention |
+| \(P_{\text{dirty}}(t)\) | Dirty/full price at time \(t\), \(=P_{\text{clean}}(t)+AI(t)\) | price points per 100; settlement amount |
+| \(AI(t)\) | Accrued interest at time \(t\) | price points per 100; computed per the bond’s coupon day count |
+| \(c\) | Annual coupon rate | decimal per year (e.g., 0.05 for 5%) |
+| \(C_n\) | Coupon payment during the horizon | price points per 100; positive cashflow for a long position |
+| \(h\), \(d\) | Horizon length | years or days; state the day count used (e.g., 30/360, Act/360) |
+| \(r\) | Repo rate | decimal per year; financing accrues on a money-market basis (often Act/360) |
+| \(z(t)\) | Benchmark zero rate for maturity \(t\) | rate per year; compounding convention must match the discounting formula used |
+| \(s\) | Additive spread (Z-spread / OAS as stated) | rate per year; widening is \(\Delta s_{\text{bp}}>0\) |
+| \(y(t)\) | Total discount rate, \(=z(t)+s\) (in this chapter) | rate per year |
+| \(f(t_1,t_2)\) | Forward rate from \(t_1\) to \(t_2\) | rate per year; defined consistently with the spot/discounting convention |
+| \(df(t)\) | Discount factor to maturity \(t\) | unitless; \(df(0)=1\) |
+| \(DV01\) | Rate/curve PV sensitivity | **Book convention:** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) for the stated bump object; units: price points per bp per 100 |
+| \(DVOAS\) | Spread/OAS PV sensitivity | **Book convention:** \(DVOAS := PV(\text{spread tightens }1\text{bp})-PV(\text{base})\) for the stated spread definition; same units as \(DV01\) |
+| \(D\) | Modified duration | years; connects to \(DV01\) via scaling (given a stated compounding convention) |
+| \(Cvx\) | Convexity | year\(^2\) (conceptually); used in second-order price-change approximations |
 
 ---
 
@@ -1240,27 +1251,27 @@ This chapter developed a complete framework for decomposing bond returns:
 | 5 | Define horizon return (unfunded) | $R = \text{P\&L} / P_{\text{dirty}}(0)$ where $\text{P\&L} = (P_{\text{dirty}}(h) - P_{\text{dirty}}(0)) + \sum C_n$ |
 | 6 | What is rolldown (as defined in this chapter)? | $P_{\text{clean}}(h; z_0, s_0) - P_{\text{clean}}(0; z_0, s_0)$ (aging with curve/spread fixed) |
 | 7 | What is pull-to-par? | The tendency of a bond price to approach par at maturity as time passes and cashflows are received |
-| 8 | What is DV01? | $\text{DV01} = -\frac{1}{10000}\frac{\partial P}{\partial y}$ |
+| 8 | What is DV01 (sign convention)? | $\text{DV01} := P(y-1\text{bp})-P(y) \approx -\frac{1}{10000}\frac{\partial P}{\partial y}$ (price change for a 1bp *fall*) |
 | 9 | How do you use DV01 to approximate a price change for $\Delta y_{\text{bp}}$? | $\Delta P \approx -\text{DV01} \cdot \Delta y_{\text{bp}}$ |
 | 10 | What does convexity correct in DV01-based approximations? | Nonlinearity of the price–yield relationship; linear DV01 misses 2nd-order effects |
 | 11 | State the duration/convexity approximation for $\Delta P/P$ | $\Delta P/P \approx -D\Delta y + \frac{1}{2}Cvx(\Delta y)^2$ |
 | 12 | What is the forward rate's role in maturity choice decisions? | The forward rate is the breakeven: if the future spot rate equals today's forward, strategies of different maturities produce equal returns |
 | 13 | What is term premium? | The difference between the forward rate and the expected future spot rate; compensates for duration risk |
 | 14 | Why might systematically earning rolldown be fair compensation? | If term premium is positive, the yield curve is "too steep" relative to rate expectations; rolldown is compensation for bearing interest rate risk |
-| 15 | What is DVOAS? | Dollar value of a 1bp change in OAS |
+| 15 | What is DVOAS (sign convention)? | $\text{DVOAS} := P(s-1\text{bp})-P(s)$ (price change for a 1bp *tightening* in the stated spread/OAS) |
 | 16 | What is the "curve effect" in horizon clean-price explain? | Price change at horizon from changing benchmark curve $z_0 \to z_1$ holding spread fixed |
 | 17 | What is the "spread effect" in horizon clean-price explain? | Price change at horizon from changing spread $s_0 \to s_1$ holding benchmark curve fixed |
 | 18 | Why can carry+rolldown be positive while realized P&L is negative? | Adverse curve and/or spread moves can overwhelm carry and rolldown |
 | 19 | What is the "riding the yield curve" trade? | Buy long-maturity bonds, hold as they age into lower-yield territory (on a steep curve), sell for capital gain |
 | 20 | When does riding the yield curve fail? | When the curve flattens or inverts; the aging bond rolls into higher yields, producing capital losses |
-| 21 | What is cross-gamma and when does it matter? | $\partial^2 P / \partial r \partial s$; matters in crises when rates and spreads move together |
-| 22 | When should you distrust your P&L decomposition? | When the residual exceeds 10-15% of total P&L; indicates stress conditions or model inadequacy |
+| 21 | What is cross-gamma and when does it matter? | $\frac{\partial^2 P}{\partial z \,\partial s}$; matters when curve and spreads move together (often in stress regimes) |
+| 22 | When should you distrust your P&L decomposition? | When the residual is a meaningful fraction of total P&L; indicates non-parallel moves, convexity/cross-terms, or model mismatch |
 | 23 | Why does positive carry not imply superior expected return? | Premium bonds have positive carry but prices pulled down toward par; discount bonds have negative carry but prices pulled up |
 | 24 | What is a breakeven price change? | The price move that exactly offsets carry, resulting in zero P&L |
 | 25 | What three components appear in Tuckman's model-based P&L attribution? | Carry, factor exposure, and convergence |
 | 26 | What is "convergence" in OAS-based P&L? | Return from the bond's OAS normalizing toward zero (the model's fair value) |
 | 27 | How do desks use P&L attribution strategically? | Claim "predictable" carry/rolldown for good performance; blame "unpredictable" rate moves for losses |
-| 28 | What day count mismatch affects carry calculations? | Repo uses Act/360; Treasury coupon accrual uses Act/Act. Creates small calculation discrepancies. |
+| 28 | What day count mismatch affects carry calculations? | Repo accrues on a money-market day-count basis (often 360-day based) while coupon accrual uses the bond’s coupon day count; mismatches create small carry discrepancies. |
 
 ---
 
@@ -1316,9 +1327,9 @@ This chapter developed a complete framework for decomposing bond returns:
 
 **10.** The skeptic would argue: "The upward-sloping curve reflects term premium—investors demand extra yield for duration risk. Your 'rolldown earnings' are compensation for that risk, not skill. When term premium inverts or compresses, you'll give it all back."
 
-**11.** Rates falling → positive curve effect (long bond gains). Spreads widening → negative spread effect (corporate loses credit value). Net effect depends on magnitudes. The residual may be large because the two moves are correlated (flight-to-quality), so the cross-gamma term $\partial^2 P/\partial r \partial s \cdot dr \cdot ds$ becomes significant.
+**11.** Rates falling → positive curve effect (long bond gains). Spreads widening → negative spread effect (corporate loses credit value). Net effect depends on magnitudes. The residual may be large because the two moves are correlated (flight-to-quality), so the interaction term $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ becomes significant.
 
-**12.** A cross-term $\frac{\partial^2 P}{\partial r \partial s} \cdot dr \cdot ds$ appears in the second-order expansion, representing the interaction between curve and spread moves.
+**12.** A cross-term $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ appears in the second-order expansion, representing the interaction between curve and spread moves.
 
 **13.** Is that income-only carry or net carry? What repo rate assumption? What day count? Annualized how (simple or compounded)? Is it carry per 100 face or per dollar invested?
 
@@ -1328,13 +1339,10 @@ This chapter developed a complete framework for decomposing bond returns:
 
 ## References
 
-- Bruce Tuckman, *Fixed Income Securities* (carry and funded P&L decomposition; rolldown and pull-to-par; forwards and term premium discussion; attribution concepts).
-- John C. Hull, *Options, Futures, and Other Derivatives* (duration/convexity approximations and intuition; forward rates as no-arbitrage breakevens).
-- David G. Luenberger, *Investment Science* (present value and return decomposition intuition).
-
-*Cross-references:*
-- Clean/dirty price and accrued interest: see Chapter 4, Chapter 5
-- DV01 and duration: see Chapter 11, Chapter 12
-- Repo mechanics and financing: see Chapter 9
-- Spread measures (Z-spread, OAS, ASW): see Chapter 8
-- Forward rates: see Chapter 3
+- (Bruce Tuckman, *Fixed Income Securities: Tools for Today’s Markets*, “Carry”; “Maturity and Bond Return”; “Yield-Based DV01”; “DVOAS”; “Pull to Par”)
+- (John C. Hull, *Options, Futures, and Other Derivatives*, “Forward Rates”; “Duration and Convexity”)
+- (Edwin J. Elton, Martin J. Gruber, Stephen J. Brown, and William N. Goetzmann, *Modern Portfolio Theory and Investment Analysis*, “Bond Pricing (Clean vs Dirty)”; “Price Change due to Passage of Time”)
+- (Dessislava Pachamanova and Frank J. Fabozzi, *Simulation and Optimization in Finance*, “Total Return and Holding-Period Return”)
+- (Robert A. Jarrow, *Modeling Fixed Income Securities and Interest Rate Options*, “Expectations Hypothesis and Forward Rates”)
+- (Leif B. G. Andersen and Vladimir V. Piterbarg, *Interest Rate Modeling*, “Bonds and Forward Rates”)
+- (David G. Luenberger, *Investment Science*, “Term Structure, Forward Rates, and Term Premia”)

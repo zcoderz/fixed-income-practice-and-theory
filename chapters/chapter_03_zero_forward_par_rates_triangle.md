@@ -16,6 +16,16 @@ Why does this matter? Because different markets speak different languages:
 
 If you cannot fluently convert between these representations, you cannot reconcile positions across systems, you cannot price a swap against a bond curve, and you cannot understand why your model disagrees with a trader's quote.
 
+Prerequisites: [Chapter 1 — Market Quoting, Calendars, and Cashflow Plumbing](chapters/chapter_01_market_quoting_calendars_cashflow_plumbing.md), [Chapter 2 — Time Value of Money, Discount Factors, and Replication](chapters/chapter_02_time_value_discount_factors_replication.md)  
+Follow-on: [Chapter 4 — Money-Market Building Blocks (The Shortest Curve Points)](chapters/chapter_04_money_market_building_blocks.md), [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 11 — DV01/PV01: Definitions and Computation](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 17 — Curve Construction: Bootstrapping and Interpolation](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md), [Appendix A3 — HJM Framework Essentials](chapters/appendix_a3_hjm_framework_essentials.md)
+
+## Learning Objectives
+- Translate between discount factors, zero rates, forward rates, and par rates with explicit day-count and compounding conventions.
+- Compute forward rates and par rates from discount factors and perform “triangle must close” sanity checks.
+- Value a simple FRA (quote → cashflows → PV) and compute a DV01 with a stated bump object, units, and sign convention.
+- Explain why forward rates are typically “wigglier” than zero rates and why par yields differ from zero yields (the coupon effect).
+- State what the expectations hypothesis claims and why term premia imply “forward ≠ expected future spot.”
+
 This chapter develops the "Rate Triangle"—the mathematical machinery for converting between these representations. We cover:
 
 1. **Discount factors as the primitive** — the building block from which all rates derive
@@ -77,11 +87,11 @@ Crucially, **you cannot quote a zero rate without specifying a compounding conve
 
 This is the standard for derivatives pricing code (e.g., Black-Scholes, QuantLib internals). Hull (eq. 4.2) establishes that with continuous compounding, an amount $A$ invested for $n$ years at rate $R$ grows to $Ae^{Rn}$. The fundamental relationship is:
 
-$$P(0,T) = e^{-z_c(T) \cdot T}$$
+$$P(0,T) = e^{-y_c(T) \cdot T}$$
 
 Solving for the rate (Hull Ch 4):
 
-$$\boxed{z_c(T) = -\frac{\ln P(0,T)}{T}}$$
+$$\boxed{y_c(T) = -\frac{\ln P(0,T)}{T}}$$
 
 **Why it's preferred by quants:** Hull explains that "continuously compounded interest rates are used to such a great extent in pricing derivatives that it makes sense to get used to working with them now." The mathematical convenience—particularly that discount factors multiply simply as $e^{-r_1 t_1} \times e^{-r_2 t_2} = e^{-(r_1 t_1 + r_2 t_2)}$—makes continuous compounding the standard in quantitative finance.
 
@@ -89,21 +99,21 @@ $$\boxed{z_c(T) = -\frac{\ln P(0,T)}{T}}$$
 
 This is the standard for U.S. bond markets. Hull (eq. 4.1) gives the general compounding formula: an amount $A$ invested at rate $R$ compounded $m$ times per year grows to $A(1 + R/m)^{mn}$ after $n$ years. For semiannual compounding:
 
-$$P(0,T) = \frac{1}{\left(1 + \frac{z_{sa}(T)}{2}\right)^{2T}}$$
+$$P(0,T) = \frac{1}{\left(1 + \frac{y_{sa}(T)}{2}\right)^{2T}}$$
 
 Solving for the rate:
 
-$$\boxed{z_{sa}(T) = 2 \left[ \left( \frac{1}{P(0,T)} \right)^{\frac{1}{2T}} - 1 \right]}$$
+$$\boxed{y_{sa}(T) = 2 \left[ \left( \frac{1}{P(0,T)} \right)^{\frac{1}{2T}} - 1 \right]}$$
 
 ### 3.2.4 Simple Interest (Money Market Convention)
 
 Used for short-term rates (typically $T < 1$ year), like SOFR fixings and T-Bills. Tuckman explains that "lending $\$1$ for $d$ days at a rate of $r$ will earn the lender an interest payment of $rd/360$ dollars at the end of the $d$ days" under the actual/360 convention. There is no "compounding" of interest on interest.
 
-$$P(0,T) = \frac{1}{1 + z_{simple}(T) \cdot T}$$
+$$P(0,T) = \frac{1}{1 + y_{\text{simple}}(T) \cdot T}$$
 
 Solving for the rate:
 
-$$\boxed{z_{simple}(T) = \frac{1}{T} \left( \frac{1}{P(0,T)} - 1 \right)}$$
+$$\boxed{y_{\text{simple}}(T) = \frac{1}{T} \left( \frac{1}{P(0,T)} - 1 \right)}$$
 
 ### 3.2.5 Convention Risk: The Map is Not the Territory
 
@@ -119,14 +129,9 @@ All three represent the **exact same economic value**. If you plug a 5.13% simpl
 
 **Practical rule:** Before comparing rates (or hedges) from different systems, confirm the compounding and day-count conventions. If anything is ambiguous, convert everything back to discount factors first, then re-express in the desired convention.
 
-> **Desk Reality: Convention Mismatch = Reconciliation Breaks**
->
-> Convention mismatches show up as:
-> - curve “shape” disagreements between systems (because one is plotting continuous zeros and another is plotting semiannual zeros);
-> - PV/DV01 differences that look like “model risk” but are really a unit conversion issue;
-> - cashflow disputes when one system used ACT/360 and another used 30/360 (or different 30/360 variants).
->
-> Practical habit: when reconciling, translate everything into **discount factors and cashflows** first (the unambiguous objects), then translate back to the rate language each desk uses.
+> **Desk Reality:** Two systems rarely agree on a “rate” unless you specify the *basis* (day count + compounding).
+> **Common break:** Reconciling a continuous-zero curve vs a semiannual-zero curve vs a simple money-market curve and calling the difference “model risk.”
+> **What to check:** Convert both systems to discount factors \(P(0,T)\) at shared maturities, reprice a simple cashflow, then convert back into the desk’s quoting convention.
 
 ### 3.2.6 Conversion Between Compounding Conventions
 
@@ -147,16 +152,16 @@ $$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 **Objective:** Express this as zero rates under all major conventions.
 
 **Step 1: Continuous Rate**
-$$z_c = -\frac{\ln(0.9070)}{2} = -\frac{-0.0976}{2} = 4.879\%$$
+$$y_c = -\frac{\ln(0.9070)}{2} = -\frac{-0.0976}{2} = 4.879\%$$
 
 **Step 2: Semiannual Rate**
-$$z_{sa} = 2\left[(1/0.9070)^{1/4} - 1\right] = 2\left[1.02470 - 1\right] = 4.939\%$$
+$$y_{sa} = 2\left[(1/0.9070)^{1/4} - 1\right] = 2\left[1.02470 - 1\right] = 4.939\%$$
 
 **Step 3: Annual Rate**
-$$z_1 = (1/0.9070)^{1/2} - 1 = 1.05001 - 1 = 5.001\%$$
+$$y_1 = (1/0.9070)^{1/2} - 1 = 1.05001 - 1 = 5.001\%$$
 
 **Step 4: Quarterly Rate**
-$$z_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\%$$
+$$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\%$$
 
 **Verification:** All four rates produce the same discount factor when applied with their respective compounding formulas. The ordering follows the mathematical property: for positive rates, more frequent compounding implies a lower quoted rate. Continuous < Quarterly < Semiannual < Annual.
 
@@ -200,27 +205,23 @@ This is not a prediction—it's a mathematical relationship enforced by arbitrag
 
 In practice, forward rates are often treated as **breakeven levels**: if you lock a forward-starting fixed rate at today’s forward, the initial PV is near zero; eventual P&L depends on where the realized reference rate prints versus that level.
 
-> **Desk Reality: “The Forward Is My Pain Threshold”**
->
-> Desk language often treats the forward as the breakeven level you can lock in:
-> - If you think the future realized reference rate will be **below** the forward, you generally prefer positions that benefit from **receiving fixed** at the forward.
-> - If you think the realized rate will be **above** the forward, you prefer positions that benefit from **paying fixed** at the forward.
->
-> Hull illustrates (via a historical case study) that large losses can occur when positions are effectively “bets” against the forward curve and the realized path moves the other way. The forward is not a forecast; it is the tradable breakeven embedded in today’s curve.
+> **Desk Reality:** Traders treat the forward as the breakeven level you can lock today (e.g., via an FRA or forward-starting swap).
+> **Common break:** Treating the forward curve as a literal forecast of realized fixings.
+> **What to check:** Separate (1) the no-arbitrage identity that defines the forward from (2) the additional assumptions needed to interpret it as an expectation.
 
 ### 3.3.4 The General Forward Rate Formula
 
 **Strategy A (The Forward Loan):**
 Borrow \$1 at $T_1$ and repay $1 + F \cdot \tau$ at $T_2$. Value at $T_1$ is 1.
 
-**Strategy B (Synthetic Construction):**
-1. **Borrow Long:** Borrow $1/P(0, T_1)$ dollars today for term $T_2$ at rate $z(T_2)$. You owe $1/P(0, T_1) \div P(0, T_2)$ at time $T_2$.
-2. **Lend Short:** Lend the $1/P(0, T_1)$ dollars today for term $T_1$. You receive exactly \$1 at time $T_1$.
+**Strategy B (Replicate with zero-coupon bonds):**
+1. **Buy a $T_1$ zero:** Buy 1 unit of the $T_1$ zero-coupon bond today. Cost: $P(0,T_1)$. Cashflow: receive \$1 at $T_1$.
+2. **Short a scaled $T_2$ zero:** Short $\frac{P(0,T_1)}{P(0,T_2)}$ units of the $T_2$ zero-coupon bond. Proceeds today: $\frac{P(0,T_1)}{P(0,T_2)}P(0,T_2)=P(0,T_1)$. Cashflow: pay $\frac{P(0,T_1)}{P(0,T_2)}$ at $T_2$.
 
 **Net Cashflows:**
-- **Today:** $+ \frac{1}{P(0,T_1)}$ (from borrowing) $- \frac{1}{P(0,T_1)}$ (from lending) = **0**.
-- **Time $T_1$:** Receive **\$1** from the lending leg.
-- **Time $T_2$:** Owe $\frac{P(0,T_1)}{P(0,T_2)}$ from the borrowing leg.
+- **Today:** pay $P(0,T_1)$ and receive $P(0,T_1)$ = **0**.
+- **Time $T_1$:** receive **\$1**.
+- **Time $T_2$:** pay $\frac{P(0,T_1)}{P(0,T_2)}$.
 
 This synthetic structure creates a loan of \$1 at $T_1$ with a repayment obligation at $T_2$. To avoid arbitrage, the forward contract rate $F$ must match this repayment obligation.
 
@@ -236,7 +237,7 @@ $$\boxed{F_{\text{simple}}(0; T_1, T_2) = \frac{1}{\tau} \left( \frac{P(0,T_1)}{
 **Continuously Compounded Forward Rate:**
 Used in theoretical modeling. Hull (eq. 4.5) gives:
 
-$$\boxed{f_c(0; T_1, T_2) = \frac{z_c(T_2) \cdot T_2 - z_c(T_1) \cdot T_1}{T_2 - T_1} = \frac{\ln P(0, T_1) - \ln P(0, T_2)}{T_2 - T_1}}$$
+$$\boxed{f_c(0; T_1, T_2) = \frac{y_c(T_2) \cdot T_2 - y_c(T_1) \cdot T_1}{T_2 - T_1} = \frac{\ln P(0, T_1) - \ln P(0, T_2)}{T_2 - T_1}}$$
 
 **Semiannual Forward Rate:**
 Tuckman (eq. 2.17) derives:
@@ -263,7 +264,7 @@ This reminds you that a smooth $P(0,T)$ implies a smooth integral of $f(0,T)$—
 
 ### 3.4.1 FRA Mechanics
 
-Hull (Ch 4) explains that a **forward rate agreement (FRA)** is an agreement to exchange a predetermined fixed rate for a reference rate observed at a future time, with both rates applying to a notional principal over a specified future accrual period.
+Andersen and Piterbarg describe a **forward rate agreement (FRA)** as a contract to exchange a fixed rate (agreed today) against a payment based on a spot reference rate fixed at the start of a future accrual period.
 
 Fix two dates $T_1 < T_2$ and let $\tau$ be the year fraction for $[T_1, T_2]$ (according to the contract’s day count). Let $K$ be the FRA fixed rate and let $R$ be the realized reference rate (e.g., a 3‑month term rate) observed at $T_1$ for the period $[T_1, T_2]$. No notional is exchanged; only the net interest difference is exchanged.
 
@@ -271,24 +272,41 @@ If settlement were made at the **end** of the accrual period (at $T_2$), the net
 
 $$\text{Interest difference at }T_2 \;=\; N \, (K - R)\, \tau$$
 
-In practice, because $R$ is known at $T_1$, FRAs are commonly **cash-settled at (or near) $T_1$** for the *present value* of that end-of-period difference. One common way to express this is:
+In practice, FRAs are commonly **cash-settled at (or near) $T_1$** rather than at $T_2$. As O'Kane puts it:
 
-$$\text{Settlement at }T_1 \;\approx\; \frac{N \, (K - R)\, \tau}{1 + R\,\tau}$$
+> While the final payment is defined as though it occurs at time $T_{2}$, in practice the contract is cash settled at time $T_{1}$.
 
-**Worked example (mechanics):** Notional $N=\$100$ million, $\tau=0.25$, $K=3.5\\%$, realized reference rate $R=3.0\\%$.
+Andersen and Piterbarg give the net payment at $T_1$ **from the perspective of the fixed-rate payer** (pay fixed, receive floating) as:
 
-- End-of-period interest difference: $100{,}000{,}000\\times(0.035-0.030)\\times 0.25 = \$125{,}000$.
-- Cash settlement at $T_1$ (PV at the start of the period): $125{,}000/(1+0.030\\times 0.25) \\approx \$124{,}070$.
+$$\boxed{V_{\text{pay fixed}}(T_1) \;=\; \frac{N \, (R - K)\, \tau}{1 + R\,\tau}}$$
+
+The receive-fixed payoff is the negative:
+$$\boxed{V_{\text{receive fixed}}(T_1) \;=\; \frac{N \, (K - R)\, \tau}{1 + R\,\tau}}$$
+
+**Worked example (mechanics):** Notional $N=\$100$ million, $\tau=0.25$, $K=3.5\%$, realized reference rate $R=3.0\%$.
+
+- End-of-period interest difference: $100{,}000{,}000\times(0.035-0.030)\times 0.25 = \$125{,}000$.
+- Cash settlement at $T_1$ (PV at the start of the period): $125{,}000/(1+0.030\times 0.25) \approx \$124{,}070$.
 
 ### 3.4.2 FRA Valuation
 
-Hull’s key valuation insight is: when the fixed rate equals the relevant forward rate, the value of the FRA is zero. As time passes, the forward rate changes, and the FRA’s value moves with the difference between the contracted fixed rate and the current forward rate.
+Andersen and Piterbarg express the time-$t$ value of a unit-notional FRA in terms of discount factors. Specializing their result to time 0 and notional $N$, the PV **to the fixed-rate payer** can be written as:
+$$\boxed{PV_{\text{pay fixed}}(0) = N\left(P(0,T_1) - P(0,T_2) - K\,\tau\,P(0,T_2)\right).}$$
 
-A common (textbook) approximation is to treat the net interest difference as if it is paid at the end of the accrual period and then discount it:
+Rearranging:
+$$\boxed{PV_{\text{pay fixed}}(0) = N\,\tau\,P(0,T_2)\,(F-K),\quad F=\frac{P(0,T_1)-P(0,T_2)}{\tau\,P(0,T_2)}.}$$
 
-$$\boxed{V_0 \;\approx\; N \,(K - F)\, \tau \, P(0,T_2)}$$
+So $K=F$ is the **breakeven** (at-market) FRA rate: it makes the initial PV zero.
 
-where $F$ is the forward rate for $[T_1,T_2]$ under the relevant compounding convention and $P(0,T_2)$ is the discount factor to the payment date. Hull also emphasizes an important implication: an FRA can be valued by assuming forward rates are realized and discounting appropriately.
+For the **receive-fixed** side (receive fixed, pay floating), just flip the sign:
+$$\boxed{PV_{\text{receive fixed}}(0) = N\,\tau\,P(0,T_2)\,(K-F).}$$
+
+**Risk (chapter-local, explicit bump object):** define a *forward DV01* as
+$$DV01_{F}:=PV(F-1\text{bp})-PV(F),\quad \text{bump object: }F\text{ for }[T_1,T_2],\ \text{units: currency per 1bp}.$$
+For an **at-market** FRA ($K=F$), a simple first-order approximation is:
+$$\boxed{DV01_{F}\approx P(0,T_1)\,\frac{N\,\tau}{1+F\tau}\times 10^{-4}}$$
+With the book-wide sign convention $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, $DV01_F$ is **positive** for “receive fixed, pay floating.”
+Using the same forward identity, this first-order approximation can be written as $DV01_F\approx N\,\tau\,P(0,T_2)\times 10^{-4}$.
 
 ### 3.4.3 Trading the Forward: A Worked Example
 
@@ -321,37 +339,37 @@ The forward rate is the breakeven. Beat it, you profit. Miss it, you lose.
 
 ### 3.5.1 The Key Identity
 
-Under continuous compounding, there is a beautiful relationship between the spot rate curve $z(T)$ and the instantaneous forward rate $f(T)$. Hull (Ch 4) derives this from the instantaneous forward formula:
+Under continuous compounding, there is a beautiful relationship between the (continuously compounded) zero curve $y_c(T)$ and the instantaneous forward rate $f(T)$. Hull (Ch 4) derives this from the instantaneous forward formula:
 
-$$\boxed{f(T) = z(T) + T \cdot \frac{\partial z(T)}{\partial T}}$$
+$$\boxed{f(T) = y_c(T) + T \cdot \frac{\partial y_c(T)}{\partial T}}$$
 
 **Derivation:**
-Starting from $P(0,T) = e^{-z(T) \cdot T}$, we have $\ln P(0,T) = -z(T) \cdot T$.
+Starting from $P(0,T) = e^{-y_c(T) \cdot T}$, we have $\ln P(0,T) = -y_c(T) \cdot T$.
 
 Taking the derivative with respect to $T$:
-$$f(T) = -\frac{\partial}{\partial T} \ln P(0,T) = -\frac{\partial}{\partial T}[-z(T) \cdot T] = z(T) + T \cdot z'(T)$$
+$$f(T) = -\frac{\partial}{\partial T} \ln P(0,T) = -\frac{\partial}{\partial T}[-y_c(T) \cdot T] = y_c(T) + T \cdot y_c'(T)$$
 
 ### 3.5.2 Interpreting Curve Shape: The Marginal vs. Average Intuition
 
 > **Analogy: The Grade Point Average (GPA)**
 >
-> Think of the **Spot Rate** ($z$) as your cumulative **GPA**.
+> Think of the **Zero Rate** ($y_c$) as your cumulative **GPA**.
 > Think of the **Forward Rate** ($f$) as your **Semester Grade**.
 >
-> - If your Semester Grade (Forward) is **higher** than your GPA, your GPA **rises** ($f > z \implies z' > 0$).
-> - If your Semester Grade is **lower** than your GPA, your GPA **falls** ($f < z \implies z' < 0$).
-> - If your Semester Grade equals your GPA, your GPA stays **flat** ($f = z \implies z' = 0$).
+> - If your Semester Grade (Forward) is **higher** than your GPA, your GPA **rises** ($f > y_c \implies y_c' > 0$).
+> - If your Semester Grade is **lower** than your GPA, your GPA **falls** ($f < y_c \implies y_c' < 0$).
+> - If your Semester Grade equals your GPA, your GPA stays **flat** ($f = y_c \implies y_c' = 0$).
 >
 > The forward rate is the "marginal" rate pulling the "average" (spot) rate up or down.
 
 This equation gives us the **"Marginal vs. Average"** intuition, similar to marginal and average costs in economics:
 
-1. **Upward Sloping Curve ($z' > 0$):** If spot rates are rising, the forward rate must be **higher** than the spot rate ($f > z$). To raise the average, the new marginal rate must be higher.
-2. **Downward Sloping Curve ($z' < 0$):** If spot rates are falling (inverted curve), the forward rate must be **lower** than the spot rate ($f < z$).
-3. **Flat Curve ($z' = 0$):** Spot and forward rates are equal.
+1. **Upward Sloping Curve ($y_c' > 0$):** If zero rates are rising, the forward rate must be **higher** than the zero rate ($f > y_c$). To raise the average, the new marginal rate must be higher.
+2. **Downward Sloping Curve ($y_c' < 0$):** If zero rates are falling (inverted curve), the forward rate must be **lower** than the zero rate ($f < y_c$).
+3. **Flat Curve ($y_c' = 0$):** Zero and forward rates are equal.
 
 **Numerical Example:**
-If the 5-year spot rate is 4% and rising at 0.20% per year (i.e., $z'(5) = 0.002$), then:
+If the 5-year continuously compounded zero rate is 4% and rising at 0.20% per year (i.e., $y_c'(5) = 0.002$), then:
 $$f(5) = 0.04 + 5 \times 0.002 = 0.04 + 0.01 = 5\%$$
 
 The forward rate at 5 years is 100bp higher than the spot rate because the curve is upward sloping.
@@ -392,7 +410,7 @@ While zero rates apply to single cashflows, par rates apply to **series** of cas
 
 ### 3.6.2 The Par Equation
 
-For a bond paying coupon $C$ semiannually on dates $T_1, \dots, T_n$:
+For a bond with notional 1 paying coupon rate $C$ (per year) on dates $T_1, \dots, T_n$, where the coupon cashflow at $T_i$ is $C\tau_i$ and the final principal is 1:
 
 $$\text{Price} = C \sum_{i=1}^n \tau_i P(0,T_i) + 1 \cdot P(0,T_n) = 1$$
 
@@ -406,11 +424,18 @@ where $d$ is the final discount factor, $m$ is the payment frequency, and $A$ is
 
 ### 3.6.3 The Annuity
 
-The denominator is called the **PV01** or the **Annuity** of the bond/swap:
+The denominator is the **annuity factor** (often called the *swap annuity* on swap desks):
 
 $$A(0) = \sum_{i=1}^n \tau_i P(0,T_i)$$
 
-This represents the present value of receiving 1 unit of currency per period (or equivalently, 1 basis point of coupon payments).
+It has units of **years** (year-fractions). To turn it into an actual dollar sensitivity, you still need two scalings:
+- **Notional:** multiply by $N$ (currency).
+- **Per-bp scaling:** multiply by $10^{-4}$ (because $1\text{ bp}=10^{-4}$).
+
+So the PV of a **+1bp coupon bump** on notional $N$ is:
+$$\Delta PV_{\text{coupon }+1bp} = N \cdot A(0) \cdot 10^{-4}.$$
+
+Some systems call $N\cdot A(0)\cdot 10^{-4}$ “PV01” or “PVBP.” Because naming and sign conventions vary across systems, we will state (i) the bump object and (ii) the currency-per-bp scaling explicitly whenever we quote an “01.”
 
 ### 3.6.4 Par Swap Rates
 
@@ -473,7 +498,7 @@ When short rates are higher than long rates:
 >
 > Junior traders sometimes think a par bond looks "cheap" relative to a zero-coupon bond when par yield < zero yield on a steep curve. This is not cheapness—it's the coupon effect. Both bonds are fairly priced; they just have different duration profiles and different reinvestment assumptions.
 >
-> **Key insight:** Par yield equals zero yield **only on a flat curve**. The steeper the curve, the larger the gap. On a 250bp steep curve, the difference can be 10-15bp at long maturities (Tuckman reports 14bp at 20 years on one sample date).
+> **Key insight:** Par yield equals zero yield **only on a flat curve**. The steeper the curve, the larger the gap. Tuckman illustrates this with one historical date where the zero–par gap reaches double-digit basis points at long maturities.
 
 ### 3.7.5 Quantifying the Coupon Effect
 
@@ -485,39 +510,43 @@ Tuckman provides empirical magnitudes for one historical date: "The difference b
 
 ### 3.8.1 What the Expectations Hypothesis Says
 
-Luenberger (Ch 4) presents the **expectations hypothesis**: "This more precise formulation is the expectations hypothesis. To outline this hypothesis, consider the forward rate $f_{12}$, which is the implied rate for money loaned for 1 year, a year from now. According to the expectations hypothesis, this forward rate is exactly equal to the market expectation of what the 1-year spot rate will be next year."
+The expectations hypothesis is a theory that connects the *shape* of the yield curve to expectations of future short rates.
 
-In other words, forward rates are **unbiased predictors** of future spot rates.
+Luenberger makes the hypothesis concrete by expressing expectations in terms of forward rates:
+
+> According to the expectations hypothesis, this forward rate is exactly equal to the market expectation of what the 1-year spot rate will be next year.
+
+In symbols (pure expectations, no term premium):
+$$\text{Forward rate} \;\approx\; \mathbb{E}_t[\text{future short (spot) rate}].$$
 
 ### 3.8.2 Why the Expectations Hypothesis Fails
 
-Luenberger acknowledges the fundamental weakness: "According to this explanation, the market expects rates to increase whenever the spot rate curve slopes upward; and this is practically all the time. Thus the expectations cannot be right even on average, since rates do not go up as often as expectations would imply."
+Luenberger points out an immediate weakness:
 
-The yield curve is usually upward sloping, which would imply markets perpetually expect rising rates. But rates don't actually rise that often. Something else must be going on.
+> Thus the expectations cannot be right even on average, since rates do not go up as often as expectations would imply.
+
+One way to reconcile this is to add **risk premia** (term premia). A compact way to express the idea is:
+$$\text{Forward Rate} = \text{Expected Future Spot Rate} + \text{Term Premium}$$
+
+Jarrow gives a simple arbitrage-free counterexample:
+
+> This shows that $f(0, T) \neq E(r(T))$ for $T=1,2,3$.
+> Second, this example shows that the slope of the forward rate curve does not forecast the direction of future spot rates.
 
 ### 3.8.3 Liquidity Preference Theory
 
-Luenberger presents the alternative: "The liquidity preference explanation asserts that investors usually prefer short-term fixed income securities over long-term securities."
+Elton et al. motivate liquidity premium theory with horizon preferences:
 
-Why? "Investors anticipate that they may need to sell their bonds soon, and they recognize that long-term bonds are more sensitive to interest rate changes than are short-term bonds. Hence an investor who may need funds in a year or so will be reluctant to place these funds in long-term bonds because of the relatively high near-term risk."
-
-**The implication:** Investors demand a **term premium** (or **risk premium**) for holding longer-dated bonds. This premium makes forward rates systematically **higher** than expected future spot rates.
-
-$$\text{Forward Rate} = \text{Expected Future Spot Rate} + \text{Term Premium}$$
+> To induce some six-month investors to hold one-year bonds, a premium will have to be offered.
 
 ### 3.8.4 Practical Implications
 
-Luenberger concludes: "The expectations theory is the most analytical of the three, in the sense that it offers concrete numerical values for expectations, and hence it can be tested. These tests show that it works reasonably well with a deviation that seems to be explained by liquidity preference. Hence expectations tempered by the risk considerations of liquidity preference seem to offer a good straightforward explanation."
+- Treat forwards as **tradable breakevens** by default (e.g., the forward is the breakeven FRA rate).
+- If you need **expected future short rates**, you must specify a model/estimator for the term premium (and accept model risk).
 
-> **Desk Reality: Forward ≠ Expected (Term Premium Matters)**
->
-> In trading language, forward rates are *tradable breakevens*, but they need not equal the market’s expectation of future spot rates. A gap can arise because investors demand compensation for bearing interest-rate risk over longer horizons (a term premium).
->
-> Why this matters on the desk:
-> - **Curve trades:** A view on “forwards are too high/low” implicitly includes a view on term premia, not just policy expectations.
-> - **Carry/rolldown:** Roll-down intuition often assumes rates don’t jump around; term premia and risk aversion can dominate realized outcomes.
->
-> **Putting numbers on term premia requires a choice:** you must pick an estimator and a data source. A common public choice is the New York Fed’s Adrian–Crump–Moench (ACM) term premium series. Absent an explicit choice, this book treats term premia qualitatively (forward ≠ expected future spot) and avoids “typical magnitude” claims.
+> **Desk Reality: Forward ≠ Expected**
+> **Common break:** Treating the forward curve as a literal forecast of future spot rates.
+> **What to check:** Separate (1) the no-arbitrage identity that defines forwards from (2) the additional assumptions needed to interpret them as expectations. If you need “expected future short rates,” you must choose an explicit model/estimator; otherwise treat forwards as tradable breakevens.
 
 ---
 
@@ -531,7 +560,7 @@ Luenberger concludes: "The expectations theory is the most analytical of the thr
 >
 > | | $T=1$ | $T=2$ | $T=3$ | $T=4$ |
 > | :--- | :--- | :--- | :--- | :--- |
-> | **Today ($t=0$)** | $z_1$ (Spot) | $z_2$ (Spot) | $z_3$ (Spot) | $z_4$ (Spot) |
+> | **Today ($t=0$)** | $y_1$ (Zero) | $y_2$ (Zero) | $y_3$ (Zero) | $y_4$ (Zero) |
 > | **Future ($t=1$)** | | $f_{1,2}$ (Fwd) | $f_{1,3}$ | $f_{1,4}$ |
 > | **Future ($t=2$)** | | | $f_{2,3}$ (Fwd)| $f_{2,4}$ |
 > | **Future ($t=3$)** | | | | $f_{3,4}$ (Fwd)|
@@ -544,10 +573,10 @@ Luenberger concludes: "The expectations theory is the most analytical of the thr
 
 We can now navigate the full map:
 
-| From $\downarrow$ To $\rightarrow$ | **Discount Factors $P(0,T)$** | **Zero Rates $z_c(T)$** (Continuous) | **Par Rates $C_{par}$** |
+| From $\downarrow$ To $\rightarrow$ | **Discount Factors $P(0,T)$** | **Zero Rates $y_c(T)$** (Continuous) | **Par Rates $C_{par}$** |
 | :--- | :--- | :--- | :--- |
-| **Discount Factors** | — | $z_c = -\frac{\ln P}{T}$ | $C = \frac{1 - P(T_n)}{A(0)}$ |
-| **Zero Rates** | $P = e^{-z_c T}$ | — | Sample $P(T_i)$ from curve, then use Par formula |
+| **Discount Factors** | — | $y_c = -\frac{\ln P}{T}$ | $C = \frac{1 - P(T_n)}{A(0)}$ |
+| **Zero Rates** | $P = e^{-y_c T}$ | — | Sample $P(T_i)$ from curve, then use Par formula |
 | **Par Rates** | **Bootstrapping** (See Ch 17) | Convert Par → DF → Zero | — |
 
 - **Discount Factors ↔ Zero Rates**: Simple algebraic inversion.
@@ -569,22 +598,79 @@ You cannot convert a single par rate to a single discount factor in isolation; y
 
 Forward rates can be derived from either discount factors or zero rates:
 - From discount factors: $F = \frac{1}{\tau}\left(\frac{P_1}{P_2} - 1\right)$ (Tuckman eq. 2.14)
-- From zero rates: $f_c = \frac{z_2 T_2 - z_1 T_1}{T_2 - T_1}$ (Hull eq. 4.5)
+- From zero rates (continuous): $f_c = \frac{y_c(T_2)T_2 - y_c(T_1)T_1}{T_2 - T_1}$ (Hull eq. 4.5)
 
 ---
 
 ## 3.10 Worked Examples
+
+### Worked Example (Template): Pricing and Forward-DV01 of a 3x6 FRA (Receive Fixed)
+
+**Example Title**: Pricing and forward-DV01 of a 3x6 FRA (receive fixed, pay floating)
+
+**Context**
+- You want to lock in (or trade) a future 3‑month funding rate.
+- This is the smallest “quote → cash settlement → PV → risk” example that uses the whole triangle: discount factors → forward rate → FRA PV → 01.
+
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-02-18
+- Fixing / cash-settlement date (start of accrual): 2026-05-19
+- Accrual start/end: 2026-05-19 to 2026-08-17
+- Payment date(s): cash-settled on 2026-05-19 (no notional exchange)
+
+**Inputs**
+- Instrument: 3x6 FRA on notional \(N=\$100{,}000{,}000\), receive fixed \(K\), pay floating \(R\) set at 2026-05-19 for the period 2026-05-19 to 2026-08-17.
+- Day count / accrual: ACT/360 with \(\tau=90/360=0.25\) (ignore business-day adjustments; focus on the algebra).
+- Curve inputs (today, as discount factors): \(P(0,T_1)=0.9850\) for 2026-05-19 and \(P(0,T_2)=0.9752475\) for 2026-08-17.
+
+**Outputs (What You Produce)**
+- Forward rate \(F(0;T_1,T_2)\) for the accrual period.
+- PV today \(PV_0\).
+- Risk metric: **forward DV01** with explicit bump object + units:
+  - bump object: the simple forward \(F(0;T_1,T_2)\)
+  - bump size: \(-1\)bp
+  - units: USD per 1bp
+  - sign convention: \(DV01:=PV(\text{rates down }1\text{bp})-PV(\text{base})\)
+
+**Step-by-step**
+1. **Discount factors → forward rate**
+   $$1+F\tau=\frac{P(0,T_1)}{P(0,T_2)} \quad\Rightarrow\quad F=\frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)}-1\right).$$
+   With the numbers above, \(P(0,T_1)/P(0,T_2)=1.01\), so \(F=0.01/0.25=4.00\%\).
+2. **Choose the FRA fixed rate**
+   - Take the at-market case \(K=F=4.00\%\) so the PV today should be ~0.
+3. **PV today (standard cash-settlement convention)**
+   $$PV_0=P(0,T_1)\,\frac{N\,(K-F)\,\tau}{1+F\tau}=0.$$
+4. **Forward DV01**
+   For an at-market FRA, bumping the forward down by 1bp gives (first-order):
+   $$DV01_F\approx P(0,T_1)\,\frac{N\,\tau}{1+F\tau}\times 10^{-4}.$$
+   Numerically: \(DV01_F\approx 0.9850\times \frac{100{,}000{,}000\times 0.25}{1.01}\times 10^{-4}\approx \$2{,}438\) per bp.
+
+**Cashflows (table)**
+| Date | Cashflow | Explanation |
+|---|---|---|
+| 2026-02-18 | 0 | Enter the at-market FRA |
+| 2026-05-19 | \(\frac{N\,(K-R)\,\tau}{1+R\tau}\) | Cash settlement using the realized reference rate \(R\) |
+| 2026-08-17 | 0 | No cashflow (cash-settled at start) |
+
+**P&L / Risk Interpretation**
+- If the realized reference rate \(R\) at 2026-05-19 prints **below** \(K\), the receiver’s cash settlement is positive.
+- \(DV01_F\approx \$2.4k/bp\) means: if the market’s forward for this specific 3‑month period drops by 1bp, the FRA’s PV increases by about \$2.4k.
+
+**Sanity Checks**
+- Units check: \(N\times \tau\times \text{rate}\) has units of currency; the \(10^{-4}\) converts “per bp.”
+- Sign check: for “receive fixed,” rates down (forward down) increases PV ⇒ positive \(DV01\).
+- Reproduction check: compute \(F\) from the ratio \(P(0,T_1)/P(0,T_2)=1+F\tau\) and verify \(F=4\%\).
 
 ### Example A: Discount Factor to Zero Rates (Multiple Conventions)
 
 **Given:** $P(0, 1y) = 0.9700$.
 
 1. **Simple Zero:**
-   $$z_s = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\%$$
+   $$y_{\text{simple}} = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\%$$
 2. **Continuous Zero:**
-   $$z_c = -\frac{\ln(0.9700)}{1} = 3.046\%$$
+   $$y_c = -\frac{\ln(0.9700)}{1} = 3.046\%$$
 3. **Semiannual Zero:**
-   $$z_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\%$$
+   $$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\%$$
 
 **Sanity Check:** Continuous < Semiannual < Simple. This ordering always holds for positive rates.
 
@@ -633,15 +719,15 @@ $$F = \frac{0.999003 - 1}{0.5} \approx -0.199\%$$
 
 ### Example E: Spot-Forward Relationship
 
-**Given:** Zero rate curve $z(T) = 0.03 + 0.005T$ (continuous compounding, linear in $T$).
+**Given:** Continuously compounded zero curve $y_c(T) = 0.03 + 0.005T$ (linear in $T$).
 
 **Objective:** Find the instantaneous forward rate curve $f(T)$.
 
-Using $f(T) = z(T) + T \cdot z'(T)$:
-- $z'(T) = 0.005$
+Using $f(T) = y_c(T) + T \cdot y_c'(T)$:
+- $y_c'(T) = 0.005$
 - $f(T) = (0.03 + 0.005T) + T \cdot 0.005 = 0.03 + 0.01T$
 
-**Interpretation:** The forward curve has **twice the slope** of the zero curve. At $T=5$: $z(5) = 5.5\%$ but $f(5) = 8\%$.
+**Interpretation:** The forward curve has **twice the slope** of the zero curve. At $T=5$: $y_c(5) = 5.5\%$ but $f(5) = 8\%$.
 
 ### Example F: Full Triangle Conversion
 
@@ -699,8 +785,8 @@ On a flat curve, the forward equals the spot. ✓
 
 ### 3.11.1 Monotonicity Check for Discount Factors
 
-Discount factors must be strictly decreasing in maturity (assuming positive rates):
-$$P(T_1) > P(T_2) \text{ for } T_1 < T_2$$
+With non-negative rates, discount factors should be **non-increasing** in maturity (and strictly decreasing when rates are strictly positive):
+$$P(T_1) \ge P(T_2) \text{ for } T_1 < T_2$$
 
 If this fails, either:
 - Rates are negative over some maturities (so discount factors can increase with $T$)
@@ -726,14 +812,18 @@ The three rates (zero, forward, par) must be consistent:
 
 ### 3.11.4 Common Pitfalls
 
-> **Common Pitfalls to Avoid:**
->
-> 1. **Convention mismatch:** Comparing semiannual zero to continuous forward—always convert to common convention first
-> 2. **Day count confusion:** Using ACT/365 zero rate with ACT/360 forward rate calculation
-> 3. **Interpolation artifacts:** Forward rates can become negative or spike at tenor boundaries due to interpolation method (see Chapter 17)
-> 4. **Stale data:** Using yesterday's curve with today's trades
-> 5. **Treating forwards as forecasts:** Forward rates are breakevens, not predictions
-> 6. **Par-zero confusion:** Thinking par yield < zero yield means the par bond is cheap (it's just the coupon effect)
+> **Pitfall — Mixing conventions:** Comparing rates without first aligning compounding and day count.
+> **Why it matters:** You can create “differences” in curve level/shape (and PV/01) that are pure unit conversion errors.
+> **Quick check:** Convert both numbers back to discount factors (or to cashflows + PV) and confirm they match before interpreting the rate difference.
+
+> **Pitfall — Forward ≠ forecast:** Treating the forward curve as the expected path of future fixings.
+> **Why it matters:** The forward is a tradable breakeven. Turning it into an expectation requires additional assumptions (and usually a term premium).
+> **Quick check:** Ask “what’s the tradable contract that locks this forward?” and “what model am I using to turn breakevens into expectations?”
+
+Other quick pitfalls:
+- **Interpolation artifacts:** forward spikes/negatives from curve method choices (preview here; details in Chapter 17)
+- **Stale or misaligned inputs:** wrong day count, calendar, or instrument definition
+- **Par vs zero confusion:** par yield < zero yield on a steep curve is the coupon effect, not “cheapness”
 
 ---
 
@@ -766,60 +856,65 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 ## Summary
 
-1. **Discount Factors ($P(0,T)$)** are the primitive input: the price today of \$1 paid at maturity $T$ under the chosen discounting assumptions. Which curve you use depends on the product and collateral/discounting conventions (for many collateralized swaps, an overnight/OIS-type curve is commonly used).
+1. **Discount Factors ($P(0,T)$)** are the primitive input: the price today of \$1 paid at maturity $T$ under the chosen discounting assumptions. Which curve you use is a *contract and market-convention choice* (e.g., collateral terms); later chapters cover curve construction and collateral discounting in detail.
 
 2. **Zero Rates** are just discount factors expressed in per-annum terms. They require a **compounding convention** to be meaningful. Same DF → different rate numbers.
 
 3. **Forward Rates** are the rates for future periods implied by the term structure to prevent arbitrage. They are **breakeven rates**, not forecasts. They can be locked in via FRAs or synthetic borrowing/lending strategies.
 
-4. **The Spot-Forward Relationship** ($f = z + Tz'$) shows that forwards depend on the slope of the zero curve. Forward rates are "wigglier" than spot rates—small bumps in spots become large spikes in forwards.
+4. **The Spot-Forward Relationship (continuous)** $f(0,T)=y_c(T)+T\,y_c'(T)$ shows that forwards depend on the slope of the zero curve. Forward rates are typically "wigglier" than zero rates—small bumps in zeros can become large spikes in forwards.
 
 5. **Par Rates** are the coupons that value a bond/swap at par. They are annuity-weighted averages of the discount curve.
 
 6. **The Coupon Effect** explains why par yields differ from zero yields on non-flat curves. On steep (upward) curves, par < zero; on inverted curves, par > zero.
 
-7. **The Expectations Hypothesis** fails empirically. Forward rates systematically exceed expected future spot rates due to the **term premium** (liquidity preference).
+7. **The Expectations Hypothesis** is an extra assumption, not an identity. In many datasets the strict “forward = expected future short rate” interpretation does not hold without a (possibly time-varying) **term premium**.
 
-8. **The Triangle:** You can translate freely between these forms. Quants use DFs; Traders use Forwards/Pars; Risk uses Zeros. The key equations are:
-   - $P = e^{-zT}$ (DF from zero)
-   - $z = -\ln(P)/T$ (zero from DF)
-   - $F = (P_1/P_2 - 1)/\tau$ (forward from DFs)
-   - $f(T) = z(T) + Tz'(T)$ (instantaneous forward from zero curve)
-   - $C_{par} = (1 - P_n) / A$ (par from DFs)
+8. **The Triangle:** You can translate freely between these forms. The key equations (with explicit conventions) are:
+   - $P(0,T)=e^{-y_c(T)\,T}$ and $y_c(T)=-\ln(P(0,T))/T$ (continuous zeros ↔ discount factors)
+   - $1+F(0;T_1,T_2)\,\tau(T_1,T_2)=P(0,T_1)/P(0,T_2)$ (simple forward from discount factors)
+   - $f(0,T)=-\partial_T\ln P(0,T)$ (instantaneous forward)
+   - $C_{par}=(1-P(0,T_n))/A(0)$ with $A(0)=\sum_i \tau_i P(0,T_i)$ (par coupon / swap rate)
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 | :--- | :--- | :--- |
 | **Discount Factor** | $P(0,T) = \text{PV of } \$1$ | The universal valuation primitive; curve choice depends on discounting/collateral conventions. |
-| **Zero Rate (Spot)** | Rate solving $P = e^{-zT}$ or $(1+z/m)^{-mT}$ | Useful for visualizing term structure levels. Convention-dependent. |
-| **Forward Rate** | $F = \frac{1}{\tau}(\frac{P_1}{P_2}-1)$ | Breakeven rate for future periods. Can be locked in via FRAs. |
-| **Instantaneous Forward** | $f(T) = -\frac{\partial}{\partial T}\ln P(0,T)$ | Foundation of HJM framework; drives curve smoothness requirements. |
-| **Par Rate** | $C = \frac{1-P_n}{\text{Annuity}}$ | The language of the market (Swap/Bond quotes). |
-| **Annuity (PV01)** | $\sum \tau_i P(T_i)$ | Sensitivity to parallel rate shifts; denominator for par rates. |
-| **Spot-Forward Relation** | $f = z + Tz'$ | Links curve shape to forward rates; marginal vs average intuition. |
+| **Compounding convention** | The mapping between $P(0,T)$ and a quoted rate (simple / $m$-times / continuous) | Same discount factor → different “rate” numbers; most reconciliation breaks are basis mismatches. |
+| **Year fraction** | $\tau(T_1,T_2)$ from the instrument’s day count | Scales cashflows and forwards; wrong $\tau$ gives wrong PV and “01.” |
+| **Zero Rate (Spot)** | A per-year rate $y(0,T)$ defined by a stated convention, e.g. $P(0,T)=e^{-y_c(T)T}$ (continuous) or $P(0,T)=(1+y_m(T)/m)^{-mT}$ ($m$-times/year) | Useful for visualizing term structure; the *number* depends on the convention. |
+| **Forward rate (simple)** | $F(0;T_1,T_2)=\frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)}-1\right)$ | Breakeven rate for a future accrual period; directly tradable via FRAs/swaps. |
+| **Instantaneous forward** | $f(0,T) = -\frac{\partial}{\partial T}\ln P(0,T)$ | Derivative of the curve; explains why forwards are sensitive to interpolation. |
+| **Spot-Forward Relation (continuous)** | $f(0,T)=y_c(T)+T\,y_c'(T)$ | “Marginal vs average”: forwards must exceed zeros on an upward-sloping zero curve. |
+| **Par rate / par coupon** | $C_{par}=(1-P(0,T_n))/A(0)$ with $A(0)=\sum_i \tau_i P(0,T_i)$ | Par quotes (bonds/swaps) drive bootstrapping; par is a cashflow-weighted average of the curve. |
+| **Swap annuity / PVBP** | $PVBP = N\cdot A(0)\cdot 10^{-4}$ | Currency PV of a +1bp coupon bump; the scaling behind swap/bond “01” risk. |
+| **FRA payoff (cash-settled at start)** | Receive fixed: $\frac{N\,(K-R)\,\tau}{1+R\tau}$ at $T_1$ | Makes “forward is breakeven” concrete: at-market $K=F$ gives $PV_0\approx 0$. |
+| **Forward DV01** | $DV01_F := PV(F-1\text{bp})-PV(F)$ (bump object: forward for $[T_1,T_2]$) | Forces “what is being bumped?” to be explicit so risks are comparable across systems. |
 | **Coupon Effect** | Par ≠ Zero yield on non-flat curves | Explains apparent "cheapness" that isn't real cheapness. |
-| **Expectations Hypothesis** | Forwards = Expected future spots | Fails empirically; term premium exists. |
+| **Expectations hypothesis** | Forward rates equal expected future short rates **under extra assumptions** (often requiring a term premium) | Avoids the common mistake “forward curve = forecast.” |
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $P(0,T)$ or $d(T)$ | Discount factor for maturity $T$ |
-| $z_c(T)$ | Continuously compounded zero rate |
-| $z_{sa}(T)$ | Semiannually compounded zero rate |
-| $z_s(T)$ | Simple (money market) zero rate |
-| $f(0;T_1,T_2)$ | Forward rate from $T_1$ to $T_2$ |
-| $f(0,T)$ | Instantaneous forward rate at $T$ |
-| $C_{par}$ | Par coupon rate |
-| $A(0)$ | Annuity (PV01) |
-| $\tau$ | Year fraction ($T_2 - T_1$) |
-| $R_c$ | Continuously compounded rate |
-| $R_m$ | Rate compounded $m$ times per year |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| $P(0,T)$ | discount factor to $T$ | unitless; $P(0,0)=1$ |
+| $y_c(T)$ | continuously compounded zero rate | 1/year; $P(0,T)=e^{-y_c(T)T}$ |
+| $y_m(T)$ | zero rate compounded $m$ times/year | 1/year; $P(0,T)=(1+y_m(T)/m)^{-mT}$ |
+| $y_{\text{simple}}(T)$ | simple (money-market) zero rate | 1/year; $P(0,T)=1/(1+y_{\text{simple}}(T)T)$ |
+| $\tau(T_1,T_2)$ | year fraction between dates | years; day-count dependent |
+| $F(0;T_1,T_2)$ | simple forward rate for $[T_1,T_2]$ | 1/year; $1+F\tau=P(0,T_1)/P(0,T_2)$ |
+| $f(0,T)$ | instantaneous forward rate at $T$ | 1/year; $f(0,T)=-\partial_T\ln P(0,T)$ |
+| $K$ | FRA fixed rate | 1/year; simple over $[T_1,T_2]$ |
+| $R$ | realized reference rate | 1/year; fixed at $T_1$ for $[T_1,T_2]$ |
+| $N$ | notional | currency |
+| $C_{par}$ | par coupon / par swap fixed rate | 1/year; coupon cashflow at $T_i$ is $N\,C_{par}\,\tau_i$ |
+| $A(0)$ | annuity (swap annuity) | years; $A(0)=\sum_i \tau_i P(0,T_i)$ |
+| $DV01_F$ | forward DV01 (chapter-local) | currency/bp; $PV(F-1\text{bp})-PV(F)$ for the stated forward point |
 
 ---
 
@@ -828,18 +923,18 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 | # | Question | Answer |
 |---|---|---|
 | 1 | What is the fundamental difference between a Zero Rate and a Par Rate? | Zero rate applies to a single cashflow (terminal); Par rate applies to a series of cashflows (coupon/annuity). |
-| 2 | What is the formula for a continuous zero rate given $P(0,T)$? | $z_c = -\frac{\ln P(0,T)}{T}$ |
+| 2 | What is the formula for a continuous zero rate given $P(0,T)$? | $y_c(T) = -\frac{\ln P(0,T)}{T}$ |
 | 3 | If the Zero Curve is upward sloping, is the Forward Rate higher or lower than the Zero Rate? | Higher. Marginal > Average to pull the average up. |
 | 4 | How do you calculate a simple forward rate from $T_1$ to $T_2$? | $F = \frac{1}{\tau} (\frac{P(T_1)}{P(T_2)} - 1)$ |
-| 5 | For collateralized swaps, what discount curve is commonly used? | An overnight/OIS-type curve consistent with the collateral rate (often called “OIS discounting”). |
+| 5 | If a contract is collateralized at an overnight rate, what curve is a standard modeling choice for discounting? | A curve consistent with the collateral remuneration (often an overnight/OIS-style discount curve). |
 | 6 | Why are forward rates "wigglier" than zero rates? | Forward rates depend on the derivative (slope) of the zero curve; differentiation amplifies noise. |
-| 7 | What is the "Annuity" in the context of par rates? | The PV of receiving 1 unit of currency per period: $\sum \tau_i P(T_i)$. |
+| 7 | What is the "Annuity" in the context of par rates? | $A(0)=\sum \tau_i P(0,T_i)$ (units: years). PVBP for notional $N$ is $N\cdot A(0)\cdot 10^{-4}$. |
 | 8 | Can Discount Factors be greater than 1? | Yes, if interest rates are negative. |
 | 9 | What arbitrage strategy enforces the forward rate? | Borrowing long and lending short (or vice versa) to lock in a future rate. |
 | 10 | Why is Linear Interpolation of Discount Factors dangerous? | It creates discontinuous forward rates, leading to pricing anomalies in forward-starting products. |
-| 11 | What is the instantaneous forward rate $f(T)$ mathematically? | $f(T) = -\frac{\partial}{\partial T} \ln P(0,T)$ |
+| 11 | What is the instantaneous forward rate $f(0,T)$ mathematically? | $f(0,T) = -\frac{\partial}{\partial T} \ln P(0,T)$ |
 | 12 | How do you recover $P(0,T)$ from instantaneous forwards? | $P(0,T) = \exp(-\int_0^T f(0,u)\,du)$ |
-| 13 | State the spot-forward relationship for continuous compounding. | $f(T) = z(T) + T \cdot z'(T)$ |
+| 13 | State the spot-forward relationship for continuous compounding. | $f(0,T)=y_c(T)+T\,y_c'(T)$ |
 | 14 | Convert 5% continuous to semiannual compounding. | $R_{sa} = 2(e^{0.05/2} - 1) \approx 5.06\%$ |
 | 15 | If the zero curve is flat at 4%, what is the forward rate? | 4% — flat curve means forward equals spot. |
 | 16 | Given $P(1) = 0.95$ and $P(2) = 0.89$, what is the 1y×1y simple forward? | $F = (0.95/0.89 - 1)/1 = 6.74\%$ |
@@ -848,6 +943,8 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 | 19 | What does it mean when we say the forward rate is the "breakeven" rate? | The forward rate is the rate at which an investor is indifferent between (1) investing short and rolling, or (2) locking in the longer rate. It's not a forecast. |
 | 20 | Why is par yield < zero yield on a steep curve? | The "coupon effect": early coupons are discounted at lower rates, pulling down the average yield needed for par pricing. |
 | 21 | What does the liquidity preference theory say about forward rates? | Forward rates = expected future spot rates + term premium. The term premium compensates for duration risk in longer maturities. |
+| 22 | For a receive-fixed FRA cash-settled at the start of the period, what is the payoff at $T_1$? | $\frac{N (K-R)\tau}{1+R\tau}$ |
+| 23 | What is $DV01_F$ in this chapter? | $DV01_F := PV(F-1\text{bp})-PV(F)$, bump object: the simple forward for $[T_1,T_2]$. |
 
 ---
 
@@ -865,9 +962,9 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 6. **Negative Rates:** $P(0, 1) = 1.01$. What is the simple zero rate? What is the continuous zero rate?
 
-7. **Annuity:** Calculate the PV01 of a 2-year annual bond if $P(1)=0.95, P(2)=0.90$.
+7. **Annuity / PVBP:** If $P(1)=0.95, P(2)=0.90$ for annual pay dates at $T=1,2$, compute $A(0)=P(1)+P(2)$. What is the PV of a +1bp coupon bump on $N=\$100$mm notional?
 
-8. **Spot-Forward:** If $z(T) = 0.05 + 0.01T$ (continuous), find $f(T)$.
+8. **Spot-Forward:** If $y_c(T) = 0.05 + 0.01T$ (continuous), find $f(0,T)$.
 
 9. **Convention:** Convert 5% continuous to semiannual.
 
@@ -883,9 +980,9 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 15. **Inverted Curve:** On an inverted curve, is par yield above or below zero yield? Explain intuitively.
 
-### Solutions
+### Solution Sketches (Selected)
 
-1. **Conversion**: $z_c = -\ln(0.92)/2 = 0.0834/2 = 4.17\%$. $z_{sa} = 2((1/0.92)^{1/4} - 1) = 2(1.0210 - 1) = 4.21\%$.
+1. **Conversion**: $y_c = -\ln(0.92)/2 = 0.0834/2 = 4.17\%$. $y_{sa} = 2((1/0.92)^{1/4} - 1) = 2(1.0210 - 1) = 4.21\%$.
 
 2. **Forward**: $F = (0.98/0.95 - 1)/1 = 0.0316 = 3.16\%$.
 
@@ -893,13 +990,13 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 4. **Arb**: Market forward (4%) is too high relative to curve (3%). Strategy: "Lend" at the market forward (buy FRA/receive fixed at 4%), "Borrow" at the theoretical forward (via synthetic using curve at 3%). You receive 4%, pay ~3%, profit ~1% on notional.
 
-5. **Slope**: 5%. Flat curve means $z'=0$, so $f = z + T \cdot 0 = z = 5\%$.
+5. **Slope**: 5%. Flat curve means $y_c'=0$, so $f(0,T)=y_c(T)=5\%$.
 
-6. **Negative**: Simple: $z_s = (1/1.01 - 1)/1 = -0.99\%$. Continuous: $z_c = -\ln(1.01)/1 = -0.995\%$.
+6. **Negative**: Simple: $y_{\text{simple}} = (1/1.01 - 1)/1 = -0.99\%$. Continuous: $y_c = -\ln(1.01)/1 = -0.995\%$.
 
-7. **Annuity**: $A = 1 \times 0.95 + 1 \times 0.90 = 1.85$.
+7. **Annuity / PVBP**: $A(0)=0.95+0.90=1.85$. PV of +1bp coupon bump: $100{,}000{,}000\times 1.85\times 10^{-4}=\$18{,}500$.
 
-8. **Spot-Forward**: $f(T) = (0.05+0.01T) + T(0.01) = 0.05 + 0.02T$.
+8. **Spot-Forward**: $f(0,T) = (0.05+0.01T) + T(0.01) = 0.05 + 0.02T$.
 
 9. **Convention**: $R_{sa} = 2(e^{0.05/2} - 1) = 2(1.0253 - 1) = 5.06\%$.
 
@@ -909,7 +1006,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 12. **Integral Form**: $\int_0^3 f(0,u)\,du = \int_0^3 (0.03 + 0.01u)\,du = [0.03u + 0.005u^2]_0^3 = 0.09 + 0.045 = 0.135$. So $P(0,3) = e^{-0.135} = 0.8737$.
 
-13. **Coupon Effect**: Convert to DFs: $P(1) = 1/1.01^2 = 0.9803$, $P(2) = 1/1.02^4 = 0.9238$, $P(3) = 1/1.025^6 = 0.8623$. 1y1y forward = $2[(0.9803/0.9238)^{0.5} - 1] = 6.02\%$. 1y2y forward = $[(0.9803/0.8623)^{0.5} - 1] \times 2 / 2 = 6.54\%$ (annualized). Forwards exceed spots because on steep curves, the marginal rate must exceed the average to pull it up.
+13. **Coupon Effect**: Convert to DFs: $P(1) = 1/1.01^2 = 0.9803$, $P(2) = 1/1.02^4 = 0.9238$, $P(3) = 1/1.025^6 = 0.8623$. 1y1y forward = $2[(P(1)/P(2))^{1/2} - 1] = 6.02\%$. 1y2y forward (the 2-year forward from 1→3) solves $(1+f/2)^4=P(1)/P(3)$, so $f=2[(P(1)/P(3))^{1/4}-1]\approx 6.52\%$. Forwards exceed spots because on steep curves, the marginal rate must exceed the average to pull it up.
 
 14. **Trading Forwards**: Receive fixed at 4.5% on a 1y1y forward swap, $100mm notional. If realized rate is 3.8%, gain 70bp for 1 year: $100mm \times 0.007 \times 1 = \$700,000$ approximate P&L.
 
@@ -919,7 +1016,12 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 ## References
 
-- Bruce Tuckman, *Fixed Income Securities* (discount factors; spot/forward rates; coupon effect).
-- John C. Hull, *Options, Futures, and Other Derivatives* (zero/forward rates; FRAs; par yields; discounting discussion).
-- David G. Luenberger, *Investment Science* (expectations hypothesis; liquidity preference intuition).
-- Federal Reserve Bank of New York, Adrian–Crump–Moench (ACM) term premium estimates (example public term-premium series).
+- (Bruce Tuckman, *Fixed Income Securities*, “DISCOUNT FACTORS”; “APPENDIX 4A — CONTINUOUS COMPOUNDING”; “coupon effect”)
+- (John C. Hull, *Options, Futures, and Other Derivatives*, “Zero rates”; “Interest Rate Conversions”; “Par Yield”; “Forward Rate Agreements”; “Liquidity preference theory”)
+- (Leif B. Andersen and Vladimir V. Piterbarg, *Interest Rate Modeling*, “5.3 Forward Rate Agreements (FRA)”)
+- (David G. Luenberger, *Investment Science*, “Discount Factors”; “Determining the Spot Rate” (expectations hypothesis / liquidity preference))
+- (Ali Hirsa, *Computational Methods in Finance*, “A.2 Forward Rate Agreement (FRA)”; “Pricing under Swap Measure” (par swap rate; PVBP))
+- (Marek Musiela and Marek Rutkowski, *Martingale Methods in Financial Modelling*, “swap annuity / PVBP (PV01)”)
+- (Edwin J. Elton et al., *Modern Portfolio Theory and Investment Analysis*, “THE MANY DEFINITIONS OF RATES” (expectations vs liquidity premium))
+- (Robert A. Jarrow, *Modeling Fixed Income Securities and Interest Rate Options*, “Example: Unbiased Forward Rates form of the Expectations Hypothesis”)
+- (Dominic O'Kane, *Modeling Single-name and Multi-name Credit Derivatives*, “FORWARD RATE AGREEMENTS > Mechanics” (FRA cash settlement))

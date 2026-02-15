@@ -2,11 +2,17 @@
 
 This repo is a fixed income / rates / credit textbook written as markdown chapters under `chapters/`.
 
+There are multiple agents working on this project. 
+Do not modify chapters which you are not working on.
+Do not run git restore. 
+Don't commit into git.
+refactor_plan/ directory is deliberately under git ignore. Don't change .gitignore.
+
 ## Mission
 
 - Produce **publication-ready** chapters with **grounded correctness**.
 - Prefer grounding **non-trivial claims** (definitions, conventions, algorithm steps, “desk reality” practices) in evidence from `books_rag`. When needed, supplement with authoritative online primary sources (ISDA/ARRC/CCP rulebooks, central banks, regulators).
-- Use your own knowledge to improve **clarity and intuition**, but avoid asserting time-varying market practice without a dated authoritative source. If something remains unclear or sources conflict, mark it inline as `NOT SURE: ...` with the precise ambiguity.
+- Use your own knowledge to improve **clarity and intuition**, but avoid asserting time-varying market practice without a dated authoritative source. If something remains unclear, mark it inline as `NOT SURE: ...` with the precise ambiguity.
 
 ## Repo Layout
 
@@ -78,7 +84,7 @@ When working a batch of chapters:
 
 If something is unclear or you can’t retrieve strong evidence from `books_rag`:
 1. **Try again** with better `books_rag` queries (narrow terms, alternative phrasing, larger limits).
-2. If still unclear, **search online** for an authoritative primary source (e.g., ISDA/ARRC/CCP rulebooks, central bank publications, regulator docs). Prefer dated sources.
+2. If still unclear, **search online** for an authoritative primary source (e.g., ISDA/ARRC/CCP rulebooks, central bank publications, regulator docs, etc). Prefer dated sources.
 3. If it’s still unclear or sources conflict, keep the topic but mark it inline as:
    - `NOT SURE: <precise question / ambiguity + what input is needed>`
    and (optionally) add a short “Inputs needed” bullet near the end of the chapter.
@@ -93,11 +99,3 @@ If something is unclear or you can’t retrieve strong evidence from `books_rag`
 
 The following “skills” may be available in the Codex environment. Use them when the user request matches the description.
 
-### Available skills
-- `qk-delta-lake`: Navigate and query the QuantKit Delta Lake at `/data/delta_lake/lake` safely and efficiently. Use for read-only validation queries and schema/docs lookup. (file: `/home/usman/.codex/skills/qk-delta-lake/SKILL.md`)
-- `skill-creator`: Guidance for creating/updating Codex skills. (file: `/home/usman/.codex/skills/.system/skill-creator/SKILL.md`)
-- `skill-installer`: Install Codex skills from curated list or GitHub repo path. (file: `/home/usman/.codex/skills/.system/skill-installer/SKILL.md`)
-
-### Skill trigger rules
-- If the user names a skill (with `$SkillName` or plain text) OR the task clearly matches a skill description, use that skill for that turn.
-- If a named skill isn’t available or can’t be read, say so briefly and proceed with the best fallback.

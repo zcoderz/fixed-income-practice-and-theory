@@ -10,6 +10,10 @@ The money-market segment of the curve looks deceptively simple. Instruments matu
 
 **Why this matters for middle-office readers:** When your desk's daily P&L shows "funding cost" or "carry," it reflects these money-market rates. When risk reports show overnight exposure or short-term rate sensitivity, they're measuring exposure to the instruments covered here. Understanding money markets is the foundation for understanding how the trading desk actually makes (or loses) money on funding.
 
+Prerequisites: [Chapter 1](chapters/chapter_01_market_quoting_calendars_cashflow_plumbing.md), [Chapter 2](chapters/chapter_02_time_value_discount_factors_replication.md), [Chapter 3](chapters/chapter_03_zero_forward_par_rates_triangle.md)
+
+Follow-on: [Chapter 5](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 9](chapters/chapter_09_repo_funding_engine.md), [Chapter 11](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 17](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md), [Chapter 24](chapters/chapter_24_stir_futures_convexity_adjustments.md)
+
 This chapter covers:
 
 1. **Core concepts**: Discount factors, accrual factors, simple rates, and the forward-rate identity that ties them together
@@ -24,7 +28,12 @@ This chapter covers:
 
 We work primarily in a **single-curve setting** for pedagogy. The multi-curve reality of post-crisis practice—separate discounting and forwarding curves—is previewed but deferred to Part IV (Chapters 17-22).
 
-> **Connection to prior chapters:** Chapter 1 established day counts and compounding as the "unit system" of interest rates. Chapter 2 defined discount factors as the primitive pricing object. Chapter 3 introduced the zero-forward-par triangle. This chapter shows how actual market instruments—deposits, bills, FRAs—generate those first discount factors and forward rates.
+## Learning Objectives
+- Translate a money-market quote (deposit, bill discount yield, FRA, Fed Funds futures) into cashflows or implied rates and then into discount factors.
+- Use the simple-forward identity to move between discount factors and forward rates with an explicit year-fraction \(\tau(\cdot,\cdot)\).
+- Explain the operational meaning of “fixed in advance” vs “fixed in arrears” and why it matters for cash management.
+- Compute and interpret a 1bp PV sensitivity with an explicit bump object, units, and sign convention.
+- Spot and avoid the most common front-end breaks (day count, yield convention, averaging/compounding, and “what is being bumped?”).
 
 ---
 
@@ -48,69 +57,62 @@ Before diving into the math, it helps to understand the "Credit Hierarchy" of th
 
 The 2008 crisis and subsequent LIBOR transition revealed a fundamental truth about money market rates: **not all "short-term rates" are the same**. The distinction between credit-sensitive and risk-free rates now shapes how curves are built, swaps are priced, and corporate hedging programs are designed.
 
-Hull explains the core difference: "The new overnight reference rates are considered to be risk-free (or nearly risk-free), whereas LIBOR incorporates a time-varying credit spread reflecting the credit risk of large banks."
+One useful mental split:
 
-**The old world (LIBOR-based):** LIBOR was an unsecured interbank rate that embedded bank credit risk. When a corporate borrower hedged floating-rate debt with a LIBOR swap, both the borrowing cost and the hedge referenced the same credit-sensitive index. The hedge worked well because corporate borrowing costs and LIBOR moved together.
+- **(Nearly) risk-free / RFR-style rates** are designed to reflect secured or policy-anchored overnight funding and to contain little bank credit premium (e.g., SOFR is based on secured Treasury repo transactions).
+- **Credit-sensitive term rates** embed bank credit and liquidity premia (historically LIBOR).
 
-**The new world (SOFR-based):** SOFR is an overnight rate based on secured Treasury repo transactions, and is designed to be (nearly) risk-free. Hull notes: "When banks lend to their customers at a floating rate determined by SOFR, they usually add a credit spread to SOFR. If credit spreads rise, the banks can raise the spread they add."
+Hull emphasizes this distinction: new overnight reference rates are intended to be (nearly) risk-free, while LIBOR incorporated a time-varying bank credit spread. Hull also notes a practical implication: when banks lend to customers at “SOFR + spread”, changes in that spread are not hedged by a plain SOFR leg.
 
-> **Desk Reality: The Hedging Gap**
->
-> Consider a regional bank that borrows at Fed Funds + 50bp and hedges with SOFR swaps. In normal times, this works fine—SOFR and Fed Funds move together.
->
-> But when credit spreads widen (as in March 2020), the bank's borrowing cost rises while SOFR stays anchored to Treasury repo rates. The "hedge" provides no protection against the credit spread component.
->
-> **This is why:** Some corporates initially resisted the SOFR transition. They faced basis risk between their credit-sensitive borrowing costs and risk-free hedges. Hull notes there was "desire on the part of banks to augment the new reference rates with a measure of the level of credit spreads."
->
-> **What happened:** Credit-sensitive alternatives exist, but SOFR became the primary USD reference rate for many derivatives and cash products. In practice, desks manage the resulting basis risk explicitly (via spread add-ons, basis swaps, or conservative liquidity/funding buffers).
+> **Desk Reality:** Hedging a credit-sensitive funding exposure with an RFR hedge leaves residual spread risk.
+> **Common break:** A funding P&L line (often “index + spread”) doesn’t match the P&L from a hedge that references only the index.
+> **What to check:** Identify the exact reference index (SOFR vs EFFR vs term), the day count, and whether you need an explicit spread/basis hedge.
 
-**What happened to term unsecured benchmarks?** The role of LIBOR-style unsecured term benchmarks shrank dramatically post-crisis and then transitioned away in many markets. The practical lesson is that “floating rate” no longer automatically means “bank-credit-sensitive”: you must identify whether the leg references a secured overnight index (SOFR/OIS-style) or a credit-sensitive index, and then manage the basis between that index and your funding/hedging.
+The practical lesson for curve work: always name the index you are discounting on and the index you are projecting (they may differ), and be explicit about the basis you are ignoring in a single-curve pedagogical setup.
 
 ### 4.1.2 The Discount Factor $P(0,T)$
 
 The discount factor $P(0,T)$ is the time-0 value of receiving one unit of currency at time $T$. It is the fundamental building block of fixed-income pricing.
 
-**Formal definition:** $P(0,T)$ is the price today of a zero-coupon bond that pays 1 at maturity $T$. As Tuckman puts it, "The discount factor for a particular term gives the value today, or the present value of one unit of currency to be received at the end of that term."
+**Formal definition:** $P(0,T)$ is the price today of a zero-coupon bond that pays 1 at maturity $T$ (i.e., the present value of 1 paid at $T$).
 
 **Intuition:** Think of $P(0,T)$ as the "present-value weight" applied to any cashflow at time $T$. At the short end of the curve, discount factors are close to 1—a payment due in 30 days is worth almost its face value—but even small deviations matter because short-dated instruments have tight bid-ask spreads and high trading frequency.
 
 **Practice:** Front-end discount factors are the first "curve nodes" that anchor PVs of very short cashflows and the earliest forward rates used in floating-rate products.
 
-### 4.1.3 The Accrual Factor $\alpha(T,S)$ and Day Count
+### 4.1.3 The Year Fraction $\tau(T,S)$ and Day Count
 
-Hull provides a clean definition: "The day count defines the way in which interest accrues over time." The accrual factor $\alpha(T,S)$ converts an annualized rate into an interest amount over the period $[T,S]$:
+A day-count convention converts dates into a **year fraction**. We write the year fraction between dates $T$ and $S$ as $\tau(T,S)$ (units: years). For a simple annualized rate $r$ applied to notional $N$ over $[T,S]$:
 
-$$\text{Interest} = \text{Rate} \times \alpha(T,S) \times \text{Notional}$$
+$$\boxed{\text{Interest} = N \cdot r \cdot \tau(T,S)}$$
 
-**Why this matters at the short end:** The front end is "day-count dominated." When instruments mature in weeks rather than years, a one-day error in the accrual fraction can matter as much as a basis point error in the rate. As Hull emphasizes, "the interest earned in a whole year of 365 days is $365/360$ times the quoted rate" under Actual/360—a seemingly small detail that compounds into real dollars.
+**Why this matters at the short end:** When maturities are measured in days and weeks, a one-day error in $\tau$ can be comparable to a basis-point error in $r$.
 
-**Convention variability:** Day-count conventions differ by country and instrument. Hull notes: "Conventions vary from country to country and from instrument to instrument. For example, money market instruments are quoted on an actual/365 basis in Australia, Canada, and New Zealand. LIBOR is quoted on an actual/360 for all currencies except sterling, for which it is quoted on an actual/365 basis."
-
-In the U.S., money-market instruments (including SOFR and Fed Funds) commonly use **Actual/360**: interest accrued over $d$ days is $(d/360) \times \text{rate}$.
+**Convention variability:** Day-count conventions differ by market and instrument. In USD money markets, a common convention is **ACT/360** (so $d$ calendar days corresponds to $\tau=d/360$).
 
 ### 4.1.4 Simple (Money-Market) Rates
 
-Money-market instruments quote **simple rates** over their term—compounding frequency equals the instrument's maturity. A deposit of size 1 over $[T, T+\tau]$ returns $1 + \tau L(T; T, T+\tau)$ at maturity. Tuckman explains that "lending \$1 for $d$ days at a rate of $r$ will earn the lender an interest payment of $rd/360$ dollars at the end of the $d$ days" under the actual/360 convention.
+Money-market instruments usually quote **simple annualized rates** over their accrual period. A notional $N$ accruing at a simple rate $r$ over $[0,T]$ pays:
 
-**From rate to discount factor:** If you know a deposit rate $r$ and the corresponding accrual fraction $\alpha$, you can directly compute the implied discount factor:
+$$\boxed{N\cdot(1+r\cdot\tau(0,T)) \text{ at } T}$$
 
-$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \alpha(0,T)}}$$
+**From a deposit quote to a discount factor:** In a simple single-period setting, the par condition implies:
+
+$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \tau(0,T)}}$$
 
 This formula captures the essence of short-end curve construction: a deposit quote is "directly a discount factor" once you apply the correct day-count convention.
 
 ### 4.1.5 The Forward Rate Identity
 
-For any future period $[T,S]$, the simply-compounded forward rate $L(t;T,S)$ satisfies:
+For any future period $[T_1,T_2]$, the simply-compounded forward rate $f(t;T_1,T_2)$ satisfies:
 
-$$\boxed{1 + \alpha(T,S) \cdot L(t;T,S) = \frac{P(t,T)}{P(t,S)}}$$
+$$\boxed{1 + \tau(T_1,T_2)\cdot f(t;T_1,T_2) = \frac{P(t,T_1)}{P(t,T_2)}}$$
 
-**Intuition:** The forward rate is the breakeven simple interest rate over $[T,S]$ implied by the discount curve. If you can borrow at $P(t,T)$ and lend at $P(t,S)$, the forward rate is the return you lock in.
-
-Andersen defines this identity as the foundation for all forward-rate instruments: "the simply-compounded forward rate satisfies $1 + \tau L = P(t,T)/P(t,S)$."
+**Intuition:** The forward rate is the breakeven simple interest rate over $[T_1,T_2]$ implied by the discount curve.
 
 **Solving for the forward rate:**
 
-$$\boxed{F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\alpha(T_1,T_2)}}$$
+$$\boxed{f(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\tau(T_1,T_2)}}$$
 
 ### 4.1.6 What "Par" Means and How It Pins Down a Curve Point
 
@@ -118,7 +120,7 @@ An instrument is **at par** if its present value equals zero (for a derivative) 
 
 For a deposit, "par" means the discounted maturity payoff equals the amount invested:
 
-$$1 = P(0,T) \cdot (1 + r \cdot \alpha(0,T))$$
+$$1 = P(0,T) \cdot (1 + r \cdot \tau(0,T))$$
 
 This equation is the key to bootstrapping: each par quote lets you solve for one unknown discount factor.
 
@@ -145,7 +147,7 @@ Hull explains: "LIBOR rates are forward looking and published at the beginning o
 
 Under SOFR and other overnight risk-free rates, the floating rate is determined by **compounding daily observations over the accrual period**. The rate is not known until the period ends.
 
-Hull explains: "The new overnight reference rates are backward looking and determined at the end of the periods to which they apply. This is because the rate for a period is calculated from the overnight rates that are observed during the period."
+Hull emphasizes that the new overnight reference rates are **backward looking**: the rate for an accrual period is computed from overnight rates observed during the period, so it is only known at (or near) period end.
 
 **Timeline example (3-month compounded SOFR):**
 - **January 1**: Accrual period begins. Rate is **unknown**.
@@ -161,16 +163,9 @@ where $r_i$ is the overnight rate on day $i$, $d_i$ is the number of calendar da
 
 > **Desk Reality: Operational Challenges of "In Arrears"**
 >
-> **The cash management problem:** Under LIBOR, a corporate treasurer knew on January 1 that the March 31 payment would be exactly $X. Under SOFR, they won’t know the final compounded amount until very near period end (absent additional conventions).
+> **The cash management problem:** Under LIBOR, a corporate treasurer knew on January 1 that the March 31 payment would be exactly $X. Under compounded SOFR, the rate for the accrual period is not known until the end of the period, after the relevant overnight rates have been observed.
 >
-> **Industry solutions:** To provide some advance notice, the market developed conventions:
-> - **Observation lag / lookback:** Use earlier daily fixings (e.g., a few business days earlier) so the final compounded amount is known before the payment date.
-> - **Observation shift:** Shift the observation window so the index days line up with payment/settlement days.
-> - **Lockout / rate cutoff:** Freeze the final few daily fixings to give operational notice (simple, but introduces basis).
->
-> **Why middle-office cares:** If you're reconciling swap payments, you need to understand which convention your trade uses. Payment amount disputes often arise from lookback/lockout mismatches.
->
-> *Cross-reference:* Chapter 1 defines “observation shift,” “lookback,” “lockout,” and “payment delay” in desk terms.
+> **What to check:** Treat the observation/payment convention as part of the trade specification, and reproduce the compounded factor from the exact daily fixings your system uses.
 
 ### 4.2.3 Geometric vs Arithmetic Averaging
 
@@ -180,7 +175,7 @@ A subtle but important distinction exists in how overnight rates are combined:
 
 **Arithmetic averaging:** Used for Fed Funds futures settlement. The contract settles based on the simple arithmetic average of daily effective Fed Funds rates over the month.
 
-Hull notes: "an average overnight rate for a three-month period is the geometric average of the overnight rates that are observed over the three months."
+Hull notes that an average overnight rate over a period is computed by compounding the daily overnight rates (a geometric average).
 
 This distinction matters for basis calculations between Fed Funds futures and compounded SOFR.
 
@@ -192,17 +187,17 @@ This distinction matters for basis calculations between Fed Funds futures and co
 
 #### The Simple Interest Deposit Quote
 
-A money-market deposit quotes a simple annualized rate $r$ for a maturity $T$, together with a day-count convention that determines $\alpha(0,T)$.
+A money-market deposit quotes a simple annualized rate $r$ for a maturity $T$, together with a day-count convention that determines the year fraction $\tau(0,T)$.
 
 **What the quote pins down:** The discount factor $P(0,T)$ via the par condition:
 
-$$1 = P(0,T) \cdot (1 + r \cdot \alpha(0,T))$$
+$$1 = P(0,T) \cdot (1 + r \cdot \tau(0,T))$$
 
 Solving:
 
-$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \alpha(0,T)}}$$
+$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \tau(0,T)}}$$
 
-Hull explains that "the actual/360 day count is used for money market instruments in the United States. This indicates that the reference period is 360 days. The interest earned during part of a year is calculated by dividing the actual number of elapsed days by 360 and multiplying by the rate."
+Hull notes that USD money-market instruments typically use Actual/360 day count: the year fraction is actual days divided by 360.
 
 #### Accrual and Settlement Conventions
 
@@ -227,7 +222,7 @@ For pedagogical examples in this chapter, we ignore spot lags and assume year fr
 
 #### Bill Price Quoting vs. Discount Yield Quoting
 
-Hull explains: "The prices of money market instruments are sometimes quoted using a discount rate. This is the interest earned as a percentage of the final face value rather than as a percentage of the initial price paid for the instrument."
+Hull notes that some money-market instruments (including US T-bills) are quoted using a discount rate based on face value rather than on the price paid.
 
 > **Visualizer: Discount Yield vs. Investment Yield**
 >
@@ -242,37 +237,35 @@ Hull explains: "The prices of money market instruments are sometimes quoted usin
 >     *   Math: $\frac{D}{P}$.
 >     *   Example: Pay 98, Get 100. Return = 2/98 = 2.04%.
 >
-> **Rule**: Investment Yield is **always** higher than Discount Yield because Price < Face. The gap explodes as rates rise.
+> **Rule (mechanical):** If $Y<100$ is the cash price per \$100 face, then $(100-Y)/Y > (100-Y)/100$, so a price‑denominator yield is higher than a face‑denominator “discount yield”.
 
-A U.S. Treasury bill with 91 days to maturity quoted at "8" means the discount rate is 8% per 360 days, calculated on the face value (not the price paid). Hull provides a concrete example: "If the price of a 91-day Treasury bill is quoted as 8, this means that the rate of interest earned is 8% of the face value per 360 days. Suppose that the face value is \$100. Interest of \$2.0222 (= \$100 × 0.08 × 91/360) is earned over the 91-day life."
+A US Treasury bill with 91 days to maturity quoted at 8 means “8% of face value per 360 days.” Hull illustrates: for \$100 face, interest over 91 days is \$100 × 0.08 × 91/360 = \$2.0222, so the cash price is \$97.9778 per \$100 face.
 
-**Banker's discount yield** $y_{BD}$ is defined as:
+Let $Y$ be the **cash price per \$100 face**, let $d$ be the remaining life in calendar days, and let $q_{\text{disc}}$ be the quoted **bank discount rate** (percent per year, ACT/360, applied to face value). Hull gives the relationship:
 
-$$y_{BD} = \left(\frac{\text{Face} - \text{Price}}{\text{Face}}\right) \times \frac{360}{d}$$
+$$P = \frac{360}{d}(100 - Y)$$
 
-where $d$ is the number of days to maturity.
+where $P$ is his symbol for the quoted discount rate and $Y$ is the cash price. In this book we write the quote as $q_{\text{disc}}$ (so $q_{\text{disc}}=P$):
 
-**Converting to price:** Solving for the cash price:
+$$\boxed{q_{\text{disc}} = \frac{360}{d}(100 - Y)}$$
 
-$$\boxed{\text{Price} = \text{Face} \times \left(1 - y_{BD} \times \frac{d}{360}\right)}$$
+Solving for the cash price:
 
-Hull provides the general relationship between cash price $Y$ and quoted discount rate $P$ (in his notation):
-
-$$P = \frac{360}{n}(100 - Y)$$
-
-where $n$ is the remaining life in calendar days. Note that Hull uses $P$ for the quoted discount rate and $Y$ for the cash price—the opposite convention from some other texts.
+$$\boxed{Y = 100 - q_{\text{disc}}\frac{d}{360}}$$
 
 #### From Bill Price to Discount Factor
 
-Once you have the cash price for face value $F$:
+Once you have the cash price per \$100 face $Y$:
 
-$$P(0,T) = \frac{\text{Price}}{F}$$
+$$P(0,T) = \frac{Y}{100}$$
 
 #### Caution: Multiple Yield Conventions Exist
 
-The **ask yield** (often called **Bond Equivalent Yield** or **BEY**) differs from the banker's discount yield. Hull explains that the discount yield "corresponds to a true rate of interest of 2.0222/(100 - 2.0222) = 2.064% for the 91-day period"—higher than the 2.0222% discount on face because the denominator is the price paid, not the face value.
+An **investment-style yield** (returns on price paid) differs from the bank discount quote. Hull’s example highlights the core point: a return computed on the **price paid** is higher than the discount computed on **face value** because $Y<100$.
 
-$$y_{\text{ask}} = \left(\frac{\text{Face} - \text{Price}}{\text{Price}}\right) \times \frac{365}{d}$$
+One commonly used annualization (often discussed as a “bond‑equivalent” style conversion for bills) is to annualize the holding-period return on a 365-day basis (Musiela):
+
+$$y_{\text{ask}} = \left(\frac{100 - Y}{Y}\right) \times \frac{365}{d}$$
 
 Note the differences:
 - Denominator: price (not face)
@@ -280,13 +273,17 @@ Note the differences:
 
 The banker's discount yield is a convenient quoting convention, **not** an internal rate of return.
 
+> **Pitfall — Discount yield is not an IRR:** A T-bill “discount yield” annualizes \((F-\text{Price})/F\) on a 360-day basis, while investment yields annualize returns on the price paid.
+> **Why it matters:** Comparing discount yields directly to deposit/OIS rates (or using them as an IRR) leads to wrong relative-value and risk numbers.
+> **Quick check:** Convert quote → cash price first; then compute the simple holding-period return \((F/\text{Price}-1)/\tau(0,T)\) using an explicit day count.
+
 ### 4.3.3 Forward Rate Agreements (FRAs)
 
 #### FRA as a Forward-Starting Deposit
 
-Hull defines an FRA as "an agreement to exchange a predetermined fixed rate for a reference rate that will be observed in the market at a future time. Both rates are applied to a specified principal, but the principal itself is not exchanged."
+Hull describes an FRA as a contract that exchanges a fixed rate for a reference rate observed in the future on a specified notional, typically settled net without exchanging principal.
 
-An FRA references the future floating rate for period $[T, T+\tau]$ and exchanges (in net form) the difference between floating and a fixed contract rate $K$.
+An FRA references the future floating rate for a period $[T_1, T_2]$ and exchanges (in net form) the difference between floating and a fixed contract rate $K$. Let $\tau(T_1,T_2)$ be the year fraction for the accrual period under the contract’s day count.
 
 > **Analogy: "Pre-Ordering" Your Loan**
 >
@@ -299,53 +296,42 @@ An FRA references the future floating rate for period $[T, T+\tau]$ and exchange
 
 #### FRA Value in Terms of Discount Factors
 
-The value of an FRA at time $t \leq T$ for unit notional can be written:
+The value of an FRA at time $t \leq T_1$ for unit notional can be written:
 
-$$V_{\text{FRA}}(t) = P(t,T) - P(t,T+\tau) - \tau K \cdot P(t,T+\tau)$$
+$$V_{\text{FRA}}(t) = P(t,T_1) - P(t,T_2) - K \cdot \tau(T_1,T_2)\cdot P(t,T_2)$$
 
 This can be rewritten as:
 
-$$V_{\text{FRA}}(t) = \tau \cdot P(t,T+\tau) \cdot \left(L(t;T,T+\tau) - K\right)$$
+$$V_{\text{FRA}}(t) = \tau(T_1,T_2) \cdot P(t,T_2) \cdot \left(L(t;T_1,T_2) - K\right)$$
 
-where $L(t;T,T+\tau)$ is the forward rate from the discount curve.
+where $L(t;T_1,T_2)$ is the (simply-compounded) forward rate implied by the discount curve.
 
-Hull notes that "an FRA can be valued by assuming that the forward interest rate for the underlying reference rate will be the one that determines the exchange."
+Hull notes that FRAs can be valued using the forward rate for the underlying period implied by the curve, discounted appropriately.
 
 #### The Par FRA Rate Equals the Forward Rate
 
 Setting $V_{\text{FRA}}(t) = 0$ and solving for the fixed rate $K$:
 
-$$\boxed{K^* = L(t;T,T+\tau) = \frac{1}{\tau}\left(\frac{P(t,T)}{P(t,T+\tau)} - 1\right)}$$
+$$\boxed{K^* = L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)}$$
 
-The par FRA rate equals the implied forward rate—a fundamental result that makes FRAs direct constraints on the forward curve. Hull states: "When the fixed rate equals the relevant forward rate the value of an FRA is zero."
+The par FRA rate equals the implied forward rate—a fundamental result that makes FRAs direct constraints on the forward curve. Hull notes that the FRA has zero value when the fixed rate equals the relevant forward rate.
 
 #### FRA Settlement Payoff
 
-At settlement (time $T$), the net payment is:
+At settlement (time $T_1$), the net payment (paid at $T_1$) is:
 
-$$\boxed{V_{\text{FRA}}(T) = \frac{\tau \cdot (L(T;T,T+\tau) - K)}{1 + \tau \cdot L(T;T,T+\tau)}}$$
+$$\boxed{V_{\text{FRA}}(T_1) = \frac{\tau(T_1,T_2) \cdot (L(T_1;T_1,T_2) - K)}{1 + \tau(T_1,T_2) \cdot L(T_1;T_1,T_2)}}$$
 
-The denominator discounts the payment from $T+\tau$ back to $T$. Hull notes in a footnote: "In practice, because LIBOR is determined in advance of a period, the payment would be made at time $T$ and equal to the present value of the cash flow discounted for the period at the observed rate."
-
-> **Desk Reality: Why You Rarely See FRAs Anymore**
->
-> **The old world:** FRAs were the standard instrument for hedging or speculating on short-term LIBOR forwards. Banks traded billions in 3x6, 6x9, and other FRA tenors.
->
-> **What changed:** When LIBOR ceased, the underlying reference rate disappeared. The FRA market largely died with it.
->
-> **The replacement:** For SOFR-based curves, single-period OIS (Overnight Index Swaps) serve a similar economic function—they exchange fixed for compounded overnight rates over a specific period.
->
-> **Why this matters:** You may still encounter legacy FRA documentation, and understanding FRA mechanics helps you understand the forward rate identity. But in practice, most new short-term rate hedging uses OIS or futures.
+The denominator discounts the net interest difference from $T_2$ back to $T_1$ at the realized floating rate for the accrual period.
 
 ### 4.3.4 Fed Funds Futures: Contract Structure
 
-Tuckman describes the Fed Funds futures contract: "The underlying for each fed funds futures contract is a $5,000,000 30-day deposit at the average overnight fed funds rate over a particular month. The final settlement price of a given month's contract is 100 minus 100 times that month's realized average overnight fed funds rate."
+Tuckman describes fed funds futures as designed to hedge a \$5,000,000 30-day fed funds deposit; the final settlement is based on the average effective fed funds rate over the contract month.
 
 **Key contract features:**
 - **Notional:** $5,000,000
 - **Settlement:** Cash-settled based on the arithmetic average of daily effective Fed Funds rates during the contract month
 - **Quote:** $100 - \text{(average rate in percent)}$
-- **Tick size:** 0.005 (half a basis point) = $20.835 per contract
 
 **Averaging convention:** Unlike SOFR (geometric compounding), Fed Funds futures use **arithmetic averaging**:
 
@@ -353,15 +339,17 @@ $$\text{Average Rate} = \frac{1}{N}\sum_{i=1}^{N} r_i$$
 
 where $N$ is the number of calendar days in the month and $r_i$ is the effective Fed Funds rate on day $i$.
 
+> **Desk Reality:** Tuckman describes the fed funds futures contract as a hedge to a \(\$5{,}000{,}000\) 30-day deposit in fed funds, and the final settlement price is set to 100 minus 100 times the average effective fed funds rate over the month.
+> **Common break:** In fed funds futures, changing the rate of the \(\$5{,}000{,}000\) 30-day underlying by 1 bp changes the interest payment by \(\$41.67\) (= \(\$5{,}000{,}000 \times (.0001 \times 30)/360\)).
+> **What to check:** Tuckman writes that hedging a \(\$100{,}000{,}000\) investment over December requires \(20\times(31/30)\) or 21 fed funds futures contracts.
+
 ### 4.3.5 The "Staircase" Curve: Fed Funds at FOMC Meetings
 
-The Federal Open Market Committee (FOMC) meets approximately eight times per year to set the target Fed Funds rate. Between meetings, the effective Fed Funds rate typically stays close to the target (within the target range corridor).
+Tuckman notes that the Fed usually changes the fed funds target at the conclusion of scheduled FOMC meetings (with occasional exceptions). A convenient mental model for expected fed funds rates is therefore a stepwise curve: constant between meetings and jumping at meeting dates.
 
 This creates a **staircase pattern** in expected Fed Funds rates:
 - Rates are approximately constant between FOMC meetings
 - Rates "step" up or down at each FOMC meeting date (if a change is expected)
-
-Tuckman notes this pattern directly: because the Fed typically adjusts rates only at scheduled meetings, "the curve of expected fed funds rates is a step function, constant between meetings and jumping at meetings."
 
 ### 4.3.6 Fed Probability Extraction from Futures Prices
 
@@ -405,7 +393,7 @@ where $p$ is the probability of a rate change.
 
 #### Quote Convention
 
-Andersen describes Eurodollar (and similarly SOFR) futures as contracts where "at time 0, a Eurodollar futures contract can be entered into at no upfront cost, but with an implicit obligation of the holder to pay at time $T$ per unit of notional $1 - F(0,T,T+\tau)$ in return for the payout $1 - L(T,T,T+\tau)$."
+Andersen & Piterbarg frame Eurodollar (and similarly SOFR) futures as forward-rate instruments entered at zero upfront cost, with payoff tied to the realized floating rate over the underlying period relative to the rate implied at inception.
 
 The quoted price is typically:
 
@@ -417,15 +405,13 @@ For example, a quote of 94.67 implies a futures rate of 5.33%.
 
 #### Futures vs. Forwards: The Convexity Adjustment
 
-Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Andersen explains the intuition directly:
-
-> "Due to the adverse behavior of funding costs and reinvestment gains, we would expect the purchaser of a Eurodollar futures contract to pay less for these instruments than for a comparable instrument without daily mark-to-market. Consequently, we would expect the futures rate to be above the corresponding forward rate."
+Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Andersen & Piterbarg explain that daily settlement creates a correlation between margin cashflows and funding/reinvestment rates, so futures rates generally differ from forward rates; the futures rate tends to be above the corresponding forward rate.
 
 The mechanism is as follows: under rising interest rates, the futures holder must make margin payments at precisely the moment when borrowing costs are highest. Conversely, when rates fall, received margin is reinvested at lower rates. This systematic disadvantage means futures rates must exceed forward rates to compensate.
 
-Hull provides additional intuition: "To compensate for this, the forward quote should be more attractive to the party in the same position as Trader B [the futures holder]. This means that the forward quote should be lower than the futures quote."
+Hull provides similar intuition: daily settlement creates a convexity adjustment, and the forward and futures quotes differ as a result.
 
-**Magnitude:** Hull notes that the convexity adjustment "increases as the life of the contract increases." For short-dated contracts (under 2 years), the adjustment is typically small—a fraction of a basis point. For longer-dated contracts (5-10 years), the adjustment can be 10-20bp or more.
+**Magnitude:** Hull notes that the convexity adjustment increases as the life of the contract increases.
 
 The full convexity adjustment derivation is covered in Chapter 24.
 
@@ -433,51 +419,32 @@ The full convexity adjustment derivation is covered in Chapter 24.
 
 ## 4.4 Seasonal Funding Dynamics: The Year-End "Turn"
 
-### 4.4.1 Why Funding Rates Spike at Year-End
+### 4.4.1 Why Special Dates Dislocate (The "Turn")
 
-Every December, short-term funding rates exhibit predictable spikes, particularly for the overnight rate spanning December 31. This phenomenon is called **the "turn"** and represents a major trading theme in money markets.
+In this chapter, we use the practitioner term **turn** for the implied overnight rate over a stub spanning a special date (for example, the overnight rate spanning December 31).
 
-Tuckman notes that significant rate dislocations can occur during periods of market stress, citing "the Y2K scare and September 11" as examples where "liquidity concerns over certain days or weeks" drove temporary rate spikes.
+Tuckman's Figure 17.2 shows that the fed funds effective rate and the fed funds target rate can be very far apart, reminding you that the very front end is not guaranteed to be smooth.
 
-> **Practitioner Note: The Mechanics of Year-End Stress**
+> **Practitioner Note: What to internalize**
 >
-> Several factors combine to create year-end funding pressure:
->
-> **1. G-SIB Score Optimization:** Global Systemically Important Banks face capital surcharges based on their "G-SIB score"—a measure of systemic importance calculated using year-end balance sheet data. Banks actively shrink their balance sheets in late December to reduce their scores.
->
-> **2. Window Dressing:** Banks and money market funds adjust portfolios before year-end reporting dates, reducing available lending.
->
-> **3. Regulatory Reserve Requirements:** Various regulatory metrics are calculated using year-end snapshots, creating incentives to minimize balance sheet exposure.
->
-> **The result:** Reduced supply of overnight funding + normal demand = spike in overnight rates for the specific days spanning year-end.
+> - Treat the turn as a **stub forward** implied by discount factors across the stub.
+> - If you are quoted a turn (e.g., “Dec/Jan”), translate it into a local constraint on the nearest discount factors and forwards.
 
 ### 4.4.2 Pricing the Turn
 
-The "turn" appears as a visible hump in the OIS curve. If you plot overnight forward rates, the rate for December 31 (and sometimes the few surrounding days) will be significantly elevated above the surrounding rates.
-
-**Extracting the turn premium:** If you have discount factors $P(0, \text{Dec 30})$ and $P(0, \text{Jan 2})$, you can extract the implied overnight rate spanning the turn:
+**Extracting the turn rate:** If you have discount factors $P(0, \text{Dec 30})$ and $P(0, \text{Jan 2})$, you can extract the implied overnight rate spanning the turn:
 
 $$r_{\text{turn}} = \left(\frac{P(0, \text{Dec 30})}{P(0, \text{Jan 2})} - 1\right)\times \frac{360}{d}$$
 
 where $d$ is the number of calendar days (typically 3 for a weekend).
 
 **Trading the turn:**
-- **Long turn:** Buy financing before year-end, lend over the turn at elevated rates
-- **Short turn:** If you expect the squeeze to be less severe than priced, sell turn-dated funding
+- **Long turn:** Lend over the stub if you think the realized rate will be higher than what the curve implies
+- **Short turn:** Borrow over the stub if you think the realized rate will be lower than what the curve implies
 
 ### 4.4.3 Quarter-End Effects
 
-Similar but smaller effects occur at quarter-ends (March 31, June 30, September 30) due to regulatory reporting cycles. These are sometimes called "window dressing" effects.
-
-> **Desk Reality: The Turn Trade**
->
-> Many money market desks actively position for the turn:
->
-> 1. **September setup:** Begin accumulating long positions in T-bills maturing just after year-end
-> 2. **Late November:** Lock in repo financing through year-end at rates lower than the expected spike
-> 3. **Late December:** Lend cash over the turn at elevated rates
->
-> The trade profits from the predictable seasonal pattern—but if the turn is smaller than priced, the trade loses.
+The same math applies to other special-date stubs (month-ends, quarter-ends, etc.). Identify the stub dates and compute the implied forward from the discount factors.
 
 ---
 
@@ -490,65 +457,67 @@ Similar but smaller effects occur at quarter-ends (March 31, June 30, September 
 - Unit principal invested at $t = 0$
 - No default; single-curve framework
 
-**Cashflow:** The deposit payoff at $T$ is $1 + r \cdot \alpha(0,T)$.
+**Cashflow:** The deposit payoff at $T$ is $1 + r \cdot \tau(0,T)$.
 
 **Par condition:** The present value at inception equals 1:
 
-$$1 = P(0,T) \cdot (1 + r \cdot \alpha(0,T))$$
+$$1 = P(0,T) \cdot (1 + r \cdot \tau(0,T))$$
 
 **Solve for the discount factor:**
 
-$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \alpha(0,T)}}$$
+$$\boxed{P(0,T) = \frac{1}{1 + r \cdot \tau(0,T)}}$$
 
-**Unit check:** Rate $r$ has units "per year"; $\alpha$ has units "years"; so $r \cdot \alpha$ is dimensionless, and $P$ is dimensionless. ✓
+**Unit check:** Rate $r$ has units "per year"; $\tau$ has units "years"; so $r \cdot \tau$ is dimensionless, and $P$ is dimensionless. ✓
 
 **Sanity checks:**
 - If $r$ increases, the denominator increases, so $P(0,T)$ decreases. ✓
-- As $T \to 0$, $\alpha(0,T) \to 0$, so $P(0,T) \to 1$. ✓
+- As $T \to 0$, $\tau(0,T) \to 0$, so $P(0,T) \to 1$. ✓
 
 ### 4.5.2 Forward Rate from Discount Factors
 
 From the forward-rate identity:
 
-$$1 + \alpha(T_1,T_2) \cdot F(0;T_1,T_2) = \frac{P(0,T_1)}{P(0,T_2)}$$
+$$1 + \tau(T_1,T_2) \cdot F(0;T_1,T_2) = \frac{P(0,T_1)}{P(0,T_2)}$$
 
 Solving for the forward rate:
 
-$$\boxed{F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\alpha(T_1,T_2)}}$$
+$$\boxed{F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\tau(T_1,T_2)}}$$
 
-**Unit check:** Numerator is dimensionless; dividing by $\alpha$ (years) gives "per year." ✓
+**Unit check:** Numerator is dimensionless; dividing by $\tau$ (years) gives "per year." ✓
 
 **Sanity check:** If $P(0,T_2)$ is smaller (more discounting to $T_2$), the forward rate is larger. ✓
 
 ### 4.5.3 FRA Par Rate Equals the Forward Rate
 
+Let the FRA accrual period be $[T_1,T_2]$ with year fraction $\tau(T_1,T_2)$.
+
 From the FRA value expression:
 
-$$V_{\text{FRA}}(t) = P(t,T) - P(t,T+\tau) - \tau K \cdot P(t,T+\tau)$$
+$$V_{\text{FRA}}(t) = P(t,T_1) - P(t,T_2) - K \cdot \tau(T_1,T_2)\cdot P(t,T_2)$$
 
 Setting $V_{\text{FRA}}(t) = 0$:
 
-$$P(t,T) = P(t,T+\tau) \cdot (1 + \tau K)$$
+$$P(t,T_1) = P(t,T_2) \cdot (1 + K\cdot \tau(T_1,T_2))$$
 
 Solving for $K$:
 
-$$K = \frac{1}{\tau}\left(\frac{P(t,T)}{P(t,T+\tau)} - 1\right)$$
+$$K = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)$$
 
 But by the forward-rate identity:
 
-$$L(t;T,T+\tau) = \frac{1}{\tau}\left(\frac{P(t,T)}{P(t,T+\tau)} - 1\right)$$
+$$L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)$$
 
 Therefore:
 
-$$\boxed{K^* = L(t;T,T+\tau) = F(t;T,T+\tau)}$$
+$$\boxed{K^* = L(t;T_1,T_2) = F(t;T_1,T_2)}$$
 
 ### 4.5.4 FRA Time-0 Present Value
 
 For notional $N$ and fixed rate $K$:
 
-$$\boxed{V_{\text{FRA}}(0) = N \cdot \tau \cdot P(0,T+\tau) \cdot (F - K)}$$
+$$\boxed{V_{\text{FRA}}(0) = N \cdot \tau(T_1,T_2) \cdot P(0,T_2) \cdot (F - K)}$$
 
-where $F = L(0;T,T+\tau)$ is the forward rate.
+where $F = L(0;T_1,T_2)$ is the forward rate.
 
 **Sanity checks:**
 - If $K = K^*$ (par), then $V_{\text{FRA}}(0) = 0$. ✓
@@ -560,7 +529,7 @@ where $F = L(0;T,T+\tau)$ is the forward rate.
 
 ### 4.6.1 The Sequential Logic
 
-Curve construction is an inverse problem: given prices of traded instruments, recover the discount factors. As Andersen notes, "only a finite set of traded instruments is observable; discount bonds for all maturities are not directly observable"—hence the need for both bootstrapping and interpolation.
+Curve construction is an inverse problem: given prices of traded instruments, recover the discount factors. Andersen notes that only a finite set of instruments is quoted, so constructing a continuous curve inevitably requires bootstrapping plus interpolation.
 
 **The short-end bootstrap:**
 
@@ -568,13 +537,13 @@ Curve construction is an inverse problem: given prices of traded instruments, re
 
 **Step 2: Use deposits (or bills) for the earliest nodes.** For each maturity $T$ with deposit quote $r(0,T)$:
 
-$$P(0,T) = \frac{1}{1 + r(0,T) \cdot \alpha(0,T)}$$
+$$P(0,T) = \frac{1}{1 + r(0,T) \cdot \tau(0,T)}$$
 
 For bills quoted via discount yield, first convert quote → price, then $P(0,T) = \text{price}/\text{face}$.
 
 **Step 3: Use FRAs to extend further.** If $P(0,T_1)$ is known and you have a par FRA quote $K$ for $[T_1,T_2]$, then:
 
-$$\boxed{P(0,T_2) = \frac{P(0,T_1)}{1 + K \cdot \alpha(T_1,T_2)}}$$
+$$\boxed{P(0,T_2) = \frac{P(0,T_1)}{1 + K \cdot \tau(T_1,T_2)}}$$
 
 This follows directly from the forward-rate identity.
 
@@ -582,7 +551,7 @@ This follows directly from the forward-rate identity.
 
 ### 4.6.2 Single-Curve vs. Multi-Curve (Preview)
 
-Andersen's curve construction discussion notes that pre-2007 practice commonly used a single LIBOR curve; after the crisis, a single curve was no longer adequate. As Andersen explains: "post-crisis a nontrivial basis between index and discounting curves has emerged in the US. For simplicity of exposition we proceed in this section with [the single-curve assumption], but the index-discounting basis in the US could be easily incorporated into the algorithm."
+Andersen notes that pre-2007 practice commonly used a single LIBOR curve; after the crisis, curve construction often requires multiple curves (discounting vs forwarding). For simplicity, this chapter proceeds with the single-curve assumption.
 
 **The economic source of the basis:** Credit risk differences between overnight secured rates (SOFR/OIS) and term unsecured rates (historical LIBOR) create a spread. Even after LIBOR cessation, different tenors of SOFR-based rates can exhibit basis due to term premium and liquidity effects.
 
@@ -598,13 +567,18 @@ This chapter remains single-curve to explain the mechanics. **Full multi-curve c
 
 For a deposit-implied discount factor:
 
-$$P(0,T) = \frac{1}{1 + r \cdot \alpha}$$
+$$P(0,T) = \frac{1}{1 + r \cdot \tau}$$
 
 The sensitivity to the quoted rate is:
 
-$$\frac{\partial P}{\partial r} = -\frac{\alpha}{(1 + r \cdot \alpha)^2}$$
+$$\frac{\partial P}{\partial r} = -\frac{\tau}{(1 + r \cdot \tau)^2}$$
 
-**Interpretation:** The short-end discount factor is most sensitive to (i) larger accrual fractions and (ii) lower rate levels. Even small $\alpha$ matters because front-end PVs are dominated by short-dated cashflows.
+**Interpretation:** The short-end discount factor is most sensitive to (i) larger accrual fractions and (ii) lower rate levels. Even small $\tau$ matters because front-end PVs are dominated by short-dated cashflows.
+
+**A concrete “01” (bump object + units + sign):** For a deterministic cashflow of notional $N$ paid at $T$, $PV = N\cdot P(0,T)$. Define the **local** DV01 to the simple quote $r$ used in $P(0,T)=1/(1+r\tau)$ (with $\tau:=\tau(0,T)$) as:
+$$DV01 := PV(r-1\text{bp})-PV(r)$$
+Using $P(0,T)=1/(1+r\tau)$ and $1\text{bp}=10^{-4}$, a first-order approximation is:
+$$DV01 \approx N\cdot \frac{\tau}{(1+r\tau)^2}\cdot 10^{-4}\quad\text{(currency per 1bp; positive for long PV risk).}$$
 
 ### 4.7.2 Locality of Short-End Perturbations
 
@@ -633,7 +607,7 @@ This locality intuition underlies key-rate DV01 analysis, covered in Chapter 14.
 
 **Accrual factors (ACT/360):**
 
-| Tenor | Days | $\alpha$ |
+| Tenor | Days | $\tau(0,T)$ |
 |-------|------|----------|
 | ON | 1 | 1/360 = 0.00277778 |
 | 1M | 30 | 30/360 = 0.08333333 |
@@ -659,12 +633,12 @@ $$P(0,3M) = \frac{1}{1 + 0.0520 \times 0.25} = \frac{1}{1.013} = 0.98716683$$
 **Compute the 1M–3M forward rate.**
 
 Using:
-$$F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\alpha(T_1,T_2)}$$
+$$F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\tau(T_1,T_2)}$$
 
 With:
 - $P(0,1M) = 0.99585062$
 - $P(0,3M) = 0.98716683$
-- $\alpha(1M,3M) = 60/360 = 0.16666667$
+- $\tau(1M,3M) = 60/360 = 0.16666667$
 
 **Step 1:** Compute the ratio:
 $$\frac{P(0,1M)}{P(0,3M)} = \frac{0.99585062}{0.98716683} = 1.00879668$$
@@ -676,41 +650,67 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
 
 ---
 
-### Example 3: Bill Discount Yield → Price/DF
+### Example 3: Bill Discount Quote → Price/DF
 
-**Given:**
-- 91-day Treasury bill
-- Face value $F = 100$
-- Banker's discount yield $y_{BD} = 5.20\%$
+**Example Title**: 91-day T-bill (discount quote → price → DF → DV01)
 
-**Step 1:** Convert to price:
-$$\text{Price} = 100 \times \left(1 - 0.0520 \times \frac{91}{360}\right)$$
+**Context**
+- What is being priced/measured? A single-payment T-bill priced from a bank discount quote.
+- Why it matters on the desk: This is a front-end curve anchor; you also need a clear “01” to the *quote object* to sanity-check risk reports.
 
-Compute:
-- $91/360 = 0.25277778$
-- $0.0520 \times 0.25277778 = 0.01314444$
+**Timeline (Make Dates Concrete)**
+- Trade date: 2026-03-02
+- Settlement date: 2026-03-02 (assumed; ignore spot lag / business-day adjustments)
+- Payment date: 2026-06-01 (91 calendar days later)
 
-$$\text{Price} = 100 \times (1 - 0.01314444) = 98.6855556$$
+**Inputs**
+- Face value: \$100 per \$100 face (quote basis); position size: \$100,000,000 face
+- Days to maturity: \(d=91\) (bank discount quotes annualize on ACT/360)
+- Bank discount quote: \(q_{\text{disc}}=5.20\) (percent per year; ACT/360; applied to face)
 
-**Step 2:** Implied discount factor:
-$$P(0,T) = \frac{98.6855556}{100} = 0.986855556$$
+**Outputs (What You Produce)**
+- Cash price per \$100 face
+- Discount factor \(P(0,T)\)
+- Risk metric: \(DV01 := PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})\) (units: USD per 1bp; bump object = bank discount quote at this maturity)
 
-**Convention note:** This discount factor reflects the banker's discount quote. The true yield-to-maturity (or BEY) would be computed from price to face as:
-$$\text{True return (BEY)} = \frac{100 - 98.686}{98.686} \times \frac{365}{91} = 5.34\%$$
+**Step-by-step**
+1. Translate quote to cash price (per \$100 face):
+   $$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$$
+2. Convert price to discount factor:
+   $$P(0,T)=\frac{Y}{100}=0.9868556$$
+3. Compute DV01 (quote bump, rates down 1bp):
+   Since $q_{\text{disc}}$ is quoted in percent, $1\text{bp}=0.01$ in this quote unit. Therefore:
+   $$DV01=PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})=\frac{\$100{,}000{,}000}{100}\cdot \frac{d}{360}\cdot 0.01=\$2{,}527.78$$
 
-Note that the BEY is higher than the discount yield because (1) the denominator is the lower price paid rather than face, and (2) it uses 365-day annualization.
+**Cashflows (table)**
+| Date | Cashflow | Explanation |
+|---|---|---|
+| 2026-03-02 | \(-\$98{,}685{,}556\) | Pay cash price for \$100mm face |
+| 2026-06-01 | \(+\$100{,}000{,}000\) | Receive face at maturity |
+
+**P&L / Risk Interpretation**
+- For a long bill, a 1bp *drop* in the quoted bank discount quote increases PV by about \$2.5k per \$100mm face (under this bump definition).
+- Do not compare \(q_{\text{disc}}\) directly to money-market yields without converting to a consistent yield basis.
+
+**Sanity Checks**
+- Units check: $q_{\text{disc}}$ is percent per year and $d/360$ is years, so $q_{\text{disc}}d/360$ is the percent discount off face over the period.
+- Sign check: quote down → price up → positive DV01 for a long bill (book DV01 convention).
+- Limit check: if $q_{\text{disc}}=0$, then $Y=100$.
+
+**References**
+- (Hull, *Options, Futures, and Other Derivatives*, “Price Quotations of U.S. Treasury Bills”)
 
 ---
 
 ### Example 4: FRA Par Rate from Discount Factors
 
-**Add a 6M deposit:** $r_{6M} = 5.30\%$, $\alpha(0,6M) = 0.5$
+**Add a 6M deposit:** $r_{6M} = 5.30\%$, $\tau(0,6M) = 0.5$
 
 **Step 1:** Compute $P(0,6M)$:
 $$P(0,6M) = \frac{1}{1 + 0.0530 \times 0.5} = \frac{1}{1.0265} = 0.97418400$$
 
 **Step 2:** Compute the 3M–6M par FRA rate:
-- $\alpha(3M,6M) = 90/360 = 0.25$
+- $\tau(3M,6M) = 90/360 = 0.25$
 - $P(0,3M) = 0.98716683$
 
 $$F(0;3M,6M) = \frac{\frac{0.98716683}{0.97418400} - 1}{0.25} = \frac{1.01332688 - 1}{0.25} = \frac{0.01332688}{0.25}$$
@@ -746,7 +746,7 @@ The fixed-rate payer (receive floating, pay fixed) has negative value when payin
 ### Example 6: Mini Bootstrap to 12M
 
 **Quotes:**
-| Tenor | Type | Quote | $\alpha$ |
+| Tenor | Type | Quote | $\tau$ |
 |-------|------|-------|----------|
 | 1M | Deposit | 5.00% | 30/360 |
 | 3M | Deposit | 5.20% | 90/360 |
@@ -760,11 +760,11 @@ The fixed-rate payer (receive floating, pay fixed) has negative value when payin
 
 **Step 2:** FRA 6x12 → solve for $P(0,12M)$:
 
-$$P(0,12M) = \frac{P(0,6M)}{1 + K \cdot \alpha(6M,12M)} = \frac{0.97418400}{1 + 0.054 \times 0.5} = \frac{0.97418400}{1.027} = 0.94857173$$
+$$P(0,12M) = \frac{P(0,6M)}{1 + K \cdot \tau(6M,12M)} = \frac{0.97418400}{1 + 0.054 \times 0.5} = \frac{0.97418400}{1.027} = 0.94857173$$
 
 **Discount Factor Table:**
 
-| Maturity | Days | $\alpha(0,T)$ | Source | Quote | $P(0,T)$ |
+| Maturity | Days | $\tau(0,T)$ | Source | Quote | $P(0,T)$ |
 |----------|------|---------------|--------|-------|----------|
 | 0 | 0 | 0 | — | — | 1.00000000 |
 | 1M | 30 | 0.083333 | Deposit | 5.00% | 0.99585062 |
@@ -907,7 +907,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 ### 4.9.3 Verification Tests
 
-**Repricing test for deposits:** Verify $P(0,T) \cdot (1 + r \cdot \alpha) = 1$.
+**Repricing test for deposits:** Verify $P(0,T) \cdot (1 + r \cdot \tau(0,T)) = 1$.
 
 **Repricing test for FRAs:** Verify par FRA has PV ≈ 0.
 
@@ -921,11 +921,11 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 1. **Short-end curve construction** begins with instruments whose PV-to-par conditions map directly to discount factors.
 
-2. **A simple deposit** quoted at rate $r$ with accrual $\alpha$ implies $P(0,T) = 1/(1 + r\alpha)$.
+2. **A simple deposit** quoted at rate $r$ with year fraction $\tau(0,T)$ implies $P(0,T) = 1/(1 + r\,\tau(0,T))$.
 
-3. **Day count is essential:** Hull notes that "the actual/360 day count is used for money market instruments in the United States."
+3. **Day count is essential:** USD money markets typically use Actual/360, so year fractions are actual days divided by 360.
 
-4. **The forward-rate identity** $1 + \alpha F = P(0,T_1)/P(0,T_2)$ ties discount factors to forward rates.
+4. **The forward-rate identity** $1 + \tau F = P(0,T_1)/P(0,T_2)$ ties discount factors to forward rates.
 
 5. **An FRA is a forward-starting deposit** in net-settlement form.
 
@@ -943,41 +943,43 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 12. **Fed Funds futures** allow extraction of market-implied probabilities of Fed rate changes—a core rates desk skill.
 
-13. **Year-end turn:** Funding rates spike at year-end due to G-SIB scores and balance sheet window dressing. This is a tradeable seasonal pattern.
+13. **Year-end “turn”:** Special-date stub forwards can dislocate around year-end; treat the turn as a local stub forward implied by nearby discount factors.
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
 | Discount factor $P(0,T)$ | Price today of $1 at time $T$ | Fundamental pricing primitive |
-| Accrual factor $\alpha$ | Year fraction under day-count convention | Converts rate to interest amount |
+| Year fraction $\tau(T_1,T_2)$ | Year fraction under day-count convention | Converts rates to cash interest amounts |
 | Simple rate | Rate with single-period compounding | Standard for money markets |
-| Forward rate identity | $1 + \alpha F = P(T_1)/P(T_2)$ | Links discount factors to forwards |
+| Forward rate identity | $1 + \tau F = P(T_1)/P(T_2)$ | Links discount factors to forwards |
 | Par condition | PV = notional at inception | Enables bootstrapping |
 | Banker's discount yield | $(F - P)/F \times 360/d$ | Bill quoting convention (not IRR) |
 | FRA | Forward-starting deposit, net-settled | Direct constraint on forward curve |
 | In advance | Rate known at period start (LIBOR) | Predictable cash flows |
 | In arrears | Rate known at period end (SOFR) | Operational complexity |
 | Fed probability | $(r_{expected} - r_0)/(r_1 - r_0)$ | Extract Fed action odds |
-| Year-end turn | Overnight rate spike at Dec 31 | Seasonal trading opportunity |
+| Turn (special-date stub forward) | Implied overnight rate over a special-date stub (e.g., Dec 31) | Front-end funding can dislocate; must be modeled/hedged explicitly |
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $P(t,T)$ | Discount factor: time-$t$ value of 1 at $T$ |
-| $\alpha(T,S)$ | Year fraction from $T$ to $S$ |
-| $L(t;T,S)$ | Simply-compounded forward rate over $[T,S]$ |
-| $F(0;T,S)$ | Same as $L(0;T,S)$ |
-| $K$ | FRA fixed rate |
-| $\tau$ | Accrual period length |
-| $N$ | Notional principal |
-| $r_i$ | Daily overnight rate on day $i$ |
-| $d_i$ | Days that rate $r_i$ applies |
+| Symbol | Meaning | Units / Convention |
+|--------|---------|-------------------|
+| $P(t,T)$ | Discount factor (time-$t$ PV of 1 paid at $T$) | unitless; $P(T,T)=1$ |
+| $\tau(T_1,T_2)$ | Year fraction for $[T_1,T_2]$ | years; depends on day count (often ACT/360 in USD money markets) |
+| $L(t;T_1,T_2)$ | Simply-compounded forward rate for $[T_1,T_2]$ | per year; quote basis must be stated |
+| $F(t;T_1,T_2)$ | Forward rate (same object as $L$ in this chapter) | per year |
+| $K$ | FRA fixed rate | per year; same basis as $L$ |
+| $N$ | Notional principal | currency |
+| $q_{\text{disc}}$ | T-bill quoted discount rate (bank discount quote) | percent per year; ACT/360; applied to face; $Y = 100 - q_{\text{disc}}d/360$ |
+| $Y$ | Cash price per \$100 face (T-bill) | dollars per \$100 face |
+| $d$ | Days to maturity (bill) | calendar days |
+| $r_i$ | Daily overnight rate on day $i$ | per year |
+| $d_i$ | Days that rate $r_i$ applies | calendar days |
 
 ---
 
@@ -986,20 +988,20 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | Define the discount factor $P(0,T)$. | The time-0 price of receiving 1 unit at time $T$. |
-| 2 | Define the accrual factor $\alpha(T,S)$. | The year fraction between $T$ and $S$ under a day-count convention. |
-| 3 | State the deposit-implied discount factor formula. | $P(0,T) = 1/(1 + r \cdot \alpha)$ |
-| 4 | State the forward-rate identity. | $1 + \alpha \cdot F = P(0,T_1)/P(0,T_2)$ |
-| 5 | Express the forward rate $F$ explicitly. | $F = (P(0,T_1)/P(0,T_2) - 1)/\alpha(T_1,T_2)$ |
+| 2 | Define the year fraction $\tau(T,S)$. | The day-count year fraction between dates $T$ and $S$ (units: years). |
+| 3 | State the deposit-implied discount factor formula. | $P(0,T) = 1/(1 + r \cdot \tau(0,T))$ (simple interest). |
+| 4 | State the simple-forward identity. | $1 + \tau(T_1,T_2)\,f(t;T_1,T_2) = P(t,T_1)/P(t,T_2)$. |
+| 5 | Express the forward rate $f$ explicitly. | $f(t;T_1,T_2) = (P(t,T_1)/P(t,T_2) - 1)/\tau(T_1,T_2)$. |
 | 6 | What does "par" mean for a deposit? | Discounted maturity payoff equals notional invested. |
 | 7 | What does "par" mean for an FRA? | The FRA has zero PV when $K$ equals the forward rate. |
-| 8 | Write the FRA value in discount factors. | $V(t) = P(t,T) - P(t,T+\tau) - \tau K \cdot P(t,T+\tau)$ |
-| 9 | Write the FRA settlement payoff. | $V(T) = \tau(L - K)/(1 + \tau L)$ |
-| 10 | Define banker's discount yield. | $((F - P)/F) \times (360/d)$ |
+| 8 | Write the FRA value in discount factors. | $V(t)=P(t,T_1)-P(t,T_2)-K\,\tau(T_1,T_2)\,P(t,T_2)=\tau(T_1,T_2)\,P(t,T_2)\,(f(t;T_1,T_2)-K)$. |
+| 9 | Write the FRA settlement payoff. | $V(T_1)=\tau(T_1,T_2)\,(L_{T_1}-K)/(1+\tau(T_1,T_2)\,L_{T_1})$, where $L_{T_1}=L(T_1;T_1,T_2)$. |
+| 10 | Define the T-bill bank discount quote $q_{\text{disc}}$. | $q_{\text{disc}} = \frac{360}{d}(100-Y)$ where $Y$ is cash price per \$100 face (units: percent per year; ACT/360). |
 | 11 | Why isn't banker's discount yield an IRR? | It uses face (not price) in the denominator. |
 | 12 | What day count does U.S. money market use? | Actual/360. |
 | 13 | Describe the bootstrap logic. | Set instrument PV to par; solve sequentially for discount factors. |
 | 14 | Why is interpolation needed? | Only finitely many instruments exist; DFs at all maturities aren't observable. |
-| 15 | Formula to solve $P(0,T_2)$ from a par FRA. | $P(0,T_2) = P(0,T_1)/(1 + K \cdot \alpha)$ |
+| 15 | Formula to solve $P(0,T_2)$ from a par FRA. | $P(0,T_2) = P(0,T_1)/(1 + K \cdot \tau(T_1,T_2))$ |
 | 16 | State a sign sanity check for deposits. | Higher rates → lower discount factors. |
 | 17 | State a bound check for discount factors. | $P(0,T) > 0$ and typically $\leq 1$ for positive rates. |
 | 18 | What does a STIR futures quote represent? | $Q = 100 \times (1 - \text{futures rate})$ |
@@ -1009,7 +1011,8 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 | 22 | What is "rate fixing in arrears"? | Rate determined by compounding daily observations over the period; known only at period end (SOFR convention). |
 | 23 | How do you extract implied Fed rate change probability from Fed Funds futures? | Calculate expected post-meeting rate from futures price, then $p = (r_{expected} - r_{no change})/(r_{change} - r_{no change})$. |
 | 24 | Why doesn't SOFR capture corporate credit spread risk? | SOFR is a secured overnight rate (Treasury repo) with essentially no credit spread; corporate borrowing costs include credit premiums that SOFR doesn't hedge. |
-| 25 | What is the year-end "turn" and why do rates spike? | The overnight rate spanning Dec 31; spikes due to G-SIB score optimization and balance sheet window dressing at year-end. |
+| 25 | What is the year-end "turn"? | A special-date stub around year-end that can create a local hump/dip in very short-dated forwards. |
+| 26 | What is the book DV01 convention? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object (units: currency per 1bp). |
 
 ---
 
@@ -1017,11 +1020,11 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 1. Compute $P(0,1M)$ from a 1M deposit quote of 4.80% using ACT/360 and 31 days.
 
-2. Using $P(0,1M) = 0.9960$ and $P(0,3M) = 0.9880$, compute $F(0;1M,3M)$ with $\alpha = 62/360$.
+2. Using $P(0,1M) = 0.9960$ and $P(0,3M) = 0.9880$, compute $F(0;1M,3M)$ with $\tau = 62/360$.
 
 3. A 90-day bill has banker's discount yield 6.00% and face 100. Compute price and $P(0,T)$.
 
-4. Given $P(0,6M) = 0.9750$ and a par FRA 6x9 quote of 5.10% with $\alpha = 90/360$, compute $P(0,9M)$.
+4. Given $P(0,6M) = 0.9750$ and a par FRA 6x9 quote of 5.10% with $\tau = 90/360$, compute $P(0,9M)$.
 
 5. Given $P(0,3M) = 0.9900$ and $P(0,6M) = 0.9750$, compute the par 3x6 FRA rate.
 
@@ -1049,7 +1052,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 ### Solution Sketches (Questions 1–8)
 
-1. $\alpha = 31/360 = 0.08611$. $P = 1/(1 + 0.048 \times 0.08611) = 0.99588$.
+1. $\tau = 31/360 = 0.08611$. $P = 1/(1 + 0.048 \times 0.08611) = 0.99588$.
 
 2. $F = (0.9960/0.9880 - 1)/(62/360) = 0.00810/0.1722 = 4.70\%$.
 
@@ -1079,11 +1082,12 @@ Product: $1.000695903$. Rate = $(0.000695903) \times 360/5 = 5.01\%$.
 
 ---
 
-*This chapter establishes the building blocks for short-end curve construction. The discount factors derived here—from deposits, bills, FRAs, and Fed Funds futures—form the foundation for subsequent pricing and risk analysis. Multi-curve extensions are covered in Part IV (Chapters 17–22), and the full convexity adjustment derivation appears in Chapter 24.*
-
 ## References
 
-- Bruce Tuckman, *Fixed Income Securities* (money-market instruments; fed funds futures; implied policy probabilities; conventions).
-- John C. Hull, *Options, Futures, and Other Derivatives* (bills; FRAs; forwards; compounding/averaging conventions; practical notes on reference rates).
-- Leif B. G. Andersen and Vladimir V. Piterbarg, *Interest Rate Modeling* (curve construction and interpolation choices; futures vs forwards intuition).
-- ARRC / Federal Reserve publications (SOFR overview and compounded-in-arrears mechanics; operational conventions vary by product—check trade confirmations).
+- (Bruce Tuckman, *Fixed Income Securities*, “Fed Funds”; “Fed Funds Futures”)
+- (John C. Hull, *Options, Futures, and Other Derivatives*, “Day Counts”; “Price Quotations of U.S. Treasury Bills”; “Convexity Adjustments”)
+- (Marek Musiela and Marek Rutkowski, *Martingale Methods in Financial Modelling*, “Treasury Bill Futures”)
+- (Leif B. G. Andersen and Vladimir V. Piterbarg, *Interest Rate Modeling*, “Yield Curve Construction and Risk Management”)
+- (Robert A. Jarrow, *Modeling Fixed Income Securities and Interest Rate Options* (3rd ed.), “15.1 Simple Interest Rates”)
+- (Ali Hirsa, *Computational Methods in Finance* (2nd ed.), “Forward Rate Agreement (FRA)”)
+- (John C. Hull, *Risk Management and Financial Institutions*, “The OIS Rate”)

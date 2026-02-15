@@ -10,6 +10,10 @@ Has she made a good decision? Not necessarily. The yield-to-maturity is one numb
 
 Yield-to-maturity (YTM) is the fixed income market's most ubiquitous metric. It appears on every trading screen, in every research report, in every risk system. Bonds are quoted by yield as often as by price because the two are equivalent—given one, you can always compute the other. But this convenience creates a trap. Practitioners who treat YTM as "the return you'll earn" or who use yield-based risk measures without understanding their assumptions will eventually be surprised by P&L that doesn't match their expectations.
 
+Prerequisites: [Chapter 2](chapters/chapter_02_time_value_discount_factors_replication.md), [Chapter 3](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 5](chapters/chapter_05_fixed_rate_bond_pricing.md)
+
+Follow-on: [Chapter 7](chapters/chapter_07_bond_return_decomposition.md), [Chapter 11](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 13](chapters/chapter_13_convexity.md), [Chapter 14](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 16](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
+
 This chapter has three aims:
 
 1. **Define YTM precisely**—including the clean/dirty price relationship, compounding and day-count conventions, and what YTM actually measures (and what it hides)
@@ -20,35 +24,40 @@ The yield-based framework developed here serves as the foundation for understand
 
 ---
 
+## Learning Objectives
+- Define YTM as an IRR-style “single discount rate” and state the compounding and price basis being used.
+- Translate a quoted clean price into the settlement cash amount via accrued interest and the dirty (invoice) price.
+- Solve for YTM numerically (and run a reprice check: yield \(\rightarrow\) price matches the dirty price).
+- Explain why YTM is not a “locked-in” realized return and when horizon/total return analysis is the right tool.
+- Compute and interpret yield-based risk (DV01, modified duration, convexity) with an explicit bump object, units, and sign convention.
+- Explain (qualitatively) why yield-based hedges can fail under non-parallel curve moves and why key-rate risk exists.
+
 ## 6.1 Yield-to-Maturity as an Internal Rate of Return
 
 ### 6.1.1 The Definition
 
-Yield-to-maturity is the single discount rate that, when applied to all of a bond's promised cash flows, reproduces the bond's market price. Tuckman provides the formal definition: "Yield-to-maturity is the single rate such that discounting a security's cash flows at that rate produces the security's market price." For a standard bond with semiannual coupons, the price-yield relationship is expressed as:
+Yield-to-maturity (YTM) is the single annualized yield \(y\) (under a stated compounding convention) that makes the present value of a bond’s promised cash flows equal to its market price. In other words, it is the internal rate of return (IRR) implied by the bond’s cash flows and price.
 
-$$\boxed{P(y) = \sum_{t=1}^{2T} \frac{c/2}{(1+y/2)^t} + \frac{100}{(1+y/2)^{2T}}}$$
+$$\boxed{P(y) = \sum_{t=1}^{2T} \frac{F \cdot c/2}{(1+y/2)^t} + \frac{F}{(1+y/2)^{2T}}}$$
 
-where $c$ is the annual coupon rate, $y$ is the yield-to-maturity (annualized with semiannual compounding), $T$ is years to maturity, and the price $P$ is per 100 face value.
+where:
+- \(F\) is face value (e.g., \(F=100\) for “per 100” bond pricing),
+- \(c\) is the annual coupon rate (decimal; e.g., 6% \(\rightarrow 0.06\)),
+- \(y\) is the yield-to-maturity (nominal annual with semiannual compounding),
+- \(T\) is years to maturity (so \(2T\) semiannual periods),
+- \(P\) is the **dirty (invoice) price** per \(F\).
 
-This is an internal rate of return (IRR) problem: given the price and cash flows, find the rate that sets net present value to zero. Tuckman notes that "YTM is solved by trial-and-error or numerical methods"—there is no closed-form solution for a general coupon bond.
-
-**Worked Example (from Tuckman):** The 6¼s of February 15, 2003, at a price of 102-18⅛ on February 15, 2001, has its yield defined by:
-
-$$\frac{3.125}{1+y/2}+\frac{3.125}{(1+y/2)^{2}}+\frac{3.125}{(1+y/2)^{3}}+\frac{103.125}{(1+y/2)^{4}}=102+18.125/32$$
-
-Solving numerically yields $y \approx 4.8875\%$.
+In practice, you usually solve for \(y\) numerically (bisection/Newton) and then run a **reprice check**: plug the solved yield back into the PV equation and verify it matches the **dirty (invoice) price** on settlement. Example A works through clean \(\rightarrow\) dirty \(\rightarrow\) YTM with concrete dates and unit checks.
 
 ### 6.1.2 YTM as a Quoting Convention
 
-Yield-to-maturity compresses the entire term structure of discount rates into one "average discount rate" that reproduces the observed price. This makes YTM extraordinarily useful as a **quoting convention**: traders can move between price and yield with a simple calculation, and yields are easier to compare across bonds of different maturities and coupons than raw prices.
+Yield-to-maturity compresses the entire term structure of discount rates into one “average discount rate” that reproduces the observed price. This makes YTM extraordinarily useful as a **quoting convention**: traders can move between price and yield with a simple calculation, and yields are often easier to compare across bonds of different maturities and coupons than raw prices.
 
-On the trading desk, "bond yields 5.7%" is shorthand for "the single rate $y$ that reprices this bond under our standard compounding convention." Everyone understands the convention, so the communication is efficient. Tuckman notes that "it is easy to move from price to yield and back" and that "yield-to-maturity is often used as an alternate way to quote price." The danger comes when participants forget that YTM is a summary statistic, not a measure of expected return.
+On the trading desk, “bond yields 5.7%” is shorthand for “the single rate \(y\) that reprices this bond under our standard compounding convention.” Because price \(\leftrightarrow\) yield is easy to invert, yield is commonly used as an alternate way to quote price. The danger comes when participants forget that YTM is a summary statistic, not a measure of expected return.
 
-> **Desk Reality: YTM as Communication**
->
-> When a trader says "I'm bid at 5.25," everyone on the desk immediately knows the price. The yield convention eliminates the need to quote awkward prices like 98-24+ (which would be "98 and 24.5 thirty-seconds"). For relative value discussions, yields provide a common language: "The 10-year is 15 bps cheap to the 7-year" is more informative than comparing prices directly.
->
-> The trap: junior traders sometimes interpret "yield" as "return." When your PM asks "what's the yield on that position?" they want a quoting convention, not a return forecast.
+> **Desk Reality:** Yields are a quoting language: desks often talk in yield (and yield spreads) because it makes prices comparable across coupons and maturities.
+> **Common break:** Mixing yield conventions (semiannual vs continuous vs money-market) or treating YTM as a return forecast.
+> **What to check:** Reprice check (yield \(\rightarrow\) dirty price) and confirm day count/compounding settings.
 
 ### 6.1.3 The Compounding Convention
 
@@ -59,19 +68,19 @@ Bond yields are typically quoted with **semiannual compounding** because most bo
 
 When settlement doesn't align with regular coupon dates, the convention extends to fractional periods. For a Treasury bond, the actual/actual day count determines how many days remain until the next coupon, and the discounting uses appropriate fractional exponents.
 
-> **Convention Warning:** The exact handling of day counts in yield calculations varies by market and instrument. U.S. Treasuries use actual/actual in period; corporate bonds often use 30/360. Always verify which convention your system applies, as Hull notes that "the day count convention... affects the interest accrued between two coupon payment dates."
+> **Convention Warning:** Day count and compounding conventions vary by market and instrument. Your system’s convention affects both accrued interest and the yield implied by a given price—verify the convention before comparing yields across products.
 
 ### 6.1.4 Key Properties of the Price-Yield Relationship
 
 Tuckman derives several important properties from the price-yield formula (equation 3.4 in his notation):
 
-1. **Par pricing:** When $c = 100y$ and $F = 100$, then $P = 100$. If the coupon rate equals the yield, the bond trades at par.
+1. **Par pricing:** When $c = y$ (same compounding convention) and $F = 100$, then $P = 100$. If the coupon rate equals the yield, the bond trades at par.
 
-2. **Premium bonds:** When $c > 100y$, then $P > 100$. If the coupon rate exceeds the yield, the bond trades at a premium. "In exchange for an above-market coupon, investors will demand less than their initial investment at maturity."
+2. **Premium bonds:** When $c > y$, then $P > F$. Above-market coupons are “paid for” by an upfront premium; the bond pulls back toward par by maturity.
 
-3. **Discount bonds:** When $c < 100y$, then $P < 100$. Below-market coupons require a capital gain at maturity.
+3. **Discount bonds:** When $c < y$, then $P < F$. Below-market coupons require a capital gain at maturity.
 
-4. **Perpetuity limit:** As $T \to \infty$, $P = c/y$. "The price of a perpetuity, a bond that pays coupons forever, equals the coupon divided by the yield." For example, at a yield of 5.50%, a 6.50 coupon in perpetuity sells for 6.50/0.055 ≈ 118.18.
+4. **Perpetuity limit:** As $T \to \infty$, $P = Fc/y$. For example, at a yield of 5.50%, a 6.50% perpetuity with \(F=100\) sells for \(100\\times 0.065/0.055 \\approx 118.18\).
 
 5. **Monotonicity:** Price is a decreasing function of yield—higher yields mean lower prices, and vice versa.
 
@@ -89,32 +98,36 @@ Tuckman provides the synonyms: the **dirty** price is also called the **full** o
 
 ### 6.2.2 Why Markets Quote Clean Prices
 
-Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues roughly 2.5 cents per day per $100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
+Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues about \(5/365 \\approx 1.4\) cents per day per $100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
 
-Clean pricing solves this problem. The clean price strips out the "mechanical" accrual component, so quoted prices reflect only changes in yields and market conditions. Tuckman demonstrates algebraically that "if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment." The jump occurs in accrued interest (which resets to zero), not in the quoted clean price.
+Clean pricing solves this problem. The clean price strips out the mechanical accrual component, so quoted prices better reflect changes in yields and market conditions. If yields are unchanged, the “jump” at a coupon date is (mostly) an accrued-interest reset, not a sudden deterioration in the bond’s economic value.
 
 ### 6.2.3 Computing Accrued Interest
 
-Under the Actual/Actual convention (used for U.S. Treasuries), accrued interest is:
+Under the Actual/Actual (in period) convention (used for U.S. Treasuries), accrued interest is:
 
-$$\boxed{\text{AI} = \frac{c}{2} \times \frac{\text{days since last coupon}}{\text{days in coupon period}}}$$
+$$\boxed{\text{AI} = F\\frac{c}{2} \times \frac{\text{days since last coupon}}{\text{days in coupon period}}}$$
 
-where $c/2$ is the semiannual coupon payment per 100 face.
+where \(F=100\) in “per 100” price quoting and \(Fc/2\) is the semiannual coupon cashflow per \(F\).
 
 **Example:** A 6% Treasury with a 184-day coupon period. Settlement is 150 days after the last coupon.
-- Coupon per period: $6/2 = 3.00$
+- Coupon per period: $Fc/2 = 100\\times 0.06/2 = 3.00$
 - Accrual fraction: $150/184 = 0.8152$
 - Accrued interest: $3.00 \times 0.8152 = 2.4457$
 
 ### 6.2.4 YTM Is Solved from the Dirty Price
 
-This is a critical practical point: when solving for YTM, use the **dirty price** as the target. Tuckman notes that "the only quantity that matters is the invoice price... which the market sets equal to the present value of the future cash flows." The present value of future cash flows must equal the cash the buyer pays, which is the dirty price.
+This is a critical practical point: when solving for YTM, use the **dirty price** as the target. The present value of future cash flows must equal the cash the buyer pays, which is the invoice/dirty price.
 
 The equation to solve is:
 
 $$P_{\text{dirty}} = \sum_{i} \frac{\text{CF}_i}{(1 + y/2)^{a_i}}$$
 
 where $a_i$ is the time (in semiannual periods) from settlement to cash flow $i$.
+
+> **Pitfall — Clean vs dirty price:** Solving YTM off a clean quote (or mixing clean PV with dirty settlement cash).
+> **Why it matters:** You will compute the wrong yield, and any downstream duration/DV01 will be mis-scaled.
+> **Quick check:** Verify \(P_{\text{dirty}} = P_{\text{clean}} + AI\) at settlement, and the PV equation targets \(P_{\text{dirty}}\).
 
 ---
 
@@ -124,7 +137,7 @@ where $a_i$ is the time (in semiannual periods) from settlement to cash flow $i$
 
 YTM tells you the "average" rate at which the bond's cash flows are discounted. For a given term structure, YTM sits somewhere between the short-term and long-term spot rates, weighted by the present values of the cash flows.
 
-Tuckman explains that "yield-to-maturity is a blend of [spot] rates." For the 6¼s of February 15, 2003, with spot rates of 5.008%, 4.929%, 4.864%, and 4.886% for the four semiannual periods, the yield of 4.8875% is closest to the two-year spot rate of 4.886% "because most of this bond's value comes from its principal payment to be made in two years."
+Tuckman demonstrates that yield-to-maturity is a summary (a blend) of the spot rates that enter the bond pricing equation. In one example, the first four semiannual spot rates are 5.008%, 4.929%, 4.864%, and 4.886%, and the bond’s yield is 4.8875%—a blend of these rates. The yield ends up closest to the 2-year spot rate because most of the bond’s value comes from the principal payment at maturity.
 
 For a zero-coupon bond, this average is trivial—the YTM equals the spot rate to that maturity (under matched compounding conventions). For coupon bonds, YTM blends across multiple maturities.
 
@@ -132,17 +145,18 @@ For a zero-coupon bond, this average is trivial—the YTM equals the spot rate t
 
 **The term structure:** Spot rates differ by maturity. A 10-year Treasury's cash flows should, in principle, be discounted at ten different rates. YTM replaces this structure with a single number. This means YTM cannot reveal whether a bond is "cheap at the front" (early cash flows undervalued) and "rich at the back" (late cash flows overvalued), or vice versa.
 
-**Reinvestment assumptions:** YTM calculations implicitly assume that all intermediate coupons can be reinvested at the same YTM. This is unrealistic. Tuckman warns explicitly that "holding to maturity will not necessarily earn the initial yield" because "reinvestment and changing yields matter." If rates fall after purchase, coupons will be reinvested at lower rates, and the total realized return will fall short of the initial YTM.
+**Reinvestment assumptions:** Because coupons are invested at uncertain future rates, it is extremely unlikely that the realized yield of a coupon bond held to maturity will equal its original yield-to-maturity. The uncertainty of the realized yield relative to the original yield because coupons are invested at uncertain future rates is often called **reinvestment risk**.
 
 **Realized return:** Many practitioners mistakenly interpret YTM as the return they will earn. This is only approximately true under very restrictive conditions—specifically, that the yield remains unchanged throughout the holding period.
 
 ### 6.3.3 When YTM Equals Realized Return
 
-Tuckman provides one defensible interpretation: "Perhaps the most appealing interpretation of yield-to-maturity is not recognized as widely as it should be. If a bond's yield-to-maturity remains unchanged over a short time period, that bond's realized total rate of return equals its yield."
+If a bond's yield-to-maturity remains unchanged over a short time period, that bond's realized total rate of return equals its yield.
 
 This is the **constant yield** or **roll-down** assumption—useful for short-term return attribution, but not a forecast of what will actually happen. Over longer horizons or when yields change, realized returns diverge from initial YTM due to:
 
-- Curve movements (if different parts of the curve move differently)
+- Reinvestment rates differing from the original yield (coupon compounding risk)
+- Curve moves and sale-price effects (especially if you sell before maturity)
 
 > **Analogy: The Speedometer vs. The Destination**
 >
@@ -242,11 +256,11 @@ Realized return: $(227.50/100)^{1/10} - 1 = 8.57\%$
 
 The initial YTM of 8% was never "locked in." Reinvestment risk created a 109 bp range of outcomes.
 
-> **Desk Reality: Why This Matters for Liability Managers**
+> **Desk Reality: Liability Matching vs Reinvestment Risk**
 >
-> Insurance companies and pension funds that purchase bonds to "match" long-dated liabilities face reinvestment risk on every coupon. An actuary who assumes the 8% yield will compound for 30 years is making an assumption that cannot be hedged. This is why liability-driven investors increasingly favor zero-coupon bonds or strips for precise liability matching—they eliminate reinvestment risk entirely.
+> Liability managers care about the cash available at future dates, not just today’s YTM. Coupon bonds create intermediate cash that must be reinvested at whatever rates prevail in the future, creating reinvestment risk. Zero-coupon bonds (and strips) remove coupon reinvestment risk because there are no interim cash flows.
 >
-> The trade-off: zeros typically yield less than coupon bonds (you pay for the certainty), and zeros have higher duration per dollar invested.
+> Trade-offs: zeros concentrate PV later in time, so they typically have higher duration/convexity per dollar invested and larger mark-to-market swings for a given yield move.
 
 ### 6.4.4 The Reinvestment Risk Hierarchy
 
@@ -278,7 +292,7 @@ Because YTM is unreliable as a return forecast, practitioners use **total return
 
 This approach makes assumptions explicit rather than hiding them inside the YTM calculation.
 
-> **Practitioner Note:** Total return analysis is standard for portfolio managers making allocation decisions. The question is not "what's the yield?" but "given my view on rates, what's the expected total return over my horizon?" Two bonds with identical YTM can have very different expected total returns depending on the rate scenario.
+> **Practitioner Note:** Horizon/total-return analysis answers “what return do I earn over my horizon under a rate scenario?” It makes the assumptions (horizon, reinvestment rate, ending yield) explicit instead of burying them inside YTM.
 
 ---
 
@@ -286,23 +300,26 @@ This approach makes assumptions explicit rather than hiding them inside the YTM 
 
 ### 6.5.1 DV01: Dollar Value of a Basis Point
 
-DV01 measures the change in bond price for a one-basis-point change in yield. Tuckman introduces DV01 as "an acronym for dollar value of an '01 (i.e., .01%) and gives the change in the value of a fixed income security for a one-basis point decline in rates." The general definition is:
+In this chapter, **yield DV01** measures how the bond’s **dirty price** (quoted per 100 face) changes for a 1 bp change in the bond’s **yield-to-maturity** \(y\) (the bump object).
 
-$$\boxed{\text{DV01} = -\frac{\Delta P}{10{,}000 \cdot \Delta y}}$$
+Following Tuckman’s yield-based definition:
 
-The sign convention makes DV01 positive when prices rise as yields fall (the normal case for fixed-coupon bonds). The 10,000 factor converts from "per unit of yield" to "per basis point." Tuckman explains: "The negative sign defines DV01 to be positive if price increases when rates decline and negative if price decreases when rates decline. This convention has been adopted so that DV01 is positive most of the time."
+$$\boxed{\text{DV01}_y := -\frac{1}{10{,}000}\frac{dP}{dy}}$$
 
-When an explicit price-yield function exists, DV01 can be expressed using derivatives. Differentiating the price-yield formula, Tuckman derives:
+When an explicit price-yield function exists, DV01 can be written in closed form. Adapting Tuckman’s yield-based DV01 formula to our notation (\(F\) face value, coupon rate \(c\) in decimals), for a plain fixed-coupon bond:
 
-$$\text{DV01} = \frac{1}{10{,}000} \times \frac{1}{1+y/2}\left[\sum_{t=1}^{2T} \frac{t}{2} \frac{c/2}{(1+y/2)^t} + T \frac{100}{(1+y/2)^{2T}}\right]$$
+$$\text{DV01}_y
+= \frac{1}{10{,}000} \times \frac{1}{1+y/2}\left[\sum_{t=1}^{2T} \frac{t}{2} \frac{F c/2}{(1+y/2)^t} + T \frac{F}{(1+y/2)^{2T}}\right]$$
 
-In words: "DV01 is the sum of the time-weighted present values of a bond's cash flows divided by 10,000 multiplied by one plus half the yield."
+In words: DV01 is proportional to the **time-weighted PV** of the bond’s cash flows, scaled to a 1 bp yield bump.
+
+**Scaling to dollars:** if prices are quoted per 100 and your position has face notional \(N\), then \(\text{DV01}_{\\$}(N)=\\frac{N}{100}\\text{DV01}_y\).
 
 > **Desk Reality: DV01 as the Lingua Franca of Rates**
 >
-> When a portfolio manager says "I'm long 50k DV01," they mean their position gains approximately $50,000 for every basis point rates fall. This is how risk is communicated on rates desks—not in terms of notional or duration, but in dollar sensitivity.
+> Desk shorthand: “long $50k DV01” means the position gains about $50,000 for a 1 bp decline in the bumped rate object (here, the bond’s YTM).
 >
-> Why DV01 dominates: A $100 million position in 2-year notes and a $50 million position in 10-year notes cannot be compared by notional. But if the 2-year has DV01 of $19k and the 10-year has DV01 of $42k, you immediately know the 10-year position has more than twice the rate risk.
+> Why DV01 helps: notionals are hard to compare across maturities and coupons. For example, if a 2-year position has DV01 of $19k and a 10-year has DV01 of $42k, the 10-year has more than twice the parallel rate sensitivity.
 >
 > **Common gotcha:** Make sure everyone is using the same DV01 convention. "DV01 per million" vs "total DV01" vs "DV01 per bp per 100 face" can cause confusion.
 
@@ -312,11 +329,11 @@ For practical computation, use a central difference:
 
 $$\boxed{\text{DV01}_y \approx \frac{P(y - 1\text{ bp}) - P(y + 1\text{ bp})}{2}}$$
 
-This is robust and works regardless of whether you have closed-form derivatives. Tuckman notes that "the most stable numerical estimate chooses rates that are equally spaced above and below" the current rate.
+Tuckman notes that "the most stable numerical estimate chooses rates that are equally spaced above and below" the current rate.
 
 ### 6.5.3 Modified Duration
 
-Duration measures percentage price sensitivity rather than dollar sensitivity. Hull defines duration as "a measure of how long the holder of the bond has to wait before receiving the present value of the cash payments." More precisely, it is "a weighted average of the times when payments are made, with the weight applied to time $t_i$ being equal to the proportion of the bond's total present value provided by the cash flow at time $t_i$."
+Duration measures percentage price sensitivity rather than dollar sensitivity.
 
 Tuckman defines modified duration as:
 
@@ -325,8 +342,6 @@ $$\boxed{D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}}$$
 This gives the approximate percentage price change per unit change in yield:
 
 $$\frac{\Delta P}{P} \approx -D_{\text{mod}} \cdot \Delta y$$
-
-Hull notes that this relationship "is easy to use and is the reason why duration, first suggested by Frederick Macaulay in 1938, has become such a popular measure."
 
 ### 6.5.4 The DV01-Duration Link
 
@@ -376,8 +391,6 @@ Tuckman provides graphical analysis showing:
 $$\left.D_{\text{Mac}}\right|_{T=\infty} = \frac{1+y/2}{y}$$
 
 At a 5% yield: $D_{\text{Mac}} = (1.025)/0.05 = 20.5$ years. Despite paying forever, a perpetuity at 5% has finite duration because early payments dominate the present-value weighting.
-
-Luenberger provides additional insight: "Duration does not increase appreciably with maturity. In fact, with fixed yield, duration increases only to a finite limit as maturity is increased." This means that very long durations (of 20 years or more) "are achieved only by bonds that have both very long maturities and very low coupon rates."
 
 ---
 
@@ -498,7 +511,7 @@ The barbell has convexity of **221** versus the bullet's **81**—nearly three t
 | Medium (±100 bp) | Similar | Similar | Tie |
 | Large (±200 bp) | Worse | Better | Barbell |
 
-Tuckman explains: "The bullet outperforms if rates move by a relatively small amount, up or down, while the barbell outperforms if rates move by a relatively large amount."
+Tuckman’s takeaway: bullets tend to do better for small rate moves, while barbells tend to do better for large moves (because the barbell has higher convexity).
 
 > **Key Insight:** "Spreading out the cash flows of a portfolio (without changing its duration) raises its convexity." This is the mathematical essence of barbelling.
 
@@ -580,7 +593,7 @@ $$\boxed{\text{YTW} = \min(\text{YTM}, \text{YTC}_1, \text{YTC}_2, ...)}$$
 
 Tuckman explains that "investors will most likely use yield-to-worst—that is, the yield given the redemption price schedule that minimizes value to the investor."
 
-> **Practitioner Note:** Yield-to-worst is conservative but not always accurate. It assumes the issuer will act optimally against the investor. In practice, issuers sometimes don't call bonds when it would be optimal (refinancing frictions, transaction costs). The "worst" case may not materialize.
+> **Practitioner Note:** Yield-to-worst is conservative but not always accurate. It assumes the issuer exercises optimally against the investor; real-world exercise decisions can be affected by frictions (transaction costs, financing, operational constraints).
 
 ---
 
@@ -588,17 +601,18 @@ Tuckman explains that "investors will most likely use yield-to-worst—that is, 
 
 ### 6.7.0 The Three Drivers of Yields (PCA)
 
-Before simplifying to "one factor," know that 90%+ of yield curve movements can be explained by three "Principal Components" (see Chapter 16):
+In a principal-components analysis of yield changes, the first three components span about **95%** of the variation. The first principal component has all positive values, so it corresponds to approximately parallel shifts of the yield curve. Changes along the second principal component either increase or decrease the slope of the yield curve. Changes along the third principal component either increase or decrease the curvature (hump) of the yield curve.
 
-1.  **Level (Shift)**: The whole curve moves up or down parallel. (~80-90% of variance). Duration protects you here.
-2.  **Slope (Twist)**: The curve steepens (long rates up, short rates down) or flattens. Duration *fails* here.
-3.  **Curvature (Butterfly)**: The belly (5y) moves differently than the wings (2y/30y).
+One common interpretation of these first three drivers is:
+1. **Level (shift):** yields move up/down roughly together (duration/DV01 targets this)
+2. **Slope (twist):** the curve steepens or flattens
+3. **Curvature (butterfly):** the belly moves differently from the wings
 
-Yield-based risk (Duration/DV01) implicitly assumes **#1 only**. It is blind to #2 and #3.
+Yield-based risk (duration/DV01) implicitly assumes the risk is well described by the first driver (a near-parallel move). It does not hedge twist or butterfly risk.
 
 ### 6.7.1 The Single-Factor Assumption
 
-All yield-based measures assume that a bond's price depends on one number: its yield. This is convenient but dangerous. Tuckman warns that "a major weakness of the approach taken in Chapters 5 and 6... is the assumption that movements in the entire term structure can be described by one interest rate factor. To put it bluntly, the change in the six-month rate is assumed to predict perfectly the change in the 10-year and 30-year rates."
+All yield-based measures assume that a bond's price depends on one number: its yield. This is convenient but dangerous. As Tuckman warns, a key weakness is assuming that “movements in the entire term structure can be described by one interest-rate factor.”
 
 In reality, the price of a coupon bond depends on the entire term structure:
 
@@ -625,7 +639,7 @@ Yield DV01 assumes the bond's yield changes. Curve DV01 bumps all spot rates uni
 1. YTM is an average rate; bumping it doesn't replicate bumping each individual spot rate
 2. The weighting of maturities differs between the two approaches
 
-In practice, the differences are usually small for straightforward bonds but become material for:
+The differences can be material for:
 
 - Bonds priced at significant premiums or discounts
 - Portfolios mixing short and long maturities
@@ -653,53 +667,84 @@ This limitation motivates the multi-factor approaches in Chapter 14 (key-rate du
 
 ## 6.8 Worked Examples
 
-### Example A: Computing YTM from Clean Price
+### Example A: Clean Quote → Dirty Price → YTM → Yield DV01 (Unit/Sign Checks)
 
-**Bond:**
-- U.S. Treasury with semiannual coupons (Feb 15 and Aug 15)
-- Coupon rate: 6% ($c/2 = 3.00$ per period)
-- Maturity: February 15, 2031
-- Settlement: January 12, 2026
-- Quoted clean price: 101.25
+**Example Title**: Clean quote → YTM → DV01 for a Treasury
 
-**Step 1: Compute accrued interest**
+**Context**
+- You see a Treasury quoted at a clean price and want (i) the YTM and (ii) a yield-based DV01 in desk units.
 
-- Last coupon: August 15, 2025
-- Next coupon: February 15, 2026
-- Days in coupon period: 184 (Aug 15 → Feb 15)
-- Days accrued: 150 (Aug 15 → Jan 12)
+**Timeline (Make Dates Concrete)**
+- Settlement date: 2026-01-12
+- Accrual start (last coupon date): 2025-08-15
+- Next coupon: 2026-02-15
+- Maturity: 2031-02-15 (semiannual coupons on Feb 15 / Aug 15)
 
-$$\text{AI} = 3.00 \times \frac{150}{184} = 2.4457$$
+**Inputs**
+- Instrument: U.S. Treasury, coupon 6% (semiannual coupon = 3.00 per 100)
+- Clean price quote: \(P_{\text{clean}}=101.25\) (price points per 100)
+- Accrued interest (Actual/Actual for the example): coupon period = 184 days; days accrued = 150
+- Yield convention: nominal annual YTM with semiannual compounding (\(m=2\))
 
-**Step 2: Compute dirty price**
+**Outputs (What You Produce)**
+- Accrued interest: \(AI = 2.4457\) (points per 100)
+- Dirty price: \(P_{\text{dirty}} = 103.6957\) (points per 100)
+- YTM: \(y \approx 5.709\\%\\) (annual, semiannual compounding)
+- Yield DV01 (bump object \(y\)): \(\text{DV01}_y \\approx 0.0440\) (points per 100 per 1 bp; positive for a long bond when yields fall)
+- Dollar DV01 for \(N=\\$1{,}000{,}000\): \(\text{DV01}_{\\$} \\approx 440\) USD per 1 bp
+- Modified duration: \(D_{\text{mod}} \\approx 4.24\) (years)
 
-$$P_{\text{dirty}} = 101.25 + 2.4457 = 103.6957$$
+**Step-by-step**
+1. **Translate quote to settlement cash (clean → dirty).**
+   \[
+   AI = 3.00\\times \\frac{150}{184} = 2.4457,\qquad
+   P_{\\text{dirty}} = 101.25 + 2.4457 = 103.6957.
+   \]
+2. **Solve for YTM \(y\) from the dirty price.** Write \(r=1+y/2\) and discount each cashflow by \(r^{a_i}\). For this example we use an approximation \(a_i \\approx \\text{(days to payment)}/182.5\) to express time in semiannual periods:
 
-**Step 3: Set up the YTM equation**
+   \[
+   \\sum_i \\frac{CF_i}{r^{a_i}} = 103.6957 \quad\\Rightarrow\\quad y\\approx 5.709\\%.
+   \]
+3. **Compute yield DV01 with a central 1 bp bump.**
+   \[
+   \\text{DV01}_y \\approx \\frac{P(y-1\\text{ bp})-P(y+1\\text{ bp})}{2}
+   = \\frac{103.7397-103.6516}{2}
+   \\approx 0.0440.
+   \]
+4. **Scale to dollars (desk unit check).**
+   \[
+   \\text{DV01}_{\\$} = \\frac{N}{100}\\,\\text{DV01}_y
+   = \\frac{1{,}000{,}000}{100}\\times 0.0440 \\approx 440\\;\\text{USD per 1 bp}.
+   \]
+5. **Optional cross-check: infer modified duration from DV01.**
+   \[
+   D_{\\text{mod}} = \\frac{\\text{DV01}_y\\times 10{,}000}{P}
+   \\approx \\frac{0.0440\\times 10{,}000}{103.6957} \\approx 4.24.
+   \]
 
-Let $r = 1 + y/2$. Cash flows and fractional periods from settlement:
+**Cashflows (per 100, dirty-price convention)**
+| Date | Cashflow | Explanation |
+|---|---:|---|
+| 2026-02-15 | 3.00 | coupon |
+| 2026-08-15 | 3.00 | coupon |
+| 2027-02-15 | 3.00 | coupon |
+| 2027-08-15 | 3.00 | coupon |
+| 2028-02-15 | 3.00 | coupon |
+| 2028-08-15 | 3.00 | coupon |
+| 2029-02-15 | 3.00 | coupon |
+| 2029-08-15 | 3.00 | coupon |
+| 2030-02-15 | 3.00 | coupon |
+| 2030-08-15 | 3.00 | coupon |
+| 2031-02-15 | 103.00 | coupon + principal |
 
-| Payment Date | Cash Flow | Days to Payment | Periods (approx) |
-|--------------|-----------|-----------------|------------------|
-| Feb 15, 2026 | 3 | 34 | 0.1863 |
-| Aug 15, 2026 | 3 | 215 | 1.1781 |
-| Feb 15, 2027 | 3 | 399 | 2.1863 |
-| ... | ... | ... | ... |
-| Feb 15, 2031 | 103 | 1860 | 10.1918 |
+**P&L / Risk Interpretation**
+- A long position has \(\text{DV01}_y>0\): if yields fall 1 bp (all else equal), price rises by about 0.044 points per 100.
+- For \(N=\\$1mm\), a 10 bp parallel move in the bond’s YTM corresponds to about \(10\\times 440 \\approx \\$4{,}400\) of P&L (ignoring convexity and curve-shape effects).
 
-**Note:** The “Periods (approx)” column converts calendar days into semiannual coupon periods for discounting; production systems use the market’s exact Treasury yield convention (actual/actual in period with precise date rules).
-
-Solve:
-
-$$\sum_{i=1}^{11} \frac{\text{CF}_i}{r^{a_i}} = 103.6957$$
-
-**Step 4: Numerical solution**
-
-Using Newton-Raphson or bisection: $y \approx 5.709\%$
-
-$$\boxed{\text{YTM} \approx 5.709\% \text{ (semiannual compounding)}}$$
-
-**Verification:** At $y = 5.709\%$, the PV equals 103.6944, matching the dirty price within rounding tolerance.
+**Sanity Checks**
+- Units: \(P\\) and \(AI\\) are points per 100; \(\text{DV01}_y\) is points per 100 per bp; \(\text{DV01}_{\\$}\) is currency per bp.
+- Sign: yields down \(\Rightarrow\) price up \(\Rightarrow\) \(\text{DV01}_y>0\) for a long bond.
+- Reprice check: plug the solved \(y\) back into the PV equation and confirm it matches \(P_{\\text{dirty}}\) within rounding tolerance.
 
 ---
 
@@ -749,28 +794,6 @@ $$C_y \approx \frac{105.9240 + 101.5219 - 2(103.6957)}{103.6957 \times (0.005)^2
 
 ---
 
-### Example D: DV01 via Finite Difference vs Duration
-
-**Bond:** Example A at $y^* = 5.709\%$, $P^* = 103.6957$
-
-**Finite-difference DV01:**
-- $P(y^* - 1\text{ bp}) = 103.7384$
-- $P(y^* + 1\text{ bp}) = 103.6504$
-
-$$\text{DV01}_y = \frac{103.7384 - 103.6504}{2} = 0.0440$$
-
-**Duration from DV01:**
-
-$$D_{\text{mod}} = \frac{\text{DV01} \times 10{,}000}{P} = \frac{0.0440 \times 10{,}000}{103.6957} = 4.24$$
-
-**Duration approximation for +1 bp:**
-
-$$\Delta P \approx -103.6957 \times 4.24 \times 0.0001 = -0.0440$$
-
-Matches the finite-difference result.
-
----
-
 ### Example E: Yield DV01 vs Curve DV01
 
 **Bond:** 2-year, 4% coupon, semiannual
@@ -812,7 +835,7 @@ Two 5-year bonds both yielding 5%:
 |---|---|---|
 | Price | 113.13 | 86.87 |
 | $D_{\text{mod}}$ | 4.17 | 4.65 |
-| DV01 | 0.0472 | 0.0404 |
+| $\text{DV01}_y$ | 0.0472 | 0.0404 |
 | $C_y$ | 21.1 | 24.5 |
 
 Despite identical YTM, Bond B has higher duration and convexity because its cash flows are more concentrated at maturity (lower coupons mean more principal-weighted value). YTM alone cannot distinguish these risk profiles.
@@ -821,9 +844,9 @@ Despite identical YTM, Bond B has higher duration and convexity because its cash
 
 ### Example G: Perpetuity Duration
 
-Consider a perpetuity paying $5 annually (semiannual payments of $2.50) at a 6% yield.
+Consider a perpetuity with face value \(F=100\) and coupon rate \(c=5\\%\\) (so the annual coupon is \(Fc=5\), paid as \(2.50\) semiannually) at a yield of \(y=6\\%\\).
 
-**Price:** $P = c/y = 5/0.06 = 83.33$ (per 100 face)
+**Price (per 100):** \(P = Fc/y = 100\\times 0.05/0.06 = 83.33\)
 
 **Macaulay Duration:**
 
@@ -833,9 +856,9 @@ $$D_{\text{Mac}} = \frac{1+y/2}{y} = \frac{1.03}{0.06} = 17.17 \text{ years}$$
 
 $$D_{\text{mod}} = \frac{D_{\text{Mac}}}{1+y/2} = \frac{17.17}{1.03} = 16.67$$
 
-**DV01:**
+**Yield DV01 (per 100):**
 
-$$\text{DV01} = \frac{83.33 \times 16.67}{10{,}000} = 0.139$$
+$$\text{DV01}_y = \frac{P \times D_{\text{mod}}}{10{,}000} = \frac{83.33 \times 16.67}{10{,}000} \approx 0.139$$
 
 Despite infinite maturity, the perpetuity has a finite 17-year duration because early payments dominate the present-value weighting.
 
@@ -916,46 +939,27 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 ## Summary
 
-1. **YTM is the single rate** that discounts promised cash flows to the market price—a convenient summary statistic but not a return forecast.
-
-2. **Clean price plus accrued interest equals dirty price.** YTM must be solved from the dirty price.
-
-3. **Bond yields use semiannual compounding** by convention. Fractional-period exponents handle irregular dates.
-
-4. **YTM hides the term structure.** It cannot reveal whether individual cash flows are cheap or rich relative to their appropriate spot rates.
-
-5. **The reinvestment assumption is almost certainly incorrect.** YTM is not a "locked-in" return; realized returns depend on actual reinvestment rates.
-
-6. **A defensible short-horizon interpretation:** If yield is unchanged over a short period, realized return approximately equals yield.
-
-7. **Yield DV01** measures price change per 1 bp in YTM; computed via finite differences or from duration.
-
-8. **Modified duration** is the percentage price sensitivity: $D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}$, with units of years.
-
-9. **Macaulay duration** equals the maturity of a zero with the same price sensitivity; for a zero, it equals years to maturity.
-
-10. **Convexity** ($C_y = \frac{1}{P}\frac{d^2P}{dy^2}$) captures the curvature benefit: gains from rate decreases exceed losses from equal rate increases.
-
-11. **Bonds are priced to reflect their convexity advantage.** Higher convexity means lower yield—there's no free lunch.
-
-12. **Barbell vs bullet:** Spreading out cash flows (barbelling) increases convexity without changing duration, but costs yield.
-
-13. **Callable bonds have negative convexity** when the call is in the money, because the price ceiling caps upside.
-
-14. **Convexity is analogous to gamma** in options—both measure second-derivative exposure and benefit from volatility.
-
-15. **Yield-based hedges can fail** when curve shape moves. Parallel-yield assumptions are a strong restriction; multi-factor approaches provide better protection.
+1. **YTM is a single-rate IRR**: the yield \(y\) that discounts promised cash flows to the **dirty (invoice) price** under a stated compounding convention.
+2. **Settlement cash uses dirty price**: \(P_{\text{dirty}} = P_{\text{clean}} + AI\). YTM must be solved from \(P_{\text{dirty}}\), not the clean quote.
+3. **YTM hides the term structure**: it is a PV-weighted blend of spot rates and cannot diagnose “rich/cheap” at specific maturities.
+4. **YTM is not a locked-in return**: realized return depends on coupon reinvestment rates and (if sold early) the exit yield/price.
+5. **Horizon/total-return analysis** makes assumptions explicit: horizon, reinvestment rate, and ending yield.
+6. **Yield DV01 (\(y\) bump object)** measures price sensitivity per 1 bp change in YTM, in points per 100; scale by notional for dollar DV01.
+7. **Modified duration** converts DV01 to percentage sensitivity: \(\Delta P/P \approx -D_{\text{mod}}\Delta y\).
+8. **Macaulay duration** is a PV-weighted average time of cash flows and equals maturity for a zero-coupon bond.
+9. **Convexity** captures curvature: for larger moves, duration-only approximations understate gains and overstate losses.
+10. **Yield-based hedges are single-factor**: they hedge (near) parallel moves but can fail under twists/butterflies; key-rate and multi-factor methods address this.
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
 | YTM | Single rate that reproduces price | Universal quoting convention |
 | Clean/Dirty | $P_{\text{dirty}} = P_{\text{clean}} + \text{AI}$ | Clean is quoted; dirty is exchanged |
 | Reinvestment Risk | Coupons reinvest at unknown future rates | YTM ≠ Realized return |
-| DV01 | $-\frac{1}{10{,}000}\frac{dP}{dy}$ | Dollar risk per basis point |
+| Yield DV01 (\(\text{DV01}_y\)) | \(\text{DV01}_y := -\frac{1}{10{,}000}\frac{dP}{dy}\) | Rate risk in desk units (points per 100 per bp) |
 | Modified Duration | $-\frac{1}{P}\frac{dP}{dy}$ | Percentage risk per yield change |
 | Macaulay Duration | $(1+y/2) \times D_{\text{mod}}$ | Weighted-average time to receipt |
 | Convexity | $\frac{1}{P}\frac{d^2P}{dy^2}$ | Curvature benefit; explains asymmetry |
@@ -967,25 +971,26 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $F$ | Face value (par), default 100 |
-| $c$ | Annual coupon rate (in currency per 100 notional per year) |
-| $P_{\text{clean}}$ | Quoted (flat/clean) price per 100 |
-| $P_{\text{dirty}}$ | Full (dirty) price: $P_{\text{clean}} + \text{AI}$ |
-| $\text{AI}$ | Accrued interest per 100 |
-| $y$ | Yield-to-maturity (annualized, semiannual compounding) |
-| $r = 1 + y/2$ | Per-period gross discount factor |
-| $a_i$ | Fractional periods from settlement to cash flow $i$ |
-| $\text{DV01}_y$ | Yield DV01: price change per 1 bp in YTM |
-| $D_{\text{mod}}$ | Modified duration |
-| $D_{\text{Mac}}$ | Macaulay duration |
-| $C_y$ | Yield convexity |
-| $P(0,t)$ or $d(t)$ | Discount factor to maturity $t$ |
-| $\text{YTC}$ | Yield-to-call |
-| $\text{YTW}$ | Yield-to-worst |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| \(F\) | Face value (par) | currency; default \(F=100\) for “per 100” price quoting |
+| \(c\) | Coupon rate | per year; decimal (e.g., 6% \(\rightarrow 0.06\)); semiannual coupon cashflow \(=Fc/2\) |
+| \(P_{\text{clean}}\) | Clean (flat/quoted) price | points per 100 face; quoted on screens |
+| \(AI\) | Accrued interest | points per 100; day count per instrument (Actual/Actual in-period in Example A) |
+| \(P_{\text{dirty}}\) | Dirty (full/invoice) price | points per 100; \(P_{\text{dirty}}=P_{\text{clean}}+AI\) at settlement |
+| \(y\) | Yield-to-maturity | nominal annual; semiannual compounding unless stated; in decimals |
+| \(r=1+y/2\) | Per-period gross discount factor | unitless; one per coupon period (0.5y) |
+| \(a_i\) | Time from settlement to cashflow \(i\) | coupon periods (semiannual), can be fractional |
+| \(\text{DV01}_y\) | Yield DV01 (bump object \(y\)) | points per 100 per 1 bp; \(\text{DV01}_y := -\\frac{1}{10{,}000}\\frac{dP}{dy}\) |
+| \(\text{DV01}_{\$}(N)\) | Dollar DV01 for notional \(N\) | currency per 1 bp; \(\text{DV01}_{\$}(N)=\\frac{N}{100}\\text{DV01}_y\) |
+| \(D_{\text{mod}}\) | Modified duration | years; \(D_{\text{mod}}=-(1/P)\\,dP/dy\) |
+| \(D_{\text{Mac}}\) | Macaulay duration | years; \(D_{\text{Mac}}=(1+y/2)D_{\text{mod}}\) (semiannual) |
+| \(C_y\) | Yield convexity | years\(^2\); \(C_y=(1/P)\\,d^2P/dy^2\) |
+| \(P(0,t)\) or \(d(t)\) | Discount factor to maturity \(t\) | unitless; curve PV: \(P=\\sum CF_i P(0,t_i)\) |
+| \(\text{YTC}\) | Yield-to-call | YTM-style yield for a specified call scenario |
+| \(\text{YTW}\) | Yield-to-worst | \(\min(\text{YTM}, \\text{YTC}_1,\\text{YTC}_2,\\ldots)\) |
 
 ---
 
@@ -998,9 +1003,9 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 | 3 | Define dirty price | Full price = quoted (clean) price + accrued interest |
 | 4 | Why can YTM mislead on relative value? | Higher yield doesn't mean better value; YTM hides term structure details |
 | 5 | What is modified duration in yield space? | $D_{\text{mod}} = -\frac{1}{P}\frac{dP}{dy}$ |
-| 6 | What is DV01? | Price change per 1 bp move in rates: $-\frac{\Delta P}{10{,}000 \cdot \Delta y}$ |
+| 6 | What is yield DV01 in this chapter? | $\text{DV01}_y := -\frac{1}{10{,}000}\frac{dP}{dy}$; units: points per 100 per bp (scale by $N/100$ for dollars) |
 | 7 | How to compute yield DV01 numerically? | $\text{DV01}_y \approx \frac{P(y-1\text{bp}) - P(y+1\text{bp})}{2}$ |
-| 8 | Relationship between DV01 and duration? | $\text{DV01} = \frac{P \cdot D_{\text{mod}}}{10{,}000}$ |
+| 8 | Relationship between DV01 and duration? | $\text{DV01}_y = \frac{P \cdot D_{\text{mod}}}{10{,}000}$ |
 | 9 | Define yield convexity | $C_y = \frac{1}{P}\frac{d^2P}{dy^2}$ |
 | 10 | What does positive convexity imply? | Price gains from yield decreases exceed losses from equal increases |
 | 11 | When does "return = yield" hold? | If yield remains unchanged over a short period |
@@ -1033,119 +1038,35 @@ Tuckman distinguishes **money market quoting** (simple interest with ACT/360) fr
 
 ## Mini Problem Set
 
-**1.** A 5% semiannual bond has 90 days accrued in a 180-day coupon period. What is accrued interest per 100?
+1. (Compute) A 5% semiannual bond has 90 days accrued in a 180-day coupon period. What is accrued interest per 100?
+2. (Compute) If \(P_{\text{clean}}=99.60\) and \(AI=1.10\), compute \(P_{\text{dirty}}\).
+3. (Concept) Explain why \(P(y)\) decreases as \(y\) increases for a fixed-coupon bond with promised cash flows.
+4. (Desk) Your risk report shows “total DV01 = 0,” but you lose money on a curve flattening. Give one plausible position (e.g., long 5y / short 10y in equal DV01) and name the risk report you should look at next.
+5. (Compute) A bond price is 102.00 at yield \(y\). At \(y+1\) bp, price is 101.95. Approximate \(\text{DV01}_y\) per 100.
+6. (Compute) A bond has \(P=105\) and \(D_{\text{mod}}=6\). Approximate the price change for a +25 bp move (ignore convexity).
+7. (Compute) Same bond has convexity \(C_y=50\). Include the convexity correction for a +25 bp move.
+8. (Concept) For equal maturity and yield, which has higher modified duration: a high-coupon bond or a low-coupon bond? Explain.
+9. (Concept) Give two reasons curve DV01 can differ from yield DV01.
+10. (Compute) Compute the Macaulay duration of a perpetuity at 8% yield (semiannual compounding convention).
+11. (Compute) Horizon analysis: you buy a 10-year, 6% annual coupon bond at par. Immediately after purchase, yields drop to 4% and stay there; coupons are reinvested at 4%. What realized annualized return do you earn if you hold to maturity?
+12. (Concept) A trader says “I’m paying 12 bps for convexity.” Explain the meaning in a duration-matched comparison.
 
-**Solution:** Coupon per period = 2.5. Accrual fraction = 90/180 = 0.5. AI = 2.5 × 0.5 = **1.25**.
-
----
-
-**2.** If $P_{\text{clean}} = 99.60$ and AI = 1.10, compute $P_{\text{dirty}}$.
-
-**Solution:** $P_{\text{dirty}} = 99.60 + 1.10 =$ **100.70**.
-
----
-
-**3.** Explain why $P(y)$ decreases as $y$ increases for a fixed-coupon bond.
-
-**Solution:** Each cash flow is discounted by $(1+y/2)^{\text{positive exponent}}$. Increasing $y$ increases the denominator, reducing each present value term.
-
----
-
-**4.** You solved YTM and got $y = 4.2\%$. What verification should you perform?
-
-**Solution:** Plug $y$ into the PV formula and confirm the result matches the dirty price to your tolerance.
-
----
-
-**5.** A bond price is 102.00 at yield $y$. At $y + 1$ bp, price is 101.95. Approximate DV01.
-
-**Solution:** $\text{DV01} \approx 102.00 - 101.95 =$ **0.05** per 100 face.
-
----
-
-**6.** A bond has $P = 105$ and $D_{\text{mod}} = 6$. Approximate the price change for +25 bp.
-
-**Solution:** $\Delta P \approx -105 \times 6 \times 0.0025 =$ **-1.575**.
-
----
-
-**7.** Same bond with convexity $C_y = 50$. Include the convexity correction.
-
-**Solution:** Convexity term = $\frac{1}{2} \times 105 \times 50 \times (0.0025)^2 = 0.0164$. Total: $-1.575 + 0.016 =$ **-1.559**.
-
----
-
-**8.** A 2-year 4% semiannual bond has dirty price 100.50. Estimate yield.
-
-**Solution:** Price > 100 with 4% coupon implies yield < 4%. Since premium is small (0.5%), yield is slightly below 4%. Estimate: $y \approx 3.75\%$. (Full solution requires numerical iteration.)
-
----
-
-**9.** For equal maturity and yield, which has higher modified duration: a high-coupon or low-coupon bond? Explain.
-
-**Solution:** Low-coupon bond. Lower coupons mean a larger fraction of the total value comes from the principal repayment at maturity, pushing the weighted-average time (duration) further out.
-
----
-
-**10.** Give two reasons curve DV01 can differ from yield DV01.
-
-**Solution:** (1) YTM is an average rate; bumping it doesn't equal bumping each spot rate; (2) Maturity weightings differ between the approaches.
-
----
-
-**11.** Define precisely what "parallel 1 bp bump" means for continuously compounded spot rates.
-
-**Solution:** $r_{\text{new}}(t) = r_{\text{old}}(t) + 0.0001$ for all $t$.
-
----
-
-**12.** Explain why a single YTM cannot identify whether a bond is rich or cheap at specific maturities.
-
-**Solution:** YTM averages the discount rates. A bond could be cheap at short maturities and rich at long maturities, but YTM smooths this into one number.
-
----
-
-**13.** Describe a scenario where a yield-DV01 matched hedge loses money.
-
-**Solution:** A curve twist/steepening/flattening. E.g., Long 10y, Short 2y. Yields change non-parallelly (2y up, 10y down). The hedge ratio assumed parallel moves.
-
----
-
-**14.** Compute the Macaulay duration of a perpetuity at 8% yield.
-
-**Solution:** $D_{\text{Mac}} = (1+0.08/2)/0.08 = 1.04/0.08 = 13$ years.
-
----
-
-**15.** An investor buys a 10-year, 6% annual coupon bond at par. If rates immediately drop to 4% and stay there, what is the realized return?
-
-**Solution:**
-- Coupons reinvested at 4%: $FV = 6 \times \frac{1.04^{10}-1}{0.04} = 72.04$
-- Terminal value: $100 + 72.04 = 172.04$
-- Return: $(172.04/100)^{0.1} - 1 = 5.58\%$ (vs initial YTM of 6%)
-
----
-
-**16.** A callable bond trades at 104. The equivalent non-callable bond trades at 112. What is the embedded call option worth?
-
-**Solution:** Call option value = $112 - 104 =$ **8 points**.
-
----
-
-**17.** Explain why a barbell has higher convexity than a bullet with the same duration.
-
-**Solution:** Convexity increases with the square of maturity. A barbell combining short and long maturities has more weight at the extremes, where convexity per dollar is highest. The long-maturity component contributes disproportionately to portfolio convexity.
-
----
-
-**18.** A trader says "I'm paying 12 bps for convexity." Explain what this means.
-
-**Solution:** The trader is accepting a yield 12 bps lower on a high-convexity position compared to a duration-matched low-convexity alternative. The 12 bps is the price of the more favorable asymmetric payoff profile.
+### Solution Sketches (Selected)
+1. Coupon per period \(=2.5\). Accrual fraction \(=90/180=0.5\). \(AI=2.5\\times 0.5=\\mathbf{1.25}\).
+2. \(P_{\text{dirty}}=99.60+1.10=\\mathbf{100.70}\).
+4. Total DV01 only hedges (near) parallel moves. A 5s/10s DV01-neutral position can lose on twists; check **key-rate DV01** (or bucketed DV01) rather than only the scalar total.
+5. \(\text{DV01}_y \\approx 102.00-101.95=\\mathbf{0.05}\) points per 100 per 1 bp.
+6. \(\Delta P \\approx -P\\,D_{\text{mod}}\\,\\Delta y = -105\\times 6\\times 0.0025 = \\mathbf{-1.575}\).
+7. Convexity term \(\\approx \\tfrac12 P C_y (\\Delta y)^2 = \\tfrac12\\times 105\\times 50\\times (0.0025)^2 \\approx 0.0164\). Total \(\approx -1.575+0.0164=\\mathbf{-1.559}\).
+10. \(D_{\text{Mac}}=(1+y/2)/y=(1+0.08/2)/0.08=1.04/0.08=\\mathbf{13}\) years.
+11. Coupons reinvested at 4%: \(FV=6\\times\\frac{1.04^{10}-1}{0.04}=72.04\). Terminal value \(=100+72.04=172.04\). Realized annualized return \(=(172.04/100)^{0.1}-1\\approx \\mathbf{5.58\\%}\).
 
 ---
 
 ## References
 
-- Bruce Tuckman, *Fixed Income Securities* (yield-to-maturity; reinvestment caveats; duration/convexity; single-factor vs curve risk; callable bond intuition).
-- John C. Hull, *Options, Futures, and Other Derivatives* (duration definitions and bond yield conventions; yield curve movements and hedging intuition).
-- David G. Luenberger, *Investment Science* (IRR and present-value framing; duration intuition).
+- (Bruce Tuckman, *Fixed Income Securities*, “Definition and Interpretation”; “The Relation Between Spot and Forward Rates and the Slope of the Term Structure”; “Yield-Based DV01”; “Yield-Based Convexity”; “A Note on Yield-to-Call”)
+- (John C. Hull, *Options, Futures, and Other Derivatives*, “Price Quotations of U.S. Treasury Bonds”; “Day Counts”)
+- (Edwin J. Elton, Martin J. Gruber, Stephen J. Brown, and William N. Goetzmann, *Modern Portfolio Theory and Investment Analysis*, “Special Considerations in Bond Pricing”)
+- (Dominic O’Kane, *Modeling Single-name and Multi-name Credit Derivatives*, “The Bond DV01”; “Risk Management”)
+- (David Ruppert, *Statistics and Data Analysis for Financial Engineering*, “Principal Components Analysis”)

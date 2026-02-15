@@ -4,13 +4,11 @@
 
 ## Introduction
 
-A fixed-rate bond is, at its core, a remarkably simple financial instrument: a promise to pay known amounts of money on known future dates. Yet this simplicity conceals a surprising number of decisions that must be made before you can answer the question "what is this bond worth?"
+Since Treasury bonds promise future cash flows, discount factors can be extracted from Treasury bond prices.
 
-Consider a trader who wants to buy $10 million face value of a Treasury bond. The market quotes a price of "101-04⁵⁄₈"—but this is the *clean* price, not the cash that will change hands. Before settlement, someone must compute the accrued interest, convert the fractional quote to decimals, and calculate the actual invoice amount. Get any of these steps wrong, and the settlement fails or the wrong amount gets wired.
+Treasury bond prices in the United States are quoted in dollars and thirty-seconds (e.g., `120-05` means $120 + 5/32$). The quoted (clean) price is not the cash paid at settlement: the cash (dirty) price equals the quoted price plus accrued interest since the last coupon date.
 
-The stakes are real. A pricing error of even a few ticks on a $100 million position translates to tens of thousands of dollars. A systematic error in a trading system—say, using the wrong day count convention—can accumulate across thousands of trades before anyone notices. This chapter develops the complete pricing framework that prevents such errors.
-
-We begin with the fundamental insight that bonds are simply collections of future cashflows, each of which can be valued using the discount factors introduced in Chapter 2. Hull states the principle directly: "The theoretical price of a bond can be calculated as the present value of all the cash flows that will be received by the owner of the bond... a more accurate approach is to use a different zero rate for each cash flow." We then connect this present value to what traders actually quote (clean price) versus what actually changes hands (dirty price), developing the accrued interest mechanics that bridge these two concepts.
+This chapter builds a quote → cashflows → discount factors → invoice workflow, and adds a first look at rate risk using DV01 with an explicit bump object, units, and sign convention.
 
 The chapter covers:
 
@@ -22,7 +20,16 @@ The chapter covers:
 6. **Price sensitivity intuition** — Why bond prices move when rates change (a preview for Chapter 11)
 7. **Edge cases and exceptions** — Stub periods, settlement fails, and flat trading
 
-The law of one price, introduced in Chapter 2, provides the foundation: a bond's value must equal the sum of its discounted cashflows. Everything else—the clean/dirty convention, the 32nds quoting system, the day-count rules—is market plumbing that translates this fundamental principle into dollars that can actually be wired.
+Prerequisites: [Chapter 1](chapters/chapter_01_market_quoting_calendars_cashflow_plumbing.md), [Chapter 2](chapters/chapter_02_time_value_discount_factors_replication.md), [Chapter 3](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 4](chapters/chapter_04_money_market_building_blocks.md)
+
+Follow-on: [Chapter 6](chapters/chapter_06_ytm_yield_based_risk.md), [Chapter 11](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 23](chapters/chapter_23_treasury_futures.md)
+
+## Learning Objectives
+- After this chapter, you can translate a fixed-rate bond quote into cash settlement (invoice amount).
+- You can go from quote → cashflows → present value using discount factors.
+- You can compute accrued interest under Actual/Actual (in period) and 30/360 and explain clean vs dirty pricing.
+- You can compute and interpret DV01 with an explicit bump object, units, and sign convention.
+- You can apply quick checks to avoid common implementation errors (32nds conversion, day count, clean/dirty).
 
 ---
 
@@ -55,7 +62,7 @@ The final cashflow bundles the last coupon with the principal repayment.
 
 ### 5.1.2 Zero-Coupon Bonds as a Limiting Case
 
-Setting $c = 0$ produces a zero-coupon bond: all intermediate cashflows vanish, leaving only the principal at maturity. This is useful as both a conceptual building block and a sanity check for any pricing implementation. As Luenberger notes, "a zero-coupon bond... generates a single cash flow, with no intermediate coupon payments."
+Setting $c = 0$ produces a zero-coupon bond: all intermediate cashflows vanish, leaving only the principal at maturity. This is useful as both a conceptual building block and a sanity check for any pricing implementation: the price should be just the discounted principal.
 
 ### 5.1.3 From Schedule to Value
 
@@ -86,11 +93,13 @@ where $t_i$ is the time (in years) from the valuation date to payment date $T_i$
 
 ### 5.2.2 Curve-Based vs Yield-Based Pricing
 
-Hull makes an important distinction that practitioners should internalize: "Sometimes bond traders use the same discount rate for all the cash flows underlying a bond, but a more accurate approach is to use a different zero rate for each cash flow."
+A useful distinction is **curve-based** vs **yield-based** pricing:
+- **Curve-based:** discount each cashflow using the discount factor (or zero rate) for its specific payment date.
+- **Yield-based (YTM):** use a single internal rate of return that reprices the bond.
 
 The formula above uses the **curve-based approach**—each cashflow is discounted at its own rate. The alternative, yield-to-maturity pricing (covered in Chapter 6), forces a single rate on all cashflows. While yield-based pricing is convenient for quoting, curve-based pricing is more accurate and is what arbitrage-free pricing models use.
 
-Tuckman describes yield as "a blend of spot rates"—it is a weighted average that reproduces the price, not a fundamental economic quantity. Modern trading systems use curve-based pricing internally and report yield as a summary statistic.
+You can think of a bond's yield as a blend of spot rates: it is a weighted average chosen to reproduce the bond's price, not a fundamental curve primitive. In this book we treat curve-based PV as the primary object and treat yield as a convenient summary.
 
 **When do they differ?** If the yield curve is flat (all spot rates equal), both methods give identical prices. When the curve is upward-sloping, the single-yield method uses a rate that is "too high" for near-term cashflows and "too low" for distant cashflows. The numerical difference is usually small (a few cents per 100 face value) but can matter for spread analysis and relative value.
 
@@ -189,48 +198,47 @@ The price decline accelerates as maturity approaches because the "extra" coupon 
 
 ### 5.4.1 The Problem Clean Pricing Solves
 
-If markets quoted dirty prices, bond prices would exhibit a sawtooth pattern: rising smoothly between coupon dates as interest accrues day by day, then dropping sharply by the coupon amount when the payment is made. This mechanical drop would hide true market movements. A trader wouldn't know if a price drop was due to rising interest rates or just a coupon payment.
+Elton et al. emphasize that the **quoted price** at which a bond is bought or sold is not the price the customer pays or receives: the settlement amount is the quoted price **plus accrued interest**. They also note a useful consequence of quoting this way: when a bond makes an interest payment, accrued interest becomes zero but the quoted price remains unchanged (assuming yields do not change).
 
 ### 5.4.2 The Market Convention
 
-Markets solve this by quoting the **clean price** (also called **flat price** or **quoted price**) and separately tracking **accrued interest**. The relationship is defined by the identity:
+In Hull’s U.S. Treasury quoting convention, traders call the quoted price the **clean price** and the cash settlement amount the **dirty price**. In general:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + \text{AI}}$$
 
 Where:
-- $P_{\text{dirty}}$ is the invoice price—the actual cash exchanged
-- $P_{\text{clean}}$ is the quoted price
-- $\text{AI}$ is accrued interest
-
-> **Analogy: The Menu vs. The Bill**
->
-> *   **Clean Price** is the **Menu Price** ($20.00 for steak). It's what you see quoted.
-> *   **Dirty Price** is the **Bill Amount** ($21.50 with tax). It's the check you actually write.
->
-> If you show up halfway through a meal (coupon period), you also have to pay the previous guy for the part of the steak he already "earned."
-
-Hull describes this clearly: "The quote... is referred to by traders as the clean price," while "the cash price paid by the purchaser... is referred to by traders as the dirty price."
+- $P_{\text{clean}}$ is the quoted (flat) price per $100$ face
+- $\text{AI}$ is accrued interest since the last coupon date (computed to settlement)
+- $P_{\text{dirty}}$ is the invoice / cash / full price actually exchanged at settlement
 
 ### 5.4.3 Why This Convention Works
 
-Tuckman explains a subtle but important point: "The particular market convention used in calculating accrued interest does not really matter." Why? Because "the only quantity that matters is the invoice price (i.e., the money that changes hands), and it is this quantity that the market sets equal to the present value of the future cash flows."
+Tuckman writes the relationship between flat (quoted) price, accrued interest, and present value as:
 
-If the accrued interest convention were too generous to the seller (AI too high), the market would simply lower the clean price to compensate. The invoice price—what actually matters economically—remains anchored to the present value of cashflows.
+$$\boxed{P + AI = PV(\text{future cash flows})}$$
+
+where $P$ is the quoted (flat/clean) price.
+
+The particular market convention used in calculating accrued interest does not really matter: if the convention in place is too generous to the seller, the flat price adjusts downward to offset it. Put differently, the economically relevant quantity is the **invoice price** (the money that changes hands), and the market sets that invoice price equal to the present value of the future cash flows.
 
 ### 5.4.4 Algebraic Proof of Clean Price Continuity
 
-Tuckman demonstrates that "if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment." The proof is elegant:
+Tuckman shows that **if yield does not change then the quoted price of a bond does not fall as a result of a coupon payment**. The algebra is:
 
 Let $P^b$ and $P^a$ be the quoted prices immediately before and after a coupon payment of $c/2$. Right before the coupon date:
 - Accrued interest equals the full coupon: $\text{AI} = c/2$
-- The present value of the imminent coupon equals $c/2$ (it's about to be paid)
+- The present value of the next coupon equals $c/2$
 
-So: $P^b + c/2 = c/2 + \text{PV}(\text{remaining cashflows})$
+Invoking the identity $P+AI=PV(\text{future cash flows})$:
 
-Which simplifies to: $P^b = \text{PV}(\text{remaining cashflows})$
+$$P^b + c/2 = c/2 + PV(\text{cashflows after the next coupon})$$
+
+Simplifying:
+
+$$P^b = PV(\text{cashflows after the next coupon})$$
 
 Right after the coupon is paid, accrued interest resets to zero:
-$P^a + 0 = \text{PV}(\text{remaining cashflows})$
+$P^a + 0 = PV(\text{cashflows after the next coupon})$
 
 Therefore $P^a = P^b$—the clean price is continuous across coupon dates.
 
@@ -254,7 +262,7 @@ The *dirty* price drops from 103.87 to 101.14 (the coupon amount is paid out). T
 
 ### 5.5.1 Economic Purpose
 
-Accrued interest compensates the seller for the portion of the coupon period during which they held the bond. As Tuckman explains with his 5½s example: if the bond makes a coupon payment on July 31 but the seller sells on February 15, the seller should receive compensation for having held the bond from the prior coupon date (January 31) to settlement. The buyer pays this amount at settlement, then collects the full coupon when it's paid.
+Accrued interest compensates the seller for the portion of the coupon period during which they held the bond. In Tuckman's 5 1/2s example: if the bond makes a coupon payment on July 31 but the seller sells on February 15, the seller should receive compensation for having held the bond from the prior coupon date (January 31) to settlement. The buyer pays this amount at settlement, then collects the full coupon when it's paid.
 
 > **Analogy: The Taxi Meter**
 >
@@ -272,12 +280,12 @@ The accrued interest is the pro-rated share of the full coupon:
 
 $$\boxed{\text{AI}_{\text{Act/Act}} = \frac{d_{\text{elapsed}}}{d_{\text{period}}} \times \text{Cpn}}$$
 
-### 5.5.3 Worked Example C: Tuckman's 5½s of January 31, 2003
+### 5.5.3 Worked Example C: Tuckman's 5 1/2s of January 31, 2003
 
 This is Tuckman's canonical example, which we reproduce exactly:
 
 **Scenario:**
-- **Bond:** 5½s of January 31, 2003
+- **Bond:** 5 1/2s of January 31, 2003
 - **Coupon:** 5.50% ($2.75 semiannual payment per $100 face, or $275 per $10,000 face)
 - **Settlement Date:** February 15, 2001
 - **Previous Coupon:** January 31, 2001
@@ -305,13 +313,19 @@ with standard adjustments at month boundaries (if $D_1 = 31$, set $D_1 = 30$; si
 
 The accrued interest under 30/360 is:
 
-$$\boxed{\text{AI}_{30/360} = \frac{360(Y_2-Y_1) + 30(M_2-M_1) + (D_2-D_1)}{360} \times c}$$
+Let:
+- $d_{\text{elapsed}}^{30/360}$ = 30/360 day count from last coupon date to settlement
+- $d_{\text{period}}^{30/360}$ = 30/360 day count for the full coupon period (for a regular semiannual bond, $d_{\text{period}}^{30/360} = 180$)
 
-where $c$ is the annual coupon rate and the denominator is always 360.
+Then (per $100$ face value):
+
+$$\boxed{\text{AI}_{30/360} = \frac{d_{\text{elapsed}}^{30/360}}{d_{\text{period}}^{30/360}} \times \text{Cpn}}$$
+
+where $\text{Cpn} = 100 \times c / 2$ for a semiannual coupon bond.
 
 ### 5.5.5 Day Count Comparison: Act/Act vs 30/360
 
-Hull provides a vivid illustration in Business Snapshot 6.1 showing how the two conventions can produce dramatically different results:
+Hull's examples highlight how Actual/Actual (in period) and 30/360 can produce different accrued interest, especially around month boundaries.
 
 **Example: March 1 to July 3, 8% annual coupon ($4 semiannual)**
 
@@ -324,14 +338,12 @@ The 30/360 convention produces slightly more accrued interest in this case.
 
 **But the differences can be dramatic at month boundaries:**
 
-Hull's Business Snapshot 6.1 asks: "Between February 28, 2018, and March 1, 2018, you have a choice between owning a U.S. government bond and a U.S. corporate bond. They pay the same coupon and have the same quoted price. Assuming no risk of default, which would you prefer?"
-
 | Convention | Days Between Feb 28 and Mar 1 |
 |------------|-------------------------------|
 | **Actual/Actual** | 1 day |
 | **30/360** | 3 days (Feb 28 → Feb 30 → Mar 1) |
 
-Hull concludes: "You should have a marked preference for the corporate bond... You would earn approximately three times as much interest by holding the corporate bond!"
+All else equal, the corporate bond accrues about three times as much interest over that interval under 30/360.
 
 ### 5.5.6 Worked Example D: Same Dates, Different Conventions
 
@@ -357,19 +369,13 @@ Hull concludes: "You should have a marked preference for the corporate bond... Y
 >
 > **The fix:** Always verify which convention the instrument requires before building the trade. Treasury = Act/Act. Corporate = 30/360. Swaps = varies (check the confirm).
 
-### 5.5.7 Ex-Dividend Conventions (Non-U.S. Markets)
-
-In some markets (notably UK gilts and certain European bonds), there is an **ex-dividend period** before a coupon date during which the bond trades without the upcoming coupon. During this period, accrued interest can be negative—the buyer pays less than the clean price because they won't receive the imminent coupon.
-
-> **Practitioner Note:** This convention is rare in U.S. markets but important for global portfolios. Always verify the ex-dividend rules for non-U.S. instruments.
-
 ---
 
 ## 5.6 Treasury Price Quotation in 32nds
 
 ### 5.6.1 The Quote Format
 
-In the U.S. Treasury market, prices are quoted in **32nds** of a dollar rather than decimals. Tuckman notes that "numbers after the hyphens denote 32nds, often called ticks."
+In the U.S. Treasury market, prices are quoted in **32nds** of a dollar rather than decimals. Numbers after the hyphen denote 32nds (often called *ticks*).
 
 A quote consists of the full dollar amount (the "handle") followed by the number of 32nds:
 
@@ -380,23 +386,15 @@ For finer precision, markets use **half-ticks** (indicated by "+") representing 
 
 - "**108-31+**" means $108 + 31/32 + 1/64 = 108 + 31.5/32 = 108.984375$
 
-> **The "32nds Trap": A Common Rookie Mistake**
->
-> A quote of **120-05** is **NOT** 120.05.
-> *   **Wrong**: $120.05$
-> *   **Right**: $120 + \frac{5}{32} = 120.15625$
->
-> The difference is huge (~10 cents vs ~1.5 cents per 100 face). On $100mm notional, that's $100,000 vs $15,625. Always convert ticks to decimals before doing **any** math.
-
-Tuckman provides the example: "the quote of 108-31+ would mean 108+31.5/32."
+> **Pitfall — Treasury 32nds quoting:** interpreting `120-05` as `120.05`.
+> **Why it matters:** the mistake is about $0.10625 per $100 face; that's $106,250 per $100mm notional.
+> **Quick check:** convert `XX-YY` to `XX + YY/32` (and `+` adds $1/64$) before you do PV, risk, or P&L.
 
 ### 5.6.2 Worked Example E: From Quote to Invoice Price
 
-This is Tuckman's complete example, which we reproduce in full.
-
 **Inputs:**
-- **Bond:** 5½s of January 31, 2003
-- **Quote:** "101-4⁵⁄₈" (which is 101-4.625)
+- **Bond:** 5 1/2s of January 31, 2003
+- **Quote:** "101-04 5/8" (which is 101-4.625)
 - **Accrued Interest:** $0.2279$ per $100 face (from previous example)
 - **Face Amount:** $10,000
 
@@ -410,7 +408,7 @@ $$P_{\text{dirty}} = 101.14453125 + 0.2279 = 101.37243125$$
 For $10,000 face value (which is 100 "units" of $100 par):
 $$\text{Invoice} = 100 \times 101.37243125 = \$10,137.24$$
 
-Tuckman confirms: "the invoice price—that is, the money paid by the buyer and received by the seller—is $10,137.24."
+In this example, the invoice cash amount is $10,137.24.
 
 ### 5.6.3 Tick Value and P&L Calculation
 
@@ -486,6 +484,91 @@ If rates rise by 1% (100 basis points):
 
 Because the final repayment of principal occurs at maturity ($T_N$), the price of a long-term bond is dominated by this highly sensitive distant cashflow. This is why "long duration" bonds fall harder when rates rise. We formalize this as **DV01** (Dollar Value of a 01) and **Duration** in Chapters 11-12.
 
+### 5.7.3 DV01 (One-Number Rate Risk) — Define the Bump
+
+DV01 is short for "dollar value of a 01" (one basis point). If $\Delta B$ is the change in bond price for a yield change $\Delta y$, Neftci defines:
+
+$$\boxed{DV01 = -\frac{\Delta B}{10{,}000 \times \Delta y}}$$
+
+Tuckman gives the corresponding derivative form:
+
+$$\boxed{DV01 = -\frac{1}{10{,}000}\frac{d P(y)}{d y}}$$
+
+The minus sign is there because bond prices typically fall when yields rise; DV01 is usually reported as a positive number for a long position.
+
+**Bump object matters.** You must state what is being shifted (a bond’s yield, a zero curve, a set of par instruments, etc.), because different “1 bp” bumps can produce different numbers.
+
+**This chapter’s bump object:** a *parallel* $-1$ bp shift to the **discounting zero curve** used to generate the discount factors $P(0,t_i)$, holding the bond’s cashflows fixed.
+
+With the book-wide sign convention (positive for a long bond when rates fall):
+
+$$\boxed{DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})}$$
+
+For a curve-based PV computed from discount factors, that definition becomes a simple “bump-and-reprice” difference:
+
+$$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \;-\; \sum_{i=1}^{N} CF_i\,P(0,t_i)}$$
+
+**Scaling:** if PV is expressed per $100$ face, multiply by $N/100$ to convert to a notional-$N$ dollar DV01.
+
+**Worked Example (House Template): Quote → Invoice → PV → DV01 (1-Year Note)**
+
+**Context**
+- You are buying $50mm face of a coupon-bearing Treasury note. You need the invoice cash amount, the PV (dirty price), and a one-number rate risk.
+
+**Timeline (dates are simplified; ignore business-day adjustments)**
+- Trade date: 2026-02-13
+- Settlement date: 2026-02-16
+- Last coupon date: 2026-01-15
+- Next coupon date: 2026-07-15
+- Maturity date: 2027-01-15
+
+**Inputs**
+- Notional: $N = \\$50{,}000{,}000$
+- Coupon: $c = 4.00\\%$ per year, semiannual
+- Clean quote (Treasury 32nds): `101-12`
+- Accrued interest day count: Actual/Actual (in period)
+  - $d_{\\text{elapsed}} = 32$ days, $d_{\\text{period}} = 181$ days
+- Discount factors (from the discounting curve; illustrative): $P(0,\\text{2026-07-15})=0.9900$, $P(0,\\text{2027-01-15})=0.977927$
+- Discount factors after a $-1$ bp parallel shift (illustrative): $P_{\\downarrow 1\\text{bp}}(0,\\text{2026-07-15})=0.9900404$, $P_{\\downarrow 1\\text{bp}}(0,\\text{2027-01-15})=0.9780162$
+- DV01 bump object: parallel $-1$ bp shift of the discounting zero curve; $DV01 := PV(\\text{rates down }1\\text{bp})-PV(\\text{base})$
+
+**Outputs (what you produce)**
+- $P_{\\text{clean}}$ and $P_{\\text{dirty}}$ (per $100$ face)
+- Invoice cash amount (USD)
+- $DV01$ (USD per 1bp)
+
+**Step-by-step**
+1. **Quote → decimal clean price**
+   $$P_{\\text{clean}} = 101 + \\frac{12}{32} = 101.3750$$
+2. **Coupon per period (per $100$ face)**
+   $$\\text{Cpn} = 100\\times \\frac{c}{2} = 2.00$$
+3. **Accrued interest to settlement (per $100$ face)**
+   $$AI = \\frac{32}{181}\\times 2.00 = 0.3536$$
+4. **Dirty price and invoice cash amount**
+   $$P_{\\text{dirty}} = P_{\\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
+   $$\\text{Invoice} = \\frac{N}{100}\\times P_{\\text{dirty}} = 500{,}000\\times 101.7286 = \\$50{,}864{,}300$$
+5. **PV from discount factors (per $100$ face)**
+   - Cashflows: $CF_1=2.00$ (2026-07-15), $CF_2=102.00$ (2027-01-15)
+   $$PV = 2.00(0.9900) + 102.00(0.977927) \\approx 101.7286$$
+6. **DV01 (per $100$ face, then scaled to notional)**
+   $$DV01_{\\text{per }100} = \\left[2.00(0.9900404)+102.00(0.9780162)\\right]-\\left[2.00(0.9900)+102.00(0.977927)\\right]\\approx 0.00918$$
+   $$DV01_{\\$50mm} \\approx 0.00918\\times 500{,}000 = \\$4{,}591 \\text{ per bp}$$
+
+**Cashflows (per $100$ face)**
+| Date | Cashflow | Explanation |
+|---|---:|---|
+| 2026-07-15 | 2.00 | coupon |
+| 2027-01-15 | 102.00 | coupon + principal |
+
+**P&L / Risk Interpretation**
+- If the discounting curve shifts down by 1 bp (our bump object), the position's PV increases by about $\\$4.6k$; a +1 bp move decreases PV by about $\\$4.6k$.
+- Clean-vs-dirty matters for *cash settlement* (invoice) and for *daily P&L explain* (clean price moves vs accrued interest carry).
+
+**Sanity Checks**
+- $0 \\le AI < \\text{Cpn}$: $0.3536 < 2.00$.
+- Units: prices are per $100$; invoice scales by $N/100$; DV01 is USD per 1bp for the stated bump object.
+- Sign: with the book convention, a long bond has $DV01>0$.
+
 ---
 
 ## 5.8 Stub Periods and Odd First Coupons
@@ -548,42 +631,25 @@ A **settlement fail** occurs when the seller does not deliver securities to the 
 
 ### 5.9.2 Why Fails Happen
 
-Common causes include:
-- The seller doesn't have the securities (short squeeze, failed chain)
-- Operational errors (wrong CUSIP, account number issues)
-- Intentional fails (when financing rates make it cheaper to fail than deliver)
+One important driver is *financing mechanics*: when a trader is short an on-the-run Treasury and needs to borrow it via repo, the trade can fail if the security cannot be borrowed in time to make delivery.
 
-Tuckman notes in a footnote that "The penalty for failing to deliver to the futures exchange is quite severe."
+### 5.9.3 The Funding Intuition: Why Fails Matter
 
-### 5.9.3 Fails Charges
+Tuckman gives a simple financing interpretation in the context of specials. If the bond cannot be borrowed, the trader fails to deliver and does not receive the proceeds from the sale. In effect, the trader loses (at least) a day of interest on those proceeds.
 
-After the 2008 financial crisis, the Treasury Market Practices Group (TMPG) implemented a fails charge to discourage intentional fails. The fails charge is calculated as:
+If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\\%$, earning $0\\%$ on proceeds is economically similar to failing to deliver.
 
-$$\text{Daily Fails Charge} \approx \text{Proceeds} \times \frac{r_{\text{fails}}}{360}$$
-
-where the fails-charge rate $r_{\text{fails}}$ is defined by TMPG trading practice (see Chapter 1 for the full convention). Intuitively, it behaves like “about $(3\% - R)$ per annum” when short rates are low (with additional floors/definitions in the actual rule).
-
-When short rates are near zero (as they were 2009–2015 and 2020–2021), the charge can be significant and helps prevent “cheap failing.”
-
-> **Practitioner Note (order of magnitude):** When the relevant reference rate is near 0%, the fails-charge rate is near 3% p.a. For a $100mm fail, the daily charge is about:
-> $$\$100,000,000 \times 0.03 \times \frac{1}{360} = \$8,333 \text{ per day}$$
->
-> This charge creates an incentive to resolve fails quickly.
+> **Desk Reality:** Fails are not just an ops nuisance; they change the *cash timeline*.
+> **Common break:** P&L explain shows an unexpected funding/carry gap around settlement when deliveries slip.
+> **What to check:** whether the position is financing at GC vs specials, and whether any deliveries failed.
 
 ### 5.9.4 Flat Trading (Defaulted Bonds)
 
-When a bond issuer misses a coupon payment or enters default, the bond typically stops accruing interest and begins trading **flat**—meaning no accrued interest is added to the clean price. The clean price equals the dirty price.
+There are exceptions to the rule that the bond buyer pays the bond seller accrued interest. One important exception is when the issuer has not fulfilled its promise to make periodic interest payments (default). In such instances, the bond is sold **without accrued interest** and is said to trade **flat**.
 
 $$\text{Flat Trading: } P_{\text{dirty}} = P_{\text{clean}} \text{ (AI = 0)}$$
 
-This convention reflects that the coupon is no longer expected to be paid, so there's nothing to accrue.
-
-**When bonds trade flat:**
-- After a missed coupon payment
-- Upon declaration of bankruptcy or credit event
-- For certain distressed debt trading conventions
-
-> **Practitioner Note:** The transition from accruing to flat can cause confusion in systems. If a bond was marked with accrued interest yesterday and today it trades flat, the "loss" of accrued interest is not a real P&L event—it reflects the recognition that the coupon won't be paid.
+> **Practitioner Note:** The transition from accruing to flat can cause confusion in systems. If a bond was marked with accrued interest yesterday and today it trades flat, the drop in accrued is not a “real” funding P&L—it reflects a change in the convention used to quote/settle the bond.
 
 ---
 
@@ -592,10 +658,10 @@ This convention reflects that the coupon is no longer expected to be paid, so th
 ### 5.10.1 Settlement and Accrued
 
 Accrued interest is always computed to the **settlement date**, not the trade date.
-- **Treasuries:** Typically $T+1$ (next business day).
-- **Corporates:** Typically $T+2$ (varies by market).
 
-Trading on a Friday for $T+1$ settlement means settling on Monday, so accrued interest includes Friday, Saturday, and Sunday (the seller "earns" interest for holding through the weekend).
+Settlement lag varies by instrument and venue (and can change over time). Always check the trade confirmation/market convention for the instrument you are pricing.
+
+If the settlement date lands on a Monday because of a weekend, accrued interest includes Friday, Saturday, and Sunday (the seller "earns" interest for holding through the weekend).
 
 ### 5.10.2 Common Implementation Pitfalls
 
@@ -631,7 +697,7 @@ Any pricing engine should pass these checks:
 
 2. **Value equals discounted cashflows.** The **law of one price** dictates that $P_{\text{dirty}} = \sum \text{CF}_i \times P(0, t_i)$.
 
-3. **Curve-based pricing uses different rates for each cashflow.** As Hull notes, "a more accurate approach is to use a different zero rate for each cash flow." YTM is a summary statistic, not a fundamental price.
+3. **Curve-based pricing discounts cashflows date-by-date.** Use maturity-specific discount factors (or spot/zero rates) for each payment date. Yield-to-maturity is a one-number IRR summary, not a curve primitive.
 
 4. **Markets quote clean, settle dirty.** The invoice price is the clean price plus accrued interest: $P_{\text{dirty}} = P_{\text{clean}} + \text{AI}$.
 
@@ -643,13 +709,13 @@ Any pricing engine should pass these checks:
 
 8. **Premium bonds have coupon > yield; discount bonds have coupon < yield.** Par bonds have coupon = yield and trade at 100. All bonds "pull to par" over time.
 
-9. **Prices move inversely to rates.** Rising rates lower bond prices; longer maturities are more sensitive.
+9. **Rates risk needs an explicit bump definition.** Use DV01 with a stated bump object, units, and sign (in this book: $DV01 := PV(\\text{rates down }1\\text{bp})-PV(\\text{base})$).
 
-10. **Edge cases require care.** Stub periods need pro-rated coupons. Settlement fails incur charges. Defaulted bonds trade flat.
+10. **Edge cases require care.** Stub periods need explicit accrual logic; settlement fails change the cash timeline (and therefore funding/carry); defaulted bonds may trade flat.
 
 ---
 
-## Key Concepts Summary
+## Key Concepts
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
@@ -658,32 +724,37 @@ Any pricing engine should pass these checks:
 | **Dirty (Invoice) Price** | PV of all future cashflows. | The actual money transferred at settlement. |
 | **Clean (Quoted) Price** | Dirty Price minus Accrued Interest. | Removes accrual drift for price comparison. |
 | **Accrued Interest (AI)** | Pro-rata share of the next coupon earned since the last payment. | Compensates seller for holding time. |
+| **Invoice Amount** | Cash settlement: $\text{Invoice}=(N/100)\,P_{\text{dirty}}$. | Prevents “quoted price = cash” mistakes. |
 | **Actual/Actual** | Day count using actual calendar days. | Used for U.S. Treasuries. |
 | **30/360** | Day count assuming 30-day months, 360-day year. | Used for U.S. corporates. |
 | **Premium Bond** | Bond trading above par (coupon > yield). | Indicates above-market coupon payments. |
 | **Discount Bond** | Bond trading below par (coupon < yield). | Indicates below-market coupon payments. |
 | **32nds (Ticks)** | Treasury pricing unit ($1/32 \approx 0.03125$). | Historical convention for quoting. |
 | **Tick Value** | Dollar P&L per 1/32 price move. | $31,250 per tick on $100mm. |
+| **DV01** | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object. | A one-number rate risk; must define what is being bumped. |
 | **Stub Period** | First or last coupon period that differs from standard length. | Requires pro-rated coupon calculation. |
 | **Flat Trading** | Trading without accrued interest (AI = 0). | Applies to defaulted bonds. |
 
 ---
 
-## Notation for This Chapter
+## Notation
 
-| Symbol | Definition |
-|--------|------------|
-| $F$ | Face value (principal), typically 100 |
-| $c$ | Annual coupon rate (decimal) |
-| $m$ | Coupon frequency (e.g., 2 for semiannual) |
-| $\text{Cpn}$ | Coupon payment amount ($F \cdot c / m$) |
-| $T_i$ | Future payment date |
-| $d_{\text{elapsed}}$ | Days from last coupon to settlement |
-| $d_{\text{period}}$ | Days in current coupon period |
-| $P_{\text{clean}}$ | Quoted (flat) price |
-| $P_{\text{dirty}}$ | Invoice (full) price |
-| $\text{AI}$ | Accrued Interest |
-| $P(0,t)$ | Discount factor for maturity $t$ |
+| Symbol | Meaning | Units / Convention |
+|---|---|---|
+| $N$ | Notional / face amount | currency (e.g., USD) |
+| $F$ | Face value basis for quoting | usually $100$ for “per 100” quotes |
+| $c$ | Annual coupon rate | per year (decimal) |
+| $m$ | Coupon payments per year | typically $m=2$ |
+| $T_i$ | Cashflow payment date | date |
+| $t_i$ | Year-fraction from valuation/settle to $T_i$ | years; day count must be stated |
+| $\tau(\cdot)$ | Year fraction between dates | years; depends on day count |
+| $\text{Cpn}$ | Coupon per period | price points per $100$ face (for $F=100$: $\text{Cpn}=100c/m$) |
+| $CF_i$ | Cashflow at $T_i$ | currency per $100$ face; receive-positive |
+| $P(0,t)$ | Discount factor to time $t$ | unitless |
+| $P_{\text{clean}}, P_{\text{dirty}}$ | Clean / dirty price | price per $100$ face |
+| $AI$ | Accrued interest | price per $100$ face; $P_{\text{dirty}}=P_{\text{clean}}+AI$ |
+| $PV$ | Present value | currency |
+| $DV01$ | Dollar value of 1bp (book convention) | currency per 1bp; $PV(\text{rates down }1\text{bp})-PV(\text{base})$ for stated bump |
 
 ---
 
@@ -709,8 +780,9 @@ Any pricing engine should pass these checks:
 | 16 | What is a "stub period"? | A first or last coupon period that is shorter or longer than standard |
 | 17 | What happens to clean price across a coupon payment date? | It is continuous (does not jump) |
 | 18 | What happens to dirty price when a coupon is paid? | It drops by approximately the coupon amount |
-| 19 | What does Hull say about curve vs yield pricing? | "A more accurate approach is to use a different zero rate for each cash flow" |
+| 19 | Define DV01 in this book. | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object; units = currency per 1bp. |
 | 20 | How do you calculate P&L for a 4-tick move on $50mm? | 4 × ($50mm/100 × 1/32) = 4 × $15,625 = $62,500 |
+| 21 | What is the key difference between curve-based and yield-based pricing? | Curve-based discounts each cashflow with its own discount factor; yield-based uses a single IRR (YTM). |
 
 ---
 
@@ -736,11 +808,11 @@ Any pricing engine should pass these checks:
 
 **Problem 9 (Verification):** Your system shows accrued interest of $3.50 for a bond with a semiannual coupon of $3.00. What's wrong?
 
-**Problem 10 (Application):** A Treasury bond fails to settle for 3 days. Fed Funds target is 0.25%. What is the approximate fails charge on $50mm notional?
+**Problem 10 (Application):** A Treasury sale fails to settle for 3 days, so you do not receive $50mm of proceeds until 3 days later. Using a 3.00% p.a. funding rate on an Act/360 basis, what is the approximate interest you missed?
 
-**Problem 11 (Analysis):** Why does Hull say curve-based pricing is "more accurate" than yield-based pricing?
+**Problem 11 (Analysis):** Why can curve-based pricing differ from yield-based pricing when the yield curve is not flat?
 
-**Problem 12 (Hard):** Verify the Tuckman example: 5½s of Jan 31, 2003, quoted at 101-4⁵⁄₈ with AI = 0.2279 per $100 face. What is the dirty price? What is the invoice amount on $10,000 face?
+**Problem 12 (Hard):** Verify the Tuckman example: 5 1/2s of Jan 31, 2003, quoted at 101-04 5/8 with AI = 0.2279 per $100 face. What is the dirty price? What is the invoice amount on $10,000 face?
 
 ---
 
@@ -767,9 +839,9 @@ Any pricing engine should pass these checks:
 
 **9.** AI cannot exceed the coupon amount. $3.50 > 3.00$ violates the bound check. Either the AI calculation is wrong (day count error) or the coupon amount is wrong.
 
-**10.** Using the TMPG Treasury fails charge convention (order-of-magnitude), fails charge rate $\approx \max(0, 3\% - R)$. With $R=0.25\%$, rate = 2.75% p.a. Assuming the failed proceeds are about $50mm$, charge $\approx 50mm \times 2.75\% \times 3/360 = \$11{,}458$.
+**10.** Missed interest $\approx 50{,}000{,}000 \times 0.03 \times 3/360 = \$12{,}500$.
 
-**11.** Curve-based pricing uses the market's discount rate for each cashflow's specific maturity. YTM forces a single "average" rate on all cashflows, which is only correct if the yield curve is flat.
+**11.** Curve-based pricing discounts each cashflow at its own maturity (via discount factors / spot rates). A single YTM is an IRR chosen to match the bond's price; it does not, in general, discount every cashflow correctly unless the curve is flat (or the cashflow timing happens to align).
 
 **12.** Clean = $101 + 4.625/32 = 101.1445$. Dirty = $101.1445 + 0.2279 = 101.3724$. Invoice on $10,000 face = $101.3724 \times 100 = \$10,137.24$
 
@@ -777,7 +849,9 @@ Any pricing engine should pass these checks:
 
 ## References
 
-- Bruce Tuckman, *Fixed Income Securities* (bond cash flows; clean/dirty pricing; accrued interest; Treasury quoting conventions).
-- John C. Hull, *Options, Futures, and Other Derivatives* (present value of bond cash flows; yield and day-count conventions).
-- David G. Luenberger, *Investment Science* (zero-coupon bond and present-value intuition).
-- Treasury Market Practices Group (TMPG), *U.S. Treasury Securities Fails Charge Trading Practice* (fails charge convention).
+- (Bruce Tuckman, *Fixed Income Securities*, “The Law of One Price”; “Treasury Bond Quotations”; “Yield-Based DV01”; “Special Repo Rates and the Auction Cycle”)
+- (John C. Hull, *Options, Futures, and Other Derivatives*, “Day Counts”; “Price Quotations of U.S. Treasury Bonds”)
+- (Edwin J. Elton, Martin J. Gruber, Stephen J. Brown, William N. Goetzmann, *Modern Portfolio Theory and Investment Analysis*, “Special Considerations in Bond Pricing”; “Appendix B — Estimating Spot Rates”)
+- (Salih N. Neftci, *Principles of Financial Engineering*, “Dollar duration DV01”)
+- (David G. Luenberger, *Investment Science*, “Spot Rates”; “Discount Factors and Present Value”; “Bond Details”)
+- (Dessislava A. Pachamanova, Frank J. Fabozzi, *Simulation and Optimization in Finance*, “Accrued Interest”; “Clean vs Dirty (Full) Price”; “Traded Flat”)
