@@ -1,29 +1,29 @@
 # Chapter 36: Survival Probabilities and Hazard Rates
 
 ## Learning Objectives
-- Define survival probability \(Q(t)\), hazard rate \(h(t)\), cumulative hazard \(H(t)\), and default density \(f(t)\) with correct units.
-- Convert \(h \leftrightarrow Q\) and compute interval default probabilities.
+- Define survival probability $Q(t)$, hazard rate $h(t)$, cumulative hazard $H(t)$, and default density $f(t)$ with correct units.
+- Convert $h \leftrightarrow Q$ and compute interval default probabilities.
 - Build a piecewise-constant hazard curve from survival points and run basic arbitrage sanity checks.
-- Use the credit triangle \(S \approx h(1-R)\) as a back-of-envelope approximation (and know its assumptions).
+- Use the credit triangle $S \approx h(1-R)$ as a back-of-envelope approximation (and know its assumptions).
 - Define and interpret credit risk bumps (hazard bumps and CS01) with explicit bump object, bump size, units, and sign.
 
 ## Introduction
 
-“How long until default?” is a question about a **random time** \(\tau\). In reduced-form (intensity) models we summarize the distribution of \(\tau\) with:
+“How long until default?” is a question about a **random time** $\tau$. In reduced-form (intensity) models we summarize the distribution of $\tau$ with:
 
-- a **survival curve** \(Q(t)=\Pr(\tau>t)\), and
-- a **hazard rate** \(h(t)\), which controls how fast \(Q(t)\) decays.
+- a **survival curve** $Q(t)=\Pr(\tau>t)$, and
+- a **hazard rate** $h(t)$, which controls how fast $Q(t)$ decays.
 
 On a desk, these objects sit in the middle of a workflow you will use repeatedly:
 
-**quote** (bond/CDS spread, upfront) → **default-timing object** (\(Q\) or \(h\)) → **PV equation** (expected discounted cashflows) → **risk** (CS01 / hazard bumps).
+**quote** (bond/CDS spread, upfront) → **default-timing object** ($Q$ or $h$) → **PV equation** (expected discounted cashflows) → **risk** (CS01 / hazard bumps).
 
 Prerequisites: [Chapter 35: Default, recovery, and credit events](chapters/chapter_35_default_recovery_credit_events.md); [Chapter 02: Time value and discount factors](chapters/chapter_02_time_value_discount_factors_replication.md).  
 Follow-on: [Chapter 37: Cash credit, risky bonds, spreads, CS01](chapters/chapter_37_cash_credit_risky_bonds_spreads_cs01.md); [Chapter 38: CDS contract mechanics](chapters/chapter_38_cds_contract_mechanics.md); [Chapter 42: Bootstrapping a CDS survival curve](chapters/chapter_42_bootstrapping_cds_survival_curve.md); [Chapter 43: CDS risks and hedging](chapters/chapter_43_cds_risks_hedging.md).
 
 **Conventions in this chapter**
-- Time \(t\) is a year-fraction. Keep units consistent: if \(h\) is “per year”, then \(t\) is in years.
-- We write the hazard rate as \(h(t)\). Many texts use \(\lambda(t)\); it is the same object.
+- Time $t$ is a year-fraction. Keep units consistent: if $h$ is “per year”, then $t$ is in years.
+- We write the hazard rate as $h(t)$. Many texts use $\lambda(t)$; it is the same object.
 
 ---
 
@@ -32,7 +32,7 @@ Follow-on: [Chapter 37: Cash credit, risky bonds, spreads, CS01](chapters/chapte
 Structural and reduced-form models answer different questions:
 
 - **Structural models** tie default to an underlying state variable (e.g., firm asset value crossing a boundary).
-- **Reduced-form models** specify default timing directly via \(Q(t)\) or \(h(t)\), and are built to fit traded credit spreads.
+- **Reduced-form models** specify default timing directly via $Q(t)$ or $h(t)$, and are built to fit traded credit spreads.
 
 For most CDS-style pricing and hedging, you will spend more time with reduced-form objects because they plug directly into valuation formulas and curve construction.
 
@@ -42,23 +42,23 @@ Structural models are economically appealing because they connect default to lev
 
 ### 36.1.2 Reduced-Form Models (Intensity)
 
-Reduced-form models treat default as a jump at a random time \(\tau\). Over a small interval \(dt\), conditional on survival to time \(t\),
+Reduced-form models treat default as a jump at a random time $\tau$. Over a small interval $dt$, conditional on survival to time $t$,
 
 $$\Pr(t < \tau \le t+dt \mid \tau>t) \approx h(t)\,dt.$$
 
 This “surprise default” property is exactly what makes intensity models flexible enough to fit positive short-maturity credit spreads.
 
-> **Desk Reality:** Many pricing systems ingest a spread curve and output a survival curve \(Q(t)\) (risk-neutral), then reuse \(Q\) for pricing and hedging.  
+> **Desk Reality:** Many pricing systems ingest a spread curve and output a survival curve $Q(t)$ (risk-neutral), then reuse $Q$ for pricing and hedging.  
 > **Common break:** Using a spread-implied (risk-neutral) curve as if it were a historical default-frequency estimate.  
 > **What to check:** Ask “pricing or scenario?” and verify which measure the curve is in (Section 36.7).
 
 ---
 
-## 36.2 The Survival Function \(Q(t)\)
+## 36.2 The Survival Function $Q(t)$
 
 ### 36.2.1 Definition and Interpretation
 
-The survival function is the probability that a credit has not defaulted by time \(t\):
+The survival function is the probability that a credit has not defaulted by time $t$:
 
 $$\boxed{Q(t)=\Pr(\tau>t)}.$$
 
@@ -67,21 +67,21 @@ The corresponding cumulative default probability is:
 $$F(t)=\Pr(\tau \le t)=1-Q(t).$$
 
 **Basic sanity checks:**
-1. \(Q(0)=1\).
-2. \(Q(t)\) is non-increasing in \(t\).
-3. \(0 \le Q(t) \le 1\).
+1. $Q(0)=1$.
+2. $Q(t)$ is non-increasing in $t$.
+3. $0 \le Q(t) \le 1$.
 
 ### 36.2.2 Survival as a “Credit Discount Factor”
 
-Let \(P(0,T)\) be the risk-free discount factor (PV of 1 paid at \(T\)). In a baseline intensity model with **deterministic discounting and hazard**, a payoff of 1 received at \(T\) only if the name survives to \(T\) (zero recovery) has:
+Let $P(0,T)$ be the risk-free discount factor (PV of 1 paid at $T$). In a baseline intensity model with **deterministic discounting and hazard**, a payoff of 1 received at $T$ only if the name survives to $T$ (zero recovery) has:
 
 $$\text{PV} = P(0,T)\,Q(0,T).$$
 
-This is the cleanest place to see what \(Q\) does: it “shrinks” risky cashflows for the chance that the issuer is not alive to pay them. Later credit pricing chapters add coupons, recovery assumptions, discretization, and curve bootstrapping.
+This is the cleanest place to see what $Q$ does: it “shrinks” risky cashflows for the chance that the issuer is not alive to pay them. Later credit pricing chapters add coupons, recovery assumptions, discretization, and curve bootstrapping.
 
-**Check (small-hazard approximation):** If cumulative hazard \(H(T)=\int_0^T h(s)\,ds\) is small, then \(Q(T)=e^{-H(T)}\approx 1-H(T)\). So, to first order, “credit discounting” reduces PV by about \(P(0,T)\times H(T)\) for a \$1 survival-contingent payoff. This is a useful magnitude check for very high-quality names where \(H(T)\ll 1\).
+**Check (small-hazard approximation):** If cumulative hazard $H(T)=\int_0^T h(s)\,ds$ is small, then $Q(T)=e^{-H(T)}\approx 1-H(T)$. So, to first order, “credit discounting” reduces PV by about $P(0,T)\times H(T)$ for a \$1 survival-contingent payoff. This is a useful magnitude check for very high-quality names where $H(T)\ll 1$.
 
-> **On-Ramp:** If you already think of \(P(0,T)\) as “today’s value of \$1 at \(T\),” think of \(Q(0,T)\) as “today’s probability the name is still alive at \(T\).”
+> **On-Ramp:** If you already think of $P(0,T)$ as “today’s value of \$1 at $T$,” think of $Q(0,T)$ as “today’s probability the name is still alive at $T$.”
 
 ### 36.2.3 Interval Default Probability
 
@@ -91,11 +91,11 @@ $$\boxed{\Pr(t_1 < \tau \leq t_2) = Q(t_1) - Q(t_2)}$$
 
 This identity is the workhorse for turning a survival curve into period-by-period default probabilities.
 
-**Check (telescoping on a grid):** On a grid \(0=t_0<t_1<\dots<t_n\), the interval default probabilities add up:
-\[
+**Check (telescoping on a grid):** On a grid $0=t_0<t_1<\dots<t_n$, the interval default probabilities add up:
+$$
 \sum_{i=1}^n \Pr(t_{i-1}<\tau\le t_i)=\sum_{i=1}^n \bigl(Q(t_{i-1})-Q(t_i)\bigr)=1-Q(t_n).
-\]
-If your interval probabilities do not sum to the cumulative default probability \(1-Q(t_n)\), something is inconsistent.
+$$
+If your interval probabilities do not sum to the cumulative default probability $1-Q(t_n)$, something is inconsistent.
 
 ---
 
@@ -107,7 +107,7 @@ The hazard rate, also called the *default intensity*, is defined by the conditio
 
 $$\boxed{h(t) = \lim_{\Delta t \to 0} \frac{1}{\Delta t} \Pr[\tau \leq t + \Delta t \mid \tau > t]}$$
 
-Equivalently, for small \(\Delta t\),
+Equivalently, for small $\Delta t$,
 
 $$\Pr(t<\tau\le t+\Delta t\mid \tau>t)\approx h(t)\,\Delta t.$$
 
@@ -134,7 +134,7 @@ The hazard rate is the *per-unit-time* intensity. It tells you how "risky" each 
 >
 > **Half-Life Connection:** For constant hazard $h$, the "half-life" (time for 50% to default) is $t_{1/2} = \ln(2)/h \approx 0.693/h$. A 2% hazard rate implies a half-life of about 35 years.
 
-One Monte Carlo intuition: discretize time into small steps \(dt\). Conditional on survival to \(t\), default occurs in \([t,t+dt]\) with probability \(h(t)\,dt\). As \(dt\to 0\), the per-step default probability goes to zero, but the **per-year** intensity \(h(t)\) stays finite.
+One Monte Carlo intuition: discretize time into small steps $dt$. Conditional on survival to $t$, default occurs in $[t,t+dt]$ with probability $h(t)\,dt$. As $dt\to 0$, the per-step default probability goes to zero, but the **per-year** intensity $h(t)$ stays finite.
 
 This "per unit time" interpretation—the hazard rate remains finite even as the time step shrinks—is what makes reduced-form models generate positive short-dated spreads.
 
@@ -208,17 +208,17 @@ where the **cumulative hazard** (also called the integrated hazard) is:
 
 $$\boxed{H(t) = \int_0^t h(s) ds}$$
 
-Many sources denote the hazard rate by \(\lambda(t)\). With \(\lambda(t)\equiv h(t)\), the deterministic-hazard formula is often written as \(\Pr(\tau>T)=\exp(-\int_0^T \lambda(t)\,dt)\).
+Many sources denote the hazard rate by $\lambda(t)$. With $\lambda(t)\equiv h(t)$, the deterministic-hazard formula is often written as $\Pr(\tau>T)=\exp(-\int_0^T \lambda(t)\,dt)$.
 
 Equivalently, we can recover the hazard rate from the survival function:
 
 $$\boxed{h(t) = -\frac{d}{dt} \ln Q(t) = -\frac{Q'(t)}{Q(t)}}$$
 
-If \(h(t)\) is stochastic (a Cox process), survival involves an expectation:
+If $h(t)$ is stochastic (a Cox process), survival involves an expectation:
 
 $$Q(t) = \mathbb{E}\left[\exp\left(-\int_0^t h(s) ds\right)\right]$$
 
-If \(h(t)\) is deterministic, the expectation disappears and \(Q(t)=\exp(-\int_0^t h(s)\,ds)\).
+If $h(t)$ is deterministic, the expectation disappears and $Q(t)=\exp(-\int_0^t h(s)\,ds)$.
 
 ### 36.3.6 Sanity Checks
 
@@ -281,7 +281,7 @@ The variance is $\text{Var}(\tau) = 1/h^2$, so the standard deviation equals the
 
 $$\mathbb{E}[\tau] = \frac{1}{0.02} = 50 \text{ years}$$
 
-Perspective: when \(h\) is small, default times are extremely dispersed (mean \(1/h\), standard deviation \(1/h\)). In Monte Carlo, that means you may need many paths to estimate rare defaults with acceptable standard error.
+Perspective: when $h$ is small, default times are extremely dispersed (mean $1/h$, standard deviation $1/h$). In Monte Carlo, that means you may need many paths to estimate rare defaults with acceptable standard error.
 
 ### 36.5.2 The Memoryless Property
 
@@ -359,10 +359,10 @@ Given survival probabilities at grid points, we can recover the piecewise hazard
 
 $$\boxed{h_i = -\frac{1}{\Delta t_i} \ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\right)}$$
 
-**Check (toy numbers):** Suppose an annual grid with \(Q(0)=1\), \(Q(1)=0.98\), and \(Q(2)=0.94\).
-- \(h_1=-\ln(0.98/1)/1\approx 2.02\%\)/year.
-- \(h_2=-\ln(0.94/0.98)/1\approx 4.17\%\)/year.
-Plugging back, \(Q(2)=Q(1)e^{-h_2}\approx 0.98\times e^{-0.0417}\approx 0.94\) as required.
+**Check (toy numbers):** Suppose an annual grid with $Q(0)=1$, $Q(1)=0.98$, and $Q(2)=0.94$.
+- $h_1=-\ln(0.98/1)/1\approx 2.02\%$/year.
+- $h_2=-\ln(0.94/0.98)/1\approx 4.17\%$/year.
+Plugging back, $Q(2)=Q(1)e^{-h_2}\approx 0.98\times e^{-0.0417}\approx 0.94$ as required.
 
 This formula is central to survival curve bootstrapping from CDS spreads (Chapter 42). Given a term structure of CDS quotes, we price the shortest maturity CDS to find $Q(t_1)$, extract $h_1$, then use this to price the next maturity and find $Q(t_2)$, and so on.
 
@@ -373,10 +373,10 @@ O'Kane discusses interpolation between grid points in detail. The choice of inte
 | Scheme | Interpolation Of | Hazard Behavior | Properties |
 |--------|-----------------|-----------------|------------|
 | Linear in $Q$ | Survival probability | Piecewise non-constant | Can produce negative hazards |
-| Linear in $\ln Q$ | Log survival | **Piecewise constant** hazard | ensures \(Q\in(0,1]\) and \(h\ge 0\) if endpoints are consistent |
+| Linear in $\ln Q$ | Log survival | **Piecewise constant** hazard | ensures $Q\in(0,1]$ and $h\ge 0$ if endpoints are consistent |
 | Linear in $H$ | Cumulative hazard | Piecewise linear hazard | Smooth, but requires care |
 
-Linear interpolation of \(\ln Q(t)\) between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for \(t_{n-1}<t^*<t_n\):
+Linear interpolation of $\ln Q(t)$ between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for $t_{n-1}<t^*<t_n$:
 
 - Survival probabilities remain between 0 and 1
 - Hazard rates remain positive (no-arbitrage)
@@ -479,23 +479,23 @@ The "risk premium" in credit is analogous to the equity risk premium—it compen
 
 ## 36.8 The Credit Triangle
 
-Under strong simplifying assumptions, a par CDS running spread is approximately proportional to hazard \(\times\) loss-given-default. This back-of-envelope mapping is often called the **credit triangle**.
+Under strong simplifying assumptions, a par CDS running spread is approximately proportional to hazard $\times$ loss-given-default. This back-of-envelope mapping is often called the **credit triangle**.
 
 ### 36.8.1 Derivation (Continuous-Premium Toy CDS)
 
 Assume a stylized CDS-like contract with:
-- Continuous premium payments at rate \(S\) until default or maturity \(T\)
-- Protection payment of \((1-R)\) at default time \(\tau\) if \(\tau \le T\)
-- Constant hazard rate \(h\)
-- Zero interest rates (so \(P(0,t)=1\))
+- Continuous premium payments at rate $S$ until default or maturity $T$
+- Protection payment of $(1-R)$ at default time $\tau$ if $\tau \le T$
+- Constant hazard rate $h$
+- Zero interest rates (so $P(0,t)=1$)
 
 Premium-leg PV:
 $$PV_{\text{prem}}=\int_0^T S\,Q(t)\,dt.$$
 
-Protection-leg PV (using \(f(t)=hQ(t)\)):
+Protection-leg PV (using $f(t)=hQ(t)$):
 $$PV_{\text{prot}}=\int_0^T (1-R)\,f(t)\,dt=\int_0^T (1-R)\,h\,Q(t)\,dt.$$
 
-At par, \(PV_{\text{prem}}=PV_{\text{prot}}\), so:
+At par, $PV_{\text{prem}}=PV_{\text{prot}}$, so:
 
 $$\boxed{S = h(1-R)}$$
 
@@ -503,11 +503,11 @@ Equivalently:
 
 $$\boxed{h = \frac{S}{1-R}}$$
 
-Interpretation: holding \(R\) fixed, wider spreads map to higher implied hazard; holding \(S\) fixed, higher assumed recovery maps to higher implied hazard.
+Interpretation: holding $R$ fixed, wider spreads map to higher implied hazard; holding $S$ fixed, higher assumed recovery maps to higher implied hazard.
 
-> **Pitfall — Credit triangle treated as an identity:** Using \(S=h(1-R)\) as if it were exact for real CDS.
+> **Pitfall — Credit triangle treated as an identity:** Using $S=h(1-R)$ as if it were exact for real CDS.
 > **Why it matters:** You will mis-map spreads to hazard, mis-size CS01, and get the wrong “sanity check” in steep/discounted/discrete settings.
-> **Quick check:** Price one CDS maturity with the full discretized premium/protection legs; compare the implied \(h\) to \(S/(1-R)\) and note the gap.
+> **Quick check:** Price one CDS maturity with the full discretized premium/protection legs; compare the implied $h$ to $S/(1-R)$ and note the gap.
 
 ### 36.8.2 Back-of-Envelope Rules
 
@@ -619,23 +619,23 @@ But for precise pricing, use the full CDS pricing equations developed in Chapter
 When someone says “credit risk went up,” ask: *what object moved and what was held fixed?* This chapter uses explicit bump designs so you can sanity-check numbers across systems.
 
 **(1) Hazard bump (curve risk)** (definition used in this book)
-- **Bump object:** the hazard curve \(h(t)\).
-- **Bump size:** \(1\) bp/year \(=10^{-4}\) added to \(h(t)\) (parallel shift), unless a bucketed bump is stated.
+- **Bump object:** the hazard curve $h(t)$.
+- **Bump size:** $1$ bp/year $=10^{-4}$ added to $h(t)$ (parallel shift), unless a bucketed bump is stated.
 - **Units:** currency per 1 bp/year for the stated notional.
-- **Sign (common-sense check):** higher \(h\) means more default risk \(\Rightarrow\) long risky cashflows usually lose PV.
+- **Sign (common-sense check):** higher $h$ means more default risk $\Rightarrow$ long risky cashflows usually lose PV.
 
-**Check (magnitude of a 1bp/year hazard bump):** A parallel bump \(\Delta h=10^{-4}\) changes deterministic survival multiplicatively:
-\[
+**Check (magnitude of a 1bp/year hazard bump):** A parallel bump $\Delta h=10^{-4}$ changes deterministic survival multiplicatively:
+$$
 Q_{\text{bumped}}(t)=Q(t)\,e^{-\Delta h\,t}.
-\]
-At \(t=5\)y, this factor is \(e^{-0.0005}\approx 0.9995\), i.e., about a 0.05% relative drop in survival. The survival change can look small, but the PV impact can still be meaningful on large notionals because it multiplies large cashflows.
+$$
+At $t=5$y, this factor is $e^{-0.0005}\approx 0.9995$, i.e., about a 0.05% relative drop in survival. The survival change can look small, but the PV impact can still be meaningful on large notionals because it multiplies large cashflows.
 
 **(2) CS01 (spread risk)** (definition used in this book)
-- **Bump object:** the quoted spread \(S\) (decimal per year).
-- **Bump size:** \(+1\) bp \(=10^{-4}\) per year, with a *curve rebuild* rule (bootstrapped \(Q/h\) recomputed consistently).
-- **Definition:** \(\mathrm{CS01}:=PV(S+1\text{bp})-PV(S)\).
+- **Bump object:** the quoted spread $S$ (decimal per year).
+- **Bump size:** $+1$ bp $=10^{-4}$ per year, with a *curve rebuild* rule (bootstrapped $Q/h$ recomputed consistently).
+- **Definition:** $\mathrm{CS01}:=PV(S+1\text{bp})-PV(S)$.
 - **Units:** currency per 1 bp for the stated notional.
-- **Sign check (typical):** long protection tends to have \(\mathrm{CS01}>0\); long cash-bond credit tends to have \(\mathrm{CS01}<0\) (verify your system’s sign convention).
+- **Sign check (typical):** long protection tends to have $\mathrm{CS01}>0$; long cash-bond credit tends to have $\mathrm{CS01}<0$ (verify your system’s sign convention).
 
 ---
 
@@ -789,7 +789,7 @@ $$\tau = H^{-1}(E)$$
 
 where $H(t) = \int_0^t h(s) ds$ is the cumulative hazard, then $\tau$ has the correct survival distribution.
 
-Some texts write the cumulative hazard as \(\Gamma(t)\) and the hazard-rate process as \((\gamma_t)\); the threshold method is the same idea: draw a unit exponential threshold and invert the cumulative hazard.
+Some texts write the cumulative hazard as $\Gamma(t)$ and the hazard-rate process as $(\gamma_t)$; the threshold method is the same idea: draw a unit exponential threshold and invert the cumulative hazard.
 
 **Verification:**
 $$\Pr(\tau > t) = \Pr(H^{-1}(E) > t) = \Pr(E > H(t)) = e^{-H(t)} = Q(t) \quad \checkmark$$
@@ -1050,84 +1050,84 @@ This path shows long survival; the credit doesn't default for 50 years.
 | Measure | Hazard Rate | Ratio (market / historical) |
 |---------|-------------|-----------------------------|
 | Historical (real-world) | 0.47%/year |  |
-| Implied from bond yields (risk-neutral estimate) | 2.38%/year | \(2.38/0.47 \approx 5.1\times\) |
+| Implied from bond yields (risk-neutral estimate) | 2.38%/year | $2.38/0.47 \approx 5.1\times$ |
 
 **Sanity check (constant-hazard translation to 7Y PD):**
-- Historical: \(1-e^{-0.0047\cdot 7}\approx 3.24\%\)
-- Market-implied: \(1-e^{-0.0238\cdot 7}\approx 15.35\%\)
+- Historical: $1-e^{-0.0047\cdot 7}\approx 3.24\%$
+- Market-implied: $1-e^{-0.0238\cdot 7}\approx 15.35\%$
 
 Interpretation: market-implied hazards used for valuation can be materially larger than historical default-frequency estimates used for scenario and loss forecasting.
 
 ---
 
-### Example 36.11 (Worked Example): Quote → \(Q/h\) → PV → hazard bump and CS01
+### Example 36.11 (Worked Example): Quote → $Q/h$ → PV → hazard bump and CS01
 
 **Example Title**: Pricing a risky zero-coupon payoff from a CDS quote (toy model)
 
 **Context**
-- You see a 5Y CDS running spread \(S\) and want a quick, transparent mapping to survival, PV, and spread risk.
+- You see a 5Y CDS running spread $S$ and want a quick, transparent mapping to survival, PV, and spread risk.
 - This example is a *toy* (credit triangle + flat curves) that you can reproduce in a spreadsheet before you move on to full CDS bootstrapping.
 
 **Timeline (Make Dates Concrete)**
 - Trade date: 2026-02-15
 - Settlement date: 2026-02-17 (assumed)
 - Maturity date: 2031-02-15
-- Year-fraction to maturity: \(T=5.0\) (given explicitly)
+- Year-fraction to maturity: $T=5.0$ (given explicitly)
 
 **Inputs**
-- Notional (par): \(N=\$10{,}000{,}000\)
-- CDS quote (running): \(S=150\) bp \(=0.0150\) per year
-- Recovery assumption: \(R=40\%\) (so \(LGD=1-R=60\%\))
-- Risk-free discounting (toy): flat continuously-compounded \(r=3\%\) per year
-- Hazard model (toy): constant hazard \(h\), inferred from the credit triangle
+- Notional (par): $N=\$10{,}000{,}000$
+- CDS quote (running): $S=150$ bp $=0.0150$ per year
+- Recovery assumption: $R=40\%$ (so $LGD=1-R=60\%$)
+- Risk-free discounting (toy): flat continuously-compounded $r=3\%$ per year
+- Hazard model (toy): constant hazard $h$, inferred from the credit triangle
 
 **Outputs (What You Produce)**
-- Survival \(Q(0,T)\)
+- Survival $Q(0,T)$
 - PV of a defaultable payoff with fractional recovery of par
-- Hazard-bump sensitivity (PV change per \(+1\) bp/year in \(h\))
-- CS01 (PV change per \(+1\) bp in \(S\) with a curve rebuild rule approximated by the triangle)
+- Hazard-bump sensitivity (PV change per $+1$ bp/year in $h$)
+- CS01 (PV change per $+1$ bp in $S$ with a curve rebuild rule approximated by the triangle)
 
 **Step-by-step**
 1. **Translate quote → hazard (triangle):**
-   $$h=\frac{S}{1-R}=\frac{0.0150}{0.60}=0.0250 \;\;(\text{2.50%/year}).$$
+   $$h=\frac{S}{1-R}=\frac{0.0150}{0.60}=0.0250 \;\;(\text{2.50\%/year}).$$
 2. **Compute survival to maturity:**
    $$Q(0,T)=e^{-hT}=e^{-0.0250\cdot 5}\approx 0.8825.$$
 3. **Specify the payoff you are valuing (fractional recovery of par):**
-   - If \(\tau>T\): receive \(N\) at \(T\).
-   - If \(\tau\le T\): receive \(RN\) at \(\tau\).
-4. **Write PV using the default density \(f(t)=hQ(t)\):**
+   - If $\tau>T$: receive $N$ at $T$.
+   - If $\tau\le T$: receive $RN$ at $\tau$.
+4. **Write PV using the default density $f(t)=hQ(t)$:**
    $$PV = N\Big(P(0,T)Q(0,T) + R\int_0^T P(0,t)\,f(t)\,dt\Big).$$
-   With flat \(r\) and constant \(h\), this simplifies to:
+   With flat $r$ and constant $h$, this simplifies to:
    $$PV = N\left(e^{-(r+h)T} + R\frac{h}{r+h}\left(1-e^{-(r+h)T}\right)\right).$$
-   Plugging \(r=0.03\), \(h=0.025\), \(T=5\), \(R=0.40\), \(N=10{,}000{,}000\):
+   Plugging $r=0.03$, $h=0.025$, $T=5$, $R=0.40$, $N=10{,}000{,}000$:
    $$PV \approx \$8{,}032{,}863.$$
-5. **Hazard bump (parallel \(+1\) bp/year in \(h\)):**
+5. **Hazard bump (parallel $+1$ bp/year in $h$):**
    $$\Delta h = 1\text{ bp/year} = 10^{-4}.$$
-   Compute \(PV(h+\Delta h)-PV(h)\approx -\$2{,}153\) (per \(\$10\)mm notional).
-6. **CS01 (spread \(+1\) bp, curve rebuild via triangle):**
+   Compute $PV(h+\Delta h)-PV(h)\approx -\$2{,}153$ (per $\$10$mm notional).
+6. **CS01 (spread $+1$ bp, curve rebuild via triangle):**
    $$h(S)=\frac{S}{1-R}, \qquad \Delta S = 1\text{ bp} = 10^{-4}.$$
-   So \(\Delta h = \Delta S/(1-R)\approx 1.67\) bp/year, and:
+   So $\Delta h = \Delta S/(1-R)\approx 1.67$ bp/year, and:
    $$\mathrm{CS01} \approx PV(S+\Delta S)-PV(S) \approx -\$3{,}588 \;\;(\text{per } \$10\text{mm}).$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---|---|
-| 2031-02-15 | \(+N\) | paid if \(\tau>T\) |
-| \(\tau\in(0,T]\) | \(+RN\) | paid at default time if \(\tau\le T\) |
+| 2031-02-15 | $+N$ | paid if $\tau>T$ |
+| $\tau\in(0,T]$ | $+RN$ | paid at default time if $\tau\le T$ |
 
 **P&L / Risk Interpretation**
 - The hazard-bump result is negative: higher default intensity makes a long risky payoff worth less.
-- The CS01 is also negative for this “long credit” position: wider spreads map to higher hazard \(\Rightarrow\) lower PV.
-- What is held fixed matters: here we held \(r\) and \(R\) fixed, and used the triangle as the curve-rebuild rule.
+- The CS01 is also negative for this “long credit” position: wider spreads map to higher hazard $\Rightarrow$ lower PV.
+- What is held fixed matters: here we held $r$ and $R$ fixed, and used the triangle as the curve-rebuild rule.
 
 **Sanity Checks**
-- Units: \(h\) is per year; \(T\) is years; \(hT\) is unitless in \(e^{-hT}\).
-- Limits: if \(h=0\), then \(PV=N e^{-rT}\) (risk-free); if \(R=0\), then \(PV=N e^{-(r+h)T}\).
-- Sign: \(PV(h+\Delta h)-PV(h)<0\) for a long risky payoff.
+- Units: $h$ is per year; $T$ is years; $hT$ is unitless in $e^{-hT}$.
+- Limits: if $h=0$, then $PV=N e^{-rT}$ (risk-free); if $R=0$, then $PV=N e^{-(r+h)T}$.
+- Sign: $PV(h+\Delta h)-PV(h)<0$ for a long risky payoff.
 
 **Debug Checklist (When Your Result Looks Wrong)**
-- Did you convert bp to decimals correctly (1 bp = \(10^{-4}\))?
-- Are you holding recovery \(R\) fixed (and using the same recovery convention)?
+- Did you convert bp to decimals correctly (1 bp = $10^{-4}$)?
+- Are you holding recovery $R$ fixed (and using the same recovery convention)?
 - Is your spread-to-hazard mapping a triangle approximation or a bootstrapped curve?
 
 See `## References` for sources on the hazard model, the credit triangle, and the risk-neutral vs real-world distinction.
@@ -1152,7 +1152,7 @@ See `## References` for sources on the hazard model, the credit triangle, and th
 
 **Curve "kinks":** Piecewise-constant hazards imply $Q(t)$ is continuous but $h(t)$ jumps at knots. Sensitivities may show artifacts at these points. More sophisticated interpolation schemes (piecewise linear hazard, monotone splines) can smooth these effects.
 
-**Arbitrage detection:** No-arbitrage requires \(h(t)\ge 0\), equivalently a non-increasing survival curve. If your bootstrapped curve has \(Q(t_{i+1})>Q(t_i)\), your inputs/interpolation are inconsistent with the model (or you have a data issue).
+**Arbitrage detection:** No-arbitrage requires $h(t)\ge 0$, equivalently a non-increasing survival curve. If your bootstrapped curve has $Q(t_{i+1})>Q(t_i)$, your inputs/interpolation are inconsistent with the model (or you have a data issue).
 
 ### 36.14.3 Verification Tests
 
@@ -1258,31 +1258,31 @@ Before trusting any survival curve, run these checks:
 | 34 | What constrains how inverted a curve can be? | No-arbitrage: $h(t) \geq 0$; implies bounds on spread decline rate |
 | 35 | Spread 500bp, R=40% → hazard? | $h = 0.05/0.60 = 8.33\%$/year |
 | 36 | Hazard 2%, 5 years → survival probability? | $Q(5) = e^{-0.10} = 90.5\%$ |
-| 37 | What is a hazard bump sensitivity (what is being bumped)? | Reprice after adding \(+1\) bp/year (\(10^{-4}\)) to the hazard curve \(h(t)\); report PV change in currency per 1 bp/year for the stated notional (sign depends on position) |
-| 38 | Define CS01 (bump object, size, units, sign). | \(\mathrm{CS01}:=PV(S+1\text{bp})-PV(S)\) where \(S\) is the quoted spread (decimal/yr) and 1 bp \(=10^{-4}\); units are currency per 1 bp; long protection often has CS01 \(>0\), long cash credit often has CS01 \(<0\) |
-| 39 | What is a Cox process / doubly stochastic default? | A model where the hazard rate \(h(t)\) is itself random (defaults are conditionally Poisson given the hazard path) |
+| 37 | What is a hazard bump sensitivity (what is being bumped)? | Reprice after adding $+1$ bp/year ($10^{-4}$) to the hazard curve $h(t)$; report PV change in currency per 1 bp/year for the stated notional (sign depends on position) |
+| 38 | Define CS01 (bump object, size, units, sign). | $\mathrm{CS01}:=PV(S+1\text{bp})-PV(S)$ where $S$ is the quoted spread (decimal/yr) and 1 bp $=10^{-4}$; units are currency per 1 bp; long protection often has CS01 $>0$, long cash credit often has CS01 $<0$ |
+| 39 | What is a Cox process / doubly stochastic default? | A model where the hazard rate $h(t)$ is itself random (defaults are conditionally Poisson given the hazard path) |
 
 ---
 
 ## Mini Problem Set
 
-1. (Compute) Given constant hazard \(h = 1.5\%\)/year, compute \(Q(2)\) and \(\Pr(\tau \le 2)\).
-2. (Compute) If \(Q(3)=0.92\), compute the average constant hazard over \([0,3]\).
-3. (Compute) With \(Q(1)=0.97\), \(Q(2)=0.94\), compute piecewise hazards \(h_1\) (year 0–1) and \(h_2\) (year 1–2).
-4. (Compute) For constant \(h=2\%\), compute \(\Pr(1<\tau\le 3)\).
-5. (Concept) Prove that \(f(t)=h(t)Q(t)\) implies \(\int_0^T f(t)\,dt = 1-Q(T)\).
-6. (Compute) Credit triangle: \(S=80\) bp and \(R=35\%\). Compute \(h\).
-7. (Compute) \(N=\$5\)mm, \(R=40\%\), \(Q(5)=0.88\). Compute undiscounted 5Y expected loss.
-8. (Compute) Piecewise hazard: \(h=1\%\) on \([0,1)\) and \(h=4\%\) on \([1,2)\). Compute \(Q(2)\).
-9. (Compute) Threshold simulation: \(E=1.2\sim\mathrm{Exp}(1)\) and constant \(h=0.04\). Compute \(\tau\).
+1. (Compute) Given constant hazard $h = 1.5\%$/year, compute $Q(2)$ and $\Pr(\tau \le 2)$.
+2. (Compute) If $Q(3)=0.92$, compute the average constant hazard over $[0,3]$.
+3. (Compute) With $Q(1)=0.97$, $Q(2)=0.94$, compute piecewise hazards $h_1$ (year 0–1) and $h_2$ (year 1–2).
+4. (Compute) For constant $h=2\%$, compute $\Pr(1<\tau\le 3)$.
+5. (Concept) Prove that $f(t)=h(t)Q(t)$ implies $\int_0^T f(t)\,dt = 1-Q(T)$.
+6. (Compute) Credit triangle: $S=80$ bp and $R=35\%$. Compute $h$.
+7. (Compute) $N=\$5$mm, $R=40\%$, $Q(5)=0.88$. Compute undiscounted 5Y expected loss.
+8. (Compute) Piecewise hazard: $h=1\%$ on $[0,1)$ and $h=4\%$ on $[1,2)$. Compute $Q(2)$.
+9. (Compute) Threshold simulation: $E=1.2\sim\mathrm{Exp}(1)$ and constant $h=0.04$. Compute $\tau$.
 10. (Concept) When should you use risk-neutral vs real-world default probabilities?
 11. (Concept) List three assumptions behind the credit triangle and one situation where it can be misleading.
-12. (Desk) A report shows \(\mathrm{CS01}=-\$50{,}000\) per 1bp for a bond position. What does the sign mean, and what methodology questions do you ask?
+12. (Desk) A report shows $\mathrm{CS01}=-\$50{,}000$ per 1bp for a bond position. What does the sign mean, and what methodology questions do you ask?
 
 ### Solution Sketches (Selected)
-1. \(Q(2)=e^{-0.015\cdot 2}=e^{-0.03}\approx 0.9704\). PD \(=1-Q(2)\approx 2.96\%\).
-2. \(\bar{h}=-\ln(0.92)/3 \approx 0.0278\), i.e., \(\bar{h}\approx 2.78\%\)/year.
-6. \(h\approx S/(1-R)=0.008/0.65\approx 0.0123\), i.e., \(1.23\%\)/year.
+1. $Q(2)=e^{-0.015\cdot 2}=e^{-0.03}\approx 0.9704$. PD $=1-Q(2)\approx 2.96\%$.
+2. $\bar{h}=-\ln(0.92)/3 \approx 0.0278$, i.e., $\bar{h}\approx 2.78\%$/year.
+6. $h\approx S/(1-R)=0.008/0.65\approx 0.0123$, i.e., $1.23\%$/year.
 10. Use risk-neutral (spread-implied) for valuation/hedging; use real-world/historical for scenario analysis and loss forecasting.
 12. Negative CS01 means PV falls when spreads widen. Ask: what spread is bumped, what is the curve rebuild rule, what recovery is held fixed, and what notional/price scaling is used (per 1bp, per \$1mm, per 100 par).
 
@@ -1291,5 +1291,5 @@ Before trusting any survival curve, run these checks:
 - O’Kane, *Modelling Single-name and Multi-name Credit Derivatives*, “The Hazard Rate Model”; “Calculating the Survival Probability”; “The Credit Triangle”; “Detecting Arbitrage in the Curve”
 - Hull, *Options, Futures, and Other Derivatives*, “Real-World vs. Risk-Neutral Probabilities” (Table 24.2)
 - McNeil, Frey, Embrechts, *Quantitative Risk Management*, hazard rates and cumulative hazard (Chapter 9); “Algorithm 9.14 (univariate threshold simulation)”
-- Glasserman, *Monte Carlo Methods in Financial Engineering*, “Default Times and Valuation” (intensity identity and valuation with \(r+\lambda\))
+- Glasserman, *Monte Carlo Methods in Financial Engineering*, “Default Times and Valuation” (intensity identity and valuation with $r+\lambda$)
 - Brigo, Morini, Pallavicini, *Counterparty Credit Risk, Collateral and Funding*, “Intensity Models” (cumulative intensity transform and inversion)

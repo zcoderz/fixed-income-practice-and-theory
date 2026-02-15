@@ -24,34 +24,34 @@ Follow-on: [Chapter 44 — CDS Relative Value Trading Frameworks](chapters/chapt
 
 ## Setup: Signs, Units, and Risk Definitions
 
-**PV sign:** \(PV>0\) means the position is an asset to the holder.
+**PV sign:** $PV>0$ means the position is an asset to the holder.
 
 **Positions (economic exposure):**
 - **Protection buyer** (long protection) benefits from **spread widening** and from the **default payout**.
 - **Protection seller** (short protection) has the opposite exposure.
 
 **Units:**
-- \(1\text{ bp}=10^{-4}\).
-- Spreads \(S\) are annualized (per year). “200 bp” means \(S=0.02\).
+- $1\text{ bp}=10^{-4}$.
+- Spreads $S$ are annualized (per year). “200 bp” means $S=0.02$.
 
 **Timeline (simplified):**
-- Premium payment dates \(t_1,\ldots,t_n\) with accrual fractions \(\Delta_i\) (ACT/360 unless stated otherwise).
-- Default time \(\tau\). If default occurs between \(t_{i-1}\) and \(t_i\), premium accrues up to \(\tau\) and the contract terminates.
+- Premium payment dates $t_1,\ldots,t_n$ with accrual fractions $\Delta_i$ (ACT/360 unless stated otherwise).
+- Default time $\tau$. If default occurs between $t_{i-1}$ and $t_i$, premium accrues up to $\tau$ and the contract terminates.
 
 **Core objects:**
-- \(Z(t,u)\): discount factor (from the chosen discount curve).
-- \(Q(t,u)=\mathbb{P}(\tau>u\mid \mathcal{F}_t)\): survival probability under the pricing measure.
-- \(R\in[0,1]\): recovery rate (fraction of par); \(LGD:=1-R\).
-- \(N\): notional in currency units.
-- \(S_0\): contractual running spread on an existing CDS.
-- \(S(t,T)\): current par spread for maturity \(T\) (new-trade spread that gives zero PV at \(t\)).
+- $Z(t,u)$: discount factor (from the chosen discount curve).
+- $Q(t,u)=\mathbb{P}(\tau>u\mid \mathcal{F}_t)$: survival probability under the pricing measure.
+- $R\in[0,1]$: recovery rate (fraction of par); $LGD:=1-R$.
+- $N$: notional in currency units.
+- $S_0$: contractual running spread on an existing CDS.
+- $S(t,T)$: current par spread for maturity $T$ (new-trade spread that gives zero PV at $t$).
 
 **Risk measures (chapter conventions; always state bump design on a real desk):**
-- **RPV01** \(RPV01(t,T)\): risky PV01 / risky annuity, defined so the premium-leg PV of a running-spread CDS is \(PV_{\text{prem}}=N\cdot S_0\cdot RPV01(t,T)\). Units: years.
-- **CS01**: \(CS01 := PV(S+1\text{bp})-PV(S)\) where the bump applies to the market par spread curve used to rebuild the survival curve (discounting and recovery held fixed). Units: currency per 1bp for the stated notional. With this convention, long protection has **positive** CS01.
-- **Credit DV01 (common alternate sign)**: some systems report \(-CS01\) so that **short protection** has a positive “DV01”. Do not mix conventions across systems.
-- **VOD (value-on-default)**: PV jump under an immediate-default scenario including (i) loss of pre-default MTM, (ii) protection payment \(LGD\cdot N\), and (iii) accrued premium.
-- **Rec01**: \(Rec01 := PV(R+1\%)-PV(R)\). Units: currency per +1% absolute recovery.
+- **RPV01** $RPV01(t,T)$: risky PV01 / risky annuity, defined so the premium-leg PV of a running-spread CDS is $PV_{\text{prem}}=N\cdot S_0\cdot RPV01(t,T)$. Units: years.
+- **CS01**: $CS01 := PV(S+1\text{bp})-PV(S)$ where the bump applies to the market par spread curve used to rebuild the survival curve (discounting and recovery held fixed). Units: currency per 1bp for the stated notional. With this convention, long protection has **positive** CS01.
+- **Credit DV01 (common alternate sign)**: some systems report $-CS01$ so that **short protection** has a positive “DV01”. Do not mix conventions across systems.
+- **VOD (value-on-default)**: PV jump under an immediate-default scenario including (i) loss of pre-default MTM, (ii) protection payment $LGD\cdot N$, and (iii) accrued premium.
+- **Rec01**: $Rec01 := PV(R+1\%)-PV(R)$. Units: currency per +1% absolute recovery.
 
 ---
 
@@ -63,9 +63,9 @@ Just as duration links yield changes to bond price changes (Chapter 12), `RPV01`
 
 $$\boxed{V(t) = \bigl(S(t,T) - S_0\bigr) \cdot \text{RPV01}(t,T)}$$
 
-This is the PV of a **protection buyer** (long protection) when \(S(t,T)\) and `RPV01` are computed from the same pricing inputs. A protection seller has the opposite PV sign.
+This is the PV of a **protection buyer** (long protection) when $S(t,T)$ and `RPV01` are computed from the same pricing inputs. A protection seller has the opposite PV sign.
 
-**Derivation (one line):** write the PV per unit notional as \(V(t)=PV_{\text{prot}}(t,T)-S_0\cdot \text{RPV01}(t,T)\). Define the par spread \(S(t,T)\) by setting \(0=PV_{\text{prot}}(t,T)-S(t,T)\cdot \text{RPV01}(t,T)\), so \(PV_{\text{prot}}(t,T)=S(t,T)\cdot \text{RPV01}(t,T)\). Substituting gives the boxed identity.
+**Derivation (one line):** write the PV per unit notional as $V(t)=PV_{\text{prot}}(t,T)-S_0\cdot \text{RPV01}(t,T)$. Define the par spread $S(t,T)$ by setting $0=PV_{\text{prot}}(t,T)-S(t,T)\cdot \text{RPV01}(t,T)$, so $PV_{\text{prot}}(t,T)=S(t,T)\cdot \text{RPV01}(t,T)$. Substituting gives the boxed identity.
 
 **Definition (premium-leg PV):** `RPV01` is defined so that the remaining premium leg PV of a running-spread CDS is
 
@@ -78,7 +78,7 @@ $$
 \;+\;\sum_{n=1}^{N} \int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\, Z(t,s)\,(-dQ(t,s)).
 $$
 
-Here \(\Delta(t_{n-1},s)\) is the year-fraction accrued from \(t_{n-1}\) up to \(s\) (so the integrand measures “accrued premium if default occurs at \(s\)”).
+Here $\Delta(t_{n-1},s)$ is the year-fraction accrued from $t_{n-1}$ up to $s$ (so the integrand measures “accrued premium if default occurs at $s$”).
 
 A common approximation replaces each accrued-premium integral by a midpoint/trapezoidal rule, yielding:
 
@@ -94,7 +94,7 @@ The trapezoidal weighting $(Q(t,t_{n-1}) + Q(t,t_n))/2$ captures the approximati
 
 CS01 measures the PV change for a +1 bp move in the market spread quote(s), under a specified bump design.
 
-**Chapter definition (CS01):** Let \(PV(S)\) denote the CDS PV when the market **par spread curve** is \(S(\cdot)\) and the survival curve is calibrated to those quotes. Define:
+**Chapter definition (CS01):** Let $PV(S)$ denote the CDS PV when the market **par spread curve** is $S(\cdot)$ and the survival curve is calibrated to those quotes. Define:
 
 $$\boxed{\text{CS01} := PV(S+1\text{bp})-PV(S).}$$
 
@@ -110,7 +110,7 @@ $$\boxed{\text{Credit DV01} := -\bigl(PV(S+1\text{bp})-PV(S)\bigr)=-\text{CS01}.
 
 Always check the definition before sizing hedges.
 
-**Near-par approximation (RPV01 scaling):** If the contract is near par (\(S_0 \approx S(t,T)\)) and you ignore the fact that `RPV01` itself changes under the bump, then the MTM identity implies:
+**Near-par approximation (RPV01 scaling):** If the contract is near par ($S_0 \approx S(t,T)$) and you ignore the fact that `RPV01` itself changes under the bump, then the MTM identity implies:
 
 $$\Delta PV \approx N \cdot \text{RPV01}(t,T) \cdot \Delta S,$$
 
@@ -118,7 +118,7 @@ so
 
 $$\text{CS01} \approx N \cdot \text{RPV01}(t,T) \cdot 10^{-4}.$$
 
-When the contract is away from par (\(S_0\neq S(t,T)\)), the exact CS01 differs from the simple \(N\cdot RPV01\cdot 1\text{bp}\) scaling because the calibrated survival curve (and therefore `RPV01`) moves under the bump.
+When the contract is away from par ($S_0\neq S(t,T)$), the exact CS01 differs from the simple $N\cdot RPV01\cdot 1\text{bp}$ scaling because the calibrated survival curve (and therefore `RPV01`) moves under the bump.
 
 This parallels the rates DV01 formula from Chapter 11, where DV01 $\approx$ Duration $\times$ Price $\times$ 0.0001.
 
@@ -150,7 +150,7 @@ This produces a "hazard DV01" useful for understanding model sensitivities but n
 > **Why it matters:** Two “CS01” numbers can differ materially if one system bumps par spreads and rebuilds survival, while another holds the survival curve fixed (or bumps hazard nodes). Hedge ratios built from mismatched definitions can be wrong.
 > **Quick check:** When reconciling two CS01s, ask: (i) what curve was bumped (par spreads vs hazard), (ii) was the survival curve rebuilt, and (iii) were discounting and recovery held fixed?
 
-### 43.1.4 Why CS01 Deviates from \(N \cdot RPV01 \cdot 1\text{bp}\)
+### 43.1.4 Why CS01 Deviates from $N \cdot RPV01 \cdot 1\text{bp}$
 
 The scaling
 
@@ -158,10 +158,10 @@ $$\text{CS01} \approx N \cdot \text{RPV01}(t,T) \cdot 10^{-4}$$
 
 is a useful **near-par** back-of-the-envelope check, but it is not an identity under the chapter’s CS01 definition (par-spread bump with survival-curve rebuild). Two effects create a wedge:
 
-1. **Curve rebuild:** bumping market par spreads changes the calibrated survival probabilities \(Q(t,\cdot)\), which changes both the protection leg PV and `RPV01`.
-2. **Moneyness:** when \(S_0 \neq S(t,T)\), the PV is not “just” \(S-S_0\) times a fixed annuity; the annuity itself moves with the curve.
+1. **Curve rebuild:** bumping market par spreads changes the calibrated survival probabilities $Q(t,\cdot)$, which changes both the protection leg PV and `RPV01`.
+2. **Moneyness:** when $S_0 \neq S(t,T)$, the PV is not “just” $S-S_0$ times a fixed annuity; the annuity itself moves with the curve.
 
-**Check:** In distressed limits, `RPV01` can become very small (few expected premium payments), so CS01 can look small even though `VOD`/JTD remains on the order of \((1-R)N\). This is why CS01-hedged does not imply default-hedged.
+**Check:** In distressed limits, `RPV01` can become very small (few expected premium payments), so CS01 can look small even though `VOD`/JTD remains on the order of $(1-R)N$. This is why CS01-hedged does not imply default-hedged.
 
 ---
 
@@ -204,12 +204,12 @@ If you hedge CS01 to zero using an index or different single-name:
 
 While spread movements produce continuous P&L, default is a discontinuous event that can overwhelm all other risk factors. A protection seller might have hedged CS01 to zero yet still face a large loss upon default. This is the essence of jump-to-default (JTD) risk.
 
-Using the MTM identity $V(t) = \bigl(S(t,T) - S_0\bigr)\cdot \text{RPV01}(t,T)$, a long-protection position's MTM loss from spread tightening is **bounded** because spreads cannot go below zero. If $S(t,T) \\to 0$, then $V(t) \\to -S_0\\cdot \\text{RPV01}\\times N$.
+Using the MTM identity $V(t) = \bigl(S(t,T) - S_0\bigr)\cdot \text{RPV01}(t,T)$, a long-protection position's MTM loss from spread tightening is **bounded** because spreads cannot go below zero. If $S(t,T) \to 0$, then $V(t) \to -S_0\cdot \text{RPV01}\times N$.
 
-**Example:** With $N=\\$10\\text{mm}$, $S_0 = 200$ bp, and $\\text{RPV01} \\approx 4.0$, the maximum MTM loss from spread tightening is about:
-$$10{,}000{,}000 \\times 0.02 \\times 4.0 = \\$800{,}000$$
+**Example:** With $N=\$10\text{mm}$, $S_0 = 200$ bp, and $\text{RPV01} \approx 4.0$, the maximum MTM loss from spread tightening is about:
+$$10{,}000{,}000 \times 0.02 \times 4.0 = \$800{,}000$$
 
-By contrast, for a **protection seller**, a reference-entity default creates a discrete loss of roughly $(1-R)N$ (e.g., $\\$6\\text{mm}$ at 40% recovery). This scale difference is why a CS01 hedge can look “tight” in daily P&L yet fail catastrophically on default.
+By contrast, for a **protection seller**, a reference-entity default creates a discrete loss of roughly $(1-R)N$ (e.g., $\$6\text{mm}$ at 40\% recovery). This scale difference is why a CS01 hedge can look “tight” in daily P&L yet fail catastrophically on default.
 
 
 
@@ -217,9 +217,9 @@ By contrast, for a **protection seller**, a reference-entity default creates a d
 
 In this chapter, define `VOD` as the **change in PV caused by default** under an *immediate default* scenario (pre-default MTM to post-default settlement), not the post-default value itself. For a single-name CDS, you can decompose the default jump into three pieces:
 
-1. **The contract terminates:** right after default, there are no remaining CDS cashflows, so the post-default MTM is \(0\). This contributes \(-V(t)\).
-2. **Protection settlement:** the protection buyer receives \(LGD=1-R\) per unit notional (the seller pays it).
-3. **Accrued premium:** the protection buyer pays premium accrued from the last premium date up to default. If \(\Delta_0\) is the accrual year fraction since the last payment date, this is \(\Delta_0 S_0\) per unit notional.
+1. **The contract terminates:** right after default, there are no remaining CDS cashflows, so the post-default MTM is $0$. This contributes $-V(t)$.
+2. **Protection settlement:** the protection buyer receives $LGD=1-R$ per unit notional (the seller pays it).
+3. **Accrued premium:** the protection buyer pays premium accrued from the last premium date up to default. If $\Delta_0$ is the accrual year fraction since the last payment date, this is $\Delta_0 S_0$ per unit notional.
 
 Putting this together (per unit notional):
 
@@ -227,13 +227,13 @@ $$\boxed{\text{VOD} = \begin{cases} -V(t) - (1-R) + \Delta_0 S_0 & \text{protect
 
 ### 43.2.5 Why VOD Can Be “Small” Right Before Default
 
-VOD is a *jump* relative to the pre-default MTM \(V(t)\). In a stylized picture where the market has already priced a near-certain default (spreads have widened a lot before the event), the pre-default MTM of long protection can get close to the default payoff net of accrued premium. In that limit, the incremental jump at default can be small because the MTM already reflected most of the loss-given-default cashflow.
+VOD is a *jump* relative to the pre-default MTM $V(t)$. In a stylized picture where the market has already priced a near-certain default (spreads have widened a lot before the event), the pre-default MTM of long protection can get close to the default payoff net of accrued premium. In that limit, the incremental jump at default can be small because the MTM already reflected most of the loss-given-default cashflow.
 
 ### 43.2.6 JTD (Jump-to-Default) Risk and Reporting Conventions
 
 In this chapter, **jump-to-default (JTD) risk** means exposure to the PV jump at default. With the definitions above, the immediate-default P&L jump for a CDS position is exactly `VOD`.
 
-For a par CDS (\(V(t)=0\)), a protection buyer has:
+For a par CDS ($V(t)=0$), a protection buyer has:
 
 $$\text{JTD}=\text{VOD}=(1-R)-\Delta_0 S_0 \approx (1-R)$$
 
@@ -248,8 +248,8 @@ and the seller has the opposite sign.
 ### 43.3.1 Recovery Sensitivity
 
 Recovery enters CDS risk in two distinct ways:
-1. **Default-contingent payout:** the settlement cashflow at default scales with \(LGD=1-R\), so recovery has first-order impact on `VOD`/JTD.
-2. **Calibration interaction:** if you re-calibrate the survival curve to keep market spreads fixed after changing \(R\), then \(Q(t,\cdot)\) changes too and affects both legs.
+1. **Default-contingent payout:** the settlement cashflow at default scales with $LGD=1-R$, so recovery has first-order impact on `VOD`/JTD.
+2. **Calibration interaction:** if you re-calibrate the survival curve to keep market spreads fixed after changing $R$, then $Q(t,\cdot)$ changes too and affects both legs.
 
 To isolate the mechanics, first hold survival probabilities fixed. For a protection buyer:
 
@@ -257,17 +257,17 @@ $$V_{\text{buyer}}(t) = (1-R) A(t) - S_0 \cdot \text{RPV01}(t,T)$$
 
 where
 $$A(t) := \int_t^T Z(t,s)(-dQ(t,s))$$
-is the PV of a unit-\(LGD\) protection leg (sometimes called a “default annuity”). Taking the derivative:
+is the PV of a unit-$LGD$ protection leg (sometimes called a “default annuity”). Taking the derivative:
 
 $$\boxed{\frac{\partial V_{\text{buyer}}}{\partial R} = -A(t)}$$
 
 **Interpretation:** Protection buyer loses value when assumed recovery increases—a higher recovery means smaller protection payment.
 
-**Rec01 / Recovery Rate DV01 (chapter definition):** PV change for an absolute +1% change in recovery:
+**Rec01 / Recovery Rate DV01 (chapter definition):** PV change for an absolute +1\% change in recovery:
 
 $$\text{Rec01} = \frac{\partial V}{\partial R} \times 0.01$$
 
-**Check (units + toy magnitude):** \(A(t)\) is a PV *per unit notional* (unitless fraction, like “cents per dollar of notional”). If \(A(t)=0.08\) and \(N=\$10\text{mm}\), then \(\partial V_{\text{buyer}}/\partial R = -0.08\times \$10\text{mm}=-\$800{,}000\) per absolute \(+1.00\) change in \(R\). So \(Rec01 \approx -\$8{,}000\) per \(+1\%\) recovery bump for that notional under the “hold \(Q\) fixed” convention.
+**Check (units + toy magnitude):** $A(t)$ is a PV *per unit notional* (unitless fraction, like “cents per dollar of notional”). If $A(t)=0.08$ and $N=\$10\text{mm}$, then $\partial V_{\text{buyer}}/\partial R = -0.08\times \$10\text{mm}=-\$800{,}000$ per absolute $+1.00$ change in $R$. So $Rec01 \approx -\$8{,}000$ per $+1\%$ recovery bump for that notional under the “hold $Q$ fixed” convention.
 
 ### 43.3.2 The Calibration Interaction
 
@@ -279,17 +279,17 @@ If you recalibrate to fixed market spreads after changing recovery, hazard rates
 - Higher assumed $R$ → higher implied $\lambda$ (to match same spread)
 - Protection leg PV changes from both $R$ and $Q$ movements
 
-This is why “recovery sensitivity” is not a single number unless you specify what is held fixed: \(R\) only, or \(R\) plus a recalibrated curve that keeps spreads fixed.
+This is why “recovery sensitivity” is not a single number unless you specify what is held fixed: $R$ only, or $R$ plus a recalibrated curve that keeps spreads fixed.
 
-**Check (par-contract intuition):** if you define Rec01 by bumping \(R\) and **rebuilding the survival curve to keep market par spreads fixed** (the curve-risk convention from Chapter 42), then an on-market CDS that is itself one of the calibration instruments often stays close to \(PV=0\) after the rebuild—so its Rec01 can be small “by construction”. Off-market contracts (or any instrument that depends on the absolute hazard level, not just par repricing) can have materially non-zero Rec01 under the same bump-and-rebuild definition.
+**Check (par-contract intuition):** if you define Rec01 by bumping $R$ and **rebuilding the survival curve to keep market par spreads fixed** (the curve-risk convention from Chapter 42), then an on-market CDS that is itself one of the calibration instruments often stays close to $PV=0$ after the rebuild—so its Rec01 can be small “by construction”. Off-market contracts (or any instrument that depends on the absolute hazard level, not just par repricing) can have materially non-zero Rec01 under the same bump-and-rebuild definition.
 
 ### 43.3.3 Auction Uncertainty and Real-World Recovery
 
-Market practice uses auctions to determine settlement price after credit events (see Chapter 40). If the auction final price is \(FP\) (price per 1 of par), then the cash-settlement protection payment is:
+Market practice uses auctions to determine settlement price after credit events (see Chapter 40). If the auction final price is $FP$ (price per 1 of par), then the cash-settlement protection payment is:
 
 $$\text{Protection payout} = (1 - FP) \times N$$
 
-Because the final price (and the implied recovery) is uncertain, risk management typically uses recovery scenarios (e.g., 20%, 40%, 60%) rather than a single point estimate. A simple sanity check: if your model assumes \(R=40\%\) but the realized recovery is \(20\%\), then \(LGD\) rises from \(60\%\) to \(80\%\), increasing the protection payout by \(\frac{80}{60}-1 \approx 33\%\) (before accrued premium).
+Because the final price (and the implied recovery) is uncertain, risk management typically uses recovery scenarios (e.g., 20\%, 40\%, 60\%) rather than a single point estimate. A simple sanity check: if your model assumes $R=40\%$ but the realized recovery is $20\%$, then $LGD$ rises from $60\%$ to $80\%$, increasing the protection payout by $\frac{80}{60}-1 \approx 33\%$ (before accrued premium).
 
 ---
 
@@ -348,9 +348,9 @@ Understanding curve shape allows you to express views on credit deterioration or
 
 > **Desk Reality:** “Curve flip” trades are often steepeners on inverted curves, sized to be roughly parallel-CS01 neutral.
 > **Common break:** A CS01-neutral steepener can still be meaningfully **long or short JTD** (and sensitive to recovery), because default affects legs differently (notional, accrual, and maturity).
-> **What to check:** Compute `VOD`/JTD for each leg under the same \(R\) and \(\Delta_0\), then net them.
+> **What to check:** Compute `VOD`/JTD for each leg under the same $R$ and $\Delta_0$, then net them.
 
-**Check (why CS01-neutral often implies non-zero net JTD):** consider a 1s5s steepener: long 1Y protection notional \(N_1\), short 5Y protection notional \(N_5\). A quick CS01-neutral sizing uses \(N_1 \cdot RPV01_{1Y} \approx N_5 \cdot RPV01_{5Y}\). If \(RPV01_{1Y}\approx 1.0\) and \(RPV01_{5Y}\approx 4.0\), then \(N_5\approx 0.25N_1\). The net default payoff scale is roughly \(LGD\,(N_1-N_5)\approx 0.75\,LGD\,N_1\): you are still materially **long default protection notional** even though parallel CS01 is near zero.
+**Check (why CS01-neutral often implies non-zero net JTD):** consider a 1s5s steepener: long 1Y protection notional $N_1$, short 5Y protection notional $N_5$. A quick CS01-neutral sizing uses $N_1 \cdot RPV01_{1Y} \approx N_5 \cdot RPV01_{5Y}$. If $RPV01_{1Y}\approx 1.0$ and $RPV01_{5Y}\approx 4.0$, then $N_5\approx 0.25N_1$. The net default payoff scale is roughly $LGD\,(N_1-N_5)\approx 0.75\,LGD\,N_1$: you are still materially **long default protection notional** even though parallel CS01 is near zero.
 
 ### 43.4.3 The Limitation of Parallel CS01
 
@@ -360,20 +360,20 @@ This parallels the rates world: just as key-rate DV01s (Chapter 14) decompose in
 
 ### 43.4.4 Equivalent Hedge Notionals (Bucketed CS01)
 
-Parallel CS01 is a single number; curve hedging needs a **vector**. Pick standard liquid tenors \(T_1,\ldots,T_m\) (the same points used to build the survival curve in Chapter 42), and define **bucket CS01s** by bumping *one* par spread quote at a time and rebuilding the curve:
+Parallel CS01 is a single number; curve hedging needs a **vector**. Pick standard liquid tenors $T_1,\ldots,T_m$ (the same points used to build the survival curve in Chapter 42), and define **bucket CS01s** by bumping *one* par spread quote at a time and rebuilding the curve:
 
 $$\text{CS01}_i := PV(\ldots,S_i+1\text{bp},\ldots)-PV(\ldots,S_i,\ldots).$$
 
-Let \(s \in \mathbb{R}^m\) be your portfolio’s bucket-CS01 vector. For each candidate hedge instrument \(j\) (typically an on-market CDS at one of the curve tenors), compute its own bucket-CS01 vector \(h^{(j)} \in \mathbb{R}^m\). If you choose \(k\) hedges with notionals \(n_1,\ldots,n_k\), your post-hedge bucket exposure is:
+Let $s \in \mathbb{R}^m$ be your portfolio’s bucket-CS01 vector. For each candidate hedge instrument $j$ (typically an on-market CDS at one of the curve tenors), compute its own bucket-CS01 vector $h^{(j)} \in \mathbb{R}^m$. If you choose $k$ hedges with notionals $n_1,\ldots,n_k$, your post-hedge bucket exposure is:
 
 $$s_{\text{net}} = s + \sum_{j=1}^{k} n_j\, h^{(j)}.$$
 
-**Equivalent hedge notionals** are the \(n_j\) that make selected components of \(s_{\text{net}}\) close to zero (exactly zero if the system is square and well-conditioned; otherwise least-squares).
+**Equivalent hedge notionals** are the $n_j$ that make selected components of $s_{\text{net}}$ close to zero (exactly zero if the system is square and well-conditioned; otherwise least-squares).
 
-**Toy example (2-bucket hedge, diagonal approximation):** suppose your book has bucket CS01s (long protection convention) of \(s=(+12{,}000,\ +8{,}000)\) \(\$/\text{bp}\) to the (3Y, 7Y) quotes. Suppose a \$10mm notional on-market 3Y CDS has bucket CS01 \((+3{,}000,\ 0)\) \(\$/\text{bp}\) and a \$10mm on-market 7Y CDS has \((0,\ +6{,}000)\) \(\$/\text{bp}\). To neutralize, choose hedge notionals (in units of \$10mm notional)
-\[
+**Toy example (2-bucket hedge, diagonal approximation):** suppose your book has bucket CS01s (long protection convention) of $s=(+12{,}000,\ +8{,}000)$ $\$/\text{bp}$ to the (3Y, 7Y) quotes. Suppose a \$10mm notional on-market 3Y CDS has bucket CS01 $(+3{,}000,\ 0)$ $\$/\text{bp}$ and a \$10mm on-market 7Y CDS has $(0,\ +6{,}000)$ $\$/\text{bp}$. To neutralize, choose hedge notionals (in units of \$10mm notional)
+$$
 n_3 = -12{,}000/3{,}000=-4.0,\qquad n_7=-8{,}000/6{,}000\approx -1.33.
-\]
+$$
 Negative notionals mean you **sell protection** in those hedges (negative CS01) to offset the book’s positive CS01.
 
 **Check:** In practice the hedge response matrix is often “somewhat local” (a tenor mostly loads on nearby curve points), but it is not perfectly diagonal once you include bootstrap/interpolation details. Always validate by repricing the full book under the same bucket bumps used to compute the hedge.
@@ -413,7 +413,7 @@ As with rates key-rate hedging, this construction is only a first-order hedge ar
 
 Spread convexity (often called “spread gamma”) is the **second-order** sensitivity of CDS PV to spread moves, under a specified bump design (parallel vs bucket, rebuild vs hold-fixed curve).
 
-For a parallel bump design, let \(V(\delta)\) be PV after shifting the market par-spread curve by \(\delta\) (in bp) and rebuilding the survival curve. Then:
+For a parallel bump design, let $V(\delta)$ be PV after shifting the market par-spread curve by $\delta$ (in bp) and rebuilding the survival curve. Then:
 
 $$\Gamma_S := \frac{\partial^2 V}{\partial \delta^2}.$$
 
@@ -421,7 +421,7 @@ A practical finite-difference estimate is:
 
 $$\Gamma_S \approx \frac{V(+1\text{bp})-2V(0)+V(-1\text{bp})}{(1\text{bp})^2}.$$
 
-**Units:** currency per bp\(^2\) for the stated notional.
+**Units:** currency per bp$^2$ for the stated notional.
 
 ### 43.5.2 Intuition: Why Long Protection Often Has Negative Gamma
 
@@ -429,7 +429,7 @@ The nonlinearity comes from the fact that the calibrated survival curve changes 
 
 With the chapter’s conventions (long protection has positive CS01), this shrinking marginal sensitivity corresponds to **negative** spread gamma for long protection (and positive gamma for short protection).
 
-**Check (cap argument):** For extremely wide spreads, the PV of long protection is bounded above by something close to the default payoff \((1-R)N\) net of accrued premium, so the first derivative with respect to spread must eventually approach zero. That implies negative curvature somewhere along the way.
+**Check (cap argument):** For extremely wide spreads, the PV of long protection is bounded above by something close to the default payoff $(1-R)N$ net of accrued premium, so the first derivative with respect to spread must eventually approach zero. That implies negative curvature somewhere along the way.
 
 ### 43.5.3 When It Matters (P&L Explain and Stress)
 
@@ -437,7 +437,7 @@ A second-order P&L approximation is:
 
 $$\Delta V \approx \text{CS01}\cdot \Delta \delta + \frac{1}{2}\Gamma_S(\Delta \delta)^2.$$
 
-For small daily moves, the quadratic term is usually small; for large shocks or distressed names, it can be material. In practice, the robust way to capture convexity is to **reprice under scenarios** (e.g., \(\pm 50\) bp, \(\pm 200\) bp, curve twists) rather than rely on a single gamma number.
+For small daily moves, the quadratic term is usually small; for large shocks or distressed names, it can be material. In practice, the robust way to capture convexity is to **reprice under scenarios** (e.g., $\pm 50$ bp, $\pm 200$ bp, curve twists) rather than rely on a single gamma number.
 
 ---
 
@@ -449,7 +449,7 @@ The cash–CDS basis is the spread difference between a CDS quote and a bond spr
 
 $$\boxed{\text{Cash--CDS basis} := S_{\text{CDS}} - s_{\text{bond}}.}$$
 
-Here \(S_{\text{CDS}}\) is a par CDS spread, and \(s_{\text{bond}}\) is a bond spread measure such as an asset-swap spread or a Z-spread for a representative bond.
+Here $S_{\text{CDS}}$ is a par CDS spread, and $s_{\text{bond}}$ is a bond spread measure such as an asset-swap spread or a Z-spread for a representative bond.
 
 **Important:** there is no single universal basis definition because you must specify (i) which bond(s), (ii) which spread measure, and (iii) how you treat coupons, accrual, and discounting. Always state your basis definition before comparing levels across names or time.
 
@@ -463,18 +463,18 @@ Here \(S_{\text{CDS}}\) is a par CDS spread, and \(s_{\text{bond}}\) is a bond s
 
 Buying CDS against a bond can remove a large part of **default loss**, but it does not, by itself, remove **mark-to-market** risk from spread/basis moves.
 
-**Default-hedge sizing (first-order):** Let a bond have face \(N_{\text{bond}}\), dirty price \(P\) per 100 of face, and assume recovery \(R\) (as a fraction of par). A stylized default loss on the bond is:
+**Default-hedge sizing (first-order):** Let a bond have face $N_{\text{bond}}$, dirty price $P$ per 100 of face, and assume recovery $R$ (as a fraction of par). A stylized default loss on the bond is:
 
 $$\text{Loss}_{\text{bond}} \approx \left(\frac{P}{100} - R\right) N_{\text{bond}}.$$
 
-A CDS protection payment is \((1-R)N_{\text{CDS}}\). Matching default payout gives:
+A CDS protection payment is $(1-R)N_{\text{CDS}}$. Matching default payout gives:
 
 $$\boxed{N_{\text{CDS}} \approx \frac{\frac{P}{100}-R}{1-R}\,N_{\text{bond}}.}$$
 
 **Checks (limiting cases + toy sizing):**
-- If \(P=100\) (bond at par), then \(N_{\text{CDS}}\approx N_{\text{bond}}\): you hedge roughly “face-for-face”.
-- If \(P=85\) and \(R=40\%\), then \(N_{\text{CDS}}\approx \frac{0.85-0.40}{0.60}N_{\text{bond}}=0.75\,N_{\text{bond}}\): you need less CDS notional because the bond is already below par.
-- If \(P/100 < R\), the stylized formula implies a negative CDS notional (suggesting the bond could *gain* on default in that crude model). Treat this as a warning that you are in a distressed pricing regime where clean “default loss” approximations can break; size hedges with a full scenario repricing instead.
+- If $P=100$ (bond at par), then $N_{\text{CDS}}\approx N_{\text{bond}}$: you hedge roughly “face-for-face”.
+- If $P=85$ and $R=40\%$, then $N_{\text{CDS}}\approx \frac{0.85-0.40}{0.60}N_{\text{bond}}=0.75\,N_{\text{bond}}$: you need less CDS notional because the bond is already below par.
+- If $P/100 < R$, the stylized formula implies a negative CDS notional (suggesting the bond could *gain* on default in that crude model). Treat this as a warning that you are in a distressed pricing regime where clean “default loss” approximations can break; size hedges with a full scenario repricing instead.
 
 Even with this sizing, **basis risk remains** because the bond’s spread measure and the CDS spread can move differently (liquidity, funding, and instrument-specific technicals). In addition, a bond+CDS package can retain interest-rate DV01 unless you separately hedge rates.
 
@@ -499,9 +499,9 @@ A comprehensive CDS risk limit framework includes:
 
 | Limit Type | Metric | Rationale |
 |------------|--------|-----------|
-| CS01 | $/bp per name, sector, total | Controls spread exposure |
-| JTD | $ per name, concentration | Controls default loss |
-| Recovery scenarios | PV change at R±10% | Controls recovery uncertainty |
+| CS01 | \$ per bp per name, sector, total | Controls spread exposure |
+| JTD | \$ per name, concentration | Controls default loss |
+| Recovery scenarios | PV change at R±10\% | Controls recovery uncertainty |
 | Curve exposure | Bucket CS01 limits | Controls term structure risk |
 | Basis | Cash-CDS mismatch limits | Controls basis divergence |
 | Concentration | Notional per issuer | Prevents single-name blow-up |
@@ -531,12 +531,12 @@ Diversification can reduce higher-order effects in aggregate, but it does not el
 
 **Default scenarios:**
 - Largest single-name default at assumed recovery
-- Largest single-name default at recovery = 10%
+- Largest single-name default at recovery = 10\%
 - Multiple correlated defaults (sector stress)
 
 **Recovery scenarios:**
-- All recovery assumptions +10% / -10%
-- Distressed names: recovery at 5% vs. 40% assumption
+- All recovery assumptions +10\% / -10\%
+- Distressed names: recovery at 5\% vs. 40\% assumption
 
 **Basis scenarios:**
 - Cash-CDS basis widens 50bp
@@ -608,20 +608,20 @@ A well-functioning risk system should have a **small** residual most days; persi
 - Default scenario date: 2026-02-18 (between coupons)
 
 **Inputs**
-- Notional: \(N=\$10{,}000{,}000\)
-- Contract running spread: \(S_0=150\) bp
-- Current market par spread (5Y): \(S(t,T)=175\) bp
-- `RPV01`: \(\text{RPV01}(t,T)=4.20\) years (from the calibrated survival curve)
-- Recovery: \(R=40\%\) (so \(LGD=60\%\))
+- Notional: $N=\$10{,}000{,}000$
+- Contract running spread: $S_0=150$ bp
+- Current market par spread (5Y): $S(t,T)=175$ bp
+- `RPV01`: $\text{RPV01}(t,T)=4.20$ years (from the calibrated survival curve)
+- Recovery: $R=40\%$ (so $LGD=60\%$)
 - Day count for premium accrual: ACT/360
-- Proxy hedge: 5Y CDS index with \(\text{CS01}_{\text{idx}} = \$3{,}800/\text{bp}\) per \$10mm index notional (assumed)
-- Index weight of the name: \(w=1\%\) (assumed; used only to illustrate default payoff dilution)
+- Proxy hedge: 5Y CDS index with $\text{CS01}_{\text{idx}} = \$3{,}800/\text{bp}$ per \$10mm index notional (assumed)
+- Index weight of the name: $w=1\%$ (assumed; used only to illustrate default payoff dilution)
 
 **Outputs (What You Produce)**
-- PV (long protection): \(PV \approx \$105{,}000\)
-- Parallel `CS01` (quick check): \(\text{CS01} \approx +\$4{,}200/\text{bp}\)
-- `VOD`/JTD for immediate default on 2026-02-18: \(\text{VOD} \approx +\$5.87\text{mm}\)
-- Index hedge notional to neutralize parallel CS01: sell protection on \(\$11.05\text{mm}\) index notional
+- PV (long protection): $PV \approx \$105{,}000$
+- Parallel `CS01` (quick check): $\text{CS01} \approx +\$4{,}200/\text{bp}$
+- `VOD`/JTD for immediate default on 2026-02-18: $\text{VOD} \approx +\$5.87\text{mm}$
+- Index hedge notional to neutralize parallel CS01: sell protection on $\$11.05\text{mm}$ index notional
 
 **Step-by-step**
 1. **Translate quote to PV (MTM identity):**
@@ -629,42 +629,42 @@ A well-functioning risk system should have a **small** residual most days; persi
 2. **Compute a quick CS01 check:**
    $$\text{CS01} \approx N \cdot \text{RPV01} \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.20 \cdot 10^{-4} = \$4{,}200/\text{bp}.$$
 3. **Accrued premium to default:**
-   - Days from 2025-12-20 to 2026-02-18: \(60\) days, so \(\Delta_0 = 60/360 = 0.1667\).
-   - Accrued premium \(= N\,S_0\,\Delta_0 \approx 10{,}000{,}000 \cdot 0.0150 \cdot 0.1667 \approx \$25{,}000\).
+   - Days from 2025-12-20 to 2026-02-18: $60$ days, so $\Delta_0 = 60/360 = 0.1667$.
+   - Accrued premium $= N\,S_0\,\Delta_0 \approx 10{,}000{,}000 \cdot 0.0150 \cdot 0.1667 \approx \$25{,}000$.
 4. **Compute VOD (immediate-default PV jump):**
    $$\text{VOD} = -PV + (1-R)N - N S_0 \Delta_0 \approx -105{,}000 + 6{,}000{,}000 - 25{,}000 \approx \$5{,}870{,}000.$$
 5. **Size the proxy hedge (parallel CS01-neutral):**
-   - Index CS01 per \$1mm notional is \(\$3{,}800/10 = \$380/\text{bp}\).
-   - Required index notional to offset \(\$4{,}200/\text{bp}\): \(N_{\text{idx}} \approx 4{,}200/380 \approx \$11.05\text{mm}\).
+   - Index CS01 per \$1mm notional is $\$3{,}800/10 = \$380/\text{bp}$.
+   - Required index notional to offset $\$4{,}200/\text{bp}$: $N_{\text{idx}} \approx 4{,}200/380 \approx \$11.05\text{mm}$.
    - Implement by **selling** index protection (negative CS01) to offset the single-name’s positive CS01.
 
 **Cashflows (table; long protection, illustrative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-03-20 | \(-N S_0 \Delta\) \(\approx -\$37{,}500\) | scheduled quarterly premium if survive (\(\Delta \approx 0.25\)) |
-| 2026-02-18 (default) | \(+(1-R)N - N S_0 \Delta_0\) \(\approx +\$5{,}975{,}000\) | protection payment minus accrued premium; contract terminates |
+| 2026-03-20 | $-N S_0 \Delta$ $\approx -\$37{,}500$ | scheduled quarterly premium if survive ($\Delta \approx 0.25$) |
+| 2026-02-18 (default) | $+(1-R)N - N S_0 \Delta_0$ $\approx +\$5{,}975{,}000$ | protection payment minus accrued premium; contract terminates |
 
 **P&L / Risk Interpretation**
-- The PV (\(\$105k\)) is small compared to the default jump: the position is primarily **event risk**.
-- The CS01 (\(\$4.2k/\text{bp}\)) means a 10 bp widening is only about \(+\$42k\) of MTM.
+- The PV ($\$105k$) is small compared to the default jump: the position is primarily **event risk**.
+- The CS01 ($\$4.2k/\text{bp}$) means a 10 bp widening is only about $+\$42k$ of MTM.
 - A proxy hedge can neutralize systematic spread moves while leaving most name-default risk untouched.
 
-To see the proxy limitation, note that index default payoffs are diluted by constituent weights. A default produces an index payoff of about \(w\cdot (1-R)\,N_{\text{idx}}\) on the index leg. With \(w=1\%\), \(R=40\%\), and \(N_{\text{idx}}=\$11.05\text{mm}\), that is only:
+To see the proxy limitation, note that index default payoffs are diluted by constituent weights. A default produces an index payoff of about $w\cdot (1-R)\,N_{\text{idx}}$ on the index leg. With $w=1\%$, $R=40\%$, and $N_{\text{idx}}=\$11.05\text{mm}$, that is only:
 
 $$0.01 \cdot 0.60 \cdot 11.05\text{mm} \approx \$66{,}300,$$
 
-far smaller than the \(\approx \$5.87\text{mm}\) name-level `VOD`.
+far smaller than the $\approx \$5.87\text{mm}$ name-level `VOD`.
 
 **Sanity Checks**
 - **Units:** spread (1/yr) × `RPV01` (yr) × notional (currency) = currency PV.
 - **Sign:** long protection has positive CS01 and positive VOD.
-- **Limit:** if \(S(t,T)=S_0\), PV \(\approx 0\) by construction.
+- **Limit:** if $S(t,T)=S_0$, PV $\approx 0$ by construction.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Are you long or short protection (sign of PV/CS01/VOD)?
 - Does your PV include accrued premium, or is it a “clean PV”?
 - Did you use ACT/360 for CDS accrual and the right accrual start date (IMM coupon dates)?
-- For CS01: did you bump par quotes and rebuild the survival curve, or hold \(Q\) fixed?
+- For CS01: did you bump par quotes and rebuild the survival curve, or hold $Q$ fixed?
 
 ### Additional Toy Examples (Simplified Assumptions)
 
@@ -733,7 +733,7 @@ $$\text{CS01} = N \times \text{RPV01} \times 10^{-4} = 10{,}000{,}000 \times 4.3
 If spreads widen 1bp to 125.5bp:
 $$V_+ = (0.012545 - 0.01245) \times 4.3694 \times N = 0.0001 \times 4.3694 \times 10{,}000{,}000 = \$4{,}369$$
 
-For a par trade (\(S_t=S_0\)), this is consistent with the near-par scaling \(\text{CS01} \approx N \cdot \text{RPV01}\cdot 1\text{bp}\).
+For a par trade ($S_t=S_0$), this is consistent with the near-par scaling $\text{CS01} \approx N \cdot \text{RPV01}\cdot 1\text{bp}$.
 
 ### Example 43.3: VOD and JTD
 
@@ -759,15 +759,15 @@ This is the seller's loss upon immediate default—nearly \$6mm on a \$10mm noti
 
 ### Example 43.4: Recovery Sensitivity
 
-**Holding survival fixed, reprice at R = 20%, 40%, 60%.**
+**Holding survival fixed, reprice at R = 20\%, 40\%, 60\%.**
 
 **From Example 43.1:** $\sum Z_i d_i = 0.0906$ (the "default annuity")
 
 | Recovery | $(1-R)$ | $\text{PV}_{\text{prot}}$ | $V_{\text{buyer}}$ |
 |----------|---------|---------------------------|---------------------|
-| 20% | 0.80 | 0.0725 | +\$181,273 |
-| 40% | 0.60 | 0.0544 | \$0 (par) |
-| 60% | 0.40 | 0.0362 | -\$181,273 |
+| 20\% | 0.80 | 0.0725 | +\$181,273 |
+| 40\% | 0.60 | 0.0544 | \$0 (par) |
+| 60\% | 0.40 | 0.0362 | -\$181,273 |
 
 **Rec01:**
 
@@ -806,18 +806,18 @@ $$\text{Rec01} = \frac{-181{,}273 - 181{,}273}{40\%} \times 1\% = -\$9{,}064 \te
 **Trade Construction (DV01-neutral 1s5s steepener):**
 
 **Step 1: Determine hedge ratio**
-- 1Y CS01 per $1mm = $1,000,000 × 0.95 × 0.0001 = $95/bp
-- 5Y CS01 per $1mm = $1,000,000 × 3.80 × 0.0001 = $380/bp
+- 1Y CS01 per \$1mm = $1,000,000 × 0.95 × 0.0001 = $95/bp
+- 5Y CS01 per \$1mm = $1,000,000 × 3.80 × 0.0001 = $380/bp
 - Ratio: $380/$95 = 4.0
 
 **Step 2: Structure the trade**
-- Buy $40mm 1Y protection (long front end)
-- Sell $10mm 5Y protection (short back end)
+- Buy \$40mm 1Y protection (long front end)
+- Sell \$10mm 5Y protection (short back end)
 
 **Step 3: Verify DV01 neutrality**
 - 1Y leg CS01: +$40mm × $95/bp per $1mm = +$3,800/bp
 - 5Y leg CS01: -$10mm × $380/bp per $1mm = -$3,800/bp
-- **Net parallel CS01: $0**
+- **Net parallel CS01: \$0**
 
 **Scenario A: Survival and Curve Normalization**
 *Curve un-inverts:* 1Y → 200bp (-600bp), 5Y → 250bp (-250bp)
@@ -826,21 +826,21 @@ $$\text{Rec01} = \frac{-181{,}273 - 181{,}273}{40\%} \times 1\% = -\$9{,}064 \te
 |-----|----------|-------------|-----|
 | 1Y long prot | $40mm | -600bp | -$2,280,000 |
 | 5Y short prot | $10mm | -250bp | +$950,000 |
-| **Net** | | | **-$1,330,000** |
+| **Net** | | | **-\$1,330,000** |
 
 Wait—this is a loss? Yes, but compare to outright short protection:
 - If you had sold $10mm 5Y protection outright: P&L = +$950,000
-- But you also would have been short JTD risk of $6mm
+- But you also would have been short JTD risk of \$6mm
 
 **The steepener loses less on survival but also had less JTD exposure.** Let's examine default:
 
-**Scenario B: Default at 40% Recovery**
+**Scenario B: Default at 40\% Recovery**
 
 | Leg | Notional | Protection Payment | Net |
 |-----|----------|-------------------|-----|
-| 1Y long prot | $40mm | +$24mm (you receive) | +$24mm |
-| 5Y short prot | $10mm | -$6mm (you pay) | -$6mm |
-| **Net** | | | **+$18mm** |
+| 1Y long prot | \$40mm | +$24mm (you receive) | +$24mm |
+| 5Y short prot | \$10mm | -$6mm (you pay) | -$6mm |
+| **Net** | | | **+\$18mm** |
 
 **Key Insight:** The steepener is **long JTD** because you have more protection bought than sold. This is a convex trade:
 - If company survives: Lose on curve normalization, but gain on carry (you receive net spread)
@@ -850,7 +850,7 @@ Wait—this is a loss? Yes, but compare to outright short protection:
 | Outcome | Steepener | Outright Short 5Y Prot |
 |---------|-----------|------------------------|
 | Survival + curve normalizes | -$1.33mm | +$0.95mm |
-| Default (R=40%) | +$18mm | -$6mm |
+| Default (R=40\%) | +$18mm | -$6mm |
 
 The steepener is betting on survival with a safety net—if wrong about survival, you still win big on default.
 
@@ -884,9 +884,9 @@ The hedge was CS01-neutral to parallel moves but has **positive P&L on steepenin
 | **CS01 (0-1y bucket)** | +\$576/bp hazard |
 | **CS01 (1-3y bucket)** | +\$1,067/bp hazard |
 | **CS01 (3-5y bucket)** | +\$963/bp hazard |
-| **JTD (R=40%)** | +\$5,969k |
-| **JTD (R=20%)** | +\$7,969k |
-| **Rec01** | -\$9,064 per +1% R |
+| **JTD (R=40\%)** | +\$5,969k |
+| **JTD (R=20\%)** | +\$7,969k |
+| **Rec01** | -\$9,064 per +1\% R |
 
 **Stress scenarios:**
 
@@ -894,16 +894,16 @@ The hedge was CS01-neutral to parallel moves but has **positive P&L on steepenin
 |----------|-----|
 | Spread +100bp parallel | +\$437k |
 | Spread +500bp parallel | +\$1,850k (convexity reduces gain) |
-| Default at R=40% | +\$5,969k |
-| Default at R=20% | +\$7,969k |
-| Recovery +10% (no default) | -\$91k |
+| Default at R=40\% | +\$5,969k |
+| Default at R=20\% | +\$7,969k |
+| Recovery +10\% (no default) | -\$91k |
 
 ### Example 43.9: Bond-CDS Hedge Basis Risk
 
 **Setup:** Own \$10mm corporate bond at price 102, buy CDS protection.
 
 **JTD hedge sizing:**
-- Bond loss at default (R=40%): $(102-40)/100 \times 10\text{mm} = \$6.2\text{mm}$
+- Bond loss at default (R=40\%): $(102-40)/100 \times 10\text{mm} = \$6.2\text{mm}$
 - CDS notional needed: $6.2\text{mm} / 0.6 = \$10.33\text{mm}$
 
 **Scenario: Basis widens (bond spread +80bp, CDS +40bp)**
@@ -957,7 +957,7 @@ $$N_{\text{idx}} = 10\text{mm} \times \frac{4{,}369 \times 0.8}{3{,}800} = 9.2\t
 | Carry/theta | (small) | +\$500 |
 | **Total explained** | | +\$74,235 |
 | **Actual P&L** | (from system) | +\$75,000 |
-| **Residual** | | +\$765 (1.0%) |
+| **Residual** | | +\$765 (1.0\%) |
 
 Residual within acceptable tolerance.
 
@@ -967,7 +967,7 @@ Residual within acceptable tolerance.
 
 - A CDS quote maps to two legs: premium cashflows (until default/maturity) and a default-contingent protection payment. PV is the net of the two.
 - `RPV01` is the risky premium-leg annuity; it scales how spread differences translate into PV.
-- `CS01` is a bump-based spread sensitivity. Always state the bump object (par quotes vs hazard), bump size (1 bp \(=10^{-4}\)), and whether the survival curve is rebuilt.
+- `CS01` is a bump-based spread sensitivity. Always state the bump object (par quotes vs hazard), bump size (1 bp $=10^{-4}$), and whether the survival curve is rebuilt.
 - Default risk is discontinuous: `VOD`/JTD is the PV jump at default and can be orders of magnitude larger than daily CS01 P&L.
 - Recovery affects PV directly (default payoff) and indirectly (through curve calibration if you hold spreads fixed). `Rec01` is only meaningful once you specify what is held fixed.
 - Parallel CS01 can miss curve twists; bucket CS01s and “equivalent notionals” are the credit analogue of key-rate DV01 hedging.
@@ -986,10 +986,10 @@ Residual within acceptable tolerance.
 | Inverted credit curve | Front-end spread > back-end spread | Signals imminent distress |
 | Credit curve steepener | Long front, short back (DV01-neutral) | Bets on survival; long JTD |
 | Credit curve flattener | Short front, long back (DV01-neutral) | Bets on distress; short JTD |
-| Rec01 | PV change per 1% recovery | Often overlooked; material uncertainty |
+| Rec01 | PV change per 1\% recovery | Often overlooked; material uncertainty |
 | Bucket CS01 | Sensitivity to curve points | Captures term structure risk |
 | Spread gamma | Second derivative to spread | Matters for large moves |
-| Cash-CDS basis | \(S_{\text{CDS}}-s_{\text{bond}}\) under a specified bond spread measure | Residual in bond-CDS hedges |
+| Cash-CDS basis | $S_{\text{CDS}}-s_{\text{bond}}$ under a specified bond spread measure | Residual in bond-CDS hedges |
 | Equivalent notionals | Hedge notionals that neutralize bucket CS01s | First-order curve hedging tool |
 
 ---
@@ -998,18 +998,18 @@ Residual within acceptable tolerance.
 
 | Symbol | Meaning | Units / Notes |
 |---|---|---|
-| \(N\) | CDS notional | currency |
-| \(S_0\) | contractual running spread | decimal per year (e.g., 150 bp = 0.015) |
-| \(S(t,T)\) | par spread for maturity \(T\) | decimal per year |
-| \(\Delta_i\) | accrual year fraction for period \(i\) | years (ACT/360 unless stated) |
-| \(\tau\) | default time | time/date |
-| \(R\), \(LGD\) | recovery, loss-given-default \(=1-R\) | fraction of par |
-| \(Z(t,u)\) | discount factor | unitless |
-| \(Q(t,u)\) | survival probability \(\mathbb{P}(\tau>u\mid\mathcal{F}_t)\) | unitless |
+| $N$ | CDS notional | currency |
+| $S_0$ | contractual running spread | decimal per year (e.g., 150 bp = 0.015) |
+| $S(t,T)$ | par spread for maturity $T$ | decimal per year |
+| $\Delta_i$ | accrual year fraction for period $i$ | years (ACT/360 unless stated) |
+| $\tau$ | default time | time/date |
+| $R$, $LGD$ | recovery, loss-given-default $=1-R$ | fraction of par |
+| $Z(t,u)$ | discount factor | unitless |
+| $Q(t,u)$ | survival probability $\mathbb{P}(\tau>u\mid\mathcal{F}_t)$ | unitless |
 | `RPV01` | risky premium-leg annuity | years |
-| `CS01` | \(PV(S+1\text{bp})-PV(S)\) under stated bump design | currency per bp |
+| `CS01` | $PV(S+1\text{bp})-PV(S)$ under stated bump design | currency per bp |
 | `VOD` | PV jump under immediate default (including accrued premium) | currency |
-| `Rec01` | \(PV(R+1\%)-PV(R)\) under stated “hold fixed” assumptions | currency per +1% \(R\) |
+| `Rec01` | $PV(R+1\%)-PV(R)$ under stated “hold fixed” assumptions | currency per +1\% $R$ |
 
 ---
 
@@ -1018,7 +1018,7 @@ Residual within acceptable tolerance.
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is RPV01? | The risky premium-leg annuity: present value of receiving 1bp of spread until maturity or default |
-| 2 | Write the CDS MTM identity (per unit notional) | $V(t) = (S(t,T) - S_0) \\times \\text{RPV01}(t,T)$ |
+| 2 | Write the CDS MTM identity (per unit notional) | $V(t) = (S(t,T) - S_0) \times \text{RPV01}(t,T)$ |
 | 3 | What is CS01? | PV change for a 1bp change in specified credit spread input |
 | 4 | What is the key difference between CS01 and JTD risk? | CS01 is continuous (daily spread volatility); JTD is binary (default event)—a CS01 hedge does NOT protect against JTD |
 | 5 | Why must bump method be specified for CS01? | Different bumps (par spread vs hazard) produce different sensitivities |
@@ -1029,11 +1029,11 @@ Residual within acceptable tolerance.
 | 10 | What is a credit curve steepener? | Long front-end protection, short back-end protection (DV01-neutral); bets on survival |
 | 11 | What is a credit curve flattener? | Short front-end protection, long back-end protection (DV01-neutral); bets on distress |
 | 12 | If spreads widen, what happens to protection buyer's PV? | Increases (positive CS01) |
-| 13 | What is Rec01? | PV change per +1% recovery assumption |
+| 13 | What is Rec01? | PV change per +1\% recovery assumption |
 | 14 | Why is recovery sensitivity complex? | Changing R affects implied hazard if spreads held fixed (credit triangle) |
 | 15 | What is curve-shape credit risk? | Sensitivity to non-parallel spread movements |
-| 16 | What does “equivalent hedge notional” mean? | A hedge size chosen so bucket CS01s net close to zero: $s_{\\text{net}} = s + \\sum_j n_j h^{(j)} \\approx 0$ |
-| 17 | What is cash–CDS basis? | $S_{\\text{CDS}} - s_{\\text{bond}}$ under a specified bond spread measure |
+| 16 | What does “equivalent hedge notional” mean? | A hedge size chosen so bucket CS01s net close to zero: $s_{\text{net}} = s + \\sum_j n_j h^{(j)} \approx 0$ |
+| 17 | What is cash–CDS basis? | $S_{\text{CDS}} - s_{\text{bond}}$ under a specified bond spread measure |
 | 18 | Name two basis drivers | Funding/carry differences and liquidity/shorting constraints (also: settlement/contract differences) |
 | 19 | Why can bond+CDS hedge leave residual P&L? | Basis moves independently due to fundamental and market factors |
 | 20 | What is spread convexity? | Second derivative of V to S; nonlinearity for large moves |
@@ -1050,10 +1050,10 @@ Residual within acceptable tolerance.
 ### Problems
 
 1. A 5y CDS has `RPV01` = 4.2 years. Notional \$20mm. Compute the (approximate) CS01 for a protection buyer.
-2. Compute `VOD` for a protection buyer with \(R = 35\%\), \(S_0 = 150\) bp, \(\Delta_0 = 0.25\), \(N = \$5\text{mm}\), and \(V(t)=0\).
-3. If `Rec01` = \(-\$12{,}000\) per +1% recovery, what is PV change for recovery falling from 40% to 30% (holding everything else fixed)?
+2. Compute `VOD` for a protection buyer with $R = 35\%$, $S_0 = 150$ bp, $\Delta_0 = 0.25$, $N = \$5\text{mm}$, and $V(t)=0$.
+3. If `Rec01` = $-\$12{,}000$ per +1\% recovery, what is PV change for recovery falling from 40\% to 30\% (holding everything else fixed)?
 4. Explain why a 5y CDS has exposure to 1y hazard rates even if you “only traded the 5y point”.
-5. A bond trades at 95 (dirty price per 100 of face). Recovery assumed 40%. Size CDS notional \(N_{\text{CDS}}\) to hedge the bond’s default loss (first-order, ignore coupons).
+5. A bond trades at 95 (dirty price per 100 of face). Recovery assumed 40\%. Size CDS notional $N_{\text{CDS}}$ to hedge the bond’s default loss (first-order, ignore coupons).
 6. Spreads widen 50 bp. Initial CS01 = \$5,000/bp. Why might actual P&L be less than \$250,000?
 7. Write the 2×2 linear system to hedge a 5y bucket-CS01 exposure using 3y and 7y CDS instruments.
 8. Bond spread widens 60 bp, CDS widens 30 bp. Bond duration 5, bond notional \$10mm. CDS `RPV01` = 4.5, CDS notional \$10mm. Compute the approximate net MTM P&L (ignore carry).
@@ -1062,13 +1062,13 @@ Residual within acceptable tolerance.
 
 ### Solution Sketches (Selected)
 
-1. \( \text{CS01} \approx 20{,}000{,}000 \times 4.2 \times 10^{-4} = \$8{,}400/\text{bp}. \)
+1. $ \text{CS01} \approx 20{,}000{,}000 \times 4.2 \times 10^{-4} = \$8{,}400/\text{bp}. $
 
-2. Per unit notional, \( \text{VOD} = (1-R) - \Delta_0 S_0 = 0.65 - 0.25\times 0.015 = 0.64625 \).  
-   Multiply by \$5mm: \(0.64625 \times 5{,}000{,}000 = \$3{,}231{,}250\) (about \$3.23mm).
+2. Per unit notional, $ \text{VOD} = (1-R) - \Delta_0 S_0 = 0.65 - 0.25\times 0.015 = 0.64625 $.  
+   Multiply by \$5mm: $0.64625 \times 5{,}000{,}000 = \$3{,}231{,}250$ (about \$3.23mm).
 
-5. Bond loss fraction \(\approx P/100 - R = 0.95-0.40=0.55\). CDS payout fraction \(=1-R=0.60\).  
-   \(N_{\text{CDS}} \approx 0.55/0.60 \times N_{\text{bond}} \approx 0.917\,N_{\text{bond}}.\)
+5. Bond loss fraction $\approx P/100 - R = 0.95-0.40=0.55$. CDS payout fraction $=1-R=0.60$.  
+   $N_{\text{CDS}} \approx 0.55/0.60 \times N_{\text{bond}} \approx 0.917\,N_{\text{bond}}.$
 
 4. A CDS PV depends on survival to each future premium date; bumping near-term hazard changes survival probabilities for *all* later dates, so it affects both the premium and protection legs of a 5y trade.
 

@@ -21,7 +21,7 @@ A widely cited stress test is the Lehman Brothers bankruptcy (September 2008): e
 
 This chapter focuses on three links in the chain:
 
-- **Quote:** the auction output \(FP_{100}\) (Auction Final Price, points per 100 outstanding principal).
+- **Quote:** the auction output $FP_{100}$ (Auction Final Price, points per 100 outstanding principal).
 - **Cashflows:** protection payout and the (often forgotten) accrued premium owed up to the event date.
 - **Risk:** sensitivity of the payout to the auction final price and the basis risk created by deliverable dispersion.
 
@@ -35,7 +35,7 @@ This works well when the amount of CDS protection outstanding is modest relative
 
 Lehman is a stark example: widely cited estimates put outstanding CDS notional around $400 billion versus roughly $155 billion of deliverable Lehman debt. If everyone tried to source deliverables, the combined buying pressure would create a short squeeze—pushing bond prices up and reducing the effective protection payout under physical settlement.
 
-Mechanically, if protection buyers must buy bonds to deliver, that forced demand can lift post-event bond prices above “fundamental” levels. Because the physical-settlement gain is \(N - \text{(cost to acquire deliverables)}\), higher deliverable prices translate into smaller protection gains.
+Mechanically, if protection buyers must buy bonds to deliver, that forced demand can lift post-event bond prices above “fundamental” levels. Because the physical-settlement gain is $N - \text{(cost to acquire deliverables)}$, higher deliverable prices translate into smaller protection gains.
 
 ### 40.1.2 The 2005 ISDA Protocol
 
@@ -63,7 +63,7 @@ The economic logic is compelling:
 
 ### 40.2.1 The Final Price Concept
 
-The auction produces an **Auction Final Price** \(FP_{100}\) that is used to compute cash settlement payoffs. In ISDA language, this price is expressed as a percentage (points per 100) of the outstanding principal balance of deliverable obligations. In textbook terms, it is often described as a “mid-market” value of deliverables, with an important connection to cheapest-to-deliver (CTD) economics under physical settlement.
+The auction produces an **Auction Final Price** $FP_{100}$ that is used to compute cash settlement payoffs. In ISDA language, this price is expressed as a percentage (points per 100) of the outstanding principal balance of deliverable obligations. In textbook terms, it is often described as a “mid-market” value of deliverables, with an important connection to cheapest-to-deliver (CTD) economics under physical settlement.
 
 This description reveals two important features:
 
@@ -73,19 +73,19 @@ This description reveals two important features:
 
 ### 40.2.2 Connection to Settlement Economics
 
-Once the auction establishes \(FP_{100}\), cash settlement follows mechanically: the protection seller pays the protection buyer the loss fraction implied by the auction price.
+Once the auction establishes $FP_{100}$, cash settlement follows mechanically: the protection seller pays the protection buyer the loss fraction implied by the auction price.
 
-Using our notation where \(FP_{100}\) is points per 100 outstanding principal:
+Using our notation where $FP_{100}$ is points per 100 outstanding principal:
 
 $$\boxed{\text{Protection Payout} = N \times \left(1 - \frac{FP_{100}}{100}\right) = N(1-R)}$$
 
 where $R = FP_{100}/100$ is the recovery fraction.
 
-**Lehman example:** The auction determined $FP_{100} = 8.625$, implying $R = 0.08625$. For a protection buyer with $100 million notional:
+**Lehman example:** The auction determined $FP_{100} = 8.625$, implying $R = 0.08625$. For a protection buyer with \$100 million notional:
 
 $$\text{Payout} = \$100\text{mm} \times (1 - 0.08625) = \$91.375\text{mm}$$
 
-The key point is not the historical number itself, but the mapping: **auction price \(\rightarrow\) settlement cash amount**. Any accrued premium due up to the event date is handled separately (Section 40.5.4).
+The key point is not the historical number itself, but the mapping: **auction price $\rightarrow$ settlement cash amount**. Any accrued premium due up to the event date is handled separately (Section 40.5.4).
 
 ### 40.2.3 Why Physical and Cash Settlement Should Align
 
@@ -106,7 +106,7 @@ The high-level story in the textbooks (“two-stage auction”, “mid-market va
 - dealer **Initial Market Submissions** (bids/offers for deliverable obligations), and
 - **Physical Settlement Requests** (who wants to end up buying/selling deliverables at the final price).
 
-The output is a single **Auction Final Price** \(FP_{100}\) that is used to compute cash settlement amounts.
+The output is a single **Auction Final Price** $FP_{100}$ that is used to compute cash settlement amounts.
 
 ### 40.3.1 Stage 1 — Initial Market Midpoint (IMM) and Open Interest (OI)
 
@@ -119,29 +119,29 @@ $$\boxed{\text{OI} = \sum \text{(Physical Settlement Buy Requests)} - \sum \text
 
 **Expand (intuition):** IMM is a Stage-1 reference level summarizing dealer two-way markets. Open interest is the net amount of deliverables that the physical-settlement side of the market wants to acquire (positive) or deliver (negative) at the auction final price.
 
-- \(OI>0\): net buy interest in deliverables.
-- \(OI<0\): net sell interest in deliverables.
+- $OI>0$: net buy interest in deliverables.
+- $OI<0$: net sell interest in deliverables.
 
 The administrators publish “Initial Bidding Information” including the direction/size of OI and the IMM. The rules also define **Adjustment Amounts** that can arise from “tradeable markets” (where a submitted bid touches/crosses a submitted offer).
 
-**Check:** If \(OI = 0\), the ISDA terms specify that no Stage-2 bidding occurs and the final price is set directly from the Stage-1 midpoint published by the administrators.
+**Check:** If $OI = 0$, the ISDA terms specify that no Stage-2 bidding occurs and the final price is set directly from the Stage-1 midpoint published by the administrators.
 
 ### 40.3.2 Stage 2 — Limit Orders, Cap Amounts, and the Auction Final Price
 
 **Anchor (what ISDA defines):**
 
-If \(OI \ne 0\), the auction runs a Subsequent Bidding Period in which participants submit **limit orders on the opposite side of the market from the open interest**:
+If $OI \ne 0$, the auction runs a Subsequent Bidding Period in which participants submit **limit orders on the opposite side of the market from the open interest**:
 
-- If OI is a **bid to purchase** deliverables (\(OI>0\)), Stage 2 consists of **offers**.
-- If OI is an **offer to sell** deliverables (\(OI<0\)), Stage 2 consists of **bids**.
+- If OI is a **bid to purchase** deliverables ($OI>0$), Stage 2 consists of **offers**.
+- If OI is an **offer to sell** deliverables ($OI<0$), Stage 2 consists of **bids**.
 
-The auction terms apply a **Cap Amount** around the IMM: extreme bids/offers beyond \(IMM \pm \text{Cap Amount}\) are deemed at the capped level. After the Subsequent Bidding Period closes, administrators match the OI against the opposite-side limit orders starting from the best prices (lowest offer / highest bid) and moving outward until the OI is filled or there are no more opposite-side orders.
+The auction terms apply a **Cap Amount** around the IMM: extreme bids/offers beyond $IMM \pm \text{Cap Amount}$ are deemed at the capped level. After the Subsequent Bidding Period closes, administrators match the OI against the opposite-side limit orders starting from the best prices (lowest offer / highest bid) and moving outward until the OI is filled or there are no more opposite-side orders.
 
 If the OI is filled, the **Auction Final Price** is set by the marginal (last) matched order price (subject to the Cap Amount rules). If the OI is *not* filled, the terms specify extreme outcomes (0% or 100%) for the Auction Final Price depending on direction.
 
 **Expand (intuition):** Think of open interest as a single, auction-sized “market order” that must be cleared. Stage 2 supplies the depth of the order book on the opposite side. The cap amount keeps the final price from being determined by far-away prints relative to the Stage-1 midpoint.
 
-**Check (toy clearing example):** Suppose Stage 1 yields \(IMM=35.00\) and \(OI=+150\) (a bid to purchase deliverables). In Stage 2, participants submit offers:
+**Check (toy clearing example):** Suppose Stage 1 yields $IMM=35.00$ and $OI=+150$ (a bid to purchase deliverables). In Stage 2, participants submit offers:
 
 | Offer Price | Offer Volume |
 |---|---:|
@@ -166,8 +166,8 @@ The marginal matched offer is 36.00, so (ignoring any cap adjustment in the sett
 
 The Lehman bankruptcy is a canonical illustration of why auctions matter. Widely cited estimates highlight a severe mismatch between the amount of CDS protection outstanding and the supply of deliverable Lehman obligations:
 
-- **CDS outstanding:** approximately $400 billion
-- **Debt outstanding:** approximately $155 billion
+- **CDS outstanding:** approximately \$400 billion
+- **Debt outstanding:** approximately \$155 billion
 - **Ratio:** CDS notional was roughly 2.6× the available debt
 
 Physical settlement for all contracts was mathematically impossible. Even if every dollar of Lehman debt were delivered multiple times (which makes no economic sense), there wouldn't be enough to settle all contracts.
@@ -190,13 +190,13 @@ On April 8, 2009, the market moved through a widely cited CDS standardization (�
 
 ### 40.4.4 Earlier Precedents: The Delivery Option Problem
 
-Even when physical settlement is feasible, it embeds a **delivery option**: the protection buyer can choose which eligible deliverable obligation to deliver. If different deliverables trade at different post-event prices (even within the same seniority), the choice matters. Auction settlement compresses the deliverable set into a single settlement price \(FP_{100}\), but a hedge can still exhibit **basis risk** if the bond you care about is not close to the implied “CTD” value reflected in the auction price.
+Even when physical settlement is feasible, it embeds a **delivery option**: the protection buyer can choose which eligible deliverable obligation to deliver. If different deliverables trade at different post-event prices (even within the same seniority), the choice matters. Auction settlement compresses the deliverable set into a single settlement price $FP_{100}$, but a hedge can still exhibit **basis risk** if the bond you care about is not close to the implied “CTD” value reflected in the auction price.
 
 ### 40.4.5 Index Constituent Defaults
 
 When a constituent of a CDS index (CDX, iTraxx) experiences a credit event, the auction process applies to that name specifically. The auction-determined final price then flows through to index positions.
 
-At a high level, a single-name credit event affects only the defaulted constituent’s slice of the index notional. If the index has \(M\) constituents and total notional \(N\), the affected notional is \(N/M\).
+At a high level, a single-name credit event affects only the defaulted constituent’s slice of the index notional. If the index has $M$ constituents and total notional $N$, the affected notional is $N/M$.
 
 Under cash settlement via auction, the index holder's economics are:
 
@@ -205,10 +205,10 @@ $$\text{Index Payout} = \frac{N}{M} \times \left(1 - \frac{FP_{100}}{100}\right)
 where $N$ is the total index notional, $M$ is the number of index constituents, and $FP_{100}$ is the auction final price for the defaulted name.
 
 > **Desk Reality:** Index default settlement is usually processed as a cash settlement on the affected slice plus a notional reduction.
-> **Common break:** forgetting the \(1/M\) scaling (or using the wrong \(M\) for the specific index series/roll).
-> **What to check:** compute affected notional \(N/M\), apply the same auction payout formula, and reconcile the post-settlement index notional.
+> **Common break:** forgetting the $1/M$ scaling (or using the wrong $M$ for the specific index series/roll).
+> **What to check:** compute affected notional $N/M$, apply the same auction payout formula, and reconcile the post-settlement index notional.
 
-**Check (toy number):** Consider a 125-name index position with \(N=\$125\text{mm}\). One constituent defaults with \(FP_{100}=40\). Affected notional is \(125\text{mm}/125=\$1\text{mm}\) and payout is \(\$1\text{mm}\times(1-0.40)=\$0.6\text{mm}\). After settlement, the index notional reduces by \(\$1\text{mm}\). See Chapter 41 for full index mechanics.
+**Check (toy number):** Consider a 125-name index position with $N=\$125\text{mm}$. One constituent defaults with $FP_{100}=40$. Affected notional is $125\text{mm}/125=\$1\text{mm}$ and payout is $\$1\text{mm}\times(1-0.40)=\$0.6\text{mm}$. After settlement, the index notional reduces by $\$1\text{mm}$. See Chapter 41 for full index mechanics.
 
 ---
 
@@ -232,9 +232,9 @@ For a standard single-name CDS settled using the auction final price, the protec
 
 $$\boxed{\text{Payout to Protection Buyer} = N \times \left(1 - \frac{FP_{100}}{100}\right)}$$
 
-This is the same identity as \(N(1-R)\) with \(R := FP_{100}/100\).
+This is the same identity as $N(1-R)$ with $R := FP_{100}/100$.
 
-**Check (quick number):** If \(N=\$100\text{mm}\) and \(FP_{100}=35\), then payout \(=100\text{mm}\times(1-0.35)=\$65\text{mm}\).
+**Check (quick number):** If $N=\$100\text{mm}$ and $FP_{100}=35$, then payout $=100\text{mm}\times(1-0.35)=\$65\text{mm}$.
 
 ### 40.5.3 Unit and Boundary Checks
 
@@ -258,13 +258,13 @@ For a contract with spread $s$ (annualized), notional $N$, and accrual fraction 
 
 $$\boxed{\text{Accrued Premium} = N \cdot s \cdot \alpha}$$
 
-**Check (rule of thumb):** If the event is “roughly mid‑coupon” and the coupon period is roughly a quarter (\(\Delta\approx 0.25\)), then \(\alpha\approx 0.125\) and accrued premium is on the order of \(0.125\times N\times s\). Use this only as intuition; production accrual uses the actual event date and contract day count.
+**Check (rule of thumb):** If the event is “roughly mid‑coupon” and the coupon period is roughly a quarter ($\Delta\approx 0.25$), then $\alpha\approx 0.125$ and accrued premium is on the order of $0.125\times N\times s$. Use this only as intuition; production accrual uses the actual event date and contract day count.
 
 This is paid by the protection buyer to the seller and is separate from the protection payout.
 
 > **Pitfall — CDS premium accrual on default:** forgetting the accrued premium cashflow (or getting its sign wrong).
 > **Why it matters:** the net cash settlement is wrong even when the auction payout is correct.
-> **Quick check:** compute \(N\,s\,\alpha\) using the contract day count and confirm buyer net \(=\) protection payout \( - N\,s\,\alpha\).
+> **Quick check:** compute $N\,s\,\alpha$ using the contract day count and confirm buyer net $=$ protection payout $ - N\,s\,\alpha$.
 
 ---
 
@@ -295,44 +295,44 @@ This is paid by the protection buyer to the seller and is separate from the prot
 - Cash settlement date: 2026-02-21 (illustration; actual schedule is auction-specific)
 
 **Inputs**
-- Notional: \(N=\$10{,}000{,}000\)
-- Running spread: \(s=500\text{ bp}=0.05\) (annualized)
+- Notional: $N=\$10{,}000{,}000$
+- Running spread: $s=500\text{ bp}=0.05$ (annualized)
 - Premium day count (toy assumption): ACT/360 simple accrual
-- Days accrued since last premium date: 52 days \(\Rightarrow \alpha=52/360\)
-- Auction Final Price: \(FP_{100}=35.00\)
+- Days accrued since last premium date: 52 days $\Rightarrow \alpha=52/360$
+- Auction Final Price: $FP_{100}=35.00$
 
 **Outputs (What You Produce)**
-- Protection payout (buyer receives): \(N\left(1-\frac{FP_{100}}{100}\right)\)
-- Accrued premium (buyer pays): \(N\,s\,\alpha\)
+- Protection payout (buyer receives): $N\left(1-\frac{FP_{100}}{100}\right)$
+- Accrued premium (buyer pays): $N\,s\,\alpha$
 - Net settlement (buyer receives): protection payout minus accrued premium
-- Risk metric (explicit): final-price sensitivity to a +1 point bump in \(FP_{100}\)
+- Risk metric (explicit): final-price sensitivity to a +1 point bump in $FP_{100}$
 
 **Step-by-step**
-1. Recovery fraction: \(R=FP_{100}/100=0.35\).
-2. Protection payout: \(10{,}000{,}000\times(1-0.35)=\$6{,}500{,}000\).
-3. Accrued premium: \(10{,}000{,}000\times0.05\times(52/360)=\$72{,}222.22\).
-4. Net settlement to protection buyer: \(\$6{,}500{,}000-\$72{,}222.22=\$6{,}427{,}777.78\).
+1. Recovery fraction: $R=FP_{100}/100=0.35$.
+2. Protection payout: $10{,}000{,}000\times(1-0.35)=\$6{,}500{,}000$.
+3. Accrued premium: $10{,}000{,}000\times0.05\times(52/360)=\$72{,}222.22$.
+4. Net settlement to protection buyer: $\$6{,}500{,}000-\$72{,}222.22=\$6{,}427{,}777.78$.
 
 **Cashflows (positive = received by protection buyer)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-21 | +$6,500,000.00 | Protection payout from auction final price |
-| 2026-02-21 | −$72,222.22 | Accrued premium owed up to the credit event |
-| 2026-02-21 | **+$6,427,777.78** | Net settlement (what you should reconcile to) |
+| 2026-02-21 | +\$6,500,000.00 | Protection payout from auction final price |
+| 2026-02-21 | −\$72,222.22 | Accrued premium owed up to the credit event |
+| 2026-02-21 | **+\$6,427,777.78** | Net settlement (what you should reconcile to) |
 
 **P&L / Risk Interpretation**
-- The auction final price is a direct P&L driver for credit-event settlement: for long protection, a *higher* \(FP_{100}\) means a *smaller* payout.
+- The auction final price is a direct P&L driver for credit-event settlement: for long protection, a *higher* $FP_{100}$ means a *smaller* payout.
 - The accrued premium is usually smaller than the payout but is a common reconciliation break if omitted.
 
 **Sanity Checks**
-- Unit check: payout and accrued premium are in USD; \(FP_{100}\) is “points per 100”; \(\alpha\) is a year fraction.
-- Sign check (long protection): \(\Delta FP_{100}>0 \Rightarrow \Delta \text{Payout}<0\).
-- Limit check: \(FP_{100}=100 \Rightarrow\) payout \(=0\); \(FP_{100}=0 \Rightarrow\) payout \(=N\).
-- Accrued premium should be between 0 and the full‑period premium \(N\,s\,\Delta(\text{last premium date},\text{next premium date})\). In this toy timeline the full coupon is about \(\$10\text{mm}\times 5\%\times 0.25 \approx \$125\text{k}\), so \(\$72\text{k}\) is plausible.
+- Unit check: payout and accrued premium are in USD; $FP_{100}$ is “points per 100”; $\alpha$ is a year fraction.
+- Sign check (long protection): $\Delta FP_{100}>0 \Rightarrow \Delta \text{Payout}<0$.
+- Limit check: $FP_{100}=100 \Rightarrow$ payout $=0$; $FP_{100}=0 \Rightarrow$ payout $=N$.
+- Accrued premium should be between 0 and the full‑period premium $N\,s\,\Delta(\text{last premium date},\text{next premium date})$. In this toy timeline the full coupon is about $\$10\text{mm}\times 5\%\times 0.25 \approx \$125\text{k}$, so $\$72\text{k}$ is plausible.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you use points (35) vs fractions (0.35) consistently?
-- Is \(\alpha\) computed with the contract day count and the correct start/end dates?
+- Is $\alpha$ computed with the contract day count and the correct start/end dates?
 - Did you apply the correct direction (long vs short protection) when signing cashflows?
 
 **References**
@@ -346,16 +346,16 @@ This is paid by the protection buyer to the seller and is separate from the prot
 
 Near a credit event, a simple and very “real” risk measure is the sensitivity of the protection payout to the auction final price.
 
-- **Bump object:** \(FP_{100}\) (Auction Final Price; points per 100 outstanding principal).
-- **Bump size:** +1.00 point (e.g., 35.00 \(\rightarrow\) 36.00).
+- **Bump object:** $FP_{100}$ (Auction Final Price; points per 100 outstanding principal).
+- **Bump size:** +1.00 point (e.g., 35.00 $\rightarrow$ 36.00).
 - **Units:** currency per point (e.g., USD per 1 point) for the stated notional.
 - **Sign convention:** from the perspective of **long protection** (protection buyer), the sensitivity is **negative**.
 
-From \(\text{Payout}=N\left(1-\frac{FP_{100}}{100}\right)\),
+From $\text{Payout}=N\left(1-\frac{FP_{100}}{100}\right)$,
 
 $$\boxed{\frac{\Delta \text{Payout}}{\Delta FP_{100}} = -\frac{N}{100}}$$
 
-So a 10-point move in \(FP_{100}\) changes payout by \(0.10\times N\) (down in \(FP_{100}\) is good for long protection; up is bad).
+So a 10-point move in $FP_{100}$ changes payout by $0.10\times N$ (down in $FP_{100}$ is good for long protection; up is bad).
 
 ### 40.8.2 Deliverable Dispersion Risk
 
@@ -363,7 +363,7 @@ Even within the deliverable set, post-event prices can differ (e.g., because of 
 
 **Implication for hedging:** If you hedge a specific bond with CDS, the hedge effectiveness depends on how that bond's post-event price compares to the CTD-referenced auction price. This is a source of basis risk—covered in detail in Chapters 43 and 44.
 
-**Check (toy basis number):** If the auction final price is \(35\) but the bond you care about trades at \(25\), then cash settlement pays \(0.65N\) while “deliver and receive par” economics on that bond would look like \(0.75N\). The 10-point gap is a \(0.10N\) basis difference.
+**Check (toy basis number):** If the auction final price is $35$ but the bond you care about trades at $25$, then cash settlement pays $0.65N$ while “deliver and receive par” economics on that bond would look like $0.75N$. The 10-point gap is a $0.10N$ basis difference.
 
 ### 40.8.3 Settlement Timing Risk
 
@@ -387,9 +387,9 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 6. **Compute payout:** $N \times (1 - FP_{100}/100)$
 7. **Reconcile signs:** buyer receives protection, pays accrued premium
 
-> **Desk Reality:** Settlement is booked off a small set of fields: direction (long/short protection), notional \(N\), contractual spread/coupon and premium day count, last premium date, credit event date, and the published \(FP_{100}\).
+> **Desk Reality:** Settlement is booked off a small set of fields: direction (long/short protection), notional $N$, contractual spread/coupon and premium day count, last premium date, credit event date, and the published $FP_{100}$.
 > **Common break:** mixing “points per 100” with fractions (35 vs 0.35), or omitting accrued premium.
-> **What to check:** recompute payout and \(N\,s\,\alpha\) in a spreadsheet and confirm the net cash amount and sign.
+> **What to check:** recompute payout and $N\,s\,\alpha$ in a spreadsheet and confirm the net cash amount and sign.
 
 ### 40.9.2 Common Pitfalls
 
@@ -423,11 +423,11 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 ## Summary
 
 1. Auctions provide scalable cash settlement when CDS notional is large relative to deliverable supply (reducing settlement-driven short squeezes).
-2. The auction output is a single **Auction Final Price** \(FP_{100}\) (points per 100 outstanding principal) applied consistently across contracts on the same reference entity.
-3. Protection payout maps directly from the quote: \(N\left(1-\frac{FP_{100}}{100}\right)\); accrued premium \(N\,s\,\alpha\) is separate and is a common reconciliation break.
+2. The auction output is a single **Auction Final Price** $FP_{100}$ (points per 100 outstanding principal) applied consistently across contracts on the same reference entity.
+3. Protection payout maps directly from the quote: $N\left(1-\frac{FP_{100}}{100}\right)$; accrued premium $N\,s\,\alpha$ is separate and is a common reconciliation break.
 4. In ISDA terms, the auction is two-stage: Stage 1 computes the **Initial Market Midpoint (IMM)** and **Open Interest (OI)**; Stage 2 matches opposite-side limit orders against the OI to set the Auction Final Price (with explicit cap/rounding rules).
 5. Basis risk can remain: deliverable dispersion means the bond you care about may not track the auction-implied deliverable value.
-6. For index defaults, the same auction process applies at the single-name level; the payout applies to the affected slice \(N/M\) and index notional reduces accordingly.
+6. For index defaults, the same auction process applies at the single-name level; the payout applies to the affected slice $N/M$ and index notional reduces accordingly.
 7. For live events, use the published DC determinations and the auction settlement terms for the specific event rather than assuming timelines or conventions.
 
 ---
@@ -436,15 +436,15 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| Auction Final Price \(FP_{100}\) | Auction-determined settlement price (points per 100 outstanding principal) | Directly determines cash settlement payouts |
+| Auction Final Price $FP_{100}$ | Auction-determined settlement price (points per 100 outstanding principal) | Directly determines cash settlement payouts |
 | Initial Market Midpoint (IMM) | Stage-1 midpoint computed from initial market submissions | Anchor level used in auction rules (including caps) |
 | Open Interest (OI) | Net physical settlement buy requests minus sell requests | Determines which side submits limit orders in Stage 2 |
 | Cap Amount | Capping rule around IMM applied to limit-order prices and/or final-price outcomes | Limits extreme prints from dominating the clearing price |
 | Adjustment Amounts | Payments specified in the auction terms that can arise from “tradeable markets” in Stage 1 | Adds economic consequence to crossing/touching submissions |
 | Determinations Committee (DC) | Governance process under the ISDA framework for making settlement-relevant determinations | Turns “events” into authoritative contract inputs |
-| Accrued premium on default | \(N\,s\,\alpha\) paid by the protection buyer up to the event date | Common operational break if omitted or mis-signed |
+| Accrued premium on default | $N\,s\,\alpha$ paid by the protection buyer up to the event date | Common operational break if omitted or mis-signed |
 | Deliverable dispersion / basis | Your bond’s post-event price can differ from the auction-implied deliverable value | Hedge may not match the bond you care about |
-| Index notional reduction | Index notional reduces by the affected slice \(N/M\) after a constituent default | Prevents double-counting risk/cashflows post-default |
+| Index notional reduction | Index notional reduces by the affected slice $N/M$ after a constituent default | Prevents double-counting risk/cashflows post-default |
 
 ---
 
@@ -468,7 +468,7 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What problem did the 2005 ISDA protocol address? | CDS notional exceeding supply of deliverable obligations |
-| 2 | What does the CDS auction determine? | A single Auction Final Price \(FP_{100}\) used for cash settlement |
+| 2 | What does the CDS auction determine? | A single Auction Final Price $FP_{100}$ used for cash settlement |
 | 3 | How does Hull describe what the auction targets? | "Mid-market value of the cheapest deliverable bond" |
 | 4 | What is the cash settlement payout formula? | $N(1-R) = N(1 - FP_{100}/100)$ |
 | 5 | How much Lehman CDS vs debt was outstanding in 2008? | ~$400B CDS vs ~$155B debt |
@@ -498,7 +498,7 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 | 29 | What is the Cap Amount used for in Stage 2? | It caps extreme limit-order prices around the Stage-1 midpoint (IMM), per the auction terms |
 | 30 | What should you verify on a real trade before computing settlement? | Settlement type, auction price, notional, accrual conventions |
 | 31 | What is "open interest" in a CDS auction? | Net physical settlement requests (buy minus sell) |
-| 32 | In Stage 2, which side of limit orders are accepted? | The side opposite the open interest: offers if \(OI>0\), bids if \(OI<0\) |
+| 32 | In Stage 2, which side of limit orders are accepted? | The side opposite the open interest: offers if $OI>0$, bids if $OI<0$ |
 | 33 | What is the Initial Market Midpoint (IMM)? | Midpoint calculated from Stage 1 dealer quotes |
 | 34 | How is the Auction Final Price set when open interest is filled? | By the marginal (last) matched limit-order price, subject to any cap rules in the settlement terms |
 | 35 | What does the ISDA Determinations Committee do? | Makes settlement-relevant determinations under the ISDA framework (e.g., credit event determinations) and publishes them |
@@ -539,11 +539,11 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 15. List five data items needed to process a credit event settlement for a CDS position.
 
-16. **(Simulation)** Suppose Stage 1 results are IMM = 40.00 and OI = +$100mm (a bid to purchase). Stage 2 therefore consists of *offers* (opposite side of OI). Given the following Stage 2 offers, find the Auction Final Price (ignore any cap adjustments):
-    - 40.00: $20mm
-    - 39.50: $40mm
-    - 39.00: $50mm
-    - 38.50: $30mm
+16. **(Simulation)** Suppose Stage 1 results are IMM = 40.00 and OI = +\$100mm (a bid to purchase). Stage 2 therefore consists of *offers* (opposite side of OI). Given the following Stage 2 offers, find the Auction Final Price (ignore any cap adjustments):
+    - 40.00: \$20mm
+    - 39.50: \$40mm
+    - 39.00: \$50mm
+    - 38.50: \$30mm
 
 17. A CDX.NA.IG position has $\$62.5\text{mm}$ notional (125 names). One name defaults with $FP_{100} = 40$. Calculate the payout and remaining index notional.
 
@@ -575,16 +575,16 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 ---
 
-**16.** Since \(OI>0\), Stage 2 consists of offers. Sort offers from lowest to highest and accumulate volume until it reaches \(100\text{mm}\):
-- 38.50: \(30\text{mm}\) (remaining OI \(=70\text{mm}\))
-- 39.00: \(30+50=80\text{mm}\) (remaining OI \(=20\text{mm}\))
-- 39.50: \(80+40=120\text{mm}\) (OI filled)
+**16.** Since $OI>0$, Stage 2 consists of offers. Sort offers from lowest to highest and accumulate volume until it reaches $100\text{mm}$:
+- 38.50: $30\text{mm}$ (remaining OI $=70\text{mm}$)
+- 39.00: $30+50=80\text{mm}$ (remaining OI $=20\text{mm}$)
+- 39.50: $80+40=120\text{mm}$ (OI filled)
 
 The marginal matched offer is 39.50, so **Auction Final Price = 39.50** (ignoring any cap adjustments).
 
 **17.** Affected notional = $62.5\text{mm}/125 = \$0.5\text{mm}$. Payout = $0.5\text{mm} \times (1-0.40) = \$0.3\text{mm}$. Remaining notional = $62.5\text{mm} - 0.5\text{mm} = \$62.0\text{mm}$.
 
-**18.** Long protection benefits from a lower \(FP_{100}\) (higher payout). If Stage 2 accepts offers, submitting low-priced offers can pull the marginal matched offer down and reduce the final price. Constraints include: (1) you may have to actually sell deliverables at the prices you submit; (2) limit orders are capped around IMM by the Cap Amount; and (3) Stage-1 information (IMM and OI) is published, so other participants can respond with their own orders.
+**18.** Long protection benefits from a lower $FP_{100}$ (higher payout). If Stage 2 accepts offers, submitting low-priced offers can pull the marginal matched offer down and reduce the final price. Constraints include: (1) you may have to actually sell deliverables at the prices you submit; (2) limit orders are capped around IMM by the Cap Amount; and (3) Stage-1 information (IMM and OI) is published, so other participants can respond with their own orders.
 
 ---
 

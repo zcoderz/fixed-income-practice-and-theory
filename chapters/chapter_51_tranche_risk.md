@@ -4,7 +4,7 @@
 
 ## Introduction
 
-A trader hedges a mezzanine tranche position using an index CDS, matching spread DV01 to the penny. The next morning, a name in the portfolio defaults—and the P&L report shows a $3 million loss despite the "perfect" hedge. What went wrong?
+A trader hedges a mezzanine tranche position using an index CDS, matching spread DV01 to the penny. The next morning, a name in the portfolio defaults—and the P&L report shows a \$3 million loss despite the "perfect" hedge. What went wrong?
 
 The answer lies in a fundamental truth about tranche risk: **the sensitivities that matter most are not the ones that appear in a standard first-order risk report.** Single-name CDS and even index CDS respond to spread movements in roughly linear fashion. Tranches do not. The nonlinear mapping from portfolio losses to tranche losses—the "hockey stick" function that clips losses at attachment and caps them at detachment—creates risk characteristics that confound conventional hedging intuition.
 
@@ -173,7 +173,7 @@ Desk analytics frequently store/trade on objects like:
 
 ---
 
-### 1.4 Tranche PV01 / Spread Risk (Quote Mechanics, $/bp)
+### 1.4 Tranche PV01 / Spread Risk (Quote Mechanics, \$/bp)
 
 #### Formal Definition (What Is Bumped, Units Explicit)
 
@@ -201,11 +201,11 @@ This chapter's "Tranche PV01" is item (1) unless explicitly stated otherwise.
 
 $\text{PV01}_{\text{tranche spread}}$ is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
 
-**Check (sign + scale):** for a protection buyer (who pays the running spread), \(\partial PV/\partial s < 0\) so \(\text{PV01}_{\text{tranche spread}}\) is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if a tranche has face \(N_{\text{tr}}^{\text{face}}=W F=\$40\text{mm}\), an average surviving fraction of \(Q_{\text{avg}}\approx 75\%\), and about \(T=5\) years of premium, then
-\[
+**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial PV/\partial s < 0$ so $\text{PV01}_{\text{tranche spread}}$ is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if a tranche has face $N_{\text{tr}}^{\text{face}}=W F=\$40\text{mm}$, an average surviving fraction of $Q_{\text{avg}}\approx 75\%$, and about $T=5$ years of premium, then
+$$
 |\text{PV01}_{\text{tranche spread}}|\ \text{per bp} \;\approx\; 10^{-4}\times Q_{\text{avg}} \times N_{\text{tr}}^{\text{face}} \times T \;\approx\; 10^{-4}\times 0.75\times 40\text{mm}\times 5 \;\approx\; \$15{,}000,
-\]
-before discounting and accrual details. If your PV01 is \(\$150{,}000/\text{bp}\), you are probably off by a factor of 10 in bp/percent or notional scaling.
+$$
+before discounting and accrual details. If your PV01 is $\$150{,}000/\text{bp}$, you are probably off by a factor of 10 in bp/percent or notional scaling.
 
 #### How It Appears in Practice
 
@@ -234,10 +234,10 @@ i.e., the change in tranche value due to a 1% absolute increase in correlation (
 
 A normalized "rho" is also defined as the change in value per unit correlation per unit tranche face value.
 
-**Check (methodology + nonlinearity):** because tranche PV can be nonlinear in \(\rho\) (and base-correlation bumps can propagate through interpolation), it is often worth computing a symmetric finite difference as a diagnostic:
-\[
+**Check (methodology + nonlinearity):** because tranche PV can be nonlinear in $\rho$ (and base-correlation bumps can propagate through interpolation), it is often worth computing a symmetric finite difference as a diagnostic:
+$$
 \text{Corr01}_{\text{sym}} \approx \frac{V(\rho+0.01)-V(\rho-0.01)}{2},
-\]
+$$
 holding the same calibration/interpolation rules fixed. Large one-sided vs symmetric differences are a red flag that a local Corr01 is not stable and scenario shocks are more informative.
 
 #### Intuition
@@ -270,7 +270,7 @@ Then the portfolio loss jumps by:
 
 $$\Delta L = H_0(1-R_0), \qquad L^+ = L_1 + \Delta L.$$
 
-**Check (why “PV01-matched” can still blow up):** take an equal-weight 125-name portfolio with \(H_0=1/125\) and assume \(R_0=40\%\), so \(\Delta L \approx 0.60/125 \approx 0.48\%\). For a \([3\%,7\%]\) tranche sitting just below attachment at \(L_1=2.8\%\), the post-default loss is \(L^+=3.28\%\), so tranche loss jumps by about \(0.28\%\) of portfolio notional (7% of tranche face because \(0.28/4=7\%\)). On \(F=\$1\text{bn}\), that is a \(\$2.8\text{mm}\) loss—an event P&L that has little to do with small-spread PV01 hedges.
+**Check (why “PV01-matched” can still blow up):** take an equal-weight 125-name portfolio with $H_0=1/125$ and assume $R_0=40\%$, so $\Delta L \approx 0.60/125 \approx 0.48\%$. For a $[3\%,7\%]$ tranche sitting just below attachment at $L_1=2.8\%$, the post-default loss is $L^+=3.28\%$, so tranche loss jumps by about $0.28\%$ of portfolio notional (7% of tranche face because $0.28/4=7\%$). On $F=\$1\text{bn}$, that is a $\$2.8\text{mm}$ loss—an event P&L that has little to do with small-spread PV01 hedges.
 
 The immediate tranche loss increment (fraction of portfolio) is:
 
@@ -698,7 +698,7 @@ If you treat $\Gamma_s^{(1\text{bp})}$ as the “gamma‑01” (units: USD per $
 
 $$\Delta V_{\Gamma} \approx \frac{1}{2}\,\Gamma_s^{(1\text{bp})}\left(\frac{\Delta S}{1\text{bp}}\right)^2.$$
 
-For an equity tranche with $\Gamma_s^{(1\text{bp})} \\approx -4{,}000$ (USD), a 10bp parallel spread move gives:
+For an equity tranche with $\Gamma_s^{(1\text{bp})} \approx -4{,}000$ (USD), a 10bp parallel spread move gives:
 
 $$\Delta V_{\Gamma} \approx \frac{1}{2} \times \Gamma_s^{(1\text{bp})}\left(\frac{10\text{bp}}{1\text{bp}}\right)^2 = \frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$$
 
@@ -865,7 +865,7 @@ where $F_{t, \nu+1}$ is the CDF of the $t$-distribution with tail index $\nu+1$.
 
 1. **Senior tranches are exposed to tail states:** The 15–30% super-senior tranche only suffers losses when portfolio losses exceed 15%—an extreme event requiring multiple defaults.
 
-2. **Gaussian copula can understate clustering risk:** With $\\lambda_{\\ell}=0$, the Gaussian copula has no lower-tail dependence (except at perfect correlation), whereas tail-dependent copulas allocate more probability mass to joint-extreme states. For senior strikes, that can translate into materially different PVs versus tail-dependent alternatives.
+2. **Gaussian copula can understate clustering risk:** With $\lambda_{\ell}=0$, the Gaussian copula has no lower-tail dependence (except at perfect correlation), whereas tail-dependent copulas allocate more probability mass to joint-extreme states. For senior strikes, that can translate into materially different PVs versus tail-dependent alternatives.
 
 3. **Model risk is largest for senior tranches:** small differences in how a model treats clustered defaults can translate into large PV differences for senior strikes, because senior protection only “turns on” in the far tail.
 
@@ -889,7 +889,7 @@ Distinguish **PV changes** from **hedge notionals**:
 
 1. **Systemic DV01 (PV change):** bump *all* issuer curves up by 1bp (a parallel “portfolio‑wide” spread move) and reprice. The change in tranche PV is the systemic DV01.
 
-2. **Systemic delta (hedge notional):** convert the tranche’s systemic DV01 into an amount of CDS protection to sell on the reference portfolio. One implementation is to value the reference portfolio under the same 1bp bump (an on‑market index starts near PV $\\approx 0$) and scale so the CDS hedge offsets the tranche PV change.
+2. **Systemic delta (hedge notional):** convert the tranche’s systemic DV01 into an amount of CDS protection to sell on the reference portfolio. One implementation is to value the reference portfolio under the same 1bp bump (an on‑market index starts near PV $\approx 0$) and scale so the CDS hedge offsets the tranche PV change.
 
 3. **Idiosyncratic DV01\_i (PV change):** bump only issuer $i$ by 1bp and reprice; the tranche PV change is the idiosyncratic DV01 for name $i$.
 
@@ -929,11 +929,11 @@ In this simplified view, the natural hedging instruments are other correlation p
 Consider a trader long protection on the 3–7% mezzanine tranche (typically long correlation). To reduce net correlation exposure:
 
 **Step 1:** Measure Corr01 of the mezzanine position.
-- Suppose Corr01(3–7%) = +$150,000 per 1% correlation increase.
+- Suppose Corr01(3–7%) = +\$150,000 per 1% correlation increase.
 
 **Step 2:** Find opposing correlation exposure.
 - Equity tranches are typically short correlation.
-- Suppose Corr01(0–3%) = –$80,000 per 1% correlation increase.
+- Suppose Corr01(0–3%) = –\$80,000 per 1% correlation increase.
 
 **Step 3:** Size the hedge.
 $$n_{\text{equity}} = -\frac{\text{Corr01}_{3-7}}{\text{Corr01}_{0-3}} = -\frac{+150{,}000}{-80{,}000} = 1.875$$
@@ -1669,7 +1669,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 |---------|------|------------|----------------|
 | **Tranche PV01** | Contractual tranche spread $s$ by +1bp | $\text{PV}(s+1) - \text{PV}(s)$ (USD/bp) or central difference | Premium-leg annuity exposure |
 | **Correlation delta / Corr01** | Correlation parameter $\rho$ by +1% absolute | $\text{Corr01} = V(\rho + 0.01) - V(\rho)$ | In a one-factor Gaussian copula parameterization, $\rho = \beta^2$ |
-| **JTD / VOD** | Immediate default of a name (or set of names), with recovery $R$ | Total PV change under the default-event scenario (MTM reprice plus any immediate loss payment $F\\cdot G$ if tranche is hit) | Discrete jump exposure |
+| **JTD / VOD** | Immediate default of a name (or set of names), with recovery $R$ | Total PV change under the default-event scenario (MTM reprice plus any immediate loss payment $F\cdot G$ if tranche is hit) | Discrete jump exposure |
 
 ---
 
@@ -1768,10 +1768,10 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 14 | Why does correlation matter for senior tranches? | It changes tail probability of many defaults. |
 | 15 | What is JTD for a tranche? | PV change under a specified default-event scenario. |
 | 16 | What is VOD? | "Value-on-default," measuring PV impact of an immediate default. |
-| 17 | How does VOD incorporate immediate loss payment $G$? | Under a loss-payment default scenario, include the cash payment (dollars: $F\\cdot G$) and the post-default MTM of the reduced tranche; some systems report cash and MTM separately. |
+| 17 | How does VOD incorporate immediate loss payment $G$? | Under a loss-payment default scenario, include the cash payment (dollars: $F\cdot G$) and the post-default MTM of the reduced tranche; some systems report cash and MTM separately. |
 | 18 | What is default clustering? | Multiple defaults occurring together/in stress states. |
 | 19 | Define upper tail dependence coefficient $\lambda_u$. | Limiting conditional exceedance probability as quantile $\to 1$. |
-| 20 | Gaussian copula tail dependence? | No tail dependence except at perfect correlation; e.g., lower tail dependence coefficient $\lambda_{\\ell}=0$ for $\rho\\neq 1$. |
+| 20 | Gaussian copula tail dependence? | No tail dependence except at perfect correlation; e.g., lower tail dependence coefficient $\lambda_{\ell}=0$ for $\rho\neq 1$. |
 | 21 | Why can PV01 hedges fail in defaults? | Defaults are discontinuous jumps, not small spread moves. |
 | 22 | What is the "spread/PV01 term" in P&L decomposition? | P&L from small spread-like moves approximated by PV01-type sensitivities. |
 | 23 | What is the "correlation term"? | P&L from dependence parameter shifts (Corr01/CorrDelta). |
@@ -1800,13 +1800,13 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 46 | What is idiosyncratic gamma? | Second derivative of tranche value with respect to a single name's spread: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}(1\text{bp})^2$. |
 | 47 | What sign is systemic gamma for equity tranches? | Negative—convexity works against equity holders for large parallel spread moves. |
 | 48 | What sign is systemic gamma for senior tranches? | Positive—senior tranches benefit from convexity in large market-wide moves (long volatility). |
-| 49 | What is the Gaussian copula tail dependence coefficient (lower tail)? | Zero: $\lambda_{\\ell}=0$ for $\rho\\neq 1$. |
-| 50 | What is the t-copula tail dependence formula (lower tail)? | $\lambda_{\\ell}=2 F_{t, \\nu+1}\\left\\{-\\sqrt{\\frac{(\\nu+1)(1-\\rho)}{1+\\rho}}\\right\\}$ where $F_{t,\\nu+1}$ is a $t$ CDF. |
+| 49 | What is the Gaussian copula tail dependence coefficient (lower tail)? | Zero: $\lambda_{\ell}=0$ for $\rho\neq 1$. |
+| 50 | What is the t-copula tail dependence formula (lower tail)? | $\lambda_{\ell}=2 F_{t, \nu+1}\left\{-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right\}$ where $F_{t,\nu+1}$ is a $t$ CDF. |
 | 51 | Why can Gaussian copula understate senior tranche risk? | Zero tail dependence means joint extreme events can be understated relative to tail-dependent dependence structures. |
 | 52 | What does negative systemic gamma imply operationally? | Delta hedges become stale quickly in volatile parallel moves; frequent re-hedging can create a “bleed” via execution costs and convexity. |
 | 53 | What is the hedging decision parameter $\alpha$ in the blended hedge framework? | Trader's view on fraction of spread variance that is systemic; $\alpha = 1$ means all parallel, $\alpha = 0$ means all idiosyncratic. |
 | 54 | How do you compute systemic gamma via finite differences? | $\Gamma_s = V(S + 1\text{bp}) - 2V(S) + V(S - 1\text{bp})$. |
-| 55 | What is the approximate gamma P&L for a 10bp spread move with systemic gamma = −$4,000? | $\frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$ loss. |
+| 55 | What is the approximate gamma P&L for a 10bp spread move with systemic gamma = −\$4,000? | $\frac{1}{2} \times (-4{,}000) \times 100 = -\$200{,}000$ loss. |
 
 ---
 

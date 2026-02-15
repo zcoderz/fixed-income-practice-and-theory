@@ -221,10 +221,10 @@ The survival probability at any intermediate point is then:
 $$\boxed{Q(t) = Q(T_{n-1}) \exp\left(-(t - T_{n-1}) h\right)}$$
 
 **Check (hazard units + scale):** $h$ has units $1/\text{year}$. If survival drops from $Q(1)=0.98$ to $Q(2)=0.94$, then
-\[
+$$
 h=\ln\!\left(\frac{0.98}{0.94}\right)\approx 0.0417\ \text{year}^{-1},
-\]
-which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\\%$.
+$$
+which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\%$.
 
 **Why this method works:** No-arbitrage requires $h(t) \geq 0$, which is guaranteed as long as $Q(T_n) \leq Q(T_{n-1})$ at each skeleton point. The piecewise-constant structure ensures that if the skeleton is arbitrage-free, the interpolated curve is also arbitrage-free everywhere.
 
@@ -921,13 +921,13 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 ### Solution Sketches (Selected)
 
-**1.** $250 \text{ bp} = 250 \\times 10^{-4} = 0.025$.
+**1.** $250 \text{ bp} = 250 \times 10^{-4} = 0.025$.
 
-**3.** $h = \\frac{1}{3-1}\\ln(0.97/0.91) \\approx 0.0320$ year$^{-1}$.
+**3.** $h = \frac{1}{3-1}\\ln(0.97/0.91) \approx 0.0320$ year$^{-1}$.
 
-**7.** $S_{1Y}^{\\min} \\approx 1000 \\times (0.5/1.0)=500$ bp.
+**7.** $S_{1Y}^{\\min} \approx 1000 \times (0.5/1.0)=500$ bp.
 
-**10.** $Rec01 = 0.05 \\times 1\\% \\times \\$20\\text{mm} = \\$10{,}000$ per 1% recovery.
+**10.** $Rec01 = 0.05 \times 1\% \times \\$20\\text{mm} = \\$10{,}000$ per 1% recovery.
 
 **9.** Check (i) discount factors/curve version, (ii) recovery input, (iii) schedule + day count + standard-date conventions, and (iv) clean vs full MTM / accrued conventions (including accrued-on-default treatment).
 

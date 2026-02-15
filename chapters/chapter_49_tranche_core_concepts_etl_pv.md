@@ -11,7 +11,7 @@ Chapter 48 introduced the tranche product structure: attachment points, detachme
 ## Learning Objectives
 - Define portfolio loss, tranche loss, and expected tranche loss (ETL), with explicit units.
 - Translate a tranche quote (running spread and/or fixed coupon + upfront) into expected cashflows.
-- Price the protection leg and premium leg from an ETL term structure (or tranche survival curve \(Q\)).
+- Price the protection leg and premium leg from an ETL term structure (or tranche survival curve $Q$).
 - Compute and interpret tranche `RPV01`, par spread, and upfront (with clear sign conventions).
 - Apply basic no-arbitrage checks to ETL surfaces (bounds, monotonicity, concavity, conservation).
 
@@ -117,7 +117,7 @@ The Expected Tranche Loss (ETL) is the expectation of the tranche loss function 
 
 $$\boxed{\text{ETL}(t) = E[\text{TL}(L(t))] = E[\min(L(t), D) - \min(L(t), A)]}$$
 
-**Check (bounds + units):** \(\text{ETL}(t)\) here is a **portfolio-notional fraction**. It is bounded by tranche width: \(0 \le \text{ETL}(t) \le W:=D-A\). The expected outstanding notional \(\text{EON}(t)=W-\text{ETL}(t)\) is also a portfolio-notional fraction, bounded by \(0\le \text{EON}(t)\le W\). If you want “percent of tranche notional,” divide by \(W\).
+**Check (bounds + units):** $\text{ETL}(t)$ here is a **portfolio-notional fraction**. It is bounded by tranche width: $0 \le \text{ETL}(t) \le W:=D-A$. The expected outstanding notional $\text{EON}(t)=W-\text{ETL}(t)$ is also a portfolio-notional fraction, bounded by $0\le \text{EON}(t)\le W$. If you want “percent of tranche notional,” divide by $W$.
 
 For equity (base) tranches with $A = 0$, O'Kane introduces the notation $\psi(T, K)$ for the ETL curve:
 
@@ -133,7 +133,7 @@ This decomposition is the foundation of the base correlation framework discussed
 
 $$\boxed{\text{EON}(t) = W - \text{ETL}(t)}$$
 
-**Check (toy):** in Worked Example 49.1 for the \([3\%,7\%]\) tranche, \(W=4\%\) and \(\text{ETL}=1.0\%\), so \(\text{EON}=3.0\%\). Interpreting as “tranche fraction,” the expected surviving tranche notional is \(3/4 = 75\%\) of face at that horizon.
+**Check (toy):** in Worked Example 49.1 for the $[3\%,7\%]$ tranche, $W=4\%$ and $\text{ETL}=1.0\%$, so $\text{EON}=3.0\%$. Interpreting as “tranche fraction,” the expected surviving tranche notional is $3/4 = 75\%$ of face at that horizon.
 
 ### 49.1.5 Tranche Survival and the CDS Analogy
 
@@ -436,7 +436,7 @@ $$\boxed{PV_{\text{prot}}(\$) = N_{\text{port}} \sum_{i=1}^N Z(t_i) \left(\text{
 
 Each term $\Delta\text{ETL}_i = \text{ETL}(t_i) - \text{ETL}(t_{i-1})$ represents the expected loss "arriving" in interval $(t_{i-1}, t_i]$, discounted to today.
 
-**Check (sign + monotonicity):** ETL should be non-decreasing in \(t\) for a fixed tranche \([A,D]\), so \(\Delta\text{ETL}_i \ge 0\). If your computed ETL decreases with time, you have an input/model/implementation inconsistency and the protection leg PV formula can produce nonsensical negative contributions.
+**Check (sign + monotonicity):** ETL should be non-decreasing in $t$ for a fixed tranche $[A,D]$, so $\Delta\text{ETL}_i \ge 0$. If your computed ETL decreases with time, you have an input/model/implementation inconsistency and the protection leg PV formula can produce nonsensical negative contributions.
 
 O'Kane improves accuracy using the average of bounds:
 
@@ -478,8 +478,8 @@ Equivalently, using the tranche survival $Q(t)$:
 $$\boxed{PV_{\text{prem}}(\$1\text{ face}) = \frac{s}{2} \sum_{i=1}^N \alpha_i Z(t_i) \left(Q(t_{i-1}) + Q(t_i)\right)}$$
 
 **Check (limiting cases):**
-- If the tranche is expected to survive with essentially no losses over the horizon (\(Q(t)\approx 1\)), then the premium leg reduces to \(s\) times a near risk-free annuity (the usual “DV01-style” intuition).
-- If the tranche is expected to be rapidly written down (\(Q(t)\) drops quickly toward 0), then the premium base amortizes and premium PV becomes small even if the contractual spread \(s\) is very large.
+- If the tranche is expected to survive with essentially no losses over the horizon ($Q(t)\approx 1$), then the premium leg reduces to $s$ times a near risk-free annuity (the usual “DV01-style” intuition).
+- If the tranche is expected to be rapidly written down ($Q(t)$ drops quickly toward 0), then the premium base amortizes and premium PV becomes small even if the contractual spread $s$ is very large.
 
 In portfolio-notional dollars:
 
@@ -520,7 +520,7 @@ $$PV_{\text{prem}} = 0.05 \times \$15.003\text{mm} = \$0.750\text{mm}$$
 
 ### 49.5.1 Tranche Risky PV01
 
-As with a CDS contract, we can define a \(T\)-maturity tranche risky PV01 (RPV01) as the present value of \(\$1\) paid on the premium leg of the tranche. Per \(\$1\) of tranche face notional, at time zero we have (average‑notional approximation):
+As with a CDS contract, we can define a $T$-maturity tranche risky PV01 (RPV01) as the present value of $\$1$ paid on the premium leg of the tranche. Per $\$1$ of tranche face notional, at time zero we have (average‑notional approximation):
 
 $$\boxed{\text{RPV01}(0) = \frac{1}{2} \sum_{n=1}^{N_T} \Delta(t_{n-1}, t_n) Z(t_n) \left(Q(t_{n-1}, K_1, K_2) + Q(t_n, K_1, K_2)\right)}$$
 
@@ -535,10 +535,10 @@ Interpretation: tranche RPV01 behaves like CDS RPV01. For a very safe tranche, e
 - Traders often quote “RPV01” in **dollars per 1 bp**:
   $$\text{RPV01}_{\text{bp}} = 10^{-4} \times N_{\text{tr}}^{\text{face}} \times \text{RPV01}$$
 - **Bump definition (spread risk):**
-  - Bump object: the **running spread** \(s\) on the premium leg, holding the ETL/\(Q\) term structure and discount factors fixed.
-  - Bump size: \(1\text{ bp} = 10^{-4}\) (in decimal per year).
+  - Bump object: the **running spread** $s$ on the premium leg, holding the ETL/$Q$ term structure and discount factors fixed.
+  - Bump size: $1\text{ bp} = 10^{-4}$ (in decimal per year).
   - Units: currency per 1 bp, for the stated tranche face notional.
-  - Sign (protection buyer): \(\Delta PV \approx -\text{RPV01}_{\text{bp}} \times \Delta s_{\text{bp}}\).
+  - Sign (protection buyer): $\Delta PV \approx -\text{RPV01}_{\text{bp}} \times \Delta s_{\text{bp}}$.
 
 **Comparison to single-name CDS RPV01:** The tranche RPV01 has the same mathematical structure as the CDS RPV01 in Chapter 41, but with the issuer survival curve replaced by the tranche survival curve. This reinforces the CDS-tranche analogy: once you have the survival curve, pricing follows the same formulas.
 
@@ -583,7 +583,7 @@ $$\boxed{V = (s^* - s_0) \times PV01_{\text{prem}}}$$
 
 **Worked Example 49.6 (Mark-to-Market):**
 
-A trader sold protection on the 3-7% tranche at 500 bp (contractual spread). Today's par spread is 708 bp, and \(PV01_{\text{prem}}=\$15.003\text{mm}\) for this position.
+A trader sold protection on the 3-7% tranche at 500 bp (contractual spread). Today's par spread is 708 bp, and $PV01_{\text{prem}}=\$15.003\text{mm}$ for this position.
 
 Value to protection seller:
 $$V = (s_0 - s^*) \times PV01_{\text{prem}} = (0.05 - 0.0708) \times \$15.003\text{mm} \approx -\$0.31\text{mm}$$
@@ -596,7 +596,7 @@ The position is underwater: spreads widened, so the protection seller owes more 
 > 1. **Spread P&L:** $(s^*_{\text{new}} - s^*_{\text{old}}) \times PV01_{\text{prem}}$
 > 2. **Time decay / carry:** Premium received minus expected loss accrued
 >
-> Additionally, \(PV01_{\text{prem}}\) (and \(RPV01\)) changes as survival probabilities evolve, creating **convexity P&L** (second-order effect).
+> Additionally, $PV01_{\text{prem}}$ (and $RPV01$) changes as survival probabilities evolve, creating **convexity P&L** (second-order effect).
 >
 > Middle-office reconciliation tip: If the P&L attribution doesn't tie out, check whether the system is using constant RPV01 versus updated RPV01. The difference is the "gamma" effect.
 
@@ -612,25 +612,25 @@ One way to remember the quote algebra is:
 \[
 \text{Upfront} = \text{ExpLoss} - \frac{\text{Spread}\times \text{PVPmts}}{10{,}000},
 \]
-where \(\text{ExpLoss}\) is expected loss as a percent of tranche principal and \(\text{PVPmts}\) is the present value of expected premium payments computed at 10,000 bp/year.
+where $\text{ExpLoss}$ is expected loss as a percent of tranche principal and $\text{PVPmts}$ is the present value of expected premium payments computed at 10,000 bp/year.
 
-Define \(V_{\text{clean}}\) as the present value to the **protection buyer** of the contractual legs *excluding* any upfront (i.e., protection PV minus fixed-coupon premium PV):
+Define $V_{\text{clean}}$ as the present value to the **protection buyer** of the contractual legs *excluding* any upfront (i.e., protection PV minus fixed-coupon premium PV):
 
 $$\boxed{V_{\text{clean}} = PV_{\text{prot}} - s_{\text{fixed}} \times PV01_{\text{prem}}}$$
 
-In this chapter, quote the upfront cash amount \(U\) as a **positive number when it is paid by the protection buyer** to the protection seller at settlement. At trade inception, the quote \((s_{\text{fixed}}, U)\) is chosen so the net PV is zero:
+In this chapter, quote the upfront cash amount $U$ as a **positive number when it is paid by the protection buyer** to the protection seller at settlement. At trade inception, the quote $(s_{\text{fixed}}, U)$ is chosen so the net PV is zero:
 
 $$\boxed{0 = V_{\text{clean}} - U \quad\Rightarrow\quad U = V_{\text{clean}}}$$
 
-Dividing by tranche face notional \(N_{\text{tr}}^{\text{face}}\) gives “points upfront” (a fraction of tranche notional). Using \(PV_{\text{prot}} = s^* \times PV01_{\text{prem}}\) and \(RPV01 = PV01_{\text{prem}}/N_{\text{tr}}^{\text{face}}\), this becomes:
+Dividing by tranche face notional $N_{\text{tr}}^{\text{face}}$ gives “points upfront” (a fraction of tranche notional). Using $PV_{\text{prot}} = s^* \times PV01_{\text{prem}}$ and $RPV01 = PV01_{\text{prem}}/N_{\text{tr}}^{\text{face}}$, this becomes:
 
 $$\boxed{\text{Upfront (points)} = (s^* - s_{\text{fixed}}) \times RPV01}$$
 
-Sign: if \(s^* > s_{\text{fixed}}\), the protection buyer is paying “too little” running premium, so **the protection buyer pays positive upfront**.
+Sign: if $s^* > s_{\text{fixed}}$, the protection buyer is paying “too little” running premium, so **the protection buyer pays positive upfront**.
 
 > **Pitfall — Quote format and bp scaling:** Equity tranche quotes are easy to misread.
 > **Why it matters:** You can be off by 100× (percent vs decimal) or 10,000× (bp vs decimal), and you can invert “price” vs “points upfront”.
-> **Quick check:** Compute both \(V_{\text{clean}}=PV_{\text{prot}}-s_{\text{fixed}}PV01\) (currency) and \(\text{Upfront (points)}=\frac{V_{\text{clean}}}{N_{\text{tr}}^{\text{face}}}\) (percent of tranche notional). They must match the quote format you’re using.
+> **Quick check:** Compute both $V_{\text{clean}}=PV_{\text{prot}}-s_{\text{fixed}}PV01$ (currency) and $\text{Upfront (points)}=\frac{V_{\text{clean}}}{N_{\text{tr}}^{\text{face}}}$ (percent of tranche notional). They must match the quote format you’re using.
 
 **Worked Example 49.7 (Equity tranche quote: 500 bp running + upfront, with dates)**
 
@@ -644,13 +644,13 @@ Sign: if \(s^* > s_{\text{fixed}}\), the protection buyer is paying “too littl
 - Maturity: 2027-03-20
 
 **Inputs**
-- Tranche: \(A=0\%\), \(D=3\%\), width \(W=3\%\)
-- Portfolio notional: \(N_{\text{port}} = \$1{,}000{,}000{,}000\) so tranche face notional \(N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}} = \$30{,}000{,}000\)
-- Fixed running coupon: \(s_{\text{fixed}} = 500\) bp/year \(=0.05\)
-- Day count: ACT/360; assume \(\delta=0.25\) each quarter (to keep arithmetic short)
-- Discount factors \(Z(t)\) and ETL curve (cumulative ETL as a % of portfolio notional):
+- Tranche: $A=0\%$, $D=3\%$, width $W=3\%$
+- Portfolio notional: $N_{\text{port}} = \$1{,}000{,}000{,}000$ so tranche face notional $N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}} = \$30{,}000{,}000$
+- Fixed running coupon: $s_{\text{fixed}} = 500$ bp/year $=0.05$
+- Day count: ACT/360; assume $\delta=0.25$ each quarter (to keep arithmetic short)
+- Discount factors $Z(t)$ and ETL curve (cumulative ETL as a % of portfolio notional):
 
-| Date | \(Z(t)\) | \(\text{ETL}(t)\) |
+| Date | $Z(t)$ | $\text{ETL}(t)$ |
 |---|---:|---:|
 | 2026-06-20 | 0.9925 | 0.10% |
 | 2026-09-20 | 0.9850 | 0.18% |
@@ -658,8 +658,8 @@ Sign: if \(s^* > s_{\text{fixed}}\), the protection buyer is paying “too littl
 | 2027-03-20 | 0.9700 | 0.40% |
 
 **Outputs (what you produce)**
-- \(PV_{\text{prot}}\), \(PV01_{\text{prem}}\), par spread \(s^*\)
-- Upfront (points) and upfront (cash) for the quote \((500\text{ bp}, \text{Upfront})\)
+- $PV_{\text{prot}}$, $PV01_{\text{prem}}$, par spread $s^*$
+- Upfront (points) and upfront (cash) for the quote $(500\text{ bp}, \text{Upfront})$
 
 **Step-by-step**
 1. Compute protection-leg PV from ETL increments:
@@ -667,7 +667,7 @@ Sign: if \(s^* > s_{\text{fixed}}\), the protection buyer is paying “too littl
    PV_{\text{prot}} = N_{\text{port}} \sum_i Z(t_i)\,\Delta \text{ETL}_i,\qquad \Delta \text{ETL}_i=\text{ETL}(t_i)-\text{ETL}(t_{i-1}).
    \]
 
-| Date | \(\Delta\text{ETL}\) | Expected protection cashflow \(=N_{\text{port}}\Delta\text{ETL}\) | PV contribution \(=Z\cdot N_{\text{port}}\Delta\text{ETL}\) |
+| Date | $\Delta\text{ETL}$ | Expected protection cashflow $=N_{\text{port}}\Delta\text{ETL}$ | PV contribution $=Z\cdot N_{\text{port}}\Delta\text{ETL}$ |
 |---|---:|---:|---:|
 | 2026-06-20 | 0.10% | \$1.000mm | \$0.992mm |
 | 2026-09-20 | 0.08% | \$0.800mm | \$0.788mm |
@@ -684,7 +684,7 @@ PV_{\text{prot}} \approx \$3.922\text{mm}.
    PV01_{\text{prem}} = N_{\text{port}} \sum_i \delta\, Z(t_i)\,\frac{\text{EON}(t_{i-1})+\text{EON}(t_i)}{2}.
    \]
 
-| Date | \(\text{EON}(t)\) | Avg EON over period | Premium (at 500 bp) \(=s_{\text{fixed}}\delta N_{\text{port}}\text{AvgEON}\) |
+| Date | $\text{EON}(t)$ | Avg EON over period | Premium (at 500 bp) $=s_{\text{fixed}}\delta N_{\text{port}}\text{AvgEON}$ |
 |---|---:|---:|---:|
 | 2026-06-20 | 2.90% | 2.95% | \$0.369mm |
 | 2026-09-20 | 2.82% | 2.86% | \$0.358mm |
@@ -713,17 +713,17 @@ Therefore the quote “500 bp running + upfront” implies an upfront **paid by 
 \]
 
 **P&L / Risk interpretation**
-- This trade is **long default/loss risk** for the protection buyer: higher ETL increases \(PV_{\text{prot}}\), widens \(s^*\), and increases upfront.
-- The running-spread risk is summarized by `RPV01`: a +1 bp increase in the running spread (holding ETL fixed) changes PV by approximately \(-\text{RPV01}_{\text{bp}}\) for the protection buyer.
+- This trade is **long default/loss risk** for the protection buyer: higher ETL increases $PV_{\text{prot}}$, widens $s^*$, and increases upfront.
+- The running-spread risk is summarized by `RPV01`: a +1 bp increase in the running spread (holding ETL fixed) changes PV by approximately $-\text{RPV01}_{\text{bp}}$ for the protection buyer.
 
 **Sanity checks**
-- Units check: ETL and EON are fractions of **portfolio** notional; multiply by \(N_{\text{port}}\) to get currency.
-- Sign check: if ETL is identically 0, then \(PV_{\text{prot}}=0\Rightarrow s^*=0\Rightarrow\) upfront \(=0\).
+- Units check: ETL and EON are fractions of **portfolio** notional; multiply by $N_{\text{port}}$ to get currency.
+- Sign check: if ETL is identically 0, then $PV_{\text{prot}}=0\Rightarrow s^*=0\Rightarrow$ upfront $=0$.
 - Reproduction check: the two 4-row tables above are a spreadsheet implementation of the pricing formulas.
 
 **Debug checklist**
-- Are you mixing **portfolio notional** vs **tranche notional** (divide/multiply by \(W\) correctly)?
-- Did you convert bp to decimal correctly (\(500\text{ bp}=0.05\), \(1\text{ bp}=10^{-4}\))?
+- Are you mixing **portfolio notional** vs **tranche notional** (divide/multiply by $W$ correctly)?
+- Did you convert bp to decimal correctly ($500\text{ bp}=0.05$, $1\text{ bp}=10^{-4}$)?
 - Are you using end-of-period outstanding notional or average-notional (and is your counterparty using the same approximation)?
 - Did you confirm whether the quote is “points upfront” or “price”?
 
@@ -1043,9 +1043,9 @@ Total = 3.5% = Portfolio expected loss ✓
 | ETL | $E[\text{TL}(L(t))]$ | Drives both legs of tranche PV |
 | Tranche Survival $Q(t)$ | $E[1 - L_{\text{tr}}(t)] = \text{EON}/W$ | Enables CDS pricing analogy |
 | RPV01 | PV of paying 1/year on premium leg | Measures tranche duration; converts spread to value |
-| Par Spread \(s^*\) | \(PV_{\text{prot}}/PV01_{\text{prem}}\) | Fair running spread at inception |
-| MTM Value | \((s^* - s_0)\times PV01_{\text{prem}}\) | Value of an existing position |
-| Upfront (points) | \((s^* - s_{\text{fixed}})\times \text{RPV01}\) | Quote format for equity tranches (convert to cash via \(N_{\text{tr}}^{\text{face}}\)) |
+| Par Spread $s^*$ | $PV_{\text{prot}}/PV01_{\text{prem}}$ | Fair running spread at inception |
+| MTM Value | $(s^* - s_0)\times PV01_{\text{prem}}$ | Value of an existing position |
+| Upfront (points) | $(s^* - s_{\text{fixed}})\times \text{RPV01}$ | Quote format for equity tranches (convert to cash via $N_{\text{tr}}^{\text{face}}$) |
 | Conservation | $\sum$ tranche ETL = portfolio EL | No-arbitrage constraint |
 | ETL Concavity | $\partial^2\psi/\partial K^2 \leq 0$ | Ensures positive implied loss density |
 
@@ -1114,24 +1114,24 @@ Total = 3.5% = Portfolio expected loss ✓
 
 ## Mini Problem Set
 
-1. (Compute) For tranche \(A=2\%\), \(D=5\%\), compute \(\text{TL}(L)\) and \(\text{ON}(L)\) at \(L=\{0\%,2\%,4\%,5\%,8\%\}\).
-2. (Compute) Given \(L(T)\in\{1\%,4\%,9\%\}\) with probabilities \(\{0.3,0.5,0.2\}\), compute \(\text{ETL}(T;3\%,7\%)\).
-3. (Concept) Show that \(\text{TL}(L)=\min(L,D)-\min(L,A)\).
-4. (Concept) Prove \(Q(T)=\text{EON}(T)/W\).
-5. (Compute) ETL(1) = 0.2%, ETL(2) = 0.5%, ETL(3) = 0.7%. Discount factors \(Z=\{0.98,0.95,0.92\}\). Compute \(PV_{\text{prot}}\) for \(N_{\text{port}}=\$200\)mm.
+1. (Compute) For tranche $A=2\%$, $D=5\%$, compute $\text{TL}(L)$ and $\text{ON}(L)$ at $L=\{0\%,2\%,4\%,5\%,8\%\}$.
+2. (Compute) Given $L(T)\in\{1\%,4\%,9\%\}$ with probabilities $\{0.3,0.5,0.2\}$, compute $\text{ETL}(T;3\%,7\%)$.
+3. (Concept) Show that $\text{TL}(L)=\min(L,D)-\min(L,A)$.
+4. (Concept) Prove $Q(T)=\text{EON}(T)/W$.
+5. (Compute) ETL(1) = 0.2%, ETL(2) = 0.5%, ETL(3) = 0.7%. Discount factors $Z=\{0.98,0.95,0.92\}$. Compute $PV_{\text{prot}}$ for $N_{\text{port}}=\$200$mm.
 6. (Desk) Explain why a senior tranche spread can jump when tail probability (of exceeding attachment) changes.
 7. (Desk) Your tranche PV doesn’t match another system. List four items to check (quote format, units, curve inputs, and methodology).
-8. (Concept/Compute) Show how the difference between “end-of-period notional” vs “average notional” premium PV can be expressed in terms of \(\Delta\text{ETL}\).
-9. (Compute) A 0–3% equity tranche has par spread 1500 bp/year and \(RPV01=2.5\) years. Compute upfront points for a fixed coupon of 500 bp/year.
-10. (Compute/Desk) You sold tranche protection at 400 bp. Par spread is now 550 bp and \(RPV01=3.8\) years. Compute the mark-to-market on \$50mm tranche face and interpret the sign.
+8. (Concept/Compute) Show how the difference between “end-of-period notional” vs “average notional” premium PV can be expressed in terms of $\Delta\text{ETL}$.
+9. (Compute) A 0–3% equity tranche has par spread 1500 bp/year and $RPV01=2.5$ years. Compute upfront points for a fixed coupon of 500 bp/year.
+10. (Compute/Desk) You sold tranche protection at 400 bp. Par spread is now 550 bp and $RPV01=3.8$ years. Compute the mark-to-market on \$50mm tranche face and interpret the sign.
 11. (Concept/Desk) A report shows tranche ETLs that don’t sum to portfolio expected loss. Give two possible causes.
-12. (Concept) In the LHP model, explain why the “0–100%” base tranche ETL must equal portfolio expected loss (for \(K\ge L_{\max}\)).
+12. (Concept) In the LHP model, explain why the “0–100%” base tranche ETL must equal portfolio expected loss (for $K\ge L_{\max}$).
 
 ### Solution Sketches (Selected)
-5. \(\Delta \text{ETL}=\{0.2\%,0.3\%,0.2\%\}\). PV fraction \(=0.98(0.002)+0.95(0.003)+0.92(0.002)=0.00665\). \(PV_{\text{prot}}=0.00665\times \$200\text{mm}=\$1.33\text{mm}\).
-9. Upfront points \(=(0.15-0.05)\times 2.5=0.25=25\%\) of tranche notional (i.e., 25 points upfront).
-10. Protection seller MTM \(=(s_0-s^*)\times RPV01\times N_{\text{tr}} = (0.04-0.055)\times 3.8\times \$50\text{mm}\approx -\$2.85\text{mm}\). Negative means the position is underwater because spreads widened.
-7. Example checklist: (i) bp vs decimal scaling; (ii) “points upfront” vs “price”; (iii) end-of-period vs average-notional premium; (iv) whether ETL/\(Q\) is held fixed or recomputed from bumped quotes.
+5. $\Delta \text{ETL}=\{0.2\%,0.3\%,0.2\%\}$. PV fraction $=0.98(0.002)+0.95(0.003)+0.92(0.002)=0.00665$. $PV_{\text{prot}}=0.00665\times \$200\text{mm}=\$1.33\text{mm}$.
+9. Upfront points $=(0.15-0.05)\times 2.5=0.25=25\%$ of tranche notional (i.e., 25 points upfront).
+10. Protection seller MTM $=(s_0-s^*)\times RPV01\times N_{\text{tr}} = (0.04-0.055)\times 3.8\times \$50\text{mm}\approx -\$2.85\text{mm}$. Negative means the position is underwater because spreads widened.
+7. Example checklist: (i) bp vs decimal scaling; (ii) “points upfront” vs “price”; (iii) end-of-period vs average-notional premium; (iv) whether ETL/$Q$ is held fixed or recomputed from bumped quotes.
 
 ---
 

@@ -35,7 +35,7 @@ Before diving into adjustments, we must establish what we are adjusting *from*. 
 
 ### 34.1.1 No-Default Value
 
-The **no-default value** (also called the **clean value**) of a derivatives portfolio is the value assuming that both sides perform (no default) and ignoring funding/capital frictions. Denote it by \(f_{\text{nd}}\). It is the output of standard pricing models (e.g., discounted expected cashflows for swaps, option models for options).
+The **no-default value** (also called the **clean value**) of a derivatives portfolio is the value assuming that both sides perform (no default) and ignoring funding/capital frictions. Denote it by $f_{\text{nd}}$. It is the output of standard pricing models (e.g., discounted expected cashflows for swaps, option models for options).
 
 For fully collateralized trades, the discounting rate is typically linked to the collateral remuneration rate (often an overnight/OIS-type rate; see Chapter 33). For uncollateralized trades, funding and credit effects enter and the “clean” value is no longer the full story.
 
@@ -106,10 +106,10 @@ In plain terms: funding-inclusive “all-in” prices are perspective-dependent,
 The credit value adjustment (CVA) is the present value of the expected loss to the bank from counterparty default on a derivatives **netting set** (i.e., the enforceable portfolio you close out together).
 
 A simple loss-at-default picture is:
-- \(V(\tau)\): portfolio value to the bank at default time \(\tau\) (positive = you are owed money),
-- \(C(\tau)\): collateral held at \(\tau\),
-- exposure \(E(\tau) = \max(V(\tau)-C(\tau),0)\),
-- loss \(\approx (1-R)\,E(\tau)\), where \(R\) is the recovery rate (so \(1-R\) is LGD).
+- $V(\tau)$: portfolio value to the bank at default time $\tau$ (positive = you are owed money),
+- $C(\tau)$: collateral held at $\tau$,
+- exposure $E(\tau) = \max(V(\tau)-C(\tau),0)$,
+- loss $\approx (1-R)\,E(\tau)$, where $R$ is the recovery rate (so $1-R$ is LGD).
 
 CVA prices that loss: it is the discounted expectation of loss-at-default across default times and market scenarios (under the pricing measure).
 
@@ -117,17 +117,17 @@ CVA prices that loss: it is the discounted expectation of loss-at-default across
 
 ### 34.2.2 The CVA Formula
 
-Suppose the life of the longest derivative is \(T\) years, divided into \(n\) intervals. Define:
+Suppose the life of the longest derivative is $T$ years, divided into $n$ intervals. Define:
 
 - $q_i$: risk-neutral probability of default during interval $i$
-- $v_i$: present value of the expected **net exposure** (after collateral) at the midpoint of interval \(i\), conditional on default
+- $v_i$: present value of the expected **net exposure** (after collateral) at the midpoint of interval $i$, conditional on default
 - $R$: recovery rate
 
 Then:
 
 $$\boxed{\text{CVA} = \sum_{i=1}^{n} (1-R) \, q_i \, v_i}$$
 
-This formula is simple to write but usually hard to implement, because the \(v_i\) require simulating the portfolio forward under market dynamics and collateral rules.
+This formula is simple to write but usually hard to implement, because the $v_i$ require simulating the portfolio forward under market dynamics and collateral rules.
 
 **Intuition:** The formula says: for each possible default interval, multiply:
 - Probability of defaulting in that interval ($q_i$)
@@ -149,22 +149,22 @@ The product $(1-R) q_i v_i$ gives expected loss from defaults in interval $i$; s
 
 ### 34.2.3 Computing Default Probabilities
 
-The \(q_i\) are **risk-neutral** default probabilities, typically implied from market credit instruments (e.g., CDS). In reduced-form (intensity) models one works with a hazard rate \(h(t)\) and the survival probability
-\[
+The $q_i$ are **risk-neutral** default probabilities, typically implied from market credit instruments (e.g., CDS). In reduced-form (intensity) models one works with a hazard rate $h(t)$ and the survival probability
+$$
 Q(t)=\exp\Big(-\int_0^t h(u)\,du\Big).
-\]
+$$
 
-In a very common *approximation*, if \(s_i\) is a credit spread for maturity \(t_i\) and recovery is treated as constant \(R\), the average hazard rate over \([0,t_i]\) is
-\[
+In a very common *approximation*, if $s_i$ is a credit spread for maturity $t_i$ and recovery is treated as constant $R$, the average hazard rate over $[0,t_i]$ is
+$$
 \bar{h}_i \approx \frac{s_i}{1-R}.
-\]
+$$
 
-Then \(Q(t_i)\approx e^{-\bar{h}_i t_i}\), and a discrete interval default probability is
-\[
+Then $Q(t_i)\approx e^{-\bar{h}_i t_i}$, and a discrete interval default probability is
+$$
 q_i = Q(t_{i-1})-Q(t_i).
-\]
+$$
 
-**Check (units and quick magnitude):** A spread \(s\) and hazard \(h\) both have units of “per year.” For example, if \(s=200\text{bp}=0.02\) and \(R=40\%\), then \(\bar{h}\approx 0.02/0.6\approx 0.0333\) per year. Over 5 years this implies \(Q(5)\approx e^{-0.0333\times 5}\approx 0.846\), i.e., a cumulative default probability of about \(15.4\%\). If your curve mapping produces a higher survival probability when spreads go up, something is inverted.
+**Check (units and quick magnitude):** A spread $s$ and hazard $h$ both have units of “per year.” For example, if $s=200\text{bp}=0.02$ and $R=40\%$, then $\bar{h}\approx 0.02/0.6\approx 0.0333$ per year. Over 5 years this implies $Q(5)\approx e^{-0.0333\times 5}\approx 0.846$, i.e., a cumulative default probability of about $15.4\%$. If your curve mapping produces a higher survival probability when spreads go up, something is inverted.
 
 This connects directly to the survival-probability framework in Chapter 36 and the CDS curve bootstrapping mechanics in Chapter 42.
 
@@ -174,7 +174,7 @@ This connects directly to the survival-probability framework in Chapter 36 and t
 
 ### 34.2.4 Computing Expected Exposure
 
-The \(v_i\) are typically obtained by Monte Carlo simulation of the market factors that drive \(V(t)\), combined with a model of collateral and netting. The exposure at time \(t\), after netting and collateral, is often represented as:
+The $v_i$ are typically obtained by Monte Carlo simulation of the market factors that drive $V(t)$, combined with a model of collateral and netting. The exposure at time $t$, after netting and collateral, is often represented as:
 
 $$E(t) = \max(V(t) - C(t), 0)$$
 
@@ -183,22 +183,22 @@ where $V(t)$ is the portfolio value and $C(t)$ is collateral held. This connects
 **The simulation process:**
 1. Generate thousands of paths for all market variables (rates, FX, commodities, etc.)
 2. At each time point $t_i^*$ (midpoint of interval $i$), compute portfolio value $V(t_i^*)$
-3. Apply collateral/netting rules to determine \(C(t_i^*)\)
+3. Apply collateral/netting rules to determine $C(t_i^*)$
 4. Compute exposure $E(t_i^*) = \max(V(t_i^*) - C(t_i^*), 0)$
 5. Average exposures across paths to get expected exposure
 6. Discount to get $v_i$
 
-Because dealers face many counterparties and large portfolios, computing \(v_i\) at scale can be computationally intensive.
+Because dealers face many counterparties and large portfolios, computing $v_i$ at scale can be computationally intensive.
 
 ### 34.2.5 Cure Period and Collateral Timing
 
-A critical practical detail is that collateral at default is usually based on a mark-to-market from several days *earlier*. A common modeling convention is: the counterparty stops posting collateral (and stops returning excess collateral) \(c\) days before default, where \(c\) is often taken to be 10–20 days. The parameter \(c\) is the **cure period**, also called the **margin period of risk (MPOR)**.
+A critical practical detail is that collateral at default is usually based on a mark-to-market from several days *earlier*. A common modeling convention is: the counterparty stops posting collateral (and stops returning excess collateral) $c$ days before default, where $c$ is often taken to be 10–20 days. The parameter $c$ is the **cure period**, also called the **margin period of risk (MPOR)**.
 
 This creates a fundamental insight: **even perfectly collateralized trades carry residual exposure** equal to the potential MTM change during the cure period (also called the margin period of risk or MPOR).
 
 **Example 34.1 — Cure Period Effect (Toy Illustration)**
 
-Assume a two-way, zero-threshold margining setup and a cure period of 20 days. Consider what happens at default time \(\tau\):
+Assume a two-way, zero-threshold margining setup and a cure period of 20 days. Consider what happens at default time $\tau$:
 
 *Scenario A:* Portfolio value to bank at $\tau$ = 50. Value 20 days earlier = 45.
 - Collateral at default = 45 (reflects old MTM)
@@ -225,7 +225,7 @@ To see how dramatically collateral reduces CVA, consider a 3-year portfolio with
 | 2 | 1.5 | \$8M | \$1.5M | 0.97 | 0.0290 |
 | 3 | 2.5 | \$6M | \$1M | 0.95 | 0.0373 |
 
-Recovery \(R=40\%\) (LGD \(=0.6\)). Default probabilities are derived from a simple piecewise-constant hazard-rate setup (toy numbers).
+Recovery $R=40\%$ (LGD $=0.6$). Default probabilities are derived from a simple piecewise-constant hazard-rate setup (toy numbers).
 
 **Uncollateralized CVA:**
 $$\text{CVA} = 0.6 \times (0.99 \times 10M \times 0.0198 + 0.97 \times 8M \times 0.0290 + 0.95 \times 6M \times 0.0373)$$
@@ -264,15 +264,15 @@ This example follows the “exposure grid + default curve” pipeline: **exposur
 - Trade date: 2026-02-15
 - Effective date (settlement): 2026-02-17
 - Maturity date: 2031-02-17
-- Exposure evaluation grid: midpoints of annual intervals \(t_i^* \in \{0.5,1.5,2.5,3.5,4.5\}\) years, i.e. approximately:
+- Exposure evaluation grid: midpoints of annual intervals $t_i^* \in \{0.5,1.5,2.5,3.5,4.5\}$ years, i.e. approximately:
   - 2026-08-15, 2027-08-15, 2028-08-15, 2029-08-15, 2030-08-15
 
 **Inputs**
-- Recovery \(R=40\%\) (LGD \(=0.6\))
-- Counterparty credit spread (toy, flat): \(s=200\text{ bp}=0.02\) per year
+- Recovery $R=40\%$ (LGD $=0.6$)
+- Counterparty credit spread (toy, flat): $s=200\text{ bp}=0.02$ per year
 - Expected exposure at each midpoint (after netting/collateral), in \$ millions:
 
-| \(t_i^*\) (years) | \(EE_i\) (\$mm) |
+| $t_i^*$ (years) | $EE_i$ (\$mm) |
 |---:|---:|
 | 0.5 | 1.5 |
 | 1.5 | 2.5 |
@@ -281,52 +281,52 @@ This example follows the “exposure grid + default curve” pipeline: **exposur
 | 4.5 | 1.5 |
 
 - Discount factors (toy OIS curve):
-  - \(P(0,0.5)=0.98\), \(P(0,1.5)=0.94\), \(P(0,2.5)=0.90\), \(P(0,3.5)=0.87\), \(P(0,4.5)=0.84\)
+  - $P(0,0.5)=0.98$, $P(0,1.5)=0.94$, $P(0,2.5)=0.90$, $P(0,3.5)=0.87$, $P(0,4.5)=0.84$
 
 **Outputs (What You Produce)**
 - CVA (USD)
 
 **Step-by-step**
-1. Convert spread to a flat hazard rate (approx.): \(\bar{h} \approx \frac{s}{1-R}=\frac{0.02}{0.60}=0.03333\) per year.
-2. Compute annual survival probabilities \(Q(t)=e^{-\bar{h}t}\) at \(t=1,2,3,4,5\):
-   - \(Q(1)=0.9672\), \(Q(2)=0.9355\), \(Q(3)=0.9048\), \(Q(4)=0.8752\), \(Q(5)=0.8465\)
-3. Convert to annual default probabilities \(q_i = Q(i-1)-Q(i)\):
-   - \(q_1=0.0328\), \(q_2=0.0317\), \(q_3=0.0307\), \(q_4=0.0296\), \(q_5=0.0287\)
-4. Discount expected exposures \(v_i = EE_i \cdot P(0,t_i^*)\) (in \$mm):
-   - \(v=[1.47,\,2.35,\,2.52,\,1.91,\,1.26]\)
+1. Convert spread to a flat hazard rate (approx.): $\bar{h} \approx \frac{s}{1-R}=\frac{0.02}{0.60}=0.03333$ per year.
+2. Compute annual survival probabilities $Q(t)=e^{-\bar{h}t}$ at $t=1,2,3,4,5$:
+   - $Q(1)=0.9672$, $Q(2)=0.9355$, $Q(3)=0.9048$, $Q(4)=0.8752$, $Q(5)=0.8465$
+3. Convert to annual default probabilities $q_i = Q(i-1)-Q(i)$:
+   - $q_1=0.0328$, $q_2=0.0317$, $q_3=0.0307$, $q_4=0.0296$, $q_5=0.0287$
+4. Discount expected exposures $v_i = EE_i \cdot P(0,t_i^*)$ (in \$mm):
+   - $v=[1.47,\,2.35,\,2.52,\,1.91,\,1.26]$
 5. Assemble CVA:
-   \[
+   $$
    \text{CVA} = (1-R)\sum_{i=1}^5 q_i v_i
    =0.60\times 0.2929\text{ mm} \approx \$175{,}700.
-   \]
+   $$
 
 **Cashflows (expected loss contributions)**
-Think of each interval as contributing a PV “expected loss cashflow” \( (1-R)q_iv_i\).
+Think of each interval as contributing a PV “expected loss cashflow” $ (1-R)q_iv_i$.
 
 | Approx date | PV expected loss | Explanation |
 |---|---:|---|
-| 2026-08-15 | \$28.9k | \(0.6\times q_1\times v_1\) |
-| 2027-08-15 | \$44.7k | \(0.6\times q_2\times v_2\) |
-| 2028-08-15 | \$46.4k | \(0.6\times q_3\times v_3\) |
-| 2029-08-15 | \$33.9k | \(0.6\times q_4\times v_4\) |
-| 2030-08-15 | \$21.7k | \(0.6\times q_5\times v_5\) |
+| 2026-08-15 | \$28.9k | $0.6\times q_1\times v_1$ |
+| 2027-08-15 | \$44.7k | $0.6\times q_2\times v_2$ |
+| 2028-08-15 | \$46.4k | $0.6\times q_3\times v_3$ |
+| 2029-08-15 | \$33.9k | $0.6\times q_4\times v_4$ |
+| 2030-08-15 | \$21.7k | $0.6\times q_5\times v_5$ |
 
 **P&L / Risk Interpretation**
 - CVA is a cost/reserve: in a “clean minus CVA” convention, larger CVA reduces the value to the bank.
 - CVA moves for two big reasons:
-  1. **Credit**: spreads widen/narrow (changes \(q_i\)).
-  2. **Exposure**: rates/FX/etc move (changes the future \(EE_i\) profile).
+  1. **Credit**: spreads widen/narrow (changes $q_i$).
+  2. **Exposure**: rates/FX/etc move (changes the future $EE_i$ profile).
 
 **Sanity Checks**
-- Units check: \(q_i\) and LGD are unitless; \(v_i\) is currency → CVA is currency.
-- Sign check: higher spreads (larger \(q_i\)) or higher exposure (larger \(v_i\)) should increase CVA.
-- Limit check: if \(R\\to 1\) (LGD→0) then CVA→0.
+- Units check: $q_i$ and LGD are unitless; $v_i$ is currency → CVA is currency.
+- Sign check: higher spreads (larger $q_i$) or higher exposure (larger $v_i$) should increase CVA.
+- Limit check: if $R\to 1$ (LGD→0) then CVA→0.
 
 **Debug Checklist (When Your Result Looks Wrong)**
-- Did you discount \(EE_i\) twice (or not at all)? Be explicit about whether \(EE_i\) is a forward exposure or a PV exposure.
-- Are your \(q_i\) consistent with your spread-to-hazard convention and recovery assumption?
+- Did you discount $EE_i$ twice (or not at all)? Be explicit about whether $EE_i$ is a forward exposure or a PV exposure.
+- Are your $q_i$ consistent with your spread-to-hazard convention and recovery assumption?
 - Are exposures computed at the **netting-set** level, after collateral and netting?
-- Are you mixing year-end \(q_i\) with midpoint \(v_i\) without being clear about the approximation?
+- Are you mixing year-end $q_i$ with midpoint $v_i$ without being clear about the approximation?
 
 ---
 
@@ -341,15 +341,15 @@ The formula is symmetric to CVA:
 $$\boxed{\text{DVA} = \sum_{i=1}^{n} (1-R^*) \, q_i^* \, v_i^*}$$
 
 where:
-- \(q_i^*\): (risk-neutral) probability of default by the **bank** during interval \(i\)
-- \(v_i^*\): PV of the counterparty’s expected exposure to the bank at the midpoint of interval \(i\)
-- \(R^*\): recovery rate in the event the bank defaults
+- $q_i^*$: (risk-neutral) probability of default by the **bank** during interval $i$
+- $v_i^*$: PV of the counterparty’s expected exposure to the bank at the midpoint of interval $i$
+- $R^*$: recovery rate in the event the bank defaults
 
-**Expand (link to negative exposure):** From the bank’s perspective, CVA is driven by scenarios where we are owed money (\(V-C>0\)). DVA is driven by the mirror scenarios where we owe the counterparty (\(V-C<0\)): it is closely related to the **expected negative exposure** (ENE) object from Chapter 32, just viewed through the counterparty’s eyes.
+**Expand (link to negative exposure):** From the bank’s perspective, CVA is driven by scenarios where we are owed money ($V-C>0$). DVA is driven by the mirror scenarios where we owe the counterparty ($V-C<0$): it is closely related to the **expected negative exposure** (ENE) object from Chapter 32, just viewed through the counterparty’s eyes.
 
 **Check (limiting cases):**
-- If a portfolio is always an asset to the bank (netted and collateralized \(V(t)-C(t)\ge 0\) on all relevant scenarios), then the counterparty has no claim on us and DVA should be near 0.
-- If a portfolio is always a liability to the bank (\(V(t)-C(t)\le 0\)), then CVA should be near 0 while DVA can be material.
+- If a portfolio is always an asset to the bank (netted and collateralized $V(t)-C(t)\ge 0$ on all relevant scenarios), then the counterparty has no claim on us and DVA should be near 0.
+- If a portfolio is always a liability to the bank ($V(t)-C(t)\le 0$), then CVA should be near 0 while DVA can be material.
 
 ### 34.4.2 Why DVA Exists: The Zero-Sum Argument
 
@@ -393,7 +393,7 @@ This is not just legal plumbing: it changes the payoff at default, so it changes
 
 ### 34.4.5 The Accounting Paradox and Phantom Equity
 
-DVA can create a counterintuitive accounting effect: when a bank’s credit spreads widen (its default probability rises), DVA increases. Under a \(V=f_{\text{nd}}-\text{CVA}+\text{DVA}\) convention, the derivatives portfolio can therefore look *more valuable* to the bank.
+DVA can create a counterintuitive accounting effect: when a bank’s credit spreads widen (its default probability rises), DVA increases. Under a $V=f_{\text{nd}}-\text{CVA}+\text{DVA}$ convention, the derivatives portfolio can therefore look *more valuable* to the bank.
 
 > **Desk Reality: DVA as "Phantom Equity"**
 >
@@ -403,7 +403,7 @@ DVA can create a counterintuitive accounting effect: when a bank’s credit spre
 
 **Example 34.4 — DVA Gain from Spread Widening (Toy)**
 
-A bank has $500 million notional of swaps where it is out-of-the-money to counterparties (negative MTM to bank). The bank's 5-year CDS spread widens from 80bp to 180bp. Recovery assumption is 40%.
+A bank has \$500 million notional of swaps where it is out-of-the-money to counterparties (negative MTM to bank). The bank's 5-year CDS spread widens from 80bp to 180bp. Recovery assumption is 40%.
 
 **Before:** 5-year survival probability = $e^{-0.008 \times 5 / 0.6} = 0.9355$
 **After:** 5-year survival probability = $e^{-0.018 \times 5 / 0.6} = 0.8607$
@@ -413,10 +413,10 @@ Change in default probability = $0.9355 - 0.8607 = 0.0748$ (7.48%)
 **Approximate DVA change:**
 $$\Delta \text{DVA} \approx (1-R) \times \Delta(\text{default prob}) \times \text{Average negative exposure}$$
 
-If average negative exposure (counterparty's claim) is $25 million:
+If average negative exposure (counterparty's claim) is \$25 million:
 $$\Delta \text{DVA} \approx 0.6 \times 0.0748 \times 25 = \$1.12 \text{ million profit}$$
 
-**Interpretation:** The bank reports $1.12 million profit because its liabilities became less valuable. But this profit:
+**Interpretation:** The bank reports \$1.12 million profit because its liabilities became less valuable. But this profit:
 - Cannot be distributed as dividends
 - Is not counted in regulatory capital
 - Would only "realize" if the bank actually defaults
@@ -438,7 +438,7 @@ Consider a dealer with matched pairs of offsetting swaps—one with each of two 
 
 ### 34.5.2 Implications for CVA
 
-If two trades face the same counterparty, the \(q_i\) are (by definition) counterparty-specific. Differences in CVA across products are therefore largely driven by the exposure profile \(v_i\).
+If two trades face the same counterparty, the $q_i$ are (by definition) counterparty-specific. Differences in CVA across products are therefore largely driven by the exposure profile $v_i$.
 
 This explains why:
 - currency swaps can have larger CVA than interest rate swaps of comparable maturity/notional (because of larger exposure),
@@ -487,7 +487,7 @@ Moreover, there is some overlap (or double counting) between **DVA and FVA**. If
 
 > **Pitfall — DVA/FVA overlap (double counting):** mixing “funding benefit” ideas with a separate DVA term without a consistent definition of what each term includes.
 > **Why it matters:** you can get a plausible-looking all-in number but the wrong sensitivities and the wrong P&L attribution (credit vs funding).
-> **Quick check:** set funding spreads to 0 and confirm your funding-driven adjustment collapses toward 0; then check that your sign convention reproduces \(V_{\text{all-in}}\) from the stated stack.
+> **Quick check:** set funding spreads to 0 and confirm your funding-driven adjustment collapses toward 0; then check that your sign convention reproduces $V_{\text{all-in}}$ from the stated stack.
 
 ### 34.6.4 The FVA Asymmetry in Practice
 
@@ -514,8 +514,8 @@ $$\text{FCA} \approx \sum_{i=1}^{N} D(0, t_i^*) \cdot s_f \cdot F(t_i^*) \cdot \
 where $s_f$ is the funding spread over the discounting rate (units: 1/year), $F(t)$ is the expected funding requirement (currency), and $\Delta t$ is the year fraction.
 
 **Check (units and limits):**
-- Units: \(D\) is unitless, \(s_f\) is 1/year, \(F\) is currency, and \(\Delta t\) is years \(\Rightarrow\) each term is currency, as it should be for FCA.
-- Limits: if \(s_f=0\) or \(F(t)\equiv 0\), then FCA collapses to 0. If you halve the time step (e.g., from annual to semiannual) while keeping the same funding profile, the sum should be broadly stable once you scale \(\Delta t\) consistently.
+- Units: $D$ is unitless, $s_f$ is 1/year, $F$ is currency, and $\Delta t$ is years $\Rightarrow$ each term is currency, as it should be for FCA.
+- Limits: if $s_f=0$ or $F(t)\equiv 0$, then FCA collapses to 0. If you halve the time step (e.g., from annual to semiannual) while keeping the same funding profile, the sum should be broadly stable once you scale $\Delta t$ consistently.
 
 **Example 34.5 — FCA Calculation (Toy)**
 
@@ -538,7 +538,7 @@ The **margin valuation adjustment (MVA)** captures the cost of funding **initial
 
 Unlike FVA, **incremental MVA** for CCP-cleared transactions is usually **portfolio-dependent**, because IM is calculated on the cleared portfolio: a new trade can increase, decrease, or barely change total IM depending on offsets.
 
-**Check (toy magnitude):** If incremental IM is \(\$10\text{M}\), the incremental funding spread is \(50\text{bp}=0.50\%\) per year, and the effective horizon is 2 years, then a back-of-the-envelope IM funding cost is \(\$10\text{M}\times 0.50\%\times 2=\$100\text{k}\) (before discounting). If your MVA is orders of magnitude larger or smaller, first check units (bp vs %) and what “IM balance” you are funding (posted vs net).
+**Check (toy magnitude):** If incremental IM is $\$10\text{M}$, the incremental funding spread is $50\text{bp}=0.50\%$ per year, and the effective horizon is 2 years, then a back-of-the-envelope IM funding cost is $\$10\text{M}\times 0.50\%\times 2=\$100\text{k}$ (before discounting). If your MVA is orders of magnitude larger or smaller, first check units (bp vs %) and what “IM balance” you are funding (posted vs net).
 
 ---
 
@@ -546,7 +546,7 @@ Unlike FVA, **incremental MVA** for CCP-cleared transactions is usually **portfo
 
 ### 34.7.1 The Capital Cost Problem
 
-Regulatory capital requirements tie up equity. If shareholders require 15% returns and a trade requires $10 million of additional capital, should the trade earn 15% on that capital?
+Regulatory capital requirements tie up equity. If shareholders require 15% returns and a trade requires \$10 million of additional capital, should the trade earn 15% on that capital?
 
 **KVA** (capital valuation adjustment) is a charge to reflect incremental capital costs.
 
@@ -569,11 +569,11 @@ Two competing framings show up in practice:
 >
 > 4. **KVA:** Convert required capital into a pricing charge by applying a cost of capital over the horizon (in practice often via a discounted sum/integral across future capital profiles).
 >
-> **Toy example (illustrative numbers):** A 5-year $100M interest rate swap with a BBB corporate:
-> - Assume EAD (per your capital model) = $5M
+> **Toy example (illustrative numbers):** A 5-year \$100M interest rate swap with a BBB corporate:
+> - Assume EAD (per your capital model) = \$5M
 > - Assume risk weight = 100%
-> - Assume all-in capital ratio = 12% → required capital = $600K
-> - If cost of capital = 15%, annual capital cost ≈ $90K
+> - Assume all-in capital ratio = 12% → required capital = \$600K
+> - If cost of capital = 15%, annual capital cost ≈ \$90K
 > - Over 5 years (discounted) → on the order of a few hundred thousand dollars
 >
 > This is why desks care about capital consumption: even if mid-market NPV is near zero, the “all-in” economics after KVA can change whether the trade clears the hurdle.
@@ -593,8 +593,8 @@ In discrete form:
 $$\text{KVA} = \sum_{i=1}^{n} h_c \times K_i \times \Delta t_i \times d_i$$
 
 **Check (units and toy magnitude):**
-- Units: \(h_c\) is 1/year, \(K\) is currency, \(d\) is unitless, and \(\Delta t\) is years \(\Rightarrow\) KVA is currency.
-- Toy magnitude: if \(K(t)\approx \$1\text{M}\) is roughly flat over 5 years and \(h_c\approx 8\%\), then ignoring discounting \(\text{KVA}\approx 0.08\times 1\text{M}\times 5\approx \$400\text{k}\).
+- Units: $h_c$ is 1/year, $K$ is currency, $d$ is unitless, and $\Delta t$ is years $\Rightarrow$ KVA is currency.
+- Toy magnitude: if $K(t)\approx \$1\text{M}$ is roughly flat over 5 years and $h_c\approx 8\%$, then ignoring discounting $\text{KVA}\approx 0.08\times 1\text{M}\times 5\approx \$400\text{k}$.
 
 ### 34.7.4 The Complete XVA Stack
 
@@ -610,14 +610,14 @@ All XVAs are "computationally time-consuming to calculate. Monte Carlo simulatio
 
 **Example 34.6 — Comprehensive XVA Decomposition**
 
-A derivatives desk is quoting a 7-year $50 million notional receiver swap (bank receives fixed, pays floating) to a BBB-rated corporate client. The swap will be uncollateralized.
+A derivatives desk is quoting a 7-year \$50 million notional receiver swap (bank receives fixed, pays floating) to a BBB-rated corporate client. The swap will be uncollateralized.
 
 **Given:**
-- Mid-market NPV: +$1,200,000 (to bank)
+- Mid-market NPV: +\$1,200,000 (to bank)
 - Counterparty CDS spread: 150bp (5-year), recovery = 40%
 - Bank funding cost: SOFR + 45bp
-- Expected peak exposure: $4.5M (occurs around year 4)
-- Incremental capital requirement (per the bank’s capital model): $2.2M
+- Expected peak exposure: \$4.5M (occurs around year 4)
+- Incremental capital requirement (per the bank’s capital model): \$2.2M
 - Bank's cost of capital: 12% (target ROE)
 - Risk-free rate (for discounting KVA): 4%
 
@@ -629,13 +629,13 @@ Using the simplified CVA formula with average expected exposure:
 
 Approximate 7-year cumulative default probability ≈ 15%
 
-Average expected exposure (discounted) ≈ $2.5M
+Average expected exposure (discounted) ≈ \$2.5M
 
 $$\text{CVA} \approx (1-0.40) \times 0.15 \times \$2.5M = \$225,000$$
 
 **Step 2: DVA Calculation**
 
-Assume bank CDS spread: 60bp, bank's negative exposure (when swap is in-the-money to counterparty) averages $1.5M.
+Assume bank CDS spread: 60bp, bank's negative exposure (when swap is in-the-money to counterparty) averages \$1.5M.
 
 Bank's 7-year default probability ≈ 6%
 
@@ -643,7 +643,7 @@ $$\text{DVA} \approx (1-0.40) \times 0.06 \times \$1.5M = \$54,000$$
 
 **Step 3: FVA Calculation**
 
-The swap has positive value, so the bank has a funding cost. Average positive MTM over the life ≈ $800K.
+The swap has positive value, so the bank has a funding cost. Average positive MTM over the life ≈ \$800K.
 
 Funding spread = 45bp
 
@@ -651,7 +651,7 @@ $$\text{FVA} \approx 0.0045 \times \$800K \times 5 \text{ (effective duration)} 
 
 **Step 4: MVA Calculation**
 
-Initial margin estimate (per the bank’s IM model) ≈ $1.8M
+Initial margin estimate (per the bank’s IM model) ≈ \$1.8M
 
 Funding cost of IM = 45bp
 
@@ -659,7 +659,7 @@ $$\text{MVA} \approx 0.0045 \times \$1.8M \times 6 \text{ (years)} = \$48,600$$
 
 **Step 5: KVA Calculation**
 
-Capital requirement: $2.2M
+Capital requirement: \$2.2M
 
 Cost of capital above risk-free: 12% - 4% = 8%
 
@@ -669,19 +669,19 @@ $$\text{KVA} \approx 0.08 \times \$2.2M \times 5 \text{ (effective duration)} = 
 
 | Component | Amount | Sign |
 |-----------|--------|------|
-| Mid-Market NPV | $1,200,000 | + |
-| CVA | $(225,000) | − |
-| DVA | $54,000 | + |
-| FVA | $(18,000) | − |
-| MVA | $(48,600) | − |
-| KVA | $(880,000) | − |
-| **Net Desk Economics** | **$82,400** | |
+| Mid-Market NPV | \$1,200,000 | + |
+| CVA | \$(225,000) | − |
+| DVA | \$54,000 | + |
+| FVA | \$(18,000) | − |
+| MVA | \$(48,600) | − |
+| KVA | \$(880,000) | − |
+| **Net Desk Economics** | **\$82,400** | |
 
-**Interpretation:** The "profitable" $1.2M trade actually nets only $82K for the desk after XVA charges. The KVA alone consumes $880K—over 70% of the gross NPV.
+**Interpretation:** The "profitable" \$1.2M trade actually nets only $82K for the desk after XVA charges. The KVA alone consumes $880K—over 70% of the gross NPV.
 
 > **Desk Reality: The Deal/No-Deal Decision**
 >
-> At $82K net, should the desk do this trade?
+> At \$82K net, should the desk do this trade?
 >
 > **Arguments for:**
 > - Client relationship value
@@ -689,7 +689,7 @@ $$\text{KVA} \approx 0.08 \times \$2.2M \times 5 \text{ (effective duration)} = 
 > - Flow that improves hedging efficiency elsewhere
 >
 > **Arguments against:**
-> - ROE on $2.2M capital = $82K / $2.2M / 7 years = 0.5% per year
+> - ROE on \$2.2M capital = $82K / $2.2M / 7 years = 0.5% per year
 > - Bank's hurdle rate is 12%—this trade destroys value
 > - Capital better deployed elsewhere
 >
@@ -769,10 +769,10 @@ Banks organize XVA management in one of two ways:
 > **Desk Reality: Who Owns the P&L?**
 >
 > **At trade inception:**
-> - Trader shows +$1.2M NPV (mid-market)
-> - XVA desk charges $400K (CVA + FVA + KVA, net of DVA)
-> - Trader's day-one P&L: $800K
-> - XVA desk books a $400K reserve
+> - Trader shows +\$1.2M NPV (mid-market)
+> - XVA desk charges \$400K (CVA + FVA + KVA, net of DVA)
+> - Trader's day-one P&L: \$800K
+> - XVA desk books a \$400K reserve
 >
 > **Over the trade's life:**
 > - Trader's P&L: changes in mid-market value
@@ -843,7 +843,7 @@ Rehypothecation is one of the features that can make the economics less intuitiv
 | Margin frequency + MPOR | Even with VM, exposure at default reflects stale MTM and liquidation lag (gap risk). | If you set MPOR to 0 and assume frictionless VM, CVA should fall sharply. |
 | Thresholds / MTA / independent amounts | These create “dead zones” where exposure is not fully covered by collateral. | If thresholds/MTA are nonzero, small MTM moves should not trigger collateral, so exposure remains. |
 | Eligible collateral + haircuts | Non-cash collateral is typically haircut, reducing effective protection; collateral value can move during MPOR. | Stress collateral value during MPOR and confirm exposure increases in the direction you expect. |
-| Segregation vs rehypothecation | If collateral can be re-used, it can change funding economics and default-time claims; some modeling choices treat it as a funding resource, which can introduce recursion. | If you allow rehypothecation in the model, verify funding requirement depends on \(V\) and that the algorithm solves consistently (often backward/recursive). |
+| Segregation vs rehypothecation | If collateral can be re-used, it can change funding economics and default-time claims; some modeling choices treat it as a funding resource, which can introduce recursion. | If you allow rehypothecation in the model, verify funding requirement depends on $V$ and that the algorithm solves consistently (often backward/recursive). |
 | Closeout convention | Determines the payoff at default and the meaning of “DVA” (risk-free vs replacement closeout). | Check that your closeout convention is consistent with your bilateral valuation and does not create a valuation jump at default. |
 
 ---
@@ -853,26 +853,26 @@ Rehypothecation is one of the features that can make the economics less intuitiv
 ### 34.12.1 CVA Is a Risk Position, Not Just a Number
 
 Once you compute CVA, you have created a **risk position** whose value moves with:
-1. **Counterparty credit** (spreads/hazards move \(\Rightarrow q_i\) moves), and
-2. **Market factors** (rates/FX/commodities move \(\Rightarrow\) the exposure profile \(v_i\) moves).
+1. **Counterparty credit** (spreads/hazards move $\Rightarrow q_i$ moves), and
+2. **Market factors** (rates/FX/commodities move $\Rightarrow$ the exposure profile $v_i$ moves).
 
 A useful mental model is: CVA behaves like a path-dependent “option-like” claim on exposure-at-default. It inherits model risk from both the exposure engine and the credit curve inputs.
 
 ### 34.12.2 CVA01 (Credit Spread Risk): Define the Bump Precisely
 
-Define **CVA01** as a bump-and-reprice sensitivity to a parallel **+1bp** shift in the counterparty’s credit spread term structure \(s(t)\) (or the corresponding hazard curve \(h(t)\), if that is your internal object):
+Define **CVA01** as a bump-and-reprice sensitivity to a parallel **+1bp** shift in the counterparty’s credit spread term structure $s(t)$ (or the corresponding hazard curve $h(t)$, if that is your internal object):
 
-\[
+$$
 \mathrm{CVA01} := \mathrm{CVA}(s+1\text{ bp})-\mathrm{CVA}(s).
-\]
+$$
 
 To make this unambiguous, always state:
-- **Bump object:** the counterparty spread curve \(s(t)\) (or hazard curve \(h(t)\)) used to produce \(q_i\).
-- **Bump size:** \(1\text{ bp}=10^{-4}\) in rate units.
+- **Bump object:** the counterparty spread curve $s(t)$ (or hazard curve $h(t)$) used to produce $q_i$.
+- **Bump size:** $1\text{ bp}=10^{-4}$ in rate units.
 - **Units:** currency per 1bp (usually reported per netting set or per counterparty).
-- **Sign convention:** with CVA defined as a non-negative cost, \(\mathrm{CVA01}\ge 0\) in typical cases.
+- **Sign convention:** with CVA defined as a non-negative cost, $\mathrm{CVA01}\ge 0$ in typical cases.
 
-**What is held fixed?** A common *credit-only* approximation is to hold the exposure PV profile \(v_i\) fixed and recompute only the default probabilities \(q_i\). A more complete approach would also allow the exposure profile to change (market-factor moves, collateral dynamics, and any feedback from funding/collateral policies).
+**What is held fixed?** A common *credit-only* approximation is to hold the exposure PV profile $v_i$ fixed and recompute only the default probabilities $q_i$. A more complete approach would also allow the exposure profile to change (market-factor moves, collateral dynamics, and any feedback from funding/collateral policies).
 
 > **Pitfall — What is being bumped?:** “CVA01” is meaningless unless you specify whether you bump a hazard curve, a fitted spread curve, or market quotes (and whether you rebootstrap after the bump).
 > **Why it matters:** different bump designs can give different numbers (and different hedges).
@@ -880,13 +880,13 @@ To make this unambiguous, always state:
 
 **Example 34.8 — CVA01 via bump-and-reprice (toy)**
 
-Using the spread-to-hazard approximation \(h\\approx s/(1-R)\), a +1bp spread bump corresponds to a hazard bump of \(\Delta h\\approx 10^{-4}/(1-R)\). For \(R=40\\%\\), \(\Delta h\\approx 1.667\\times 10^{-4}\) per year. Recompute \(q_i\) under the bumped hazard and re-run the discrete CVA sum holding \(v_i\) fixed. The difference \(\mathrm{CVA}(s+1\\text{bp})-\mathrm{CVA}(s)\) is the CVA01 in USD/bp.
+Using the spread-to-hazard approximation $h\approx s/(1-R)$, a +1bp spread bump corresponds to a hazard bump of $\Delta h\approx 10^{-4}/(1-R)$. For $R=40\%$, $\Delta h\approx 1.667\times 10^{-4}$ per year. Recompute $q_i$ under the bumped hazard and re-run the discrete CVA sum holding $v_i$ fixed. The difference $\mathrm{CVA}(s+1\text{bp})-\mathrm{CVA}(s)$ is the CVA01 in USD/bp.
 
 ### 34.12.3 Hedging and Governance (High-Level)
 
 At a high level, desks manage CVA risk via:
 - **Credit hedges:** instruments linked to counterparty spread risk (e.g., single-name CDS when available).
-- **Market hedges:** hedges that reduce the exposure profile (rates/FX/commodity deltas/vegas that drive \(v_i\)).
+- **Market hedges:** hedges that reduce the exposure profile (rates/FX/commodity deltas/vegas that drive $v_i$).
 - **Structural mitigants:** netting, collateral terms, and closeout conventions that reduce exposure-at-default in the first place.
 
 ## 34.14 Practical Implementation Notes
@@ -994,8 +994,8 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 
 ## Summary
 
-1. **XVAs adjust a clean PV**: start from a no-default (clean) value \(f_{\text{nd}}\) and apply a signed stack to get an all-in value.
-2. **CVA is expected loss pricing**: \(\text{CVA}\) is the PV of expected loss at counterparty default, driven by exposure \(v_i\), default probabilities \(q_i\), and LGD \((1-R)\).
+1. **XVAs adjust a clean PV**: start from a no-default (clean) value $f_{\text{nd}}$ and apply a signed stack to get an all-in value.
+2. **CVA is expected loss pricing**: $\text{CVA}$ is the PV of expected loss at counterparty default, driven by exposure $v_i$, default probabilities $q_i$, and LGD $(1-R)$.
 3. **DVA is symmetric but delicate**: it depends on your own default inputs and on closeout conventions; it can look like a gain when your credit worsens.
 4. **Collateral reduces but does not erase exposure**: MPOR/gap risk and CSA features determine the residual exposure-at-default.
 5. **FVA/MVA/KVA are policy-heavy**: funding, margin, and capital costs depend on internal assumptions; funding-inclusive valuation can become recursive.
@@ -1007,8 +1007,8 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 
 | Concept | Definition | Why It Matters |
 |---|---|---|
-| Clean value \(f_{\text{nd}}\) | No-default PV under a stated discounting convention | Baseline for all adjustments |
-| All-in value \(V_{\text{all-in}}\) | Clean PV plus a signed stack of adjustments | What drives pricing, reserves, and deal approval |
+| Clean value $f_{\text{nd}}$ | No-default PV under a stated discounting convention | Baseline for all adjustments |
+| All-in value $V_{\text{all-in}}$ | Clean PV plus a signed stack of adjustments | What drives pricing, reserves, and deal approval |
 | Netting set | Enforceable portfolio that closes out together | CVA is a netting-set quantity, not trade-by-trade |
 | CVA | PV of expected loss from counterparty default | Core counterparty credit cost |
 | DVA | PV effect of own default on liabilities | Creates “phantom” valuation gains and governance issues |
@@ -1019,27 +1019,27 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 | MVA | PV cost of funding initial margin (policy-dependent) | Prominent for cleared or IM-heavy portfolios |
 | KVA | PV cost of capital tied up over time (policy-dependent) | Drives “hurdle rate” economics and transfer pricing |
 | WWR / RWR | Dependence between exposure and default likelihood | Can materially change CVA vs independence assumption |
-| CVA01 | \(\text{CVA}(s+1\text{bp})-\text{CVA}(s)\) under stated bump rules | Credit spread risk scalar used for hedging/governance |
+| CVA01 | $\text{CVA}(s+1\text{bp})-\text{CVA}(s)$ under stated bump rules | Credit spread risk scalar used for hedging/governance |
 | Rehypothecation | Re-use of received collateral (when allowed) | Changes funding economics and default-time claims assumptions |
 
 ## Notation
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(f_{\text{nd}}\) | clean (no-default) value | currency; positive = asset |
-| \(V_{\text{all-in}}\) | value including XVAs | currency; uses this chapter’s sign table |
-| \(P(0,t)\) | discount factor | unitless |
-| \(Q(t)\) | survival probability to \(t\) | unitless; \(Q(0)=1\) |
-| \(h(t)\) | hazard rate (intensity) | 1/year; \(Q(t)=\exp(-\int_0^t h)\) |
-| \(R\), \(LGD\) | recovery, loss-given-default | unitless; \(LGD=1-R\) |
-| \(E(t)\) | exposure | currency; \(E(t)=\max(V(t)-C(t),0)\) |
-| \(C(t)\) | collateral held by the bank at \(t\) | currency; positive reduces exposure in \(E(t)\) |
-| \(q_i\) | default probability in interval \(i\) | unitless |
-| \(v_i\) | PV of expected exposure in interval \(i\) | currency |
-| \(s(t)\) | credit spread term structure (generic) | 1/year (or bp); \(1\text{bp}=10^{-4}\) |
-| \(\mathrm{CVA01}\) | credit spread sensitivity | currency per 1bp; bump rules must be stated |
-| \(F(t)\), \(s_f\) | funding requirement and funding spread | currency; 1/year |
-| \(K(t)\), \(h_c\) | capital profile and hurdle rate | currency; 1/year |
+| $f_{\text{nd}}$ | clean (no-default) value | currency; positive = asset |
+| $V_{\text{all-in}}$ | value including XVAs | currency; uses this chapter’s sign table |
+| $P(0,t)$ | discount factor | unitless |
+| $Q(t)$ | survival probability to $t$ | unitless; $Q(0)=1$ |
+| $h(t)$ | hazard rate (intensity) | 1/year; $Q(t)=\exp(-\int_0^t h)$ |
+| $R$, $LGD$ | recovery, loss-given-default | unitless; $LGD=1-R$ |
+| $E(t)$ | exposure | currency; $E(t)=\max(V(t)-C(t),0)$ |
+| $C(t)$ | collateral held by the bank at $t$ | currency; positive reduces exposure in $E(t)$ |
+| $q_i$ | default probability in interval $i$ | unitless |
+| $v_i$ | PV of expected exposure in interval $i$ | currency |
+| $s(t)$ | credit spread term structure (generic) | 1/year (or bp); $1\text{bp}=10^{-4}$ |
+| $\mathrm{CVA01}$ | credit spread sensitivity | currency per 1bp; bump rules must be stated |
+| $F(t)$, $s_f$ | funding requirement and funding spread | currency; 1/year |
+| $K(t)$, $h_c$ | capital profile and hurdle rate | currency; 1/year |
 
 ## Flashcards
 
@@ -1047,17 +1047,17 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 |---:|---|---|
 | 1 | What is the difference between “clean” and “all-in” value? | Clean ignores default/funding/capital frictions; all-in adds a signed XVA stack consistent with a policy and conventions. |
 | 2 | Under the chapter sign convention, why is CVA subtracted? | CVA is treated as a non-negative expected loss cost to the bank, so it reduces value. |
-| 3 | Write the discrete unilateral CVA formula used in this chapter. | \(\text{CVA}=\sum_i (1-R)\,q_i\,v_i\). |
-| 4 | What object is \(v_i\)? | A discounted expected exposure amount (net of collateral) for the netting set in interval \(i\). |
+| 3 | Write the discrete unilateral CVA formula used in this chapter. | $\text{CVA}=\sum_i (1-R)\,q_i\,v_i$. |
+| 4 | What object is $v_i$? | A discounted expected exposure amount (net of collateral) for the netting set in interval $i$. |
 | 5 | Why does collateral not make CVA identically zero? | Because exposure at default reflects MPOR/gap risk and CSA features (timing, thresholds, disputes, closeout). |
 | 6 | What is MPOR (cure period) in words? | The time between the last effective collateral exchange and the closeout/settlement of the portfolio after default. |
 | 7 | What is the economic meaning of DVA? | It reflects that some liabilities may not be paid in full if you default; symmetric to the counterparty’s CVA view. |
 | 8 | Risk-free vs replacement closeout: what is the key difference? | Whether the surviving party’s own residual credit is included in the default-time valuation of remaining cashflows. |
 | 9 | What is TVA? | An aggregate “total valuation adjustment” umbrella; highlights that decomposing into CVA/DVA/FVA can be a modeling choice, and funding can introduce recursion. |
 | 10 | What is wrong-way risk (WWR)? | Default is more likely in the scenarios where exposure is high (dependence between exposure and credit). |
-| 11 | Define CVA01 precisely. | \(\mathrm{CVA01}:=\mathrm{CVA}(s+1\text{bp})-\mathrm{CVA}(s)\) where \(s(t)\) is the counterparty spread curve and \(1\text{bp}=10^{-4}\). State what is held fixed. |
+| 11 | Define CVA01 precisely. | $\mathrm{CVA01}:=\mathrm{CVA}(s+1\text{bp})-\mathrm{CVA}(s)$ where $s(t)$ is the counterparty spread curve and $1\text{bp}=10^{-4}$. State what is held fixed. |
 | 12 | What must you specify for any “01” risk metric? | Bump object, bump size, units, sign convention, and whether you rebuild curves after the bump. |
-| 13 | What is the common “credit-only” approximation for CVA01? | Hold the exposure profile \(v_i\) fixed and recompute only the default probabilities \(q_i\) under the bumped credit curve. |
+| 13 | What is the common “credit-only” approximation for CVA01? | Hold the exposure profile $v_i$ fixed and recompute only the default probabilities $q_i$ under the bumped credit curve. |
 | 14 | What is FVA (high-level)? | A policy-dependent adjustment for funding costs/benefits when collateralization is asymmetric. |
 | 15 | Why can FVA become recursive? | Funding requirements can depend on the adjusted value process, but that value process depends on funding policy assumptions. |
 | 16 | What is the DVA/FVA overlap pitfall? | Counting an own-credit benefit in both DVA and the funding term, producing wrong P&L attribution and sensitivities. |
@@ -1068,11 +1068,11 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 
 ## Mini Problem Set
 
-1. (Concept) Define clean value \(f_{\text{nd}}\) vs all-in value \(V_{\text{all-in}}\). Under this chapter’s sign convention, why is CVA subtracted and DVA added?
+1. (Concept) Define clean value $f_{\text{nd}}$ vs all-in value $V_{\text{all-in}}$. Under this chapter’s sign convention, why is CVA subtracted and DVA added?
 2. (Compute) A netting set has PV expected exposures of \$3mm at year 1 and \$2mm at year 2. Default probability in each year is 2% and recovery is 40%. Compute CVA (assume the exposures are already discounted PVs).
 3. (Concept) Explain why MPOR (cure period) creates residual exposure even with frequent variation margin.
-4. (Compute) A counterparty has a flat 5-year credit spread of 150bp. Using \(h\\approx s/(1-R)\) with \(R=40\\%\\), compute \(Q(5)\).
-5. (Compute) With \(R=40\\%\\), what hazard bump corresponds to a +1bp spread bump under \(h\\approx s/(1-R)\)?
+4. (Compute) A counterparty has a flat 5-year credit spread of 150bp. Using $h\approx s/(1-R)$ with $R=40\%$, compute $Q(5)$.
+5. (Compute) With $R=40\%$, what hazard bump corresponds to a +1bp spread bump under $h\approx s/(1-R)$?
 6. (Concept) Define CVA01 and list bump object, bump size, units, sign, and what is held fixed vs recomputed in a “credit-only” approximation.
 7. (Desk) Two banks agree on clean PV but disagree on all-in price. List 4–6 questions you would ask to reconcile the difference.
 8. (Concept) In one paragraph, explain why adding funding effects can make the valuation recursive (non-separable).
@@ -1080,10 +1080,10 @@ DVA P&L similarly depends on own spread and expected negative exposure. Any unex
 10. (Concept/Desk) Give an example of wrong-way risk and one conservative response a desk might take if it cannot model the dependence explicitly.
 
 ### Solution Sketches (Selected)
-2. \(\text{CVA}=0.6\\times(0.02\\times3{,}000{,}000+0.02\\times2{,}000{,}000)=0.6\\times100{,}000=\\boxed{\\$60{,}000}\).
-3. Even with frequent VM, collateral at default reflects a stale MTM and a liquidation lag. The MTM can move during MPOR, creating a gap between \(V(\\tau)\) and \(C(\\tau)\).
-4. \(h\\approx 0.015/0.6=0.025\\). So \(Q(5)=e^{-0.025\\times5}=e^{-0.125}=\\boxed{0.8825}\\) (default prob \(\approx 11.75\\%\\)).
-5. \(\Delta h\\approx 10^{-4}/0.6\\approx\\boxed{1.667\\times10^{-4}}\\) per year.
+2. $\text{CVA}=0.6\times(0.02\\times3{,}000{,}000+0.02\\times2{,}000{,}000)=0.6\\times100{,}000=\boxed{\\$60{,}000}$.
+3. Even with frequent VM, collateral at default reflects a stale MTM and a liquidation lag. The MTM can move during MPOR, creating a gap between $V(\tau)$ and $C(\tau)$.
+4. $h\approx 0.015/0.6=0.025$. So $Q(5)=e^{-0.025\\times5}=e^{-0.125}=\\boxed{0.8825}$ (default prob $\approx 11.75\%$).
+5. $\Delta h\\approx 10^{-4}/0.6\\approx\\boxed{1.667\\times10^{-4}}$ per year.
 
 ---
 

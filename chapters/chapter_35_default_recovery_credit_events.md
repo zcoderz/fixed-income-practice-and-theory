@@ -6,7 +6,7 @@
 
 When a credit analyst says "XYZ Corp has defaulted," what exactly does that mean? The answer is less obvious than it first appears—and getting it wrong can be extraordinarily expensive.
 
-Consider this scenario: a trader holds $50 million notional of CDS protection on a distressed issuer. The reference entity's bonds have collapsed from 95 to 35, equity has cratered, and the financial press is full of restructuring speculation. The trader expects a windfall from the CDS protection. But weeks pass, and no payment arrives. The contract hasn't triggered because no **credit event**—the precise contractual definition that activates CDS protection—has yet occurred. Economic distress is not the same as a contractual trigger.
+Consider this scenario: a trader holds \$50 million notional of CDS protection on a distressed issuer. The reference entity's bonds have collapsed from 95 to 35, equity has cratered, and the financial press is full of restructuring speculation. The trader expects a windfall from the CDS protection. But weeks pass, and no payment arrives. The contract hasn't triggered because no **credit event**—the precise contractual definition that activates CDS protection—has yet occurred. Economic distress is not the same as a contractual trigger.
 
 This distinction between *economic* distress (what markets price continuously) and a *contractual* credit event (the legal trigger for CDS settlement) lies at the heart of credit derivatives. A CDS can remain "dormant" while spreads widen and bonds trade at distressed prices if the legally defined trigger has not occurred (or has not been noticed/settled under the contract process).
 
@@ -16,17 +16,17 @@ Follow-on: [Chapter 36 — Survival Probabilities and Hazard Rates](chapters/cha
 
 ## Learning Objectives
 - Distinguish economic distress from a contractual credit event (and explain why CDS may not pay immediately when a name is distressed).
-- Define recovery rate and loss-given-default (LGD), and translate post-default bond prices into \(R\) and \(LGD\).
+- Define recovery rate and loss-given-default (LGD), and translate post-default bond prices into $R$ and $LGD$.
 - Translate a CDS quote into the default-contingent cashflows: protection payment and accrued premium on a concrete timeline.
 - Explain and compute the physical-settlement delivery option from multiple deliverable prices.
 - Define and interpret desk risk scalars: jump-to-default and recovery-rate DV01 (bump object, bump size, units, sign).
 
 ## Setup (This Chapter)
 - Perspective: cashflows are written from the **protection buyer** perspective unless stated otherwise (positive = cash received).
-- Units: bond prices \(P\) are quoted as price per 100 face; CDS notional \(N\) is currency.
-- Recovery and LGD: \(R \in [0,1]\), \(LGD := 1-R\). If the bond/auction final price is \(P\) per 100, use \(R=P/100\).
-- Spreads: \(S\) is an annual rate in **decimal** (e.g., 200 bp = 0.02). One basis point is \(1\text{ bp}=10^{-4}\).
-- Premium accrual examples use ACT/360 with simple accrual: accrued premium \(\approx N \cdot S \cdot \alpha\).
+- Units: bond prices $P$ are quoted as price per 100 face; CDS notional $N$ is currency.
+- Recovery and LGD: $R \in [0,1]$, $LGD := 1-R$. If the bond/auction final price is $P$ per 100, use $R=P/100$.
+- Spreads: $S$ is an annual rate in **decimal** (e.g., 200 bp = 0.02). One basis point is $1\text{ bp}=10^{-4}$.
+- Premium accrual examples use ACT/360 with simple accrual: accrued premium $\approx N \cdot S \cdot \alpha$.
 
 1. **Economic Default vs Contractual Credit Event** — Why spreads can blow out while CDS contracts sit dormant
 2. **Par vs Distressed Trading Conventions** — How the market quotes instruments changes as credit deteriorates
@@ -106,17 +106,17 @@ A common operational definition in credit risk is:
 
 - **Bond recovery rate:** the recovery rate for a bond is normally defined as the price at which it trades about 30 days after default as a percent of its face value.
 
-If a defaulted bond trades at price \(P\) per 100 of face value, define
+If a defaulted bond trades at price $P$ per 100 of face value, define
 
 $$\boxed{R := \frac{P}{100}}, \qquad \boxed{LGD := 1-R}$$
 
-For **CDS cash settlement**, the same arithmetic is used, but \(P\) is the contractual settlement price (often an auction final price) expressed per 100 of par.
+For **CDS cash settlement**, the same arithmetic is used, but $P$ is the contractual settlement price (often an auction final price) expressed per 100 of par.
 
 **Recovery vocabulary (three related objects)**
 
 | Term | What it is | Where it shows up |
 |---|---|---|
-| Post-default bond price \(P\) | observed trading level after default | cash bonds (“cents on the dollar”) |
+| Post-default bond price $P$ | observed trading level after default | cash bonds (“cents on the dollar”) |
 | Credit-derivatives recovery price | settlement price used for CDS payoff | CDS cash settlement |
 | Workout recovery | ultimate value delivered through bankruptcy/reorg | realized over months/years |
 
@@ -166,7 +166,7 @@ Empirically, the **Absolute Priority Rule** is not always obeyed in the U.S.; in
 
 Recovery rates are significantly negatively correlated with default rates. One way to remember this is the “doubly bad” intuition: bad macro regimes bring both *more* defaults and *worse* prices on defaulted paper.
 
-For example, when the default rate on non-investment-grade bonds in a year is \(1\%\), the recovery rate tends to be relatively high (about \(55\%\) on average); when this default rate is \(10\%\), the recovery rate tends to be relatively low (about \(30\%\) on average).
+For example, when the default rate on non-investment-grade bonds in a year is $1\%$, the recovery rate tends to be relatively high (about $55\%$ on average); when this default rate is $10\%$, the recovery rate tends to be relatively low (about $30\%$ on average).
 
 Mechanism-level intuition (not a law): when many names default, distressed assets can flood the market at the same time, and prices can be pushed down by limited risk-bearing capacity and liquidity.
 
@@ -213,13 +213,13 @@ In a toy “flat hazard” setting, an actuarial expected-loss rate is roughly
 
 $$S_{EL} \approx h \cdot (1-R) = h \cdot LGD,$$
 
-where \(h\) is a hazard rate (per year) and \(R\) is recovery.
+where $h$ is a hazard rate (per year) and $R$ is recovery.
 
-**Toy numbers (hypothetical):** if \(h=2\%\) per year and \(R=40\%\) (\(LGD=60\%\)), then \(S_{EL} \approx 0.02 \times 0.60 = 0.012 = 120\) bp.
+**Toy numbers (hypothetical):** if $h=2\%$ per year and $R=40\%$ ($LGD=60\%$), then $S_{EL} \approx 0.02 \times 0.60 = 0.012 = 120$ bp.
 
 If the observed market spread is 200 bp, the “extra” 80 bp is not automatically a mistake: it can reflect risk premia, liquidity/tax effects, and model/convention choices.
 
-> **Pitfall — “\(h \approx S/LGD\)” without assumptions:** The “credit triangle” heuristic comes from strong simplifications (flat hazard, simplified discounting, recovery convention, etc.). Use it for intuition and sanity checks, not as an identity.
+> **Pitfall — “$h \approx S/LGD$” without assumptions:** The “credit triangle” heuristic comes from strong simplifications (flat hazard, simplified discounting, recovery convention, etc.). Use it for intuition and sanity checks, not as an identity.
 
 ---
 
@@ -272,11 +272,11 @@ This section is the “spreadsheet recipe” view of a CDS: translate the quote 
 
 A single-name CDS trade is specified (conceptually) by:
 
-- Notional \(N\).
-- A running spread \(S\) (or a fixed coupon plus an upfront amount, as discussed in Section 35.1.1).
-- Payment dates \(\{T_i\}\) and accrual fractions \(\alpha_i\) (payments are often quarterly in arrears, and contracts often use standard maturity dates).
+- Notional $N$.
+- A running spread $S$ (or a fixed coupon plus an upfront amount, as discussed in Section 35.1.1).
+- Payment dates $\{T_i\}$ and accrual fractions $\alpha_i$ (payments are often quarterly in arrears, and contracts often use standard maturity dates).
 - A contractual **credit event** definition and maturity date.
-- A settlement convention (cash vs physical) and a settlement recovery \(R\) (often expressed as “price per 100” divided by 100).
+- A settlement convention (cash vs physical) and a settlement recovery $R$ (often expressed as “price per 100” divided by 100).
 
 ### 35.5.2 Anchor: Premium Leg and Protection Leg
 
@@ -284,9 +284,9 @@ From the protection buyer perspective (positive = cash received):
 
 - **Protection leg (default-contingent):**
   $$\boxed{\Pi_{\text{prot}} = N(1-R) = N \cdot LGD.}$$
-  **Checks:** \(0 \le \Pi_{\text{prot}} \le N\); higher recovery \(R\) means a smaller protection payment.
+  **Checks:** $0 \le \Pi_{\text{prot}} \le N$; higher recovery $R$ means a smaller protection payment.
 
-- **Premium leg (paid while the name survives):** periodic payments \(-N \cdot S \cdot \alpha_i\) on scheduled dates, and because payments are in arrears, a final **accrued premium** is typically due if default happens between payment dates:
+- **Premium leg (paid while the name survives):** periodic payments $-N \cdot S \cdot \alpha_i$ on scheduled dates, and because payments are in arrears, a final **accrued premium** is typically due if default happens between payment dates:
   $$\boxed{\Pi_{\text{accrued prem}} \approx N \cdot S \cdot \alpha(T_{\text{prev}}, \tau).}$$
 
 > **Pitfall — CDS premium accrual on default:** The regular payments from the buyer of protection to the seller of protection cease when there is a credit event. However, because these payments are made in arrears, a final accrual payment by the buyer is usually required (the stub from the last payment date to the credit event date). Forgetting it is a common settlement/P&L error.
@@ -302,9 +302,9 @@ This chapter focuses on translating quotes into cashflows and risk intuition; th
 ### 35.5.4 Cash vs Physical Settlement (and the Auction Recovery)
 
 - **Physical settlement (conceptual):** the protection buyer can deliver eligible obligations (bonds/loans) and receive par in cash. The contract allows a *basket* of deliverables rather than a single bond.
-- **Cash settlement (common in practice):** an ISDA-organized auction is used to determine the mid-market value of the **cheapest deliverable** bond several days after the credit event. The auction price (per 100 of face value) defines \(R\) via \(R=P/100\).
+- **Cash settlement (common in practice):** an ISDA-organized auction is used to determine the mid-market value of the **cheapest deliverable** bond several days after the credit event. The auction price (per 100 of face value) defines $R$ via $R=P/100$.
 
-**Check (hard-event “one price” limit):** If, after a credit event, all deliverable obligations trade at essentially the same cash price \(P\) per 100, then cash and physical settlement are economically equivalent: physical settlement delivers a bond worth \(P\) and receives par, implying a payoff of \(N(1-P/100)=N(1-R)\), which is exactly the cash-settlement formula.
+**Check (hard-event “one price” limit):** If, after a credit event, all deliverable obligations trade at essentially the same cash price $P$ per 100, then cash and physical settlement are economically equivalent: physical settlement delivers a bond worth $P$ and receives par, implying a payoff of $N(1-P/100)=N(1-R)$, which is exactly the cash-settlement formula.
 
 ### 35.5.5 The Delivery Option
 
@@ -312,27 +312,27 @@ The ability to choose among deliverable obligations is a **delivery option**. It
 
 For a protection buyer hedging a particular security, the delivery-option value after a credit event is (conceptually) the difference between the value of the security they hold and the value of the cheapest deliverable.
 
-**Check (toy example, hypothetical):** suppose you are hedging a bond quoted at 43 per 100, but after a restructuring another deliverable is quoted at 37. You can (i) sell the 43 bond, (ii) buy the 37 deliverable, and (iii) deliver the cheapest bond into physical settlement. The delivery option is worth about \(43-37=6\) points per 100 (i.e., \(6\%\) of notional).
+**Check (toy example, hypothetical):** suppose you are hedging a bond quoted at 43 per 100, but after a restructuring another deliverable is quoted at 37. You can (i) sell the 43 bond, (ii) buy the 37 deliverable, and (iii) deliver the cheapest bond into physical settlement. The delivery option is worth about $43-37=6$ points per 100 (i.e., $6\%$ of notional).
 
-**Check (non-negativity and dollars):** For the protection buyer, the delivery option value is non-negative: you can always choose to deliver the cheapest eligible obligation available. In the toy example, “6 points” is \(6\%\) of notional, so on \(N=\$100\text{mm}\) the delivery-option value is about \(\$6\text{mm}\).
+**Check (non-negativity and dollars):** For the protection buyer, the delivery option value is non-negative: you can always choose to deliver the cheapest eligible obligation available. In the toy example, “6 points” is $6\%$ of notional, so on $N=\$100\text{mm}$ the delivery-option value is about $\$6\text{mm}$.
 
 ### 35.5.6 Risk Scalars (Bump Object, Size, Units, Sign)
 
 Even before you can do full CDS valuation, you should be able to define (and sanity-check) two desk risk scalars.
 
 **Jump-to-default (JTD)** (cashflow-level intuition)
-- **Bump object:** default time \(\tau\) / credit-event indicator.
+- **Bump object:** default time $\tau$ / credit-event indicator.
 - **Bump size:** “jump from survive to default now” (a discrete event, not a 1bp bump).
 - **Units:** currency.
 - **Sign (protection buyer):** usually positive (default creates the protection payment).
-- **Cash approximation:** \(JTD \approx N(1-R) - \text{accrued premium}\) (ignoring discounting and any settlement lag).
+- **Cash approximation:** $JTD \approx N(1-R) - \text{accrued premium}$ (ignoring discounting and any settlement lag).
 
 **Recovery-rate DV01** (recovery sensitivity)
-- **Bump object:** recovery rate \(R\) used for settlement/valuation.
-- **Bump size:** absolute \(1\%\) change in recovery, \(\Delta R = 0.01\) (not “1% relative”).
+- **Bump object:** recovery rate $R$ used for settlement/valuation.
+- **Bump size:** absolute $1\%$ change in recovery, $\Delta R = 0.01$ (not “1% relative”).
 - **Units:** currency per 1% recovery.
-- **Sign convention (this chapter):** \(\text{RecDV01} := PV(R \downarrow 1\%) - PV(\text{base})\).
-- **Check (cashflow-level):** for the pure default payoff \(N(1-R)\), an absolute 1% decrease in recovery increases the payoff by \(0.01\,N\).
+- **Sign convention (this chapter):** $\text{RecDV01} := PV(R \downarrow 1\%) - PV(\text{base})$.
+- **Check (cashflow-level):** for the pure default payoff $N(1-R)$, an absolute 1% decrease in recovery increases the payoff by $0.01\,N$.
 
 > **Desk Reality:** In mark-to-market risk, “recovery DV01” is often computed by bumping the assumed recovery and re-implying the hazard/survival curve so that market spreads remain matched. The resulting sign can depend on the position’s moneyness; keep the “cashflow-level” check above as your sanity anchor.
 
@@ -351,42 +351,42 @@ Even before you can do full CDS valuation, you should be able to define (and san
 - Cash settlement date: 2023-05-25 (hypothetical “several days later” date for the cashflow table)
 
 **Inputs**
-- Notional: \(N=\$100{,}000{,}000\)
-- Running spread: \(S=90\text{ bp}=0.009\)
+- Notional: $N=\$100{,}000{,}000$
+- Running spread: $S=90\text{ bp}=0.009$
 - Day count for accrual (example convention): ACT/360
-- Auction final price: \(P=35\) per 100 \(\Rightarrow R=0.35\), \(LGD=0.65\)
+- Auction final price: $P=35$ per 100 $\Rightarrow R=0.35$, $LGD=0.65$
 
 **Outputs (What You Produce)**
-- Protection payment: \(N(1-R)\)
-- Accrued premium due at default: \(N \cdot S \cdot \alpha(2023\text{-}03\text{-}20, 2023\text{-}05\text{-}20)\)
+- Protection payment: $N(1-R)$
+- Accrued premium due at default: $N \cdot S \cdot \alpha(2023\text{-}03\text{-}20, 2023\text{-}05\text{-}20)$
 - Net default cashflow (buyer): protection payment minus accrued premium
 - Risk scalars (cash approximations): JTD and RecDV01
 
 **Step-by-step**
-1. Translate the auction price into recovery: \(R=P/100=0.35\).
-2. Compute the protection payment: \(N(1-R)=100{,}000{,}000\times 0.65=\$65{,}000{,}000\).
-3. Compute accrued premium from the last payment date to default: there are 61 days from 2023-03-20 to 2023-05-20, so \(\alpha=61/360\).
-4. Accrued premium \(=100{,}000{,}000 \times 0.009 \times (61/360)=\$152{,}500\).
-5. Net default cashflow to the protection buyer (ignoring discounting and settlement lag): \(65{,}000{,}000-152{,}500=\$64{,}847{,}500\).
-6. Cashflow-level RecDV01 check: an absolute 1% decrease in recovery changes the protection payment by \(+0.01N=+\$1{,}000{,}000\).
+1. Translate the auction price into recovery: $R=P/100=0.35$.
+2. Compute the protection payment: $N(1-R)=100{,}000{,}000\times 0.65=\$65{,}000{,}000$.
+3. Compute accrued premium from the last payment date to default: there are 61 days from 2023-03-20 to 2023-05-20, so $\alpha=61/360$.
+4. Accrued premium $=100{,}000{,}000 \times 0.009 \times (61/360)=\$152{,}500$.
+5. Net default cashflow to the protection buyer (ignoring discounting and settlement lag): $65{,}000{,}000-152{,}500=\$64{,}847{,}500$.
+6. Cashflow-level RecDV01 check: an absolute 1% decrease in recovery changes the protection payment by $+0.01N=+\$1{,}000{,}000$.
 
 **Cashflows (table)**
 | Date | Cashflow (protection buyer) | Explanation |
 |---|---:|---|
-| 2023-05-25 | \(+\$65{,}000{,}000\) | Cash-settled protection payment \(N(1-R)\) |
-| 2023-05-25 | \(-\$152{,}500\) | Accrued premium from 2023-03-20 to 2023-05-20 (ACT/360) |
+| 2023-05-25 | $+\$65{,}000{,}000$ | Cash-settled protection payment $N(1-R)$ |
+| 2023-05-25 | $-\$152{,}500$ | Accrued premium from 2023-03-20 to 2023-05-20 (ACT/360) |
 
 **P&L / Risk Interpretation**
 - The protection payment is the “big number”; the accrued premium is a small but real settlement item.
 - If you are hedging a bond, the hedge is not “free carry”: you paid premiums up to the event, and the cash arrives after a process lag.
 
 **Sanity Checks**
-- Units check: \(N\) (currency) × \(S\) (per year) × \(\alpha\) (years) = currency.
-- Sign check: protection buyer receives \(+N(1-R)\) and pays \(-\)premium.
-- Bounds: if \(R=1\), protection payment is 0; if \(R=0\), it is \(N\).
+- Units check: $N$ (currency) × $S$ (per year) × $\alpha$ (years) = currency.
+- Sign check: protection buyer receives $+N(1-R)$ and pays $-$premium.
+- Bounds: if $R=1$, protection payment is 0; if $R=0$, it is $N$.
 
 **Debug Checklist (When Your Result Looks Wrong)**
-- Are you using “price per 100” consistently when converting \(P\) to \(R\)?
+- Are you using “price per 100” consistently when converting $P$ to $R$?
 - Did you use the correct last premium date (the previous standard date) and the contract day count?
 - Are you mixing “running spread” with “fixed coupon + upfront” quoting?
 
@@ -398,37 +398,37 @@ Reduced-form (hazard-rate) models are the workhorse for CDS valuation (Chapter 3
 
 ### 35.6.1 Anchor: Equity Is a Call on Firm Assets
 
-Let \(V_T\) be the firm’s asset value at time \(T\), and let \(D\) be the debt repayment due at \(T\). A simple default rule is:
+Let $V_T$ be the firm’s asset value at time $T$, and let $D$ be the debt repayment due at $T$. A simple default rule is:
 
-- If \(V_T < D\), default is rational and equity is worth 0.
-- If \(V_T > D\), the firm repays debt and equity holders receive \(V_T-D\).
+- If $V_T < D$, default is rational and equity is worth 0.
+- If $V_T > D$, the firm repays debt and equity holders receive $V_T-D$.
 
 So the equity payoff is:
 
 $$\boxed{E_T=\max(V_T-D,0).}$$
 
-That is, equity behaves like a call option on the firm’s assets with strike \(D\).
+That is, equity behaves like a call option on the firm’s assets with strike $D$.
 
 ### 35.6.2 Expand: Option-Pricing Link (Preview)
 
-Under additional modeling assumptions (e.g., a diffusion model for \(V_t\) with volatility \(\sigma_V\) and a constant risk-free rate \(r\)), one can relate today’s equity value \(E_0\) to today’s asset value \(V_0\) via a Black–Scholes–Merton style expression:
+Under additional modeling assumptions (e.g., a diffusion model for $V_t$ with volatility $\sigma_V$ and a constant risk-free rate $r$), one can relate today’s equity value $E_0$ to today’s asset value $V_0$ via a Black–Scholes–Merton style expression:
 
 $$E_{0}=V_{0}\Phi(d_{1})-D e^{-r T}\Phi(d_{2}),$$
 
 where
 
-$$d_{1}=\\frac{\\ln(V_{0}/D)+(r+\\sigma_{V}^{2}/2)T}{\\sigma_{V}\\sqrt{T}}, \\qquad d_{2}=d_{1}-\\sigma_{V}\\sqrt{T}.$$
+$$d_{1}=\frac{\\ln(V_{0}/D)+(r+\\sigma_{V}^{2}/2)T}{\\sigma_{V}\sqrt{T}}, \\qquad d_{2}=d_{1}-\\sigma_{V}\sqrt{T}.$$
 
-The debt value in this simple setup is \(V_0-E_0\).
+The debt value in this simple setup is $V_0-E_0$.
 
 This is not how CDS curves are built in practice, but it explains why equity and credit move together: both are claims on the same underlying asset value.
 
-**Check (distance-to-default intuition):** In this setup, default occurs when \(V_T<D\). The term \(d_2\) is often interpreted as a “distance to default”: larger \(V_0\) (all else equal) increases \(d_2\) and makes default less likely; higher asset volatility \(\sigma_V\) tends to reduce \(d_2\) and make default more likely even while it increases the option value of equity. This is one reason equity volatility and credit spreads often co-move.
+**Check (distance-to-default intuition):** In this setup, default occurs when $V_T<D$. The term $d_2$ is often interpreted as a “distance to default”: larger $V_0$ (all else equal) increases $d_2$ and makes default less likely; higher asset volatility $\sigma_V$ tends to reduce $d_2$ and make default more likely even while it increases the option value of equity. This is one reason equity volatility and credit spreads often co-move.
 
 ### 35.6.3 Check: Limiting Cases (Intuition)
 
-- If \(V_0\) is far above \(D\), equity is deep in-the-money and default is unlikely over short horizons.
-- If \(V_0\) is near \(D\), equity is option-like: small changes in \(V_0\) (or in volatility) can move default risk meaningfully.
+- If $V_0$ is far above $D$, equity is deep in-the-money and default is unlikely over short horizons.
+- If $V_0$ is near $D$, equity is option-like: small changes in $V_0$ (or in volatility) can move default risk meaningfully.
 
 ---
 
@@ -438,7 +438,7 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 2. **Recovery** is not one universal object. Be explicit about whether you mean a post-default bond price, a CDS auction settlement price, or an ultimate workout recovery.
 
-3. A practical recovery convention is: if the relevant post-event price is \(P\) per 100 of face, then \(R=P/100\) and \(LGD=1-R\).
+3. A practical recovery convention is: if the relevant post-event price is $P$ per 100 of face, then $R=P/100$ and $LGD=1-R$.
 
 4. Recoveries vary by **seniority** and can be lower in high-default environments (“doubly bad”): high default years tend to coincide with low recovery years.
 
@@ -446,7 +446,7 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 6. Credit events can be usefully grouped into **hard** vs **soft**: hard events collapse debt toward one distressed price; **restructuring** is the soft event that can leave a term structure of post-event prices.
 
-7. A CDS quote maps to two cashflow legs: the **premium leg** (periodic spread payments while the name survives, plus accrued premium on default) and the **protection leg** (a default-contingent payment \(N(1-R)\)).
+7. A CDS quote maps to two cashflow legs: the **premium leg** (periodic spread payments while the name survives, plus accrued premium on default) and the **protection leg** (a default-contingent payment $N(1-R)$).
 
 8. Settlement conventions matter. Cash settlement uses an auction-based recovery price; physical settlement embeds a **delivery option** when deliverables trade at different prices.
 
@@ -460,12 +460,12 @@ This is not how CDS curves are built in practice, but it explains why equity and
 | Credit event | Contractual trigger for CDS settlement | Determines if/when protection pays |
 | Hard credit event | Event that collapses obligations toward one distressed price | Supports “one recovery” intuition |
 | Soft credit event (restructuring) | Event after which obligations can keep trading with term structure | Creates delivery/settlement complexity |
-| Recovery rate \(R\) | Relevant post-event price per 100 divided by 100 | Scales the protection payment |
-| Loss given default \(LGD\) | \(1-R\) | Fraction of notional lost/paid on default |
+| Recovery rate $R$ | Relevant post-event price per 100 divided by 100 | Scales the protection payment |
+| Loss given default $LGD$ | $1-R$ | Fraction of notional lost/paid on default |
 | Premium leg | Periodic premium payments while the name survives | Ongoing cost of protection |
 | Accrued premium on default | Stub premium from last pay date to default date | Must be included in settlement cashflows |
-| Protection leg | Default-contingent payment \(N(1-R)\) | Main hedge payoff |
-| Cash settlement | Settlement using an auction-based recovery price | Defines \(R\) for cash payoff |
+| Protection leg | Default-contingent payment $N(1-R)$ | Main hedge payoff |
+| Cash settlement | Settlement using an auction-based recovery price | Defines $R$ for cash payoff |
 | Physical settlement | Deliver eligible obligations for par | Introduces a delivery option |
 | Delivery option | Right to choose which deliverable to deliver | Can be material after restructuring |
 | Real-world vs risk-neutral | Historical vs market-implied default probabilities | Use risk-neutral for PV, real-world for scenarios |
@@ -479,25 +479,25 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 | Symbol | Definition |
 |--------|------------|
-| \(N\) | CDS notional (currency) |
-| \(P\) | Relevant post-event price per 100 of face (bond price or auction price) |
-| \(R\) | Recovery rate \(=P/100\) (unitless) |
-| \(LGD\) | Loss given default \(=1-R\) (unitless) |
-| \(S\) | Running CDS spread (per year, decimal) |
-| \(T_i\) | Premium payment dates |
-| \(\alpha(t_1,t_2)\) | Year fraction between dates (ACT/360 in examples) |
-| \(\tau\) | Default/credit-event time or date |
-| \(h(t)\) | Hazard rate (per year) |
-| \(V_{\text{CDS}}\) | CDS mark-to-market value (currency) |
-| \(\text{JTD}\) | Jump-to-default (currency) |
-| \(\text{RecDV01}\) | PV change for \(R \downarrow 1\%\) (currency per 1% recovery) |
-| \(V_0, V_T\) | Firm asset value at time 0 and \(T\) (Merton) |
-| \(D\) | Debt repayment due at \(T\) (Merton) |
-| \(E_0, E_T\) | Equity value at time 0 and \(T\) (Merton) |
-| \(r\) | Risk-free rate (per year) |
-| \(\sigma_V\) | Asset volatility (1/\(\sqrt{\text{year}}\)) |
-| \(\Phi(\cdot)\) | Standard normal CDF |
-| \(d_1, d_2\) | Black–Scholes terms (Merton) |
+| $N$ | CDS notional (currency) |
+| $P$ | Relevant post-event price per 100 of face (bond price or auction price) |
+| $R$ | Recovery rate $=P/100$ (unitless) |
+| $LGD$ | Loss given default $=1-R$ (unitless) |
+| $S$ | Running CDS spread (per year, decimal) |
+| $T_i$ | Premium payment dates |
+| $\alpha(t_1,t_2)$ | Year fraction between dates (ACT/360 in examples) |
+| $\tau$ | Default/credit-event time or date |
+| $h(t)$ | Hazard rate (per year) |
+| $V_{\text{CDS}}$ | CDS mark-to-market value (currency) |
+| $\text{JTD}$ | Jump-to-default (currency) |
+| $\text{RecDV01}$ | PV change for $R \downarrow 1\%$ (currency per 1% recovery) |
+| $V_0, V_T$ | Firm asset value at time 0 and $T$ (Merton) |
+| $D$ | Debt repayment due at $T$ (Merton) |
+| $E_0, E_T$ | Equity value at time 0 and $T$ (Merton) |
+| $r$ | Risk-free rate (per year) |
+| $\sigma_V$ | Asset volatility (1/$\sqrt{\text{year}}$) |
+| $\Phi(\cdot)$ | Standard normal CDF |
+| $d_1, d_2$ | Black–Scholes terms (Merton) |
 
 ---
 
@@ -509,35 +509,35 @@ This is not how CDS curves are built in practice, but it explains why equity and
 | 2 | Name three common credit-event types (simplified) | Failure to pay, bankruptcy, restructuring (sometimes excluded by contract) |
 | 3 | Hard vs soft credit event — key difference? | Hard events collapse obligations toward one distressed price; restructuring (soft) can leave a term structure of prices |
 | 4 | Name the only soft credit event in this taxonomy | Restructuring |
-| 5 | Define recovery rate \(R\) in this chapter | \(R=P/100\) where \(P\) is the relevant post-event price per 100 of face (bond price or auction price) |
-| 6 | Define \(LGD\) | \(LGD=1-R\) |
-| 7 | Cash-settled protection payment to the protection buyer | \(N(1-R)\) |
-| 8 | Premium-leg periodic payment (sign) | Protection buyer pays \(-N\cdot S \cdot \alpha\) |
+| 5 | Define recovery rate $R$ in this chapter | $R=P/100$ where $P$ is the relevant post-event price per 100 of face (bond price or auction price) |
+| 6 | Define $LGD$ | $LGD=1-R$ |
+| 7 | Cash-settled protection payment to the protection buyer | $N(1-R)$ |
+| 8 | Premium-leg periodic payment (sign) | Protection buyer pays $-N\cdot S \cdot \alpha$ |
 | 9 | Why is accrued premium due on default? | Premiums are usually paid in arrears, so the stub from last payment date to default is owed |
-| 10 | In cash settlement, what determines the recovery price? | An auction-based price for the cheapest deliverable (converted to \(R=P/100\)) |
+| 10 | In cash settlement, what determines the recovery price? | An auction-based price for the cheapest deliverable (converted to $R=P/100$) |
 | 11 | What is physical settlement? | Protection buyer can deliver eligible obligations for par and choose which deliverable to deliver |
 | 12 | What is the delivery option? | The right to choose among deliverables; valuable when deliverables trade at different prices |
 | 13 | When is the delivery option most likely to matter? | After restructuring (soft event) when prices across obligations can differ |
 | 14 | Real-world vs risk-neutral default probabilities | Real-world: estimated from history; risk-neutral: implied by traded spreads and used for PV |
 | 15 | Define jump-to-default (JTD) | PV/cash impact of a “default now” scenario (a discrete jump, not a 1bp bump) |
-| 16 | Define recovery-rate DV01 (state bump clearly) | PV change for an absolute 1% recovery move; e.g., \(PV(R\downarrow 1\%) - PV(\text{base})\) |
+| 16 | Define recovery-rate DV01 (state bump clearly) | PV change for an absolute 1% recovery move; e.g., $PV(R\downarrow 1\%) - PV(\text{base})$ |
 | 17 | What does “APR not always obeyed” mean? | In some cases, subordinated debt can recover more than more senior debt |
-| 18 | Merton model equity payoff | \(E_T=\max(V_T-D,0)\): equity is a call on firm assets with strike equal to debt repayment |
-| 19 | Why do equity and credit co-move in a structural model? | Both are claims on the same underlying asset value \(V_t\) |
+| 18 | Merton model equity payoff | $E_T=\max(V_T-D,0)$: equity is a call on firm assets with strike equal to debt repayment |
+| 19 | Why do equity and credit co-move in a structural model? | Both are claims on the same underlying asset value $V_t$ |
 
 ---
 
 ## Mini Problem Set
 
-**1. Protection payment.** A CDS has notional \(\$25{,}000{,}000\) and recovery \(R=0.35\). Compute the cash-settled protection payment.
+**1. Protection payment.** A CDS has notional $\$25{,}000{,}000$ and recovery $R=0.35$. Compute the cash-settled protection payment.
 
-**2. Accrued premium.** Notional \(\$50{,}000{,}000\), running spread 150 bp, 40 days since the last premium date on ACT/360. Compute accrued premium due on default.
+**2. Accrued premium.** Notional $\$50{,}000{,}000$, running spread 150 bp, 40 days since the last premium date on ACT/360. Compute accrued premium due on default.
 
-**3. Delivery option.** Two deliverables are quoted at 45 and 38 per 100 after a restructuring. Notional \(\$10{,}000{,}000\). Compute the delivery-option value (in dollars).
+**3. Delivery option.** Two deliverables are quoted at 45 and 38 per 100 after a restructuring. Notional $\$10{,}000{,}000$. Compute the delivery-option value (in dollars).
 
-**4. JTD (cash approximation).** You are a protection buyer with notional \(\$100{,}000{,}000\), recovery \(R=0.35\), running spread 200 bp, and 30 days of premium accrued (ACT/360). Approximate \(JTD \approx N(1-R)-N S \alpha\).
+**4. JTD (cash approximation).** You are a protection buyer with notional $\$100{,}000{,}000$, recovery $R=0.35$, running spread 200 bp, and 30 days of premium accrued (ACT/360). Approximate $JTD \approx N(1-R)-N S \alpha$.
 
-**5. Recovery DV01 (cash check).** For a cash-settled CDS with notional \(\$100{,}000{,}000\), what is the change in the protection payment for an absolute 1% decrease in recovery?
+**5. Recovery DV01 (cash check).** For a cash-settled CDS with notional $\$100{,}000{,}000$, what is the change in the protection payment for an absolute 1% decrease in recovery?
 
 **6. Concept (soft vs hard).** Why is restructuring “soft,” and why does that make settlement/delivery more complicated?
 
@@ -545,15 +545,15 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 **8. Concept (recovery object).** Name two reasons the CDS settlement recovery price can differ from ultimate workout recovery.
 
-**9. Structural intuition.** In the Merton payoff \(E_T=\max(V_T-D,0)\), compute equity payoff when (a) \(V_T=80\), \(D=100\) and (b) \(V_T=130\), \(D=100\).
+**9. Structural intuition.** In the Merton payoff $E_T=\max(V_T-D,0)$, compute equity payoff when (a) $V_T=80$, $D=100$ and (b) $V_T=130$, $D=100$.
 
 ### Solution Sketches (Selected)
 
-**1.** \(25{,}000{,}000\times(1-0.35)=\$16{,}250{,}000\).
+**1.** $25{,}000{,}000\times(1-0.35)=\$16{,}250{,}000$.
 
-**2.** \(\alpha=40/360\). Accrued \(=50{,}000{,}000\times 0.015\times (40/360)=\$83{,}333\) (rounded).
+**2.** $\alpha=40/360$. Accrued $=50{,}000{,}000\times 0.015\times (40/360)=\$83{,}333$ (rounded).
 
-**3.** Difference \(=7\) points per 100 \(\Rightarrow 0.07\times 10{,}000{,}000=\$700{,}000\).
+**3.** Difference $=7$ points per 100 $\Rightarrow 0.07\times 10{,}000{,}000=\$700{,}000$.
 
 **7.** Two drivers: (i) default rates vary over time (systematic risk/default clustering), and (ii) spreads can include non-default components such as liquidity premia and taxes.
 

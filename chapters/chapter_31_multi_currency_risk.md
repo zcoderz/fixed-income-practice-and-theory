@@ -80,13 +80,13 @@ Throughout our examples, we use:
 
 $$P^{\downarrow}(0,T) = P(0,T) \exp(+0.0001 \cdot T)$$
 
-Here $1\\text{bp}=10^{-4}$ in rate units. This corresponds to a **-1bp** parallel shift of **continuously-compounded zero rates** (our DV01 convention is “rates down”): if $P(0,T)=e^{-y(0,T)\,T}$, then $y^{\downarrow}(0,T)=y(0,T)-10^{-4}$ implies $P^{\downarrow}(0,T)=P(0,T)e^{+10^{-4}T}$.
+Here $1\text{bp}=10^{-4}$ in rate units. This corresponds to a **-1bp** parallel shift of **continuously-compounded zero rates** (our DV01 convention is “rates down”): if $P(0,T)=e^{-y(0,T)\,T}$, then $y^{\downarrow}(0,T)=y(0,T)-10^{-4}$ implies $P^{\downarrow}(0,T)=P(0,T)e^{+10^{-4}T}$.
 
 Different desks use different bump methodologies (par-quote bumps with curve rebuild, key-rate bumps, which curves are held fixed, etc.). Always record the bump object and rebuild rules before comparing DV01/Basis01 across systems.
 
 **Check (DV01 scale for a single cashflow):** For a deterministic domestic cashflow $C$ at maturity $T$, $PV=C\,P(0,T)$. Under a continuously-compounded zero-rate bump, $\partial P/\partial y = -T\,P$, so
 $$\frac{\partial PV}{\partial y}\approx -T\,PV\quad\Rightarrow\quad DV01 \approx PV\times T\times 10^{-4}.$$
-This “PV times maturity times 1bp” rule of thumb is a fast magnitude check. Example: a \$100 PV at \(T=10\)y has \(DV01\sim 100\times 10\times 10^{-4}=0.10\) dollars per bp (about 10 bp of DV01 per 1% of PV).
+This “PV times maturity times 1bp” rule of thumb is a fast magnitude check. Example: a \$100 PV at $T=10$y has $DV01\sim 100\times 10\times 10^{-4}=0.10$ dollars per bp (about 10 bp of DV01 per 1% of PV).
 
 ---
 
@@ -106,10 +106,10 @@ Equivalently, the domestic value of one foreign zero-coupon bond paying 1 unit o
 
 **Expand (two equivalent PV routes):** A useful consistency check is that you can PV the same foreign cashflow in domestic currency in two equivalent ways:
 
-- **Spot + foreign discounting:** \(PV_d = S_0\,P_f(0,T)\,C_f(T)\).
-- **Forward + domestic discounting:** \(PV_d = P_d(0,T)\,F_{0,T}\,C_f(T)\).
+- **Spot + foreign discounting:** $PV_d = S_0\,P_f(0,T)\,C_f(T)$.
+- **Forward + domestic discounting:** $PV_d = P_d(0,T)\,F_{0,T}\,C_f(T)$.
 
-They agree when \(F_{0,T}=S_0\,P_f(0,T)/P_d(0,T)\) (covered interest parity). In practice, valuation breaks often come from mixing an FX forward surface and two discount curves that are not mutually consistent under the chosen collateral/basis assumptions.
+They agree when $F_{0,T}=S_0\,P_f(0,T)/P_d(0,T)$ (covered interest parity). In practice, valuation breaks often come from mixing an FX forward surface and two discount curves that are not mutually consistent under the chosen collateral/basis assumptions.
 
 ### 31.2.2 Why Curve Choice Matters
 
@@ -161,9 +161,9 @@ $$DV01_{c,\text{proj}} := PV_d(\text{projection zero rates in }c\text{ down }1\t
 
 The same definitions apply for domestic ($c=d$) and foreign ($c=f$) curves. For deterministic cashflows, only the relevant **discount** curve enters PV. For floating legs (swaps, XCCY legs), a **projection** curve affects expected coupons, so you can have both discount DV01 and projection DV01.
 
-**Check (derivative form and sign):** With the book convention \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\), a first-order approximation is
+**Check (derivative form and sign):** With the book convention $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, a first-order approximation is
 $$DV01 \approx -\frac{\partial PV}{\partial y}\times 10^{-4},$$
-where \(y\) is the bumped continuously-compounded zero rate object. For an option-free long fixed cashflow, \(\partial PV/\partial y<0\), so DV01 is positive. For a liability (you pay the cashflow), the sign flips.
+where $y$ is the bumped continuously-compounded zero rate object. For an option-free long fixed cashflow, $\partial PV/\partial y<0$, so DV01 is positive. For a liability (you pay the cashflow), the sign flips.
 
 > **Pitfall — What is being bumped?:** two systems can both report “DV01” but bump different objects (zero rates vs par rates; with/without curve rebuild; discount vs projection).
 > **Why it matters:** hedge ratios become meaningless if you are hedging “DV01-A” with “DV01-B”.
@@ -198,7 +198,7 @@ This is sometimes written as $X_T(0)=X(0)\frac{P_f(0,T)}{P_d(0,T)}$ and is known
 
 No arbitrage means both paths produce the same domestic amount at $T$, which forces the discount-factor relation above.
 
-**Check (special case + sign/units):** if $P_d(0,T)=e^{-r_d T}$ and $P_f(0,T)=e^{-r_f T}$ for constant continuously-compounded short rates, then $F_{0,T}=S_0 e^{(r_d-r_f)T}$. Also, $S_0$ and $F_{0,T}$ both have units $d/f$. If $r_d>r_f$ and the quote is $d/f$, then $F_{0,T}>S_0$ (a forward “premium”); if $T\\to 0$, then $F_{0,T}\\to S_0$.
+**Check (special case + sign/units):** if $P_d(0,T)=e^{-r_d T}$ and $P_f(0,T)=e^{-r_f T}$ for constant continuously-compounded short rates, then $F_{0,T}=S_0 e^{(r_d-r_f)T}$. Also, $S_0$ and $F_{0,T}$ both have units $d/f$. If $r_d>r_f$ and the quote is $d/f$, then $F_{0,T}>S_0$ (a forward “premium”); if $T\to 0$, then $F_{0,T}\to S_0$.
 
 Because $F_{0,T}$ embeds the **ratio** of discount factors, an FX forward that hedges spot FX delta necessarily inherits interest-rate sensitivity. You can see it directly from the forward PV (Section 31.6.2): it contains a term proportional to $P_d(0,T)$ and a term proportional to $P_f(0,T)$.
 
@@ -247,9 +247,9 @@ Cross-gamma can be computed by finite differences:
 $$\Gamma_{S,r_d} \approx \frac{PV(S+h_S, r_d+h_r) - PV(S+h_S, r_d) - PV(S, r_d+h_r) + PV(S, r_d)}{h_S \cdot h_r}$$
 
 **Check (bump sizes and numerical noise):** Cross-gamma is a *second derivative*, so it is easy to estimate poorly if bumps are too small (rounding noise) or too large (nonlinear regime).
-- A common choice is to set \(h_S\) as a small **percentage** of spot (e.g., 10–25 bp of spot, i.e. 0.10%–0.25%), and set \(h_r\) as a small **rate** move (e.g., 1 bp or 5 bp).
-- Verify scale by checking the cross term in the Taylor expansion: \(\Gamma_{S,r}\Delta S\,\Delta r\) should be small for near-linear instruments and grow for options/long horizons.
-- Prefer **central differences** if possible (bump up and down) to reduce bias; compare \(\Gamma\) computed from \((+h_S,+h_r)\) with \((+h_S,-h_r)\) as a stability check.
+- A common choice is to set $h_S$ as a small **percentage** of spot (e.g., 10–25 bp of spot, i.e. 0.10%–0.25%), and set $h_r$ as a small **rate** move (e.g., 1 bp or 5 bp).
+- Verify scale by checking the cross term in the Taylor expansion: $\Gamma_{S,r}\Delta S\,\Delta r$ should be small for near-linear instruments and grow for options/long horizons.
+- Prefer **central differences** if possible (bump up and down) to reduce bias; compare $\Gamma$ computed from $(+h_S,+h_r)$ with $(+h_S,-h_r)$ as a stability check.
 
 In practice, risk systems often report:
 
@@ -271,7 +271,7 @@ A special case of cross-currency risk arises with **quanto derivatives**—instr
 >
 > 1. **Normal Travel (FX Risk):** You go to Japan and buy a ¥10,000 meal. If the yen is strong (100 JPY/USD), that meal costs you $100. If the yen is weak (120 JPY/USD), it costs you $83. Your USD cost depends on FX.
 >
-> 2. **Quanto Travel (No FX Risk):** With the Magic Wallet, you see a ¥10,000 meal and the wallet instantly debits your bank account $100 regardless of where JPY/USD is trading.
+> 2. **Quanto Travel (No FX Risk):** With the Magic Wallet, you see a ¥10,000 meal and the wallet instantly debits your bank account \$100 regardless of where JPY/USD is trading.
 >
 > **The Cost of Magic:** This shield isn't free. If Japanese stock prices (Nikkei) and the yen tend to move together (correlation), the Magic Wallet provider has exposure. They charge you for this correlation risk via the **quanto adjustment**.
 
@@ -340,9 +340,9 @@ $$\boxed{\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \, \text{V
 where $\text{VaR}_i$ is the VaR (or economic-capital estimate) for segment $i$ and $\rho_{ij}$ is the correlation between segment losses. This quadratic form is sometimes called a correlation (or “hybrid”) aggregation approach: it is simple and transparent, but it can understate tail risk when segment losses are skewed/kurtotic or correlations rise in stress.
 
 **Check (limiting cases + correlation sanity):**
-- If all segments are perfectly correlated (\(\rho_{ij}=1\)), then \(\text{VaR}_{\text{total}}=\sum_i \text{VaR}_i\) (no diversification).
-- If segments are uncorrelated (\(\rho_{ij}=0\) for \(i\neq j\)), then \(\text{VaR}_{\text{total}}=\sqrt{\sum_i \text{VaR}_i^2}\).
-- The correlation matrix \([\rho_{ij}]\) must be symmetric and positive semidefinite; otherwise the square root can produce nonsensical results. In practice, “correlation sets” are often adjusted to enforce consistency (or replaced by factor models).
+- If all segments are perfectly correlated ($\rho_{ij}=1$), then $\text{VaR}_{\text{total}}=\sum_i \text{VaR}_i$ (no diversification).
+- If segments are uncorrelated ($\rho_{ij}=0$ for $i\neq j$), then $\text{VaR}_{\text{total}}=\sqrt{\sum_i \text{VaR}_i^2}$.
+- The correlation matrix $[\rho_{ij}]$ must be symmetric and positive semidefinite; otherwise the square root can produce nonsensical results. In practice, “correlation sets” are often adjusted to enforce consistency (or replaced by factor models).
 
 ### 31.5.2 Diversification Effects
 
@@ -532,7 +532,7 @@ Because hedges create secondary exposures, practical hedge programs are iterativ
 
 > **Desk Reality: Why Risk Systems Recompute All Greeks After Each Trade**
 >
-> When you put on an FX forward to hedge your FX delta, the risk system immediately shows you a *new* rate exposure you didn't have before. This isn't a bug—it's the fundamental interconnectedness of multi-currency risk. Desks often hedge to **tolerance bands** (illustrative: FX delta within ±€5mm, DV01 within ±$50k/bp) rather than to zero, because:
+> When you put on an FX forward to hedge your FX delta, the risk system immediately shows you a *new* rate exposure you didn't have before. This isn't a bug—it's the fundamental interconnectedness of multi-currency risk. Desks often hedge to **tolerance bands** (illustrative: FX delta within ±€5mm, DV01 within ±\$50k/bp) rather than to zero, because:
 > 1. Transaction costs of achieving "perfect" hedges exceed the residual risk
 > 2. Perfect zeroing may require illiquid instruments
 > 3. Hedges may themselves create new risks that require further hedging (infinite regress)
@@ -771,10 +771,10 @@ This comprehensive example illustrates the central insight that FX-hedged foreig
 
 | Exposure | Calculation | Value |
 |----------|-------------|-------|
-| Market value (USD) | €500mm × 1.10 | $550mm |
+| Market value (USD) | €500mm × 1.10 | \$550mm |
 | EUR duration exposure | €500mm × 7yr | €35mm per 1% rate move |
 | FX delta | €500mm (full EUR exposure) | |
-| USD rate exposure | None | $0 |
+| USD rate exposure | None | \$0 |
 
 **FX Hedge Implementation:**
 
@@ -787,7 +787,7 @@ $$F_7 = 1.10 \times \frac{0.80}{0.75} = 1.1733$$
 **Step 2: Forward mechanics**
 At maturity, the fund will:
 - Deliver €500mm (from Bund proceeds)
-- Receive $586.67mm (= €500mm × 1.1733)
+- Receive \$586.67mm (= €500mm × 1.1733)
 
 **Hedged Position Analysis:**
 
@@ -900,7 +900,7 @@ $$\boxed{\Delta PV \approx \Delta_{FX} \cdot \Delta S \;-\; DV01_d \cdot \Delta 
 
 > **Desk Reality: What Product Control Looks For**
 >
-> Product controllers investigate unexplained P&L that exceeds materiality thresholds (firm-specific; often expressed as a $ amount and/or a % of daily P&L). Common causes of unexplained P&L in multi-currency books:
+> Product controllers investigate unexplained P&L that exceeds materiality thresholds (firm-specific; often expressed as a \$ amount and/or a % of daily P&L). Common causes of unexplained P&L in multi-currency books:
 >
 > 1. **Curve rebuild timing:** Greek snapshot taken at 4pm, curves rebuilt at 5pm
 > 2. **FX rate mismatch:** P&L uses fixing rate, Greeks use mid-rate
@@ -914,9 +914,9 @@ $$\boxed{\Delta PV \approx \Delta_{FX} \cdot \Delta S \;-\; DV01_d \cdot \Delta 
 
 **Yesterday's Risk:**
 - FX delta = +€50mm, S = 1.100
-- USD DV01 = +$25,000/bp
-- EUR DV01 = +$16,500/bp (converted to USD at spot)
-- Basis01 = +$5,000/bp
+- USD DV01 = +\$25,000/bp
+- EUR DV01 = +\$16,500/bp (converted to USD at spot)
+- Basis01 = +\$5,000/bp
 
 **Today's Market Moves:**
 - EUR/USD: 1.100 → 1.105 (+0.45%)
@@ -927,15 +927,15 @@ $$\boxed{\Delta PV \approx \Delta_{FX} \cdot \Delta S \;-\; DV01_d \cdot \Delta 
 **Attributed P&L:**
 | Component | Calculation | P&L |
 |-----------|-------------|-----|
-| FX | 0.01 × 1.10 × €50mm × 0.45 | +$247,500 |
-| USD rates | $-25{,}000 \times 3$ | -$75,000 |
-| EUR rates | $-16{,}500 \times (-2)$ | +$33,000 |
-| Basis | $-5{,}000 \times 1$ | -$5,000 |
-| **Total Attributed** | | **+$200,500** |
+| FX | 0.01 × 1.10 × €50mm × 0.45 | +\$247,500 |
+| USD rates | $-25{,}000 \times 3$ | -\$75,000 |
+| EUR rates | $-16{,}500 \times (-2)$ | +\$33,000 |
+| Basis | $-5{,}000 \times 1$ | -\$5,000 |
+| **Total Attributed** | | **+\$200,500** |
 
-**Actual P&L from Risk System:** +$195,000
+**Actual P&L from Risk System:** +\$195,000
 
-**Unexplained:** -$5,500 (2.7% — acceptable)
+**Unexplained:** -\$5,500 (2.7% — acceptable)
 
 ---
 
@@ -1049,9 +1049,9 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 
 **Q7 (Desk).** A hedge program neutralizes FX delta but finds residual foreign DV01. Explain why, and what you do next.
 
-**Q8 (Compute).** Quanto adjustment factor for $T=1$: $\sigma_V=25\\%$, $\sigma_W=10\\%$, $\rho=+0.20$. Compute $e^{\\rho\\sigma_V\\sigma_W T}$.
+**Q8 (Compute).** Quanto adjustment factor for $T=1$: $\sigma_V=25\%$, $\sigma_W=10\%$, $\rho=+0.20$. Compute $e^{\rho\sigma_V\sigma_W T}$.
 
-**Q9 (Compute).** Using the DV01 convention in this chapter: yesterday $\Delta_{FX}=+€50\text{mm}$ at $S=1.10$, $DV01_{USD}=+\\$25{,}000/\\text{bp}$, $DV01_{EUR}=+\\$16{,}500/\\text{bp}$, $Basis01=+\\$5{,}000/\\text{bp}$. Today: EUR/USD +0.45%, USD yields +3bp, EUR yields -2bp, basis +1bp. Compute attributed P&L.
+**Q9 (Compute).** Using the DV01 convention in this chapter: yesterday $\Delta_{FX}=+50\text{mm EUR}$ at $S=1.10$, $DV01_{USD}=+\$25{,}000/\text{bp}$, $DV01_{EUR}=+\$16{,}500/\text{bp}$, $Basis01=+\$5{,}000/\text{bp}$. Today: EUR/USD +0.45%, USD yields +3bp, EUR yields -2bp, basis +1bp. Compute attributed P&L.
 
 **Q10 (Concept).** In a quanto forward, if the correlation between the underlying and FX becomes more positive, what happens to the quanto forward level (qualitatively) and why?
 
@@ -1059,11 +1059,11 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 
 ### Solution Sketches (Selected)
 
-- **Q1:** $\Delta PV \\approx \\Delta S\\,\\Delta_{FX} = 0.02\\times 50\\text{mm} = \\$1.0\\text{mm}$.
+- **Q1:** $\Delta PV \approx \Delta S\,\Delta_{FX} = 0.02\times 50\text{mm} = \$1.0\text{mm}$.
 - **Q3:** Covered interest parity makes the forward PV depend on discount-factor ratios. Holding spot and the foreign curve fixed, bumping the domestic discount curve changes the PV of the domestic cashflow you will receive/pay at maturity, so the hedge carries domestic DV01.
-- **Q4:** $\\sqrt{80^2 + 60^2 + 2(80)(60)(0.5)} = \\sqrt{14800} \\approx \\$121.7\\text{mm}$.
-- **Q5:** Paying “EUR + basis” means higher $e$ increases your payments so $\\partial PV/\\partial e<0$. With $Basis01 := PV(e\\downarrow 1\\text{bp})-PV \\approx -\\partial PV/\\partial e\\times 1\\text{bp}$, you expect $Basis01>0$.
-- **Q9:** FX: $FX01=0.01\\times 1.10\\times 50\\text{mm}=\\$550k$; P&L $\\approx 550k\\times 0.45=\\$247.5k$. Rates: $-25k\\times 3=-\\$75k$; $-16.5k\\times (-2)=+\\$33k$. Basis: $-5k\\times 1=-\\$5k$. Total $\\approx \\$200.5k$.
+- **Q4:** $\sqrt{80^2 + 60^2 + 2(80)(60)(0.5)} = \sqrt{14800} \approx \$121.7\text{mm}$.
+- **Q5:** Paying “EUR + basis” means higher $e$ increases your payments so $\partial PV/\partial e<0$. With $Basis01 := PV(e\downarrow 1\text{bp})-PV \approx -\partial PV/\partial e\times 1\text{bp}$, you expect $Basis01>0$.
+- **Q9:** FX: $FX01=0.01\times 1.10\times 50\text{mm}=\$550k$; P&L $\approx 550k\times 0.45=\$247.5k$. Rates: $-25k\times 3=-\$75k$; $-16.5k\times (-2)=+\$33k$. Basis: $-5k\times 1=-\$5k$. Total $\approx \$200.5k$.
 
 ---
 

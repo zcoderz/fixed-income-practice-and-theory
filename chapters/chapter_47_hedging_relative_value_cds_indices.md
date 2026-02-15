@@ -4,9 +4,9 @@
 
 ## Introduction
 
-You hold $20 million notional of Ford CDS protection and want to hedge with CDX.IG. How much index notional do you need? The answer seems straightforward: match CS01s, calculate a hedge ratio, and execute. But the experienced credit trader knows this is where the real work begins.
+You hold \$20 million notional of Ford CDS protection and want to hedge with CDX.IG. How much index notional do you need? The answer seems straightforward: match CS01s, calculate a hedge ratio, and execute. But the experienced credit trader knows this is where the real work begins.
 
-A CS01-matched hedge can still produce substantial P&L when Ford widens by 50 basis points while the index moves only 10. Your *hedged* position just generated nearly $200,000 of profit—or loss—depending on direction. The hedge neutralized *one component* of spread risk, but the residual (idiosyncratic and basis-related) component remained exposed.
+A CS01-matched hedge can still produce substantial P&L when Ford widens by 50 basis points while the index moves only 10. Your *hedged* position just generated nearly \$200,000 of profit—or loss—depending on direction. The hedge neutralized *one component* of spread risk, but the residual (idiosyncratic and basis-related) component remained exposed.
 
 This distinction between *systemic* and *idiosyncratic* moves is at the heart of index hedging. A “systemic” bump design assumes many names move together (market-wide repricing). An “idiosyncratic” bump design assumes one name moves while peers stay put. Real spread moves mix the two, so hedge ratios depend on what you are trying to neutralize and what you are willing to keep.
 
@@ -68,7 +68,7 @@ All spreads are in bp unless stated; conversion: $1 \text{ bp} = 10^{-4}$ (decim
 | $\sigma_m$, $\sigma_I$ | Standard deviation of spread changes for name $m$ and index $I$ |
 | HE | Hedge effectiveness ratio |
 
-**Convention bridge (spread up vs spread down):** you will also see CS01 defined as an **up-bump** \(PV(\text{spread up }1\text{bp})-PV(\text{base})\), under which long protection is typically positive. For small bumps under the same “held fixed” assumptions, up-bump and down-bump conventions are approximately related by a sign flip. The number only becomes operational once you pin down the bump object (spread vs price), whether the curve is rebuilt, and the sign convention used by your risk reports.
+**Convention bridge (spread up vs spread down):** you will also see CS01 defined as an **up-bump** $PV(\text{spread up }1\text{bp})-PV(\text{base})$, under which long protection is typically positive. For small bumps under the same “held fixed” assumptions, up-bump and down-bump conventions are approximately related by a sign flip. The number only becomes operational once you pin down the bump object (spread vs price), whether the curve is rebuilt, and the sign convention used by your risk reports.
 
 ---
 
@@ -253,7 +253,7 @@ When hedging a single name with an index, the name's spread may move more or les
 
 $$N_I = -\frac{\beta_{m,I}\,\text{CS01}_m}{\text{CS01}_I(1)}$$
 
-**Check (units + toy sizing):** \(\beta\) is unitless. If your CS01s are reported in \(\$/\text{bp}\) per \(\$10\text{mm}\) notional and include direction (under this chapter’s spread-down convention: long protection typically negative, short protection typically positive), the ratio produces a notional. Example: a \(\$10\text{mm}\) long-protection name position has \(\text{CS01}_m=-\$4{,}000/\text{bp}\), the index has \(\text{CS01}_I(1)=+\$3{,}000/\text{bp}\) per \(\$10\text{mm}\) of **short** index protection, and \(\beta=1.5\). Then \(N_I \approx -(1.5\times -4{,}000)/3{,}000 \approx 2\) “units”, i.e., about \(\$20\text{mm}\) of short index protection.
+**Check (units + toy sizing):** $\beta$ is unitless. If your CS01s are reported in $\$/\text{bp}$ per $\$10\text{mm}$ notional and include direction (under this chapter’s spread-down convention: long protection typically negative, short protection typically positive), the ratio produces a notional. Example: a $\$10\text{mm}$ long-protection name position has $\text{CS01}_m=-\$4{,}000/\text{bp}$, the index has $\text{CS01}_I(1)=+\$3{,}000/\text{bp}$ per $\$10\text{mm}$ of **short** index protection, and $\beta=1.5$. Then $N_I \approx -(1.5\times -4{,}000)/3{,}000 \approx 2$ “units”, i.e., about $\$20\text{mm}$ of short index protection.
 
 > **Deep Dive: The Regression Hedge**
 >
@@ -362,7 +362,7 @@ In the linear regression setup ($\Delta S \approx a + b\,\Delta F + \epsilon$) w
 
 $$\text{HE} = R^2 = \rho^2 \quad \text{(within the regression setup)}$$
 
-**Check (how much risk is left):** if \(\rho=0.7\), then \(R^2\approx 0.49\): the hedge removes about 49% of the *variance*, but the residual standard deviation is still \(\sqrt{1-R^2}\approx 0.71\) of the unhedged level. This is why a “high correlation” hedge can still have large day-to-day tracking error.
+**Check (how much risk is left):** if $\rho=0.7$, then $R^2\approx 0.49$: the hedge removes about 49% of the *variance*, but the residual standard deviation is still $\sqrt{1-R^2}\approx 0.71$ of the unhedged level. This is why a “high correlation” hedge can still have large day-to-day tracking error.
 
 When you apply this idea to a CDS hedge, treat it as a diagnostic: if the relationship is nonlinear, regime-dependent, or dominated by idiosyncratic jumps, the realized HE can deviate from the historical $R^2$.
 
@@ -765,7 +765,7 @@ After $k$ defaults on an index with original $M$ constituents:
 - Remaining names may have different average credit quality
 - Index CS01 per trade decreases (fewer premium dollars at risk)
 
-**Check (factor scale):** with \(M=125\), one default reduces the outstanding fraction by \(1/125\approx 0.8\%\). To first order, premium cashflows and index CS01 scale down by the same fraction, so any hedge ratios that ignore the updated factor can drift immediately after defaults.
+**Check (factor scale):** with $M=125$, one default reduces the outstanding fraction by $1/125\approx 0.8\%$. To first order, premium cashflows and index CS01 scale down by the same fraction, so any hedge ratios that ignore the updated factor can drift immediately after defaults.
 
 ### 47.5.2 VOD for Indices and Tranches: O'Kane's Framework
 
@@ -1206,26 +1206,26 @@ POSITION SUMMARY
 ───────────────────────────────────────────────────────────────
 Index Position:      CDX.IG Series 42, 5Y
 Direction:           Short Protection
-Notional:            $50,000,000
-Index CS01:          +$22,500 /bp
+Notional:            \$50,000,000
+Index CS01:          +\$22,500 /bp
 
 HEDGE SUMMARY
 ───────────────────────────────────────────────────────────────
 Hedge Type:          Constituent Replication (Top 20)
-Hedge Notional:      $48,500,000 (aggregate)
-Hedge CS01:          -$21,800 /bp
-Net CS01:            +$700 /bp  (0.7% unhedged)
+Hedge Notional:      \$48,500,000 (aggregate)
+Hedge CS01:          -\$21,800 /bp
+Net CS01:            +\$700 /bp  (0.7% unhedged)
 
 SCENARIO VALIDATION
 ───────────────────────────────────────────────────────────────
 Scenario                    Index P&L    Hedge P&L    Net P&L
 ───────────────────────────────────────────────────────────────
-Parallel +10bp              -$225,000    +$218,000    -$7,000
-Parallel -10bp              +$225,000    -$218,000    +$7,000
-Dispersion (avg=0)          $0           -$45,000     -$45,000
-Single-name +50bp           -$8,000      +$4,500      -$3,500
-Default (FP=40)             -$5,980,000  +$5,500,000  -$480,000
-Basis +5bp                  -$112,500    $0           -$112,500
+Parallel +10bp              -\$225,000    +$218,000    -$7,000
+Parallel -10bp              +\$225,000    -$218,000    +$7,000
+Dispersion (avg=0)          \$0           -$45,000     -$45,000
+Single-name +50bp           -\$8,000      +$4,500      -$3,500
+Default (FP=40)             -\$5,980,000  +$5,500,000  -$480,000
+Basis +5bp                  -\$112,500    $0           -$112,500
 
 RISK LIMITS CHECK
 ───────────────────────────────────────────────────────────────
@@ -1516,7 +1516,7 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 **17.** HE = 0.45 means the hedge reduced variance by about 45% over the measurement window. Next actions: attribute residual drivers (idiosyncratic, basis, event), check beta stability, and decide whether to resize or add single-name overlays based on tracking-error limits.
 
-**18.** Systematic sizing: $N_{\text{proxy}}=-\\frac{\\beta\\,\\text{CS01}_{\\text{position}}}{\\text{CS01}_{\\text{proxy}}(1)}=-\\frac{1.3\\times(-10{,}000)}{400}=32.5$ mm.
+**18.** Systematic sizing: $N_{\text{proxy}}=-\frac{\beta\,\text{CS01}_{\text{position}}}{\text{CS01}_{\text{proxy}}(1)}=-\frac{1.3\times(-10{,}000)}{400}=32.5$ mm.
 
 ## References
 

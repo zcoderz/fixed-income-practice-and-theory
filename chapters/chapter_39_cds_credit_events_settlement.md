@@ -124,7 +124,7 @@ Exact notice requirements, deadlines, and evidence standards are **documentation
 
 Physical settlement creates a practical problem when the outstanding amount of CDS protection that expects physical delivery is large relative to the supply of deliverable obligations. Protection buyers may be forced to buy deliverables in a hurry, pushing prices up and reducing the effective payout.
 
-**Check (direction and magnitude):** A short squeeze that pushes the CTD price up by \(\Delta P\) points reduces the physical-settlement payout for long protection by \(N\,\Delta P/100\). For example, on \(N=\$100\text{mm}\), a 5‑point squeeze in CTD reduces payout by \(\$5\text{mm}\).
+**Check (direction and magnitude):** A short squeeze that pushes the CTD price up by $\Delta P$ points reduces the physical-settlement payout for long protection by $N\,\Delta P/100$. For example, on $N=\$100\text{mm}$, a 5‑point squeeze in CTD reduces payout by $\$5\text{mm}$.
 
 > **Desk Reality:** Under physical settlement, “CTD” is not only a valuation concept—it can become an operational constraint if deliverables are scarce.
 
@@ -203,9 +203,9 @@ $$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
 
 The incremental value of being able to “switch deliverables” is the delivery option.
 
-**Check (toy CTD switch):** Suppose the bond you were hedging trades at 43, but another deliverable trades at 37 (prices in points per 100). Per \$100 face, delivering CTD instead of your hedged bond increases payout by \(43-37=6\) points.
+**Check (toy CTD switch):** Suppose the bond you were hedging trades at 43, but another deliverable trades at 37 (prices in points per 100). Per \$100 face, delivering CTD instead of your hedged bond increases payout by $43-37=6$ points.
 
-**Check (dollar conversion):** “6 points” is 6% of notional. On \(N=\$100\text{mm}\), the incremental value of switching to CTD is about \(\$6\text{mm}\).
+**Check (dollar conversion):** “6 points” is 6% of notional. On $N=\$100\text{mm}$, the incremental value of switching to CTD is about $\$6\text{mm}$.
 
 ### 39.4.3 Valuing the Delivery Option (Simple Framework)
 
@@ -240,7 +240,7 @@ $$\boxed{V_{\text{DO}} = N \times \frac{P_{\text{hedged}} - P_{\text{CTD}}}{100}
 
 One early restructuring episode often discussed in this context is Conseco (September 2000), where the maturity/price dispersion across deliverables made this “switch to CTD” trade economically meaningful.
 
-**Check (toy sanity):** If your hedged asset trades at 95 but an eligible long bond trades at 70, the ability to deliver CTD can add \(95-70=25\) points of incremental value per 100 face—far larger than bid/ask noise.
+**Check (toy sanity):** If your hedged asset trades at 95 but an eligible long bond trades at 70, the ability to deliver CTD can add $95-70=25$ points of incremental value per 100 face—far larger than bid/ask noise.
 
 ### 39.5.2 The Four Common Restructuring Clauses
 
@@ -303,7 +303,7 @@ $$100{,}000{,}000 \times 0.009 \times \frac{61}{360} = \$152{,}500.$$
 
 > **Pitfall — Forgetting accrued premium on default:** Mixing “payout” with “net settlement.”
 > **Why it matters:** You can be off by \$10k–\$100k+ on a single-name trade (and much more on large notionals) if you ignore the final accrual.
-> **Quick check:** Compute \(\alpha\) from concrete dates and confirm accrued premium has the same sign as a normal premium payment (buyer pays seller).
+> **Quick check:** Compute $\alpha$ from concrete dates and confirm accrued premium has the same sign as a normal premium payment (buyer pays seller).
 
 ---
 
@@ -330,7 +330,7 @@ $$100{,}000{,}000 \times 0.009 \times \frac{61}{360} = \$152{,}500.$$
 
 ### 39.7.3 Fixed Coupons and Points‑Upfront Quotes
 
-**Anchor:** Under **fixed coupon + upfront** (“points upfront”) quoting, a standard running coupon \(S_{\text{coupon}}\) is specified and an upfront payment at trade inception makes the contract’s PV consistent with the market spread. The standardization of North American Corporate CDS saw the introduction of fixed coupons of $100-500 \mathrm{bp}$.
+**Anchor:** Under **fixed coupon + upfront** (“points upfront”) quoting, a standard running coupon $S_{\text{coupon}}$ is specified and an upfront payment at trade inception makes the contract’s PV consistent with the market spread. The standardization of North American Corporate CDS saw the introduction of fixed coupons of $100-500 \mathrm{bp}$.
 
 A useful first‑order approximation is:
 
@@ -342,7 +342,7 @@ where $RPV01$ is the risky PV of 1 bp of running premium for the specified contr
 
 > **Desk Reality:** Many systems treat a CDS quote like a bond quote: “running coupon” is fixed, and “price” is the upfront.
 > **Common break:** Mixing up whether $RPV01$ is per 1 bp **for this notional** (currency/bp) or per 1 bp **per unit notional**.
-> **What to check:** Units: \((\text{bp})\times(\text{currency/bp})=\text{currency}\). If your upfront comes out in “years,” your $RPV01$ definition is inconsistent.
+> **What to check:** Units: $(\text{bp})\times(\text{currency/bp})=\text{currency}$. If your upfront comes out in “years,” your $RPV01$ definition is inconsistent.
 
 ---
 
@@ -459,7 +459,7 @@ As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, pr
 - Operationally, the key “gotchas” are: misreading price points as fractions, using the wrong day count for $\alpha$, and forgetting to include the final accrual payment.
 
 **Sanity Checks**
-- Units check: $P_{\text{final}}$ is points per 100, so \(1-P_{\text{final}}/100\) is a fraction.
+- Units check: $P_{\text{final}}$ is points per 100, so $1-P_{\text{final}}/100$ is a fraction.
 - Sign check: lower $P_{\text{final}}$ increases $\Pi_{\text{cash}}$ for long protection.
 - Limit check: $P_{\text{final}}=100 \Rightarrow \Pi=0$; $P_{\text{final}}=0 \Rightarrow \Pi=N$.
 
@@ -515,12 +515,12 @@ Before modeling settlement outcomes, verify:
 ## Summary
 
 1. A CDS triggers on a contract-defined **credit event**; “default” in headlines is not sufficient without the documentation mapping.
-2. **Settlement** maps a trigger into cash: physical settlement delivers eligible obligations for par; cash settlement pays \(N(1-P_{\text{final}}/100)\).
+2. **Settlement** maps a trigger into cash: physical settlement delivers eligible obligations for par; cash settlement pays $N(1-P_{\text{final}}/100)$.
 3. A **deliverable basket** improves liquidity but embeds a **delivery option**: the buyer chooses the **CTD** deliverable; the seller is short that option.
 4. **Restructuring** is the soft event that creates post‑event price dispersion; restructuring clauses (Old‑Re / Mod‑Re / Mod‑Mod‑Re / No‑Re) control CTD optionality and can affect spreads.
 5. Premium is paid in arrears; on default the buyer owes **accrued premium to the event date**, so net settlement is protection payout minus that accrual.
-6. Post‑2009 standardization hardwired auction/DC workflows and popularized **fixed coupon + upfront** (“points‑upfront”) quoting; a useful approximation is \((S_{\text{market}}-S_{\text{coupon}})_{\text{bp}}\times RPV01\).
-7. Settlement price risk is linear: for long protection, a 1‑point decrease in \(P_{\text{final}}\) increases payout by \(N/100\).
+6. Post‑2009 standardization hardwired auction/DC workflows and popularized **fixed coupon + upfront** (“points‑upfront”) quoting; a useful approximation is $(S_{\text{market}}-S_{\text{coupon}})_{\text{bp}}\times RPV01$.
+7. Settlement price risk is linear: for long protection, a 1‑point decrease in $P_{\text{final}}$ increases payout by $N/100$.
 8. The CDS‑cash basis reflects contractual differences (funding, delivery option, credit‑event breadth, accrual) plus market microstructure—so compare like‑for‑like before interpreting the sign.
 
 ---
@@ -537,10 +537,10 @@ Before modeling settlement outcomes, verify:
 | CTD | Lowest-priced eligible deliverable | Maximizes buyer's payout |
 | Restructuring clause | Limits on deliverables after restructuring | Controls delivery option value |
 | Accrued premium | Partial premium for coverage until credit event | Owed by buyer at default |
-| Auction/DC workflow | Standard process to confirm events and produce \(P_{\text{final}}\) | Turns legal trigger into cash settlement |
+| Auction/DC workflow | Standard process to confirm events and produce $P_{\text{final}}$ | Turns legal trigger into cash settlement |
 | Fixed coupon + upfront | Quote as running coupon plus upfront | Makes CDS trade “like a bond price” |
-| Settlement01 | \(\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=N/100\) for long protection | Quick risk check for payout uncertainty |
-| CDS-cash basis | \(S_{\text{CDS}}-S_{\text{ASW}}\) (definition depends on spread measure) | Bundles funding, optionality, and technicals |
+| Settlement01 | $\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=N/100$ for long protection | Quick risk check for payout uncertainty |
+| CDS-cash basis | $S_{\text{CDS}}-S_{\text{ASW}}$ (definition depends on spread measure) | Bundles funding, optionality, and technicals |
 
 ---
 
@@ -548,21 +548,21 @@ Before modeling settlement outcomes, verify:
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(N\) | CDS notional | currency |
-| \(P_{\text{final}}\) | Cash settlement final price | points per 100 face |
-| \(R_{\text{settle}}:=P_{\text{final}}/100\) | Settlement‑implied recovery fraction | unitless |
-| \(\mathcal{D}\) | Eligible deliverables set | n/a |
-| \(P_i\) | Price of deliverable \(i\) | points per 100 face |
-| \(P_{\text{CTD}}:=\min_{i\in\mathcal{D}}P_i\) | Cheapest‑to‑deliver price | points per 100 face |
-| \(P_{\text{hedged}}\) | Price of the hedged asset | points per 100 face |
-| \(\Pi_{\text{cash}},\Pi_{\text{phys}}\) | Protection payout (cash / physical) | currency; positive = receive (buyer) |
-| \(V_{\text{DO}}\) | Delivery option value | currency |
-| \(s\) | Contractual CDS spread | bp/year or decimal/year (state which) |
-| \(\alpha\) | Premium accrual fraction to event date | year fraction under premium day count |
-| \(RPV01\) | Risky PV of 1 bp of running premium | currency per 1 bp for the stated notional |
-| \(S_{\text{market}},S_{\text{coupon}}\) | Market spread and fixed coupon | bp/year |
-| Settlement01 | \(\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})\) | currency per 1 price point; long protection positive |
-| \(S_{\text{CDS}},S_{\text{ASW}}\) | CDS spread and bond spread measure | bp/year (be explicit) |
+| $N$ | CDS notional | currency |
+| $P_{\text{final}}$ | Cash settlement final price | points per 100 face |
+| $R_{\text{settle}}:=P_{\text{final}}/100$ | Settlement‑implied recovery fraction | unitless |
+| $\mathcal{D}$ | Eligible deliverables set | n/a |
+| $P_i$ | Price of deliverable $i$ | points per 100 face |
+| $P_{\text{CTD}}:=\min_{i\in\mathcal{D}}P_i$ | Cheapest‑to‑deliver price | points per 100 face |
+| $P_{\text{hedged}}$ | Price of the hedged asset | points per 100 face |
+| $\Pi_{\text{cash}},\Pi_{\text{phys}}$ | Protection payout (cash / physical) | currency; positive = receive (buyer) |
+| $V_{\text{DO}}$ | Delivery option value | currency |
+| $s$ | Contractual CDS spread | bp/year or decimal/year (state which) |
+| $\alpha$ | Premium accrual fraction to event date | year fraction under premium day count |
+| $RPV01$ | Risky PV of 1 bp of running premium | currency per 1 bp for the stated notional |
+| $S_{\text{market}},S_{\text{coupon}}$ | Market spread and fixed coupon | bp/year |
+| Settlement01 | $\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})$ | currency per 1 price point; long protection positive |
+| $S_{\text{CDS}},S_{\text{ASW}}$ | CDS spread and bond spread measure | bp/year (be explicit) |
 
 ---
 
@@ -573,25 +573,25 @@ Before modeling settlement outcomes, verify:
 | 1 | What is a CDS credit event? | The contract-defined legal trigger for the protection payment. |
 | 2 | Why is “credit event” not the same as a rating-agency default? | CDS triggers are documentation-driven and can differ from ratings definitions and headlines. |
 | 3 | Name the six commonly used credit events. | Bankruptcy, failure to pay, obligation acceleration, obligation default, repudiation/moratorium, restructuring. |
-| 4 | What is physical settlement? | Buyer delivers eligible obligations with face \(N\) and receives \(N\) cash (par). |
-| 5 | Physical settlement payout if you deliver an obligation priced \(P_i\)? | \(\Pi_{\text{phys}}(i)=N(1-P_i/100)\). |
-| 6 | What is cash settlement? | Seller pays \(\Pi_{\text{cash}}=N(1-P_{\text{final}}/100)\) using a contract-specified final price. |
-| 7 | What is \(P_{\text{final}}\)? | Cash-settlement final price in points per 100 (often from an auction process). |
+| 4 | What is physical settlement? | Buyer delivers eligible obligations with face $N$ and receives $N$ cash (par). |
+| 5 | Physical settlement payout if you deliver an obligation priced $P_i$? | $\Pi_{\text{phys}}(i)=N(1-P_i/100)$. |
+| 6 | What is cash settlement? | Seller pays $\Pi_{\text{cash}}=N(1-P_{\text{final}}/100)$ using a contract-specified final price. |
+| 7 | What is $P_{\text{final}}$? | Cash-settlement final price in points per 100 (often from an auction process). |
 | 8 | What is a deliverable obligation? | A bond/loan eligible for delivery under the contract criteria; often pari passu or senior to the reference obligation. |
-| 9 | What is CTD? | Cheapest-to-deliver: \(P_{\text{CTD}}=\min_{i\in\mathcal{D}}P_i\). |
+| 9 | What is CTD? | Cheapest-to-deliver: $P_{\text{CTD}}=\min_{i\in\mathcal{D}}P_i$. |
 | 10 | What is the delivery option? | The buyer’s right to choose which deliverable to deliver; seller is short this option. |
-| 11 | Simple delivery option value formula? | \(V_{\text{DO}}=N(P_{\text{hedged}}-P_{\text{CTD}})/100\). |
+| 11 | Simple delivery option value formula? | $V_{\text{DO}}=N(P_{\text{hedged}}-P_{\text{CTD}})/100$. |
 | 12 | Why does restructuring matter for CTD? | Restructuring can leave a term structure of prices across obligations, creating price dispersion and a valuable CTD choice. |
 | 13 | What do restructuring clauses do? | They limit (or remove) restructuring-driven deliverability optionality (Old‑Re / Mod‑Re / Mod‑Mod‑Re / No‑Re). |
-| 14 | What is accrued premium on default? | \(N\cdot s\cdot \alpha\), owed by the buyer for coverage from the last premium date to the event date. |
+| 14 | What is accrued premium on default? | $N\cdot s\cdot \alpha$, owed by the buyer for coverage from the last premium date to the event date. |
 | 15 | Net cash (conceptually) for cash settlement? | Protection payout minus accrued premium (if netted operationally). |
-| 16 | Unit pitfall: “38” means what? | 38 points per 100 (i.e., \(R_{\text{settle}}=0.38\)), not 38%. |
-| 17 | What is Settlement01 for long protection? | \(\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=N/100\) (currency per 1 point). |
+| 16 | Unit pitfall: “38” means what? | 38 points per 100 (i.e., $R_{\text{settle}}=0.38$), not 38%. |
+| 17 | What is Settlement01 for long protection? | $\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=N/100$ (currency per 1 point). |
 | 18 | What are the three “Big Bang” elements (high level)? | Auction hardwiring, standardized trading conventions, and central clearing enablement. |
 | 19 | What is fixed coupon + upfront quoting? | Running coupon is standardized (e.g., 100/500 bp) and an upfront payment clears the trade to the market spread. |
-| 20 | Useful upfront approximation? | \(\text{Upfront}\approx (S_{\text{market}}-S_{\text{coupon}})_{\text{bp}}\times RPV01\). |
-| 21 | What is \(RPV01\) in this chapter’s units? | PV of 1 bp of running premium for the stated notional, in currency per 1 bp. |
-| 22 | What is the CDS‑cash basis? | \(S_{\text{CDS}}-S_{\text{ASW}}\); interpret only after aligning spread measures and contract features. |
+| 20 | Useful upfront approximation? | $\text{Upfront}\approx (S_{\text{market}}-S_{\text{coupon}})_{\text{bp}}\times RPV01$. |
+| 21 | What is $RPV01$ in this chapter’s units? | PV of 1 bp of running premium for the stated notional, in currency per 1 bp. |
+| 22 | What is the CDS‑cash basis? | $S_{\text{CDS}}-S_{\text{ASW}}$; interpret only after aligning spread measures and contract features. |
 
 ---
 
@@ -609,7 +609,7 @@ Before modeling settlement outcomes, verify:
 
 6. Explain why a soft credit event creates larger delivery option value than a hard event.
 
-7. A buyer holds a bond at 48 with CDS, and CTD after restructuring is 40. Per $100 face, what is the delivery option value? For $N = \$10\text{mm}$?
+7. A buyer holds a bond at 48 with CDS, and CTD after restructuring is 40. Per \$100 face, what is the delivery option value? For $N = \$10\text{mm}$?
 
 8. Spread $s = 400$ bp, default 60 days into a 90-day period, $N = \$20\text{mm}$. Estimate accrued premium (state assumptions).
 
@@ -637,11 +637,11 @@ Before modeling settlement outcomes, verify:
 
 **Q6:** Soft events preserve term structure → different obligations trade at different prices → buyer can choose cheapest. Hard events collapse all debt to one price → no choice benefit.
 
-**Q7:** Delivery option value = $48 - 40 = \$8$ per $100. For $\$10\text{mm}$: $10{,}000{,}000 \times 0.08 = \$800{,}000$.
+**Q7:** Delivery option value = \$48 - 40 = \$8$ per $100. For $\$10\text{mm}$: $10{,}000{,}000 \times 0.08 = \$800{,}000$.
 
 **Q9:** $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$. $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$. If $P_{\text{final}} = P_{\text{CTD}}$, both equal $N(1 - P_{\text{CTD}}/100)$. QED.
 
-**Q11:** Spread difference = \(350-100=250\) bp. Upfront \(\approx 250 \times \$4{,}200 = \$1{,}050{,}000\). Protection buyer pays upfront (market spread > coupon).
+**Q11:** Spread difference = $350-100=250$ bp. Upfront $\approx 250 \times \$4{,}200 = \$1{,}050{,}000$. Protection buyer pays upfront (market spread > coupon).
 
 **Q12:** Protection payout: $5{,}000{,}000 \times (1 - 0.22) = \$3{,}900{,}000$. Accrued premium: $5{,}000{,}000 \times 0.03 \times (50/360) = \$20{,}833$. Net: $\$3{,}900{,}000 - \$20{,}833 = \$3{,}879{,}167$ from seller to buyer.
 

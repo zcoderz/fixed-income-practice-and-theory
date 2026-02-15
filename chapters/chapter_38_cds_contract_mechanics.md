@@ -270,7 +270,7 @@ $$\boxed{\text{RPV01}(t,T) = N \times 10^{-4} \times A(t,T)}$$
 
 where $1\text{ bp}=10^{-4}$ and $N$ is the CDS notional.
 
-**Check (order of magnitude):** For a 5Y quarterly CDS, the risky annuity \(A(t,T)\) is typically a few “years” (less than the risk-free annuity because survival \(Q\) downweights later coupons). So for \(N=\$10\text{mm}\), you expect `RPV01` to be on the order of \(10{,}000{,}000\times 10^{-4}\times A \approx 1{,}000\times A\), i.e., a few thousand dollars per bp—not \$100k/bp and not \$10/bp.
+**Check (order of magnitude):** For a 5Y quarterly CDS, the risky annuity $A(t,T)$ is typically a few “years” (less than the risk-free annuity because survival $Q$ downweights later coupons). So for $N=\$10\text{mm}$, you expect `RPV01` to be on the order of $10{,}000{,}000\times 10^{-4}\times A \approx 1{,}000\times A$, i.e., a few thousand dollars per bp—not \$100k/bp and not \$10/bp.
 
 ### 38.5.1 Premium Leg Present Value
 
@@ -433,7 +433,7 @@ where:
 - $A(t,T)$ = risky annuity (years)
 - $s$ = quoted spread (decimal)
 
-**Check (units and sign):** \(A\) has units of years and \((s-c)\) has units of 1/year, so \(U\) is dimensionless (a fraction of notional). If \(s>c\) (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
+**Check (units and sign):** $A$ has units of years and $(s-c)$ has units of 1/year, so $U$ is dimensionless (a fraction of notional). If $s>c$ (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
 \[
 \text{Upfront}_\$\approx (s-c)_{\text{bp}}\times \text{RPV01}(t,T).
 \]
