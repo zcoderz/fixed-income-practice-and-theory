@@ -405,23 +405,13 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
 
 **Step-by-step**
 1. **Compute modified duration** for a 10‑year par bond at yield $y$ (semiannual):
-
-   $$
-   D_{\text{Mod}}=\frac{1}{y}\left(1-\frac{1}{(1+y/2)^{2T}}\right)
-   =\frac{1}{0.05}\left(1-\frac{1}{1.025^{20}}\right)\approx 7.79.
-   $$
+   $D_{\text{Mod}}=\frac{1}{y}\left(1-\frac{1}{(1+y/2)^{2T}}\right)=\frac{1}{0.05}\left(1-\frac{1}{1.025^{20}}\right)\approx 7.79$.
 
 2. **Compute DV01** using $DV01 \approx \frac{D_{\text{Mod}}V}{10{,}000}$:
-
-   $$
-   DV01 \approx \frac{7.79\times 10{,}000{,}000}{10{,}000}=USD 7{,}790\text{ per bp}.
-   $$
+   $DV01 \approx \frac{7.79\times 10{,}000{,}000}{10{,}000}=USD 7{,}790$ per bp.
 
 3. **Translate a rate move into P&L.** For a +25bp yield increase ($\Delta y=+0.0025$):
-
-   $$
-   \Delta V \approx -DD\,\Delta y = -(D_{\text{Mod}}V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025)=-USD 194{,}750.
-   $$
+   $\Delta V \approx -DD\,\Delta y = -(D_{\text{Mod}}V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025)=-USD 194{,}750$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -437,7 +427,7 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
 **Sanity Checks**
 - Units: DV01 is in dollars per 1bp; here it is in the “thousands of dollars” range for a USD 10mm 10‑year bond, which is plausible.
 - Sign: yields up $\Rightarrow$ PV down, so $\Delta V$ is negative for $\Delta y \gt 0$.
-- Reproduction: you can reproduce $DV01$ by bumping $y$ by $\pm 1$bp and repricing the cashflows.
+- Reproduction: you can reproduce $DV01$ by bumping $y$ by plus/minus 1 bp and repricing the cashflows.
 
 ### 12.6.4 Why Dollar Duration Matters
 
