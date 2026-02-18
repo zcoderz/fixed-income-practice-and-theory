@@ -71,7 +71,7 @@ $$P(t,T) = \mathbb{E}^Q\left[D(t,T) \mid \mathcal{F}_t\right]$$
 
 - One-factor short-rate diffusion models under a pricing (bank-account) measure $Q$
 - Continuous-time, continuous compounding
-- Curve-fitting language refers to matching the observed initial discount curve $P^M(0,T)$ (or equivalently $f^M(0,t)$)
+- Curve-fitting language refers to matching the observed initial discount curve $P^M(0,T)$ (or equivalently `fM(0,t)`).
 
 ### Notation glossary (symbols + definitions)
 
@@ -170,7 +170,7 @@ Affine structure is prized because it yields:
 
 **Formal Definition**
 
-"Exogenous term structure" means the initial curve $P^M(0,T)$ (or $f^M(0,t)$) is treated as an input from the market. The model is then constructed (or extended) so that model-implied bond prices match $P^M(0,T)$ at time 0.
+"Exogenous term structure" means the initial curve $P^M(0,T)$ (or `fM(0,t)`) is treated as an input from the market. The model is then constructed (or extended) so that model-implied bond prices match $P^M(0,T)$ at time 0.
 
 **Key Fact About Basic (Time-Homogeneous) Short-Rate Models**
 
@@ -558,7 +558,7 @@ This is the exogenous term structure idea: the initial curve is taken from the m
 Assume the market discount curve $t \mapsto P^M(0,t)$ is given and sufficiently smooth, and define the market instantaneous forward rates:
 $$f^M(0,t) = -\frac{\partial \ln P^M(0,t)}{\partial t}$$
 
-**Step 2 (Choose $a, \sigma$; Then Set $\theta(t)$)**
+**Step 2 (Choose $a, \sigma$; Then set `theta(t)`)**
 
 Hull provides the specific function:
 
@@ -1244,7 +1244,7 @@ START: What product are you pricing?
 
 **Inputs**
 
-- Market discount curve $P^M(0,T)$ (or equivalently $f^M(0,t)$)
+- Market discount curve $P^M(0,T)$ (or equivalently `fM(0,t)`)
 - Optionally: market prices for caps/floors/swaptions (these can be related to ZCB options and priced in these frameworks)
 
 **Choose Model**
@@ -2037,7 +2037,7 @@ Hull explicitly distinguishes real-world and risk-neutral short-rate processes u
 
 **Confusing "Fit Initial Curve" with "Fit Vol Surface/Term Structure"**
 
-- Deterministic drift/shift ($\theta(t)$ or $\varphi(t)$) fits the yield curve at time 0.
+- Deterministic drift/shift (`theta(t)` or `varphi(t)`) fits the yield curve at time 0.
 - Allowing time-dependent parameters can be used to also fit volatility term structures, but is described as potentially dangerous due to instability and ad-hoc parameterizations.
 
 **Using Vasicek/HW Without Acknowledging Negative-Rate Implications**
