@@ -576,7 +576,7 @@ The parameter $\lambda$ controls the tradeoff between fitting prices and smoothn
 
 Under standard smoothness assumptions, the minimizer of the penalized objective can be characterized as an exponential tension spline (with knots at cashflow dates). This is one reason tension splines are a common “middle ground”: they arise naturally from a smoothing objective rather than being a purely ad-hoc interpolation choice.
 
-### 17.6.4 Choosing $\lambda$ and RMSE Targets
+### 17.6.4 Choosing Lambda and RMSE Targets
 
 If $\lambda$ is high, you get a smooth curve that might miss prices by a fraction of a basis point. If $\lambda$ is low, you get a curve that hits every price but may wiggle unreasonably.
 
@@ -632,11 +632,7 @@ $$P(T)=e^{-\int_0^T f(u)\\,du}=e^{-\int_0^T \varepsilon_{f}(u)\\,du}\\,e^{-\int_
 
 Once the curve $P^{*}(t)$ is constructed, any subsequent use of the curve for cash flow discounting requires a multiplicative adjustment of time-$t$ discount factors by the quantity $P_{\varepsilon}(t)$.
 
-**Check (toy magnitude):** Suppose you model a short “turn” window as an overlay of $+200$bp for 3 calendar days and zero elsewhere (purely illustrative). Under continuous compounding, the multiplicative factor for any maturity beyond the window is
-$$
-P_{\varepsilon} \approx e^{-0.02\times 3/365}\approx 0.999836,
-$$
-which is a $0.0164\\%$ PV hit (about 0.0164 price points per 100) applied uniformly to all cashflows beyond the window. The point of the overlay is not that it is “large” in PV terms, but that it localizes a calendar premium to the short window rather than forcing the fitted curve to twist in unrelated maturities.
+**Check (toy magnitude):** Suppose you model a short “turn” window as an overlay of $+200$bp for 3 calendar days and zero elsewhere (purely illustrative). Under continuous compounding, the multiplicative factor for any maturity beyond the window is approximately $P_{\varepsilon}\approx e^{-0.02\times 3/365}\approx 0.999836$. This is a $0.0164\\%$ PV hit (about 0.0164 price points per 100) applied uniformly to all cashflows beyond the window. The point of the overlay is not that it is “large” in PV terms, but that it localizes a calendar premium to the short window rather than forcing the fitted curve to twist in unrelated maturities.
 
 ### 17.7.2 Event Dates and Step-Like Forwards
 
@@ -663,7 +659,7 @@ Choose basis functions $\mu_k(t)$ that localize shocks in maturity:
 $$f(t) \mapsto f(t) - \varepsilon \mu_k(t)$$
 
 Common choices include:
-- **Piecewise flat:** $\mu_k(t) = \mathbf{1}_{\\{t \in [t_k, t_{k+1})\\}}$
+- **Piecewise flat:** $\mu_k(t)=1$ for $t\in[t_k,t_{k+1})$, and $\mu_k(t)=0$ otherwise.
 - **Triangular:** Rises linearly to a peak at $t_k$, then falls linearly.
 
 Define the **forward-bucket DV01** (book convention) as:
@@ -769,7 +765,7 @@ The hedge is: short $USD 3.25$mm 2Y swaps and long $USD 1.60$mm 5Y swaps.
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| $P(0,T)$ | discount factor to $T$ | unitless; $>0$ |
+| $P(0,T)$ | discount factor to $T$ | unitless; positive |
 | $y(T)$ | zero rate (continuous comp in this chapter) | 1/year |
 | $f(T)$ | instantaneous forward rate | 1/year; $f(T)=-\\frac{d}{dT}\\ln P(0,T)$ |
 | $\tau$ | year fraction | day-count dependent (ACT/365 in toy example) |
@@ -795,8 +791,8 @@ The hedge is: short $USD 3.25$mm 2Y swaps and long $USD 1.60$mm 5Y swaps.
 | 1 | What is the fundamental unknown in curve construction? | The discount factor function $P(0,T)$ (or an equivalent representation like $y(T)$ or $f(T)$). |
 | 2 | Why is the curve problem underdetermined? | A finite set of benchmark quotes cannot uniquely determine a continuous function; interpolation/smoothing closes the gap. |
 | 3 | What is bootstrapping? | Solving curve nodes sequentially (short $\to$ long) so each benchmark reprices. |
-| 4 | What formula gives $P(\tau)$ from a simple deposit rate $L$? | $P(\tau)=\\frac{1}{1+L\\tau}USD . |
-| 5 | What formula gives $P(t_n)$ from a par swap rate $c$ (when earlier $P(t_j)$ are known)? | $P(t_n)=\\frac{1-c\\sum_{j=1}^{n-1}\\tau_j P(t_j)}{1+c\\tau_n}USD . |
+| 4 | What formula gives $P(\tau)$ from a simple deposit rate $L$? | $P(\tau)=\\frac{1}{1+L\\tau}$. |
+| 5 | What formula gives $P(t_n)$ from a par swap rate $c$ (when earlier $P(t_j)$ are known)? | $P(t_n)=\\frac{1-c\\sum_{j=1}^{n-1}\\tau_j P(t_j)}{1+c\\tau_n}$. |
 | 6 | What does “interpolation space” mean? | Which object you interpolate (e.g., $y(T)$, $\ln P(0,T)$, or $f(T)$). |
 | 7 | What forward artifact does linear yield interpolation typically produce? | A discontinuous, saw-tooth instantaneous forward curve. |
 | 8 | What forward artifact does log-linear discount-factor interpolation produce? | Piecewise-flat (staircase) instantaneous forwards. |
@@ -805,7 +801,7 @@ The hedge is: short $USD 3.25$mm 2Y swaps and long $USD 1.60$mm 5Y swaps.
 | 11 | What is ringing? | Non-local oscillations in the curve (and deltas) caused by global smoothness constraints. |
 | 12 | What does the tension parameter $\sigma$ control? | The trade-off between $C^2$ smoothness and locality (as $\sigma\to\infty$ the curve approaches piecewise linear). |
 | 13 | What must you state to make a DV01 meaningful? | Bump object, bump size, units, and sign convention. |
-| 14 | What is the book DV01 sign convention? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. |
+| 14 | What is the book DV01 sign convention? | `DV01 := PV(rates down 1bp) - PV(base)` |
 | 15 | What is par-point DV01? | Sensitivity computed by bumping one benchmark quote and rebuilding the curve. |
 | 16 | What is forward-bucket DV01? | Sensitivity to shifting the forward curve down by 1bp on a maturity bucket (with other buckets unchanged). |
 | 17 | Desk: Two systems reprice benchmarks but disagree on an off-node PV. What is the first thing to compare? | Interpolation space ($y$ vs $\ln P$ vs $f$), knot set, and short-end stub treatment. |
