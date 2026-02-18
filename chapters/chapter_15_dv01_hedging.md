@@ -4,7 +4,7 @@
 
 ## Introduction
 
-You have calculated your portfolio's DV01. It shows \$500,000 per basis point—meaning a mere 10 bp move in rates produces a \$5 million P&L swing. The natural question becomes: *how do you neutralize that exposure?*
+You have calculated your portfolio's DV01. It shows USD 500,000 per basis point—meaning a mere 10 bp move in rates produces a USD 5 million P&L swing. The natural question becomes: *how do you neutralize that exposure?*
 
 The answer seems straightforward: find an offsetting instrument and trade it in the right size. But "the right size" depends on a formula that encodes a critical assumption—that rates move together in a specific way. When that assumption fails, so does the hedge. A trader who is "DV01 flat" can still lose substantial money if the curve twists, if basis relationships shift, or if large moves reveal convexity mismatches.
 
@@ -38,7 +38,7 @@ In this chapter, we cover:
 
 In the **yield-based** setting (yield-to-maturity $y$ is the rate factor), a standard definition of DV01 is:
 
-$$\boxed{DV01 = -\frac{1}{10{,}000}\frac{dP(y)}{dy}\;\approx\;-\frac{\Delta P}{10{,}000\,\Delta y}}$$
+$$\boxed{DV01 = -\frac{1}{10{,}000}\frac{dP(y)}{dy}\\;\approx\\;-\frac{\Delta P}{10{,}000\\,\Delta y}}$$
 
 The negative sign is a convention so that DV01 is **positive** for most fixed-income securities (prices fall as yields rise).
 
@@ -56,19 +56,19 @@ where $P$ is the bond price (quoted per 100 of face) and $D_{\text{mod}}$ is mod
 
 ### 15.1.1 Unit Conventions and Traps
 
-DV01 is typically quoted "per 100 face value per 1 bp." This means that for a bond with DV01 = 0.08, a 1 bp yield increase causes the price to fall by approximately \$0.08 per \$100 of face value. To convert to position-level dollar exposure ($\text{DV01}^{\$}$), one must scale by the position size:
+DV01 is typically quoted "per 100 face value per 1 bp." This means that for a bond with DV01 = 0.08, a 1 bp yield increase causes the price to fall by approximately USD 0.08 per USD 100 of face value. To convert to position-level dollar exposure ($DV01_{USD}$), one must scale by the position size:
 
-$$\text{DV01}^{\$} = F \times \frac{\text{DV01 (per 100)}}{100}$$
+$$DV01_{USD} = F \times \frac{\text{DV01 (per 100)}}{100}$$
 
 where $F$ is the face value of the position.
 
-**Example:** A \$10 million face position in a bond with DV01 = 0.08 per 100:
+**Example:** A USD 10 million face position in a bond with DV01 = 0.08 per 100:
 
-$$\text{DV01}^{\$} = 10{,}000{,}000 \times \frac{0.08}{100} = \$8{,}000 \text{ per bp}$$
+$$DV01_{USD} = 10{,}000{,}000 \times \frac{0.08}{100} = USD 8{,}000 \text{ per bp}$$
 
-**Check (desk-scale sanity):** The scaling is linear in notional. The same bond DV01 of 0.08 per 100 is $\$80{,}000/\text{bp}$ on $\$100\text{mm}$ face, because $100\text{mm}\times 0.08/100 = 80{,}000$.
+**Check (desk-scale sanity):** The scaling is linear in notional. The same bond DV01 of 0.08 per 100 is $USD 80{,}000/\text{bp}$ on $USD 100\text{mm}$ face, because $100\text{mm}\times 0.08/100 = 80{,}000$.
 
-The factor-of-100 unit conversion is a notorious source of errors. Traders who confuse "per 100 face" with "per \$1 face" will miscalculate hedge sizes by a factor of 100—a catastrophic mistake in practice.
+The factor-of-100 unit conversion is a notorious source of errors. Traders who confuse "per 100 face" with "per USD 1 face" will miscalculate hedge sizes by a factor of 100—a catastrophic mistake in practice.
 
 Bond quotes are typically **clean** (excluding accrued interest), while the **settlement cash amount** uses the dirty price:
 
@@ -78,10 +78,10 @@ Accrued interest $AI$ is (approximately) rate-insensitive, so DV01 is essentiall
 
 > **Pitfall — “What is being bumped?” mismatch:** DV01 numbers are only comparable if the **bump object**, **bump size**, **units**, and **sign convention** match.
 > **Why it matters:** A hedge ratio computed from mismatched DV01 definitions can be wrong even when the arithmetic is “correct”.
-> **Quick check:** Write down (i) what curve/yield is bumped, (ii) \$1\text{bp}=10^{-4}$, (iii) whether DV01 is “rates down” or “rates up”, and (iv) whether the number is per 100, per 1mm, or per contract.
+> **Quick check:** Write down (i) what curve/yield is bumped, (ii) USD 1\text{bp}=10^{-4}$, (iii) whether DV01 is “rates down” or “rates up”, and (iv) whether the number is per 100, per 1mm, or per contract.
 
 > **Desk Reality:** Rates risk is often communicated as “I’m long $X$ DV01”, meaning PV increases by about $X$ for a 1bp rally under the desk’s bump design.
-> **Common break:** Mixing “per 100 face”, “per \$1mm notional”, and “per contract” without normalization.
+> **Common break:** Mixing “per 100 face”, “per USD 1mm notional”, and “per contract” without normalization.
 > **What to check:** Convert everything to **position-level** $/bp before sizing the hedge.
 
 ---
@@ -90,21 +90,21 @@ Accrued interest $AI$ is (approximately) rate-insensitive, so DV01 is essentiall
 
 ### 15.2.1 Derivation
 
-Consider a position in bond A with face value $F_A$ and per-100 DV01 of $\text{DV01}_A$. We wish to hedge this position using bond B with per-100 DV01 of $\text{DV01}_B$. For the combined portfolio to be DV01-neutral, the total dollar sensitivity must be zero:
+Consider a position in bond A with face value $F_A$ and per-100 DV01 of $DV01_A$. We wish to hedge this position using bond B with per-100 DV01 of $DV01_B$. For the combined portfolio to be DV01-neutral, the total dollar sensitivity must be zero:
 
-$$\text{DV01}_A^{\$} + \text{DV01}_B^{\$} = 0$$
+$$DV01_{A,USD} + DV01_{B,USD} = 0$$
 
 Substituting the position-level DV01 expressions:
 
-$$F_A \times \frac{\text{DV01}_A}{100} + F_B \times \frac{\text{DV01}_B}{100} = 0$$
+$$F_A \times \frac{DV01_A}{100} + F_B \times \frac{DV01_B}{100} = 0$$
 
 Solving for the hedge face value $F_B$ gives the one-instrument DV01 hedge ratio:
 
-$$\boxed{F_{B}=\frac{-F_{A} \times \text{DV01}_{A}}{\text{DV01}_{B}}}$$
+$$\boxed{F_{B}=\frac{-F_{A} \times DV01_{A}}{DV01_{B}}}$$
 
 The negative sign indicates that if we are long bond A (positive $F_A$), we typically short bond B (negative $F_B$) to offset rate exposure—assuming both DV01s are positive. If one DV01 is negative (possible for some option-like structures), the same algebra applies but the “hedge” can involve long/long or short/short positions.
 
-**Check (toy numbers):** If $F_A=\$100\text{mm}$, $\text{DV01}_A=0.05$ per 100, and $\text{DV01}_B=0.10$ per 100, then $F_B=-(100\text{mm})\times 0.05/0.10=-\$50\text{mm}$. The dollar DV01s match: $100\text{mm}\times 0.05/100=\$50{,}000/\text{bp}$ and $50\text{mm}\times 0.10/100=\$50{,}000/\text{bp}$ with opposite sign, so the net is (approximately) zero under the stated bump.
+**Check (toy numbers):** If $F_A=USD 100\text{mm}$, $DV01_A=0.05$ per 100, and $DV01_B=0.10$ per 100, then $F_B=-(100\text{mm})\times 0.05/0.10=-USD 50\text{mm}$. The dollar DV01s match: $100\text{mm}\times 0.05/100=USD 50{,}000/\text{bp}$ and $50\text{mm}\times 0.10/100=USD 50{,}000/\text{bp}$ with opposite sign, so the net is (approximately) zero under the stated bump.
 
 ### 15.2.2 What "DV01-Neutral" Actually Means
 
@@ -118,21 +118,21 @@ It does *not* protect against:
 
 ### 15.2.3 The P&L Formula for Imperfect Hedges
 
-Let $\Delta bp_A$ and $\Delta bp_B$ be the realized changes (in **bp**) of the chosen rate factors for A and B. Using the book convention that DV01 is “rates down 1bp” (so PV change for a +1bp move is approximately $-\text{DV01}\times 1$), the hedged portfolio’s first-order P&L is:
+Let $\Delta bp_A$ and $\Delta bp_B$ be the realized changes (in **bp**) of the chosen rate factors for A and B. Using the book convention that DV01 is “rates down 1bp” (so PV change for a +1bp move is approximately $-DV01\times 1$), the hedged portfolio’s first-order P&L is:
 
-$$\Delta PV \approx -\text{DV01}_A^{\$}\,\Delta bp_A - \text{DV01}_B^{\$}\,\Delta bp_B$$
+$$\Delta PV \approx -DV01_{A,USD}\\,\Delta bp_A - DV01_{B,USD}\\,\Delta bp_B$$
 
-If the hedge is DV01-neutral (i.e., $\text{DV01}_A^{\$}+\text{DV01}_B^{\$}=0$), then:
+If the hedge is DV01-neutral (i.e., $DV01_{A,USD}+DV01_{B,USD}=0$), then:
 
-$$\Delta PV \approx -\text{DV01}_A^{\$}\,(\Delta bp_A-\Delta bp_B)$$
+$$\Delta PV \approx -DV01_{A,USD}\\,(\Delta bp_A-\Delta bp_B)$$
 
 So the hedge works best when $\Delta bp_A\approx \Delta bp_B$ under the chosen bump object; any divergence shows up as residual P&L.
 
-**Check (residual magnitude):** If your net DV01 is neutral but the realized move differs by $+3$bp between the position and hedge rate factors, and $\text{DV01}_A^{\$}=+\$60{,}000/\text{bp}$, then the residual is roughly $-60{,}000\times 3=-\$180{,}000$ (first order). This is why “DV01 neutral” is not the same as “riskless.”
+**Check (residual magnitude):** If your net DV01 is neutral but the realized move differs by $+3$bp between the position and hedge rate factors, and $DV01_{A,USD}=+USD 60{,}000/\text{bp}$, then the residual is roughly $-60{,}000\times 3=-USD 180{,}000$ (first order). This is why “DV01 neutral” is not the same as “riskless.”
 
 ### 15.2.4 Worked Example: Bond-Bond Hedge
 
-**Scenario:** A market maker sells \$100 million face value of a call option and must hedge with the underlying bond.
+**Scenario:** A market maker sells USD 100 million face value of a call option and must hedge with the underlying bond.
 
 Assume the following per-100 DV01s at the current rate level:
 - **Option:** DV01 = 0.0369 per 100 at 5% rates
@@ -141,14 +141,14 @@ Assume the following per-100 DV01s at the current rate level:
 **Step 1: Compute Required Hedge**
 
 Applying the hedge ratio formula:
-$$F_B = 100{,}000{,}000 \times \frac{0.0369}{0.0779} = \$47{,}370{,}000$$
+$$F_B = 100{,}000{,}000 \times \frac{0.0369}{0.0779} = USD 47{,}370{,}000$$
 
 **Step 2: Verify Hedge**
 
 The dollar DV01 of the bond hedge equals:
-$$\$47{,}370{,}000 \times \frac{0.0779}{100} = \$36{,}901 \text{ per bp}$$
+$$USD 47{,}370{,}000 \times \frac{0.0779}{100} = USD 36{,}901 \text{ per bp}$$
 
-This matches the option's dollar DV01 of $\$100{,}000{,}000 \times 0.0369/100 = \$36{,}900$ per bp. The market maker is now DV01-neutral for small rate changes.
+This matches the option's dollar DV01 of $USD 100{,}000{,}000 \times 0.0369/100 = USD 36{,}900$ per bp. The market maker is now DV01-neutral for small rate changes.
 
 This hedge is **local**. As rates move, each instrument’s DV01 changes (especially for option-like instruments), so the hedge ratio must be monitored and rebalanced.
 
@@ -157,8 +157,8 @@ This hedge is **local**. As rates move, each instrument’s DV01 changes (especi
 > **Practitioner Note (Stress Scenario):** This example illustrates what happens when the “same yield change” assumption fails across different curves (rates vs. credit spreads).
 
 **Scenario (hypothetical):** A trader held:
-- Long \$50mm corporate bonds (BBB-rated, 10-year, DV01 = \$42,000 per bp)
-- Short \$50mm Treasury notes (10-year, DV01 = \$42,000 per bp)
+- Long USD 50mm corporate bonds (BBB-rated, 10-year, DV01 = USD 42,000 per bp)
+- Short USD 50mm Treasury notes (10-year, DV01 = USD 42,000 per bp)
 - Net DV01: Zero
 
 **Stress move (illustrative):**
@@ -167,9 +167,9 @@ This hedge is **local**. As rates move, each instrument’s DV01 changes (especi
 - Net corporate yields rise 150 bp (spread widening outweighs the Treasury rally)
 
 **P&L Calculation:**
-- Treasury hedge: Lost ~\$42,000 × 50 = \$2,100,000 (rates fell, short position lost)
-- Corporate bond: Lost ~\$42,000 × 150 = \$6,300,000 (yields rose, long position lost)
-- **Total Loss: \$8,400,000**
+- Treasury hedge: Lost ~USD 42,000 × 50 = USD 2,100,000 (rates fell, short position lost)
+- Corporate bond: Lost ~USD 42,000 × 150 = USD 6,300,000 (yields rose, long position lost)
+- **Total Loss: USD 8,400,000**
 
 Despite being “DV01 neutral,” the trader lost money on *both* legs. In this scenario, the Treasury hedge offsets **rates** but does not offset **spreads**; if rates rally while spreads widen, the rates hedge can add losses while the credit position also loses. (Also note: DV01-based P&L scaling is a local approximation; for 50–150bp moves, convexity and nonlinearity start to matter.)
 
@@ -209,35 +209,35 @@ where $N$ is the notional amount, $\tau_i$ is the accrual fraction for period $i
 
 **Inputs**
 - Bond position:
-  - Face value $F=\$50{,}000{,}000$
+  - Face value $F=USD 50{,}000{,}000$
   - Clean price $P_{\text{clean}}=99.20$ per 100
   - Accrued interest at settlement $AI=0.80$ per 100
   - Modified duration (given) $D_{\text{mod}}=4.60$
 - Swap (5Y payer IRS):
-  - Discount factors to payment dates (toy): $P(0,t_i)=\{0.95,0.91,0.87,0.83,0.79\}$
+  - Discount factors to payment dates (toy): $P(0,t_i)=\\{0.95,0.91,0.87,0.83,0.79\\}$
   - Accrual fractions (toy): $\tau_i=1$
 
 **Outputs (What You Produce)**
 - Settlement cash (bond): $(P_{\text{clean}}+AI)\times F/100$
 - Position DV01 (bond): currency per 1bp
-- PV01 per $\$1$mm notional (swap): currency per 1bp per $\$1$mm
-- Hedge notional $N$ (swap): $\$ $ notional to pay fixed
+- PV01 per $USD 1$mm notional (swap): currency per 1bp per $USD 1$mm
+- Hedge notional $N$ (swap): $USD  $ notional to pay fixed
 
 **Step-by-step**
 1. Translate quote to settlement cash:
    - Dirty price $P_{\text{dirty}}=P_{\text{clean}}+AI=100.00$.
-   - Settlement cash $=100.00\times \$50{,}000{,}000/100=\$50{,}000{,}000$.
+   - Settlement cash $=100.00\times USD 50{,}000{,}000/100=USD 50{,}000{,}000$.
 2. Compute bond DV01 (yield-based approximation, per 100):
    - $DV01_{\text{per 100}}\approx P_{\text{clean}}\times D_{\text{mod}}/10{,}000 = 99.20\times 4.60/10{,}000=0.0456$ (dollars per 100 per bp).
-   - Position DV01 $=F\times DV01_{\text{per 100}}/100 = \$50{,}000{,}000\times 0.0456/100=\$22{,}800$ per bp.
-3. Compute swap PV01 per $\$1$mm:
+   - Position DV01 $=F\times DV01_{\text{per 100}}/100 = USD 50{,}000{,}000\times 0.0456/100=USD 22{,}800$ per bp.
+3. Compute swap PV01 per $USD 1$mm:
    - Annuity $A=\sum_i \tau_i P(0,t_i)=0.95+0.91+0.87+0.83+0.79=4.35$.
-   - PV01 per $\$1$mm $= \$1{,}000{,}000\times A\times 10^{-4}=\$435$ per bp.
+   - PV01 per $USD 1$mm $= USD 1{,}000{,}000\times A\times 10^{-4}=USD 435$ per bp.
 4. Size hedge notional:
-   - $N \approx \$22{,}800 / (\$435 \text{ per bp per } \$1\text{mm}) \approx 52.4\text{mm}$.
-   - Action: pay fixed on $\$52.5$mm notional (rounded).
+   - $N \approx USD 22{,}800 / (USD 435 \text{ per bp per } USD 1\text{mm}) \approx 52.4\text{mm}$.
+   - Action: pay fixed on $USD 52.5$mm notional (rounded).
 
-**Check (PV01 scaling):** At $\$435/\text{bp}$ per $\$1$mm, a $\$52.5$mm swap has PV01 magnitude $\approx 52.5\times 435=\$22{,}838/\text{bp}$, matching the bond DV01 magnitude (up to rounding). The remaining task is getting the **sign** right (payer vs receiver) under the desk’s DV01 convention.
+**Check (PV01 scaling):** At $USD 435/\text{bp}$ per $USD 1$mm, a $USD 52.5$mm swap has PV01 magnitude $\approx 52.5\times 435=USD 22{,}838/\text{bp}$, matching the bond DV01 magnitude (up to rounding). The remaining task is getting the **sign** right (payer vs receiver) under the desk’s DV01 convention.
 
 **Cashflows (table)**
 The PV01 is the PV of the incremental fixed-leg cashflows from a 1bp change in fixed rate:
@@ -255,7 +255,7 @@ The PV01 is the PV of the incremental fixed-leg cashflows from a 1bp change in f
 - If the bond is priced off a curve/spread that does not move one-for-one with the swap curve, the residual is **basis/spread risk**.
 
 **Sanity Checks**
-- Units check: bond DV01 is per 100 face; swap PV01 is per $\$1$mm notional. Convert both to position-level $\$/\text{bp}$.
+- Units check: bond DV01 is per 100 face; swap PV01 is per $USD 1$mm notional. Convert both to position-level $USD /\text{bp}$.
 - Sign check: long bond has positive DV01 under “rates down”; a payer swap should contribute negative DV01 to offset it.
 
 ### 15.3.2 Futures Hedge Ratio Basics
@@ -270,17 +270,17 @@ where $P$ is the portfolio value, $D_P$ is its duration, $V_F$ is the futures co
 
 In practice, a common desk approximation is to use the DV01 of the CTD bond directly:
 
-$$\boxed{\text{DV01}_{\text{fut}} \approx \frac{\text{DV01}_{\text{CTD}}}{\text{CF}}}$$
+$$\boxed{DV01_{\text{fut}} \approx \frac{DV01_{\text{CTD}}}{CF}}$$
 
-This implies that one futures contract acts like \$1/\text{CF}$ units of the CTD bond in terms of duration exposure.
+This implies that one futures contract acts like USD 1/CF$ units of the CTD bond in terms of duration exposure.
 
-**Worked Example:** Hedge a \$25,000 position DV01 with Treasury futures.
+**Worked Example:** Hedge a USD 25,000 position DV01 with Treasury futures.
 
 *   **CTD Stats:** DV01 = 0.0750 per 100; CF = 0.90.
-*   **Contract Size:** \$100,000 face.
-*   **CTD Risk per Contract:** \$100{,}000 \times (0.0750/100) = \$75.00$.
-*   **Futures Risk per Contract:** \$75.00 / 0.90 = \$83.33$.
-*   **Hedge Size:** \$25{,}000 / 83.33 \approx 300$ contracts (Short).
+*   **Contract Size:** USD 100,000 face.
+*   **CTD Risk per Contract:** USD 100{,}000 \times (0.0750/100) = USD 75.00$.
+*   **Futures Risk per Contract:** USD 75.00 / 0.90 = USD 83.33$.
+*   **Hedge Size:** USD 25{,}000 / 83.33 \approx 300$ contracts (Short).
 
 ### 15.3.3 CTD Switching and the Quality Option
 
@@ -290,7 +290,7 @@ The CTD bond can change as the rate environment changes. This creates a disconti
 
 The key insight involves the **price ratio-yield relationship**. For each deliverable bond $i$, define the price ratio:
 
-$$\text{Price Ratio}_i = \frac{P_i}{\text{CF}_i}$$
+$$PriceRatio_i = \frac{P_i}{CF_i}$$
 
 At the notional yield, the conversion-factor system is designed so deliverables have roughly comparable economics. Away from that yield, relative value shifts:
 
@@ -307,17 +307,17 @@ At exactly 6%, both have zero cost of delivery. Above 6%, Bond B (higher duratio
 >
 > **The Problem:** Your hedge ratio depends on the CTD's duration. When the CTD switches, your hedge becomes mismatched *overnight*—without any trading.
 >
-> **Example:** You're short 300 futures contracts hedging a \$25,000 DV01 position. The CTD is the 5s (DV01 = 0.0750, CF = 0.90), giving futures DV01 = \$83.33 per contract.
+> **Example:** You're short 300 futures contracts hedging a USD 25,000 DV01 position. The CTD is the 5s (DV01 = 0.0750, CF = 0.90), giving futures DV01 = USD 83.33 per contract.
 >
 > **Overnight:** Yields fall 15 bp, crossing the CTD switch threshold. The new CTD is the 4.75s (DV01 = 0.0680, CF = 0.88).
 >
-> **New futures DV01 (per contract):** $0.0680/0.88=0.07727$ per 100 $\Rightarrow \$100{,}000\times(0.07727/100)=\$77.27$ per bp.
+> **New futures DV01 (per contract):** $0.0680/0.88=0.07727$ per 100 $\Rightarrow USD 100{,}000\times(0.07727/100)=USD 77.27$ per bp.
 >
-> **Your hedge DV01 is now:** $-300\times \$77.27=-\$23{,}181$ per bp
+> **Your hedge DV01 is now:** $-300\times USD 77.27=-USD 23{,}181$ per bp
 >
-> **Your position is still:** \$25,000 DV01 (long)
+> **Your position is still:** USD 25,000 DV01 (long)
 >
-> **Mismatch:** You're now \$1,819 DV01 under-hedged. A further 10 bp sell-off (yields +10bp) costs you about \$18,190 in first-order P&L.
+> **Mismatch:** You're now USD 1,819 DV01 under-hedged. A further 10 bp sell-off (yields +10bp) costs you about USD 18,190 in first-order P&L.
 >
 > **The fix:** Monitor the CTD and rebalance around switch thresholds. The short’s ability to choose which bond to deliver is an embedded option-like feature (often called the **quality option**).
 
@@ -327,7 +327,7 @@ Because futures are marked-to-market daily, gains and losses are realized throug
 
 In practice, desks often apply a **tailed hedge**: scale the hedge by an approximate discounting factor. Under a simple-interest approximation with ACT/360, a common rule-of-thumb is:
 
-$$N^*_{\text{tailed}} \approx N^* \times \left(1-r\,\frac{d}{360}\right)$$
+$$N^*_{\text{tailed}} \approx N^* \times \left(1-r\\,\frac{d}{360}\right)$$
 
 where $r$ is a relevant short rate and $d$ is the number of days to hedge maturity.
 
@@ -356,7 +356,7 @@ In practice, hedgers often blend the two: use liquid front contracts for executi
 
 ### 15.4.1 Beyond Simple DV01 Neutrality
 
-The standard DV01 hedge ratio ($h=\text{DV01}_{\text{target}}/\text{DV01}_{\text{hedge}}$) assumes the target and hedge rate factors move one-for-one. In reality, they are imperfectly correlated and have different volatilities, so a 1:1 DV01 match does not necessarily minimize variance.
+The standard DV01 hedge ratio ($h=DV01_{\text{target}}/DV01_{\text{hedge}}$) assumes the target and hedge rate factors move one-for-one. In reality, they are imperfectly correlated and have different volatilities, so a 1:1 DV01 match does not necessarily minimize variance.
 
 A common approach is **regression-based hedging**. If you assume the relationship between target and hedge changes is approximately linear, you can write:
 
@@ -366,7 +366,7 @@ This is the same structure used in minimum-variance futures hedging: regress cha
 
 In this minimum-variance view, the optimal hedge ratio is the **slope** of the best-fit regression line. If your P&L is approximately linear in yield changes via DV01, a practical sizing rule is: take the simple DV01 hedge ratio and scale it by $\beta$:
 
-$$\boxed{h^* = \beta \times \frac{\text{DV01}_{\text{target}}}{\text{DV01}_{\text{hedge}}}}$$
+$$\boxed{h^* = \beta \times \frac{DV01_{\text{target}}}{DV01_{\text{hedge}}}}$$
 
 ### 15.4.2 The Regression Beta Decomposition
 
@@ -393,7 +393,7 @@ The coefficients $\beta_{10},\beta_{30}$ act like **risk weights**: they describ
 
 ### 15.4.4 Worked Example: Regression-Based Hedge
 
-**Setup:** Hedge a \$10 million face position in 20-year bonds using 30-year bonds.
+**Setup:** Hedge a USD 10 million face position in 20-year bonds using 30-year bonds.
 
 Suppose you estimate (per 100 face):
 - **20-year DV01:** 0.118428
@@ -401,12 +401,12 @@ Suppose you estimate (per 100 face):
 - **Regression beta:** 1.057 (20-year yield moves about 1.057× 30-year yield, in-sample)
 
 **Simple DV01 Hedge:**
-$$F_{30} = -10{,}000{,}000 \times \frac{0.118428}{0.142940} = -\$8{,}286{,}000$$
+$$F_{30} = -10{,}000{,}000 \times \frac{0.118428}{0.142940} = -USD 8{,}286{,}000$$
 
 **Regression-Adjusted Hedge:**
-$$F_{30} = -10{,}000{,}000 \times 1.057 \times \frac{0.118428}{0.142940} = -\$8{,}758{,}000$$
+$$F_{30} = -10{,}000{,}000 \times 1.057 \times \frac{0.118428}{0.142940} = -USD 8{,}758{,}000$$
 
-The regression approach requires shorting an additional \$472,000 face of 30-year bonds because historical data shows 20-year yields are slightly more volatile than 30-year yields.
+The regression approach requires shorting an additional USD 472,000 face of 30-year bonds because historical data shows 20-year yields are slightly more volatile than 30-year yields.
 
 **Residual risk:** Even with regression sizing, the residual $\epsilon$ is not zero. You are reducing variance, not eliminating risk.
 
@@ -482,7 +482,7 @@ To hedge spread risk, you need an instrument that *gains when spreads widen*. A 
 
 For hedging, it is useful to work with **risky PV01** (often written RPV01):
 - $RPV01$ is the present value of paying **1bp per year** of running premium until maturity or default (under discounting and survival).
-- It is typically quoted as a positive number “per $\$1$mm notional per 1bp”.
+- It is typically quoted as a positive number “per $USD 1$mm notional per 1bp”.
 
 If you define bond CS01 as $CS01 := PV(\text{spreads down }1\text{bp})-PV(\text{base})$, then (to first order) a protection buyer has $CS01_{\text{CDS}} \approx -RPV01$. A simple sizing rule is therefore:
 
@@ -570,18 +570,18 @@ Practitioners often think of hedging as a **sequence of decisions**, each removi
 ### Example A: DV01-Neutral but Twist Loss
 
 **Setup:**
-*   **Portfolio:** Long 2y (Risk = \$2k) and Long 10y (Risk = \$8k). Total Risk = \$10k.
-*   **Hedge:** Short a 5y bond (Risk = \$8k per unit).
-*   **Hedge Ratio:** Need \$10k total protection. \$10/8 = 1.25$ units.
-*   **Net Position:** Flat DV01 (\$10k - 1.25 \times 8k = 0$).
+*   **Portfolio:** Long 2y (Risk = USD 2k) and Long 10y (Risk = USD 8k). Total Risk = USD 10k.
+*   **Hedge:** Short a 5y bond (Risk = USD 8k per unit).
+*   **Hedge Ratio:** Need USD 10k total protection. USD 10/8 = 1.25$ units.
+*   **Net Position:** Flat DV01 (USD 10k - 1.25 \times 8k = 0$).
 
 **Shock:** 2y yields +10bp, 10y yields -5bp (Curve flattens/twists). 5y yields unchanged.
-*   **2y P&L:** $-\$2{,}000 \times (+10) = -\$20{,}000$
-*   **10y P&L:** $-\$8{,}000 \times (-5) = +\$40{,}000$
-*   **Hedge P&L:** \$0$ (since 5y didn't move)
-*   **Net P&L:** $+\$20{,}000$
+*   **2y P&L:** $-USD 2{,}000 \times (+10) = -USD 20{,}000$
+*   **10y P&L:** $-USD 8{,}000 \times (-5) = +USD 40{,}000$
+*   **Hedge P&L:** USD 0$ (since 5y didn't move)
+*   **Net P&L:** $+USD 20{,}000$
 
-**Conclusion:** The portfolio made \$20,000 purely from the curve twist, despite being DV01 hedged. Note that the result could easily have been a loss if the twist went the other way.
+**Conclusion:** The portfolio made USD 20,000 purely from the curve twist, despite being DV01 hedged. Note that the result could easily have been a loss if the twist went the other way.
 
 ### Example B: Convexity Mismatch Under Large Move
 
@@ -612,16 +612,16 @@ Practitioners often think of hedging as a **sequence of decisions**, each removi
 
 **Hedge effectiveness before the CTD switch:**
 - Futures DV01 = 0.0780 / 0.92 = 0.0848 per 100
-- Per contract: \$100,000 × 0.0848/100 = \$84.78
-- Total hedge: 300 × \$84.78 = \$25,434 DV01
+- Per contract: USD 100,000 × 0.0848/100 = USD 84.78
+- Total hedge: 300 × USD 84.78 = USD 25,434 DV01
 
 **After CTD switch (yields fall below threshold):**
 - New CTD: Candidate B
 - Futures DV01 = 0.0710 / 0.88 = 0.0807 per 100
-- Per contract: \$100,000 × 0.0807/100 = \$80.68
-- Total hedge: 300 × \$80.68 = \$24,205 DV01
+- Per contract: USD 100,000 × 0.0807/100 = USD 80.68
+- Total hedge: 300 × USD 80.68 = USD 24,205 DV01
 
-**Impact:** Hedge shrinks by \$1,229 DV01 (~5%) without any trading. If the position being hedged is still \$25,434 DV01, you're now under-hedged by \$1,229 per bp.
+**Impact:** Hedge shrinks by USD 1,229 DV01 (~5%) without any trading. If the position being hedged is still USD 25,434 DV01, you're now under-hedged by USD 1,229 per bp.
 
 ---
 
@@ -632,7 +632,7 @@ Practitioners often think of hedging as a **sequence of decisions**, each removi
 | Pitfall | Description |
 |---------|-------------|
 | **Sign Convention Confusion** | State your convention explicitly. This book uses DV01 > 0 for long bonds. Ensure your hedge (short bond or payer swap) has negative DV01. |
-| **Unit Mistakes** | "Per 100 face" vs "per \$1 face" is a factor of 100. Always check if the DV01 is ~0.08 (per 100) or ~0.0008 (per 1). |
+| **Unit Mistakes** | "Per 100 face" vs "per USD 1 face" is a factor of 100. Always check if the DV01 is ~0.08 (per 100) or ~0.0008 (per 1). |
 | **Mixing Methodologies** | Bumping par rates vs. shifting zero curves can produce slightly different DV01s. Stick to one consistency (e.g., "bump-and-rebuild"). |
 | **Ignoring Curve Shape** | DV01-neutral is not risk-free. Always check key-rate exposures (Chapter 14) for non-parallel risk. |
 | **Stale Regression Betas** | Using a beta from the wrong regime. Recalibrate or revert to simple DV01 matching during transitions. |
@@ -654,12 +654,12 @@ Practitioners should run specific "stress tests" to validate hedges:
 ## Summary
 
 1. **DV01** is a first-order PV sensitivity per 1bp under a *specified bump design*. This book uses $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$.
-2. Always convert DV01 into **position-level $\$/\text{bp}$** and normalize units (per 100 face vs per $\$1$mm vs per contract).
-3. The one-instrument DV01 hedge ratio is $F_{B}=-F_{A}\,(\text{DV01}_A/\text{DV01}_B)$ when DV01s are defined on the same bump object.
+2. Always convert DV01 into **position-level $USD /\text{bp}$** and normalize units (per 100 face vs per $USD 1$mm vs per contract).
+3. The one-instrument DV01 hedge ratio is $F_{B}=-F_{A}\\,(DV01_A/DV01_B)$ when DV01s are defined on the same bump object.
 4. “DV01-neutral” mainly means neutral to **small parallel shifts**; twists require key-rate/bucket hedging (Chapter 14).
 5. Swaps are commonly hedged with **PV01**: $PV01=N\sum_i \tau_i P(0,t_i)\times 10^{-4}$; payer vs receiver determines sign.
 6. Futures hedging requires **CTD + conversion factors**; futures DV01 can jump when CTD switches; tailing adjusts for daily settlement.
-7. Regression/min-variance sizing scales the DV01 hedge by a **beta**: $h^*=\beta\,(\text{DV01}_{\text{target}}/\text{DV01}_{\text{hedge}})$, with $\beta=\rho\sigma_{\text{target}}/\sigma_{\text{hedge}}$.
+7. Regression/min-variance sizing scales the DV01 hedge by a **beta**: $h^*=\beta\\,(DV01_{\text{target}}/DV01_{\text{hedge}})$, with $\beta=\rho\sigma_{\text{target}}/\sigma_{\text{hedge}}$.
 8. Key failure modes: convexity mismatch, basis (different curves), and spread risk (CS01).
 9. A CDS can hedge spread risk; a common sizing rule is $N_{\text{CDS}}\approx CS01_{\text{bond}}/RPV01_{\text{CDS}}$.
 10. Desk hygiene: write down bump object, bump size, units, and sign before trusting “DV01-flat”.
@@ -671,7 +671,7 @@ Practitioners should run specific "stress tests" to validate hedges:
 | Concept | Definition | Why It Matters |
 |---|---|---|
 | **DV01** | $PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object | Makes sign/units explicit and comparable across positions. |
-| **Hedge Ratio** | $F_B = -F_A (\text{DV01}_A/\text{DV01}_B)$ | Basic sizing rule for a one-instrument DV01 hedge. |
+| **Hedge Ratio** | $F_B = -F_A (DV01_A/DV01_B)$ | Basic sizing rule for a one-instrument DV01 hedge. |
 | **Immunization** | Constructing a portfolio to reduce sensitivity to a specified rate shift | Explains why DV01 hedges are local and model-dependent. |
 | **PV01** | Swap PV change per 1bp in fixed rate (annuity $\times$ notional $\times 10^{-4}$) | Core sizing metric for bond–swap hedges. |
 | **CTD** | Cheapest-to-deliver bond for futures | Determines futures DV01; can switch as yields move. |
@@ -687,10 +687,10 @@ Practitioners should run specific "stress tests" to validate hedges:
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
 | $DV01$ | $PV(\text{rates down }1\text{bp})-PV(\text{base})$ | currency per 1bp; bump object must be stated |
-| $DV01^{\$}$ | Position-level DV01 | currency per 1bp (whole position) |
+| $DV01_{USD}$ | Position-level DV01 | currency per 1bp (whole position) |
 | $D_{\text{mod}}$ | Modified duration | years; used in $DV01_{\text{per 100}}\approx P D_{\text{mod}}/10{,}000$ |
 | $F$ | Face value / notional | currency |
-| $PV01$ | Swap PV sensitivity to 1bp in fixed rate | currency per 1bp; often quoted per $\$1$mm notional |
+| $PV01$ | Swap PV sensitivity to 1bp in fixed rate | currency per 1bp; often quoted per $USD 1$mm notional |
 | $CF$ | Conversion factor | unitless |
 | $CTD$ | Cheapest-to-deliver | bond/issue identifier |
 | $\beta$ | Regression slope (risk weight) | unitless |
@@ -706,7 +706,7 @@ Practitioners should run specific "stress tests" to validate hedges:
 |---|---|---|
 | 1 | What is DV01 under this book’s convention? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object. |
 | 2 | How do you convert DV01 “per 100” to position risk? | Multiply by (Position Face / 100). |
-| 3 | What is the one-instrument DV01 hedge ratio? | $F_B = -F_A (\text{DV01}_A/\text{DV01}_B)$, using consistent bump object and units. |
+| 3 | What is the one-instrument DV01 hedge ratio? | $F_B = -F_A (DV01_A/DV01_B)$, using consistent bump object and units. |
 | 4 | If you own a bond (positive DV01), do you buy or sell futures to hedge? | Sell futures (short position gains when rates rise). |
 | 5 | What does a payer swap do in a hedge? | It tends to gain when rates rise (negative DV01 under “rates down”), offsetting a long bond’s rate risk. |
 | 6 | Why might a hedge ratio differ from the simple DV01 ratio? | Because regression/min-variance sizing multiplies the DV01 ratio by a beta. |
@@ -718,8 +718,8 @@ Practitioners should run specific "stress tests" to validate hedges:
 | 12 | Why does convexity matter for large moves? | DV01 is linear; convexity adds a quadratic term that dominates for large $|\Delta y|$. |
 | 13 | What is a twist scenario? | Different tenors move by different amounts (or opposite directions). |
 | 14 | What does an $R^2$ in a hedge regression tell you? | Fraction of target variance explained by the hedge factor(s), in-sample. |
-| 15 | What is the main unit trap in DV01 calculations? | Confusing per-100, per-$\$1$mm, and per-contract quoting. |
-| 16 | What is the regression beta decomposition? | $\beta = \rho \,(\sigma_{\text{target}}/\sigma_{\text{hedge}})$. |
+| 15 | What is the main unit trap in DV01 calculations? | Confusing per-100, per-$USD 1$mm, and per-contract quoting. |
+| 16 | What is the regression beta decomposition? | $\beta = \rho \\,(\sigma_{\text{target}}/\sigma_{\text{hedge}})$. |
 | 17 | Why can historical betas become unreliable? | Regime changes can alter correlations and relative volatilities across the curve. |
 | 18 | What happens to futures DV01 when the CTD switches? | It can jump discontinuously as DV01/CF changes. |
 | 19 | How do you hedge credit spread risk on a corporate bond? | Use a spread hedge (e.g., buy CDS protection) sized by CS01 vs RPV01. |
@@ -729,29 +729,29 @@ Practitioners should run specific "stress tests" to validate hedges:
 
 ## Mini Problem Set
 
-1. (Compute) A bond has DV01 = 0.072 per 100 and position face $F=\$15$mm. Compute position DV01 in $\$/\text{bp}$.
-2. (Compute) Long $F_A=\$15$mm of Bond A (DV01 = 0.072 per 100). Hedge with Bond B (DV01 = 0.060 per 100). Compute hedge face $F_B$.
-3. (Compute) DV01 is quoted as 0.085 per 100. A trader mistakenly treats it as 0.085 per $\$1$ face. By what factor is risk overstated?
-4. (Compute) Portfolio value $P=\$120$mm, duration $D_P=6.5$. Futures contract value $V_F=\$110{,}000$, CTD duration $D_F=7.8$. Estimate contracts using the duration-based hedge ratio.
-5. (Compute) 5Y annual swap with discount factors 0.99, 0.97, 0.95, 0.93, 0.91 and $\tau_i=1$. Compute PV01 per $\$1$mm notional.
+1. (Compute) A bond has DV01 = 0.072 per 100 and position face $F=USD 15$mm. Compute position DV01 in $USD /\text{bp}$.
+2. (Compute) Long $F_A=USD 15$mm of Bond A (DV01 = 0.072 per 100). Hedge with Bond B (DV01 = 0.060 per 100). Compute hedge face $F_B$.
+3. (Compute) DV01 is quoted as 0.085 per 100. A trader mistakenly treats it as 0.085 per $USD 1$ face. By what factor is risk overstated?
+4. (Compute) Portfolio value $P=USD 120$mm, duration $D_P=6.5$. Futures contract value $V_F=USD 110{,}000$, CTD duration $D_F=7.8$. Estimate contracts using the duration-based hedge ratio.
+5. (Compute) 5Y annual swap with discount factors 0.99, 0.97, 0.95, 0.93, 0.91 and $\tau_i=1$. Compute PV01 per $USD 1$mm notional.
 6. (Concept) A DV01-neutral hedge loses money when 2Y yields +20bp and 10Y yields -10bp. What went wrong?
 7. (Concept) A corporate bond is DV01-hedged with Treasuries. Credit spreads widen 30bp with no rate change. Which risk explains the loss?
 8. (Compute) A regression shows $\beta = 1.15$ and $\rho = 0.97$. If $\sigma_{\text{target}} = 5.5$ bp/day, what is $\sigma_{\text{hedge}}$?
 9. (Concept) Why can a DV01-neutral hedge between a callable and a noncallable bond become unstable as yields change?
 10. (Desk) Give two reasons Treasury futures DV01 per contract can change even without rolling.
-11. (Compute) Two CTD candidates have $(DV01,CF)=(0.075,0.90)$ and $(0.068,0.88)$ (DV01 per 100). Compute the implied futures DV01 per contract under each CTD assumption for a $\$100{,}000$ contract size.
-12. (Desk) You hedge a $\$50$mm corporate bond with Treasuries and expect spreads to widen. Design a two-instrument hedge using Treasury shorts and CDS protection that leaves you flat on rates but long $\$10{,}000$ of CS01 exposure (state your CS01 sign convention).
+11. (Compute) Two CTD candidates have $(DV01,CF)=(0.075,0.90)$ and $(0.068,0.88)$ (DV01 per 100). Compute the implied futures DV01 per contract under each CTD assumption for a $USD 100{,}000$ contract size.
+12. (Desk) You hedge a $USD 50$mm corporate bond with Treasuries and expect spreads to widen. Design a two-instrument hedge using Treasury shorts and CDS protection that leaves you flat on rates but long $USD 10{,}000$ of CS01 exposure (state your CS01 sign convention).
 
 ### Solution Sketches (Selected)
-1. $DV01^{\$}=\$15{,}000{,}000\times(0.072/100)=\$10{,}800$ per bp.
-2. $F_B=-\$15\text{mm}\times(0.072/0.060)=-\$18\text{mm}$ (short).
+1. $DV01_{USD}=USD 15{,}000{,}000\times(0.072/100)=USD 10{,}800$ per bp.
+2. $F_B=-USD 15\text{mm}\times(0.072/0.060)=-USD 18\text{mm}$ (short).
 3. Factor $=100$.
 4. $N^*=(120{,}000{,}000\times 6.5)/(110{,}000\times 7.8)\approx 909$ contracts.
-5. Annuity $A=0.99+0.97+0.95+0.93+0.91=4.75$. PV01 per $\$1$mm $=\$1{,}000{,}000\times 4.75\times 10^{-4}=\$475$ per bp.
+5. Annuity $A=0.99+0.97+0.95+0.93+0.91=4.75$. PV01 per $USD 1$mm $=USD 1{,}000{,}000\times 4.75\times 10^{-4}=USD 475$ per bp.
 6. Curve twist / key-rate mismatch: DV01-neutral does not imply twist-neutral.
 7. CS01 / spread risk: Treasuries hedge rates, not credit spreads.
-8. $\sigma_{\text{hedge}}=\rho\,\sigma_{\text{target}}/\beta = 0.97\times 5.5/1.15\approx 4.64$ bp/day.
-11. Futures DV01 per 100: $0.075/0.90=0.08333$, $0.068/0.88=0.07727$. Per contract: $\$100{,}000\times(0.08333/100)=\$83.33$ and $\$100{,}000\times(0.07727/100)=\$77.27$ per bp.
+8. $\sigma_{\text{hedge}}=\rho\\,\sigma_{\text{target}}/\beta = 0.97\times 5.5/1.15\approx 4.64$ bp/day.
+11. Futures DV01 per 100: $0.075/0.90=0.08333$, $0.068/0.88=0.07727$. Per contract: $USD 100{,}000\times(0.08333/100)=USD 83.33$ and $USD 100{,}000\times(0.07727/100)=USD 77.27$ per bp.
 
 ---
 
