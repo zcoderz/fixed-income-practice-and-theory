@@ -89,28 +89,12 @@ The premium leg PV is packaged via $RPV01(0,T)$, the premium-leg PV per unit run
 $$
 \text{RPV01}(0,T)
 = \sum_{n=1}^{N} \Delta_n Z(0,t_n) Q(0,t_n)
-\\;+\\; \sum_{n=1}^{N} \int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\\, Z(0,s)\\,(-dQ(0,s)).
+\;+\; \sum_{n=1}^{N} \int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\, Z(0,s)\,(-dQ(0,s)).
 $$
 
-The integral term can be approximated cheaply on the coupon grid. A common trapezoid-style approximation is:
-$$
-\int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\\, Z(0,s)\\,(-dQ(0,s))
-\approx
-\frac{1}{2}\Delta_n Z(0,t_n)\left(Q(0,t_{n-1})-Q(0,t_n)\right),
-$$
-which yields the compact discrete approximation:
-$$
-\text{RPV01}(0,T) \approx \frac{1}{2} \sum_{n=1}^{N} \Delta_n Z(0,t_n) \left(Q(0,t_{n-1}) + Q(0,t_n)\right).
-$$
+The integral term can be approximated cheaply on the coupon grid. A common trapezoid-style approximation is $\int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\, Z(0,s)\,(-dQ(0,s)) \approx \frac{1}{2}\Delta_n Z(0,t_n)\left(Q(0,t_{n-1})-Q(0,t_n)\right)$. This yields the compact discrete approximation $\text{RPV01}(0,T) \approx \frac{1}{2} \sum_{n=1}^{N} \Delta_n Z(0,t_n) \left(Q(0,t_{n-1}) + Q(0,t_n)\right)$.
 
-For the protection leg, a standard expression (per unit notional) is:
-$$
-\text{Protection PV}(0,T) = (1-R)\int_0^T Z(0,s)\\,(-dQ(0,s)),
-$$
-which can be discretized on a chosen grid (e.g., premium dates) as:
-$$
-\text{Protection PV}(0,T) \approx \frac{1-R}{2} \sum_{k=1}^{K} \left(Z(0,t_{k-1}) + Z(0,t_k)\right) \left(Q(0,t_{k-1}) - Q(0,t_k)\right).
-$$
+For the protection leg, a standard expression (per unit notional) is $\text{Protection PV}(0,T) = (1-R)\int_0^T Z(0,s)\,(-dQ(0,s))$, which can be discretized on a chosen grid (e.g., premium dates) as $\text{Protection PV}(0,T) \approx \frac{1-R}{2} \sum_{k=1}^{K} \left(Z(0,t_{k-1}) + Z(0,t_k)\right) \left(Q(0,t_{k-1}) - Q(0,t_k)\right)$.
 
 Both expressions depend on the survival curve $Q(0,t)$. Given market CDS spreads $\\{S_m\\}$ at maturities $\\{T_m\\}$, we must find a survival curve such that each CDS has zero mark-to-market at inception.
 
@@ -220,11 +204,7 @@ The survival probability at any intermediate point is then:
 
 $$\boxed{Q(t) = Q(T_{n-1}) \exp\left(-(t - T_{n-1}) h\right)}$$
 
-**Check (hazard units + scale):** $h$ has units $1/\text{year}$. If survival drops from $Q(1)=0.98$ to $Q(2)=0.94$, then
-$$
-h=\ln\\!\left(\frac{0.98}{0.94}\right)\approx 0.0417\ \text{year}^{-1},
-$$
-which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\\%$.
+**Check (hazard units + scale):** $h$ has units $1/\text{year}$. If survival drops from $Q(1)=0.98$ to $Q(2)=0.94$, then $h=\ln\!\left(\frac{0.98}{0.94}\right)\approx 0.0417\ \text{year}^{-1}$, which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\%$.
 
 **Why this method works:** No-arbitrage requires $h(t) \geq 0$, which is guaranteed as long as $Q(T_n) \leq Q(T_{n-1})$ at each skeleton point. The piecewise-constant structure ensures that if the skeleton is arbitrage-free, the interpolated curve is also arbitrage-free everywhere.
 
@@ -260,7 +240,7 @@ Not all CDS quote sets can be calibrated to a valid survival curve. When the inp
 
 The fundamental constraint is that survival probabilities must be non-increasing:
 
-$$\boxed{\frac{d\\,Q(0,t)}{dt} \leq 0 \quad \text{for all } t \gt 0}$$
+$$\boxed{\frac{d\,Q(0,t)}{dt} \leq 0 \quad \text{for all } t \gt 0}$$
 
 Equivalently, the forward default rate must be non-negative: $h(t) \geq 0$. If this constraint is violated, you are modeling a world where the credit becomes *more* likely to survive the longer you wait—an economic absurdity.
 
@@ -385,12 +365,9 @@ The diagonal structure makes hedge computation trivial. Instead of inverting a f
 
 $$N_i = \frac{-\partial V / \partial S_i}{\text{RPV01}(t, T_i)}$$
 
-This is the "CDS equivalent notional"—how much of the $T_i$-maturity on-market CDS you need to neutralize your exposure to that spread bucket.
+This is the "CDS equivalent notional"—how much of the `T_i`-maturity on-market CDS you need to neutralize your exposure to that spread bucket.
 
-**Definition (bucket CS01):** for any position with present value $V$, define the tenor-$T_i$ CS01 as
-$$
-CS01_i \\;:=\\; V(\\,S_i + 1\text{ bp}\\,;\ \text{rebuild curve}\\,) - V(\\,S_i\\,;\ \text{base}\\,)
-$$
+**Definition (bucket CS01):** for any position with present value $V$, define the tenor-`T_i` CS01 as $CS01_i := V(S_i + 1\text{ bp};\ \text{rebuild curve}) - V(S_i;\ \text{base})$.
 where the **bump object** is the *market par CDS spread quote* $S_i$ (in decimal), the **bump size** is $1\text{ bp}=10^{-4}$, and the curve is rebuilt using the same bootstrap + interpolation rule. Units: currency per 1bp for the stated notional. Sign: for long protection, $CS01_i$ is typically positive (spreads widen $\Rightarrow$ protection becomes more valuable); for short protection it is typically negative.
 
 > **Desk Reality: Why Locality Matters for P&L Attribution**
@@ -439,10 +416,7 @@ For curve construction and curve-based risk, a common desk definition is:
 - rebuild the survival curve with the same bootstrap + interpolation rule,
 - revalue the position.
 
-Define:
-$$
-Rec01 \\;:=\\; PV(R+1\\%) - PV(R)
-$$
+Define: $Rec01 := PV(R+1\%) - PV(R)$.
 Units: currency per 1% recovery (absolute). Sign depends on position direction and whether the instrument is on-market or off-market.
 
 **Check (why on-market Rec01 can be small):** for an on-market CDS used in the calibration set, the rebuild forces PV $\approx 0$ at the market quote even after you change $R$ (hazards adjust to compensate). So its Rec01 is often near zero by design. Rec01 becomes more important for off-market contracts and for instruments whose value depends on the absolute hazard level, not just matching par spreads.
@@ -555,19 +529,7 @@ CDS curve building is convention-sensitive because the par spread is defined by 
 1. **Quarterly premium schedule + Actual/360 accrual.** The contractual spread on the premium leg is typically paid with a quarterly frequency. Accrual fractions $\Delta_n$ are computed using an Actual/360 convention.
 2. **Standard dates (IMM quoting).** Standard CDS are quoted on the basis of IMM dates: a “5Y” quote refers to the contract maturing on the next IMM date, not necessarily exactly five years from today.
 3. **Premium accrued on default (a cashflow).** $RPV01$ includes the expected premium accrued up to default between coupon dates (the integral term in the premium leg PV).
-4. **Clean vs full MTM (a quotation convention).** Between coupon dates, desks may quote an unwind MTM “clean” (excluding spread accrual since the last coupon) or “full” (including it). One common definition is:
-   $$
-   \text{Clean MTM} = \text{Full MTM} - \text{Accrued},
-   $$
-   where the accrued running spread since the last coupon date is
-   $$
-   \text{Accrued} =
-   \begin{cases}
-   +\Delta(t_{n^{*}-1},t)\\,S_0 & \text{(short protection)} \\
-   -\Delta(t_{n^{*}-1},t)\\,S_0 & \text{(long protection).}
-   \end{cases}
-   $$
-   Here $t$ is the valuation date and $t_{n^{*}-1}$ is the most recent coupon date before $t$.
+4. Clean vs full MTM (a quotation convention). Between coupon dates, desks may quote an unwind MTM “clean” (excluding spread accrual since the last coupon) or “full” (including it). One common definition is $\text{Clean MTM} = \text{Full MTM} - \text{Accrued}$, where accrued running spread since the last coupon date is $\text{Accrued} = +\Delta(t_{n^\star-1},t)\,S_0$ for short protection and $\text{Accrued} = -\Delta(t_{n^\star-1},t)\,S_0$ for long protection. Here $t$ is the valuation date and $t_{n^\star-1}$ is the most recent coupon date before $t$.
 
 > **Pitfall — “Accrued” means two different things:** *premium accrued on default* (a contractual cashflow) vs *spread accrual since the last coupon date* (a clean/full MTM quotation convention).
 > **Why it matters:** You can be directionally right on “credit widened” but still get the unwind cash amount wrong (and fail reconciliation) if you drop accrued-on-default in $RPV01$ or mix up clean vs full MTM.
@@ -630,7 +592,7 @@ This section gives one worked bootstrap example in a simplified setting and then
 
    Using the trapezoid approximations from Section 42.1.3 with annual payments, the par condition can be written in terms of $x = S/(1-R)$:
 
-   $$x = \frac{(Z_0 + Z_1)(Q_0 - Q_1)}{Z_1(Q_0 + Q_1)} \quad \text{with } Q_0=1,\\, Z_0=1.$$
+   $$x = \frac{(Z_0 + Z_1)(Q_0 - Q_1)}{Z_1(Q_0 + Q_1)} \quad \text{with } Q_0=1,\, Z_0=1.$$
 
    Here $x = 0.012/0.60 = 0.02$. Solving gives:
 
@@ -923,11 +885,11 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 **1.** $250 \text{ bp} = 250 \times 10^{-4} = 0.025$.
 
-**3.** $h = \frac{1}{3-1}\\ln(0.97/0.91) \approx 0.0320$ year$^{-1}$.
+**3.** $h = \frac{1}{3-1}\ln(0.97/0.91) \approx 0.0320\ \text{year}^{-1}$.
 
 **7.** $S_{1Y}^{\\min} \approx 1000 \times (0.5/1.0)=500$ bp.
 
-**10.** $Rec01 = 0.05 \times 1\% \times \\$20\\text{mm} = \\$10{,}000$ per 1% recovery.
+**10.** $Rec01 = 0.05 \times 1\% \times USD\ 20\text{mm} = USD\ 10{,}000$ per 1% recovery.
 
 **9.** Check (i) discount factors/curve version, (ii) recovery input, (iii) schedule + day count + standard-date conventions, and (iv) clean vs full MTM / accrued conventions (including accrued-on-default treatment).
 
