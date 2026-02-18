@@ -93,7 +93,7 @@ The exposure identity $E = \max(V, 0)$ can be evaluated at any point in time:
 Operationally, PFE is usually computed by simulation: simulate many future paths for the netting set MTM (and collateral), compute $E(t)$ on each path, and take a high percentile of that distribution at each future time.
 
 Two commonly used summary objects are:
-- **$PFE_q(t)$:** the $q$-quantile of $E(t)$ at time $t$ (e.g., $q=95\%$ or $97.5\%$).
+- **$PFE_q(t)$:** the $q$-quantile of $E(t)$ at time $t$ (e.g., $q=95\\%$ or $97.5\\%$).
 - **Maximum PFE / MPFE:** the maximum of $PFE_q(t)$ over a time window (often the trade life), used as a single “peak” number.
 
 **Check (sanity):** if there is no uncertainty about future MTM (a deterministic $V(t)$), then $EE(t)=E(t)$ and $PFE_q(t)=E(t)$ for any $q$: there is no “tail” because there is no distribution.
@@ -117,7 +117,7 @@ This legal protection is not automatic. It requires:
 2. A legal opinion confirming enforceability in the relevant jurisdictions
 3. Proper documentation and identification of which trades are covered
 
-**Check (toy default settlement):** Suppose two swaps have values $+1\text{mm}$ and $-1\text{mm}$ to the bank at the default time, and the counterparty recovery is $40\%$.
+**Check (toy default settlement):** Suppose two swaps have values $+1\text{mm}$ and $-1\text{mm}$ to the bank at the default time, and the counterparty recovery is $40\\%$.
 - With netting: the net is $0$ so there is no loss.
 - Without netting: only the $+1\text{mm}$ contributes to loss, so the loss is $(1-0.40)\times 1\text{mm}=0.6\text{mm}$.
 
@@ -217,7 +217,7 @@ The effective collateral value is:
 
 $$\boxed{C_{\text{effective}} = C_{\text{market}} \times (1 - \text{haircut})}$$
 
-**Check (numbers):** A $10\%$ haircut means a USD 100 security counts as USD 90 of collateral; a $30\%$ haircut means it counts as USD 70.
+**Check (numbers):** A $10\\%$ haircut means a USD 100 security counts as USD 90 of collateral; a $30\\%$ haircut means it counts as USD 70.
 
 > **Desk Reality:** When a CSA permits multiple collateral types, the posting party will optimize by posting the “cheapest-to-deliver” collateral after haircuts and eligibility rules.
 > **Common break:** Modeling assumes “collateral = cash” or assumes a fixed collateral type; the effective $C(t)$ can change when the posting party switches what they deliver.
@@ -388,14 +388,14 @@ Informally: it is the replacement cost *right now* if the counterparty defaulted
 
 **Potential future exposure (PFE)** for a given date is the maximum exposure at that date, with a high degree of statistical confidence (i.e., a high percentile of the exposure distribution):
 $$
-\boxed{PFE_q(t) := \inf\{x : P(E(t) \leq x) \geq q\}}.
+\boxed{PFE_q(t) := \inf\\{x : P(E(t) \leq x) \geq q\\}}.
 $$
 
 **Maximum PFE / MPFE** is the maximum of $PFE_q(t)$ over a time window (often the trade life). It is used as a single “peak” number for credit limits.
 
 **Important modeling point:** PFE is usually computed via simulation: for each future time, simulate the portfolio value (to obtain $V(t)$, then $E(t)$). There is no default simulation involved: only the portfolio is simulated, not the default of the counterparty. Default probabilities enter later when you convert exposure into expected loss (e.g., CVA).
 
-**Check (order statistic):** With $N$ simulated exposures at a fixed time $t$, $PFE_q(t)$ is the $q$-quantile of the $N$ numbers. For example, if $N=10{,}000$ and $q=97.5\%$, it is the 250th largest exposure.
+**Check (order statistic):** With $N$ simulated exposures at a fixed time $t$, $PFE_q(t)$ is the $q$-quantile of the $N$ numbers. For example, if $N=10{,}000$ and $q=97.5\\%$, it is the 250th largest exposure.
 
 ### 32.6.3 Expected Exposure (EE)
 
@@ -408,9 +408,9 @@ $$
 
 **EPE** is a time-aggregated measure of $EE(t)$. A common convention is a time-weighted average:
 $$
-EPE := \frac{1}{T}\int_0^T EE(t)\,dt
+EPE := \frac{1}{T}\int_0^T EE(t)\\,dt
 \quad\text{or}\quad
-EPE \approx \sum_i w_i\,EE(t_i).
+EPE \approx \sum_i w_i\\,EE(t_i).
 $$
 Because definitions vary (time grid, weighting, collateral treatment), always confirm the exact EPE definition used by your system.
 
@@ -478,11 +478,11 @@ $$E^{(\omega)}(t_i) = \max(V^{(\omega)}(t_i) - C^{(\omega)}(t_i), 0)$$
 
 $$EE(t_i) = \frac{1}{N} \sum_{\omega=1}^{N} E^{(\omega)}(t_i)$$
 
-$$PFE_{0.975}(t_i) = \text{97.5th percentile of } \{E^{(\omega)}(t_i)\}_{\omega=1}^{N}$$
+$$PFE_{0.975}(t_i) = \text{97.5th percentile of } \\{E^{(\omega)}(t_i)\\}_{\omega=1}^{N}$$
 
 ### 32.7.2 Time Grid Selection
 
-The choice of time grid $\{t_1, t_2, \ldots, t_n\}$ affects accuracy and computation:
+The choice of time grid $\\{t_1, t_2, \ldots, t_n\\}$ affects accuracy and computation:
 
 - **Finer at the front end:** Exposure changes rapidly in early periods; use daily or weekly steps for the first year
 - **Coarser at the back end:** For long-dated portfolios, quarterly or semi-annual steps may suffice
@@ -542,11 +542,11 @@ For **currency swaps / cross-currency trades** with a large notional exchange at
 
 For an uncollateralized forward to **buy** an asset at price $K$ at time $T$, the value at time $t$ can be written (in simple settings) as:
 $$
-V(t) = (F_t - K)\,D(t,T),
+V(t) = (F_t - K)\\,D(t,T),
 $$
 so the exposure is:
 $$
-E(t)=\max(V(t),0)=D(t,T)\,\max(F_t-K,0).
+E(t)=\max(V(t),0)=D(t,T)\\,\max(F_t-K,0).
 $$
 This makes the intuition clear: the forward’s positive exposure behaves like a **call option** on the forward price $F_t$.
 
@@ -666,7 +666,7 @@ The exposure work in this chapter is about computing the $v_i$. The credit work 
 
 $$CVA \approx (1-R) \sum_i D(0, t_i) \cdot EE(t_i) \cdot \Delta PD(t_i)$$
 
-This is a desk-friendly approximation of the generic $(1-R)\,q_i\,v_i$ structure.
+This is a desk-friendly approximation of the generic $(1-R)\\,q_i\\,v_i$ structure.
 
 **Check (units and limiting cases):**
 - Units: $(1-R)$ is unitless, $q_i$ is unitless, and $v_i$ is currency $\Rightarrow$ CVA is currency.
@@ -691,7 +691,7 @@ No collateral.
 - If $V = +5$: $E = \max(5, 0) = 5$
 - If $V = -5$: $E = \max(-5, 0) = 0$
 
-Exposure is $\{5, 0\}$ with probabilities $\{0.5, 0.5\}$.
+Exposure is $\\{5, 0\\}$ with probabilities $\\{0.5, 0.5\\}$.
 
 **Step 2: Expected exposure**
 
@@ -783,7 +783,7 @@ At $t = 1y$:
 **Case 2: $V = -5$**
 - Bank exposure is $\max(-5 - C, 0) = 0$ under symmetric posting
 
-**Results:** $E \in \{2, 0\}$ with equal probability.
+**Results:** $E \in \\{2, 0\\}$ with equal probability.
 
 $EE = 0.5 \times 2 + 0.5 \times 0 = 1$
 
@@ -821,7 +821,7 @@ $PFE_{0.95} = 2$
 
 **Toy calibration:** Suppose IM is set as the 99% quantile of the positive MTM move over a 10-day MPOR.
 
-**Setup:** Daily MTM change $\Delta V \in \{+1, -1\}$ with probability 0.5 each. Over MPOR = 10 days:
+**Setup:** Daily MTM change $\Delta V \in \\{+1, -1\\}$ with probability 0.5 each. Over MPOR = 10 days:
 
 $$\Delta V_{10} = \sum_{j=1}^{10} \Delta V_j$$
 
@@ -938,10 +938,10 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 **Setup:** Discretized CVA with three intervals.
 - Times: $t_1 = 1$, $t_2 = 2$, $t_3 = 3$ years
-- Recovery $R = 40\%$, so $(1-R) = 0.6$
-- Flat discount rate $r = 2\%$
+- Recovery $R = 40\\%$, so $(1-R) = 0.6$
+- Flat discount rate $r = 2\\%$
 - Expected exposures: $EE = [5, 4, 3]$ million
-- Default probability increments: $\Delta PD = [1\%, 1.5\%, 2\%]$
+- Default probability increments: $\Delta PD = [1\\%, 1.5\\%, 2\\%]$
 
 **Discount factors:**
 - $D_1 = e^{-0.02} = 0.9802$
@@ -985,7 +985,7 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 1. Collateral held at $\tau$ is based on the earlier MTM, so $C(\tau)=45\text{mm}$.
 2. Exposure at close-out:
    $$
- E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\mathrm{USD}\,5\text{mm}.
+ E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\mathrm{USD}\\,5\text{mm}.
  $$
 
 **Cashflows (table)**
@@ -1159,7 +1159,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 ## Mini Problem Set
 
-1. (Compute) Single trade: $V \in \{-2, +6\}$ with probabilities $(0.7, 0.3)$. No collateral. Compute $EE$ and $PFE_{90}$.
+1. (Compute) Single trade: $V \in \\{-2, +6\\}$ with probabilities $(0.7, 0.3)$. No collateral. Compute $EE$ and $PFE_{90}$.
 2. (Compute) Two trades with values $V_1=+3$, $V_2=-1$. Compute exposure with and without netting.
 3. (Compute) Threshold $H=5$: if net $V=7$, what VM is called and what residual exposure remains?
 4. (Compute) Cure period $c$: if $V(\tau)=12$ but $V(\tau-c)=9$ under zero-threshold VM, what is $E(\tau)$?
@@ -1171,7 +1171,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 10. (Risk) State the DV01 convention used in this book (bump object, bump size, units, sign) and explain why mismatched bump definitions break hedge ratios.
 
 ### Solution Sketches (Selected)
-1. $E\in\{0,6\}$. $EE=0.3\times 6=1.8$. $PFE_{90}=6$.
+1. $E\in\\{0,6\\}$. $EE=0.3\times 6=1.8$. $PFE_{90}=6$.
 2. No netting: $E=3$. With netting: $E=\max(3-1,0)=2$.
 4. Under the stale-collateral convention, $C(\tau)\approx 9$, so $E(\tau)=\max(12-9,0)=3$.
 5. Effective collateral posted is $110\times(1-0.10)=99$. With $V=-95$ and $C=-99$, $E=\max(-95-(-99),0)=4$.
