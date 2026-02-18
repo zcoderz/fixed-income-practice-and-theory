@@ -32,9 +32,9 @@ Follow-on: [Chapter 30](chapters/chapter_30_fx_swaps_cross_currency_swaps.md), [
 
 ## Learning Objectives
 - After this chapter, you can translate an FX spot/forward quote into the two-currency cashflows and a domestic PV.
-- You can compute the fair forward \(F^*(t,T)\) from spot and discount factors, and interpret forward points.
+- You can compute the fair forward $F^{\star}(t,T)$ from spot and discount factors, and interpret forward points.
 - You can value an off-market FX forward and explain the sign and units of the PV.
-- You can compute and interpret FX delta and curve DV01s with explicit bump objects, bump size (1 bp = \(10^{-4}\)), units, and sign.
+- You can compute and interpret FX delta and curve DV01s with explicit bump objects, bump size (1 bp = $10^{-4}$), units, and sign.
 - You can explain why an FX forward is not (in general) the market’s expected future spot, and what that means for hedging and carry.
 
 ---
@@ -47,9 +47,9 @@ A spot FX rate $S_t^{D/F}$ is the price of one unit of foreign currency in units
 
 Quote direction is a convention, not a law of nature. To avoid ambiguity, this chapter fixes a single notation throughout:
 
-- \(S_t^{D/F}\) means **domestic currency units per 1 unit of foreign currency**.
+- $S_t^{D/F}$ means **domestic currency units per 1 unit of foreign currency**.
 
-So \(S_t^{\text{USD/EUR}}=1.10\) means USD 1.10 per EUR 1.00.
+So $S_t^{\text{USD/EUR}}=1.10$ means USD 1.10 per EUR 1.00.
 
 > **Why this matters:** Risk systems must store both the currency pair and the quote direction. Mis-storing the inverse is a common source of sign errors in P&L, hedge ratios, and position reports. A system that treats EUR/USD as "EUR per USD" when the market quotes it as "USD per EUR" will produce inverted hedge ratios.
 
@@ -96,11 +96,11 @@ Understanding exactly *when* FX transactions settle is essential for pricing sho
 
 ### 29.2.1 Spot Value Date (Spot Lag)
 
-The **spot value date** is when the two currency amounts actually exchange hands. The “spot lag” is often described as **T+N business days** from the trade date, but the value of \(N\) is **pair-specific** and conventions can change over time—treat it as a parameter you must verify for the currency pair and trade date.
+The **spot value date** is when the two currency amounts actually exchange hands. The “spot lag” is often described as **T+N business days** from the trade date, but the value of $N$ is **pair-specific** and conventions can change over time—treat it as a parameter you must verify for the currency pair and trade date.
 
 A practical algorithm:
 1. Start from the trade date.
-2. Add \(N\) business days.
+2. Add $N$ business days.
 3. Ensure the resulting date is a business day in *both* settlement centers; if not, roll forward to the next joint business day.
 
 In many major pairs, spot has historically been **two** business days after trade date (“T+2”), with notable exceptions—always check the market convention and calendars.
@@ -189,7 +189,7 @@ If you translate the payoff into domestic currency units at maturity:
 
 $$\boxed{\text{Domestic-equivalent payoff at } T = N_F(S_T - K)}$$
 
-This is the standard forward payoff: you agreed to buy foreign currency at $K$, but the spot rate at maturity is $S_T$. If $S_T > K$, the forward is profitable (you bought cheap); if $S_T < K$, you overpaid relative to spot.
+This is the standard forward payoff: you agreed to buy foreign currency at $K$, but the spot rate at maturity is $S_T$. If $S_T \gt K$, the forward is profitable (you bought cheap); if $S_T \lt K$, you overpaid relative to spot.
 
 **Unit check:** Both $S_T$ and $K$ are in $D/F$ units, so $(S_T - K) \cdot N_F$ is in domestic currency. ✓
 
@@ -238,7 +238,7 @@ Assume:
 - foreign (AUD) rate = 3% continuous
 - domestic (USD) rate = 1% continuous
 - spot = 0.7500 USD per AUD
-- maturity \(T=2\) years
+- maturity $T=2$ years
 
 The CIP-implied forward is:
 
@@ -247,9 +247,9 @@ $$0.7500 \times e^{(0.01-0.03)\times 2} = 0.7206.$$
 If the market forward were instead 0.7000 (too low), an arbitrage is:
 
 1. Borrow 1,000 AUD at 3% for 2 years, convert to 750 USD and invest at 1%
-2. Enter a forward to buy 1,061.84 AUD (the amount owed) for $1,061.84 \times 0.7000 = \$743.29$
+2. Enter a forward to buy 1,061.84 AUD (the amount owed) for $1,061.84 \times 0.7000 = 743.29$ USD
 3. The 750 USD grows to $765.15. Pay $743.29 to settle the forward, repay the AUD loan
-4. **Risk-free profit: $765.15 - 743.29 = \$21.87$ per 1,000 AUD**
+4. **Risk-free profit: $765.15 - 743.29 = 21.87$ USD per 1,000 AUD**
 
 The trade scales linearly with notional (subject to funding, credit, and execution constraints).
 
@@ -295,15 +295,15 @@ $$F(t,T) - S_t = S_t \left( \frac{P_F(t,T)}{P_D(t,T)} - 1 \right)$$
 
 This shows that forward points are driven entirely by the ratio of discount factors—which reflects the interest rate differential between the two currencies.
 
-**Check (small-tenor approximation):** For short tenors, you can linearize the discount-factor ratio. Under continuous compounding with year fraction \(\tau\),
-$$P_D(t,T)\approx e^{-r\tau},\quad P_F(t,T)\approx e^{-r_f\tau}\quad\Rightarrow\quad F-S \approx S\,(r-r_f)\,\tau.$$
-Example: if \(S=1.10\), \(r-r_f=2\%\), and \(\tau=0.25\), then forward points are \(\approx 1.10\times 0.02\times 0.25=0.0055\), i.e. about 55 pips when 1 pip \(=0.0001\).
+**Check (small-tenor approximation):** For short tenors, you can linearize the discount-factor ratio. Under continuous compounding with year fraction $\tau$,
+$$P_D(t,T)\approx e^{-r\tau},\quad P_F(t,T)\approx e^{-r_f\tau}\quad\Rightarrow\quad F-S \approx S\\,(r-r_f)\\,\tau.$$
+Example: if $S=1.10$, $r-r_f=2\%$, and $\tau=0.25$, then forward points are $\approx 1.10\times 0.02\times 0.25=0.0055$, i.e. about 55 pips when 1 pip $=0.0001$.
 
 ### 29.5.2 Premium vs Discount
 
-- **Forward premium (in $D/F$ quotes):** If $F > S$, the foreign currency trades at a forward premium. This occurs when $P_F / P_D > 1$, meaning domestic rates are higher than foreign rates (equivalently, $P_D < P_F$ for the same maturity).
+- **Forward premium (in $D/F$ quotes):** If $F \gt S$, the foreign currency trades at a forward premium. This occurs when $P_F / P_D \gt 1$, meaning domestic rates are higher than foreign rates (equivalently, $P_D \lt P_F$ for the same maturity).
 
-- **Forward discount (in $D/F$ quotes):** If $F < S$, the foreign currency trades at a forward discount. This occurs when foreign rates exceed domestic rates.
+- **Forward discount (in $D/F$ quotes):** If $F \lt S$, the foreign currency trades at a forward discount. This occurs when foreign rates exceed domestic rates.
 
 > **Intuition:** If you can earn more interest holding dollars than euros, then locking in a future EUR purchase via a forward must cost you something—you give up the higher domestic interest. That cost shows up as a forward premium on EUR (you pay more USD per EUR in the forward than at spot).
 
@@ -353,9 +353,9 @@ The forward bid-ask incorporates both spot bid-ask and points bid-ask.
 
 Forward-point conventions differ across venues (sign, pip scaling, whether points are added/subtracted from spot). A critical point: **inverting the quote flips the sign interpretation.**
 
-If $F^{D/F} > S^{D/F}$ (forward premium in domestic-per-foreign terms), then:
+If $F^{D/F} \gt S^{D/F}$ (forward premium in domestic-per-foreign terms), then:
 
-$$F^{F/D} = \frac{1}{F^{D/F}} < \frac{1}{S^{D/F}} = S^{F/D}$$
+$$F^{F/D} = \frac{1}{F^{D/F}} \lt \frac{1}{S^{D/F}} = S^{F/D}$$
 
 In the inverted quote, the forward is at a *discount*. Same economics, different sign—depending on which way you read the quote.
 
@@ -379,7 +379,7 @@ No expectations about future spot rates enter this equation. The forward is the 
 
 $$s_{t+1}-s_t = a + b\left(f_t-s_t\right)+\varepsilon_{t+1},$$
 
-where \(s_t=\log S_t\) and \(f_t=\log F_t\). Under uncovered interest parity, the slope \(b\) should be close to \(+1\): a larger forward premium should correspond to expected depreciation.
+where $s_t=\log S_t$ and $f_t=\log F_t$. Under uncovered interest parity, the slope $b$ should be close to $+1$: a larger forward premium should correspond to expected depreciation.
 
 One way to summarize what is found in data: a foreign interest rate one percentage point higher than its usual differential (equivalently, a one percentage point higher forward-spot spread) can be associated with *further appreciation* of the foreign currency rather than depreciation. This is one statement of the **forward discount / forward premium puzzle**.
 
@@ -436,17 +436,17 @@ Interpretation: the domestic value of one foreign zero-coupon bond is $S_t \cdot
 
 Define the *fair forward* (no-arbitrage forward rate):
 
-$$F^*(t,T) = S_t \frac{P_F(t,T)}{P_D(t,T)}$$
+$$F^{\star}(t,T) = S_t \frac{P_F(t,T)}{P_D(t,T)}$$
 
 Substituting into the PV formula:
 
-$$V_t^{(D)} = N_F \cdot P_D(t,T) \left( F^*(t,T) - K \right)$$
+$$V_t^{(D)} = N_F \cdot P_D(t,T) \left( F^{\star}(t,T) - K \right)$$
 
 This is the standard "discounted difference" form: **PV = notional × discount factor × (market forward − delivery price)**.
 
 A forward struck at the fair forward has value (approximately) zero at inception; afterwards it is marked-to-market each day using current spot and curves.
 
-**Sanity check:** If $K = F^*$, then $V = 0$. The forward is struck at fair value at inception. ✓
+**Sanity check:** If $K = F^{\star}$, then $V = 0$. The forward is struck at fair value at inception. ✓
 
 > **Desk Reality: Marking FX Forwards**
 >
@@ -471,21 +471,21 @@ A forward struck at the fair forward has value (approximately) zero at inception
 
 Suppose you will receive a known foreign-currency amount $A_F$ at time $T$. Without hedging, your domestic value at $T$ is $S_T \cdot A_F$—exposed to FX risk.
 
-**Hedge:** Enter a short forward (sell foreign forward) with $N_F = A_F$ and delivery price $K = F^*(0,T)$.
+**Hedge:** Enter a short forward (sell foreign forward) with $N_F = A_F$ and delivery price $K = F^{\star}(0,T)$.
 
 At maturity:
 - You receive $A_F$ foreign from your underlying exposure
 - You deliver $A_F$ into the forward, receiving $K \cdot A_F$ domestic
 
-Your domestic payoff is $K \cdot A_F = F^*(0,T) \cdot A_F$, which is known today. The FX risk is eliminated.
+Your domestic payoff is $K \cdot A_F = F^{\star}(0,T) \cdot A_F$, which is known today. The FX risk is eliminated.
 
 ### 29.8.2 The Interest Differential Interpretation
 
 When you hedge at the fair forward, you lock in the spot rate *adjusted* by the interest differential:
 
-$$K = F^*(0,T) = S_0 \frac{P_F(0,T)}{P_D(0,T)}$$
+$$K = F^{\star}(0,T) = S_0 \frac{P_F(0,T)}{P_D(0,T)}$$
 
-If domestic rates exceed foreign rates, $P_D < P_F$, so $K > S_0$: you pay more per unit of foreign in the forward than at spot. This is the "cost" of hedging—but it's not a penalty. It exactly reflects that you could have earned higher domestic interest rather than foreign interest over the hedge period.
+If domestic rates exceed foreign rates, $P_D \lt P_F$, so $K \gt S_0$: you pay more per unit of foreign in the forward than at spot. This is the "cost" of hedging—but it's not a penalty. It exactly reflects that you could have earned higher domestic interest rather than foreign interest over the hedge period.
 
 ### 29.8.3 Hedging a Foreign Bond: The Return Transformation
 
@@ -501,11 +501,11 @@ A hedged foreign bond earns the **domestic** rate, not the foreign rate. This is
 
 **Hedged:** Sell €1,000,000 forward at $F = 1.20 \times 0.9750/0.9600 = 1.21875$
 
-At maturity, receive $\$1,218,750$. Your hedged USD return:
+At maturity, receive $1,218,750$ USD. Your hedged USD return:
 
 $$\frac{1,218,750}{1,200,000 \times 0.9750} = \frac{1,218,750}{1,170,000} = 1.0417$$
 
-This is $1/0.96 = 4.17\%$—the USD rate, not the EUR rate.
+This is $1/0.96 = 4.17\\%$—the USD rate, not the EUR rate.
 
 **The hedge transforms your rate exposure along with your currency exposure.** You "converted" the EUR bond into a synthetic USD bond.
 
@@ -525,42 +525,42 @@ Differentiating the PV formula with respect to spot $S_t$ (holding curves fixed)
 
 $$\boxed{\frac{\partial V_t^{(D)}}{\partial S_t} = N_F \cdot P_F(t,T)}$$
 
-Under the standard “foreign currency earns the foreign risk-free rate” interpretation, the forward’s spot delta equals the **present value of the foreign notional**. Under flat continuously-compounded rates, \(P_F(t,T)=e^{-r_f (T-t)}\), so \(\partial V/\partial S = N_F e^{-r_f (T-t)}\).
+Under the standard “foreign currency earns the foreign risk-free rate” interpretation, the forward’s spot delta equals the **present value of the foreign notional**. Under flat continuously-compounded rates, $P_F(t,T)=e^{-r_f (T-t)}$, so $\partial V/\partial S = N_F e^{-r_f (T-t)}$.
 
-**Units:** \(V^{(D)}\) is in domestic currency and \(S\) is in domestic-per-foreign, so \(\partial V/\partial S\) has units of **foreign currency** (e.g., EUR). Some risk systems report a “domestic delta” by multiplying by spot; always check your report’s units.
+**Units:** $V^{(D)}$ is in domestic currency and $S$ is in domestic-per-foreign, so $\partial V/\partial S$ has units of **foreign currency** (e.g., EUR). Some risk systems report a “domestic delta” by multiplying by spot; always check your report’s units.
 
-**Check (spot hedge sizing):** If you are long the forward (buy foreign), your spot delta is \(+N_F P_F(t,T)\) in foreign units. A first-order spot hedge is therefore to **sell** \(N_F P_F(t,T)\) units of foreign in spot (so the combined \(dV\approx (N_F P_F - N_{\text{spot}})\,dS\) is near zero). The remaining risk is then mainly curve/basis risk and any mismatch in bump/mark conventions.
+**Check (spot hedge sizing):** If you are long the forward (buy foreign), your spot delta is $+N_F P_F(t,T)$ in foreign units. A first-order spot hedge is therefore to **sell** $N_F P_F(t,T)$ units of foreign in spot (so the combined $dV\approx (N_F P_F - N_{\text{spot}})\,dS$ is near zero). The remaining risk is then mainly curve/basis risk and any mismatch in bump/mark conventions.
 
-> **Desk Reality:** Many risk reports show FX delta in *foreign units* as \(N_F P_F(t,T)\), not the contractual notional \(N_F\).
-> **Common break:** Spot hedges are sized off notional and ignore \(P_F\), creating a tenor-dependent residual delta.
+> **Desk Reality:** Many risk reports show FX delta in *foreign units* as $N_F P_F(t,T)$, not the contractual notional $N_F$.
+> **Common break:** Spot hedges are sized off notional and ignore $P_F$, creating a tenor-dependent residual delta.
 > **What to check:** Confirm whether your system reports delta in foreign units, domestic units, or “per 1% move,” and reconcile via unit conversions.
 
 ### 29.9.2 Interest Rate Sensitivities
 
-From the PV formula \(V = N_F(S_t P_F - K P_D)\), you can read the forward as a **two-bond position**:
-- long a foreign ZCB worth \(N_F \cdot S_t \cdot P_F(t,T)\) in domestic currency,
-- short a domestic ZCB worth \(N_F \cdot K \cdot P_D(t,T)\).
+From the PV formula $V = N_F(S_t P_F - K P_D)$, you can read the forward as a **two-bond position**:
+- long a foreign ZCB worth $N_F \cdot S_t \cdot P_F(t,T)$ in domestic currency,
+- short a domestic ZCB worth $N_F \cdot K \cdot P_D(t,T)$.
 
 **Risk bump definitions (this chapter):**
-- **Bump objects:** the discount curves used to compute \(P_D(t,T)\) and \(P_F(t,T)\). (In real systems: bump curve pillars and rebuild; same idea.)
-- **Bump size:** 1 bp = \(10^{-4}\).
+- **Bump objects:** the discount curves used to compute $P_D(t,T)$ and $P_F(t,T)$. (In real systems: bump curve pillars and rebuild; same idea.)
+- **Bump size:** 1 bp = $10^{-4}$.
 - **Units:** domestic currency per 1 bp.
-- **Sign convention (book-wide):** \(DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})\) for the stated bump object.
-Let \(\tau(t,T)\) be the year fraction implied by the curve’s day count between dates \(t\) and \(T\).
+- **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})$ for the stated bump object.
+Let $\tau(t,T)$ be the year fraction implied by the curve’s day count between dates $t$ and $T$.
 
-- **Foreign curve DV01 (toy single-maturity approximation):** if you bump the foreign continuously-compounded zero rate down by 1bp so that \(P_F\) increases by \(\Delta P_F \approx \tau(t,T)P_F \cdot 10^{-4}\), then
+- **Foreign curve DV01 (toy single-maturity approximation):** if you bump the foreign continuously-compounded zero rate down by 1bp so that $P_F$ increases by $\Delta P_F \approx \tau(t,T)P_F \cdot 10^{-4}$, then
   $$DV01_F \approx +N_F \cdot S_t \cdot \tau(t,T) \cdot P_F(t,T)\cdot 10^{-4}.$$
 
-- **Domestic curve DV01 (toy single-maturity approximation):** if you bump the domestic continuously-compounded zero rate down by 1bp so that \(P_D\) increases by \(\Delta P_D \approx \tau(t,T)P_D \cdot 10^{-4}\), then
+- **Domestic curve DV01 (toy single-maturity approximation):** if you bump the domestic continuously-compounded zero rate down by 1bp so that $P_D$ increases by $\Delta P_D \approx \tau(t,T)P_D \cdot 10^{-4}$, then
   $$DV01_D \approx -N_F \cdot K \cdot \tau(t,T) \cdot P_D(t,T)\cdot 10^{-4}.$$
 
-These two curve risks can partially offset, but the sign and magnitude depend on \(S_t\), \(K\), and the relative curve levels.
+These two curve risks can partially offset, but the sign and magnitude depend on $S_t$, $K$, and the relative curve levels.
 
-**Check (at-market forward, DV01 magnitudes match):** For a forward struck at the fair rate \(K=F^*(t,T)\), no-arbitrage implies \(K\,P_D(t,T)=S_t\,P_F(t,T)\). Plugging this into the toy single-maturity DV01 expressions shows \(|DV01_F|\approx |DV01_D|\) (opposite signs). In that toy setting, a simultaneous 1bp down shift to **both** curves has a much smaller net PV impact than bumping one curve alone—the forward is primarily exposed to **relative** moves between the curves (a cross-currency “basis” move), not just level.
+**Check (at-market forward, DV01 magnitudes match):** For a forward struck at the fair rate $K=F^{\star}(t,T)$, no-arbitrage implies $K\,P_D(t,T)=S_t\,P_F(t,T)$. Plugging this into the toy single-maturity DV01 expressions shows $|DV01_F|\approx |DV01_D|$ (opposite signs). In that toy setting, a simultaneous 1bp down shift to **both** curves has a much smaller net PV impact than bumping one curve alone—the forward is primarily exposed to **relative** moves between the curves (a cross-currency “basis” move), not just level.
 
 ### 29.9.3 Delta of Forward vs Delta of Spot Position
 
-Forwards have deltas even though they are not options. For a forward on a non-dividend-paying equity, the delta is 1: one unit of forward behaves like one unit of spot plus a financing adjustment. For FX forwards, the analogous result is \(\Delta_{FX}=e^{-r_f (T-t)}\) because holding foreign currency earns the foreign risk-free rate (the “yield” on the underlying).
+Forwards have deltas even though they are not options. For a forward on a non-dividend-paying equity, the delta is 1: one unit of forward behaves like one unit of spot plus a financing adjustment. For FX forwards, the analogous result is $\Delta_{FX}=e^{-r_f (T-t)}$ because holding foreign currency earns the foreign risk-free rate (the “yield” on the underlying).
 
 ---
 
@@ -579,31 +579,31 @@ Economically, an NDF settles the payoff of the corresponding deliverable forward
 Two common parameterizations:
 
 1. **Chapter convention (domestic per foreign, notional in foreign):**
-   - Quotes \(S^{D/F}\) and \(K^{D/F}\) are **domestic currency per 1 foreign**.
-   - Notional is \(N_F\) in the foreign currency.
-   - A long forward to *buy foreign* (receive \(N_F\), pay \(K N_F\) domestic) has domestic cash payoff at fixing
+   - Quotes $S^{D/F}$ and $K^{D/F}$ are **domestic currency per 1 foreign**.
+   - Notional is $N_F$ in the foreign currency.
+   - A long forward to *buy foreign* (receive $N_F$, pay $K N_F$ domestic) has domestic cash payoff at fixing
      $$\boxed{\text{Payoff in }D = N_F\left(S_{\text{fix}}^{D/F} - K^{D/F}\right)}$$
      and the short position flips the sign.
 
 2. **Common NDF quote direction (foreign per USD, notional in foreign):**
-   - Quotes \(S_{\text{fix}}\) and \(K\) are **foreign currency per 1 USD** (e.g., KRW per USD).
-   - Notional is \(N_F\) in the foreign (restricted) currency.
+   - Quotes $S_{\text{fix}}$ and $K$ are **foreign currency per 1 USD** (e.g., KRW per USD).
+   - Notional is $N_F$ in the foreign (restricted) currency.
    - If you are *selling foreign / buying USD forward*, the USD cash payoff is
      $$\boxed{\text{Payoff in USD} = N_F\left(\frac{1}{K}-\frac{1}{S_{\text{fix}}}\right)}$$
      (again, the opposite position flips the sign).
 
 Both formulas are the same economics written under different quote directions. A good unit check is that the payoff currency is the settlement currency and the payoff has “notional × price difference” structure.
 
-**Check (reconciling the two payoffs):** If the market quote is “foreign per USD,” call it \(Q := S^{F/D}\), then the inverse quote is \(S^{D/F}=1/Q\) (and similarly \(K^{D/F}=1/K^{F/D}\)). Substituting \(S_{\text{fix}}^{D/F}=1/S_{\text{fix}}\) and \(K^{D/F}=1/K\) into the chapter-convention payoff \(N_F(S_{\text{fix}}^{D/F}-K^{D/F})\) gives \(N_F(1/S_{\text{fix}}-1/K)\), which matches the “foreign per USD” expression up to sign. That sign difference is exactly the trade-direction difference: “buy foreign” vs “buy USD.” This is why confirmations must state quote direction, notional currency, and settlement currency explicitly.
+**Check (reconciling the two payoffs):** If the market quote is “foreign per USD,” call it $Q := S^{F/D}$, then the inverse quote is $S^{D/F}=1/Q$ (and similarly $K^{D/F}=1/K^{F/D}$). Substituting $S_{\text{fix}}^{D/F}=1/S_{\text{fix}}$ and $K^{D/F}=1/K$ into the chapter-convention payoff $N_F(S_{\text{fix}}^{D/F}-K^{D/F})$ gives $N_F(1/S_{\text{fix}}-1/K)$, which matches the “foreign per USD” expression up to sign. That sign difference is exactly the trade-direction difference: “buy foreign” vs “buy USD.” This is why confirmations must state quote direction, notional currency, and settlement currency explicitly.
 
-**PV note:** Because an NDF settles as a single cash amount in the settlement currency, the mark-to-market at time \(t\) discounts that settlement-currency cash amount using the settlement-currency discount curve (the same “single-currency PV” idea as any cash-settled forward).
+**PV note:** Because an NDF settles as a single cash amount in the settlement currency, the mark-to-market at time $t$ discounts that settlement-currency cash amount using the settlement-currency discount curve (the same “single-currency PV” idea as any cash-settled forward).
 
 ### 29.10.3 Worked NDF Example (Foreign per USD Quote)
 
-**Contract:** sell KRW \(N_F=1{,}000{,}000{,}000\) vs USD, cash-settled in USD.  
+**Contract:** sell KRW $N_F=1{,}000{,}000{,}000$ vs USD, cash-settled in USD.  
 **Quote direction:** KRW per USD.  
-**Contract rate:** \(K=1320\) KRW/USD.  
-**Fixing:** \(S_{\text{fix}}=1350\) KRW/USD (KRW weakened).
+**Contract rate:** $K=1320$ KRW/USD.  
+**Fixing:** $S_{\text{fix}}=1350$ KRW/USD (KRW weakened).
 
 Using the “foreign per USD” formula above,
 $$\text{Payoff in USD}=N_F\left(\frac{1}{K}-\frac{1}{S_{\text{fix}}}\right)=1{,}000{,}000{,}000\left(\frac{1}{1320}-\frac{1}{1350}\right)\approx +16{,}835.$$
@@ -645,7 +645,7 @@ Total P&L from an FX forward position decomposes into:
 
 For small changes, the PV change decomposes as:
 
-$$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot P\&L}} + \underbrace{N_F \cdot S \cdot \Delta P_F - N_F \cdot K \cdot \Delta P_D}_{\text{Rates P\&L}}$$
+$$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot PnL}} + \underbrace{N_F \cdot S \cdot \Delta P_F - N_F \cdot K \cdot \Delta P_D}_{\text{Rates PnL}}$$
 
 **Spot P&L** is intuitive: the position gains/loses based on spot movement times delta.
 
@@ -655,9 +655,9 @@ $$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot P\&L}} 
 
 Unlike options, forwards don't have time decay in the traditional sense. But they do have **carry**—the P&L from time passing if nothing else changes.
 
-If you're long a forward at $K < F^*$ (profitable position), as time passes and the forward approaches maturity, the position value converges to $(F^* - K) \times N_F$. The rate of this convergence is the carry.
+If you're long a forward at $K \lt F^{\star}$ (profitable position), as time passes and the forward approaches maturity, the position value converges to $(F^{\star} - K) \times N_F$. The rate of this convergence is the carry.
 
-For a position struck at the fair forward ($K = F^*$), daily carry equals the forward point earn-out:
+For a position struck at the fair forward ($K = F^{\star}$), daily carry equals the forward point earn-out:
 
 $$\text{Daily Carry} \approx N_F \times S \times (r - r_f) \times \frac{1}{365}$$
 
@@ -680,7 +680,7 @@ $$\text{Daily Carry} \approx N_F \times S \times (r - r_f) \times \frac{1}{365}$
 
 **P&L Attribution:**
 
-1. **Spot P&L:** $\Delta S \times N_F \times P_F \approx 0.01 \times 10{,}000{,}000 \times 0.99 = +\$99{,}000$
+1. **Spot P&L:** $\Delta S \times N_F \times P_F \approx 0.01 \times 10{,}000{,}000 \times 0.99 = +99{,}000$ USD
 
 2. **Rates P&L:** The rate differential widened (USD up, EUR down), making EUR at a larger forward premium. This partially offsets or adds to spot P&L depending on the position. Estimate: additional ~$5,000.
 
@@ -733,8 +733,8 @@ Persistent deviations between T/N implied rates and actual OIS rates reflect **c
 
 **Given:**
 - Spot: $S_0^{\text{USD/EUR}} = 1.2000$ (1.20 USD per EUR)
-- USD rate: $r = 5\%$ continuous
-- EUR rate: $r_f = 2\%$ continuous
+- USD rate: $r = 5\\%$ continuous
+- EUR rate: $r_f = 2\\%$ continuous
 - Maturity: $T = 0.5$ years
 
 **Compute forward:**
@@ -761,45 +761,45 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 - Exchange at maturity: physical exchange of EUR and USD on 2026-05-19
 
 **Inputs**
-- Spot (for the spot value date): \(S_0^{\text{USD/EUR}} = 1.2000\).
+- Spot (for the spot value date): $S_0^{\text{USD/EUR}} = 1.2000$.
 - Discount factors from spot date to forward date (toy numbers):
-  - USD: \(P_D=0.9901\)
-  - EUR: \(P_F=0.9975\)
-  These are consistent with simple money-market rates \(R_D=4\%\), \(R_F=1\%\) over \(\tau=0.25\) via \(P=1/(1+R\tau)\).
-- Notional: \(N_F = 10{,}000{,}000\) EUR.
-- Contract delivery price: \(K=1.2100\) USD/EUR (slightly above fair).
+  - USD: $P_D=0.9901$
+  - EUR: $P_F=0.9975$
+  These are consistent with simple money-market rates $R_D=4\%$, $R_F=1\%$ over $\tau=0.25$ via $P=1/(1+R\tau)$.
+- Notional: $N_F = 10{,}000{,}000$ EUR.
+- Contract delivery price: $K=1.2100$ USD/EUR (slightly above fair).
 
 **Outputs (What You Produce)**
-- Fair forward \(F^*\)
+- Fair forward $F^{\star}$
 - PV in USD (at trade date; using the spot→forward discount factors)
 - FX delta (foreign units)
 - Curve DV01s (USD per 1bp; bump object and sign as defined in Section 29.9)
 
 **Step-by-step**
 1. **Fair forward (CIP, DF form):**
-   $$F^* = S_0 \frac{P_F}{P_D} = 1.2000 \times \frac{0.9975}{0.9901} = 1.2090.$$
+   $$F^{\star} = S_0 \frac{P_F}{P_D} = 1.2000 \times \frac{0.9975}{0.9901} = 1.2090.$$
 2. **PV of the off-market forward (long = buy EUR):**
    $$V_0^{(\text{USD})}=N_F\left(S_0P_F-KP_D\right)=10{,}000{,}000\left(1.2000\times0.9975-1.2100\times0.9901\right)\approx-10{,}200.$$
 3. **FX delta (foreign units):**
    $$\frac{\partial V}{\partial S}=N_F P_F=10{,}000{,}000\times0.9975=9{,}975{,}000\ \text{EUR}.$$
-4. **Curve DV01s (toy parallel bump, \(1\text{bp}=10^{-4}\), \(\tau=0.25\)):**
-   $$DV01_F \approx +N_F\,S_0\,\tau\,P_F\,10^{-4}=+10{,}000{,}000\times1.2000\times0.25\times0.9975\times10^{-4}\approx +299.$$
-   $$DV01_D \approx -N_F\,K\,\tau\,P_D\,10^{-4}=-10{,}000{,}000\times1.2100\times0.25\times0.9901\times10^{-4}\approx -300.$$
+4. **Curve DV01s (toy parallel bump, $1\text{bp}=10^{-4}$, $\tau=0.25$):**
+   $$DV01_F \approx +N_F\\,S_0\\,\tau\\,P_F\\,10^{-4}=+10{,}000{,}000\times1.2000\times0.25\times0.9975\times10^{-4}\approx +299.$$
+   $$DV01_D \approx -N_F\\,K\\,\tau\\,P_D\\,10^{-4}=-10{,}000{,}000\times1.2100\times0.25\times0.9901\times10^{-4}\approx -300.$$
 
 **Cashflows**
 | Date | Cashflow | Explanation |
 |---|---:|---|
 | 2026-05-19 | +€10,000,000 | Receive foreign notional |
-| 2026-05-19 | -$12,100,000 | Pay domestic notional \(K\times N_F\) |
+| 2026-05-19 | -$12,100,000 | Pay domestic notional $K\times N_F$ |
 
 **P&L / Risk Interpretation**
-- **Spot move:** if EUR/USD rises by \(+0.01\), PV increases by about \(\Delta V \approx (N_F P_F)\Delta S \approx 9.975\times 10^6 \times 0.01 \approx +99{,}750\) USD.
-- **Rates move:** a 1bp *down* shift in EUR discounting increases PV by \(\approx +299\) USD; a 1bp *down* shift in USD discounting decreases PV by \(\approx -300\) USD.
+- **Spot move:** if EUR/USD rises by $+0.01$, PV increases by about $\Delta V \approx (N_F P_F)\Delta S \approx 9.975\times 10^6 \times 0.01 \approx +99{,}750$ USD.
+- **Rates move:** a 1bp down shift in EUR discounting increases PV by $\approx +299$ USD; a 1bp down shift in USD discounting decreases PV by $\approx -300$ USD.
 - **Desk mapping:** it is natural to treat the forward as “long foreign ZCB, short domestic ZCB” plus spot delta; many risk systems bucket the two DV01s onto the respective curves.
 
 **Sanity Checks**
-- Units: \(S, K\) are USD/EUR, so \(N_F(SP_F-KP_D)\) is USD.
-- Zero-value check: if \(K=F^*\), PV is (approximately) 0 at inception.
+- Units: $S, K$ are USD/EUR, so $N_F(SP_F-KP_D)$ is USD.
+- Zero-value check: if $K=F^{\star}$, PV is (approximately) 0 at inception.
 - Quote-direction check: if you invert the quote, invert the DF ratio as well.
 
 ### Example D: Arbitrage When Forward Is Mispriced
@@ -808,22 +808,22 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 
 **Arbitrage strategy:**
 
-1. **Borrow USD:** $\$1.2000$ at 4% for 0.25 years → repay $\$1.2000 \times 1.01 = \$1.212$
+1. **Borrow USD:** $1.2000$ at 4% for 0.25 years → repay $1.2000 \times 1.01 = 1.212$ USD
 
-2. **Buy EUR at spot:** $\$1.20$ buys €1.00
+2. **Buy EUR at spot:** $1.20$ USD buys €1.00
 
 3. **Invest EUR:** €1.00 at 1% for 0.25 years → receive €$1.0025$
 
-4. **Sell EUR forward:** Deliver €1.0025 at $F_{\text{mkt}} = 1.2200$ → receive $\$1.2231$
+4. **Sell EUR forward:** Deliver €1.0025 at $F_{\text{mkt}} = 1.2200$ → receive $1.2231$ USD
 
 **Net at maturity:**
-- Receive: $\$1.2231$
-- Repay: $\$1.2120$
-- **Profit: $\$0.0111$ per €1 initial**
+- Receive: $1.2231$ USD
+- Repay: $1.2120$ USD
+- **Profit: $0.0111$ USD per €1 initial**
 
-Scaled to €10,000,000: profit = $\$111,000$.
+Scaled to €10,000,000: profit = $111,000$ USD.
 
-This is risk-free profit, so arbitrageurs would trade until $F_{\text{mkt}} = F^*$.
+This is risk-free profit, so arbitrageurs would trade until $F_{\text{mkt}} = F^{\star}$.
 
 ---
 
@@ -837,15 +837,15 @@ $$F^{F/D} = S^{F/D} \times \frac{P_D}{P_F}$$
 
 Note the ratio flips when the quote direction flips. Systems that store currency pairs inconsistently will produce wrong hedge ratios.
 
-> **Pitfall — Quote inversion in CIP:** Inverting \(S^{D/F}\) to \(S^{F/D}\) but forgetting to invert the discount-factor ratio in \(F = S\,P_F/P_D\).
+> **Pitfall — Quote inversion in CIP:** Inverting $S^{D/F}$ to $S^{F/D}$ but forgetting to invert the discount-factor ratio in $F = S\,P_F/P_D$.
 > **Why it matters:** You can flip the sign of forward points and the direction of hedges/P&L.
-> **Quick check:** Compute \(F\) in the stored quote direction and verify units; then invert both sides and check the inverted-quote formula uses \(P_D/P_F\).
+> **Quick check:** Compute $F$ in the stored quote direction and verify units; then invert both sides and check the inverted-quote formula uses $P_D/P_F$.
 
 ### Compounding Convention Mismatch
 
 If you use continuous-rate CIP ($F = S e^{(r - r_f)T}$) but plug in simple rates, you get spurious "arbitrage" signals.
 
-**Example:** With $T = 2$ years, simple rates $R_D = 10\%$, $R_F = 2\%$:
+**Example:** With $T = 2$ years, simple rates $R_D = 10\\%$, $R_F = 2\\%$:
 - Correct (simple): $F = 1.2 \times (1.20/1.04) = 1.385$
 - Wrong (treating as continuous): $F = 1.2 \times e^{0.16} = 1.408$
 
@@ -869,7 +869,7 @@ Liquidity in outright FX forwards generally falls off with maturity. Longer-date
 |------|---------------|
 | **Dimension/units** | $S$, $F$, $K$ all in same units ($D/F$). $P_D$, $P_F$ dimensionless. |
 | **CIP replication** | Reproduce $F$ from borrow/lend/spot; confirm no free profit. |
-| **Zero-value test** | $V(K = F^*) = 0$ when curves are consistent. |
+| **Zero-value test** | $V(K = F^{\star}) = 0$ when curves are consistent. |
 | **Sign sanity** | Higher domestic rates → higher $F$ (in $D/F$ quotes). |
 | **Delta check** | FX delta = $N_F \cdot P_F$, not $N_F$. |
 | **Settlement date** | Forward tenor calculated from correct spot date. |
@@ -892,7 +892,7 @@ The FX forward market is not a forecasting market—it's an interest rate market
 
 5. **Hedging transforms rate exposure:** A hedged foreign bond earns the domestic rate, not the foreign rate—the hedge "converts" the rate exposure along with the currency exposure.
 
-6. **PV formula:** $V = N_F(S P_F - K P_D)$, equivalently $V = N_F P_D(F^* - K)$.
+6. **PV formula:** $V = N_F(S P_F - K P_D)$, equivalently $V = N_F P_D(F^{\star} - K)$.
 
 7. **FX delta:** $\partial V / \partial S = N_F P_F$—the present value of the foreign leg.
 
@@ -912,9 +912,9 @@ The FX forward market is not a forecasting market—it's an interest rate market
 | CIP (continuous form) | $F = S e^{(r - r_f)T}$ | No-arbitrage link between spot, forward, and rates |
 | CIP (DF form) | $F = S \cdot P_F / P_D$ | Convention-robust; avoids compounding ambiguity |
 | Forward points | $F - S$ | Reflects interest differential, not forecast |
-| Forward premium/discount | $F > S$ or $F < S$ | Higher domestic rates → forward premium |
+| Forward premium/discount | $F \gt S$ or $F \lt S$ | Higher domestic rates → forward premium |
 | FX forward PV | $N_F(S P_F - K P_D)$ | Discount each currency leg, convert to domestic |
-| Fair forward | $F^* = S \cdot P_F / P_D$ | Delivery price that makes PV = 0 at inception |
+| Fair forward | $F^{\star} = S \cdot P_F / P_D$ | Delivery price that makes PV = 0 at inception |
 | FX delta | $N_F \cdot P_F$ | Spot sensitivity of forward position |
 | NDF | Cash-settled FX forward | Used for restricted currencies |
 | Fixing risk | Risk that fixing differs from market | Unique to NDFs; managed via hedging/diversification |
@@ -952,11 +952,11 @@ The FX forward market is not a forecasting market—it's an interest rate market
 | 2 | State CIP in discount factor form. | $F = S \cdot P_F / P_D$ |
 | 3 | State CIP in continuous rate form. | $F = S \cdot e^{(r - r_f)T}$ |
 | 4 | Why can foreign currency be treated as an asset with yield? | Holding foreign currency earns the foreign risk-free rate |
-| 5 | If domestic rates > foreign rates, is the forward at premium or discount? | Premium ($F > S$ in $D/F$ quotes) |
+| 5 | If domestic rates > foreign rates, is the forward at premium or discount? | Premium ($F \gt S$ in $D/F$ quotes) |
 | 6 | What are "forward points"? | $F - S$; the forward-to-spot difference |
 | 7 | What drives forward points? | The interest differential between currencies |
 | 8 | What is the PV formula for a long FX forward? | $V = N_F(S \cdot P_F - K \cdot P_D)$ |
-| 9 | When is an FX forward worth zero at inception? | When $K = F^*$ (struck at the fair forward) |
+| 9 | When is an FX forward worth zero at inception? | When $K = F^{\star}$ (struck at the fair forward) |
 | 10 | What is the FX delta of a forward? | $N_F \cdot P_F$ |
 | 11 | How do you hedge a known future foreign cash inflow? | Short forward (sell foreign forward) with $N_F =$ inflow amount |
 | 12 | What return does a hedged foreign ZCB earn? | Approximately the domestic rate, not the foreign rate |
@@ -988,7 +988,7 @@ The FX forward market is not a forecasting market—it's an interest rate market
 
 4. Compute PV (in USD) of a long forward with $N_F = 5{,}000{,}000$ EUR, $S_0 = 1.10$, $K = 1.12$, $P_D = 0.99$, $P_F = 0.995$.
 
-5. Explain (in words) the arbitrage strategy when $F_{\text{mkt}} > F^*$.
+5. Explain (in words) the arbitrage strategy when $F_{\text{mkt}} \gt F^{\star}$.
 
 6. Using simple rates $R_D$, $R_F$, derive $F = S(1 + R_D T)/(1 + R_F T)$ from first principles.
 
@@ -996,7 +996,7 @@ The FX forward market is not a forecasting market—it's an interest rate market
 
 8. A U.S. investor will receive €10 million in 6 months. What forward position hedges the FX risk?
 
-9. Re-do Problem 4 using the formula $V = N_F \cdot P_D \cdot (F^* - K)$; verify it matches.
+9. Re-do Problem 4 using the formula $V = N_F \cdot P_D \cdot (F^{\star} - K)$; verify it matches.
 
 10. Compute the FX delta of the position in Problem 4.
 
@@ -1021,10 +1021,10 @@ $$V = 5{,}000{,}000 \times (1.10 \times 0.995 - 1.12 \times 0.99)$$
 $$= 5{,}000{,}000 \times (1.0945 - 1.1088) = 5{,}000{,}000 \times (-0.0143) = -71{,}500 \text{ USD}$$
 
 **Problem 5:**
-If $F_{\text{mkt}} > F^*$: borrow domestic, convert to foreign at spot, invest foreign, sell foreign forward at the high rate. At maturity, the forward proceeds exceed the domestic borrowing cost, locking in risk-free profit.
+If $F_{\text{mkt}} \gt F^{\star}$: borrow domestic, convert to foreign at spot, invest foreign, sell foreign forward at the high rate. At maturity, the forward proceeds exceed the domestic borrowing cost, locking in risk-free profit.
 
 **Problem 9:**
-$F^* = 1.10 \times 0.995/0.99 = 1.1056$
+$F^{\star} = 1.10 \times 0.995/0.99 = 1.1056$
 $V = 5M \times 0.99 \times (1.1056 - 1.12) = 5M \times 0.99 \times (-0.0144) = -71{,}280$ USD
 Matches within rounding. ✓
 
