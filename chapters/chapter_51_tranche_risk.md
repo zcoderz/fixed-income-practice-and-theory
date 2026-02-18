@@ -236,7 +236,7 @@ A normalized "rho" is also defined as the change in value per unit correlation p
 
 **Check (methodology + nonlinearity):** because tranche PV can be nonlinear in $\rho$ (and base-correlation bumps can propagate through interpolation), it is often worth computing a symmetric finite difference as a diagnostic:
 $$
-\mathrm{Corr01}_{\mathrm{sym}} \approx \frac{V(\rho+0.01)-V(\rho-0.01)}{2},
+\mathrm{Corr01}_{\mathrm{sym}} \approx \frac{V(\rho+0.01)-V(\rho-0.01)}{2}
 $$
 holding the same calibration/interpolation rules fixed. Large one-sided vs symmetric differences are a red flag that a local Corr01 is not stable and scenario shocks are more informative.
 
@@ -936,7 +936,7 @@ Consider a trader long protection on the 3–7% mezzanine tranche (typically lon
 - Suppose Corr01(0–3%) = –USD 80,000 per 1% correlation increase.
 
 **Step 3:** Size the hedge.
-$$n_{\mathrm{equity}} = -\frac{\mathrm{Corr01}_{3-7}}{\mathrm{Corr01}_{0-3}} = -\frac{+150{,}000}{-80{,}000} = 1.875$$
+$$n_{\mathrm{equity}} = -\frac{\mathrm{Corr01}_{3-7}}{\mathrm{Corr01}_{0-3}} = 1.875$$
 
 Sell protection on 1.875× the notional of 0–3% equity to offset correlation exposure.
 
@@ -1147,7 +1147,7 @@ This matches the definition of Corr01 as a 1% absolute bump in correlation used 
 
 ---
 
-### Example 1: Compute $\mathrm{TL}(L)$ and $\mathrm{ON}(L)$ Table for $L = 0\%, 2\%, 5\%, 10\%, 20\%$
+### Example 1: Compute TL(L) and ON(L) Table for L = 0%, 2%, 5%, 10%, 20%
 
 **Tranche:** $[A, D] = [3\%, 7\%] \Rightarrow W = 4\% = 0.04$.
 
@@ -1167,7 +1167,7 @@ Compute $\mathrm{TL}(L) = \min(\max(L - A, 0), W)$ and $\mathrm{ON}(L) = W - \ma
 
 ---
 
-### Example 2: Given a Discrete Loss Distribution for $L(T)$, Compute $\mathrm{ETL}(T)$ and Expected Outstanding
+### Example 2: Given a Discrete Loss Distribution for L(T), Compute ETL(T) and Expected Outstanding
 
 Use $T = 1$y loss distribution:
 
@@ -1194,7 +1194,7 @@ So expected outstanding is $3.6\%$ of portfolio = USD 3.6mm.
 
 ---
 
-### Example 3: Compute $\mathrm{PV}_{\mathrm{prot}}$ from $\mathrm{ETL}(t_i)$ Increments on the Time Grid
+### Example 3: Compute PV_prot from ETL(t_i) Increments on the Time Grid
 
 Assume (toy) linear time scaling of ETL:
 
@@ -1221,7 +1221,7 @@ $$\boxed{\mathrm{PV}_{\mathrm{prot}} = 100\mathrm{mm} \times 0.00393 = USD 393{,
 
 ---
 
-### Example 4: Compute $\mathrm{PV}_{\mathrm{prem}}$ for Spread $s$ Using Expected Outstanding on the Same Grid
+### Example 4: Compute PV_prem for Spread s Using Expected Outstanding on the Same Grid
 
 Take contractual tranche spread $s = 100$ bp/year ($s_{\mathrm{dec}} = 0.01$).
 
@@ -1263,7 +1263,7 @@ $$\boxed{\mathrm{PV}_{\mathrm{prem}} = USD 37{,}337.76}$$
 
 ---
 
-### Example 5: Solve Par Spread $s^{\star}$ That Sets PV $\approx 0$
+### Example 5: Solve Par Spread s_star That Sets PV about 0
 
 For long protection:
 
@@ -1291,7 +1291,7 @@ $$\boxed{s^{\star} = \frac{393{,}000}{373.3776} = 1052.6 \mathrm{ bp}}$$
 
 ---
 
-### Example 6: Tranche PV01: Bump $s$ by $\pm 1$bp and Compute PV01 via Central Difference
+### Example 6: Tranche PV01: Bump s by +/-1bp and Compute PV01 via Central Difference
 
 Use PV at $s = 100$bp (Examples 3–4):
 
@@ -1451,7 +1451,7 @@ $$\boxed{\Delta\mathrm{PV} = \mathrm{PV}_B - \mathrm{PV}_A = 418{,}786.72 - (-73
 
 ---
 
-### Example 9: Correlation Delta: Compute PV at $\rho \pm \Delta\rho$ and Report CorrDelta
+### Example 9: Correlation Delta: Compute PV at rho +/- Delta rho and Report CorrDelta
 
 We interpret settings A and B as $\rho - \Delta\rho$ and $\rho + \Delta\rho$ around a midpoint $\rho$.
 
@@ -1517,7 +1517,7 @@ A book-consistent way to capture the total jump is VOD, which includes repricing
 
 ---
 
-### Example 11: Clustered Default Scenario: $k$ Names Default Simultaneously; Compute Tranche Loss and PV Impact
+### Example 11: Clustered Default Scenario: k Names Default Simultaneously; Compute Tranche Loss and PV Impact
 
 Use same portfolio and tranche.
 
