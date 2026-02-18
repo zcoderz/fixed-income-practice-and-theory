@@ -48,7 +48,7 @@ Pricing (Chapter 49) and correlation frameworks (Chapter 50) build directly on t
 
 ### Quick Conventions (Read Once)
 - Attachments/detachments $A,D$ and losses are stated as **fractions of original portfolio notional** $N_{\text{port}}$ unless explicitly stated otherwise.
-- Portfolio loss $L(t)$ is the **cumulative** loss fraction (so $0 \le L(t) \le 1$, or $ \le L_{\max}$ if you assume fixed recoveries).
+- Portfolio loss $L(t)$ is the **cumulative** loss fraction (so $0 \le L(t) \le 1$, or $0 \le L(t) \le L_{\max}$ if you assume fixed recoveries).
 - A tranche is denoted $[A,D]$ with width $w=D-A$. Tranche face notional is $N_{\text{tr}}^{\text{face}} = w\,N_{\text{port}}$.
 - “Tranche loss” can be expressed either (i) as a fraction of **portfolio** notional, or (ii) as a fraction of **tranche** notional. State which you mean.
 - When we use basis points: $1\text{ bp} = 10^{-4}$.
@@ -267,7 +267,7 @@ $$L_{\text{tr}}(T; A, D) = \frac{TL(L(T))}{D - A}$$
 
 **Check (toy numbers):** for a $[3\%,7\%]$ tranche and portfolio loss $L=5\%$,
 $$
-TL(L)=\min(\max(5-3,0),4)=2\%\ \text{of portfolio notional},
+TL(L)=\min(\max(5-3,0),4)=2\%\ \text{of portfolio notional}
 $$
 so the tranche has lost $2/4=50\%$ of its face. If $N_{\text{port}}=USD 100\text{mm}$, that is a $USD 2\text{mm}$ loss on a $USD 4\text{mm}$ tranche.
 
@@ -427,8 +427,8 @@ At a desk level, you can think of:
 - **Protection leg PV** (expected discounted incremental tranche losses):
   $$PV_{\text{prot}} \approx \sum_j P(0,u_j)\,\mathbb{E}[\Delta TL_j]\,N_{\text{port}}$$
 
-The **par running spread** $S^*$ is the value that makes the trade have zero PV (ignoring any upfront), i.e.
-$$\boxed{S^* \approx \frac{PV_{\text{prot}}}{\sum_i \alpha_i\,P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]}}$$
+The **par running spread** $S^{\star}$ is the value that makes the trade have zero PV (ignoring any upfront), i.e.
+$$\boxed{S^{\star} \approx \frac{PV_{\text{prot}}}{\sum_i \alpha_i\,P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]}}$$
 
 **Risk (be explicit about “what is bumped”)**
 - **Spread PV01 (contract-spread bump):** bump the contractual running spread $S$ by $+1$ bp $=10^{-4}$, holding the expected outstanding-notional profile fixed.
@@ -938,7 +938,7 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 - Assumed portfolio loss levels $L(t)$ at premium dates: 2.9%, 3.1%, 3.1%, 3.2%
 
 **Outputs**
-- Par running spread (no upfront): $S^*\approx 509\text{ bp}$
+- Par running spread (no upfront): $S^{\star}\approx 509\text{ bp}$
 - Spread PV01 (bump $S$ by $+1$ bp, hold the assumed outstanding-notional path fixed):
   - protection seller: $+USD 378$ per 1 bp per USD 4mm tranche face
   - protection buyer: $-USD 378$ per 1 bp per USD 4mm tranche face
@@ -947,28 +947,28 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 1. Compute portfolio-scale tranche loss $TL(L(t_i))=\min(\max(L(t_i)-A,0),w)$.
 2. Compute outstanding tranche notional $N_{\text{tr}}^{\text{out}}(t_i)=(w-TL(L(t_i)))N_{\text{port}}$.
 3. Compute protection PV from incremental losses $\Delta TL\cdot N_{\text{port}}$.
-4. Compute the “risky annuity” $ \mathcal{A}:=\sum_i \alpha\,P(0,t_i)\,N_{\text{tr}}^{\text{out}}(t_i)$.
-5. Solve $S^*=PV_{\text{prot}}/\mathcal{A}$. Then $PV01_S \approx 10^{-4}\mathcal{A}$.
+4. Compute the “risky annuity” $\mathcal{A}:=\sum_i \alpha_i\,P(0,t_i)\,N_{\text{tr}}^{\text{out}}(t_i)$.
+5. Solve $S^{\star}=PV_{\text{prot}}/\mathcal{A}$. Then $PV01_S \approx 10^{-4}\mathcal{A}$.
 
 **Cashflows (protection buyer perspective; positive = receive)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-06-20 | $-0.25\,S^* \cdot USD 4.0\text{mm}\approx -USD 50{,}950$ | premium on full outstanding |
+| 2026-06-20 | $-0.25\,S^{\star} \cdot USD 4.0\text{mm}\approx -USD 50{,}950$ | premium on full outstanding |
 | 2026-09-20 | $+USD 100{,}000$ | tranche loss increases from 0 to 0.1% of portfolio |
-| 2026-09-20 | $-0.25\,S^* \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | premium base reduced after loss |
-| 2026-12-20 | $-0.25\,S^* \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | still outstanding USD 3.9mm |
+| 2026-09-20 | $-0.25\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | premium base reduced after loss |
+| 2026-12-20 | $-0.25\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | still outstanding USD 3.9mm |
 | 2027-03-20 | $+USD 100{,}000$ | tranche loss increases from 0.1% to 0.2% of portfolio |
-| 2027-03-20 | $-0.25\,S^* \cdot USD 3.8\text{mm}\approx -USD 48{,}403$ | premium on the remaining outstanding |
+| 2027-03-20 | $-0.25\,S^{\star} \cdot USD 3.8\text{mm}\approx -USD 48{,}403$ | premium on the remaining outstanding |
 
 **P&L / Risk Interpretation**
-- $S^*$ is “loss PV divided by risky annuity”: more expected loss $\Rightarrow$ higher par spread; faster amortization $\Rightarrow$ smaller annuity $\Rightarrow$ higher par spread.
+- $S^{\star}$ is “loss PV divided by risky annuity”: more expected loss $\Rightarrow$ higher par spread; faster amortization $\Rightarrow$ smaller annuity $\Rightarrow$ higher par spread.
 - $PV01_S$ here is small because the trade is short-dated and the tranche notional is only USD 4mm. Scaling is linear in tranche face.
 - “Hold fixed” matters: this $PV01_S$ is a **contract-spread bump** holding the (assumed) loss path fixed; if you bump index spreads and recalibrate a correlation surface, you will generally get a different number.
 
 **Sanity Checks**
 - Units check: $\alpha$ (years) × $S$ (per year) × notional (currency) → currency.
 - Sign check: increasing $S$ increases PV for the premium receiver (protection seller), decreases PV for the premium payer (protection buyer).
-- Limit check: if $\Delta TL=0$ everywhere (no losses), then $S^*=0$.
+- Limit check: if $\Delta TL=0$ everywhere (no losses), then $S^{\star}=0$.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you compute $TL$ as a **portfolio fraction** and then convert to dollars with $N_{\text{port}}$?
@@ -1196,7 +1196,7 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 | Tranche loss function | $\min(\max(L-A, 0), D-A)$ | Maps portfolio loss to tranche loss |
 | Premium leg | Running spread payments on outstanding tranche notional | Premium base amortizes as losses accrue |
 | Protection leg | Payments equal to incremental tranche loss | Drives jump risk and default-loss cashflows |
-| Par running spread $S^*$ | Spread that makes PV $\approx 0$ (given a model/assumptions) | Turns “expected loss” into a quote object |
+| Par running spread $S^{\star}$ | Spread that makes PV $\approx 0$ (given a model/assumptions) | Turns “expected loss” into a quote object |
 | Risky annuity | $\sum_i \alpha_i P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]$ | Sets spread PV01 magnitude for a contract-spread bump |
 | Spread PV01 | PV change for a +1bp bump to contractual spread $S$ (with a stated hold-fixed rule) | Only meaningful when the bumped object is explicit |
 | Leverage ratio | Systemic spread PV01 of tranche ÷ systemic spread PV01 of equivalent index notional | Explains why small tranche face can carry huge spread risk |
