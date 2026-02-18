@@ -549,7 +549,7 @@ where $\theta(t)$ is a deterministic function.
 Hull notes this is Vasicek with a time-dependent mean-reversion level:
 $$dr(t) = a \\, [b(t) - r(t)] \\, dt + \sigma \\, dz, \quad b(t) = \frac{\theta(t)}{a}$$
 
-### 4.2 How $\theta(t)$ Is Chosen to Fit Today's Curve $P^M(0,T)$
+### 4.2 How theta(t) Is Chosen to Fit Today's Curve P^M(0,T)
 
 This is the exogenous term structure idea: the initial curve is taken from the market and built into the model.
 
@@ -639,7 +639,7 @@ $$dx(t) = k(\theta - x(t)) \\, dt + \sigma \sqrt{x(t)} \\, dW(t), \quad x(0) = x
 
 with parameters satisfying the Feller condition $2k\theta \gt \sigma^2$ to ensure $x(t) \gt 0$ for all $t$.
 
-**The Shift Function $\varphi(t)$**
+**The Shift Function `varphi(t)`**
 
 To fit the market curve $P^M(0,T)$ exactly, the shift function is determined by:
 
@@ -1524,7 +1524,7 @@ $$\gamma = \sqrt{a^2 + 2\sigma^2}$$
 
 $B(t,T)$ and $A(t,T)$ as in Section 3.3.
 
-### 9.5 Hull–White Curve-Fit Derivation Map: How $\theta(t)$ Links to $P^M(0,T)$
+### 9.5 Hull–White Curve-Fit Derivation Map: How theta(t) Links to P^M(0,T)
 
 **Core Point (Supported)**
 
@@ -1622,7 +1622,7 @@ The HJM connection explains:
 
 ---
 
-### Example 1: Vasicek — Compute $\mathbb{E}[r_T]$ and $\text{Var}(r_T)$
+### Example 1: Vasicek — Compute E[r_T] and Var(r_T)
 
 **Given:**
 - $a = 0.5$, $b = 0.05$, $\sigma = 0.02$, $r_0 = 0.03$, $T = 2$
@@ -1747,7 +1747,7 @@ $$P(0,2) = A e^{-B r_0} = 0.9755 \cdot e^{-1.4470 \cdot 0.04}$$
 
 ---
 
-### Example 5: Hull–White — Compute $\theta(t)$ From a Toy Initial Curve
+### Example 5: Hull–White — Compute theta(t) From a Toy Initial Curve
 
 **Choose an initial discount curve defined by:**
 $$P(0,t) = \exp(-0.02t - 0.0025t^2)$$
@@ -1841,7 +1841,7 @@ A +1 bp shift gives $\Delta P \approx -0.0001331$.
 
 ---
 
-### Example 8: Negative Rates Illustration Under Vasicek/HW — Compute $\mathbb{P}(r_T \lt 0)$
+### Example 8: Negative Rates Illustration Under Vasicek/HW — Compute P(r_T < 0)
 
 Because Vasicek is Gaussian with known mean/variance, $r_T \sim N(m, s^2)$.
 
@@ -1909,7 +1909,7 @@ Use Vasicek ZCB sensitivity $\partial P / \partial r = -BP$.
 
 ---
 
-### Example 10: Sanity Check — $\sigma \to 0$ Makes the Evolution Deterministic
+### Example 10: Sanity Check — sigma -> 0 Makes the Evolution Deterministic
 
 Use Vasicek with $a = 0.3$, $b = 0.05$, $r_0 = 0.04$, $T = 2$.
 
