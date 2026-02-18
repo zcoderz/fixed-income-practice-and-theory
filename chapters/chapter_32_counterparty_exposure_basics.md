@@ -45,8 +45,8 @@ We adopt the **bank/dealer perspective** throughout. The bank has a portfolio of
 
 | Item | Description |
 |------------|-------------|
-| **MTM sign** | We define $V(t)$ as the net mark-to-market of all trades in the netting set at time $t$, from the bank’s perspective. **$V(t) > 0$** means the bank is in-the-money (the counterparty owes the bank). |
-| **Collateral sign** | We define $C(t)$ as collateral held by the bank at time $t$. $C(t)>0$ means the counterparty has posted collateral; $C(t)<0$ means the bank has posted collateral (amount $-C(t)$). |
+| **MTM sign** | We define $V(t)$ as the net mark-to-market of all trades in the netting set at time $t$, from the bank’s perspective. **$V(t) \gt 0$** means the bank is in-the-money (the counterparty owes the bank). |
+| **Collateral sign** | We define $C(t)$ as collateral held by the bank at time $t$. $C(t)\gt 0$ means the counterparty has posted collateral; $C(t)\lt 0$ means the bank has posted collateral (amount $-C(t)$). |
 | **Exposure** | Bank exposure to counterparty default at time $t$: $E(t)=\max(V(t)-C(t),0)$. |
 
 We keep the full symbol list in `## Notation` near the end; the only symbols you need immediately are $V(t)$, $C(t)$, $E(t)$, and the CSA parameters “threshold” $H$, “minimum transfer amount” $m$, and “cure period / MPOR” $c$.
@@ -59,7 +59,7 @@ We keep the full symbol list in `## Notation` near the end; the only symbols you
 
 Consider a dealer with a single derivatives transaction outstanding with a counterparty. The value of the transaction to the dealer is $V$. If the counterparty defaults, what does the dealer lose?
 
-If $V < 0$, the dealer owes the counterparty—there is no credit loss (in fact, the dealer benefits from not having to pay). But if $V > 0$, the counterparty owes the dealer, and the dealer becomes an unsecured creditor for the amount $V$.
+If $V \lt 0$, the dealer owes the counterparty—there is no credit loss (in fact, the dealer benefits from not having to pay). But if $V \gt 0$, the counterparty owes the dealer, and the dealer becomes an unsecured creditor for the amount $V$.
 
 **Anchor (definition):** Ignoring recovery and collateral for the moment, the dealer’s exposure at time $t$ is the positive part of the net MTM:
 
@@ -69,7 +69,7 @@ $$\boxed{E(t) = \max(V(t), 0)}$$
 >
 > Counterparty risk is like holding a casino chip.
 >
-> *   **If you are winning (\$1000 chip)**: You have exposure to the casino. You worry: "Does the cage have enough cash to pay me?"
+> *   **If you are winning (USD 1000 chip)**: You have exposure to the casino. You worry: "Does the cage have enough cash to pay me?"
 > *   **If you are losing**: You owe the casino. You have *no* exposure to them (they have exposure to *you*).
 > *   **Max(V, 0)**: You only care about the counterparty's health when you are winning. If you are losing, their bankruptcy doesn't hurt you (in fact, you might get out of paying!).
 
@@ -167,29 +167,29 @@ Operationally, you cannot mix trades from different legal entities, or trades un
 
 ### 32.3.1 How Collateral Modifies Exposure
 
-**Anchor (default close-out identity):** Using the sign convention that $C>0$ means collateral posted by the counterparty to the bank and $C<0$ means collateral posted by the bank, the **non-defaulting party’s claim** is $\max(V-C,0)$ and the **payment it must make** is $\max(C-V,0)$.
+**Anchor (default close-out identity):** Using the sign convention that $C\gt 0$ means collateral posted by the counterparty to the bank and $C\lt 0$ means collateral posted by the bank, the **non-defaulting party’s claim** is $\max(V-C,0)$ and the **payment it must make** is $\max(C-V,0)$.
 
 From the bank’s perspective, exposure to counterparty default at time $t$ is therefore:
 
 $$\boxed{E(t) = \max(V(t) - C(t), 0)}$$
 
 **Expand (mechanics):**
-- If $V>C$, the bank keeps collateral $C$ and is an unsecured creditor for the residual $V-C$.
-- If $V<C$, the bank keeps $V$ worth of collateral and returns the excess $C-V$.
-- If $C<0$, the bank has posted collateral. “Over-posted” collateral can become an exposure if the counterparty defaults while holding it.
+- If $V\gt C$, the bank keeps collateral $C$ and is an unsecured creditor for the residual $V-C$.
+- If $V\lt C$, the bank keeps $V$ worth of collateral and returns the excess $C-V$.
+- If $C\lt 0$, the bank has posted collateral. “Over-posted” collateral can become an exposure if the counterparty defaults while holding it.
 
 **Check (numbers):**
 - If $V=50$ and $C=45$, then $E=\max(50-45,0)=5$. (A residual unsecured claim.)
 - If $V=50$ and $C=55$, then $E=0$ and the bank returns $55-50=5$ of collateral.
 - If $V=-50$ and $C=-55$, then $E=\max(-50-(-55),0)=5$. (Excess collateral posted may not come back.)
 
-**Check (interpret the “$V<0$ but $E>0$” case):** The last line is often the surprise. Exposure is about what you can lose if the counterparty defaults, not about whether your MTM is positive. If you have posted more collateral than you currently owe (because of timing, thresholds, haircuts, or disputes), that excess collateral is effectively a receivable from the counterparty and can be at risk while they hold it.
+**Check (interpret the “$V\lt 0$ but $E\gt 0$” case):** The last line is often the surprise. Exposure is about what you can lose if the counterparty defaults, not about whether your MTM is positive. If you have posted more collateral than you currently owe (because of timing, thresholds, haircuts, or disputes), that excess collateral is effectively a receivable from the counterparty and can be at risk while they hold it.
 
 ### 32.3.2 Variation Margin (VM)
 
 **Variation margin** is collateral exchanged frequently to track the current MTM under the CSA.
 
-In a **perfect, instantaneous, zero-threshold VM world**, current exposure would be driven to zero. If $V$ changes, collateral immediately adjusts so that $C = V$ when $V > 0$ (or $C = V$ for two-way VM). Then $E = \max(V - V, 0) = 0$.
+In a **perfect, instantaneous, zero-threshold VM world**, current exposure would be driven to zero. If $V$ changes, collateral immediately adjusts so that $C = V$ when $V \gt 0$ (or $C = V$ for two-way VM). Then $E = \max(V - V, 0) = 0$.
 
 In reality, this idealized state is never achieved because of:
 1. **Thresholds** — collateral only required above a threshold
@@ -217,7 +217,7 @@ The effective collateral value is:
 
 $$\boxed{C_{\text{effective}} = C_{\text{market}} \times (1 - \text{haircut})}$$
 
-**Check (numbers):** A $10\%$ haircut means a \$100 security counts as \$90 of collateral; a $30\%$ haircut means it counts as \$70.
+**Check (numbers):** A $10\%$ haircut means a USD 100 security counts as USD 90 of collateral; a $30\%$ haircut means it counts as USD 70.
 
 > **Desk Reality:** When a CSA permits multiple collateral types, the posting party will optimize by posting the “cheapest-to-deliver” collateral after haircuts and eligibility rules.
 > **Common break:** Modeling assumes “collateral = cash” or assumes a fixed collateral type; the effective $C(t)$ can change when the posting party switches what they deliver.
@@ -478,7 +478,7 @@ $$E^{(\omega)}(t_i) = \max(V^{(\omega)}(t_i) - C^{(\omega)}(t_i), 0)$$
 
 $$EE(t_i) = \frac{1}{N} \sum_{\omega=1}^{N} E^{(\omega)}(t_i)$$
 
-$$PFE_{97.5\%}(t_i) = \text{97.5th percentile of } \{E^{(\omega)}(t_i)\}_{\omega=1}^{N}$$
+$$PFE_{0.975}(t_i) = \text{97.5th percentile of } \{E^{(\omega)}(t_i)\}_{\omega=1}^{N}$$
 
 ### 32.7.2 Time Grid Selection
 
@@ -498,17 +498,17 @@ Exposure metrics are functions of $V(t)$, which in turn depends on risk factors 
 
 - **Bump object:** the market input you perturb (e.g., a parallel 1bp shift to the discount zero curve used for valuation).
 - **Bump size:** $1\text{bp}=10^{-4}$.
-- **Units:** currency per 1bp (state whether “per 100 notional” or “per \$1 notional”).
-- **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For a plain long fixed-income position, rates down $\Rightarrow PV$ up $\Rightarrow DV01>0$.
+- **Units:** currency per 1bp (state whether “per 100 notional” or “per USD 1 notional”).
+- **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For a plain long fixed-income position, rates down $\Rightarrow PV$ up $\Rightarrow DV01\gt 0$.
 
 To get an “exposure DV01,” you would bump the curve, revalue $V^{(\omega)}(t_i)$ on each path, recompute $E^{(\omega)}(t_i)$, then re-aggregate into bumped $EE(t_i)$ or $PFE_q(t_i)$. This is conceptually simple but computationally expensive, so many implementations use proxies.
 
 **Expand (the $\max$ makes exposure “option-like”):** Because $E=\max(V-C,0)$ is a positive-part function, exposure is *one-sided*. On a path where $V^{(\omega)}(t_i)-C^{(\omega)}(t_i)$ is comfortably negative, $E^{(\omega)}(t_i)=0$ and a small risk-factor bump often leaves exposure unchanged (pathwise exposure sensitivity $\approx 0$). Near the boundary $V\approx C$, small bumps can switch exposure on/off, so finite-difference bump size and central-difference schemes matter.
 
-**Check (two-path toy):** Suppose at a future date $t$ there are two equally likely states, and on both states the *portfolio PV* has $DV01=+\$100\text{k}$ per 1bp (rates down $\Rightarrow V$ up by $0.10\text{mm}$).
-- State A: $V-C=+\$1.00\text{mm}\Rightarrow E=1.00\text{mm}$. After a 1bp rates-down bump, $E$ increases to $1.10\text{mm}$.
-- State B: $V-C=-\$1.00\text{mm}\Rightarrow E=0$. After the same bump, $V-C=-0.90\text{mm}\Rightarrow E$ stays 0.
-So the expected-exposure DV01 is about $0.5\times \$100\text{k}=\$50\text{k}$ per 1bp, not \$100k: the negative-exposure state contributes no exposure sensitivity.
+**Check (two-path toy):** Suppose at a future date $t$ there are two equally likely states, and on both states the *portfolio PV* has $DV01=+USD 100\text{k}$ per 1bp (rates down $\Rightarrow V$ up by $0.10\text{mm}$).
+- State A: $V-C=+USD 1.00\text{mm}\Rightarrow E=1.00\text{mm}$. After a 1bp rates-down bump, $E$ increases to $1.10\text{mm}$.
+- State B: $V-C=-USD 1.00\text{mm}\Rightarrow E=0$. After the same bump, $V-C=-0.90\text{mm}\Rightarrow E$ stays 0.
+So the expected-exposure DV01 is about $0.5\times USD 100\text{k}=USD 50\text{k}$ per 1bp, not USD 100k: the negative-exposure state contributes no exposure sensitivity.
 
 ### 32.7.4 The Exposure Cone
 
@@ -701,7 +701,7 @@ $$EE(1y) = 0.5 \times 5 + 0.5 \times 0 = 2.5$$
 
 CDF: $P(E \leq 0) = 0.5$, $P(E \leq 5) = 1.0$.
 
-The 95% quantile is 5, so $PFE_{95\%}(1y) = 5$.
+The 95% quantile is 5, so $PFE_{0.95}(1y) = 5$.
 
 **Interpretation:** Expected exposure is 2.5, but the 95% worst case is 5—twice as high. PFE captures tail risk that EE averages away.
 
@@ -714,7 +714,7 @@ The 95% quantile is 5, so $PFE_{95\%}(1y) = 5$.
 **Current exposure (today):**
 $$E(0) = \max(1, 0) = 1$$
 
-**Future PFE (1 year):** From Example A, $PFE_{95\%}(1y) = 5$.
+**Future PFE (1 year):** From Example A, $PFE_{0.95}(1y) = 5$.
 
 **Interpretation:** Current exposure is small (1), but the 95% "how bad can it get in a year?" measure is 5. This illustrates why risk teams monitor both current exposure and forward-looking tail measures like PFE.
 
@@ -735,7 +735,7 @@ $$E_{\text{no net}} = \max(V_1, 0) + \max(V_2, 0)$$
 
 $EE_{\text{no net}} = 0.5 \times 10 + 0.5 \times 8 = 9$
 
-$PFE_{95\%} = 10$
+$PFE_{0.95} = 10$
 
 **With netting:**
 
@@ -746,7 +746,7 @@ Net MTM $V_{\text{net}} = V_1 + V_2$
 
 $EE_{\text{net}} = 0.5 \times 2 + 0.5 \times 0 = 1$
 
-$PFE_{95\%} = 2$
+$PFE_{0.95} = 2$
 
 **Netting benefit:** EE drops from 9 to 1 (89% reduction). PFE drops from 10 to 2 (80% reduction). The offsetting positions almost fully hedge each other from a credit exposure perspective.
 
@@ -773,7 +773,7 @@ At $t = 1y$:
 - MTA $m = 1$
 - Two-way VM, no lag
 
-**Collateral rule:** Call amount $= \max(V - H, 0)$. If call amount $< m$, no transfer.
+**Collateral rule:** Call amount $= \max(V - H, 0)$. If call amount $\lt m$, no transfer.
 
 **Case 1: $V = +5$**
 - Call amount $= \max(5 - 2, 0) = 3$
@@ -787,7 +787,7 @@ At $t = 1y$:
 
 $EE = 0.5 \times 2 + 0.5 \times 0 = 1$
 
-$PFE_{95\%} = 2$
+$PFE_{0.95} = 2$
 
 **Interpretation:** The threshold creates a "residual unsecured band" of up to 2, even with VM in place.
 
@@ -852,7 +852,7 @@ This is a symmetric random walk. Define $\Delta V_{10}^+ = \max(\Delta V_{10}, 0
 | $t_3$ | S1 | 2 | -1 | -1 | 0 |
 | $t_3$ | S2 | 1 | 1 | -1 | 1 |
 
-**Collateral rule:** If $V > H$, counterparty posts $C = V - H$.
+**Collateral rule:** If $V \gt H$, counterparty posts $C = V - H$.
 
 **Results:**
 
@@ -865,7 +865,7 @@ This is a symmetric random walk. Define $\Delta V_{10}^+ = \max(\Delta V_{10}, 0
 | $t_3$ | S1 | 0 | 0 | 0 |
 | $t_3$ | S2 | 1 | 0 | 1 |
 
-At each time: $EE = 0.5$, $PFE_{95\%} = 1$
+At each time: $EE = 0.5$, $PFE_{0.95} = 1$
 
 **Interpretation:** The threshold creates a floor on exposure at or below $H$, while netting reduces net MTM volatility by offsetting trades.
 
@@ -955,7 +955,7 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 **Sum:** $0.04901 + 0.05765 + 0.05651 = 0.16317$
 
-**CVA:** $0.6 \times 0.16317 = 0.0979$ million = **\$97,900**
+**CVA:** $0.6 \times 0.16317 = 0.0979$ million = **USD 97,900**
 
 ---
 
@@ -971,41 +971,41 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 - Close-out date $\tau$: 2026-03-22
 
 **Inputs**
-- Sign convention: $V>0$ means the counterparty owes the bank; $C>0$ means collateral held by the bank.
+- Sign convention: $V\gt 0$ means the counterparty owes the bank; $C\gt 0$ means collateral held by the bank.
 - Two-way, zero-threshold VM with the modeling convention: collateral at $\tau$ is based on the MTM $c$ days earlier.
 - Cure period / MPOR lookback: $c=20$ calendar days.
-- Portfolio MTM at close-out: $V(\tau)=+\$50\text{mm}$.
-- Portfolio MTM $c$ days earlier: $V(\tau-c)=+\$45\text{mm}$.
+- Portfolio MTM at close-out: $V(\tau)=+USD 50\text{mm}$.
+- Portfolio MTM $c$ days earlier: $V(\tau-c)=+USD 45\text{mm}$.
 
 **Outputs (What You Produce)**
-- Close-out exposure $E(\tau)$ in \$mm.
+- Close-out exposure $E(\tau)$ in USD mm.
 - Interpretation: collateral kept vs. residual unsecured claim.
 
 **Step-by-step**
 1. Collateral held at $\tau$ is based on the earlier MTM, so $C(\tau)=45\text{mm}$.
 2. Exposure at close-out:
    $$
-   E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\$5\text{mm}.
-   $$
+ E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\mathrm{USD}\,5\text{mm}.
+ $$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-03-02 | $+\$45\text{mm}$ | Counterparty posts VM based on MTM $=45\text{mm}$ |
+| 2026-03-02 | $+USD 45\text{mm}$ | Counterparty posts VM based on MTM $=45\text{mm}$ |
 | 2026-03-22 | Close-out | Bank has net claim $50\text{mm}$; uses $45\text{mm}$ collateral; residual $5\text{mm}$ is unsecured |
 
 **P&L / Risk Interpretation**
-- The \$5mm is **gap exposure** created purely by timing: the MTM moved from 45 to 50 during MPOR while collateral was frozen.
-- If the counterparty defaults and recovery on the residual unsecured claim is $R$, the loss on this path is approximately $(1-R)\times \$5\text{mm}$ (ignoring close-out costs and legal frictions).
+- The USD 5mm is **gap exposure** created purely by timing: the MTM moved from 45 to 50 during MPOR while collateral was frozen.
+- If the counterparty defaults and recovery on the residual unsecured claim is $R$, the loss on this path is approximately $(1-R)\times USD 5\text{mm}$ (ignoring close-out costs and legal frictions).
 
 **Sanity Checks**
-- Units check: $V, C, E$ are currency; the result is in \$mm.
+- Units check: $V, C, E$ are currency; the result is in USD mm.
 - Limiting case: if $c\to 0$, then $C(\tau)\to V(\tau)$ and $E(\tau)\to 0$.
 - Sign check: if $V(\tau)\le 0$, then $E(\tau)=0$ regardless of $C(\tau)$.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you use the *last agreed/settled* collateral date (not merely last valuation run)?
-- Are you consistent on signs ($V>0$ asset to bank; $C>0$ collateral held by bank)?
+- Are you consistent on signs ($V\gt 0$ asset to bank; $C\gt 0$ collateral held by bank)?
 - Did you apply the cure-period/MPOR lookback consistently (use $V(\tau-c)$ when modeling collateral at $\tau$)?
 
 ---
@@ -1022,7 +1022,7 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 **Sign convention errors:** Always verify that positive $V$ means in-the-money for the bank, and that collateral $C$ follows the correct convention. Sign errors reverse conclusions.
 
-**Ignoring haircuts on securities collateral:** \$100 of securities collateral is not \$100 of collateral value. After a 10% haircut, it counts as \$90 effective.
+**Ignoring haircuts on securities collateral:** USD 100 of securities collateral is not USD 100 of collateral value. After a 10% haircut, it counts as USD 90 effective.
 
 ### 32.13.2 Implementation Considerations
 
@@ -1036,7 +1036,7 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 ### 32.13.3 Sanity Checks
 
-- **Netting cannot increase exposure:** If $E_{\text{net}} > E_{\text{no net}}$ in your model, something is wrong.
+- **Netting cannot increase exposure:** If $E_{\text{net}} \gt E_{\text{no net}}$ in your model, something is wrong.
 - **Tighter collateral reduces exposure:** Lower thresholds, lower MTAs, and more frequent VM should all reduce exposure metrics.
 - **PFE ≥ EE** for typical distributions. Equality occurs only for degenerate cases (constant exposure).
 - **IRS exposure is hump-shaped; FX swap exposure increases:** If your model shows opposite shapes, investigate.
@@ -1111,8 +1111,8 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| $V(t)$ | Net MTM of the netting set at time $t$ | currency; $V>0$ is an asset to the bank |
-| $C(t)$ | Collateral held by the bank | currency; $C>0$ held by bank, $C<0$ posted by bank |
+| $V(t)$ | Net MTM of the netting set at time $t$ | currency; $V\gt 0$ is an asset to the bank |
+| $C(t)$ | Collateral held by the bank | currency; $C\gt 0$ held by bank, $C\lt 0$ posted by bank |
 | $E(t)$ | Exposure | currency; $E(t)=\max(V(t)-C(t),0)$ |
 | $CE$ | Current exposure | currency; $CE=E(0)$ |
 | $EE(t)$ | Expected exposure | currency |
@@ -1163,7 +1163,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 2. (Compute) Two trades with values $V_1=+3$, $V_2=-1$. Compute exposure with and without netting.
 3. (Compute) Threshold $H=5$: if net $V=7$, what VM is called and what residual exposure remains?
 4. (Compute) Cure period $c$: if $V(\tau)=12$ but $V(\tau-c)=9$ under zero-threshold VM, what is $E(\tau)$?
-5. (Compute) Securities collateral: the bank owes \$95 and has posted securities collateral with market value \$110 and haircut 10%. Compute the bank’s exposure (use the chapter’s sign convention).
+5. (Compute) Securities collateral: the bank owes USD 95 and has posted securities collateral with market value USD 110 and haircut 10%. Compute the bank’s exposure (use the chapter’s sign convention).
 6. (Concept) Explain why netting implies $\max(V_1+V_2,0) \le \max(V_1,0)+\max(V_2,0)$.
 7. (Desk) Give two operational reasons realized exposure can exceed a “perfect daily VM” model, and one concrete thing you would check first.
 8. (Concept) Explain why PFE computation does not require simulating default.
@@ -1176,7 +1176,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 4. Under the stale-collateral convention, $C(\tau)\approx 9$, so $E(\tau)=\max(12-9,0)=3$.
 5. Effective collateral posted is $110\times(1-0.10)=99$. With $V=-95$ and $C=-99$, $E=\max(-95-(-99),0)=4$.
 8. Exposure answers “*if* default happens, what is the loss?” You simulate the portfolio value to get $E(t)$; default probabilities enter later when converting exposure into expected loss (e.g., CVA).
-10. Example answer: bump object = parallel 1bp shift to the valuation discount zero curve; bump size $1$bp $=10^{-4}$; units = currency per 1bp; sign $DV01=PV(\text{rates down }1bp)-PV(\text{base})$ (long rates risk $\Rightarrow DV01>0$).
+10. Example answer: bump object = parallel 1bp shift to the valuation discount zero curve; bump size $1$bp $=10^{-4}$; units = currency per 1bp; sign $DV01=PV(\text{rates down }1bp)-PV(\text{base})$ (long rates risk $\Rightarrow DV01\gt 0$).
 
 ## References
 
