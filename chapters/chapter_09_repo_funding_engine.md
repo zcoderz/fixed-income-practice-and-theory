@@ -224,42 +224,24 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 **Step-by-step**
 1. Invoice cash at settlement:
-
-   $$
-   \text{Invoice cash}=N\times I(0)/100 = 100{,}000{,}000\times 102.90/100 = USD 102{,}900{,}000.
-   $$
+   $\text{Invoice cash}=N\times I(0)/100 = 100{,}000{,}000\times 102.90/100 = 102{,}900{,}000$ USD.
 
 2. Repo start cash with haircut:
-
-   $$
-   L_0=(1-h)\times \text{Invoice cash}=0.98\times 102{,}900{,}000=USD 100{,}842{,}000.
-   $$
+   $L_0=(1-h)\times \text{Invoice cash}=0.98\times 102{,}900{,}000=100{,}842{,}000$ USD.
 
    Equity posted $E_0 = \text{Invoice cash}-L_0 = USD 2{,}058{,}000$.
 3. Repo interest over 7 days:
-
-   $$
-   \text{Repo interest}=L_0 \times r \times d/360 = 100{,}842{,}000 \times 0.048 \times 7/360 = USD 94{,}119.20.
-   $$
+   $\text{Repo interest}=L_0 \times r \times d/360 = 100{,}842{,}000 \times 0.048 \times 7/360 = 94{,}119.20$ USD.
 
 4. Coupon accrual over 7 days (assumption above):
-
-   $$
-   \text{Accrual}=N\times (c/2)\times (d/D) = 100{,}000{,}000\times 0.03 \times 7/182 = USD 115{,}384.62.
-   $$
+   $\text{Accrual}=N\times (c/2)\times (d/D) = 100{,}000{,}000\times 0.03 \times 7/182 = 115{,}384.62$ USD.
 
 5. Repo carry (ignoring price changes and ignoring the funding cost of the haircut equity):
-
-   $$
-   \text{Carry}\approx \text{Accrual} - \text{Repo interest} = USD 21{,}265.42.
-   $$
+   $\text{Carry}\approx \text{Accrual} - \text{Repo interest} = 21{,}265.42$ USD.
 
 6. Funding-rate risk (`Repo01`):
    Define `Repo01` as $PL(r-1\text{bp})-PL(r)$ holding $L_0$ and everything else fixed. With simple interest on a 360-day basis,
-
-   $$
-   \text{Repo01}=L_0 \times (d/360) \times 10^{-4} = USD 196.08 \text{ per 1bp}.
-   $$
+   $\text{Repo01}=L_0 \times (d/360) \times 10^{-4} = 196.08$ USD per 1bp.
 
    This is **positive** for a funded long: a 1bp drop in the repo rate reduces financing cost.
 
