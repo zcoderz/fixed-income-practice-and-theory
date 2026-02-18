@@ -124,10 +124,7 @@ $$\boxed{\frac{1}{M} \sum_{m=1}^{M}\left(S_{m}(t, T)-C(T)\right) \cdot \mathrm{R
 
 Here $RPV01_I$ is calculated using a flat index curve—a market convention for index pricing. Because $RPV01_I$ itself depends on the spread level, this equation is mildly nonlinear and requires solving iteratively (e.g., via Newton-Raphson or bisection).
 
-**Check (why “RPV01 fixed” can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\,RPV01_I(S)$, then
-$$
-\frac{dU}{dS}=RPV01_I(S) + (S-C)\,\frac{d\,RPV01_I}{dS}.
-$$
+**Check (why “RPV01 fixed” can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\,RPV01_I(S)$, then $\frac{dU}{dS}=RPV01_I(S) + (S-C)\,\frac{d\,RPV01_I}{dS}$.
 Higher spreads typically imply shorter survival and a **smaller** $RPV01_I$, so $d\,RPV01_I/dS\lt 0$. That means the constant-$RPV01$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high.
 
 ### 46.1.5 The Operational Approximation: RPV01-Weighted Average
@@ -233,14 +230,7 @@ Two common conventions in practice are:
 
 Whichever quote object you start from, **convert to a common representation first** (spread or upfront), compute intrinsic in the same convention, then take the difference.
 
-**Check (spread basis ↔ upfront basis):** for spread-quoted indices under the local $RPV01$-fixed approximation,
-$$
-\Delta PV \approx N \cdot RPV01_I \cdot \Delta b,
-$$
-and the corresponding **clean upfront** change as percent of notional is approximately
-$$
-\Delta U_{\mathrm{pct}} \approx 0.01 \times A_I \times \Delta b_{\text{bp}}.
-$$
+**Check (spread basis ↔ upfront basis):** for spread-quoted indices under the local $RPV01$-fixed approximation, $\Delta PV \approx N \cdot RPV01_I \cdot \Delta b$, and the corresponding **clean upfront** change as percent of notional is approximately $\Delta U_{\mathrm{pct}} \approx 0.01 \times A_I \times \Delta b_{\text{bp}}$.
 Example: if $A_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\mathrm{pct}}\approx 0.01\times 4.2\times 3 = 0.126\%$ (0.126 points), i.e., about $USD 126k$ per $USD 100\text{mm}$ notional.
 
 > **Pitfall — Spread quote vs points-upfront:** Confusing “bp” quotes with “price/points” quotes (and forgetting the fixed coupon).
@@ -421,7 +411,7 @@ Define the **forward** survival probability over $[T_{n-1},T_n]$ as
 $$Q_m(t;T_{n-1},T_n):=\frac{Q_m(t,T_n)}{Q_m(t,T_{n-1})}.$$
 
 Then the PSA idea is to raise that forward survival probability to a power:
-$$Q_{m}^{*}\left(t, T_{n}\right)=Q_{m}^{*}\left(t, T_{n-1}\right)\cdot \bigl(Q_m(t;T_{n-1},T_n)\bigr)^{\alpha(n)}.$$
+$Q_{m}^{\star}\left(t, T_{n}\right)=Q_{m}^{\star}\left(t, T_{n-1}\right)\cdot \bigl(Q_m(t;T_{n-1},T_n)\bigr)^{\alpha(n)}$.
 
 This raises the forward survival probability over $[T_{n-1},T_n]$ to a power $\alpha(n)$. Under an intensity representation, it is equivalent to multiplying the forward hazard rate over that interval by $\alpha(n)$.
 
