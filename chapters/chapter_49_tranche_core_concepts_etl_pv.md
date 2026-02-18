@@ -533,12 +533,12 @@ Interpretation: tranche RPV01 behaves like CDS RPV01. For a very safe tranche, e
 - The formula above returns **years per USD 1 tranche face**.
 - To convert to dollars on a position, multiply by tranche face notional $N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}}$.
 - Traders often quote “RPV01” in **dollars per 1 bp**:
-  $$\mathrm{RPV01}_{bp} = 10^{-4} \times N_{\mathrm{tr}}^{\mathrm{face}} \times \mathrm{RPV01}$$
+  $$RPV01bp = 10^{-4} \times NtrFace \times RPV01$$
 - **Bump definition (spread risk):**
   - Bump object: the **running spread** $s$ on the premium leg, holding the ETL/$Q$ term structure and discount factors fixed.
   - Bump size: $1\text{ bp} = 10^{-4}$ (in decimal per year).
   - Units: currency per 1 bp, for the stated tranche face notional.
-  - Sign (protection buyer): $\Delta PV \approx -\mathrm{RPV01}_{bp} \times \Delta s_{bp}$.
+  - Sign (protection buyer): `Delta PV ≈ -RPV01bp × Delta s(bp)`.
 
 **Comparison to single-name CDS RPV01:** The tranche RPV01 has the same mathematical structure as the CDS RPV01 in Chapter 41, but with the issuer survival curve replaced by the tranche survival curve. This reinforces the CDS-tranche analogy: once you have the survival curve, pricing follows the same formulas.
 
@@ -593,7 +593,7 @@ The position is underwater: spreads widened, so the protection seller owes more 
 > **Desk Reality: P&L Decomposition**
 >
 > When spreads move, tranche P&L has two components:
-> 1. **Spread P&L:** $(s^{\star}_{new} - s^{\star}_{old}) \times PV01_{\text{prem}}$
+> 1. **Spread P&L:** `(new par spread - old par spread) × PV01_prem`
 > 2. **Time decay / carry:** Premium received minus expected loss accrued
 >
 > Additionally, $PV01_{\text{prem}}$ (and $RPV01$) changes as survival probabilities evolve, creating **convexity P&L** (second-order effect).
@@ -610,7 +610,7 @@ Tranche quotes can be in basis points or involve an upfront payment. In the latt
 
 One way to remember the quote algebra is:
 $$
-U_{\mathrm{points}} = EL_{\mathrm{exp}} - \frac{s \times PV_{\mathrm{pmts}}}{10{,}000}
+Upoints = ELexp - \frac{s \times PVpmts}{10{,}000}
 $$
 where $\text{ExpLoss}$ is expected loss as a percent of tranche principal and $\text{PVPmts}$ is the present value of expected premium payments computed at 10,000 bp/year.
 
@@ -624,13 +624,13 @@ $$\boxed{0 = V_{\text{clean}} - U \quad\Rightarrow\quad U = V_{\text{clean}}}$$
 
 Dividing by tranche face notional $N_{\text{tr}}^{\text{face}}$ gives “points upfront” (a fraction of tranche notional). Using $PV_{\text{prot}} = s^{\star} \times PV01_{\text{prem}}$ and $RPV01 = PV01_{\text{prem}}/N_{\text{tr}}^{\text{face}}$, this becomes:
 
-$$\boxed{U_{\mathrm{points}} = (s^{\star} - s_{\text{fixed}}) \times \mathrm{RPV01}}$$
+$$\boxed{Upoints = (s^{\star} - s_{\text{fixed}}) \times RPV01}$$
 
 Sign: if $s^{\star} \gt s_{\text{fixed}}$, the protection buyer is paying “too little” running premium, so **the protection buyer pays positive upfront**.
 
 > **Pitfall — Quote format and bp scaling:** Equity tranche quotes are easy to misread.
 > **Why it matters:** You can be off by 100× (percent vs decimal) or 10,000× (bp vs decimal), and you can invert “price” vs “points upfront”.
-> **Quick check:** Compute both $V_{\text{clean}}=PV_{\text{prot}}-s_{\text{fixed}}PV01$ (currency) and $U_{\mathrm{points}}=\frac{V_{\text{clean}}}{N_{\text{tr}}^{\text{face}}}$ (percent of tranche notional). They must match the quote format you’re using.
+> **Quick check:** Compute both $V_{\text{clean}}=PV_{\text{prot}}-s_{\text{fixed}}PV01$ (currency) and `Upoints = V_clean / N_tr_face` (percent of tranche notional). They must match the quote format you’re using.
 
 **Worked Example 49.7 (Equity tranche quote: 500 bp running + upfront, with dates)**
 
@@ -663,7 +663,7 @@ Sign: if $s^{\star} \gt s_{\text{fixed}}$, the protection buyer is paying “too
 
 **Step-by-step**
 1. Compute protection-leg PV from ETL increments:
-   $PV_{\text{prot}} = N_{\text{port}} \sum_i Z(t_i)\,\Delta ETL_i$ with $\Delta ETL_i = ETL(t_i)-ETL(t_{i-1})$.
+   $PV_{\text{prot}} = N_{\text{port}} \sum_i Z(t_i)\,\Delta ETL(i)$ with `Delta ETL(i) = ETL(current date) - ETL(previous date)`.
 
 | Date | Delta ETL | Expected protection cashflow $=N_{\text{port}} \times \Delta ETL$ | PV contribution $=Z \cdot N_{\text{port}} \times \Delta ETL$ |
 |---|---:|---:|---:|
@@ -833,7 +833,7 @@ For protection leg PV computation, we need ETL at each payment date. Common appr
 
 2. **Ignoring the cap:** Forgetting that tranche loss is capped at $W$, leading to impossible ETL values.
 
-3. **Double-counting:** Adding equity and mezzanine ETL without accounting for overlap (the correct decomposition uses $\psi(D) - \psi(A)$).
+3. **Double-counting:** Adding equity and mezzanine ETL without accounting for overlap (the correct decomposition uses `psi(D) - psi(A)`).
 
 4. **Conservation violation:** If sum of ETLs across tranches doesn't equal portfolio EL, there's a modeling or calculation error.
 
