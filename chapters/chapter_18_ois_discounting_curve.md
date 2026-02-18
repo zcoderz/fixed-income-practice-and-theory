@@ -51,7 +51,7 @@ An Overnight Indexed Swap (OIS) is an interest rate swap where one leg pays a fi
 
 Unlike a term IBOR coupon (known at the start of the accrual period), the overnight leg is an **averaging process**, so the realized coupon rate is only known at the end of the period.
 
-For a coupon period $[T_n, T_{n+1}]$, let $T_n = t_{n,1} < t_{n,2} < \cdots < t_{n,K_n}=T_{n+1}$ be the business days that bracket the overnight fixings in the period. Let:
+For a coupon period $[T_n, T_{n+1}]$, let $T_n = t_{n,1} \lt t_{n,2} \lt \cdots \lt t_{n,K_n}=T_{n+1}$ be the business days that bracket the overnight fixings in the period. Let:
 - $r_{n,i}$ be the overnight rate fixed at $t_{n,i}$, applied over $[t_{n,i}, t_{n,i+1}]$,
 - $\delta_{n,i}$ be the day-count accrual fraction for that sub-interval (e.g., ACT/360; weekends/holidays appear as larger $\delta_{n,i}$),
 - $\tau_n := \sum_{i=1}^{K_n-1}\delta_{n,i}$ be the accrual year-fraction for the coupon period.
@@ -66,9 +66,9 @@ $$\boxed{\bar{L}_n = \frac{A^{\text{flt}}_n - 1}{\tau_n}}$$
 
 so the floating-leg coupon amount is $N\tau_n\bar{L}_n = N\left(A^{\text{flt}}_n-1\right)$.
 
-**Mechanics intuition:** $A^{\text{flt}}_n$ is the growth factor of \$1 rolled overnight through the period. Each day you earn simple interest $r_{n,i}\delta_{n,i}$, and the product multiplies those daily growth factors. Weekends/holidays appear as larger $\delta_{n,i}$ (e.g., a Friday fixing may apply for 3 calendar days), so the same rate accrues interest for a longer interval.
+**Mechanics intuition:** $A^{\text{flt}}_n$ is the growth factor of USD 1 rolled overnight through the period. Each day you earn simple interest $r_{n,i}\delta_{n,i}$, and the product multiplies those daily growth factors. Weekends/holidays appear as larger $\delta_{n,i}$ (e.g., a Friday fixing may apply for 3 calendar days), so the same rate accrues interest for a longer interval.
 
-**Checks (units + limiting cases):** $r_{n,i}$ is “per year” and $\delta_{n,i}$ is “years”, so $r_{n,i}\delta_{n,i}$ is dimensionless and $A^{\text{flt}}_n$ is unitless. If all fixings equal a constant $r$ and the period is short, then $A^{\text{flt}}_n \approx 1+r\tau_n$ and $\bar{L}_n \approx r$; compounding shows up only at order $r^2\tau_n$. Toy number: if $r=5\%$ and $\tau_n=0.25$, then $\bar{L}_n \approx (e^{0.05\cdot 0.25}-1)/0.25 \approx 5.03\%$ (about +3 bp from compounding).
+**Checks (units + limiting cases):** $r_{n,i}$ is “per year” and $\delta_{n,i}$ is “years”, so $r_{n,i}\delta_{n,i}$ is dimensionless and $A^{\text{flt}}_n$ is unitless. If all fixings equal a constant $r$ and the period is short, then $A^{\text{flt}}_n \approx 1+r\tau_n$ and $\bar{L}_n \approx r$; compounding shows up only at order $r^2\tau_n$. Toy number: if $r=5\\%$ and $\tau_n=0.25$, then $\bar{L}_n \approx (e^{0.05\cdot 0.25}-1)/0.25 \approx 5.03\\%$ (about +3 bp from compounding).
 
 The **net payment** at $T_{n+1}$ for notional $N$ (positive from the perspective of receiving floating / paying fixed) is:
 
@@ -163,7 +163,7 @@ $$\bar{L} = \left[\prod_{i=1}^{90}\left(1 + r_i \times \frac{d_i}{360}\right) - 
 
 For illustration, if all rates were exactly 4.35%:
 
-$$\bar{L} \approx \left[\left(1 + \frac{0.0435}{360}\right)^{90} - 1\right] \times 4 = 4.372\%$$
+$$\bar{L} \approx \left[\left(1 + \frac{0.0435}{360}\right)^{90} - 1\right] \times 4 = 4.372\\%$$
 
 The compounding effect adds ~2bp over 3 months.
 
@@ -171,7 +171,7 @@ The compounding effect adds ~2bp over 3 months.
 
 If the fixed rate is 4.40%, the floating receiver pays:
 
-$$\text{Net Payment} = \$100\text{mm} \times \frac{90}{360} \times (4.40\% - 4.372\%) = \$7,000$$
+$$\text{Net Payment} = USD 100\text{mm} \times \frac{90}{360} \times (4.40\\% - 4.372\\%) = USD 7,000$$
 
 **Sanity Check:** Payment is small because rates are close. At 90/360 = 0.25 year fraction, each basis point is worth $2,500 per $100mm.
 
@@ -198,7 +198,7 @@ Under a single-curve OIS setup (the overnight index is consistent with the disco
 - Floating leg PV (unit notional, no spread; idealized) is:
   $$PV_{\text{flt}} = 1 - P(0,T_N).$$
 - Fixed leg PV is:
-  $$PV_{\text{fix}} = k \sum_{i=1}^{N}\tau_i P(0,T_i) = k\,A(0).$$
+  $$PV_{\text{fix}} = k \sum_{i=1}^{N}\tau_i P(0,T_i) = k\\,A(0).$$
 
 The **par condition** $PV_{\text{fix}} = PV_{\text{flt}}$ gives:
 
@@ -210,9 +210,9 @@ $$\boxed{1 = k\sum_{i=1}^{N} \tau_i P(0,T_i) + P(0,T_N)}$$
 
 Here, the left side (1) represents the floating leg value, and the right side represents the fixed leg coupons plus the return of notional at maturity $T_N$.
 
-**Expand (replication story):** The identity $PV_{\text{flt}} = 1 - P(0,T_N)$ is easiest to remember as a “roll an overnight deposit” argument. Imagine lending \$1 overnight and rolling it each day until $T_N$; the value process grows by the same daily factors that define the compounded overnight coupon. If you also discount cashflows using that same overnight curve, then “\$1 today” and “\$1 at $T_N$ discounted back” are the two endpoints, and the present value of the floating coupons is the difference between them.
+**Expand (replication story):** The identity $PV_{\text{flt}} = 1 - P(0,T_N)$ is easiest to remember as a “roll an overnight deposit” argument. Imagine lending USD 1 overnight and rolling it each day until $T_N$; the value process grows by the same daily factors that define the compounded overnight coupon. If you also discount cashflows using that same overnight curve, then “USD 1 today” and “USD 1 at $T_N$ discounted back” are the two endpoints, and the present value of the floating coupons is the difference between them.
 
-**Check (one-period sanity):** With a single payment at $T$ and accrual $\tau$, the par equation reads $1 = k\,\tau P(0,T) + P(0,T)$, so $k = (1-P(0,T))/(\tau P(0,T))$. Using the 1Y toy DF above $P(0,1)=0.975610$ (and $\tau=1$) gives $k\approx 2.50\%$, matching the 1Y input quote.
+**Check (one-period sanity):** With a single payment at $T$ and accrual $\tau$, the par equation reads $1 = k\\,\tau P(0,T) + P(0,T)$, so $k = (1-P(0,T))/(\tau P(0,T))$. Using the 1Y toy DF above $P(0,1)=0.975610$ (and $\tau=1$) gives $k\approx 2.50\\%$, matching the 1Y input quote.
 
 > **Preview: Multi-Curve Complication**
 >
@@ -294,9 +294,9 @@ In a production curve build, the “simple” bootstrap above must be paired wit
 1. **Solve 1Y directly** (single payment):
    $$P(0,1) = \frac{1}{1 + 0.025} = 0.975610.$$
 2. **Solve 2Y from the par condition**:
-   $$P(0,2) = \frac{1 - 0.027\,P(0,1)}{1 + 0.027} = 0.948061.$$
+   $$P(0,2) = \frac{1 - 0.027\\,P(0,1)}{1 + 0.027} = 0.948061.$$
 3. **Solve 3Y similarly**:
-   $$P(0,3) = \frac{1 - 0.029\,(P(0,1)+P(0,2))}{1 + 0.029} = 0.917603.$$
+   $$P(0,3) = \frac{1 - 0.029\\,(P(0,1)+P(0,2))}{1 + 0.029} = 0.917603.$$
 4. **Continue to 4Y and 5Y**:
 
 | Maturity | $P(0,T)$ |
@@ -307,13 +307,13 @@ In a production curve build, the “simple” bootstrap above must be paired wit
 | 4Y | 0.886309 |
 | 5Y | 0.853408 |
 
-5. **Use the curve for PV**: suppose you will **receive** \$100,000,000 at 2029-02-18 (3Y).
+5. **Use the curve for PV**: suppose you will **receive** USD 100,000,000 at 2029-02-18 (3Y).
    $$PV = 100{,}000{,}000 \times P(0,3) = 91{,}760{,}300.$$
 6. **Define and compute DV01** (explicit bump object + units + sign):
    - **Bump object:** the OIS discount curve expressed as a continuously-compounded zero curve $y_c(T) := -\ln P(0,T)/T$ (parallel shift).
    - **Bump size:** 1 bp $=10^{-4}$.
    - **Definition:** $DV01 := PV(y_c(T)\ \text{down }1\text{bp}) - PV(\text{base})$.
-   - **Units:** USD per 1 bp (here: per \$100,000,000 notional).
+   - **Units:** USD per 1 bp (here: per USD 100,000,000 notional).
 
    For a single cashflow at maturity $T$, the approximation is
    $$DV01 \approx PV \times T \times 10^{-4}.$$
@@ -325,7 +325,7 @@ In a production curve build, the “simple” bootstrap above must be paired wit
 | 2029-02-18 | +100,000,000 | Collateralized cashflow discounted on the OIS curve |
 
 **P&L / Risk Interpretation**
-- A DV01 of +\$27.5k means: if the **OIS zero curve** shifts down 1 bp (as defined above), the PV of this \$100mm 3Y cashflow increases by about \$27.5k.
+- A DV01 of +USD 27.5k means: if the **OIS zero curve** shifts down 1 bp (as defined above), the PV of this USD 100mm 3Y cashflow increases by about USD 27.5k.
 - On a desk, the first check is **scaling**: DV01 should scale linearly with notional and roughly with maturity (all else equal).
 - What breaks in practice: if a risk report defines the bump on **par OIS quotes** (rebootstrap) rather than on a **zero curve** (parallel shift), the “DV01” numbers will differ even if both are called “OIS DV01.”
 
@@ -408,11 +408,11 @@ Then $P(0,t)=P(0,T_1)e^{-f_{1,2}(t-T_1)}$ for any $t\in[T_1,T_2]$, and at the mi
 If we interpolate our 2Y ($P=0.9481$) and 3Y ($P=0.9176$) points to 2.5 years:
 
 **1. Log-Linear (Constant Forward):**
-- Forward rate $f \approx 3.26\%$
+- Forward rate $f \approx 3.26\\%$
 - $P(0,2.5) \approx 0.9327$
 
 **2. Linear Zero Rates:**
-- Averages the zeros: $(2.67\% + 2.87\%)/2 = 2.77\%$
+- Averages the zeros: $(2.67\\% + 2.87\\%)/2 = 2.77\\%$
 - $P(0,2.5) = e^{-0.0277 \times 2.5} \approx 0.9332$
 
 The difference (approximately 5 basis points in price) is significant for leveraged positions. More importantly, the *risk profile* differs. Under log-linear interpolation, a risk at 2.5Y is distributed strictly to the 2Y and 3Y nodes. Under spline methods, it might "leak" to the 5Y or 10Y nodes, creating hedging noise.
@@ -477,7 +477,7 @@ For a sequential bootstrap where each new quote solves for a new longest-maturit
 
 **Check (toy “lower-triangular” bump):** In the toy annual-pay build in Section 18.3.2, the 3Y bootstrap is
 $$P(0,3) = \frac{1 - k_3\left(\tau_1 P(0,1)+\tau_2 P(0,2)\right)}{1 + k_3\tau_3}.$$
-If you bump only the 3Y input quote by +1 bp (rebootstrap), $P(0,1)$ and $P(0,2)$ stay fixed and $P(0,3)$ falls (higher par rate $\rightarrow$ lower discount factor). With $P(0,1)=0.975610$, $P(0,2)=0.948061$, $k_3=2.90\%$, and $\tau_i=1$, bumping $k_3$ to 2.91% gives $\Delta P(0,3)\approx -0.000276$. On a \$100mm cashflow at 3Y, that is about \-$27.6k PV — a reasonable “par-point bucket delta” scale.
+If you bump only the 3Y input quote by +1 bp (rebootstrap), $P(0,1)$ and $P(0,2)$ stay fixed and $P(0,3)$ falls (higher par rate $\rightarrow$ lower discount factor). With $P(0,1)=0.975610$, $P(0,2)=0.948061$, $k_3=2.90\\%$, and $\tau_i=1$, bumping $k_3$ to 2.91% gives $\Delta P(0,3)\approx -0.000276$. On a USD 100mm cashflow at 3Y, that is about \-$27.6k PV — a reasonable “par-point bucket delta” scale.
 
 ### 18.6.2 Risk Measures and “What Is Being Bumped?”
 
@@ -518,15 +518,15 @@ $$PV = 3 \times 4.4772 + 83.25 = 13.43 + 83.25 = 96.68$$
 The difference is approximately **2.4% of notional**. In the fixed income world, where we fight for fractions of a basis point, a 240 basis point discrepancy is enormous. It represents the entire profit margin of the trade many times over.
 
 **Check (DV01 × spread heuristic):** A quick sanity check is to translate a curve difference into a DV01-style number. If “LIBOR discounting” is roughly “OIS discounting + 50 bp” (treated as a parallel shift in continuously-compounded zero rates), then you should expect
-$$PV_{\text{OIS}}-PV_{\text{LIBOR}} \;\approx\; 50\times DV01,$$
+$$PV_{\text{OIS}}-PV_{\text{LIBOR}} \\;\approx\\; 50\times DV01,$$
 where $DV01$ is defined here as the PV change for an OIS-zero curve **down** 1 bp. For the OIS-discounted bond above, a cashflow-weighted check gives $DV01 \approx 0.0467$ price points per bp (per 100 notional), so $50\times DV01\approx 2.3$ points — close to the $2.4$ points obtained by re-discounting.
 
 > **The $1 Million Mistake**
 >
-> On a $\$100,000,000$ swap book:
-> *   Value with LIBOR Discounting: $\$96.68$ million.
-> *   Value with OIS Discounting: $\$99.08$ million.
-> *   **Difference**: $\$2.4$ million.
+> On a $USD 100,000,000$ swap book:
+> *   Value with LIBOR Discounting: $USD 96.68$ million.
+> *   Value with OIS Discounting: $USD 99.08$ million.
+> *   **Difference**: $USD 2.4$ million.
 >
 > If you were a bank in 2008 shifting to OIS discounting, you suddenly "found" (or lost) millions overnight just by changing the discount curve. This was the famous "CSA Discounting Switch."
 
@@ -587,16 +587,16 @@ Negative interest rates became a feature of some major markets in the 2010s. Fro
 
 When OIS rates go negative, discount factors exceed 1. Mathematically:
 
-$$P(0,T) = \frac{1}{1 + R \cdot \tau(0,T)} > 1 \text{ when } R < 0$$
+$$P(0,T) = \frac{1}{1 + R \cdot \tau(0,T)} \gt 1 \text{ when } R \lt 0$$
 
 This is mathematically valid—receiving $1 in the future is worth more than $1 today if you'd have to pay to store cash.
 
 > **Desk Reality: System Limits and Negative Rates**
 >
 > Many legacy trading systems were built assuming rates cannot go negative:
-> - Discount factor bounds: $0 < P(T) < 1$ (fails with negative rates)
-> - Log-rate calculations: $\ln(r)$ fails when $r < 0$
-> - Square root volatility models: $\sigma\sqrt{r}$ fails when $r < 0$
+> - Discount factor bounds: $0 \lt P(T) \lt 1$ (fails with negative rates)
+> - Log-rate calculations: $\ln(r)$ fails when $r \lt 0$
+> - Square root volatility models: $\sigma\sqrt{r}$ fails when $r \lt 0$
 >
 > When EUR and CHF rates went negative, many systems required emergency patches.
 
@@ -604,7 +604,7 @@ This is mathematically valid—receiving $1 in the future is worth more than $1 
 
 For rate options (caps, floors, swaptions), negative rates break the standard Black-76 setup, which assumes rates are lognormal (and hence strictly positive). Two common fixes are:
 
-1. **Shifted Lognormal Model:** Assume $r + \alpha$ is lognormal for some shift $\alpha > 0$. Options are priced using Black-76 with $F_k \rightarrow F_k + \alpha$ and $K \rightarrow K + \alpha$.
+1. **Shifted Lognormal Model:** Assume $r + \alpha$ is lognormal for some shift $\alpha \gt 0$. Options are priced using Black-76 with $F_k \rightarrow F_k + \alpha$ and $K \rightarrow K + \alpha$.
 
 2. **Bachelier (Normal) Model:** Assume rates follow arithmetic Brownian motion: $dF = \sigma^* dz$. This produces a normal distribution for the underlying rate and allows negative rates.
 
@@ -672,7 +672,7 @@ MVA is an adjustment to reflect the cost of funds tied up in margin accounts. Th
 
 A simplified MVA formula:
 
-$$\boxed{\text{MVA} = \int_0^T E[IM(t)] \cdot s_{fund} \cdot df(t) \, dt}$$
+$$\boxed{\text{MVA} = \int_0^T E[IM(t)] \cdot s_{fund} \cdot df(t) \\, dt}$$
 
 where $E[IM(t)]$ is expected initial margin at time $t$, $s_{fund}$ is the funding spread (your cost of funds minus the rate received on margin), and $df(t)$ is the discount factor.
 
@@ -744,7 +744,7 @@ In USD, OIS swaps may reference different overnight benchmarks (e.g., the effect
 
 Following the GFC, market participants started using OIS as the discount rate for pricing collateralized interest rate swaps.
 
-A concrete milestone often cited is that, in June 2010, LCH.Clearnet announced it would use OIS instead of LIBOR to discount its interest rate swap portfolio (reported at the time as roughly \$218 trillion notional).
+A concrete milestone often cited is that, in June 2010, LCH.Clearnet announced it would use OIS instead of LIBOR to discount its interest rate swap portfolio (reported at the time as roughly USD 218 trillion notional).
 
 ### 18.9.2 Fed Funds vs SOFR (USD)
 
@@ -832,13 +832,13 @@ For curve building and risk reporting, what matters is:
 | 11 | Why does a floating-rate bond paying overnight compound to par? | It provides exactly the payments needed to service borrowings at overnight rates. |
 | 12 | What is the key difference between OIS and LIBOR swap mechanics? | OIS floating rate is known at end of period; LIBOR is set at beginning. |
 | 13 | What does "locality" mean in bootstrapping? | Changing an input rate only affects discount factors at or beyond that maturity. |
-| 14 | For a short OIS with a single net payment, how do you get the discount factor from a simple quoted rate? | $P(0,T) \approx 1/(1 + R\,\tau(0,T))$ for the stated day-count basis. |
-| 15 | What is the bootstrap formula for $P(T_N)$? | $P(T_N) = [1 - k_N \sum_{i < N} \tau_i P(T_i)] / (1 + k_N \tau_N)$. |
+| 14 | For a short OIS with a single net payment, how do you get the discount factor from a simple quoted rate? | $P(0,T) \approx 1/(1 + R\\,\tau(0,T))$ for the stated day-count basis. |
+| 15 | What is the bootstrap formula for $P(T_N)$? | $P(T_N) = [1 - k_N \sum_{i \lt N} \tau_i P(T_i)] / (1 + k_N \tau_N)$. |
 | 16 | Give one concrete milestone in the post-crisis shift to OIS discounting. | LCH announced in June 2010 that it would discount its cleared IRS portfolio using OIS rather than LIBOR. |
 | 17 | What is PAI (Price Alignment Interest)? | Interest earned/paid on variation margin, typically at the OIS rate. |
 | 18 | What is MVA? | Margin Valuation Adjustment: the cost of funding initial margin over trade life. |
 | 19 | If your CSA allows multiple collateral currencies, what does the “collateral option” mean for discounting? | The effective discounting is not purely “USD OIS”; it depends on which collateral the poster chooses and on FX/funding constraints. |
-| 20 | What happens to discount factors when OIS rates go negative? | Discount factors exceed 1 ($P(T) > 1$), which is mathematically valid but operationally challenging. |
+| 20 | What happens to discount factors when OIS rates go negative? | Discount factors exceed 1 ($P(T) \gt 1$), which is mathematically valid but operationally challenging. |
 
 ---
 
@@ -855,14 +855,14 @@ For curve building and risk reporting, what matters is:
 9. (Compute) Given $P(0,2)=0.9400$ and $P(0,3)=0.9000$, compute the 1-year simple forward rate for $[2,3]$.
 10. (Desk) Your CSA allows posting USD or EUR collateral. Explain what the “cheapest-to-deliver collateral” idea means for discounting a USD trade.
 11. (Compute) The 6-month €STR OIS quotes at -0.50% (ACT/360, 182 days). Compute $P(0,T)$ and verify it exceeds 1.
-12. (Compute) IM is approximately \$5mm for 10 years and your funding spread is 50 bp. Estimate the undiscounted funding cost and give a rough PV if the average discount factor over the horizon is 0.85.
+12. (Compute) IM is approximately USD 5mm for 10 years and your funding spread is 50 bp. Estimate the undiscounted funding cost and give a rough PV if the average discount factor over the horizon is 0.85.
 
 ### Solution Sketches (Selected)
-1. $\tau=182/360=0.5056$. $P\approx 1/(1+0.04\tau)=0.9802$. $y_c(T)=-\ln P/\tau \approx 3.96\%$.
+1. $\tau=182/360=0.5056$. $P\approx 1/(1+0.04\tau)=0.9802$. $y_c(T)=-\ln P/\tau \approx 3.96\\%$.
 2. $P(0,1)=1/1.03=0.9709$. $P(0,2)=(1-0.035P(0,1))/(1.035)=0.9334$.
 4. (a) $\ln P(0,2.5)=\tfrac{1}{2}\ln(0.94)+\tfrac{1}{2}\ln(0.90)$ so $P(0,2.5)=\sqrt{0.94\cdot 0.90}=0.9198$. (b) Linear in $P$: $0.5(0.94+0.90)=0.9200$.
 7. PVs are 91.00 and 89.65, so the difference is 1.35 price points = 135 bp of face value.
-8. Ask for (i) bump object (zero curve? which representation?), (ii) bump size/direction, (iii) whether the curve is rebuilt and how (rebootstrap vs direct shift), (iv) units/notional basis and sign convention. Quick check: on a single cashflow $PV=N\,P(0,T)$, a continuous-zero parallel shift gives $DV01\approx PV\,T\,10^{-4}$.
+8. Ask for (i) bump object (zero curve? which representation?), (ii) bump size/direction, (iii) whether the curve is rebuilt and how (rebootstrap vs direct shift), (iv) units/notional basis and sign convention. Quick check: on a single cashflow $PV=N\\,P(0,T)$, a continuous-zero parallel shift gives $DV01\approx PV\\,T\\,10^{-4}$.
 12. Undiscounted cost $\approx 5{,}000{,}000\times 0.005\times 10=250{,}000$. Rough PV $\approx 250{,}000\times 0.85\approx 210{,}000$ (level-cost approximation).
 
 ## References
