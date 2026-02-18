@@ -769,9 +769,9 @@ Unless otherwise stated:
 
 Delivery price: $cf \times F = 0.9012 \times 112.50 = 101.385$
 
-Invoice price: USD101.385 + 1.35 = 102.735$ per USD100 face
+Invoice price: $101.385 + 1.35 = 102.735$ USD per USD100 face
 
-Per contract: USD102.735 \times 1000 = USD102{,}735$
+Per contract: $102.735 \times 1000 = 102{,}735$ USD
 
 ### Example B: Delivery Economics
 
@@ -841,7 +841,7 @@ $$GB = 101.20 - 0.9012 \times 112.50 = 101.20 - 101.385 = -0.185$$
 **Carry:**
 Interest income: $AI(T) - AI(0) = 1.35 - 0.45 = 0.90$
 
-Financing cost: USD101.65 \times 0.05 \times 90/360 = 1.271$
+Financing cost: $101.65 \times 0.05 \times 90/360 = 1.271$ USD
 
 $$\text{Carry} = 0.90 - 1.271 = -0.371$$
 
@@ -853,8 +853,8 @@ Positive net basis means cash-and-carry loses money at this financing rate (cons
 ### Example F: Implied Repo Rate
 
 **Inputs:**
-- Dirty price today: USD101.65$
-- Invoice at delivery: USD102.735$
+- Dirty price today: 101.65 USD
+- Invoice at delivery: 102.735 USD
 - Days: $d = 90$
 
 **Break-even condition:**
@@ -900,8 +900,8 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 **Cost of rolling 100 contracts (short hedge):**
 - Buy back Mar at 112.50
 - Sell Jun at 112.15
-- Net cost per contract: USD0.35 \times 1000 = USD350$
-- Total roll cost: USD100 \times USD350 = USD35,000$
+- Net cost per contract: $0.35 \times 1000 = 350$ USD
+- Total roll cost: $100 \times 350 = 35{,}000$ USD
 
 **Sanity check:** The roll should approximate carry from Mar to Jun delivery. If carry is approximately $USD0.35$ per USD100 over 3 months, this is consistent.
 
