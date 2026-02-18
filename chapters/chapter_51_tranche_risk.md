@@ -268,7 +268,7 @@ The immediate tranche loss increment (fraction of portfolio) is:
 
 $$\Delta \mathrm{TL} = \mathrm{TL}(L^+) - \mathrm{TL}(L_1), \qquad 0 \le \Delta \mathrm{TL} \le W.$$
 
-In strike notation $K_1$–$K_2$ (think $K_1=A$, $K_2=D$), the same subordination-consumption shift is often written:
+In strike notation `K1-K2` (think `K1 = A` and `K2 = D`), the same subordination-consumption shift is often written:
 
 $$K_{1} \rightarrow K_{1}-H_{0}\left(1-R_{0}\right), \qquad K_{2} \rightarrow K_{2}-H_{0}\left(1-R_{0}\right).$$
 
@@ -393,7 +393,7 @@ Captures P&L due to changes in dependence (correlation, copula tail, skew), hold
 #### Operational Implementation
 
 - **Correlation 01:** bump correlation and reprice.
-- In a base-correlation framework, the tranche depends on $\rho(K_1)$ and $\rho(K_2)$; changes in the base correlation curve can create hedge slippage when spreads move (mapping effects).
+- In a base-correlation framework, the tranche depends on `rho(K1)` and `rho(K2)`; changes in the base correlation curve can create hedge slippage when spreads move (mapping effects).
 
 #### Shock/Scenario
 
@@ -754,7 +754,7 @@ $$\mathrm{CorrDelta} \approx \frac{V(\rho + \Delta\rho) - V(\rho - \Delta\rho)}{
 
 ### 4.3 If Base Correlation Is Used (Minimal Desk Summary)
 
-A $[K_1, K_2]$ tranche can be decomposed as a linear combination of two base (equity) tranches and is priced by assigning different correlations to $[0, K_1]$ and $[0, K_2]$.
+A `[K1, K2]` tranche can be decomposed as a linear combination of two base (equity) tranches and is priced by assigning different correlations to `[0, K1]` and `[0, K2]`.
 
 **Expected loss relationship under base correlation:**
 
@@ -764,7 +764,7 @@ This creates a known inconsistency (different base tranches assign different cor
 
 #### What Is Bumped in Base Correlation?
 
-A $[K_1, K_2]$ tranche value is only sensitive to $\rho(K_1)$ and $\rho(K_2)$ within the base correlation framework.
+A `[K1, K2]` tranche value is only sensitive to `rho(K1)` and `rho(K2)` within the base correlation framework.
 
 Desk implementations differ for non‑standard strikes and interpolation (e.g., interpolating in correlation vs ETL space, enforcing shape constraints). Naive linear interpolation can generate arbitrage‑like behavior; confirm what your system does.
 
@@ -951,7 +951,7 @@ This procedure captures how the bespoke tranche is exposed to skew movements (ch
 
 #### Failure Modes / Residual Risks
 
-- **Curve/mapping risk (base correlation "mapping" sensitivity):** bespoke tranche value depends on $\rho(K_1)$, $\rho(K_2)$ and their dependence on portfolio spread; hedges can slip when mapping changes.
+- **Curve/mapping risk (base correlation "mapping" sensitivity):** bespoke tranche value depends on `rho(K1)`, `rho(K2)` and their dependence on portfolio spread; hedges can slip when mapping changes.
 - **Interpolation/arbitrage artifacts** (linear interpolation can create arbitrage-like issues).
 - **Model dependence:** correlation hedges rely on the pricing model being correct; if the model is wrong, hedges fail.
 
@@ -1769,7 +1769,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 23 | What is the "correlation term"? | P&L from dependence parameter shifts (Corr01/CorrDelta). |
 | 24 | What is the "recovery term"? | P&L from recovery/LGD/final price changes. |
 | 25 | What is residual/model risk? | P&L not explained by first-order terms; model/basis/liquidity effects. |
-| 26 | In base correlation, which parameters drive a $[K_1, K_2]$ tranche? | $\rho(K_1)$ and $\rho(K_2)$. |
+| 26 | In base correlation, which parameters drive a `[K1, K2]` tranche? | `rho(K1)` and `rho(K2)`. |
 | 27 | What contradiction does base correlation introduce? | Different base tranches assign different correlations to same portfolio. |
 | 28 | Why can base correlation interpolation create issues? | Linear interpolation can generate arbitrage-like tranchelet spreads. |
 | 29 | What's the simplest PV01 hedge ratio formula? | $n_H = -\mathrm{PV01}_T / \mathrm{PV01}_H$. |
