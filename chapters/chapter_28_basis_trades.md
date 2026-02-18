@@ -343,7 +343,7 @@ This is the "discounted average" of projected forwards.
 
 A floating–floating basis swap exchanges floating payments linked to two indices $L_1$ and $L_2$, typically plus a quoted spread $e$ on one leg. At par, PV of legs must match:
 
-$$\sum_i L_2(0,t_i^2,t_{i+1}^2)\,\tau_i^2\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{1,2}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1),$$
+$$\sum_i L_2(0,t_i^2,t_{i+1}^2)\,\tau_i^2\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{1,2}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1)$$
 
 with $e_{1,2}(T)$ quoted on the $L_1$ leg and possibly positive or negative.
 
@@ -1058,7 +1058,7 @@ $$\boxed{\text{Basis PV01 (for this position): } -USD192.50 \text{ per +1 bp of 
 - Define weights $w_i = \tau P_d(0,T_i)$ (from Example B):
 $w = \{0.4925, 0.4850, 0.4775, 0.4700\}$.
 
-#### E.2 Step 1 — PV of the "IBOR Pay-Fixed Swap" at $K_{\text{rep}}$
+#### E.2 Step 1 — PV of the "IBOR Pay-Fixed Swap" at `K_rep`
 
 PV per unit notional:
 $PV_{\text{IBORswap}} = \sum_i w_i\bigl(L_i^{\text{IBOR}} - K_{\text{rep}}\bigr)$.
@@ -1074,7 +1074,7 @@ $PV/N = 0.4925(0.001) + 0.4850(0.003) + 0.4775(0.005) + 0.4700(0.006) = 0.007155
 
 So $PV_{\text{IBORswap}} = USD7{,}155$.
 
-#### E.3 Step 2 — PV of the "OIS Pay-Fixed Swap" at $K_{\text{rep}}$
+#### E.3 Step 2 — PV of the "OIS Pay-Fixed Swap" at `K_rep`
 
 $PV_{\text{OISswap}} = \sum_i w_i\bigl(L_i^{\text{OIS}} - K_{\text{rep}}\bigr)$.
 
@@ -1175,13 +1175,13 @@ $P_d(0,1..5) = \{0.97, 0.94, 0.91, 0.88, 0.85\}$.
 $A = \sum_{i=1}^{5} \tau P_d(0,i) = 0.97 + 0.94 + 0.91 + 0.88 + 0.85 = 4.55$.
 
 PV change for a 1 bp change in fixed rate (magnitude):
-$\text{DV01}_{\text{swap}} \approx N_{\text{swap}} \cdot A \cdot 10^{-4} = 100{,}000{,}000 \times 4.55 \times 10^{-4} = USD45{,}500$.
+$DV01_{swap} \approx N_{swap} \cdot A \cdot 10^{-4} = 100{,}000{,}000 \times 4.55 \times 10^{-4} = USD45{,}500$.
 
 **Sign check:** for a pay-fixed swap, rates up tends to increase value, so the PV01 sign is $+$ for a +1bp rate shift (toy linear view).
 
 #### G.3 Step 2 — DV01 of the Treasury Bond per USD100 Face
 
-$\text{DV01}_{\text{bond, per USD100}} = \frac{P \cdot D_{\text{mod}}}{10{,}000} = \frac{100 \times 4.60}{10{,}000} = 0.046$.
+$DV01_{bond,100} = \frac{P \cdot D_{mod}}{10{,}000} = \frac{100 \times 4.60}{10{,}000} = 0.046$.
 
 Thus DV01 per USD1 face is $0.046/100 = 0.00046$.
 
@@ -1307,7 +1307,7 @@ $\Rightarrow\quad PV01_{10Y} = 1{,}000{,}000(8.35) \cdot 10^{-4} = USD835$.
 
 #### I.3 Step 2 — Choose Notionals for DV01-Neutralization
 
-Let 10Y notional be ($N_{10} = USD1$mm), and 2Y notional be ($N_2$). We want:
+Let 10Y notional be `N_10 = USD1mm`, and 2Y notional be `N_2`. We want:
 $N_2(191) \approx N_{10}(835) \quad\Rightarrow\quad N_2 \approx \frac{835}{191} = 4.372\text{ mm}$.
 
 So:
@@ -1363,7 +1363,7 @@ Use same OIS discount factors as Example I.
 
 #### J.2 Step 1 — Choose Weights
 
-Let $N_2 = N_{10} = USD1$mm. Total wing DV01:
+Let `N_2 = N_10 = USD1mm`. Total wing DV01:
 $191 + 835 = 1026$.
 
 Choose belly notional $N_5$ such that:
@@ -1458,8 +1458,8 @@ $$0.492640(0.007072) + 0.484772(0.008584) + 0.477157(0.009086) \approx 0.011981.
 Hence:
 $e_{\text{rem}} \approx \frac{0.011981}{1.454568} = 0.008237 = 0.8237\% = 82.4\text{ bp}$.
 
-**Value of remaining swap** to the position (receive IBOR, pay OIS+$e_{\text{contract}}$) is:
-$$PV_{t=0.5} = N\,(e_{\text{rem}} - e_{\text{contract}})\,W' = 1{,}000{,}000(0.008237 - 0.007548)(1.454568).$$
+**Value of remaining swap** to the position (receive IBOR, pay OIS + `e_contract`) is:
+$$PV_{t=0.5} = N\,(e_{rem} - e_{contract})\,W' = 1{,}000{,}000(0.008237 - 0.007548)(1.454568)$$
 
 Difference (= 0.000689). Multiply:
 $PV_{t=0.5} \approx 1{,}000{,}000(0.000689)(1.454568) \approx USD1{,}002$.
