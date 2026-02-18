@@ -230,11 +230,7 @@ i.e., the change in tranche value due to a 1% absolute increase in correlation (
 
 A normalized "rho" is also defined as the change in value per unit correlation per unit tranche face value.
 
-**Check (methodology + nonlinearity):** because tranche PV can be nonlinear in $\rho$ (and base-correlation bumps can propagate through interpolation), it is often worth computing a symmetric finite difference as a diagnostic:
-$$
-\mathrm{Corr01}_{\mathrm{sym}} \approx \frac{V(\rho+0.01)-V(\rho-0.01)}{2}
-$$
-holding the same calibration/interpolation rules fixed. Large one-sided vs symmetric differences are a red flag that a local Corr01 is not stable and scenario shocks are more informative.
+**Check (methodology + nonlinearity):** because tranche PV can be nonlinear in $\rho$ (and base-correlation bumps can propagate through interpolation), it is often worth computing a symmetric finite difference as a diagnostic: `Corr01_sym ≈ (V(rho+0.01)-V(rho-0.01))/2`, holding the same calibration/interpolation rules fixed. Large one-sided vs symmetric differences are a red flag that a local Corr01 is not stable and scenario shocks are more informative.
 
 #### Intuition
 
@@ -258,7 +254,7 @@ $$\mathrm{JTD}_\omega = \mathrm{PV}_{\mathrm{after}}(\omega) - \mathrm{PV}_{\mat
 A standard idiosyncratic tranche risk measure is **value-on-default (VOD)**. This measures the impact of an immediate default and the resulting change in value of a tranche position.
 
 Consider an immediate-default scenario for one portfolio constituent. Let:
-- $H_0$ be the defaulted name’s notional as a **fraction** of portfolio notional $F$ (so the default loss fraction is $H_0(1-R_0)$),
+- $H_0$ be the defaulted name’s notional as a **fraction** of portfolio notional $F$ (so the default loss fraction is `H0*(1-R0)`),
 - $R_0$ be the recovery (or auction final price proxy),
 - $L_1$ be the portfolio cumulative loss fraction just before the default.
 
@@ -595,7 +591,7 @@ Therefore $|\mathrm{PV01}|$ increases with expected outstanding and with discoun
 
 #### Unit Check
 
-$\Delta$ in years, $Z$ unitless, expected outstanding in fraction of portfolio; multiply by $F$ gives USD notional base; multiply by 1bp $= 10^{-4}$ gives USD per bp. ✓
+Delta in years, $Z$ unitless, expected outstanding in fraction of portfolio; multiply by $F$ gives USD notional base; multiply by 1bp $= 10^{-4}$ gives USD per bp. ✓
 
 ---
 
@@ -932,7 +928,7 @@ Consider a trader long protection on the 3–7% mezzanine tranche (typically lon
 - Suppose Corr01(0–3%) = –USD 80,000 per 1% correlation increase.
 
 **Step 3:** Size the hedge.
-$$n_{\mathrm{equity}} = -\frac{\mathrm{Corr01}_{3-7}}{\mathrm{Corr01}_{0-3}} = 1.875$$
+Use the hedge ratio `n_equity = -Corr01(3-7)/Corr01(0-3) = 1.875`.
 
 Sell protection on 1.875× the notional of 0–3% equity to offset correlation exposure.
 
@@ -1074,7 +1070,7 @@ $$\overline{\mathrm{EON}}_i = \frac{\mathrm{EON}(t_{i-1}) + \mathrm{EON}(t_i)}{2
 
 $$\boxed{\mathrm{PV}_{\mathrm{prem}} \approx F \cdot \frac{s}{10{,}000} \sum_{i=1}^{N} \Delta_i Z(t_i) \, \overline{\mathrm{EON}}_i}$$
 
-**Unit check:** $F$ (USD) $\times$ $s/10{,}000$ (1/year) $\times$ $\Delta$ (years) = USD, times $Z$ and $\overline{\mathrm{EON}}$ (unitless). ✓
+**Unit check:** $F$ (USD) $\times$ $s/10{,}000$ (1/year) $\times$ Delta (years) = USD, times $Z$ and $\overline{\mathrm{EON}}$ (unitless). ✓
 
 This matches the CDS-style trapezoidal premium leg when written in $Q$ form.
 
@@ -1475,7 +1471,7 @@ This corresponds to Corr01 as the PV change for a 1% absolute increase in correl
 
 **Default event:**
 - One name defaults, recovery $R = 40\%$ $\Rightarrow$ LGD $= 60\%$.
-- Loss dollars: $0.60 \times USD 1$mm $= USD 0.60$mm.
+- Loss dollars: `0.60 * USD 1mm = USD 0.60mm`.
 
 **Loss fraction increment:**
 
@@ -1694,7 +1690,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | ETL bounds | $0 \leq \mathrm{ETL}(t) \leq W$, and $\mathrm{ETL}(t)$ nondecreasing in $t$ |
 | EON bounds | $0 \leq \mathrm{EON}(t) \leq W$, nonincreasing in $t$ |
 | Correlation toy sanity | Higher dependence should increase tail mass; senior tranche PV should rise in the tail-heavy setting (Examples 8–9) |
-| Hedge validation | PV01-neutral portfolios show small $\Delta$PV under small spread shocks (Example 13), but not under default jumps (Example 14) |
+| Hedge validation | PV01-neutral portfolios show small DeltaPV under small spread shocks (Example 13), but not under default jumps (Example 14) |
 
 ---
 
