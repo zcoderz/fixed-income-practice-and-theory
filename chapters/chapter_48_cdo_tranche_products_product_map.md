@@ -265,11 +265,7 @@ $$\boxed{TL(L) = \min\bigl(\max(L - A, 0), D - A\bigr)}$$
 The relationship is:
 $$L_{\text{tr}}(T; A, D) = \frac{TL(L(T))}{D - A}$$
 
-**Check (toy numbers):** for a $[3\%,7\%]$ tranche and portfolio loss $L=5\%$,
-$$
-TL(L)=\min(\max(5-3,0),4)=2\%\ \text{of portfolio notional}
-$$
-so the tranche has lost $2/4=50\%$ of its face. If $N_{\text{port}}=USD 100\text{mm}$, that is a $USD 2\text{mm}$ loss on a $USD 4\text{mm}$ tranche.
+**Check (toy numbers):** for a $[3\%,7\%]$ tranche and portfolio loss $L=5\%$, $TL(L)=\min(\max(5-3,0),4)=2\%$ of portfolio notional, so the tranche has lost $2/4=50\%$ of its face. If $N_{\text{port}}=USD 100\text{mm}$, that is a $USD 2\text{mm}$ loss on a $USD 4\text{mm}$ tranche.
 
 ### 48.4.3 Piecewise Derivation
 
