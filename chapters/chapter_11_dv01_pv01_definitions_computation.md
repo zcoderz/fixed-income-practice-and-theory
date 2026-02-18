@@ -184,7 +184,7 @@ Here $P$ is the bond’s price in the same units you want DV01 to be reported in
 >
 > **Step-by-step**
 > 1. Price the bond at $y$: $P_0=\sum_{t=1}^{4} \frac{CF_t}{(1+y/2)^t}USD .
-> 2. Reprice at $y\pm 1\text{bp}$: $P_{\uparrow}=P(y+10^{-4})USD , $P_{\downarrow}=P(y-10^{-4})USD .
+> 2. Reprice at $y\pm 1\text{bp}$: $P_{\uparrow}=P(y+10^{-4})$ and $P_{\downarrow}=P(y-10^{-4})$.
 > 3. Central-difference DV01: $DV01=(P_{\downarrow}-P_{\uparrow})/2USD .
 > 4. Scale to position: $DV01_{USD }=DV01_{\text{per 100}}\times N/100USD .
 >
@@ -203,7 +203,7 @@ Here $P$ is the bond’s price in the same units you want DV01 to be reported in
 >
 > **Sanity checks**
 > - Units: “per 100” $\times$ “face/100” $\rightarrow$ dollars per bp.
-> - Sign: a lower yield raises price, so DV01 $>0$ for a long fixed-rate bond under this convention.
+> - Sign: a lower yield raises price, so DV01 $\gt 0$ for a long fixed-rate bond under this convention.
 
 ---
 
