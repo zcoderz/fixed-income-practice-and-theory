@@ -227,7 +227,7 @@ Here is a simple timeline mental model. Let $T_{\text{next}}$ be the next reset/
 - **Right after a reset:** the floating coupon for the coming accrual period is set to a then-current fixing. The floating leg resembles a par floater, so there is little long-horizon fixed-cashflow exposure left to “drag around.”
 - **Between resets:** the most “locked” cashflow is the next coupon amount implied by the last fixing (plus any short stub). The main PV sensitivity is therefore discounting over the short horizon to $T_{\text{next}}$, which is why the floating leg’s DV01 is small compared with the fixed leg’s DV01.
 
-**Toy scale check:** Suppose $T_{\text{next}}=0.25$y (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\%$. The next coupon cash amount is approximately $100\text{mm}\times 0.25\times 0.04=1.0$ million USD. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=25$ USD. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional - hence “short duration.”
+**Toy scale check:** Suppose `T_next = 0.25y` (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\%$. The next coupon cash amount is approximately $100\text{mm}\times 0.25\times 0.04=1.0$ million USD. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=25$ USD. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional - hence “short duration.”
 
 ---
 
@@ -372,7 +372,7 @@ Two quick implications (when $DV01_A$ and $DV01_B$ are reported as **magnitudes*
 - Swap fixed payment dates (simplified): 2027-02-19, 2028-02-19, 2029-02-19, 2030-02-19, 2031-02-19
 
 **Inputs**
-- Bond position: long $10\text{mm}$ face of a 5Y 3% annual-coupon bond.
+- Bond position: long 10mm face of a 5Y 3% annual-coupon bond.
 - Bond DV01 (given by your bond pricer / risk system): $DV01_{\text{bond}}=+USD4{,}758$ per 1bp (positive = gains when yields fall).
 - Swap instrument: 5Y **payer** swap (pay fixed, receive float), sized in notional.
 - Swap annuity (from discount factors for the swap schedule): $A=4.635$ (annual-pay simplification).
@@ -393,7 +393,7 @@ Two quick implications (when $DV01_A$ and $DV01_B$ are reported as **magnitudes*
 | Date | Cashflow | Explanation |
 |---|---|---|
 | each coupon date | Bond: +0.03 x 10mm | fixed coupons received |
-| maturity | Bond: +$10\text{mm}$ | principal received |
+| maturity | Bond: +10mm | principal received |
 | each fixed leg date | Swap: pay $K_{\text{swap}} \times \alpha_i \times N_{\text{swap}}$ | fixed coupons paid |
 | each float leg date | Swap: receive floating coupon | index-linked receipts |
 
