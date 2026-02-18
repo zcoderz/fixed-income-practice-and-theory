@@ -113,7 +113,7 @@ This is often the most desk-friendly way to compute convexity P&L because it tak
 - **DV01 (sign + units):** $DV01 := PV(y-1\text{bp})-PV(y)$. For a long non-callable bond, $DV01\gt 0$. Units: currency per 1bp (often per 100 price points and then scaled by notional).
 - **Second-order P&L (consistent units):** $\Delta PV \approx -DV01\cdot \Delta y_{\text{bp}} + Convexity01\cdot (\Delta y_{\text{bp}})^2$.
 
-**Check (turn $Cvx$ into a desk-usable $Convexity01$):** If your system reports normalized convexity $Cvx$ (per yield$^2$) and you know the position PV $V$ (in dollars), then position dollar convexity is $C_{USD }=V\cdot Cvx$ and $Convexity01=\tfrac{1}{2}C_{USD }(10^{-4})^2$ in $USD /\text{bp}^2$. Toy scale: if $V=USD 100\text{mm}$ and $Cvx=50$, then $C_{USD }=5{,}000\text{mm}$ and $Convexity01\approx \tfrac{1}{2}\times 5{,}000\text{mm}\times 10^{-8}=USD 25/\text{bp}^2$. A 50bp move has $(\Delta y_{\text{bp}})^2=2{,}500$, so convexity P&L is about $25\times 2{,}500=USD 62{,}500$ (directionally helpful for long positive-convexity).
+**Check (turn $Cvx$ into a desk-usable $Convexity01$):** If your system reports normalized convexity $Cvx$ (per yield-squared) and you know the position PV $V$ (in dollars), then position dollar convexity is $C_{USD }=V\cdot Cvx$ and $Convexity01=\tfrac{1}{2}C_{USD }(10^{-4})^2$ in $USD /\text{bp}^2$. Toy scale: if $V=USD 100\text{mm}$ and $Cvx=50$, then $C_{USD }=5{,}000\text{mm}$ and $Convexity01\approx \tfrac{1}{2}\times 5{,}000\text{mm}\times 10^{-8}=USD 25/\text{bp}^2$. A 50bp move has $(\Delta y_{\text{bp}})^2=2{,}500$, so convexity P&L is about $25\times 2{,}500=USD 62{,}500$ (directionally helpful for long positive-convexity).
 
 ### 13.2.3 Computing Convexity Numerically
 
@@ -407,7 +407,7 @@ Mixing positive- and negative-convexity instruments in one hedge can be unstable
 
 This phenomenon is known as "extension risk."
 
-**Check (how to see extension risk in your own numbers):** Compute DV01 at two yield levels using the *same* model and bump design (e.g., $DV01(y)$ and $DV01(y+50\text{bp})$). For a negative-convexity instrument, it is common to see $DV01(y+50\text{bp})\gt DV01(y)$ (risk “extends” in sell-offs). If you are running a DV01 hedge, this means a sell-off can make you under-hedged unless you rebalance.
+**Check (how to see extension risk in your own numbers):** Compute DV01 at two yield levels using the *same* model and bump design (e.g., $DV01(y)$ and `DV01(y+50bp)`). For a negative-convexity instrument, it is common to see `DV01(y+50bp)` $\gt$ `DV01(y)` (risk “extends” in sell-offs). If you are running a DV01 hedge, this means a sell-off can make you under-hedged unless you rebalance.
 
 It explains why MBS hedging is difficult: as rates move, the duration (and DV01) of the underlying instrument can change materially, which means yesterday's hedge ratio can be wrong today. When many participants must rebalance in the same direction, this can amplify volatility.
 
@@ -690,8 +690,8 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | $y$ | Yield input in $P(y)$ | Annualized yield; compounding frequency stated (examples: semiannual) |
 | $P(y)$ | Bond price as a function of $y$ | Price per USD 100 notional unless stated |
 | $D$ | Modified duration | Years; $D=-\frac{1}{P}\frac{dP}{dy}$ for the chapter’s bump object $y$ |
-| $Cvx$ | Convexity | Years$^2$; $Cvx=\frac{1}{P}\frac{d^2P}{dy^2}$ |
-| $C_{USD }$ | Dollar convexity | Currency per yield$^2$; $C_{USD }=P\cdot Cvx=\frac{d^2P}{dy^2}$ |
+| $Cvx$ | Convexity | Years-squared; $Cvx=\frac{1}{P}\frac{d^2P}{dy^2}$ |
+| $C_{USD }$ | Dollar convexity | Currency per yield-squared; $C_{USD }=P\cdot Cvx=\frac{d^2P}{dy^2}$ |
 | $\Delta y$ | Yield shock | Decimal yield (e.g., 0.01 = 100 bp) |
 | $\Delta y_{\text{bp}}$ | Yield shock in bp | $\Delta y=10^{-4}\Delta y_{\text{bp}}$ |
 | $DV01$ | 1bp PV sensitivity | $DV01:=PV(y-1\text{bp})-PV(y)$; currency per 1bp |
@@ -744,7 +744,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 3. (Compute) Construct a duration-matched barbell using 2-year and 30-year zeros to match a 10-year zero (flat curve assumption).
    (a) What weights $w_{2}, w_{30}$ match duration?
    (b) Which portfolio has higher convexity? Explain in one sentence.
-4. (Compute) A portfolio has dollar convexity $C_{USD }=80{,}000{,}000{,}000$ (currency per yield$^2$) and $DV01=USD 400{,}000$ (currency per bp). Rates sell off by $+75$ bp. Estimate duration P&L, convexity P&L, and total.
+4. (Compute) A portfolio has dollar convexity $C_{USD }=80{,}000{,}000{,}000$ (currency per yield-squared) and $DV01=USD 400{,}000$ (currency per bp). Rates sell off by $+75$ bp. Estimate duration P&L, convexity P&L, and total.
 5. (Desk) You hedge a callable bond with a Treasury of similar DV01. If rates rally 50 bp, do you expect the hedge to over- or under-hedge? Explain using how the callable’s DV01 changes as it goes “into the money”.
 6. (Compute) Numerical convexity estimate. Given $P_{-10\text{bp}}=101.05$, $P_0=101.00$, $P_{+10\text{bp}}=100.96$, estimate $Cvx$ using the central difference formula with $\Delta y=10$ bp. Is the convexity positive or negative?
 7. (Concept) Jensen's inequality check. Show that $E[1/(1+r)] \gt 1/(1+E[r])$ when $r$ is random and $r\gt -1$, and interpret this in bond-pricing terms.
@@ -762,13 +762,8 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
    - Duration P&L $\approx -DV01\cdot \Delta y_{\text{bp}}=-(400{,}000)\times 75=-USD 30.0\text{mm}$.
    - Convexity P&L $\approx +\tfrac{1}{2}C_{USD }(\Delta y)^2=\tfrac{1}{2}\times 80\text{bn}\times 0.0075^2=+USD 2.25\text{mm}$.
    - Total $\approx -USD 27.75\text{mm}$.
-6. With $\Delta y=10\text{bp}=0.001$,
-
-   $$
-   Cvx\approx \frac{101.05-2(101.00)+100.96}{101.00\times (0.001)^2}
-   =\frac{0.01}{0.000101}\approx 99.
-   $$
-
+6. With $\Delta y=10\text{bp}=0.001$, use
+   $Cvx\approx \frac{101.05-2(101.00)+100.96}{101.00\times (0.001)^2}=\frac{0.01}{0.000101}\approx 99$.
    Positive convexity because the numerator is positive.
 5. Typically under-hedged on a rally: as rates fall, the callable’s price approaches the call region and its DV01 tends to drop, while the Treasury’s DV01 rises, so a static DV01 hedge ratio becomes too small.
 8. Under-hedged after the sell-off (duration extended). Restoring the hedge typically means adding duration hedges (e.g., selling more Treasuries / paying fixed), which can add to selling pressure if many do it at once.
