@@ -51,11 +51,11 @@ If premium is paid on dates $t_1,\dots,t_N=T$ with accrual fractions $\Delta_n$ 
 
 $$\boxed{\text{RPV01}(t,T) = \frac{1}{2} \sum_{n=1}^{N} \Delta_n \, Z(t, t_n)\, \bigl(Q(t, t_{n-1}) + Q(t, t_n)\bigr)}$$
 
-**Expand (intuition):** $\text{RPV01}$ is an *annuity multiplier*. Once you know it, spread *differences* translate into PV: if $\Delta S$ is in decimal per year, then $\Delta V \approx \Delta S \cdot \text{RPV01}$ per unit notional (multiply by $N$ for dollars).
+**Expand (intuition):** `RPV01` is an *annuity multiplier*. Once you know it, spread *differences* translate into PV: if $\Delta S$ is in decimal per year, then $\Delta V \approx \Delta S \cdot \text{RPV01}$ per unit notional (multiply by $N$ for dollars).
 
 **Check (units/sign):**
 - Use consistent units: $1\text{bp}=10^{-4}$. If you keep spreads in bp in spreadsheets, convert to decimal before using formulas.
-- $\Delta$ is in years; $Z$ and $Q$ are unitless; so $\text{RPV01}$ has units of years; (spread in 1/year) × (years) gives PV per unit notional; multiply by $N$ to get currency.
+- $\Delta$ is in years; $Z$ and $Q$ are unitless; so `RPV01` has units of years; (spread in 1/year) × (years) gives PV per unit notional; multiply by $N$ to get currency.
 - Sign: if spreads widen (higher $S$), a protection buyer gains (higher $V$); a protection seller loses.
 
 ### 44.1.2 CS01 / Credit DV01: What Is Bumped, Units, and Sign
@@ -127,7 +127,7 @@ $$\text{JTD}_{\text{sell protection}} \approx -N(1-R)$$
 
 Recovery enters CDS PV in two places:
 1. **Default payment:** $(1-R)N$ (so recovery changes directly affect JTD/VOD).
-2. **Calibration:** for a given spread curve, changing the assumed recovery changes the implied hazard/survival curve (Chapter 42), which feeds back into $\text{RPV01}$ and PV.
+2. **Calibration:** for a given spread curve, changing the assumed recovery changes the implied hazard/survival curve (Chapter 42), which feeds back into `RPV01` and PV.
 
 Recovery sensitivity affects both:
 1. **The default payoff:** Higher recovery means smaller protection payment
@@ -502,11 +502,11 @@ With constituent spreads $S_m$ and risky annuities $RPV01_m$, a common approxima
 
 $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot RPV01_m}{\sum_{m=1}^{M} RPV01_m}}$$
 
-**Expand (intuition):** this is *not* a simple average of spreads. Names with larger $\text{RPV01}$ (often the wider, riskier names) carry more weight in “intrinsic,” because a 1bp move on those names is worth more PV.
+**Expand (intuition):** this is *not* a simple average of spreads. Names with larger `RPV01` (often the wider, riskier names) carry more weight in “intrinsic,” because a 1bp move on those names is worth more PV.
 
-**Expand (mechanics):** $\text{RPV01}$ is larger when a name is expected to survive longer and pay more premium (typically *tighter* names), and smaller when default is more likely (often *wider/distressed* names). So the intrinsic spread is usually **pulled toward the tighter names** because distressed constituents tend to get down-weighted by their smaller $\text{RPV01}$.
+**Expand (mechanics):** `RPV01` is larger when a name is expected to survive longer and pay more premium (typically *tighter* names), and smaller when default is more likely (often *wider/distressed* names). So the intrinsic spread is usually **pulled toward the tighter names** because distressed constituents tend to get down-weighted by their smaller `RPV01`.
 
-**Check (toy):** if all names have the same $\text{RPV01}$, intrinsic reduces to the simple average. If one name is very wide but has a much smaller $\text{RPV01}$, it gets down-weighted and intrinsic can sit well below the arithmetic mean. For example, 4 names at 50 bp with $\text{RPV01}=4$ and 1 distressed name at 1000 bp with $\text{RPV01}=1$ give:
+**Check (toy):** if all names have the same `RPV01`, intrinsic reduces to the simple average. If one name is very wide but has a much smaller `RPV01`, it gets down-weighted and intrinsic can sit well below the arithmetic mean. For example, 4 names at 50 bp with $\text{RPV01}=4$ and 1 distressed name at 1000 bp with $\text{RPV01}=1$ give:
 - Simple average $=(4\times 50 + 1000)/5=240$ bp
 - Intrinsic $=(4\times 50\times 4 + 1000\times 1)/(4\times 4 + 1)\approx 106$ bp
 
@@ -515,7 +515,7 @@ $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot RPV01_m}{\sum_{m=
 | Spread Type | Formula | When Different |
 |-------------|---------|----------------|
 | Simple Average | $\bar{S} = \frac{1}{M}\sum_{m=1}^{M} S_m$ | All names equal weight |
-| Intrinsic | $S_{\text{intrinsic}} = \frac{\sum S_m \cdot RPV01_m}{\sum RPV01_m}$ | Higher-$\text{RPV01}$ names get more weight (distressed names often get less) |
+| Intrinsic | $S_{\text{intrinsic}} = \frac{\sum S_m \cdot RPV01_m}{\sum RPV01_m}$ | Higher-`RPV01` names get more weight (distressed names often get less) |
 
 The difference between the intrinsic spread and the simple average can be material when spread dispersion is high.
 
@@ -682,17 +682,17 @@ Run the following scenarios before and during the trade:
   - 5Y: 2031-03-20
 
 **Inputs**
-- Par CDS spreads (running, per annum): $S_{1Y}=80$bp, $S_{5Y}=160$bp
+- Par CDS spreads (running, per annum): `S_1Y = 80 bp`, `S_5Y = 160 bp`
 - Recovery assumption for analytics: $R=40\%$
 - Premium day count: ACT/360
-- Notional: buy 5Y protection $N_5=10$mm; sell 1Y protection $N_1$ unknown
+- Notional: buy 5Y protection `N_5 = 10 mm`; sell 1Y protection `N_1` unknown
 
 **Outputs (What You Produce)**
 - CS01-neutral hedge ratio $N_1$ (bump: +1bp parallel par-spread curve; curve rebuilt; units: USD per bp; sign: protection seller positive)
 - Net JTD at immediate default (USD)
 
 **Step-by-step**
-1. Compute/obtain $\text{RPV01}$ for each leg from your CDS analytics (bootstrapped survival curve + discounting; Chapter 42). For illustration, use:
+1. Compute/obtain `RPV01` for each leg from your CDS analytics (bootstrapped survival curve + discounting; Chapter 42). For illustration, use:
    - $\text{RPV01}(1Y)\approx 0.993$
    - $\text{RPV01}(5Y)\approx 4.74$
 
@@ -1055,7 +1055,7 @@ The most common failure modes:
 
 8. Design a scenario test suite for a senior-sub compression trade (include at least one liquidity or “can’t rebalance” scenario).
 
-9. An index has 100 names. The simple average spread is 80bp, but the intrinsic spread is 95bp. What does this imply about the spread distribution and/or $\text{RPV01}$ weights?
+9. An index has 100 names. The simple average spread is 80bp, but the intrinsic spread is 95bp. What does this imply about the spread distribution and/or `RPV01` weights?
 
 10. A trader has a 5Y CDS position with CS01 = USD 5,000/bp and theta $=+USD 200/\text{day}$. How many days of carry equals a 1bp parallel spread move?
 
