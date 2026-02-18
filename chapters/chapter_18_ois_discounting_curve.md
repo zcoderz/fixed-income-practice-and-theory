@@ -66,9 +66,9 @@ $$\boxed{\bar{L}_n = \frac{A^{\text{flt}}_n - 1}{\tau_n}}$$
 
 so the floating-leg coupon amount is $N\tau_n\bar{L}_n = N\left(A^{\text{flt}}_n-1\right)$.
 
-**Mechanics intuition:** $A^{\text{flt}}_n$ is the growth factor of USD 1 rolled overnight through the period. Each day you earn simple interest $r_{n,i}\delta_{n,i}$, and the product multiplies those daily growth factors. Weekends/holidays appear as larger $\delta_{n,i}$ (e.g., a Friday fixing may apply for 3 calendar days), so the same rate accrues interest for a longer interval.
+**Mechanics intuition:** `A_flt_n` is the growth factor of USD 1 rolled overnight through the period. Each day you earn simple interest `r_{n,i} * delta_{n,i}`, and the product multiplies those daily growth factors. Weekends/holidays appear as larger $\delta_{n,i}$ (e.g., a Friday fixing may apply for 3 calendar days), so the same rate accrues interest for a longer interval.
 
-**Checks (units + limiting cases):** $r_{n,i}$ is “per year” and $\delta_{n,i}$ is “years”, so $r_{n,i}\delta_{n,i}$ is dimensionless and $A^{\text{flt}}_n$ is unitless. If all fixings equal a constant $r$ and the period is short, then $A^{\text{flt}}_n \approx 1+r\tau_n$ and $\bar{L}_n \approx r$; compounding shows up only at order $r^2\tau_n$. Toy number: if $r=5\\%$ and $\tau_n=0.25$, then $\bar{L}_n \approx (e^{0.05\cdot 0.25}-1)/0.25 \approx 5.03\\%$ (about +3 bp from compounding).
+**Checks (units + limiting cases):** $r_{n,i}$ is “per year” and $\delta_{n,i}$ is “years”, so `r_{n,i} * delta_{n,i}` is dimensionless and `A_flt_n` is unitless. If all fixings equal a constant $r$ and the period is short, then $A^{\text{flt}}_n \approx 1+r\tau_n$ and $\bar{L}_n \approx r$; compounding shows up only at order $r^2\tau_n$. Toy number: if $r=5\\%$ and $\tau_n=0.25$, then $\bar{L}_n \approx (e^{0.05\cdot 0.25}-1)/0.25 \approx 5.03\\%$ (about +3 bp from compounding).
 
 The **net payment** at $T_{n+1}$ for notional $N$ (positive from the perspective of receiving floating / paying fixed) is:
 
@@ -370,7 +370,7 @@ Applying this to our bootstrapped points:
 
 ### 18.4.1 Par Rates vs Zero Rates
 
-Notice that the zero curve (e.g., $y_c(T)$) is generally *not* the same as the par curve ($k$). For an upward sloping yield curve:
+Notice that the zero curve (e.g., `y_c(T)`) is generally *not* the same as the par curve ($k$). For an upward sloping yield curve:
 
 - The par rate is a *weighted average* of the zero rates, weighted by discount factors
 - The early coupons are discounted at lower rates (since the curve slopes upward)
@@ -484,11 +484,11 @@ If you bump only the 3Y input quote by +1 bp (rebootstrap), $P(0,1)$ and $P(0,2)
 To make curve risk actionable, you must say **what is bumped**, by **how much**, and how the curve is **re-built** after the bump. Otherwise two systems can report “DV01” numbers that are not comparable.
 
 Two common bump styles are:
-1. **Zero-curve shift (direct bump):** bump a zero-rate curve $y_c(T)$ and recompute discount factors via $P(0,T)=e^{-y_c(T)T}$ (continuous compounding shown here).
+1. **Zero-curve shift (direct bump):** bump a zero-rate curve `y_c(T)` and recompute discount factors via $P(0,T)=e^{-y_c(T)T}$ (continuous compounding shown here).
 2. **Par-quote bump (rebootstrap):** bump a specific market quote $k_j$ (e.g., the 5Y par OIS rate) and rebootstrap the curve so all instruments reprice to par under the bumped quote set.
 
 For this chapter we use the book-wide DV01 sign convention:
-- **Bump object:** a continuously-compounded zero curve $y_c(T)$ for the OIS discount curve.
+- **Bump object:** a continuously-compounded zero curve `y_c(T)` for the OIS discount curve.
 - **Bump size:** 1 bp $=10^{-4}$, applied as a parallel shift $y_c(T)\mapsto y_c(T)-10^{-4}$.
 - **Definition:** $DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})$.
 - **Units:** currency per 1 bp (always state the notional basis).
@@ -766,7 +766,7 @@ For curve building and risk reporting, what matters is:
 - An OIS floating coupon is computed from daily compounded overnight fixings, so the realized coupon rate is known only at period end.
 - Under a single-curve OIS setup, the par condition implies $PV_{\text{flt}}=1-P(0,T_N)$ and $k_{\text{par}} = (1-P(0,T_N))/A(0)$.
 - Bootstrapping is sequential: each new pillar depends on earlier pillars, creating “locality” (and a lower-triangular Jacobian in a pure sequential build).
-- Zero rates (e.g., $y_c(T)$) are just a re-parameterization of discount factors; the par curve and the zero curve generally differ.
+- Zero rates (e.g., `y_c(T)`) are just a re-parameterization of discount factors; the par curve and the zero curve generally differ.
 - Interpolation is a modeling choice: log-linear interpolation of discount factors implies piecewise-constant instantaneous forwards and tends to give stable, local risk.
 - DV01 must specify bump object, bump size, units, and sign; zero-curve shifts and par-quote rebootstrap bumps produce different “DV01” numbers.
 - Operational features (stubs, payment delays, observation shifts/lookbacks, special dates, negative rates) and funding/margin terms (PAI, IM/MVA) can dominate small PV differences.
@@ -806,7 +806,7 @@ For curve building and risk reporting, what matters is:
 | $A_n^{\mathrm{flt}}$ | compounded accrual factor over coupon period $n$ | unitless; $\prod_i (1+r_{n,i}\delta_{n,i})$ |
 | $\bar{L}_n$ | annualized compounded overnight rate for coupon period $n$ | per year; $(A_n^{\mathrm{flt}}-1)/\tau_n$ |
 | $A(0)$ | fixed-leg annuity factor | years; $\sum_i \tau_i P(0,T_i)$ |
-| $y_c(T)$ | continuous-compounded zero rate | per year; $P(0,T)=e^{-y_c(T)T}$ |
+| `y_c(T)` | continuous-compounded zero rate | per year; $P(0,T)=e^{-y_c(T)T}$ |
 | $y_a(T)$ | annual-compounded zero rate | per year; $P(0,T)=(1+y_a(T))^{-T}$ (if $T$ in years) |
 | $f(T)$ | instantaneous forward rate | per year; depends on interpolation choice |
 | $\varepsilon_f(t)$ | forward-rate overlay (e.g., special dates) | per year; user-specified component |
@@ -844,7 +844,7 @@ For curve building and risk reporting, what matters is:
 
 ## Mini Problem Set
 
-1. (Compute) A 6-month OIS quotes at 4.00% as a simple annual rate on ACT/360. There are 182 actual days. Compute (a) $P(0,T)$ and (b) the continuously compounded zero rate $y_c(T)$ using the same year fraction $\tau=182/360$.
+1. (Compute) A 6-month OIS quotes at 4.00% as a simple annual rate on ACT/360. There are 182 actual days. Compute (a) $P(0,T)$ and (b) the continuously compounded zero rate `y_c(T)` using the same year fraction $\tau=182/360$.
 2. (Compute) Given annual-pay par OIS rates (assume $\tau_1=\tau_2=1$): 1Y = 3.00%, 2Y = 3.50%. Compute $P(0,1)$ and $P(0,2)$.
 3. (Compute) You have $P(0,1)=0.98$, $P(0,2)=0.95$, $P(0,3)=0.91$ (annual-pay). Compute (a) the 3Y par rate and (b) $y_c(3)$.
 4. (Compute) Given $P(0,2)=0.9400$ and $P(0,3)=0.9000$, compute $P(0,2.5)$ via (a) log-linear in $\ln P$ and (b) linear in $P$.
