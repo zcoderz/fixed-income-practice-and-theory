@@ -8,7 +8,7 @@ A trader quotes you two five-year Treasury notes with identical maturity dates�
 
 What explains this difference? The answer lies not in term structure theory, not in credit risk, and not in tax treatment—but in **market microstructure**: the mechanics of how Treasuries are issued, financed, and traded. The five-basis-point "anomaly" reflects the fact that one bond is *on-the-run* (the most recently issued) while the other is *off-the-run* (an older issue). The on-the-run bond commands a premium because it is more liquid and because holders can finance it at below-market rates in the repo market.
 
-Understanding Treasury microstructure matters for three practical reasons. First, it affects how you measure value: using on-the-run yields as "the" curve can systematically bias your spread calculations. Second, it affects your P&L: the carry on a position depends critically on whether your collateral trades "special" in repo. Third, it creates trading opportunities: relative value strategies that exploit microstructure wedges are a core activity on rates desks.
+Understanding Treasury microstructure matters for three practical reasons. First, it affects how you measure value: using on-the-run yields as "the" curve can systematically bias your spread calculations. Second, it affects your PL: the carry on a position depends critically on whether your collateral trades "special" in repo. Third, it creates trading opportunities: relative value strategies that exploit microstructure wedges are a core activity on rates desks.
 
 This chapter also examines two watershed events that revealed the fragility of convergence arbitrage: the **LTCM collapse of 1998**, where the "flight to quality" proved that apparently riskless trades can face unlimited mark-to-market losses, and the **March 2020 "dash for cash"**, where even Treasuries—the world's ultimate safe asset—experienced severe dislocations. These case studies illustrate why microstructure is not merely academic: it can determine whether a desk survives a crisis.
 
@@ -47,9 +47,9 @@ The U.S. Treasury market is intermediated by a network of **primary dealers**—
 
 Bid-ask spreads in Treasuries vary by issue and market conditions. To understand the economic impact of spreads, consider a bid-ask spread of $1/32$ on $100 million face value. The round-trip spread cost (crossing once) is:
 
-$$\$100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = \$31{,}250$$
+$$USD 100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = USD 31{,}250$$
 
-This formula reflects that a 1/32 price difference (per $100 face) on $100 million notional translates to $31,250 in P&L. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
+This formula reflects that a 1/32 price difference (per $100 face) on $100 million notional translates to $31,250 in PL. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
 
 ### 10.1.4 Measuring Liquidity Quantitatively
 
@@ -143,9 +143,9 @@ When a bond is in high demand to borrow, its **special repo rate** $r_{sp}$ can 
 
 $$\boxed{s \equiv r_{GC} - r_{sp}}$$
 
-A bond “trading special” has $r_{sp} < r_{GC}$ and therefore $s>0$. Intuitively, the bond owner enjoys a financing advantage (they can finance the bond more cheaply), while a short position in the bond faces a financing drag (it must source the bond in a tight collateral market).
+A bond “trading special” has $r_{sp} \lt r_{GC}$ and therefore $s \gt 0$. Intuitively, the bond owner enjoys a financing advantage (they can finance the bond more cheaply), while a short position in the bond faces a financing drag (it must source the bond in a tight collateral market).
 
-**Check (desk-scale financing wedge):** Specialness is a *rate* difference, but it shows up as dollars. For a one-day horizon, the financing wedge is roughly $\text{Invoice cash}\times s/360$. If you are financing $\$100\text{mm}$ of collateral and the bond is 150 bp special versus GC ($s=0.015$), the daily wedge is about $\$100\text{mm}\times 0.015/360 \approx \$4{,}167$. That is why small-looking repo spreads can matter in RV trades and short economics.
+**Check (desk-scale financing wedge):** Specialness is a *rate* difference, but it shows up as dollars. For a one-day horizon, the financing wedge is roughly $\text{Invoice cash}\times s/360$. If you are financing $USD 100\text{mm}$ of collateral and the bond is 150 bp special versus GC ($s=0.015$), the daily wedge is about $USD 100\text{mm}\times 0.015/360 \approx USD 4{,}167$. That is why small-looking repo spreads can matter in RV trades and short economics.
 
 ### 10.4.2 Empirical Magnitudes
 
@@ -284,11 +284,11 @@ A portfolio manager considering two similar bonds must translate the financing a
 
 For a bond trading at special spread $s=r_{GC}-r_{sp}$ over a holding horizon of $d$ days, a convenient *per-100-face* approximation is:
 
-$$\boxed{\text{FinAdv}_{100} = (P + AI) \times s \times \frac{d}{360}}$$
+$$\boxed{FinAdv_{100} = (P + AI) \times s \times \frac{d}{360}}$$
 
 where $P$ is the clean price and $AI$ is accrued interest (both per 100 par).
 
-**Check (units and desk scale):** $s$ is an annualized rate difference (in decimals) and $d/360$ is a year fraction, so $s\cdot d/360$ is dimensionless. Multiplying by $(P+AI)$ (price points per 100) gives a result in **price points per 100**. For $N=\$100\text{mm}$ face, 1 price point is $\$1{,}000{,}000$, so small-looking point values can still matter in dollars. Example: if $(P+AI)=102.90$, $s=100$ bp $=0.01$, and $d=1$ day, then $\text{FinAdv}_{100}\approx 102.90\times 0.01/360 \approx 0.00286$ points $\approx \$2{,}860$ per day on $\$100\text{mm}$.
+**Check (units and desk scale):** $s$ is an annualized rate difference (in decimals) and $d/360$ is a year fraction, so $s\cdot d/360$ is dimensionless. Multiplying by $(P+AI)$ (price points per 100) gives a result in **price points per 100**. For $N=USD 100\text{mm}$ face, 1 price point is $USD 1{,}000{,}000$, so small-looking point values can still matter in dollars. Example: if $(P+AI)=102.90$, $s=100$ bp $=0.01$, and $d=1$ day, then $FinAdv_{100}\approx 102.90\times 0.01/360 \approx 0.00286$ points $\approx USD 2{,}860$ per day on $USD 100\text{mm}$.
 
 **Step 2: Convert to yield-equivalent**
 
@@ -296,17 +296,17 @@ Define the (yield-bumped) DV01 used in this chapter as:
 
 $$\boxed{DV01_y := P(y-1\text{ bp}) - P(y)}$$
 
-where the **bump object** is the bond’s quoted yield $y$, and $DV01_y$ is measured in **price points per 100 face per 1bp**. With this convention, a long position has $DV01_y>0$ and the first-order approximation is:
+where the **bump object** is the bond’s quoted yield $y$, and $DV01_y$ is measured in **price points per 100 face per 1bp**. With this convention, a long position has $DV01_y \gt 0$ and the first-order approximation is:
 
 $$\Delta P \approx -DV01_y \cdot \Delta y_{\text{bp}}$$
 
 Then the financing advantage can be expressed in yield-equivalent basis points by dividing by $DV01_y$:
 
-$$\boxed{\text{FinAdv}_{\text{bp}} = \frac{\text{FinAdv}_{100}}{DV01_y}}$$
+$$\boxed{FinAdv_{\text{bp}} = \frac{FinAdv_{100}}{DV01_y}}$$
 
-The same calculation can be read as a **financing drag** for a short position in the special bond: being short forces you to source the bond in the specials market, which can materially reduce (or even dominate) the expected convergence P&L.
+The same calculation can be read as a **financing drag** for a short position in the special bond: being short forces you to source the bond in the specials market, which can materially reduce (or even dominate) the expected convergence PL.
 
-**Check (bp conversion):** $DV01_y$ is in points per 1bp, so dividing points by points-per-bp gives bp. If $\text{FinAdv}_{100}=0.20$ points and $DV01_y=0.04$ points/bp, then $\text{FinAdv}_{\text{bp}}=0.20/0.04=5$ bp. That is the “yield-equivalent” financing wedge you should compare to the observed rich/cheap in yield terms.
+**Check (bp conversion):** $DV01_y$ is in points per 1bp, so dividing points by points-per-bp gives bp. If $FinAdv_{100}=0.20$ points and $DV01_y=0.04$ points/bp, then $FinAdv_{\text{bp}}=0.20/0.04=5$ bp. That is the “yield-equivalent” financing wedge you should compare to the observed rich/cheap in yield terms.
 
 ### 10.8.2 Worked Example: Is the Benchmark Worth It?
 
@@ -403,7 +403,7 @@ Crowding can create a feedback loop: when many participants run similar converge
 ### 10.11.4 Lessons for Relative Value Trading
 
 1. **“DV01-neutral” is not “riskless.”** You are still exposed to liquidity and financing shocks.
-2. **Leverage turns small wedges into large P&L swings.** Margining and funding constraints can force liquidation before convergence.
+2. **Leverage turns small wedges into large PL swings.** Margining and funding constraints can force liquidation before convergence.
 3. **Crowding matters.** If others hold the same trade, unwind dynamics can dominate fundamentals.
 
 > **Desk Reality:** Convergence requires survival.  
@@ -471,7 +471,7 @@ Hedging with on-the-run securities introduces exposure to microstructure shocks.
 - Changes in the OTR special spread
 - Roll effects when a new issue becomes OTR
 
-These exposures can cause P&L variation even when "rates" (in the fundamental sense) are stable.
+These exposures can cause PL variation even when "rates" (in the fundamental sense) are stable.
 
 ### 10.13.3 RV Signals and Microstructure
 
@@ -485,23 +485,23 @@ Trades and hedges involving special collateral require explicit assumptions: how
 
 ---
 
-## 10.14 Carry and P&L Decomposition with Financing
+## 10.14 Carry and PL Decomposition with Financing
 
 ### 10.14.1 The Carry Formula
 
 A simple decomposition for holding a bond over $d$ days is:
 
-$$\boxed{P\&L = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{cd}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
+$$\boxed{PL = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{cd}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
 
 where $P(0), P(d)$ are clean prices, $c$ is the annual coupon rate, $D$ is days in the coupon period, and $r$ is the repo rate.
 
-Carry is simply interest income minus financing cost. If the bond trades special ($r = r_{sp} < r_{GC}$), the financing cost is lower, and carry is higher than for a GC-financed position.
+Carry is simply interest income minus financing cost. If the bond trades special ($r = r_{sp} \lt r_{GC}$), the financing cost is lower, and carry is higher than for a GC-financed position.
 
 ### 10.14.2 Breakeven Analysis
 
-Carry gives a quick breakeven rule of thumb. Ignoring second-order effects, your holding-period P&L is:
+Carry gives a quick breakeven rule of thumb. Ignoring second-order effects, your holding-period PL is:
 
-$$P\&L \approx \Delta P_{\text{clean}} + \text{Carry}$$
+$$PL \approx \Delta P_{\text{clean}} + \text{Carry}$$
 
 So if carry is positive, the **clean price can fall by roughly “carry (in price points)” before the trade turns unprofitable**. Because special repo lowers the financing cost term, a bond that becomes more special typically has better carry and therefore a larger breakeven cushion (all else equal).
 
@@ -525,7 +525,7 @@ The forward price equals the spot price minus carry. If carry is positive (incom
 
 ### 10.15.2 The Repo Rate in Forward Pricing
 
-The repo rate $r$ in these formulas is the rate at which *that specific bond* can be financed. For a special bond, $r = r_{sp} < r_{GC}$, so carry is higher and the forward price is lower than for an otherwise identical bond financing at GC.
+The repo rate $r$ in these formulas is the rate at which *that specific bond* can be financed. For a special bond, $r = r_{sp} \lt r_{GC}$, so carry is higher and the forward price is lower than for an otherwise identical bond financing at GC.
 
 This means spot versus forward comparisons can look very different once financing is included. Even if two bonds have similar spot yields today, differences in *expected* specialness can imply different forward prices and forward yields.
 
@@ -580,7 +580,7 @@ In words: short each wing in an amount that contributes half of the body DV01. T
 
 The **spread of spreads** compares how different maturity sectors are valued relative to their fitted curve positions:
 
-$$\text{SoS}_{5y} = (\text{RV Score of 5y OTR}) - (\text{RV Score of 5y off-run})$$
+$$SoS_{5y} = RVScore_{5y,\mathrm{OTR}} - RVScore_{5y,\mathrm{off\text{-}run}}$$
 
 A large negative SoS indicates the OTR is extremely rich relative to comparable off-the-run bonds—a potential convergence trade if you believe the spread will normalize.
 
@@ -601,7 +601,7 @@ Two practical cautions:
 - Short OTR 5-year
 - Duration-matched
 
-**Expected P&L drivers:**
+**Expected PL drivers:**
 1. **Spread convergence**: If the 10 bp reverts to 5 bp average, gain 5 bp × DV01
 2. **Financing**: The short OTR will cost financing (it trades special); the long position may finance at GC
 3. **Roll**: When the next auction makes the OTR "old," its liquidity premium should decline
@@ -616,8 +616,8 @@ Two practical cautions:
 > Rich/cheap trades often look attractive on paper but face execution challenges. Shorting the OTR means borrowing it at special rates. If the bond is 150 bp special, you're paying 150 bp/year in carry drag. This cost must be factored into expected returns. Many trades that look profitable ignoring financing are actually losers after financing.
 
 > **Pitfall — Ignoring financing in “convergence” trades:** Treating an OTR/off-the-run spread as “pure value” and forgetting that the short leg may be expensive to borrow.  
-> **Why it matters:** Financing drag can overwhelm the P&L from spread convergence.  
-> **Quick check:** Compute $\text{breakeven bp} \approx \text{(financing drag in \$)} / \text{(trade DV01 in \$/bp)}$.
+> **Why it matters:** Financing drag can overwhelm the PL from spread convergence.  
+> **Quick check:** Compute $\text{breakeven bp} \approx \text{(financing drag in USD )} / \text{(trade DV01 in USD /bp)}$.
 
 ### 10.16.6 Worked Example: DV01-Neutral OTR vs Old 5-Year (Financing Drag Breakeven)
 
@@ -634,15 +634,15 @@ Two practical cautions:
 **Inputs**
 - Old 5-year (long leg):
   - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
-  - Repo rate $r_{GC} = 4.80\%\$ (ACT/360)
+  - Repo rate $r_{GC} = 4.80\%USD  (ACT/360)
   - $DV01_{y,\text{old}} = 0.044$ price points per 100 per 1bp
 - On-the-run 5-year (short leg):
   - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
   - Special repo rate $r_{sp} = 3.30\%$ (ACT/360)
   - $DV01_{y,\text{OTR}} = 0.045$ price points per 100 per 1bp
 - Special spread: $s = r_{GC} - r_{sp} = 1.50\%$
-- Notional: long $N_{\text{old}} = \$100\text{mm}$ face. Choose short notional to be DV01-neutral:
-  $$N_{\text{OTR}} = N_{\text{old}}\cdot \frac{DV01_{y,\text{old}}}{DV01_{y,\text{OTR}}} \approx 100\text{mm}\cdot \frac{0.044}{0.045} \approx \$97.8\text{mm}$$
+- Notional: long $N_{\text{old}} = USD 100\text{mm}$ face. Choose short notional to be DV01-neutral:
+  $$N_{\text{OTR}} = N_{\text{old}}\cdot \frac{DV01_{y,\text{old}}}{DV01_{y,\text{OTR}}} \approx 100\text{mm}\cdot \frac{0.044}{0.045} \approx USD 97.8\text{mm}$$
 
 **Outputs (What You Produce)**
 - Trade DV01 to parallel yield shifts $\approx 0$ by construction.
@@ -652,36 +652,36 @@ Two practical cautions:
 **Step-by-step**
 1. **Compute trade DV01 (dollars per bp).**  
    Long-leg DV01:
-   $$DV01_{\$,\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = \$44{,}000\; \text{per bp}$$
+   $$DV01_{USD ,\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = USD 44{,}000\; \text{per bp}$$
    Short-leg DV01:
-   $$DV01_{\$,\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx \$44{,}010\; \text{per bp}$$
+   $$DV01_{USD ,\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx USD 44{,}010\; \text{per bp}$$
    so the net DV01 is approximately zero.
 
 2. **Compute financing drag (short OTR).**  
    The short position must source the on-the-run security in the specials market. A rough financing-drag estimate over $d$ days is:
    $$\text{Drag} \approx \left(\frac{N_{\text{OTR}}}{100}\cdot P_{\text{dirty}}\right)\cdot s\cdot \frac{d}{360}$$
    Plugging in $N_{\text{OTR}}\approx 97.8\text{mm}$, $P_{\text{dirty}}\approx 100.50$, $s=1.50\%$, $d=60$:
-   $$\text{Drag} \approx \left(97.8\text{mm}\times \frac{100.50}{100}\right)\times 0.015\times \frac{60}{360} \approx \$246{,}000$$
+   $$\text{Drag} \approx \left(97.8\text{mm}\times \frac{100.50}{100}\right)\times 0.015\times \frac{60}{360} \approx USD 246{,}000$$
 
 3. **Breakeven convergence.**  
-   If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., $y_{OTR}-y_{old}$ increases toward 0), the convergence P&L is on the order of:
-   $$\text{P\&L}_{\text{conv}} \approx DV01_{\$,\text{OTR}}\cdot \Delta y$$
+   If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., $y_{OTR}-y_{old}$ increases toward 0), the convergence PL is on the order of:
+   $$PL_{\text{conv}} \approx DV01_{USD ,\text{OTR}}\cdot \Delta y$$
    Breakeven $\Delta y$ is therefore:
-   $$\Delta y_{\text{breakeven}} \approx \frac{\$246{,}000}{\$44{,}000} \approx 5.6\text{ bp}$$
+   $$\Delta y_{\text{breakeven}} \approx \frac{USD 246{,}000}{USD 44{,}000} \approx 5.6\text{ bp}$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-18 → 2026-04-19 | $-\$246{,}000$ | Financing drag from being short a special bond for 60 days (rough estimate) |
-| Exit | $+DV01\times \Delta y$ | Convergence P&L depends on how much the OTR cheapens vs the old issue |
+| 2026-02-18 → 2026-04-19 | $-USD 246{,}000$ | Financing drag from being short a special bond for 60 days (rough estimate) |
+| Exit | $+DV01\times \Delta y$ | Convergence PL depends on how much the OTR cheapens vs the old issue |
 
-**P&L / Risk Interpretation**
+**PL / Risk Interpretation**
 - This trade is *not* a bet on parallel rates: it is a bet that the on-the-run premium will shrink.
-- Financing is a first-order driver: if specialness widens while you wait, your expected P&L can flip sign.
+- Financing is a first-order driver: if specialness widens while you wait, your expected PL can flip sign.
 - A DV01-neutral construction does **not** neutralize liquidity premium risk, specialness risk, or funding/margin dynamics.
 
 **Sanity Checks**
-- Units check: $(\$\\times \%)\\times (\\text{days}/360)\$ produces dollars.
+- Units check: $(USD \\times \%)\\times (\\text{days}/360)USD  produces dollars.
 - Sign check: larger $s$ (more special) increases drag for the short; convergence must be larger/faster to compensate.
 - Limit check: if $s=0$, financing drag vanishes and the trade reduces to a pure relative-yield bet.
 
@@ -693,7 +693,7 @@ Two practical cautions:
 
 2.  **Repo is the financing backbone:** Repurchase agreements allow dealers to finance inventory and traders to borrow securities for short positions. The repo rate directly affects carry and position economics.
 
-3.  **Special versus GC:** On-the-run securities often trade "special"—their repo rates are below GC because of strong demand to borrow them. Special spreads can become large enough that financing dominates short-horizon P&L.
+3.  **Special versus GC:** On-the-run securities often trade "special"—their repo rates are below GC because of strong demand to borrow them. Special spreads can become large enough that financing dominates short-horizon PL.
 
 4.  **Auction cycle dynamics:** Special spreads are small after auctions and tend to widen toward the next auction as the short base migrates to the OTR.
 
@@ -703,7 +703,7 @@ Two practical cautions:
 
 7.  **Benchmark distortion:** Using OTR yields as "the curve" systematically biases spread measurements. Practitioners must use fitted curves or adjust for liquidity effects.
 
-8.  **Convert financing to yield-equivalent:** Translate a dollar financing advantage/drag into yield-equivalent bp by dividing by $DV01_{\$}$ (or equivalently divide the per-100 financing advantage by $DV01_y$).
+8.  **Convert financing to yield-equivalent:** Translate a dollar financing advantage/drag into yield-equivalent bp by dividing by $DV01_{USD }$ (or equivalently divide the per-100 financing advantage by $DV01_y$).
 
 9.  **Convergence arbitrage has risks:** LTCM (1998) demonstrated that "riskless" convergence trades can incur massive losses when flight to quality widens OTR premiums.
 
@@ -725,10 +725,10 @@ Two practical cautions:
 | Repo | Sale + forward repurchase (collateralized financing) | Links cash price, forward price, and carry |
 | GC repo | Repo where collateral is a broad Treasury set | Baseline funding rate for Treasury collateral |
 | Special repo | Repo requiring a specific security | Collateral scarcity shows up as below-GC rates |
-| Special spread | $s := r_{GC}-r_{sp}$ (annualized, ACT/360) | Converts financing wedges into dollars/bp; $s>0$ means “special” |
-| Financing advantage / drag | $\approx (N/100)\,P_{\text{dirty}}\,s\,d/360$ dollars over $d$ days (advantage if long collateral; drag if short) | Often first-order in RV P&L over short horizons |
+| Special spread | $s := r_{GC}-r_{sp}$ (annualized, ACT/360) | Converts financing wedges into dollars/bp; $s \gt 0$ means “special” |
+| Financing advantage / drag | $\approx (N/100)\,P_{\text{dirty}}\,s\,d/360$ dollars over $d$ days (advantage if long collateral; drag if short) | Often first-order in RV PL over short horizons |
 | $DV01_y$ (price DV01) | $DV01_y := P(y-1\text{bp})-P(y)$ (price points per 100 per bp) | Locks bump object/sign for yield-equivalent comparisons |
-| $DV01_{\$}$ (dollar DV01) | $DV01_{\$} := DV01_y\times N/100$ (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
+| $DV01_{USD}$ (dollar DV01) | $DV01_{USD} := DV01_y\times N/100$ (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
 | TMPG fails charge | $C_{\text{daily}}=(1/360)\,0.01\,\max(3-R,F)\,P_{\text{proceeds}}$ (dollars/day) | Makes failing explicitly costly; affects the “negative special” bound |
 | Liquidity premium decomposition | OTR richness = financing component + pure liquidity component | Prevents double-counting when fitting curves / valuing benchmarks |
 | Implied bid-ask spread | $S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}$ | Infers a rough effective spread from bid-ask bounce |
@@ -744,10 +744,10 @@ Two practical cautions:
 | $P_{\text{clean}}$ | Clean price | price points per 100 par; quoted in 32nds |
 | $AI$ | Accrued interest | price points per 100 par |
 | $P_{\text{dirty}}=P_{\text{clean}}+AI$ | Dirty (invoice) price | used for cash settlement and financing approximations |
-| $N$ | Face value (notional) | dollars of par (e.g., $\$100$mm) |
+| $N$ | Face value (notional) | dollars of par (e.g., $USD 100$mm) |
 | $r_{GC}$ | GC repo rate | annualized simple rate; ACT/360; decimal (0.05 = 5%) |
 | $r_{sp}$ | Special repo rate (security-specific) | same convention as $r_{GC}$ |
-| $s=r_{GC}-r_{sp}$ | Special spread | decimal per year; $s>0\Rightarrow$ “special” |
+| $s=r_{GC}-r_{sp}$ | Special spread | decimal per year; $s \gt 0\Rightarrow$ “special” |
 | $d$ | Holding period | calendar days; ACT/360 |
 | $P_{fwd}$ | Forward clean price | price points per 100 at forward settlement |
 | $P_{\text{proceeds}}$ | Trade proceeds in a DVP settlement | dollars |
@@ -755,8 +755,8 @@ Two practical cautions:
 | $R$ | TMPG reference rate | percent per year (not decimal); based on fed funds target |
 | $F$ | TMPG floor parameter | percent points; depends on rule version/date |
 | $y$ | Bond yield quote | bump object for $DV01_y$ |
-| $DV01_y$ | Price DV01 to yield bump | price points per 100 per 1bp; $DV01_y=P(y-1\text{bp})-P(y)>0$ for long |
-| $DV01_{\$}$ | Dollar DV01 of a position | dollars per bp; $DV01_{\$}=DV01_y\times N/100$ |
+| $DV01_y$ | Price DV01 to yield bump | price points per 100 per 1bp; $DV01_y=P(y-1\text{bp})-P(y) \gt 0$ for long |
+| $DV01_{USD}$ | Dollar DV01 of a position | dollars per bp; $DV01_{USD}=DV01_y\times N/100$ |
 | $X_t$ | Transaction price change | price points per 100; $X_t=P_t-P_{t-1}$ |
 | $S$ | Implied bid-ask spread estimate | price points per 100 |
 
@@ -775,7 +775,7 @@ Two practical cautions:
 | 7 | Define special spread. | $s = r_{GC} - r_{sp}$. |
 | 8 | Why might a bond trade special? | High demand to borrow it for short positions. |
 | 9 | What creates the OTR liquidity premium? | Two components: financing advantage + pure liquidity demand. |
-| 10 | How do you convert financing advantage to bp? | Divide a dollar financing advantage/drag by $DV01_{\$}$ (or per-100 financing advantage by $DV01_y$). |
+| 10 | How do you convert financing advantage to bp? | Divide a dollar financing advantage/drag by $DV01_{USD }$ (or per-100 financing advantage by $DV01_y$). |
 | 11 | What historically bounded the special spread? | The GC rate (since special could not go below 0% before 2009). |
 | 12 | Why couldn't special rates go negative historically? | Failing to deliver was equivalent to 0% financing, so no one would lend at negative rates. |
 | 13 | What is the TMPG fails charge formula (DVP Treasuries)? | $C_{\text{daily}}=(1/360)\,0.01\,\max(3-R,F)\,P_{\text{proceeds}}$ dollars/day. |
@@ -789,7 +789,7 @@ Two practical cautions:
 | 21 | What is the implied spread formula from autocovariance? | $S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}$, where $X_t=P_t-P_{t-1}$. |
 | 22 | What does LTCM stand for and what was their strategy? | Long-Term Capital Management; convergence arbitrage (long cheap/illiquid, short rich/liquid). |
 | 23 | What triggered LTCM's collapse? | Russia's default in August 1998 caused a "flight to quality" that widened spreads against their positions. |
-| 24 | What DV01 convention is used in this chapter? | $DV01_y:=P(y-1\text{bp})-P(y)$ (per 100); $DV01_{\$}=DV01_y\times N/100$; $\Delta P\approx -DV01_y\Delta y_{\text{bp}}$. |
+| 24 | What DV01 convention is used in this chapter? | $DV01_y:=P(y-1\text{bp})-P(y)$ (per 100); $DV01_{USD }=DV01_y\times N/100$; $\Delta P\approx -DV01_y\Delta y_{\text{bp}}$. |
 | 25 | What was the "dash for cash" in March 2020? | Investors sold even Treasuries to raise cash, causing unprecedented dislocations. |
 | 26 | Why can even OTR liquidity deteriorate in stress? | Intermediation capacity is finite: risk limits, balance-sheet usage, and funding frictions can force dealers to widen spreads and reduce size. |
 | 27 | What is a butterfly trade? | A three-leg trade (short wings, long body) that isolates curvature from level. |
@@ -807,19 +807,19 @@ Two practical cautions:
 
 ---
 
-**2.** You finance $\$200$ million overnight at 4.80%. Compute interest cost (ACT/360).
+**2.** You finance $USD 200$ million overnight at 4.80%. Compute interest cost (ACT/360).
 
-**Solution:** Cost $= 200{,}000{,}000 \times 0.048 \times (1/360) = \$26{,}667$.
-
----
-
-**3.** A bond trades 300 bp special (GC = 5.00%, special = 2.00%). For $\$100$mm face over 7 days, compute financing advantage.
-
-**Solution:** FinAdv $= 100{,}000{,}000 \times 0.03 \times (7/360) = \$58{,}333$.
+**Solution:** Cost $= 200{,}000{,}000 \times 0.048 \times (1/360) = USD 26{,}667$.
 
 ---
 
-**4.** Using Problem 3, if DV01 = $\$85{,}000$ per bp, what is the yield-equivalent advantage?
+**3.** A bond trades 300 bp special (GC = 5.00%, special = 2.00%). For $USD 100$mm face over 7 days, compute financing advantage.
+
+**Solution:** FinAdv $= 100{,}000{,}000 \times 0.03 \times (7/360) = USD 58{,}333$.
+
+---
+
+**4.** Using Problem 3, if DV01 = $USD 85{,}000$ per bp, what is the yield-equivalent advantage?
 
 **Solution:** $58{,}333 / 85{,}000 \approx 0.69$ bp.
 
@@ -831,9 +831,9 @@ Two practical cautions:
 
 ---
 
-**6.** A short must borrow a bond at special 0.25% when GC is 4.75%, for 14 days on $\$50$mm. Compute incremental cost vs GC.
+**6.** A short must borrow a bond at special 0.25% when GC is 4.75%, for 14 days on $USD 50$mm. Compute incremental cost vs GC.
 
-**Solution:** Cost $= 50{,}000{,}000 \times 0.045 \times (14/360) = \$87{,}500$.
+**Solution:** Cost $= 50{,}000{,}000 \times 0.045 \times (14/360) = USD 87{,}500$.
 
 ---
 
@@ -895,34 +895,36 @@ The implied spread is 2 cents per $100 face, or about 0.6/32nds.
 
 ---
 
-**16.** A 2-5-10 butterfly has $DV01_{y,2} = 0.018$, $DV01_{y,5} = 0.042$, $DV01_{y,10} = 0.078$ (price points per 100 per bp). You want $\$100$mm notional in the body. Calculate the wing sizes for a DV01-neutral fly.
+**16.** A 2-5-10 butterfly has $DV01_{y,2} = 0.018$, $DV01_{y,5} = 0.042$, $DV01_{y,10} = 0.078$ (price points per 100 per bp). You want $USD 100$mm notional in the body. Calculate the wing sizes for a DV01-neutral fly.
 
 **Solution Sketch:**
-- Body DV01 = $100mm \times 0.00042 = \$42{,}000$
-- If we weight wings equally: each wing should contribute $\$21{,}000$ of DV01
-- 2-year notional: $21{,}000 / 0.00018 = \$116.7mm$
-- 10-year notional: $21{,}000 / 0.00078 = \$26.9mm$
+- Body DV01 = $100mm \times 0.00042 = USD 42{,}000$
+- If we weight wings equally: each wing should contribute $USD 21{,}000$ of DV01
+- 2-year notional: $21{,}000 / 0.00018 = USD 116.7mm$
+- 10-year notional: $21{,}000 / 0.00078 = USD 26.9mm$
 
 The fly is: short $116.7mm 2-year, long $100mm 5-year, short $26.9mm 10-year.
 
 ---
 
-**17.** A DVP Treasury trade has proceeds $P_{\text{proceeds}}=\$50{,}000{,}000$. The TMPG reference rate is $R=0.25\%$. Assume $F=0$. Compute the TMPG daily fails charge $C_{\text{daily}}$.
+**17.** A DVP Treasury trade has proceeds $P_{\text{proceeds}}=USD 50{,}000{,}000$. The TMPG reference rate is $R=0.25\%$. Assume $F=0$. Compute the TMPG daily fails charge $C_{\text{daily}}$.
 
 **Solution:** With $\max(3-R,F)=3-0.25=2.75$ (percent points):
+
 $$
-C_{\text{daily}}=\frac{1}{360}\times 0.01\times 2.75\times 50{,}000{,}000 \approx \$3{,}819\;\text{per day.}
+C_{\text{daily}}=\frac{1}{360}\times 0.01\times 2.75\times 50{,}000{,}000 \approx USD 3{,}819\;\text{per day.}
 $$
+
 Qualitatively: an explicit fails charge makes failing costly, so borrowing at a negative special rate can be cheaper than failing in some scenarios.
 
 ---
 
-**18.** You're analyzing a rich/cheap trade: OTR 5y trades 7 bp rich to curve; old 5y trades 1 bp cheap. You are short $\$100$mm face of the OTR and long $\$100$mm face of the old (assume prices near par), so the package has $DV01_{\$}\approx \$45{,}000$ per bp. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the spread halves (to 4 bp), calculate P&L including financing.
+**18.** You're analyzing a rich/cheap trade: OTR 5y trades 7 bp rich to curve; old 5y trades 1 bp cheap. You are short $USD 100$mm face of the OTR and long $USD 100$mm face of the old (assume prices near par), so the package has $DV01_{USD }\approx USD 45{,}000$ per bp. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the spread halves (to 4 bp), calculate PL including financing.
 
 **Solution Sketch:**
-- **Spread convergence P&L**: 4 bp × $45,000 = $180,000 gain
-- **Financing drag of short OTR** (150 bp special): $0.015\times 100{,}000{,}000\times 90/360 \approx \$375{,}000$
-- **Net P&L**: $180,000 - $375,000 = **-$195,000 loss**
+- **Spread convergence PL**: 4 bp × $45,000 = $180,000 gain
+- **Financing drag of short OTR** (150 bp special): $0.015\times 100{,}000{,}000\times 90/360 \approx USD 375{,}000$
+- **Net PL**: $180,000 - $375,000 = **-$195,000 loss**
 
 The financing drag exceeds the spread convergence gain. This illustrates why financing costs matter.
 
