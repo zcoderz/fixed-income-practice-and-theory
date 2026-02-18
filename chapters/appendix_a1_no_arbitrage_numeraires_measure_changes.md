@@ -24,7 +24,7 @@ This appendix covers the essential toolkit:
 
 3. **Bond numeraires and forward measures** (Section 4): The $T$-forward measure, why forward rates are martingales under it, the swap measure, and a side-by-side comparison of physical vs. risk-neutral dynamics.
 
-4. **Bridge to HJM** (Section 5): Why specifying volatility "pins down" drift, with full intuition for the integral structure $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\, ds$.
+4. **Bridge to HJM** (Section 5): Why specifying volatility "pins down" drift, with full intuition for the integral structure $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\\, ds$.
 
 5. **Practical desk applications** (Section 6): A checklist for measure selection, common practitioner mistakes, diagnostic tests, and how measure choice affects risk reporting.
 
@@ -59,14 +59,14 @@ This appendix covers the essential toolkit:
 **Numeraires:**
 
 - $B(t)$: money-market account (bank account), strictly positive:
-$$B(t) = B(0) \exp\!\left(\int_0^t r(s)\, ds\right),$$
+$$B(t) = B(0) \exp\\!\left(\int_0^t r(s)\\, ds\right),$$
 where $r(t)$ is the short rate.
 
 - $P(t,T)$: default-free zero-coupon bond price (pays 1 at $T$).
 
 **Discounting:**
 
-$$D(t,T) = \frac{B(t)}{B(T)} = \exp\!\left(-\int_t^T r(s)\, ds\right).$$
+$$D(t,T) = \frac{B(t)}{B(T)} = \exp\\!\left(-\int_t^T r(s)\\, ds\right).$$
 
 **Rates:**
 
@@ -74,7 +74,7 @@ $$D(t,T) = \frac{B(t)}{B(T)} = \exp\!\left(-\int_t^T r(s)\, ds\right).$$
 $$f(t,T) \equiv -\frac{\partial}{\partial T} \ln P(t,T).$$
 
 - Bond–forward-rate relation:
-$$P(t,T) = \exp\!\left(-\int_t^T f(t,u)\, du\right).$$
+$$P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\, du\right).$$
 
 - Short rate:
 $$r(t) = f(t,t).$$
@@ -160,7 +160,7 @@ Replication cost: $0.5 \times 100 - 42.86 = 7.14$. ✓
 
 ### 1.1 Arbitrage and No-Arbitrage
 
-**A clean one-period definition (Cochrane):** If a payoff $x$ satisfies $x \\ge 0$ (almost surely) and $x>0$ with positive probability, then its price must satisfy $p(x)>0$. Equivalently, an *arbitrage* is a portfolio/strategy with **nonpositive cost** and a payoff that is **never negative**, with some chance of being strictly positive.
+**A clean one-period definition (Cochrane):** If a payoff $x$ satisfies $x \\ge 0$ (almost surely) and $x \gt 0$ with positive probability, then its price must satisfy $p(x) \gt 0$. Equivalently, an *arbitrage* is a portfolio/strategy with **nonpositive cost** and a payoff that is **never negative**, with some chance of being strictly positive.
 
 **Desk definition (operational):** Traders tend to use “arbitrage” as shorthand for *a riskless win*, or a violation of the law of one price. In day-to-day rates work, you usually *detect* arbitrage (or “near-arbitrage”) by checking **internal consistency** between instruments that should be linked by replication or parity (bond stripping, swap replication, cap/floor parity, curve monotonicity constraints, etc.).
 
@@ -185,11 +185,11 @@ This $\psi$ assigns a positive “present value” to \$1 delivered in each stat
 
 ### 1.2 State-Price Deflator (SDF) / Pricing Kernel
 
-**Formal definition:** A *state-price deflator* $\pi(t)$ (often also called the *pricing kernel* in asset pricing) is a strictly positive adapted process that prices payoffs via:
+**Formal definition:** A state-price deflator $\pi(t)$ (often also called the pricing kernel in asset pricing) is a strictly positive adapted process that prices payoffs via:
 
-$$\boxed{V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]}$$
+$$\boxed{V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]}$$
 
-This is Duffie’s fundamental pricing equation. It says: *one* positive process $\pi(\cdot)$ can be used to price *all* traded payoffs. In other words, you can keep the real-world measure $\mathbb{P}$ and push all “risk adjustments” into the state-dependent factor $\pi(T)$ inside the expectation.
+This is Duffie’s fundamental pricing equation. It says: one positive process $\pi(\cdot)$ can be used to price all traded payoffs. In other words, you can keep the real-world measure $\mathbb{P}$ and push all “risk adjustments” into the state-dependent factor $\pi(T)$ inside the expectation.
 
 **Connection to Arrow-Debreu securities:** Cochrane's *Asset Pricing* emphasizes that the SDF can be understood through contingent claims. An Arrow-Debreu security pays \$1 in exactly one state $\omega$ and zero otherwise. If $\psi(\omega)$ is the price today of this security, then for any payoff $H$:
 
@@ -201,11 +201,11 @@ where $m(\omega) \equiv \psi(\omega)/p(\omega)$ is the pricing kernel (and $p(\o
 
 **Risk premia from SDF covariance (optional):** If $m$ is a one-period pricing kernel and $R$ is a *gross* return, the pricing restriction is:
 
-$$1 = \mathbb{E}[mR] = \mathbb{E}[m]\,\mathbb{E}[R] + \mathrm{Cov}(m, R)$$
+$$1 = \mathbb{E}[mR] = \mathbb{E}[m]\\,\mathbb{E}[R] + \mathrm{Cov}(m, R)$$
 
 Using $R_f = 1/\mathbb{E}[m]$, this implies:
 
-$$\mathbb{E}[R] - R_f = -R_f\,\mathrm{Cov}(m, R)$$
+$$\mathbb{E}[R] - R_f = -R_f\\,\mathrm{Cov}(m, R)$$
 
 Assets that tend to pay off when $m$ is high (“bad states”) are valuable hedges and can have lower expected returns; assets that pay mainly in good states must offer a premium.
 
@@ -223,7 +223,7 @@ Assets that tend to pay off when $m$ is high (“bad states”) are valuable hed
 
 **Analogy: Metric vs. Imperial units.** Think of numeraire change like switching from dollars to euros, or from miles to kilometers. The underlying reality (distances, wealth) doesn't change, but the numbers you write down do. Similarly, changing numeraire changes the "units" in which you measure prices, which changes the probabilities you assign to scenarios—but the final price in any fixed currency remains the same.
 
-**Self-financing invariance:** A key technical result (Geman et al., 1995) is that self-financing strategies remain self-financing after a numeraire change. The self-financing condition $dV_t(\phi) = \sum_k \phi_t^k\, dS_t^k$ transforms consistently under the change of unit.
+**Self-financing invariance:** A key technical result (Geman et al., 1995) is that self-financing strategies remain self-financing after a numeraire change. The self-financing condition $dV_t(\phi) = \sum_k \phi_t^k\\, dS_t^k$ transforms consistently under the change of unit.
 
 **Common numeraire choices:**
 
@@ -268,7 +268,7 @@ A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its dr
 > 3. Your portfolio $\Pi = V - \Delta S$ is (instantaneously) riskless.
 >
 > Since the hedged portfolio is riskless, *it must earn the risk-free rate*:
-> $$d\Pi = r \Pi \, dt$$
+> $$d\Pi = r \Pi \\, dt$$
 >
 > This is not a psychological assumption about investor preferences—it's a no-arbitrage requirement. If the hedged portfolio earned more than $r$, everyone would borrow at $r$ and invest in the hedged portfolio; if it earned less, everyone would short the hedged portfolio and invest in bonds.
 >
@@ -279,7 +279,7 @@ A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its dr
 > > **Desk Reality: Why This Matters for Traders**
 > >
 > > When a trader runs a delta-hedged book, the P&L attribution often looks like:
-> > $$\text{P\&L} = \underbrace{\text{Theta}}_{\text{time decay}} + \underbrace{\text{Gamma} \times (\Delta S)^2/2}_{\text{realized vol}} + \text{higher order}$$
+> > $$\text{P\\&L} = \underbrace{\text{Theta}}_{\text{time decay}} + \underbrace{\text{Gamma} \times (\Delta S)^2/2}_{\text{realized vol}} + \text{higher order}$$
 > >
 > > The expected P&L of a perfectly hedged position is zero (after funding costs). This is *exactly* what $\mathbb{Q}$-pricing captures: the no-drift property of hedged positions.
 > >
@@ -337,7 +337,7 @@ In diffusion settings, Girsanov's theorem says drifts change while volatility co
 
 **Formal definition:** The $T$-forward measure $\mathbb{Q}^T$ is the measure induced by the numeraire $P(t,T)$. The central pricing identity is:
 
-$$\boxed{V(t) = P(t,T)\, \mathbb{E}_t^T\!(H_T)}$$
+$$\boxed{V(t) = P(t,T)\\, \mathbb{E}_t^T\\!(H_T)}$$
 
 for payoffs paid at $T$.
 
@@ -357,7 +357,7 @@ where $\tau_i$ are accrual fractions and $T_i$ are payment dates, can serve as a
 
 Under $\mathbb{Q}^A$, the forward swap rate $S(t)$ is a martingale by construction. Swaption payoffs become:
 
-$$V(t) = A(t)\, \mathbb{E}_t^A\!\left[(S(T) - K)^+\right]$$
+$$V(t) = A(t)\\, \mathbb{E}_t^A\\!\left[(S(T) - K)^+\right]$$
 
 **Practice:** Standard swaption desk modeling uses this measure for tractability—if $S(t)$ is a martingale, you can model it as lognormal (or shifted lognormal) and get closed-form Black formulas.
 
@@ -368,7 +368,7 @@ $$V(t) = A(t)\, \mathbb{E}_t^A\!\left[(S(T) - K)^+\right]$$
 **Formal definitions:**
 
 - $P(t,T)$: time-$t$ price of a bond paying 1 at $T$.
-- $B(t)$: bank account that accrues at the short rate $r(t)$, i.e., $B(t) = B(0)\exp(\int_0^t r(s)\, ds)$.
+- $B(t)$: bank account that accrues at the short rate $r(t)$, i.e., $B(t) = B(0)\exp(\int_0^t r(s)\\, ds)$.
 
 **Why these are the building blocks:** Every fixed-income instrument can be decomposed into portfolios of zero-coupon bonds. A coupon bond is a sum of zeros. A swap is a difference of bonds divided by an annuity. Understanding bond prices means understanding the entire rates market.
 
@@ -377,7 +377,7 @@ $$V(t) = A(t)\, \mathbb{E}_t^A\!\left[(S(T) - K)^+\right]$$
 - Under $B(t)$ (money-market numeraire): $P(t,T)/B(t)$ is a martingale under $\mathbb{Q}^B$. This is the "risk-neutral" world where all assets earn the short rate on average.
 - Under $P(t,T)$ (bond numeraire): $S(t)/P(t,T)$ is a martingale under $\mathbb{Q}^T$ for any traded asset $S$. This is the "forward" world where forward prices are martingales.
 
-**Connection to discounting:** The money-market discount factor $D(t,T) = B(t)/B(T) = \exp(-\int_t^T r(s)\, ds)$ satisfies $P(t,T) = \mathbb{E}_t^{\mathbb{Q}^B}[D(t,T)]$—the bond price is the expected discount factor under the risk-neutral measure.
+**Connection to discounting:** The money-market discount factor $D(t,T) = B(t)/B(T) = \exp(-\int_t^T r(s)\\, ds)$ satisfies $P(t,T) = \mathbb{E}_t^{\mathbb{Q}^B}[D(t,T)]$—the bond price is the expected discount factor under the risk-neutral measure.
 
 ---
 
@@ -385,7 +385,7 @@ $$V(t) = A(t)\, \mathbb{E}_t^A\!\left[(S(T) - K)^+\right]$$
 
 **Formal definitions:**
 
-$$f(t,T) = -\partial_T \ln P(t,T), \qquad P(t,T) = \exp\left(-\int_t^T f(t,u)\, du\right), \qquad r(t) = f(t,t).$$
+$$f(t,T) = -\partial_T \ln P(t,T), \qquad P(t,T) = \exp\left(-\int_t^T f(t,u)\\, du\right), \qquad r(t) = f(t,t).$$
 
 **Intuition:** The forward rate $f(t,T)$ represents the "marginal cost of extending maturity by $dT$" at time $t$. If you think of $-\ln P(t,T)$ as the total "log-cost" of borrowing from $t$ to $T$, then $f(t,T)$ is the instantaneous rate at which this cost accumulates as you extend $T$.
 
@@ -403,7 +403,7 @@ $$f(t,T) = -\partial_T \ln P(t,T), \qquad P(t,T) = \exp\left(-\int_t^T f(t,u)\, 
 
 For a payoff $H_T$ at time $T$, Duffie's state-price deflator pricing relation gives:
 
-$$V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]$$
+$$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]$$
 
 **Unit check:**
 - $H_T$ has units currency.
@@ -418,11 +418,11 @@ $$V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]
 
 Brigo-Mercurio's numeraire theorem: if $N$ is a numeraire and $\mathbb{Q}^N$ the associated measure, then:
 
-$$V(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{H_T}{N(T)}\right)$$
+$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{H_T}{N(T)}\right)$$
 
 Setting $N = B$ (money-market account):
 
-$$V(t) = B(t)\, \mathbb{E}_t^{\mathbb{Q}^B}\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\!\left[D(t,T)\, H_T\right]$$
+$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\\!\left[D(t,T)\\, H_T\right]$$
 
 where $D(t,T) = B(t)/B(T)$ is the money-market discount factor.
 
@@ -438,7 +438,7 @@ This is the classic risk-neutral valuation formula: prices are discounted expect
 
 **Prices are invariant (if you numeraire-adjust correctly):**
 
-$$V(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{H_T}{N(T)}\right) = U(t)\, \mathbb{E}_t^{\mathbb{Q}^U}\!\left(\frac{H_T}{U(T)}\right)$$
+$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{H_T}{N(T)}\right) = U(t)\\, \mathbb{E}_t^{\mathbb{Q}^U}\\!\left(\frac{H_T}{U(T)}\right)$$
 
 for any two numeraires $N, U$, provided the measures are linked by the correct Radon-Nikodym derivative.
 
@@ -461,7 +461,7 @@ $$\frac{Z(t)}{N(t)} \text{ is a } \mathbb{Q}^N\text{-martingale.}$$
 
 For a claim paying $Z(T)$ at time $T$:
 
-$$\boxed{Z(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{Z(T)}{N(T)}\right)} \tag{CON}$$
+$$\boxed{Z(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{Z(T)}{N(T)}\right)} \tag{CON}$$
 
 > **Brigo-Mercurio's "Three Facts" for Numeraire Changes**
 >
@@ -470,7 +470,7 @@ $$\boxed{Z(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{Z(T)}{N(T)}\righ
 > **Fact One (Martingale property):** The price of any asset divided by a numeraire is a martingale under the measure associated with that numeraire.
 >
 > **Fact Two (Price invariance):** The time-$t$ risk-neutral price is invariant by change of numeraire: if $B$ and $S$ are any two numeraires,
-> $$\mathbb{E}_t^{\mathbb{Q}^B}\!\left[\frac{B(t)}{B(T)} \cdot \text{Payoff}(T)\right] = \mathbb{E}_t^{\mathbb{Q}^S}\!\left[\frac{S(t)}{S(T)} \cdot \text{Payoff}(T)\right]$$
+> $$\mathbb{E}_t^{\mathbb{Q}^B}\\!\left[\frac{B(t)}{B(T)} \cdot \text{Payoff}(T)\right] = \mathbb{E}_t^{\mathbb{Q}^S}\\!\left[\frac{S(t)}{S(T)} \cdot \text{Payoff}(T)\right]$$
 >
 > **Fact Three (Drift adjustment):** When moving from numeraire $N_1$ to $N_2$, the drift of any asset changes by:
 > $$\boxed{\mu^{N_2} = \mu^{N_1} - \sigma_{\text{asset}}^\top \left(\sigma_{N_1} - \sigma_{N_2}\right)}$$
@@ -488,7 +488,7 @@ Brigo-Mercurio provide the explicit derivation. Here we spell out each step.
 
 **Step 2: Write the pricing identity under each.** For any traded asset $Z$:
 
-$$Z(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{Z(T)}{N(T)}\right) = U(t)\, \mathbb{E}_t^{\mathbb{Q}^U}\!\left(\frac{Z(T)}{U(T)}\right)$$
+$$Z(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{Z(T)}{N(T)}\right) = U(t)\\, \mathbb{E}_t^{\mathbb{Q}^U}\\!\left(\frac{Z(T)}{U(T)}\right)$$
 
 **Step 3: Define what we seek.** We want the density $\rho_T$ such that for any $\mathcal{F}_T$-measurable $X$:
 
@@ -496,23 +496,23 @@ $$\mathbb{E}^{\mathbb{Q}^U}[X] = \mathbb{E}^{\mathbb{Q}^N}[\rho_T \cdot X]$$
 
 **Step 4: Apply the pricing identity to a specific claim.** Consider the claim that pays $Z(T) = U(T)$ at time $T$. Under numeraire $N$:
 
-$$U(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{U(T)}{N(T)}\right)$$
+$$U(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right)$$
 
 At $t=0$:
 
-$$U(0) = N(0)\, \mathbb{E}^{\mathbb{Q}^N}\!\left(\frac{U(T)}{N(T)}\right)$$
+$$U(0) = N(0)\\, \mathbb{E}^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right)$$
 
 So:
 
-$$\mathbb{E}^{\mathbb{Q}^N}\!\left(\frac{U(T)}{N(T)}\right) = \frac{U(0)}{N(0)}$$
+$$\mathbb{E}^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right) = \frac{U(0)}{N(0)}$$
 
 **Step 5: Identify the Radon-Nikodym derivative.** For the change-of-measure identity to hold for all payoffs, we need:
 
-$$\boxed{\left.\frac{d\mathbb{Q}^U}{d\mathbb{Q}^N}\right|_{\mathcal{F}_T} = \frac{U(T)\, N(0)}{U(0)\, N(T)}} \tag{RN-CON}$$
+$$\boxed{\left.\frac{d\mathbb{Q}^U}{d\mathbb{Q}^N}\right|_{\mathcal{F}_T} = \frac{U(T)\\, N(0)}{U(0)\\, N(T)}} \tag{RN-CON}$$
 
 **Step 6: Verify consistency.** Check that $\mathbb{E}^{\mathbb{Q}^N}[\frac{d\mathbb{Q}^U}{d\mathbb{Q}^N}] = 1$:
 
-$$\mathbb{E}^{\mathbb{Q}^N}\!\left[\frac{U(T) N(0)}{U(0) N(T)}\right] = \frac{N(0)}{U(0)} \cdot \mathbb{E}^{\mathbb{Q}^N}\!\left[\frac{U(T)}{N(T)}\right] = \frac{N(0)}{U(0)} \cdot \frac{U(0)}{N(0)} = 1 \quad \checkmark$$
+$$\mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T) N(0)}{U(0) N(T)}\right] = \frac{N(0)}{U(0)} \cdot \mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T)}{N(T)}\right] = \frac{N(0)}{U(0)} \cdot \frac{U(0)}{N(0)} = 1 \quad \checkmark$$
 
 ---
 
@@ -520,7 +520,7 @@ $$\mathbb{E}^{\mathbb{Q}^N}\!\left[\frac{U(T) N(0)}{U(0) N(T)}\right] = \frac{N(
 
 Under $\mathbb{Q}^N$, any traded $Z(t)$ satisfies:
 
-$$\boxed{\mathbb{E}^{\mathbb{Q}^N}\!\left[\frac{Z(t)}{N(t)} \,\Big|\, \mathcal{F}_u\right] = \frac{Z(u)}{N(u)} \quad (u \leq t)} \tag{Mart}$$
+$$\boxed{\mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{Z(t)}{N(t)} \\,\Big|\\, \mathcal{F}_u\right] = \frac{Z(u)}{N(u)} \quad (u \leq t)} \tag{Mart}$$
 
 ---
 
@@ -528,18 +528,18 @@ $$\boxed{\mathbb{E}^{\mathbb{Q}^N}\!\left[\frac{Z(t)}{N(t)} \,\Big|\, \mathcal{F
 
 When switching from $\mathbb{Q}^N$ to $\mathbb{Q}^U$, Girsanov tells us:
 
-- **Volatility unchanged:** The diffusion coefficient $\sigma$ in $dX = \mu\, dt + \sigma\, dW$ stays the same.
+- **Volatility unchanged:** The diffusion coefficient $\sigma$ in $dX = \mu\\, dt + \sigma\\, dW$ stays the same.
 - **Drift changes:** The new drift under $\mathbb{Q}^U$ differs from the old drift under $\mathbb{Q}^N$ by a term involving the volatility of the Radon-Nikodym derivative.
 
 Andersen-Piterbarg call this the **diffusion invariance principle**: "While a change of probability measure affects the drift $\mu$ of an Ito process, it does not change the diffusion coefficient $\sigma$." This principle is fundamental to interest rate modeling—it means that when you switch between forward measures or from risk-neutral to physical measure, your volatility calibration remains valid. Only the drift adjustment changes.
 
 Specifically, if $W^N$ is a Brownian motion under $\mathbb{Q}^N$, then under $\mathbb{Q}^U$:
 
-$$\boxed{dW^U = dW^N - \gamma(t)\, dt}$$
+$$\boxed{dW^U = dW^N - \gamma(t)\\, dt}$$
 
-where $\gamma(t)$ is the "market price of risk" associated with the numeraire change. For an Ito process $dX = \mu^N dt + \sigma\, dW^N$ under $\mathbb{Q}^N$, the same process under $\mathbb{Q}^U$ becomes:
+where $\gamma(t)$ is the "market price of risk" associated with the numeraire change. For an Ito process $dX = \mu^N dt + \sigma\\, dW^N$ under $\mathbb{Q}^N$, the same process under $\mathbb{Q}^U$ becomes:
 
-$$dX = (\mu^N + \sigma \gamma)\, dt + \sigma\, dW^U$$
+$$dX = (\mu^N + \sigma \gamma)\\, dt + \sigma\\, dW^U$$
 
 The drift changes by $\sigma \gamma$; the diffusion coefficient $\sigma$ is invariant.
 
@@ -570,7 +570,7 @@ The drift changes by $\sigma \gamma$; the diffusion coefficient $\sigma$ is inva
 
 Let $N(t) = P(t,T)$. Then $\mathbb{Q}^T$ is the $T$-forward measure and:
 
-$$\boxed{V(t) = P(t,T)\, \mathbb{E}_t^T\!(H_T)} \tag{FwdPricing}$$
+$$\boxed{V(t) = P(t,T)\\, \mathbb{E}_t^T\\!(H_T)} \tag{FwdPricing}$$
 
 **Practitioner interpretation:** If the payoff date matches the bond numeraire maturity, you "factor out" discounting as $P(t,T)$. You then only need an expectation under $\mathbb{Q}^T$—no stochastic discounting inside the expectation.
 
@@ -584,7 +584,7 @@ $$F(t;T) = \frac{S(t)}{P(t,T)}$$
 
 By the numeraire-martingale rule, $\frac{S(t)}{P(t,T)}$ is a $\mathbb{Q}^T$-martingale, so:
 
-$$F(t;T) = \mathbb{E}_t^T\!(S(T))$$
+$$F(t;T) = \mathbb{E}_t^T\\!(S(T))$$
 
 The forward price equals the expected spot under the forward measure.
 
@@ -610,26 +610,26 @@ This table shows the *same* stock under two different probability measures:
 |--------|------------------------|------------------------------|
 | **What it represents** | Real-world, historical | Hedged, pricing |
 | **Drift** | $\mu$ (includes risk premium) | $r$ (risk-free rate) |
-| **Dynamics** | $\frac{dS}{S} = \mu \, dt + \sigma \, dW^{\mathbb{P}}$ | $\frac{dS}{S} = r \, dt + \sigma \, dW^{\mathbb{Q}}$ |
+| **Dynamics** | $\frac{dS}{S} = \mu \\, dt + \sigma \\, dW^{\mathbb{P}}$ | $\frac{dS}{S} = r \\, dt + \sigma \\, dW^{\mathbb{Q}}$ |
 | **Volatility** | $\sigma$ | $\sigma$ (same!) |
 | **Use** | Forecasting, VaR, risk management | Pricing, hedging |
 | **Expected return** | $\mu$ (equity premium) | $r$ (no premium) |
 
 **The connection:** Girsanov's theorem links the two:
-$$dW^{\mathbb{Q}} = dW^{\mathbb{P}} + \theta \, dt, \quad \text{where } \theta = \frac{\mu - r}{\sigma}$$
+$$dW^{\mathbb{Q}} = dW^{\mathbb{P}} + \theta \\, dt, \quad \text{where } \theta = \frac{\mu - r}{\sigma}$$
 
 The term $\theta = (\mu - r)/\sigma$ is the **market price of risk** (Sharpe ratio). It measures how much expected return (above $r$) the market demands per unit of volatility.
 
 **Numerical Example (Extend Example 6):**
 
-- Stock: $S_0 = 100$, $\mu = 8\%$ (physical), $r = 3\%$, $\sigma = 20\%$
+- Stock: $S_0 = 100$, $\mu = 8\\%$ (physical), $r = 3\\%$, $\sigma = 20\\%$
 - Market price of risk: $\theta = (0.08 - 0.03)/0.20 = 0.25$
 
 | Quantity | Under $\mathbb{P}$ | Under $\mathbb{Q}$ |
 |----------|-------------------|-------------------|
 | $\mathbb{E}[S_1]$ | $100 \cdot e^{0.08} = 108.33$ | $100 \cdot e^{0.03} = 103.05$ |
-| Probability $S_1 > 100$ | 69.1% | 57.9% |
-| Probability $S_1 > 120$ | 36.9% | 26.4% |
+| Probability $S_1 \gt 100$ | 69.1% | 57.9% |
+| Probability $S_1 \gt 120$ | 36.9% | 26.4% |
 
 The risk-neutral measure shifts probability mass toward worse outcomes (lower $S$), which is how it "prices in" risk.
 
@@ -645,7 +645,7 @@ is a martingale by construction.
 
 **Radon-Nikodym from bank-account measure:**
 
-$$\frac{d\mathbb{Q}^A}{d\mathbb{Q}^B}\bigg|_{\mathcal{F}_T} = \frac{A(T)}{A(0)\, B(T)}$$
+$$\frac{d\mathbb{Q}^A}{d\mathbb{Q}^B}\bigg|_{\mathcal{F}_T} = \frac{A(T)}{A(0)\\, B(T)}$$
 
 ---
 
@@ -655,11 +655,11 @@ $$\frac{d\mathbb{Q}^A}{d\mathbb{Q}^B}\bigg|_{\mathcal{F}_T} = \frac{A(T)}{A(0)\,
 
 HJM models specify the dynamics of the entire instantaneous forward curve $T \mapsto f(t,T)$. The fundamental link is:
 
-$$P(t,T) = \exp\!\left(-\int_t^T f(t,u)\, du\right), \qquad f(t,T) = -\partial_T \ln P(t,T)$$
+$$P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\, du\right), \qquad f(t,T) = -\partial_T \ln P(t,T)$$
 
 A standard HJM diffusion under the risk-neutral measure $\mathbb{Q}^B$ is:
 
-$$\boxed{df(t,T) = \alpha(t,T)\, dt + \sum_{i=1}^{d} \sigma_i(t,T)\, dW_i(t)} \tag{HJM-f}$$
+$$\boxed{df(t,T) = \alpha(t,T)\\, dt + \sum_{i=1}^{d} \sigma_i(t,T)\\, dW_i(t)} \tag{HJM-f}$$
 
 where $W$ is a $d$-dimensional Brownian motion under $\mathbb{Q}^B$.
 
@@ -684,21 +684,21 @@ Brigo-Mercurio emphasize: in HJM, you can choose the volatility structure $\sigm
 
 Under the risk-neutral measure $\mathbb{Q}^B$, no-arbitrage requires:
 
-$$\boxed{\alpha(t,T) = \sum_{i=1}^{d} \sigma_i(t,T) \int_t^T \sigma_i(t,s)\, ds} \tag{HJM-drift}$$
+$$\boxed{\alpha(t,T) = \sum_{i=1}^{d} \sigma_i(t,T) \int_t^T \sigma_i(t,s)\\, ds} \tag{HJM-drift}$$
 
-In vector notation: $\alpha(t,T) = \sigma(t,T)^\top \int_t^T \sigma(t,s)\, ds$.
+In vector notation: $\alpha(t,T) = \sigma(t,T)^\top \int_t^T \sigma(t,s)\\, ds$.
 
 ---
 
 ### 5.4 Why the Integral Appears: Deep Intuition
 
-The integral $\int_t^T \sigma(t,s)\, ds$ appears because of how forward rates aggregate into bond prices. Here is the intuition:
+The integral $\int_t^T \sigma(t,s)\\, ds$ appears because of how forward rates aggregate into bond prices. Here is the intuition:
 
 **Step 1: Bond price volatility comes from integrated forward-rate volatility.**
 
-Since $P(t,T) = \exp(-\int_t^T f(t,u)\, du)$, a shock to forward rates at all maturities between $t$ and $T$ affects the bond price. The bond price volatility is:
+Since $P(t,T) = \exp(-\int_t^T f(t,u)\\, du)$, a shock to forward rates at all maturities between $t$ and $T$ affects the bond price. The bond price volatility is:
 
-$$\sigma^P(t,T) = -\int_t^T \sigma(t,s)\, ds$$
+$$\sigma^P(t,T) = -\int_t^T \sigma(t,s)\\, ds$$
 
 (the negative arises from $P = e^{-A}$).
 
@@ -706,19 +706,19 @@ $$\sigma^P(t,T) = -\int_t^T \sigma(t,s)\, ds$$
 
 Discounted bonds are martingales, so bond prices must drift at rate $r(t)$:
 
-$$\frac{dP}{P} = r(t)\, dt + (\text{diffusion})$$
+$$\frac{dP}{P} = r(t)\\, dt + (\text{diffusion})$$
 
 **Step 3: Ito's lemma on $P = e^{-A}$ generates an extra term.**
 
 When you apply Ito to $e^{-A}$, you get a $\frac{1}{2}(\text{diffusion})^2$ drift correction. This is:
 
-$$\frac{1}{2}\left(\int_t^T \sigma(t,s)\, ds\right)^2$$
+$$\frac{1}{2}\left(\int_t^T \sigma(t,s)\\, ds\right)^2$$
 
 **Step 4: The forward-rate drift must cancel this correction.**
 
 For the bond drift to equal $r(t)$, the forward-rate drift must compensate exactly:
 
-$$\int_t^T \alpha(t,u)\, du = \frac{1}{2}\left(\int_t^T \sigma(t,u)\, du\right)^2$$
+$$\int_t^T \alpha(t,u)\\, du = \frac{1}{2}\left(\int_t^T \sigma(t,u)\\, du\right)^2$$
 
 Differentiating with respect to $T$ gives the HJM drift restriction.
 
@@ -730,7 +730,7 @@ Differentiating with respect to $T$ gives the HJM drift restriction.
 
 Glasserman gives the drift of $f(t,T)$ under the forward measure $\mathbb{Q}^{T_F}$ associated with maturity $T_F$:
 
-$$\boxed{df(t,T) = -\,\sigma(t,T)^\top\!\left(\int_T^{T_F} \sigma(t,u)\, du\right) dt + \sigma(t,T)\, dW^{T_F}(t)} \tag{HJM-fwd}$$
+$$\boxed{df(t,T) = -\\,\sigma(t,T)^\top\\!\left(\int_T^{T_F} \sigma(t,u)\\, du\right) dt + \sigma(t,T)\\, dW^{T_F}(t)} \tag{HJM-fwd}$$
 
 The drift changes from $+\int_t^T$ under $\mathbb{Q}^B$ to $-\int_T^{T_F}$ under $\mathbb{Q}^{T_F}$.
 
@@ -744,9 +744,9 @@ The drift changes from $+\int_t^T$ under $\mathbb{Q}^B$ to $-\int_T^{T_F}$ under
 
 **Units check:**
 - $f(t,T)$ has units $1/\text{year}$.
-- In $df = \alpha\, dt + \sigma\, dW$: $dt$ has units year, so $\alpha$ has units $1/\text{year}^2$.
+- In $df = \alpha\\, dt + \sigma\\, dW$: $dt$ has units year, so $\alpha$ has units $1/\text{year}^2$.
 - $dW$ has units $\sqrt{\text{year}}$, so $\sigma$ has units $1/\text{year}^{3/2}$.
-- In (HJM-drift), $\int_t^T \sigma\, ds$ has units $1/\text{year}^{1/2}$; multiplying by $\sigma$ gives $1/\text{year}^2$. ✓
+- In (HJM-drift), $\int_t^T \sigma\\, ds$ has units $1/\text{year}^{1/2}$; multiplying by $\sigma$ gives $1/\text{year}^2$. ✓
 
 ---
 
@@ -841,15 +841,15 @@ The measure you use affects how risk appears in reports:
 
 **Start from Duffie's SDF pricing:**
 
-$$V(t) = \frac{1}{\pi(t)}\, \mathbb{E}_t^{\mathbb{P}}\!\left[\pi(T)\, H_T\right]$$
+$$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]$$
 
 **Under numeraire $N$, Brigo-Mercurio give:**
 
-$$V(t) = N(t)\, \mathbb{E}_t^{\mathbb{Q}^N}\!\left(\frac{H_T}{N(T)}\right)$$
+$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{H_T}{N(T)}\right)$$
 
 **Take $N = B$.** Then:
 
-$$V(t) = B(t)\, \mathbb{E}_t^{\mathbb{Q}^B}\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\left[D(t,T)\, H_T\right]$$
+$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\left[D(t,T)\\, H_T\right]$$
 
 This is the risk-neutral valuation formula.
 
@@ -858,45 +858,45 @@ This is the risk-neutral valuation formula.
 ### 7.2 HJM Drift Restriction (Full Derivation)
 
 **Assumptions:**
-1. Forward rate diffusion: $df(t,T) = \alpha(t,T)\, dt + \sum_i \sigma_i(t,T)\, dW_i(t)$.
-2. Bond-forward relation: $P(t,T) = \exp(-\int_t^T f(t,u)\, du)$.
+1. Forward rate diffusion: $df(t,T) = \alpha(t,T)\\, dt + \sum_i \sigma_i(t,T)\\, dW_i(t)$.
+2. Bond-forward relation: $P(t,T) = \exp(-\int_t^T f(t,u)\\, du)$.
 3. No-arbitrage: $P(t,T)/B(t)$ is a $\mathbb{Q}^B$-martingale.
 
-**Step 1:** Define $A(t,T) = \int_t^T f(t,u)\, du$, so $P(t,T) = e^{-A(t,T)}$.
+**Step 1:** Define $A(t,T) = \int_t^T f(t,u)\\, du$, so $P(t,T) = e^{-A(t,T)}$.
 
 **Step 2:** Differentiate $A$ using Leibniz and the forward-rate SDE:
 
-$$dA(t,T) = -f(t,t)\, dt + \int_t^T df(t,u)$$
+$$dA(t,T) = -f(t,t)\\, dt + \int_t^T df(t,u)$$
 
 Since $r(t) = f(t,t)$ and using the SDE:
 
-$$dA(t,T) = \left(-r(t) + \int_t^T \alpha(t,u)\, du\right) dt + \sum_i \Sigma_i(t,T)\, dW_i(t)$$
+$$dA(t,T) = \left(-r(t) + \int_t^T \alpha(t,u)\\, du\right) dt + \sum_i \Sigma_i(t,T)\\, dW_i(t)$$
 
-where $\Sigma_i(t,T) := \int_t^T \sigma_i(t,u)\, du$.
+where $\Sigma_i(t,T) := \int_t^T \sigma_i(t,u)\\, du$.
 
 **Step 3:** Apply Ito to $P = e^{-A}$:
 
 $$\frac{dP}{P} = -dA + \frac{1}{2}d\langle A \rangle$$
 
-The quadratic variation is $d\langle A \rangle = \sum_i \Sigma_i^2\, dt = \|\boldsymbol{\Sigma}\|^2\, dt$.
+The quadratic variation is $d\langle A \rangle = \sum_i \Sigma_i^2\\, dt = \\|\boldsymbol{\Sigma}\\|^2\\, dt$.
 
 So:
 
-$$\frac{dP}{P} = \left(r(t) - \int_t^T \alpha(t,u)\, du + \frac{1}{2}\|\boldsymbol{\Sigma}\|^2\right) dt - \sum_i \Sigma_i\, dW_i$$
+$$\frac{dP}{P} = \left(r(t) - \int_t^T \alpha(t,u)\\, du + \frac{1}{2}\\|\boldsymbol{\Sigma}\\|^2\right) dt - \sum_i \Sigma_i\\, dW_i$$
 
 **Step 4:** Impose the risk-neutral drift condition.
 
 For $P/B$ to be a martingale, $P$ must have drift $r(t)$. Therefore:
 
-$$r(t) - \int_t^T \alpha(t,u)\, du + \frac{1}{2}\|\boldsymbol{\Sigma}\|^2 = r(t)$$
+$$r(t) - \int_t^T \alpha(t,u)\\, du + \frac{1}{2}\\|\boldsymbol{\Sigma}\\|^2 = r(t)$$
 
 This gives:
 
-$$\int_t^T \alpha(t,u)\, du = \frac{1}{2}\|\boldsymbol{\Sigma}(t,T)\|^2 = \frac{1}{2}\sum_i \left(\int_t^T \sigma_i(t,s)\, ds\right)^2$$
+$$\int_t^T \alpha(t,u)\\, du = \frac{1}{2}\\|\boldsymbol{\Sigma}(t,T)\\|^2 = \frac{1}{2}\sum_i \left(\int_t^T \sigma_i(t,s)\\, ds\right)^2$$
 
 **Step 5:** Differentiate with respect to $T$:
 
-$$\alpha(t,T) = \sum_i \sigma_i(t,T) \int_t^T \sigma_i(t,s)\, ds$$
+$$\alpha(t,T) = \sum_i \sigma_i(t,T) \int_t^T \sigma_i(t,s)\\, ds$$
 
 This is the HJM drift restriction. ∎
 
@@ -906,7 +906,7 @@ This is the HJM drift restriction. ∎
 
 This derivation shows the same result via hedging, making the "risk-neutral = hedged" interpretation explicit.
 
-**Setup:** Consider a stock $S$ with dynamics $dS = \mu S\, dt + \sigma S\, dW$ under $\mathbb{P}$, and an option with price $V(S,t)$.
+**Setup:** Consider a stock $S$ with dynamics $dS = \mu S\\, dt + \sigma S\\, dW$ under $\mathbb{P}$, and an option with price $V(S,t)$.
 
 **Step 1:** Construct a delta-hedged portfolio.
 
@@ -915,18 +915,18 @@ $$\Pi = -V + \Delta S$$
 
 **Step 2:** Compute the portfolio dynamics using Ito.
 
-$$d\Pi = -dV + \Delta\, dS$$
+$$d\Pi = -dV + \Delta\\, dS$$
 
 By Ito's lemma on $V(S,t)$:
 $$dV = \frac{\partial V}{\partial t} dt + \frac{\partial V}{\partial S} dS + \frac{1}{2}\frac{\partial^2 V}{\partial S^2} (dS)^2$$
 
 With $\Delta = \partial V/\partial S$:
-$$d\Pi = -\frac{\partial V}{\partial t} dt - \frac{1}{2}\frac{\partial^2 V}{\partial S^2} \sigma^2 S^2\, dt$$
+$$d\Pi = -\frac{\partial V}{\partial t} dt - \frac{1}{2}\frac{\partial^2 V}{\partial S^2} \sigma^2 S^2\\, dt$$
 
 **Step 3:** The portfolio is riskless (no $dW$ term).
 
 A riskless portfolio must earn the risk-free rate:
-$$d\Pi = r \Pi\, dt = r(-V + \Delta S)\, dt$$
+$$d\Pi = r \Pi\\, dt = r(-V + \Delta S)\\, dt$$
 
 **Step 4:** Equate and derive the Black-Scholes PDE.
 
@@ -970,7 +970,7 @@ $$q_i = \frac{p_i \cdot m(\omega_i)}{\mathbb{E}[m]}$$
 
 $$q_1 = \frac{0.5 \cdot 0.90}{0.952381} = 0.4725, \quad q_2 = 0.5275$$
 
-Notice: $q_2 > q_1$, even though the physical probabilities were equal. The risk-neutral measure **upweights the bad state**.
+Notice: $q_2 \gt q_1$, even though the physical probabilities were equal. The risk-neutral measure **upweights the bad state**.
 
 Risk-neutral expected payoff:
 $$\mathbb{E}^{\mathbb{Q}}[H] = 0.4725 \cdot 120 + 0.5275 \cdot 80 = 98.9$$
@@ -982,7 +982,7 @@ $$V_0 = 0.952381 \cdot 98.9 = 94.19 \quad \checkmark$$
 
 ### Example 2.5: Three-State Example—Completeness and Non-Uniqueness
 
-**Setup:** Three states $\{\omega_1, \omega_2, \omega_3\}$ with physical probabilities $\mathbb{P} = (1/3, 1/3, 1/3)$.
+**Setup:** Three states $\\{\omega_1, \omega_2, \omega_3\\}$ with physical probabilities $\mathbb{P} = (1/3, 1/3, 1/3)$.
 
 **Assets:**
 - Bond: pays 1 in all states. Price = 0.95.
@@ -990,7 +990,7 @@ $$V_0 = 0.952381 \cdot 98.9 = 94.19 \quad \checkmark$$
 
 **Two securities, three states → market is incomplete.**
 
-**Finding risk-neutral probabilities:** We need $q_1, q_2, q_3 > 0$ with $\sum q_i = 1$ and:
+**Finding risk-neutral probabilities:** We need $q_1, q_2, q_3 \gt 0$ with $\sum q_i = 1$ and:
 $$0.95 = 0.95(q_1 + q_2 + q_3) = 0.95 \quad \checkmark$$
 $$95 = 0.95(120 q_1 + 100 q_2 + 80 q_3)$$
 
@@ -1045,17 +1045,17 @@ $$V_0 = 0.9307 \cdot 100.47 = 93.51 \quad \checkmark$$
 
 $P(0, T_1) = 0.97$, $P(0, T_2) = 0.94$, $\tau = 0.5$.
 
-$$F(0; T_1, T_2) = \frac{1}{0.5}\left(\frac{0.97}{0.94} - 1\right) = 2 \cdot 0.0319 = 6.38\%$$
+$$F(0; T_1, T_2) = \frac{1}{0.5}\left(\frac{0.97}{0.94} - 1\right) = 2 \cdot 0.0319 = 6.38\\%$$
 
 ---
 
 ### Example 6: GBM Measure Change (Extended)
 
-Under $\mathbb{P}$: $dS/S = \mu\, dt + \sigma\, dW$ with $\mu = 8\%$, $r = 3\%$, $\sigma = 20\%$.
+Under $\mathbb{P}$: $dS/S = \mu\\, dt + \sigma\\, dW$ with $\mu = 8\\%$, $r = 3\\%$, $\sigma = 20\\%$.
 
 Market price of risk: $\theta = (0.08 - 0.03)/0.20 = 0.25$.
 
-Under $\mathbb{Q}$: $dS/S = r\, dt + \sigma\, dW^{\mathbb{Q}}$.
+Under $\mathbb{Q}$: $dS/S = r\\, dt + \sigma\\, dW^{\mathbb{Q}}$.
 
 **Extended Analysis:**
 
@@ -1063,7 +1063,7 @@ Under $\mathbb{Q}$: $dS/S = r\, dt + \sigma\, dW^{\mathbb{Q}}$.
 |----------|---------|-------------------|-------------------|
 | Expected value at $T=1$ | $S_0 e^{\mu T}$ or $S_0 e^{r T}$ | $100 e^{0.08} = 108.33$ | $100 e^{0.03} = 103.05$ |
 | Median at $T=1$ | $S_0 e^{(\mu - \sigma^2/2)T}$ | $100 e^{0.06} = 106.18$ | $100 e^{0.01} = 101.01$ |
-| $\Pr(S_1 > 110)$ | $N(-d_2)$ | 43.6% | 32.2% |
+| $\Pr(S_1 \gt 110)$ | $N(-d_2)$ | 43.6% | 32.2% |
 
 The risk-neutral measure shifts the distribution left—outcomes that were considered likely under $\mathbb{P}$ become less likely under $\mathbb{Q}$.
 
@@ -1073,7 +1073,7 @@ The risk-neutral measure shifts the distribution left—outcomes that were consi
 
 One-factor HJM with $\sigma(t,T) \equiv \sigma = 0.02$.
 
-$$\alpha(t,T) = \sigma \int_t^T \sigma\, ds = \sigma^2 (T - t) = 0.0004 \cdot (T - t)$$
+$$\alpha(t,T) = \sigma \int_t^T \sigma\\, ds = \sigma^2 (T - t) = 0.0004 \cdot (T - t)$$
 
 For $T = 3$, $t = 0$: $\alpha(0,3) = 0.0012$.
 
@@ -1090,7 +1090,7 @@ $$P(0,2) = e^{-0.06} = 0.9418, \quad P(1,2) = e^{-0.03} = 0.9704$$
 
 ### Example 9: Wrong Drift Creates Arbitrage (Extended)
 
-With $\sigma = 0.02$, $T = 2$: $\Sigma(0,2) = \int_0^2 0.02\, ds = 0.04$.
+With $\sigma = 0.02$, $T = 2$: $\Sigma(0,2) = \int_0^2 0.02\\, ds = 0.04$.
 
 **Correct drift:** $\alpha(t,2) = 0.02 \times 0.04 = 0.0008$ (at $t=0$).
 
@@ -1105,7 +1105,7 @@ Simulate 10,000 paths of the discounted bond $P(t,2)/B(t)$ with wrong drift:
 - Wrong drift: Mean grows by factor $e^{0.0008 \times 5} = 1.004$ over 5 years
 
 For a \$100mm bond position, this creates a "free" gain of:
-$$100,000,000 \times 0.004 = \$400,000$$
+$$100,000,000 \times 0.004 = \\$400,000$$
 
 over 5 years—pure arbitrage from model error.
 
@@ -1125,12 +1125,12 @@ The numerator/denominator ratio has $P(t,T)$ as numeraire, hence martingale unde
 
 ### Example 11: Caplet Pricing Under Forward Measure
 
-**Setup:** Caplet on 3M LIBOR $L(T_1, T_2)$ with strike $K = 5\%$, $\tau = 0.25$, paying at $T_2$.
+**Setup:** Caplet on 3M LIBOR $L(T_1, T_2)$ with strike $K = 5\\%$, $\tau = 0.25$, paying at $T_2$.
 
-**Market data:** $P(0, T_1) = 0.98$, $P(0, T_2) = 0.97$, forward rate volatility $\sigma_L = 20\%$, $T_1 = 1$ year.
+**Market data:** $P(0, T_1) = 0.98$, $P(0, T_2) = 0.97$, forward rate volatility $\sigma_L = 20\\%$, $T_1 = 1$ year.
 
 **Forward rate:**
-$$L(0; T_1, T_2) = \frac{1}{0.25}\left(\frac{0.98}{0.97} - 1\right) = 4 \cdot 0.01031 = 4.124\%$$
+$$L(0; T_1, T_2) = \frac{1}{0.25}\left(\frac{0.98}{0.97} - 1\right) = 4 \cdot 0.01031 = 4.124\\%$$
 
 **Pricing under $\mathbb{Q}^{T_2}$:**
 
@@ -1158,9 +1158,9 @@ $$= 0.2425 \cdot [0.00800 - 0.00720] = 0.2425 \cdot 0.00080 = 0.000194$$
 
 ### Example 12: Swaption Pricing Under Swap Measure
 
-**Setup:** 1Y into 2Y payer swaption (right to pay fixed), strike $K = 4\%$, semiannual payments.
+**Setup:** 1Y into 2Y payer swaption (right to pay fixed), strike $K = 4\\%$, semiannual payments.
 
-**Market data:** Swap rate $S(0) = 3.8\%$, swap rate volatility $\sigma_S = 15\%$, annuity $A(0) = 1.85$.
+**Market data:** Swap rate $S(0) = 3.8\\%$, swap rate volatility $\sigma_S = 15\\%$, annuity $A(0) = 1.85$.
 
 **Pricing under $\mathbb{Q}^A$:**
 
@@ -1190,7 +1190,7 @@ $$= 1.85 \cdot [0.01501 - 0.01352] = 1.85 \cdot 0.00149 = 0.00276$$
 **Key insight:** Under the USD risk-neutral measure $\mathbb{Q}^{\text{USD}}$, EUR assets must be converted via FX.
 
 Let $X(t)$ = USD per EUR. Under $\mathbb{Q}^{\text{USD}}$, the drift of $X$ is:
-$$\frac{dX}{X} = (r^{\text{USD}} - r^{\text{EUR}})\, dt + \sigma_X\, dW^{\text{USD}}$$
+$$\frac{dX}{X} = (r^{\text{USD}} - r^{\text{EUR}})\\, dt + \sigma_X\\, dW^{\text{USD}}$$
 
 **USD price of €1 at $T$:**
 $$V^{\text{USD}}(0) = \mathbb{E}^{\mathbb{Q}^{\text{USD}}}\left[\frac{X(T)}{B^{\text{USD}}(T)}\right] = X(0) \cdot P^{\text{EUR}}(0,T)$$
@@ -1201,7 +1201,7 @@ by covered interest parity (the FX forward adjusts for rate differentials).
 
 ### Example 14: CAPM from SDF (Numerical)
 
-**Setup:** Market return $R_M \sim \text{Normal}(8\%, 16\%)$, risk-free rate $r = 3\%$.
+**Setup:** Market return $R_M \sim \text{Normal}(8\\%, 16\\%)$, risk-free rate $r = 3\\%$.
 
 **Linear SDF:** $m = a - b R_M$ where parameters are chosen so $\mathbb{E}[m] = 1/(1+r)$.
 
@@ -1219,7 +1219,7 @@ From $\mathbb{E}[m] = 0.971$: $a - b \times 0.08 = 0.971$, so $0.4b - 0.08b = 0.
 
 **Pricing a risky asset:** For asset $i$ with $\text{Cov}(R_i, R_M) = 0.02$ (beta = 0.02/0.0256 = 0.78):
 
-$$\mathbb{E}[R_i] = r + \beta_i (\mathbb{E}[R_M] - r) = 0.03 + 0.78 \times 0.05 = 6.9\%$$
+$$\mathbb{E}[R_i] = r + \beta_i (\mathbb{E}[R_M] - r) = 0.03 + 0.78 \times 0.05 = 6.9\\%$$
 
 This is the CAPM prediction, derived from the SDF framework.
 
@@ -1229,7 +1229,7 @@ This is the CAPM prediction, derived from the SDF framework.
 
 **Implementation test:** Verify $S(t)/B(t)$ has zero drift under $\mathbb{Q}^B$.
 
-**Setup:** GBM with $S_0 = 100$, $r = 3\%$, $\sigma = 20\%$, $T = 1$ year, 1000 paths.
+**Setup:** GBM with $S_0 = 100$, $r = 3\\%$, $\sigma = 20\\%$, $T = 1$ year, 1000 paths.
 
 **Simulation under $\mathbb{Q}$:**
 $$S_T = S_0 \exp\left((r - \sigma^2/2)T + \sigma \sqrt{T} Z\right), \quad Z \sim N(0,1)$$
@@ -1255,14 +1255,14 @@ $$B_T = \exp(rT)$$
 
 **Setup:** Same as Example 11, but we incorrectly simulate under $\mathbb{Q}^B$ instead of $\mathbb{Q}^{T_2}$.
 
-**Under $\mathbb{Q}^{T_2}$:** $L(t)$ is a martingale, so $\mathbb{E}^{T_2}[L(T_1)] = L(0) = 4.124\%$.
+**Under $\mathbb{Q}^{T_2}$:** $L(t)$ is a martingale, so $\mathbb{E}^{T_2}[L(T_1)] = L(0) = 4.124\\%$.
 
 **Under $\mathbb{Q}^B$:** $L(t)$ is NOT a martingale. The drift involves the covariance with the bond:
 
 $$\mathbb{E}^B[L(T_1)] \neq L(0)$$
 
 The difference (convexity adjustment) can be approximated:
-$$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0) = 4.124\% + 0.04 \times 1 \times 0.25 \times 0.04124 = 4.165\%$$
+$$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0) = 4.124\\% + 0.04 \times 1 \times 0.25 \times 0.04124 = 4.165\\%$$
 
 **Impact on caplet price:** Using the wrong expected forward rate leads to mispricing:
 - Correct price (Example 11): 1.94 bps
@@ -1284,7 +1284,7 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 4. **Completeness and uniqueness:** Complete markets → unique EMM. Incomplete markets → calibrate to choose among multiple valid EMMs.
 
-5. **Numeraire pricing:** Under measure $\mathbb{Q}^N$, price is $V(t) = N(t)\, \mathbb{E}^N[H_T/N(T)]$.
+5. **Numeraire pricing:** Under measure $\mathbb{Q}^N$, price is $V(t) = N(t)\\, \mathbb{E}^N[H_T/N(T)]$.
 
 6. **Change of numeraire:** The Radon-Nikodym derivative is $\frac{U(T) N(0)}{U(0) N(T)}$.
 
@@ -1292,7 +1292,7 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 8. **Swap measure:** Using the annuity as numeraire makes the swap rate a martingale—enabling Black swaption formulas.
 
-9. **HJM drift restriction:** $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\, ds$ under $\mathbb{Q}^B$.
+9. **HJM drift restriction:** $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\\, ds$ under $\mathbb{Q}^B$.
 
 10. **Why the integral:** Bond prices are exponentials of integrated forwards; Ito's $\frac{1}{2}(\text{vol})^2$ correction must be canceled by the forward-rate drift.
 
@@ -1328,15 +1328,15 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 | 4 | What is an Arrow-Debreu security? | Pays \$1 in one state, \$0 otherwise; prices reveal state-price density. |
 | 5 | What is a numeraire? | Strictly positive traded asset used as pricing unit. |
 | 6 | Under $\mathbb{Q}^N$, what is a martingale? | $Z(t)/N(t)$ for any traded $Z$. |
-| 7 | Give the numeraire pricing formula. | $V(t) = N(t)\, \mathbb{E}^N[H_T/N(T)]$. |
+| 7 | Give the numeraire pricing formula. | $V(t) = N(t)\\, \mathbb{E}^N[H_T/N(T)]$. |
 | 8 | Radon-Nikodym derivative for numeraire change? | $\frac{U(T) N(0)}{U(0) N(T)}$. |
 | 9 | What is the $T$-forward measure's numeraire? | The bond $P(t,T)$. |
-| 10 | Price under $T$-forward measure? | $V(t) = P(t,T)\, \mathbb{E}^T[H_T]$. |
+| 10 | Price under $T$-forward measure? | $V(t) = P(t,T)\\, \mathbb{E}^T[H_T]$. |
 | 11 | Define instantaneous forward rate. | $f(t,T) = -\partial_T \ln P(t,T)$. |
-| 12 | Bond-forward relation? | $P(t,T) = \exp(-\int_t^T f(t,u)\, du)$. |
-| 13 | HJM forward-rate SDE? | $df = \alpha\, dt + \sigma\, dW$. |
-| 14 | HJM drift restriction under $\mathbb{Q}^B$? | $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\, ds$. |
-| 15 | Why does the integral $\int_t^T \sigma\, ds$ appear? | Bond vol is integrated forward-rate vol; Ito correction requires compensating drift. |
+| 12 | Bond-forward relation? | $P(t,T) = \exp(-\int_t^T f(t,u)\\, du)$. |
+| 13 | HJM forward-rate SDE? | $df = \alpha\\, dt + \sigma\\, dW$. |
+| 14 | HJM drift restriction under $\mathbb{Q}^B$? | $\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,s)\\, ds$. |
+| 15 | Why does the integral $\int_t^T \sigma\\, ds$ appear? | Bond vol is integrated forward-rate vol; Ito correction requires compensating drift. |
 | 16 | What does Girsanov change? | Drift changes; volatility unchanged. |
 | 17 | Swap measure numeraire? | Swap annuity $A(t) = \sum \tau_i P(t,T_i)$. |
 | 18 | Under swap measure, what is a martingale? | The forward swap rate. |
@@ -1401,7 +1401,7 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 ### Solution Sketches (1–10)
 
-1. Pick $m(\omega) > 0$ with $\mathbb{E}[m] = P(0,1)$. Compute $V_0 = \mathbb{E}[m H]$.
+1. Pick $m(\omega) \gt 0$ with $\mathbb{E}[m] = P(0,1)$. Compute $V_0 = \mathbb{E}[m H]$.
 
 2. Define $q_i = p_i m_i / \mathbb{E}[m]$. Show $V_0 = \mathbb{E}[m] \cdot \mathbb{E}^{\mathbb{Q}}[H] = P(0,1) \mathbb{E}^{\mathbb{Q}}[H]$.
 
@@ -1413,13 +1413,13 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 6. $F = (P_S - P_T)/(\tau P_T)$ is ratio of traded prices; martingale under $\mathbb{Q}^T$.
 
-7. $\theta = (\mu - r)/\sigma$. Under $\mathbb{Q}$: $dS/S = r\, dt + \sigma\, dW^{\mathbb{Q}}$.
+7. $\theta = (\mu - r)/\sigma$. Under $\mathbb{Q}$: $dS/S = r\\, dt + \sigma\\, dW^{\mathbb{Q}}$.
 
 8. With $\sigma$ constant: $\alpha(t,T) = \sigma^2(T-t)$.
 
 9. Wrong drift means discounted bonds have predictable gains—violates martingale property.
 
-10. $\sigma^P(t,T) = -\int_t^T \sigma(t,s)\, ds$. Negative because $P = e^{-A}$ and $A$ has positive diffusion.
+10. $\sigma^P(t,T) = -\int_t^T \sigma(t,s)\\, ds$. Negative because $P = e^{-A}$ and $A$ has positive diffusion.
 
 ---
 
