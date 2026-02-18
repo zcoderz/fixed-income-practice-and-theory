@@ -1167,7 +1167,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A10.** Receiver-fixed has $DV01\gt 0$ under the book convention, so a **rates up** move is approximately the opposite sign:
 $$
-\Delta PV \approx -DV01 \times 75 \approx -USD45{,}000 \times 75 = -USD3.375\text{ million}
+\Delta PV \approx -DV01 \times 75 \approx -45{,}000 \times 75 = -3{,}375{,}000\ \text{USD}
 $$
 So the receiver-fixed position is roughly $-USD3.375$ million; the payer-fixed counterparty has positive exposure of about USD3.375 million (ignoring collateral and convexity).
 
