@@ -44,7 +44,7 @@ This appendix covers the essential toolkit:
 
 **Time:** Continuous time $t \in [0, T^*]$ (calendar time measured in years).
 
-**Information:** $(\mathcal{F}_t)_{t \geq 0}$ is the market filtration (what is known up to time $t$).
+**Information:** the market filtration is denoted `(F_t)_{t >= 0}` (what is known up to time $t$).
 
 **Measures (probability laws):**
 
@@ -113,7 +113,7 @@ We didn't change the payoffs (\$120 or \$90). We didn't change the laws of physi
 
 **The key insight:** Under $\mathbb{Q}$, we upweighted the "bad" state (Down) and downweighted the "good" state (Up). This is exactly what risk adjustment does—it penalizes states where investors are worse off.
 
-### 0.3 Why Does $\mathbb{Q}$ Give the Right Price?
+### 0.3 Why Q Gives the Right Price
 
 Consider an option paying $(S_1 - 105)^+ = \max(S_1 - 105, 0)$:
 - In "Up": pays \$15
@@ -122,8 +122,9 @@ Consider an option paying $(S_1 - 105)^+ = \max(S_1 - 105, 0)$:
 **Using $\mathbb{Q}$:**
 $$V_0 = \frac{1}{1.05}\left(0.50 \times 15 + 0.50 \times 0\right) = \frac{7.50}{1.05} = 7.14$$
 
-**Using replication:** To replicate this payoff, hold $\Delta$ shares of stock and $B$ dollars in bonds:
-$$\begin{cases} 120\Delta + 1.05B = 15 \\ 90\Delta + 1.05B = 0 \end{cases}$$
+**Using replication:** To replicate this payoff, hold $\Delta$ shares of stock and $B$ dollars in bonds, solving:
+
+`120*Delta + 1.05*B = 15` and `90*Delta + 1.05*B = 0`.
 
 Solving: $30\Delta = 15 \Rightarrow \Delta = 0.5$, and $B = -42.86$.
 
@@ -279,7 +280,7 @@ A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its dr
 > > **Desk Reality: Why This Matters for Traders**
 > >
 > > When a trader runs a delta-hedged book, the P&L attribution often looks like:
-> > $$\text{P\\&L} = \underbrace{\text{Theta}}_{\text{time decay}} + \underbrace{\text{Gamma} \times (\Delta S)^2/2}_{\text{realized vol}} + \text{higher order}$$
+> > `PnL = Theta + 0.5*Gamma*(Delta S)^2 + higher-order terms`
 > >
 > > The expected P&L of a perfectly hedged position is zero (after funding costs). This is *exactly* what $\mathbb{Q}$-pricing captures: the no-drift property of hedged positions.
 > >
@@ -602,7 +603,7 @@ Brigo-Mercurio state that $F(t;S,T)$ is a martingale under the $T$-forward measu
 
 ---
 
-### 4.4 Physical Measure ($\mathbb{P}$) vs. Risk-Neutral Measure ($\mathbb{Q}$): Side-by-Side
+### 4.4 Physical vs. Risk-Neutral Measure: Side-by-Side
 
 This table shows the *same* stock under two different probability measures:
 
@@ -1105,7 +1106,7 @@ Simulate 10,000 paths of the discounted bond $P(t,2)/B(t)$ with wrong drift:
 - Wrong drift: Mean grows by factor $e^{0.0008 \times 5} = 1.004$ over 5 years
 
 For a \$100mm bond position, this creates a "free" gain of:
-$$100,000,000 \times 0.004 = \\$400,000$$
+$$100{,}000{,}000 \times 0.004 = 400{,}000$$ USD
 
 over 5 years—pure arbitrage from model error.
 
