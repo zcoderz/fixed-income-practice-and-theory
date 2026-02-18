@@ -1106,7 +1106,8 @@ Simulate 10,000 paths of the discounted bond $P(t,2)/B(t)$ with wrong drift:
 - Wrong drift: Mean grows by factor $e^{0.0008 \times 5} = 1.004$ over 5 years
 
 For a \$100mm bond position, this creates a "free" gain of:
-$$100{,}000{,}000 \times 0.004 = 400{,}000$$ USD
+
+`100,000,000 * 0.004 = 400,000` USD.
 
 over 5 years—pure arbitrage from model error.
 
