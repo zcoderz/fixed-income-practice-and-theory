@@ -854,7 +854,7 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 3. Price-quoted index: $N=USD 50$mm, $f=0.95$, $P_{\text{bond}}=98.25$. Compute upfront dollars and pay/receive for a protection buyer.
 4. Factor + coupon: $M=125$, $D=3$, $N=USD 200$mm, $C_{\text{bp}}=80$, quarterly $\alpha=0.25$. Compute $f$, $N_{\text{out}}$, and the next coupon cashflow.
 5. Default settlement: $N=USD 50$mm, $M=100$, $FP=27$. Compute the protection payment (per name and total) and the new outstanding notional after the default.
-6. Accrued premium: $N_{\text{out}}=USD 75$mm, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
+6. Accrued premium: `N_out = USD 75mm`, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
 7. Roll cash: roll $N=USD 30$mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Compute net roll cash.
 8. CS01: a long-protection index position has $\text{RPV01}=USD 18{,}200/\text{bp}$. Using the down-bump definition, approximate CS01 and interpret the sign.
 9. Concept: explain two structural sources of roll P&L even if spreads did not “move” on the screen.
@@ -862,9 +862,9 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 
 ### Solution Sketches (Selected)
 
-**2.** $N_{\text{out}}=99.2$mm. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD 1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\%$ paid.
+**2.** `N_out = 99.2mm`. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD 1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\%$ paid.
 
-**3.** $U_{\mathrm{pct}}=100-98.25=1.75\%$ paid. $N_{\text{out}}=47.5$mm, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD 831{,}250$ paid.
+**3.** $U_{\mathrm{pct}}=100-98.25=1.75\%$ paid. `N_out = 47.5mm`, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD 831{,}250$ paid.
 
 **8.** $\text{CS01}\approx -\text{RPV01}=-USD 18{,}200/\text{bp}$ for long protection (spreads down reduces PV).
 
