@@ -99,13 +99,9 @@ If quotes are stored in bp or percent points instead, the numeric bump size chan
 Before you compare risk numbers across systems, lock four knobs:
 
 - **Bump object:** a *quote delta* means bumping a single market quote $q_i$ (par swap rate, futures price, basis spread, …), rebuilding the curve(s) with all other quotes held fixed, and repricing.
-- **Bump size:** for rate-like quotes, use USD1\text{ bp} = 10^{-4}$ in decimal rate units (and be explicit if you use a different size).
+- **Bump size:** for rate-like quotes, use $1\text{ bp} = 10^{-4}$ in decimal rate units (and be explicit if you use a different size).
 - **Units:** report quote DV01s in **currency per 1bp of the quote** (or per tick for price-like quotes).
-- **Sign convention (book-wide):** define
-  $$
-    DV01_{q_i} := PV(q_i-1\text{bp})-PV(\text{base}).
-  $$
-  Positive means the position gains when the relevant quote is shifted **down** by 1bp.
+- **Sign convention (book-wide):** define $DV01_{q_i} := PV(q_i-1\text{bp})-PV(\text{base})$. Positive means the position gains when the relevant quote is shifted **down** by 1bp.
 
 > **Pitfall — What is being bumped?:** Mixing “quote DV01” (bump $q_i$ and rebuild) with “node DV01” (bump a curve node $x_j$ holding the builder fixed) and calling both “DV01.”
 > **Why it matters:** hedge ratios and P&L predict depend on the *mapping* from quote space to curve space; two systems can agree on PV and still disagree on DV01 if they bump different objects or rebuild differently.
@@ -137,33 +133,17 @@ Numerical note: central differences (bump up and bump down) typically improve st
 
 **Step-by-step**
 1. **Bootstrap discount factors from par swap quotes** (annual, unit accrual):
-   $$
-   S_n\sum_{i=1}^n P(0,i)=1-P(0,n).
-   $$
+   $S_n\sum_{i=1}^n P(0,i)=1-P(0,n)$.
    This yields:
-   $$
-   P(0,1)=\frac{1}{1+S_1},\quad
-   P(0,2)=\frac{1-S_2P(0,1)}{1+S_2},\quad
-   P(0,3)=\frac{1-S_3(P(0,1)+P(0,2))}{1+S_3}.
-   $$
+   $P(0,1)=\frac{1}{1+S_1}$, $P(0,2)=\frac{1-S_2P(0,1)}{1+S_2}$, and $P(0,3)=\frac{1-S_3(P(0,1)+P(0,2))}{1+S_3}$.
    Numerically:
-   $$
-   P(0,1)\approx 0.961538,\quad 
-   P(0,2)\approx 0.920936,\quad 
-   P(0,3)\approx 0.881164.
-   $$
+   $P(0,1)\approx 0.961538$, $P(0,2)\approx 0.920936$, and $P(0,3)\approx 0.881164$.
 2. **Price the bond (per 100 face)**:
-   $$
-   PV_{100}=5 \cdot P(0,1)+5 \cdot P(0,2)+105 \cdot P(0,3)\approx 101.935.
-   $$
+   $PV_{100}=5 \cdot P(0,1)+5 \cdot P(0,2)+105 \cdot P(0,3)\approx 101.935$.
 3. **Compute quote DV01 to the 3Y swap quote** using bump-and-rebuild:
-   $$
-   DV01_{S_3}=PV_{100}(S_3-1\text{bp})-PV_{100}(S_3)\approx 0.0278\quad \text{per 100}.
-   $$
+   $DV01_{S_3}=PV_{100}(S_3-1\text{bp})-PV_{100}(S_3)\approx 0.0278$ per 100.
    Convert to dollars:
-   $$
-   DV01_{S_3,USD} \approx \frac{0.0278}{100}\times USD100{,}000{,}000 \approx USD27{,}800\quad \text{per 1bp}.
-   $$
+   $DV01_{S_3,\text{USD}} \approx \frac{0.0278}{100}\times 100{,}000{,}000 \approx 27{,}800\ \text{USD per 1bp}$.
    **Jacobian intuition (locality in this bootstrap):** here $S_3$ only moves $P(0,3)$, so $DV01_{S_3,100}\approx 105\cdot \Delta P(0,3)$.
 
 **Cashflows**
@@ -824,7 +804,7 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | $\Theta_{\text{mkt}}(t)$ | market data vector | the risk factors actually used by valuation |
 | $\delta$ | realized market move | $\delta = \Theta_{\text{mkt}}(t+h)-\Theta_{\text{mkt}}(t)$ |
 | $\nabla^H(t)$ | sensitivities w.r.t. $\Theta_{\text{mkt}}$ | currency per unit of each market input |
-| $A^H(t)$ | Hessian w.r.t. $\Theta_{\text{mkt}}$ | currency per (input unit)$^2$ |
+| $A^H(t)$ | Hessian w.r.t. $\Theta_{\text{mkt}}$ | currency per (input unit)^2 |
 | $\bar{x}_j$ | adjoint variable in AD | $\partial V/\partial x_j$ in reverse sweep |
 | $\kappa(J)$ | condition number of $J$ | dimensionless; large $\kappa(J)$ = ill-conditioned |
 
@@ -857,7 +837,7 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | 21 | What is a curve overlay? | A user-specified adjustment $\varepsilon_f(t)$ added to the forward curve for special dates (e.g., turn-of-year) |
 | 22 | Why should theta be computed using forward values rather than frozen quotes? | Because some instruments have fixed maturities (futures) while others have fixed tenors (swaps), causing distortions when quotes are simply frozen |
 | 23 | What is algorithmic differentiation (AD)? | Differentiate valuation code via the chain rule; reverse mode computes sensitivities to many inputs in one backward sweep (constant-factor overhead vs valuation) |
-| 24 | What is the adjoint equation in AD? | $\bar{x}_j = \sum_{k: x_j \to x_k} \bar{x}_k \frac{\partial x_k}{\partial x_j}$, propagating sensitivities backward from output to inputs |
+| 24 | What is the adjoint equation in AD? | `xbar_j = sum over children k of j: xbar_k * (dx_k/dx_j)`, propagating sensitivities backward from output to inputs |
 | 25 | What does a large $\kappa(J)$ warn you about? | Ill-conditioned mapping/hedge: small delta errors can imply huge, unstable hedge notionals |
 | 26 | When should you refresh the Jacobian intraday? | After large quote moves, calendar rolls/fixings, major events, or very large new trades (triggers are desk-specific) |
 
