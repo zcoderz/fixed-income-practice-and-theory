@@ -251,7 +251,7 @@ $$\boxed{A(0) = \frac{P_{\text{Libor}} - P}{PV01(0,T)}}$$
 
 where:
 - $P$ is the bond's dirty price **per 1 of par** (e.g., $98.50$ per 100 corresponds to $P=0.9850$)
-- $P_{\text{Libor}}$ is the PV of the bond's fixed cash flows discounted on the chosen swap/Libor curve (often written using swap discount factors $Z(0,\cdot)$)
+- $P_{\text{Libor}}$ is the PV of the bond's fixed cash flows discounted on the chosen swap/Libor curve (often written using swap discount factors `Z(0, ·)`)
 - $PV01(0,T) = \sum_{m=1}^{M} Z(0, t_m) \cdot \Delta(t_{m-1}, t_m)$ is the fixed-leg annuity (units: years) for the swap payment dates $t_m$
 
 **Interpretation:** If $P \lt P_{\text{Libor}}$ (bond is cheap versus the swap curve), then $A(0) \gt 0$. If $P \gt P_{\text{Libor}}$ (bond is rich), $A(0)$ can be negative.
@@ -886,7 +886,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | **OAS** | Spread to model rates so model price = market price | For callable/option bonds; model-dependent |
 | **Par asset swap spread** | $(P_{\text{Libor}} - P)/PV01$ | Spread-to-swaps; standard quote convention |
 | **Market asset swap spread** | $A(0)/P$ | Reduces counterparty exposure vs par structure |
-| **Asset swap MTM** | $MTM_{USD}(t) \approx (A(0)-A(t))_{\text{bp}} \times 10^{-4} \times PV01_{\text{ann}}(t,T) \times N$ | P&L from spread changes; unit checks prevent $10^4$ mistakes |
+| **Asset swap MTM** | `MTM_USD(t) ≈ (A0 - At)_bp × 1e-4 × PV01_ann(t,T) × N` | P&L from spread changes; unit checks prevent $10^4$ mistakes |
 | **CS01** | $CS01 := P(s)-P(s+1\text{bp})$ (widening bump; hold benchmark fixed) | Spread sensitivity; report units and sign explicitly |
 | **Spread duration** | $-\frac{1}{P}\frac{\partial P}{\partial s}$ | PV-weighted average time under spreaded discounting |
 | **Coverage ratio** | Credit spread / Actuarial spread | How much spreads exceed pure default compensation |
@@ -914,7 +914,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | $PV01(t,T)$ | annuity (asset swap) | years: $\sum_m Z(t,t_m)\Delta_m$; dollars per bp is $10^{-4}N\cdot PV01$ |
 | $A(0)$ | par asset swap spread | bp per year |
 | $A^{\ast}(0)$ | market asset swap spread | bp per year; $A^{\ast}(0)=A(0)/P$ when $P$ is per-par price |
-| $MTM(t)$ | asset swap mark-to-market | currency; $MTM_{USD}(t)\approx (A(0)-A(t))_{\text{bp}}\times 10^{-4}\times PV01(t,T)\times N$ |
+| $MTM(t)$ | asset swap mark-to-market | currency; `MTM_USD(t) ≈ (A0 - At)_bp × 1e-4 × PV01(t,T) × N` |
 | $DVOAS$ | OAS 01 (OAS sensitivity) | currency per bp (for the stated notional); often estimated by a central difference in OAS |
 
 ---
@@ -951,7 +951,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | 26 | What is a TED spread? | Spread such that discounting cash flows at futures-implied rates minus spread matches dirty price |
 | 27 | Key caveat for TED spreads? | Futures rates differ from forward rates (convexity/futures-forward adjustment), so the benchmark is not a pure no-arbitrage discount curve |
 | 28 | Market asset swap spread formula? | $A^*(0) = A(0)/P$ |
-| 29 | Asset swap MTM formula (unit-safe)? | $MTM_{USD}(t)\approx (A(0)-A(t))_{\text{bp}}\times 10^{-4}\times PV01(t,T)\times N$ |
+| 29 | Asset swap MTM formula (unit-safe)? | `MTM_USD(t) ≈ (A0 - At)_bp × 1e-4 × PV01(t,T) × N` |
 | 30 | What is CDS-bond basis? | CDS spread minus bond Libor spread (ASW) |
 | 31 | When can yield spreads be misleading? | On steep curves and/or high-coupon bonds; term-structure-consistent measures (e.g., Z-spread) can differ materially |
 | 32 | When do you need OAS rather than Z-spread? | When the bond has embedded options; OAS uses a model/tree/Monte Carlo to separate option value from spread |
