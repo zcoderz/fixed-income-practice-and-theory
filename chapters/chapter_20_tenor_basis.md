@@ -128,8 +128,8 @@ The **par basis spread** $e_{1,2}(T)$ is the spread added to one leg such that t
 
 One convenient way to write the par condition (spread added to the tenor-1 leg) is:
 $$
-\boxed{\sum_{i=0}^{n^{2}(T)-1} L^{2}(0; t_{i}^{2}, t_{i+1}^{2}) \,\tau_{i}^{2}\, P_d(0,t_{i+1}^{2})
-= \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0; t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right)\,\tau_{i}^{1}\, P_d(0,t_{i+1}^{1})}
+\sum_{i=0}^{n^{2}(T)-1} L^{2}(0; t_{i}^{2}, t_{i+1}^{2}) \tau_{i}^{2} P_d(0,t_{i+1}^{2})
+= \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0; t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right)\tau_{i}^{1} P_d(0,t_{i+1}^{1})
 $$
 
 Here $P_d$ is the discount curve, and $e^{1,2}(T)$ is the quoted spread for exchanging tenor 1 for tenor 2 to maturity $T$. The market convention for which leg carries the spread varies; the equation above is a *notation choice* that makes the algebra explicit.
@@ -203,7 +203,7 @@ This is the familiar forward rate formula, but applied to the *projection curve*
 ### 20.4.2 Fixed-Float Swap Pricing
 
 The value of a swap receiving fixed rate $c$ and paying floating rate $L^{(k)}$ is:
-$$V^{(k)}(0) = \underbrace{\sum_{i} c \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Fixed PV}} - \underbrace{\sum_{i} F_i^{(k)} \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Float PV}}$$
+$$V^{(k)}(0) = \sum_{i} c\,\tau_i\,P_d(0,t_i) - \sum_{i} F_i^{(k)}\,\tau_i\,P_d(0,t_i)$$
 
 The **par fixed rate** $c^*$ is the rate that makes $V^{(k)}(0) = 0$:
 $$\boxed{c^\star = \frac{\sum_{i=0}^{n-1} L^{(k)}(0; t_{i}^{k}, t_{i+1}^{k}) \,\tau_{i}^{k}\, P_d(0,t_{i+1}^{k})}{\sum_{i=0}^{n-1} \tau_{i}^{k}\, P_d(0,t_{i+1}^{k})}}$$
@@ -333,8 +333,8 @@ To bootstrap the 6M curve point by point:
 > $$= 2.29\% \times 0.25 \times 0.9950 + 2.47\% \times 0.25 \times 0.9900 = 0.5696\% + 0.6113\% = 1.1809\%$$
 >
 > **Step 3:** Set 6M leg PV equal and solve for $F^{(6M)}$
-> $$F^{(6M)}_{0-6M} \times 0.50 \times P_d(0.50) = 1.1809\%$$
-> $$F^{(6M)}_{0-6M} \times 0.50 \times 0.9900 = 1.1809\%$$
+> $$F^{(6M)}_{0-6M} \times 0.50 \times P_d(0.50) = 0.011809$$
+> $$F^{(6M)}_{0-6M} \times 0.50 \times 0.9900 = 0.011809$$
 > $$F^{(6M)}_{0-6M} = 2.386\%$$
 >
 > **Step 4:** Convert to pseudo-discount factor
@@ -445,7 +445,7 @@ $$\frac{\partial V}{\partial \mathbf{r}} = \frac{\partial V}{\partial \mathbf{z}
 **Practical Implementation:**
 
 In a multi-curve setup, the same idea is used to convert discount/projection node deltas into “par-point” deltas for a hedging set (OIS swaps, tenor swaps, tenor basis swaps). For example:
-$$\begin{pmatrix} \partial V / \partial r_{\text{OIS}} \\ \partial V / \partial r_{\text{3M Swap}} \\ \partial V / \partial r_{\text{Basis}} \end{pmatrix} = \mathbf{J}^{-1} \begin{pmatrix} \partial V / \partial z_{\text{discount}} \\ \partial V / \partial z_{\text{3M proj}} \\ \partial V / \partial z_{\text{6M proj}} \end{pmatrix}$$
+In component form, this maps discount/projection node sensitivities into hedgeable OIS, tenor-swap, and basis-swap par-point deltas.
 
 > **Desk Reality:** “Curve-node deltas” (e.g., a delta to an interpolated 3.5Y zero rate) are hard to hedge directly. Desks usually want deltas in the units of liquid par instruments (“sell USD X DV01 of the 3Y swap, buy USD Y DV01 of the 5Y swap”). Jacobian-based par-point deltas are one way to produce that mapping. If the Jacobian is ill-conditioned, the implied hedge ratios can be unstable—treat this as a warning about the calibration instrument set or interpolation choices.
 
