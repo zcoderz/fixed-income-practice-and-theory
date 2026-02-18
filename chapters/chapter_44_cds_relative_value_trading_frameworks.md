@@ -75,8 +75,8 @@ For a near-par contract, combining the MTM identity with a first-order approxima
 $$\boxed{|\text{CS01}| \approx N \cdot \text{RPV01}(t,T)\cdot 10^{-4}}$$
 
 So under this convention:
-- protection seller: $\text{CS01}>0$
-- protection buyer: $\text{CS01}<0$
+- protection seller: $\text{CS01}\gt 0$
+- protection buyer: $\text{CS01}\lt 0$
 
 > **Pitfall — “What is being bumped?”:** A CS01 computed by bumping par spreads and re-bootstrapping is not the same object as a CS01 computed by bumping hazard rates or by bumping one tenor while holding others fixed.
 > **Why it matters:** hedge ratios can look consistent in one system and be wrong in another.
@@ -98,9 +98,9 @@ Just as key-rate DV01s decompose interest rate sensitivity into maturity buckets
 
 | Bucket | RPV01 Contribution | Bucket CS01 |
 |--------|-------------------|-------------|
-| 0-2 years | $\text{RPV01}_{0-2}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{0-2}$ |
-| 2-5 years | $\text{RPV01}_{2-5}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{2-5}$ |
-| 5-10 years | $\text{RPV01}_{5-10}$ | $N \cdot 0.0001 \cdot \text{RPV01}_{5-10}$ |
+| 0-2 years | $RPV01_{0-2}$ | $N \cdot 0.0001 \cdot RPV01_{0-2}$ |
+| 2-5 years | $RPV01_{2-5}$ | $N \cdot 0.0001 \cdot RPV01_{2-5}$ |
+| 5-10 years | $RPV01_{5-10}$ | $N \cdot 0.0001 \cdot RPV01_{5-10}$ |
 
 **Why this matters:** A curve steepener that is CS01-neutral in aggregate may have large opposite-sign bucket exposures. This is the intended bet. But failing to report bucket exposures masks the true risk profile.
 
@@ -183,10 +183,7 @@ Think of the bond as a funded position with coupon cashflows and the CDS as a st
 
 4. **Loss-on-default scaling:** a CDS protection payment is typically $N(1-R)$. A bond purchased at dirty price $P_{\text{dirty}}$ has a default loss tied to $P_{\text{dirty}}-R$ per 100 face (and the choice of spread measure matters).
 
-**Check (default-hedge sizing vs. CS01 sizing):** if you want a CDS leg to hedge a bond’s *default* loss in a stylized cash-settlement picture, match
-\[
-\left(\frac{P_{\text{dirty}}}{100}-R\right)N_{\text{bond}} \;\approx\; (1-R)N_{\text{CDS}},
-\]
+**Check (default-hedge sizing vs. CS01 sizing):** if you want a CDS leg to hedge a bond’s *default* loss in a stylized cash-settlement picture, match $\left(\frac{P_{\text{dirty}}}{100}-R\right)N_{\text{bond}} \;\approx\; (1-R)N_{\text{CDS}}$,
 so $N_{\text{CDS}} \approx \frac{\frac{P_{\text{dirty}}}{100}-R}{1-R}\,N_{\text{bond}}$. For example, if $P_{\text{dirty}}=85$ and $R=40\%$, then $N_{\text{CDS}}\approx 0.75\,N_{\text{bond}}$. Sizing instead to make a package “CS01-neutral” can produce a very different notional and leave a large jump at default.
 
 5. **Accrued cashflows around default:** standard CDS settlement includes premium accrued to the default date; bond coupon accrual treatment differs and can create default-scenario P&L mismatches.
@@ -207,7 +204,7 @@ Even when the contractual differences are small, the basis can be dominated by l
 
 > **Deep Dive: The Negative Basis Trade ("The Package")**
 >
-> **Setup (stylized):** if $S_{\text{CDS}} < S_{\text{Bond}}$, you can buy the bond, buy CDS protection, and (in a frictionless sketch) keep the spread difference as carry.
+> **Setup (stylized):** if $S_{\text{CDS}} \lt S_{\text{Bond}}$, you can buy the bond, buy CDS protection, and (in a frictionless sketch) keep the spread difference as carry.
 >
 > **Why it can exist:** in stress, cash bonds can cheapen because investors need cash or balance sheet, while CDS can remain cheaper-to-trade and easier-to-short.
 >
@@ -263,7 +260,7 @@ Curve trades express views on the shape of the credit term structure. They are c
 
 ### 44.3.1 Defining Curve Positions
 
-For maturities $T_1 < T_2$:
+For maturities $T_1 \lt T_2$:
 
 | Trade | Definition | Instrument Position |
 |-------|------------|---------------------|
@@ -282,7 +279,7 @@ where $\text{CS01}^{(1)}$ and $\text{CS01}^{(2)}$ have opposite signs (one buy, 
 
 $$\boxed{\frac{N_1}{N_2} = -\frac{\text{CS01}^{(2)}}{\text{CS01}^{(1)}} = -\frac{\text{RPV01}(T_2)}{\text{RPV01}(T_1)}}$$
 
-Since $\text{RPV01}(T_2) > \text{RPV01}(T_1)$ for $T_2 > T_1$, we need more notional at the short maturity.
+Since $\text{RPV01}(T_2) \gt \text{RPV01}(T_1)$ for $T_2 \gt T_1$, we need more notional at the short maturity.
 
 ### 44.3.3 The JTD Problem in Curve Trades
 
@@ -370,10 +367,7 @@ $$\frac{N_{\text{senior}}}{N_{\text{sub}}} = -\frac{\text{CS01}_{\text{sub}}}{\t
 
 Even with CS01 neutrality, the different recoveries create JTD imbalance.
 
-**Check (toy capital-structure JTD mismatch):** suppose you put on a compression trade that is CS01-neutral by construction: buy $N_{\text{senior}}=\$10\text{mm}$ of senior protection with $\text{RPV01}_{\text{senior}}=4.5$, and sell subordinated protection with $\text{RPV01}_{\text{sub}}=4.0$ so that $N_{\text{sub}}\approx 10\times 4.5/4.0= \$11.25\text{mm}$. If you assume $R_{\text{senior}}=40\%$ and $R_{\text{sub}}=20\%$, then the net jump at default is approximately
-\[
-JTD_{\text{net}} \approx +10\times 0.60 \;-\; 11.25\times 0.80 \;=\; -\$3.0\text{mm},
-\]
+**Check (toy capital-structure JTD mismatch):** suppose you put on a compression trade that is CS01-neutral by construction: buy $N_{\text{senior}}=USD 10\text{mm}$ of senior protection with $RPV01_{\text{senior}}=4.5$, and sell subordinated protection with $RPV01_{\text{sub}}=4.0$ so that $N_{\text{sub}}\approx 10\times 4.5/4.0= USD 11.25\text{mm}$. If you assume $R_{\text{senior}}=40\%$ and $R_{\text{sub}}=20\%$, then the net jump at default is approximately $JTD_{\text{net}} \approx +10\times 0.60 \;-\; 11.25\times 0.80 \;=\; -USD 3.0\text{mm}$,
 so the “CS01-neutral” trade is still meaningfully short default.
 
 ### 44.4.4 When Capital Structure Trades Widen or Tighten
@@ -504,9 +498,9 @@ The **index basis** is:
 
 $$\text{Index basis} = S_{\text{index}} - S_{\text{intrinsic}}$$
 
-With constituent spreads $S_m$ and risky annuities $\text{RPV01}_m$, a common approximation is the RPV01-weighted average:
+With constituent spreads $S_m$ and risky annuities $RPV01_m$, a common approximation is the RPV01-weighted average:
 
-$$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot \text{RPV01}_m}{\sum_{m=1}^{M} \text{RPV01}_m}}$$
+$$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot RPV01_m}{\sum_{m=1}^{M} RPV01_m}}$$
 
 **Expand (intuition):** this is *not* a simple average of spreads. Names with larger $\text{RPV01}$ (often the wider, riskier names) carry more weight in “intrinsic,” because a 1bp move on those names is worth more PV.
 
@@ -521,7 +515,7 @@ $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot \text{RPV01}_m}{\
 | Spread Type | Formula | When Different |
 |-------------|---------|----------------|
 | Simple Average | $\bar{S} = \frac{1}{M}\sum_{m=1}^{M} S_m$ | All names equal weight |
-| Intrinsic | $S_{\text{intrinsic}} = \frac{\sum S_m \cdot \text{RPV01}_m}{\sum \text{RPV01}_m}$ | Higher-$\text{RPV01}$ names get more weight (distressed names often get less) |
+| Intrinsic | $S_{\text{intrinsic}} = \frac{\sum S_m \cdot RPV01_m}{\sum RPV01_m}$ | Higher-$\text{RPV01}$ names get more weight (distressed names often get less) |
 
 The difference between the intrinsic spread and the simple average can be material when spread dispersion is high.
 
@@ -708,11 +702,11 @@ Run the following scenarios before and during the trade:
 
 3. Solve for CS01 neutrality:
 
-   $$N_1 \approx N_5 \cdot \frac{\text{RPV01}_{5Y}}{\text{RPV01}_{1Y}} \approx 10\text{mm}\times\frac{4.74}{0.993}\approx 47.7\text{mm}.$$
+   $$N_1 \approx N_5 \cdot \frac{RPV01_{5Y}}{RPV01_{1Y}} \approx 10\text{mm}\times\frac{4.74}{0.993}\approx 47.7\text{mm}.$$
 
 4. Compute net JTD (jump approximation; ignore accrued premium):
 
-   $$\text{Net JTD} \approx +N_5(1-R) - N_1(1-R) \approx -(47.7-10)\times 0.60 \approx -\$22.6\text{mm}.$$
+   $$\text{Net JTD} \approx +N_5(1-R) - N_1(1-R) \approx -(47.7-10)\times 0.60 \approx -USD 22.6\text{mm}.$$
 
 **Cashflows (table)**
 (Stub premium from 2026-01-20 to 2026-03-20 has 59 days, so $\Delta = 59/360$.)
@@ -727,12 +721,12 @@ Run the following scenarios before and during the trade:
 **P&L / Risk Interpretation**
 - If spreads move in parallel by +1bp, the two legs’ CS01s approximately offset (that is the hedge design).
 - If the curve steepens (long end wider vs front end), the steepener gains.
-- If the name defaults, the trade is **short default** by about \$22.6mm for $R=40\%$: JTD dominates.
+- If the name defaults, the trade is **short default** by about USD 22.6mm for $R=40\%$: JTD dominates.
 
 **Sanity Checks**
 - Units: $1\text{bp}=10^{-4}$; $|CS01| \approx N \times RPV01 \times 10^{-4}$ gives currency per bp.
 - Sign: buy protection has negative CS01; sell protection has positive CS01 under this chapter’s convention.
-- Limit: because $\text{RPV01}(5Y)>\text{RPV01}(1Y)$, CS01-neutral sizing requires $|N_1|>|N_5|$, creating the JTD problem.
+- Limit: because $\text{RPV01}(5Y)\gt\text{RPV01}(1Y)$, CS01-neutral sizing requires $|N_1|\gt|N_5|$, creating the JTD problem.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Are you using the same CS01 *methodology* on both legs (par-spread bump + curve rebuild)?
@@ -752,15 +746,15 @@ $$\Delta V = 4,740 \times 20 + (-4,740) \times 20 = 0$$
 
 **Scenario 2: Steepening (front +5bp, back +25bp)**
 
-$$\Delta V = 4,740 \times 25 + (-4,740) \times 5 = 4,740 \times 20 = +\$94,800$$
+$$\Delta V = 4,740 \times 25 + (-4,740) \times 5 = 4,740 \times 20 = +USD 94,800$$
 
 **Scenario 3: Flattening (front +25bp, back +5bp)**
 
-$$\Delta V = 4,740 \times 5 + (-4,740) \times 25 = -\$94,800$$
+$$\Delta V = 4,740 \times 5 + (-4,740) \times 25 = -USD 94,800$$
 
 **Scenario 4: Default**
 
-$$\Delta V = \text{Net JTD} = -\$22.6\text{mm}$$
+$$\Delta V = \text{Net JTD} = -USD 22.6\text{mm}$$
 
 The default scenario dominates all spread scenarios by two orders of magnitude.
 
@@ -769,40 +763,40 @@ The default scenario dominates all spread scenarios by two orders of magnitude.
 ### Example C: Cash-CDS Basis Trade with Financing
 
 **Setup:**
-- Bond: \$10mm face, price 102, duration 4.5, Z-spread 150bp
+- Bond: USD 10mm face, price 102, duration 4.5, Z-spread 150bp
 - CDS: 5Y spread 120bp, RPV01 = 4.7
 - Basis: CDS 30bp cheap to bond
 - Financing: repo at Libor + 25bp
 
 **Step 1: Size for JTD neutrality**
 
-Bond loss at default (price 102, recovery 40): $(1.02 - 0.40) \times 10 = \$6.2\text{mm}$
+Bond loss at default (price 102, recovery 40): $(1.02 - 0.40) \times 10 = USD 6.2\text{mm}$
 
-CDS notional for JTD match: $6.2 / 0.60 = \$10.33\text{mm}$
+CDS notional for JTD match: $6.2 / 0.60 = USD 10.33\text{mm}$
 
 **Step 2: Compute CS01s**
 
-Bond DV01: $4.5 \times 10.2 \times 0.0001 = \$4,590/\text{bp}$
+Bond DV01: $4.5 \times 10.2 \times 0.0001 = USD 4,590/\text{bp}$
 
-CDS CS01: $10.33 \times 0.0001 \times 4.7 = \$4,855/\text{bp}$
+CDS CS01: $10.33 \times 0.0001 \times 4.7 = USD 4,855/\text{bp}$
 
 **Step 3: Monthly carry**
 
-Bond spread income: $150\text{bp} \times 10.2\text{mm} / 12 = \$12,750$
+Bond spread income: $150\text{bp} \times 10.2\text{mm} / 12 = USD 12,750$
 
-CDS premium: $120\text{bp} \times 10.33\text{mm} / 12 = \$10,330$ (paid)
+CDS premium: $120\text{bp} \times 10.33\text{mm} / 12 = USD 10,330$ (paid)
 
-Financing cost: $25\text{bp} \times 10.2\text{mm} / 12 = \$2,125$
+Financing cost: $25\text{bp} \times 10.2\text{mm} / 12 = USD 2,125$
 
-**Net monthly carry: $12,750 - 10,330 - 2,125 = +\$295$**
+**Net monthly carry: $12,750 - 10,330 - 2,125 = +USD 295$**
 
 **Step 4: Funding stress scenario**
 
 If repo rises to L+150bp:
 
-Financing cost: $150\text{bp} \times 10.2\text{mm} / 12 = \$12,750$
+Financing cost: $150\text{bp} \times 10.2\text{mm} / 12 = USD 12,750$
 
-**Net monthly carry: $12,750 - 10,330 - 12,750 = -\$10,330$**
+**Net monthly carry: $12,750 - 10,330 - 12,750 = -USD 10,330$**
 
 The trade flips from positive to deeply negative carry when funding costs spike.
 
@@ -828,9 +822,9 @@ $$\frac{N_{\text{senior}}}{10} = \frac{4.63}{4.76} \implies N_{\text{senior}} = 
 
 **Step 3: JTD**
 
-$$\text{JTD}_{\text{sub}} = +10 \times 0.80 = +\$8.0\text{mm}$$
-$$\text{JTD}_{\text{senior}} = -9.73 \times 0.60 = -\$5.84\text{mm}$$
-$$\text{Net JTD} = +\$2.16\text{mm}$$
+$$\text{JTD}_{\text{sub}} = +10 \times 0.80 = +USD 8.0\text{mm}$$
+$$\text{JTD}_{\text{senior}} = -9.73 \times 0.60 = -USD 5.84\text{mm}$$
+$$\text{Net JTD} = +USD 2.16\text{mm}$$
 
 The trade is net long default due to the different recoveries, even with CS01 neutrality.
 
@@ -847,9 +841,9 @@ The market prices sub materially wider than the simple recovery model predicts, 
 ### Example E: Merton Model Calibration
 
 **Setup (illustrative numbers):**
-- Equity value: $E_0 = \$3$ million
+- Equity value: $E_0 = USD 3$ million
 - Equity volatility: $\sigma_E = 80\%$
-- Debt due in 1 year: $D = \$10$ million
+- Debt due in 1 year: $D = USD 10$ million
 - Risk-free rate: $r = 5\%$
 
 **Step 1: Set up simultaneous equations**
@@ -862,7 +856,7 @@ $$\sigma_E E_0 = N(d_1) \sigma_V V_0$$
 
 Using solver (e.g., Excel Solver minimizing sum of squared residuals):
 
-$$V_0 = \$12.40 \text{ million}$$
+$$V_0 = USD 12.40 \text{ million}$$
 $$\sigma_V = 21.23\%$$
 
 **Step 3: Compute default probability**
@@ -1063,16 +1057,16 @@ The most common failure modes:
 
 9. An index has 100 names. The simple average spread is 80bp, but the intrinsic spread is 95bp. What does this imply about the spread distribution and/or $\text{RPV01}$ weights?
 
-10. A trader has a 5Y CDS position with CS01 = \$5,000/bp and theta $=+\$200/\text{day}$. How many days of carry equals a 1bp parallel spread move?
+10. A trader has a 5Y CDS position with CS01 = USD 5,000/bp and theta $=+USD 200/\text{day}$. How many days of carry equals a 1bp parallel spread move?
 
 11. Outline how you would infer $(V_0,\sigma_V)$ (or DD) from equity value and equity volatility in the Merton setup.
 
-12. Using Merton, if $V_0=\$25$ million, $D=\$20$ million, $\sigma_V=25\%$, $T=2$ years, and $r=4\%$, compute the distance-to-default $d_2$.
+12. Using Merton, if $V_0=USD 25$ million, $D=USD 20$ million, $\sigma_V=25\%$, $T=2$ years, and $r=4\%$, compute the distance-to-default $d_2$.
 
 ### Solution Sketches (Selected)
 
 - **1.** $N_2 = 10\times 4.5/1.9 \approx 23.7\text{mm}$ (sell protection in 2Y to offset the 5Y CS01).
-- **2.** Net JTD $\approx (10-23.7)\times(1-0.40)\approx -\$8.2\text{mm}$ (short default).
+- **2.** Net JTD $\approx (10-23.7)\times(1-0.40)\approx -USD 8.2\text{mm}$ (short default).
 - **4.** Even with basis convergence, the package can lose from funding/haircuts, bond liquidity and bid/ask, and timing/margin constraints; the CDS leg hedges default, not financing and microstructure.
 - **7.** If spreads widen before default, the MTM $V(t)$ tends to move toward the eventual protection payment $(1-R)$. The “surprise jump” at default is then small because much of the loss was already priced in.
 - **10.** $5{,}000/200 = 25$ days.
