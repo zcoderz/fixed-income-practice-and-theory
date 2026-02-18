@@ -147,7 +147,7 @@ This converts the foreign-currency sensitivity to domestic-currency P&L for a pe
 
 > **Desk Reality: FX Delta in Risk Reports**
 >
-> When a trader says "I'm long €50mm FX delta," they mean a 1% EUR appreciation generates P&L of approximately $0.01 \times S_0 \times €50\text{mm} = $550,000 (at $S_0 = 1.10$). Risk limits are often expressed in FX01 rather than raw delta because FX01 is currency-agnostic—it tells you the dollar P&L impact directly.
+> When a trader says "I'm long €50mm FX delta," they mean a 1% EUR appreciation generates P&L of approximately $0.01 \times S_0 \times \mathrm{EUR}\,50\text{mm} = $550,000 (at $S_0 = 1.10$). Risk limits are often expressed in FX01 rather than raw delta because FX01 is currency-agnostic—it tells you the dollar P&L impact directly.
 
 ### 31.3.2 Rates DV01 by Currency and Curve
 
@@ -163,7 +163,7 @@ The same definitions apply for domestic ($c=d$) and foreign ($c=f$) curves. For 
 
 **Check (derivative form and sign):** With the book convention $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, a first-order approximation is
 $$DV01 \approx -\frac{\partial PV}{\partial y}\times 10^{-4},$$
-where $y$ is the bumped continuously-compounded zero rate object. For an option-free long fixed cashflow, $\partial PV/\partial y<0$, so DV01 is positive. For a liability (you pay the cashflow), the sign flips.
+where $y$ is the bumped continuously-compounded zero rate object. For an option-free long fixed cashflow, $\partial PV/\partial y\lt 0$, so DV01 is positive. For a liability (you pay the cashflow), the sign flips.
 
 > **Pitfall — What is being bumped?:** two systems can both report “DV01” but bump different objects (zero rates vs par rates; with/without curve rebuild; discount vs projection).
 > **Why it matters:** hedge ratios become meaningless if you are hedging “DV01-A” with “DV01-B”.
@@ -178,9 +178,9 @@ $$\text{Basis coupons} \supset -S_0 \cdot e \sum_i \tau_i P_f(0, t_{i+1})$$
 **Basis01 (our “spread down” convention):**
 $$\boxed{Basis01 := PV_d(e\text{ down }1\text{bp}) - PV_d}$$
 
-For a basis swap where you **pay** “foreign + basis”, increasing the basis makes the swap worse for you ($\partial V/\partial e<0$). Under the “basis down” convention, that means $Basis01$ is typically **positive**: you gain when the basis tightens (moves down).
+For a basis swap where you **pay** “foreign + basis”, increasing the basis makes the swap worse for you ($\partial V/\partial e\lt 0$). Under the “basis down” convention, that means $Basis01$ is typically **positive**: you gain when the basis tightens (moves down).
 
-**Sanity check:** If a +1bp widening hurts you, then a -1bp tightening helps you by roughly the same amount, so $Basis01>0$ is the expected sign.
+**Sanity check:** If a +1bp widening hurts you, then a -1bp tightening helps you by roughly the same amount, so $Basis01\gt 0$ is the expected sign.
 
 Because basis quote conventions vary by currency pair and by market, you must state explicitly which leg carries $e$ (and whether $e$ is “added” or “subtracted” in the cashflow definition) before interpreting the sign.
 
@@ -198,7 +198,7 @@ This is sometimes written as $X_T(0)=X(0)\frac{P_f(0,T)}{P_d(0,T)}$ and is known
 
 No arbitrage means both paths produce the same domestic amount at $T$, which forces the discount-factor relation above.
 
-**Check (special case + sign/units):** if $P_d(0,T)=e^{-r_d T}$ and $P_f(0,T)=e^{-r_f T}$ for constant continuously-compounded short rates, then $F_{0,T}=S_0 e^{(r_d-r_f)T}$. Also, $S_0$ and $F_{0,T}$ both have units $d/f$. If $r_d>r_f$ and the quote is $d/f$, then $F_{0,T}>S_0$ (a forward “premium”); if $T\to 0$, then $F_{0,T}\to S_0$.
+**Check (special case + sign/units):** if $P_d(0,T)=e^{-r_d T}$ and $P_f(0,T)=e^{-r_f T}$ for constant continuously-compounded short rates, then $F_{0,T}=S_0 e^{(r_d-r_f)T}$. Also, $S_0$ and $F_{0,T}$ both have units $d/f$. If $r_d\gt r_f$ and the quote is $d/f$, then $F_{0,T}\gt S_0$ (a forward “premium”); if $T\to 0$, then $F_{0,T}\to S_0$.
 
 Because $F_{0,T}$ embeds the **ratio** of discount factors, an FX forward that hedges spot FX delta necessarily inherits interest-rate sensitivity. You can see it directly from the forward PV (Section 31.6.2): it contains a term proportional to $P_d(0,T)$ and a term proportional to $P_f(0,T)$.
 
@@ -295,7 +295,7 @@ $$E_X(V_T) = E_Y(V_T)(1 + \rho_{VW} \sigma_V \sigma_W T)$$
 
 **Checks:**
 - If $\rho=0$, the adjustment factor is 1 (no quanto adjustment).
-- If $\rho<0$, the adjustment factor is $<1$ (a downward adjustment).
+- If $\rho\lt 0$, the adjustment factor is $\lt 1$ (a downward adjustment).
 - Units: $\sigma_V$ and $\sigma_W$ are per $\sqrt{\text{year}}$, so $\rho_{VW}\sigma_V\sigma_W T$ is dimensionless.
 
 **Intuition:** If the underlying $V$ tends to be high precisely when the FX forward $W$ is also high (positive correlation), then (from the payoff-currency viewpoint) “high outcomes” are more valuable than under an independence assumption. The quanto adjustment compensates the seller for that correlation exposure.
@@ -335,22 +335,22 @@ A multi-currency desk may compute separate risk measures for its USD book, EUR b
 
 A common approximation for aggregating these is:
 
-$$\boxed{\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \, \text{VaR}_j \, \rho_{ij}}}$$
+$$\boxed{VaR_{\text{total}} = \sqrt{\sum_i \sum_j VaR_i \, VaR_j \, \rho_{ij}}}$$
 
-where $\text{VaR}_i$ is the VaR (or economic-capital estimate) for segment $i$ and $\rho_{ij}$ is the correlation between segment losses. This quadratic form is sometimes called a correlation (or “hybrid”) aggregation approach: it is simple and transparent, but it can understate tail risk when segment losses are skewed/kurtotic or correlations rise in stress.
+where $VaR_i$ is the VaR (or economic-capital estimate) for segment $i$ and $\rho_{ij}$ is the correlation between segment losses. This quadratic form is sometimes called a correlation (or “hybrid”) aggregation approach: it is simple and transparent, but it can understate tail risk when segment losses are skewed/kurtotic or correlations rise in stress.
 
 **Check (limiting cases + correlation sanity):**
-- If all segments are perfectly correlated ($\rho_{ij}=1$), then $\text{VaR}_{\text{total}}=\sum_i \text{VaR}_i$ (no diversification).
-- If segments are uncorrelated ($\rho_{ij}=0$ for $i\neq j$), then $\text{VaR}_{\text{total}}=\sqrt{\sum_i \text{VaR}_i^2}$.
+- If all segments are perfectly correlated ($\rho_{ij}=1$), then $VaR_{\text{total}}=\sum_i VaR_i$ (no diversification).
+- If segments are uncorrelated ($\rho_{ij}=0$ for $i\neq j$), then $VaR_{\text{total}}=\sqrt{\sum_i VaR_i^2}$.
 - The correlation matrix $[\rho_{ij}]$ must be symmetric and positive semidefinite; otherwise the square root can produce nonsensical results. In practice, “correlation sets” are often adjusted to enforce consistency (or replaced by factor models).
 
 ### 31.5.2 Diversification Effects
 
-When $\rho_{ij} < 1$, the total VaR is less than the sum of individual VaRs—this is the **diversification benefit**. Less-than-perfect correlation means part of the risk is diversified away.
+When $\rho_{ij} \lt 1$, the total VaR is less than the sum of individual VaRs—this is the **diversification benefit**. Less-than-perfect correlation means part of the risk is diversified away.
 
 **Example:** If two segments have VaRs of \$60mm and \$100mm with correlation 0.4:
 
-$$\text{VaR}_{\text{total}} = \sqrt{60^2 + 100^2 + 2 \times 60 \times 100 \times 0.4} = \$135.6\text{mm}$$
+$$VaR_{\text{total}} = \sqrt{60^2 + 100^2 + 2 \times 60 \times 100 \times 0.4} = \mathrm{USD}\,135.6\text{mm}$$
 
 This is less than \$160mm (the sum), reflecting diversification.
 
@@ -358,7 +358,7 @@ This is less than \$160mm (the sum), reflecting diversification.
 
 **Component VaR** allocates total VaR back to sub-portfolios in a way that is additive:
 
-$$\text{VaR} = \sum_{i=1}^{M} C_i$$
+$$VaR = \sum_{i=1}^{M} C_i$$
 
 where $C_i$ is the component VaR for segment $i$. Euler’s theorem provides the intuition: when the risk measure is treated as a homogeneous function of positions, the total can be written as a sum of components. Component VaRs are therefore a convenient way of allocating a total VaR to sub-portfolios.
 
@@ -435,11 +435,11 @@ To illustrate the impact of correlation breakdown, let's revisit the three-desk 
 **Standalone VaRs:** \$50mm (USD), \$40mm (EUR), \$30mm (Cross-Currency)
 
 **Normal-market aggregated VaR:**
-$$\text{VaR}_{\text{normal}} = \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.65) + 2(50)(30)(0.30) + 2(40)(30)(0.45)} = \$97.9\text{mm}$$
+$$VaR_{\text{normal}} = \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.65) + 2(50)(30)(0.30) + 2(40)(30)(0.45)} = \mathrm{USD}\,97.9\text{mm}$$
 
 **Stressed aggregated VaR:**
-$$\text{VaR}_{\text{stressed}} = \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.90) + 2(50)(30)(0.85) + 2(40)(30)(0.85)}$$
-$$= \sqrt{2500 + 1600 + 900 + 3600 + 2550 + 2040} = \sqrt{13190} = \$114.8\text{mm}$$
+$$VaR_{\text{stressed}} = \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.90) + 2(50)(30)(0.85) + 2(40)(30)(0.85)}$$
+$$= \sqrt{2500 + 1600 + 900 + 3600 + 2550 + 2040} = \sqrt{13190} = \mathrm{USD}\,114.8\text{mm}$$
 
 **Impact summary:**
 
@@ -661,7 +661,7 @@ $$DV01_{f,\text{disc}} = PV^{\downarrow}-PV \approx 180.6167 - 180.60 = \mathbf{
 
 **Sanity Checks**
 - Units: $\Delta_{FX}$ is in EUR, $FX01$ is in USD, and DV01 is in USD/bp.
-- Sign: if USD yields rise, the PV of the future USD receipt falls; with $DV01>0$, the approximation $\Delta PV \approx -DV01\times \Delta y_{\text{bp}}$ captures the negative P&L.
+- Sign: if USD yields rise, the PV of the future USD receipt falls; with $DV01\gt 0$, the approximation $\Delta PV \approx -DV01\times \Delta y_{\text{bp}}$ captures the negative P&L.
 - Limit: as $T\to 0$, the induced DV01 goes to 0.
 
 **Debug Checklist (When Your Result Looks Wrong)**
@@ -709,12 +709,12 @@ For this simple deterministic cashflow position, cross-gamma effects are small. 
 | Cross-Currency | \$30mm | ρ(USD,XC) = 0.30, ρ(EUR,XC) = 0.45 |
 
 **Aggregation formula:**
-$$\text{VaR}_{\text{total}} = \sqrt{\sum_i \sum_j \text{VaR}_i \text{VaR}_j \rho_{ij}}$$
+$$VaR_{\text{total}} = \sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$$
 
 **Calculation:**
 $$= \sqrt{50^2 + 40^2 + 30^2 + 2(50)(40)(0.65) + 2(50)(30)(0.30) + 2(40)(30)(0.45)}$$
 $$= \sqrt{2500 + 1600 + 900 + 2600 + 900 + 1080}$$
-$$= \sqrt{9580} = \mathbf{\$97.9\text{mm}}$$
+$$= \sqrt{9580} = \mathbf{\mathrm{USD}\,97.9\text{mm}}$$
 
 **Diversification benefit:** The sum of standalone VaRs is \$120mm. Aggregated VaR is \$97.9mm—a diversification benefit of \$22.1mm (18%).
 
@@ -805,9 +805,9 @@ $$V_{\text{fwd}} = N_{EUR} \times (K \cdot P_d(0,7) - S_0 \cdot P_f(0,7))$$
 A rise in USD rates reduces $P_d(0,7)$ (say from 0.75 to 0.70), which reduces the PV of the USD you'll receive. The forward therefore has **positive** USD DV01 (it gains when rates fall). A simple approximation is:
 
 $$DV01_{USD,\text{fwd}} \approx N_{EUR} \times K \times P_d(0,7) \times 7 \times 0.0001$$
-$$= 500\text{mm} \times 1.1733 \times 0.75 \times 7 \times 0.0001 \approx +\$30{,}800/\text{bp}$$
+$$= 500\text{mm} \times 1.1733 \times 0.75 \times 7 \times 0.0001 \approx +\mathrm{USD}\,30{,}800/\text{bp}$$
 
-With this DV01, a +10bp rise in USD yields produces a first-order loss of about $-DV01\times 10\approx -\$308{,}000$.
+With this DV01, a +10bp rise in USD yields produces a first-order loss of about $-DV01\times 10\approx -308{,}000$ USD.
 
 **Why this happens intuitively:**
 
@@ -1012,7 +1012,7 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 | 5 | What is cross-gamma? | Second derivative $\partial^2 PV / \partial S \partial r$ |
 | 6 | When does cross-gamma matter most? | Large moves, correlated stress, options |
 | 7 | What is the VaR aggregation formula? | $\sqrt{\sum_i \sum_j VaR_i VaR_j \rho_{ij}}$ |
-| 8 | When is total VaR < sum of standalone VaRs? | When correlations $\rho_{ij} < 1$ |
+| 8 | When is total VaR < sum of standalone VaRs? | When correlations $\rho_{ij} \lt 1$ |
 | 9 | What is component VaR? | Marginal contribution that sums to total VaR |
 | 10 | What hedges FX delta? | FX spot, forwards, or FX swaps |
 | 11 | What hedges domestic DV01? | Domestic swaps, futures, or bonds |
@@ -1051,7 +1051,7 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 
 **Q8 (Compute).** Quanto adjustment factor for $T=1$: $\sigma_V=25\%$, $\sigma_W=10\%$, $\rho=+0.20$. Compute $e^{\rho\sigma_V\sigma_W T}$.
 
-**Q9 (Compute).** Using the DV01 convention in this chapter: yesterday $\Delta_{FX}=+50\text{mm EUR}$ at $S=1.10$, $DV01_{USD}=+\$25{,}000/\text{bp}$, $DV01_{EUR}=+\$16{,}500/\text{bp}$, $Basis01=+\$5{,}000/\text{bp}$. Today: EUR/USD +0.45%, USD yields +3bp, EUR yields -2bp, basis +1bp. Compute attributed P&L.
+**Q9 (Compute).** Using the DV01 convention in this chapter: yesterday $\Delta_{FX}=+50\text{mm EUR}$ at $S=1.10$, $DV01_{USD}=+25{,}000\ \mathrm{USD}/\text{bp}$, $DV01_{EUR}=+16{,}500\ \mathrm{USD}/\text{bp}$, $Basis01=+5{,}000\ \mathrm{USD}/\text{bp}$. Today: EUR/USD +0.45%, USD yields +3bp, EUR yields -2bp, basis +1bp. Compute attributed P&L.
 
 **Q10 (Concept).** In a quanto forward, if the correlation between the underlying and FX becomes more positive, what happens to the quanto forward level (qualitatively) and why?
 
@@ -1059,11 +1059,11 @@ Multi-currency risk requires systematic decomposition across multiple dimensions
 
 ### Solution Sketches (Selected)
 
-- **Q1:** $\Delta PV \approx \Delta S\,\Delta_{FX} = 0.02\times 50\text{mm} = \$1.0\text{mm}$.
+- **Q1:** $\Delta PV \approx \Delta S\,\Delta_{FX} = 0.02\times 50\text{mm} = 1.0\text{mm}$ USD.
 - **Q3:** Covered interest parity makes the forward PV depend on discount-factor ratios. Holding spot and the foreign curve fixed, bumping the domestic discount curve changes the PV of the domestic cashflow you will receive/pay at maturity, so the hedge carries domestic DV01.
-- **Q4:** $\sqrt{80^2 + 60^2 + 2(80)(60)(0.5)} = \sqrt{14800} \approx \$121.7\text{mm}$.
-- **Q5:** Paying “EUR + basis” means higher $e$ increases your payments so $\partial PV/\partial e<0$. With $Basis01 := PV(e\downarrow 1\text{bp})-PV \approx -\partial PV/\partial e\times 1\text{bp}$, you expect $Basis01>0$.
-- **Q9:** FX: $FX01=0.01\times 1.10\times 50\text{mm}=\$550k$; P&L $\approx 550k\times 0.45=\$247.5k$. Rates: $-25k\times 3=-\$75k$; $-16.5k\times (-2)=+\$33k$. Basis: $-5k\times 1=-\$5k$. Total $\approx \$200.5k$.
+- **Q4:** $\sqrt{80^2 + 60^2 + 2(80)(60)(0.5)} = \sqrt{14800} \approx 121.7\text{mm}$ USD.
+- **Q5:** Paying “EUR + basis” means higher $e$ increases your payments so $\partial PV/\partial e\lt 0$. With $Basis01 := PV(e\downarrow 1\text{bp})-PV \approx -\partial PV/\partial e\times 1\text{bp}$, you expect $Basis01\gt 0$.
+- **Q9:** FX: $FX01=0.01\times 1.10\times 50\text{mm}=550k$ USD; P&L $\approx 550k\times 0.45=247.5k$ USD. Rates: $-25k\times 3=-75k$ USD; $-16.5k\times (-2)=+33k$ USD. Basis: $-5k\times 1=-5k$ USD. Total $\approx 200.5k$ USD.
 
 ---
 
