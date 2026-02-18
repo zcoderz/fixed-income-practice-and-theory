@@ -345,7 +345,7 @@ A floating–floating basis swap exchanges floating payments linked to two indic
 
 $$\sum_i L_2(0,t_i^2,t_{i+1}^2)\,\tau_i^2\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{12}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1)$$
 
-with $e_{12}(T)$ quoted on the $L_1$ leg and possibly positive or negative.
+with `e12(T)` quoted on the $L_1$ leg and possibly positive or negative.
 
 For the common case of same payment schedule, solving for the par basis spread:
 
@@ -761,7 +761,7 @@ When you write up (or review) any rates basis/RV trade, explicitly list:
 |----------|---------------------|
 | **Discount curve exposure** | Are you long/short OIS discount factors $P_d$? Do you report $PV01_{\text{discount}}$ separately? |
 | **Projection curve exposure** | Which forward curve(s) drive your coupons (IBOR 3M, IBOR 6M, OIS, etc.)? Do you report $PV01_{\text{projection}}^{(k)}$ per index? |
-| **Quoted basis exposure** | Which basis quote(s) enter PV (e.g., $e_{12}(T)$)? What is your basis PV01 (per USD1mm)? |
+| **Quoted basis exposure** | Which basis quote(s) enter PV (e.g., `e12(T)`)? What is your basis PV01 (per USD1mm)? |
 | **Benchmark choice exposure (swap spreads)** | Are you measuring swap spread vs on-the-run Treasury yields, or fitted/interpolated Treasury curve yields? Tuckman emphasizes this choice can distort the signal due to liquidity and special financing in on-the-run issues. |
 | **Funding/repo exposure (cash legs)** | If you hold/short a cash bond, what repo rate is assumed? What is carry (interest income − financing cost) and how sensitive is it to repo moves? |
 | **Convexity and curve-shape residuals** | Are you truly DV01-neutral (parallel) but exposed to twists/curvature? Are there convexity mismatches? |
@@ -1660,7 +1660,7 @@ This is why you must specify "what gets bumped?" and whether curves are rebuilt 
 | $\tau_i$ | Accrual year fraction for $[T_i, T_{i+1}]$ |
 | $N$ | Notional (dollars) |
 | $K$ | Fixed rate on a vanilla swap |
-| $e_{12}(T)$ | Quoted basis spread exchanging $L_1$ vs $L_2$, quoted on the $L_1$ leg |
+| `e12(T)` | Quoted basis spread exchanging $L_1$ vs $L_2$, quoted on the $L_1$ leg |
 | $PV01_{\text{discount}}$ | PV sensitivity to 1 bp bump to discount curve |
 | $PV01_{\text{projection}}$ | PV sensitivity to 1 bp bump to projection curve |
 | TED spread | Spread of bond yield to Eurodollar/SOFR futures implied rate |
