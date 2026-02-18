@@ -434,7 +434,7 @@ For practical computation on a grid $0 = t_0 \lt t_1 \lt \cdots \lt t_N = T$:
 
 $$\boxed{PV_{\text{prot}}(USD ) = N_{\text{port}} \sum_{i=1}^N Z(t_i) \left(\mathrm{ETL}(t_i) - \mathrm{ETL}(t_{i-1})\right)}$$
 
-Each term $\Delta\mathrm{ETL}_i = \mathrm{ETL}(t_i) - \mathrm{ETL}(t_{i-1})$ represents the expected loss "arriving" in interval $(t_{i-1}, t_i]$, discounted to today.
+Each term `Delta ETL(i) = ETL(t_i) - ETL(t_{i-1})` represents the expected loss "arriving" in interval $(t_{i-1}, t_i]$, discounted to today.
 
 **Check (sign + monotonicity):** ETL should be non-decreasing in $t$ for a fixed tranche $[A,D]$, so $\Delta\mathrm{ETL}_i \ge 0$. If your computed ETL decreases with time, you have an input/model/implementation inconsistency and the protection leg PV formula can produce nonsensical negative contributions.
 
@@ -608,10 +608,7 @@ Some tranche markets standardize equity-tranche quotes as a **fixed running coup
 
 Tranche quotes can be in basis points or involve an upfront payment. In the latter case, the spread in basis points is fixed and the upfront payment, as a percent of the tranche principal, is either input or implied (e.g., a fixed 500 bp running fee for standard equity index tranches).
 
-One way to remember the quote algebra is:
-$$
-Upoints = ELexp - \frac{s \times PVpmts}{10{,}000}
-$$
+One way to remember the quote algebra is `Upoints = ELexp - (s * PVpmts / 10,000)`.
 where $\text{ExpLoss}$ is expected loss as a percent of tranche principal and $\text{PVPmts}$ is the present value of expected premium payments computed at 10,000 bp/year.
 
 Define $V_{\text{clean}}$ as the present value to the **protection buyer** of the contractual legs *excluding* any upfront (i.e., protection PV minus fixed-coupon premium PV):
