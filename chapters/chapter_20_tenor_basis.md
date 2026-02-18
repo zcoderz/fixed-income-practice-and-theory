@@ -75,7 +75,6 @@ So the key lesson is structural: define your discount curve, define your project
 **Tenor basis** is observed in the market through **basis swaps** between two reset tenors. For each maturity $T$, a quote specifies a **par spread** $e^{1,2}(T)$ that is added to one floating leg so that the swap has $PV(0)=0$. Quotes across maturities form a tenor-basis **curve**.
 
 In a multi-curve setup, different tenors use different projection curves $P^{(1)}$ and $P^{(2)}$ to generate forwards, so in general:
-
 $$P^{(1)}(0,T) \neq P^{(2)}(0,T).$$
 
 The basis swap par spread $e^{1,2}(T)$ is then determined by equating the discounted PVs of the two floating legs using the chosen discount curve $P_d$.
@@ -128,9 +127,10 @@ A fixed spread is typically added to one of the legs to make the swap value at i
 The **par basis spread** $e_{1,2}(T)$ is the spread added to one leg such that the net present value of the swap is zero at inception.
 
 One convenient way to write the par condition (spread added to the tenor-1 leg) is:
-
-$$\boxed{\sum_{i=0}^{n^{2}(T)-1} L^{2}(0; t_{i}^{2}, t_{i+1}^{2}) \,\tau_{i}^{2}\, P_d(0,t_{i+1}^{2})
-= \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0; t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right)\,\tau_{i}^{1}\, P_d(0,t_{i+1}^{1})}$$
+$$
+\boxed{\sum_{i=0}^{n^{2}(T)-1} L^{2}(0; t_{i}^{2}, t_{i+1}^{2}) \,\tau_{i}^{2}\, P_d(0,t_{i+1}^{2})
+= \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0; t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right)\,\tau_{i}^{1}\, P_d(0,t_{i+1}^{1})}
+$$
 
 Here $P_d$ is the discount curve, and $e^{1,2}(T)$ is the quoted spread for exchanging tenor 1 for tenor 2 to maturity $T$. The market convention for which leg carries the spread varies; the equation above is a *notation choice* that makes the algebra explicit.
 
@@ -179,7 +179,6 @@ Tenor basis swaps are deceptively simple. Before you trade, lock down the conven
 ### 20.4.1 Forward Rates from Projection Curves
 
 Define the tenor-$k$ projection curve $P^{(k)}$ so that forward rates over $[T_{i-1},T_i]$ satisfy:
-
 $$\boxed{L^{(k)}(0; T_{i-1}, T_i) = \frac{1}{\tau_i^{(k)}}\left(\frac{P^{(k)}(0,T_{i-1})}{P^{(k)}(0,T_i)} - 1\right)}$$
 
 This is the familiar forward rate formula, but applied to the *projection curve* for tenor $k$, not the discount curve.
@@ -204,11 +203,9 @@ This is the familiar forward rate formula, but applied to the *projection curve*
 ### 20.4.2 Fixed-Float Swap Pricing
 
 The value of a swap receiving fixed rate $c$ and paying floating rate $L^{(k)}$ is:
-
 $$V^{(k)}(0) = \underbrace{\sum_{i} c \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Fixed PV}} - \underbrace{\sum_{i} F_i^{(k)} \cdot \tau_i \cdot P_d(0,t_i)}_{\text{Float PV}}$$
 
 The **par fixed rate** $c^*$ is the rate that makes $V^{(k)}(0) = 0$:
-
 $$\boxed{c^\star = \frac{\sum_{i=0}^{n-1} L^{(k)}(0; t_{i}^{k}, t_{i+1}^{k}) \,\tau_{i}^{k}\, P_d(0,t_{i+1}^{k})}{\sum_{i=0}^{n-1} \tau_{i}^{k}\, P_d(0,t_{i+1}^{k})}}$$
 
 Crucially, the par rate depends on **two** curves: the projection curve determines the forwards in the numerator, while the discount curve determines the weights in both numerator and denominator.
@@ -225,17 +222,14 @@ Crucially, the par rate depends on **two** curves: the projection curve determin
 ### 20.4.3 Basis Swap Valuation
 
 For a basis swap exchanging Tenor 2 versus (Tenor 1 + Spread $e$), the par condition is:
-
 $$\sum_{j} F_j^{(2)} \tau_j P_d(0,t_j) = \sum_{i} (F_i^{(1)} + e) \tau_i P_d(0,t_i)$$
 
 Solving for the spread $e$:
-
 $$\boxed{e = \frac{\text{PV}(\text{Leg 2 Float}) - \text{PV}(\text{Leg 1 Float})}{\text{PV01}(\text{Leg 1})}}$$
 
 The PV01 of Leg 1 (often called the spread-leg annuity) is $\sum_i \tau_i P_d(0,t_i)$.
 
-**Expand (weighted-average view):** If both legs shared the same payment dates and accrual factors (a useful mental model even when they do not), then the par spread would be a discount-weighted average of the period-by-period forward differences:
-$$e \approx \frac{\sum_i \bigl(F_i^{(2)}-F_i^{(1)}\bigr)\,\tau_i\,P_d(0,t_i)}{\sum_i \tau_i\,P_d(0,t_i)}.$$
+**Expand (weighted-average view):** If both legs shared the same payment dates and accrual factors (a useful mental model even when they do not), then the par spread would be a discount-weighted average of the period-by-period forward differences: $e \approx \frac{\sum_i \bigl(F_i^{(2)}-F_i^{(1)}\bigr)\,\tau_i\,P_d(0,t_i)}{\sum_i \tau_i\,P_d(0,t_i)}$.
 So a basis swap can be read as “a swap on the forward spread” between two tenor curves, with the spread leg annuity acting as the scaling.
 
 **Checks (limits + units):** If the two projection curves coincide, $F^{(2)}=F^{(1)}$ and $e=0$. If the forward difference is roughly constant across periods (say $F^{(2)}-F^{(1)}\approx \Delta$), then $e\approx \Delta$. Units work out because the numerator and denominator both have “years” from $\tau$, leaving a rate.
@@ -254,7 +248,7 @@ So a basis swap can be read as “a swap on the forward spread” between two te
 > - 6M payment dates: 2026-08-17, 2027-02-17
 >
 > **Inputs**
-> - Notional: $N=\$100{,}000{,}000$
+> - Notional: $N=USD 100{,}000{,}000$
 > - PV(6M float leg): $0.0256\times N$
 > - PV(3M float leg): $0.0247\times N$
 > - Spread-leg annuity (3M schedule): $A=\sum_i \tau_i P_d(0,t_i)=0.9876$
@@ -268,19 +262,19 @@ So a basis swap can be read as “a swap on the forward spread” between two te
 > 1. Par spread:
 >    $$e=\frac{0.0256-0.0247}{0.9876}\approx 0.000911\approx 9.1\text{ bp}.$$
 > 2. Spread01:
->    $$\text{Spread01}=N\times A\times 10^{-4}\approx 100{,}000{,}000\times 0.9876\times 10^{-4}=\$9{,}876\text{ per bp}.$$
+>    $$\text{Spread01}=N\times A\times 10^{-4}\approx 100{,}000{,}000\times 0.9876\times 10^{-4}=9{,}876\ \text{USD per bp}.$$
 > 3. Basis DV01 (spread down 1bp):
->    - If you **receive** the spread, $\text{DV01}_{basis}=PV(e-1\text{bp})-PV(e)=-\text{Spread01}$.
->    - If you **pay** the spread, $\text{DV01}_{basis}=+\text{Spread01}$.
+>    - If you **receive** the spread, $DV01_{basis}=PV(e-1\text{bp})-PV(e)=-\text{Spread01}$.
+>    - If you **pay** the spread, $DV01_{basis}=+\text{Spread01}$.
 >
-> **Check (DV01 vs “PV for widening”):** This chapter’s $\text{DV01}$ uses the $-1\text{bp}$ bump. So a receiver of the spread has $\text{DV01}_{basis}<0$, even though a **+1bp widening** increases PV by $+\text{Spread01}$. For an up-move estimate, use $\Delta PV \approx -\text{DV01}_{basis}\times \Delta bp$.
+> **Check (DV01 vs “PV for widening”):** This chapter’s $\text{DV01}$ uses the $-1\text{bp}$ bump. So a receiver of the spread has $DV01_{basis}\lt 0$, even though a **+1bp widening** increases PV by $+\text{Spread01}$. For an up-move estimate, use $\Delta PV \approx -DV01_{basis}\times \Delta bp$.
 >
 > **P&L / Risk interpretation**
 > - A +1bp widening of the quoted spread changes PV by approximately $+\text{Spread01}$ for a receiver of the spread (and $-\text{Spread01}$ for a payer).
 >
 > **Sanity checks**
 > - Units: $e$ is a rate, $A$ is unitless, $\text{Spread01}$ is currency per bp.
-> - Magnitudes: $9.1\text{ bp}\times \$9{,}876/\text{bp}\approx \$90\text{k}$, matching $N\times(0.0256-0.0247)$.
+> - Magnitudes: $9.1\text{ bp}\times USD 9{,}876/\text{bp}\approx USD 90\text{k}$, matching $N\times(0.0256-0.0247)$.
 
 ---
 
@@ -302,7 +296,6 @@ Use the most liquid fixed–float swaps (often 3M tenor) along with FRAs (or oth
 **Step 3: Build $P^{(6M)}$ (Secondary Projection Curve)**
 
 Use **basis swaps** (3M vs 6M) to determine the spread of the 6M curve relative to the 3M curve. One way to represent this is with a spread function:
-
 $$P^{(2)}(0,t)=P^{(1)}(0,t)\exp\left(-\int_{0}^{t} \eta^{1,2}(s)\,ds\right)$$
 
 for a piecewise-constant spread function $\eta^{1,2}(\cdot)$.
@@ -336,7 +329,7 @@ To bootstrap the 6M curve point by point:
 > - $F^{(3M)}_{3M-6M} = (0.9945/0.9886 - 1)/0.25 = 2.39\%$
 >
 > **Step 2:** Compute PV of 3M+8bp leg (first 6 months only for simplicity)
-> $$\text{PV}_{3M} = (2.21\% + 0.08\%) \times 0.25 \times P_d(0.25) + (2.39\% + 0.08\%) \times 0.25 \times P_d(0.50)$$
+> $$PV_{3M} = (2.21\% + 0.08\%) \times 0.25 \times P_d(0.25) + (2.39\% + 0.08\%) \times 0.25 \times P_d(0.50)$$
 > $$= 2.29\% \times 0.25 \times 0.9950 + 2.47\% \times 0.25 \times 0.9900 = 0.5696\% + 0.6113\% = 1.1809\%$$
 >
 > **Step 3:** Set 6M leg PV equal and solve for $F^{(6M)}$
@@ -345,7 +338,7 @@ To bootstrap the 6M curve point by point:
 > $$F^{(6M)}_{0-6M} = 2.386\%$$
 >
 > **Step 4:** Convert to pseudo-discount factor
-> $$P^{(6M)}(0, 0.5) = \frac{1.0000}{1 + 0.50 \times 2.386\%} = 0.9882$$
+> $$P^{(6M)}(0, 0.5) = \frac{1.0000}{1 + 0.50 \times 0.02386} = 0.9882$$
 >
 > **Verification:** The 6M pseudo-discount factor (0.9882) is lower than the 3M factor at the same point (0.9886), reflecting the higher forward rate embedded in 6-month funding.
 >
@@ -376,18 +369,18 @@ In a single-curve world, you had one sensitivity: interest rate risk (DV01). In 
 **Conventions for this chapter (bump objects, units, sign).**
 - Bump size: $1\text{bp} = 10^{-4}$ as an absolute change in the relevant quoted rate/spread.
 - Sign convention: for any stated bump object $x$, define
-  $$\text{DV01}_x := PV(x-1\text{bp}) - PV(x).$$
-  A positive $\text{DV01}_x$ means PV increases when $x$ is bumped down (and decreases when $x$ is bumped up).
+  $$DV01_x := PV(x-1\text{bp}) - PV(x).$$
+  A positive $DV01_x$ means PV increases when $x$ is bumped down (and decreases when $x$ is bumped up).
 - Bump objects (what is actually bumped):
   - **Discount DV01:** bump the OIS par swap quotes used to build the discount curve $P_d$ (rebootstrap consistently).
   - **Projection DV01 (tenor $k$):** bump the par FRA/IRS quotes used to build the projection curve $P^{(k)}$.
   - **Basis DV01 (tenor pair $1,2$):** bump the quoted basis swap spreads $e^{1,2}(T)$ for the relevant maturities.
-- Units: currency per 1bp for the trade’s notional (you can rescale to a per-\$1mm notional basis if desired).
+- Units: currency per 1bp for the trade’s notional (you can rescale to a per-USD 1mm notional basis if desired).
 - Spread01 (spread-leg PV01 magnitude): if a basis swap adds spread $e$ on a leg with annuity $A=\sum_i \tau_i P_d(0,t_i)$, then
   $$\text{Spread01} := N \cdot A \cdot 10^{-4}\quad (\text{currency per bp}),$$
   and the PV change for a $+1\text{bp}$ widening of $e$ is approximately $+\text{Spread01}$ if you **receive** the spread and $-\text{Spread01}$ if you **pay** it. The basis DV01 above uses the $-1\text{bp}$ bump.
 
-**Check (sign sanity):** If you receive the quoted spread, your PV goes **up** when the spread widens, but your $\text{DV01}_{basis}:=PV(e-1\text{bp})-PV(e)$ is **negative** (because PV goes down when the spread is bumped down). When using DV01s to estimate P&L for an **up** move, remember $\Delta PV \approx -\text{DV01} \times \Delta bp$.
+**Check (sign sanity):** If you receive the quoted spread, your PV goes **up** when the spread widens, but your $DV01_{basis}:=PV(e-1\text{bp})-PV(e)$ is **negative** (because PV goes down when the spread is bumped down). When using DV01s to estimate P&L for an **up** move, remember $\Delta PV \approx -\text{DV01} \times \Delta bp$.
 
 | Risk Dimension | Sensitivity To | Hedge Instrument |
 |----------------|----------------|------------------|
@@ -401,7 +394,7 @@ A portfolio with zero DV01 may still have massive basis exposure. A trader who h
 
 > **Worked Example 20.5: The Flawed Hedge**
 >
-> A trader has a loan paying **6M LIBOR** (\$100M notional). She wants to hedge the interest rate risk.
+> A trader has a loan paying **6M LIBOR** (USD 100M notional). She wants to hedge the interest rate risk.
 >
 > **Hedge:** She sells a standard **3M LIBOR swap** (receive fixed / pay 3M float) with a matching DV01.
 >
@@ -412,7 +405,7 @@ A portfolio with zero DV01 may still have massive basis exposure. A trader who h
 >
 > **Scenario B: Basis Blowout.** Market stress. OIS and 3M rates unchanged, but 6M rates widen by 20 bps due to credit concerns.
 > - Loan (receive 6M): Coupon increases by 20 bps. For the next 6M period ($\tau\approx 0.5$), the incremental coupon is approximately
->   $$\Delta CF \approx N \cdot 20\text{bp}\cdot \tau = 100{,}000{,}000 \cdot 0.0020 \cdot 0.5 \approx \$100{,}000.$$
+>   $$\Delta CF \approx N \cdot 20\text{bp}\cdot \tau = 100{,}000{,}000 \cdot 0.0020 \cdot 0.5 \approx 100{,}000\ \text{USD}.$$
 > - Swap (pay 3M): 3M rates unchanged—no offset.
 > - **Net:** Unhedged P&L swing driven by basis (the magnitude scales with notional, accrual, and how long the exposure runs).
 >
@@ -441,24 +434,20 @@ When we bump a curve, we first get sensitivities to curve nodes. But desks hedge
 **Mathematical Framework:**
 
 Let $\mathbf{z}$ be a vector of curve nodes (zero rates or discount factors) and $\mathbf{r}$ be a vector of market instrument rates (par swap rates, FRA rates, basis spreads). The Jacobian matrix $\mathbf{J}$ relates them:
-
 $$\mathbf{J} = \frac{\partial \mathbf{r}}{\partial \mathbf{z}}$$
 
 For a portfolio with value $V$, the sensitivity to curve nodes is:
-
 $$\frac{\partial V}{\partial \mathbf{z}} = \text{(curve DV01 vector)}$$
 
 But we want sensitivity to market instruments:
-
 $$\frac{\partial V}{\partial \mathbf{r}} = \frac{\partial V}{\partial \mathbf{z}} \cdot \mathbf{J}^{-1} = \text{(par-point DV01 vector)}$$
 
 **Practical Implementation:**
 
 In a multi-curve setup, the same idea is used to convert discount/projection node deltas into “par-point” deltas for a hedging set (OIS swaps, tenor swaps, tenor basis swaps). For example:
-
 $$\begin{pmatrix} \partial V / \partial r_{\text{OIS}} \\ \partial V / \partial r_{\text{3M Swap}} \\ \partial V / \partial r_{\text{Basis}} \end{pmatrix} = \mathbf{J}^{-1} \begin{pmatrix} \partial V / \partial z_{\text{discount}} \\ \partial V / \partial z_{\text{3M proj}} \\ \partial V / \partial z_{\text{6M proj}} \end{pmatrix}$$
 
-> **Desk Reality:** “Curve-node deltas” (e.g., a delta to an interpolated 3.5Y zero rate) are hard to hedge directly. Desks usually want deltas in the units of liquid par instruments (“sell \$X DV01 of the 3Y swap, buy \$Y DV01 of the 5Y swap”). Jacobian-based par-point deltas are one way to produce that mapping. If the Jacobian is ill-conditioned, the implied hedge ratios can be unstable—treat this as a warning about the calibration instrument set or interpolation choices.
+> **Desk Reality:** “Curve-node deltas” (e.g., a delta to an interpolated 3.5Y zero rate) are hard to hedge directly. Desks usually want deltas in the units of liquid par instruments (“sell USD X DV01 of the 3Y swap, buy USD Y DV01 of the 5Y swap”). Jacobian-based par-point deltas are one way to produce that mapping. If the Jacobian is ill-conditioned, the implied hedge ratios can be unstable—treat this as a warning about the calibration instrument set or interpolation choices.
 
 > **Worked Example 20.6: Jacobian-Based Risk Attribution**
 >
@@ -490,8 +479,10 @@ $$\begin{pmatrix} \partial V / \partial r_{\text{OIS}} \\ \partial V / \partial 
 
 Some short-dated forwards and basis quotes exhibit seasonal distortions around reporting dates, especially year-end (and sometimes quarter-end). A well-known example is the turn-of-year effect: short-dated loan premia can spike for accrual periods spanning the last business day of the year and the first business day of the next year.
 
-A common modeling approach is to treat these as an **overlay** on top of an otherwise smooth curve. One common way of incorporating TOY-type effects is to exogenously specify an overlay curve $\varepsilon_{f}(t)$ on the instantaneous forward curve. For example, if you work with instantaneous forwards $f(t)$, you can represent
-$$f(t) = \varepsilon_{f}(t) + f^*(t),$$
+A common modeling approach is to treat these as an **overlay** on top of an otherwise smooth curve. One common way of incorporating TOY-type effects is to exogenously specify an overlay curve $\varepsilon_{f}(t)$ on the instantaneous forward curve. For example, if you work with instantaneous forwards $f(t)$, you can represent:
+
+$$f(t) = \varepsilon_{f}(t) + f^*(t).$$
+
 where $f^*(t)$ is a baseline smooth curve and $\varepsilon_{f}(t)$ is an exogenously specified, localized “turn” overlay.
 
 **Where it comes from (high level):**
@@ -564,10 +555,10 @@ where $f^*(t)$ is a baseline smooth curve and $\varepsilon_{f}(t)$ is an exogeno
 | $\tau_i^{(k)}$ | accrual year fraction for period $i$ on tenor-$k$ leg | years; index day count |
 | $e^{1,2}(T)$ | par basis spread for tenor 1 vs tenor 2 to maturity $T$ | rate (or bp); quote defines spread leg + pay/receive |
 | $A$ | spread-leg annuity $A=\sum_i \tau_i P_d(0,t_i)$ | unitless |
-| $N$ | notional | currency; $N>0$ with cashflow sign handled separately |
+| $N$ | notional | currency; $N\gt 0$ with cashflow sign handled separately |
 | $PV$ | present value | currency; positive = receive |
 | $\text{Spread01}$ | PV change per +1bp widening of $e$ (magnitude) | currency per bp; $\text{Spread01}=N\cdot A\cdot 10^{-4}$ |
-| $\text{DV01}_x$ | PV sensitivity to bump object $x$ | currency per bp; $\text{DV01}_x := PV(x-1bp)-PV(x)$ |
+| $DV01_x$ | PV sensitivity to bump object $x$ | currency per bp; $DV01_x := PV(x-1bp)-PV(x)$ |
 | $\eta^{1,2}(t)$ | instantaneous spread/overlay between two projection curves | per year; smooth parameterization |
 | $f(t)$ | instantaneous forward rate (generic) | per year; used in turn/overlay discussion |
 | $\varepsilon_{f}(t)$ | turn/overlay component of $f(t)$ | per year; localized/exogenous adjustment |
@@ -587,7 +578,7 @@ where $f^*(t)$ is a baseline smooth curve and $\varepsilon_{f}(t)$ is an exogeno
 | 5 | Which curve generates the floating coupons? | The relevant projection curve $P^{(k)}$ for that tenor/index. |
 | 6 | What does “par basis spread” mean? | The spread $e$ that makes $PV(0)=0$ for the basis swap under the agreed curves and conventions. |
 | 7 | What is $\text{Spread01}$ and its units? | $\text{Spread01} = N\cdot A\cdot 10^{-4}$, currency per bp; it scales PV for a 1bp move in the quoted spread. |
-| 8 | How is $\text{DV01}$ defined in this book? | $\text{DV01}_x := PV(x-1bp)-PV(x)$ for the stated bump object $x$ (PV for a 1bp down move). |
+| 8 | How is $\text{DV01}$ defined in this book? | $DV01_x := PV(x-1bp)-PV(x)$ for the stated bump object $x$ (PV for a 1bp down move). |
 | 9 | What is the bump object for discount DV01? | The OIS par instrument quotes used to build $P_d$ (bumped and re-bootstrapped consistently). |
 | 10 | What is the bump object for projection DV01? | The par FRA/IRS quotes defining the tenor-$k$ projection curve $P^{(k)}$. |
 | 11 | What is the bump object for basis DV01? | The basis swap spread quotes $e^{1,2}(T)$ for the relevant maturity points. |
@@ -605,9 +596,9 @@ where $f^*(t)$ is a baseline smooth curve and $\varepsilon_{f}(t)$ is an exogeno
 
 ## Mini Problem Set
 1. (Compute) Given $P^{(3M)}(0,0)=1$, $P^{(3M)}(0,0.25)=0.9940$, and $\tau=0.25$, compute the 3M forward rate for $[0,0.25]$.
-2. (Compute) A 6M vs (3M + spread) basis swap has $PV(\text{6M leg})=\$1{,}020{,}000$ and $PV(\text{3M leg})=\$1{,}000{,}000$. The spread-leg $\text{Spread01}$ is $\$5{,}000$ per bp. If the spread is added to the 3M leg, compute the par spread $e$ (in bp).
-3. (Compute) For $N=\$100{,}000{,}000$ and spread-leg annuity $A=0.9876$, compute $\text{Spread01}$.
-4. (Compute) Use this chapter’s DV01 convention $\text{DV01}_x = PV(x-1bp)-PV(x)$. A portfolio has OIS DV01 $=+\$100{,}000$, 3M projection DV01 $=-\$80{,}000$, and 3M/6M basis DV01 $=+\$20{,}000$. If OIS $+5$bp, 3M projection $+5$bp, and basis $+3$bp, estimate $\Delta PV$.
+2. (Compute) A 6M vs (3M + spread) basis swap has $PV(\text{6M leg})=USD 1{,}020{,}000$ and $PV(\text{3M leg})=USD 1{,}000{,}000$. The spread-leg $\text{Spread01}$ is $USD 5{,}000$ per bp. If the spread is added to the 3M leg, compute the par spread $e$ (in bp).
+3. (Compute) For $N=USD 100{,}000{,}000$ and spread-leg annuity $A=0.9876$, compute $\text{Spread01}$.
+4. (Compute) Use this chapter’s DV01 convention $DV01_x = PV(x-1bp)-PV(x)$. A portfolio has OIS DV01 $=+USD 100{,}000$, 3M projection DV01 $=-USD 80{,}000$, and 3M/6M basis DV01 $=+USD 20{,}000$. If OIS $+5$bp, 3M projection $+5$bp, and basis $+3$bp, estimate $\Delta PV$.
 5. (Concept) Explain why a floating-rate note can deviate from par in a multi-curve framework even on a reset date.
 6. (Desk) You see a market data line “3M/6M basis = +8bp”. List at least four contract details you must confirm before trading or hedging it.
 7. (Implementation) You build curves with a global optimizer and observe that bumping a 5Y basis quote also moves the discount curve. What dependency did you introduce?
@@ -616,11 +607,8 @@ where $f^*(t)$ is a baseline smooth curve and $\varepsilon_{f}(t)$ is an exogeno
 ### Solution Sketches (Selected)
 1. $F = \frac{1}{0.25}\left(\frac{1}{0.9940}-1\right)\approx \frac{0.006036}{0.25}=0.02414 \approx 2.414\%$.
 2. $e = \frac{1{,}020{,}000-1{,}000{,}000}{5{,}000}=4$ bp.
-3. $\text{Spread01} = N\cdot A\cdot 10^{-4}\approx 100{,}000{,}000\cdot 0.9876 \cdot 10^{-4}=\$9{,}876$ per bp.
-4. Since $\text{DV01}$ is PV for a 1bp **down** move, for an **up** move $\Delta PV \approx -\text{DV01} \times \Delta bp$. So
-   $$
-   \Delta PV \approx -(100{,}000\cdot 5 + (-80{,}000)\cdot 5 + 20{,}000\cdot 3) = -(500{,}000-400{,}000+60{,}000)=-\$160{,}000.
-   $$
+3. $\text{Spread01} = N\cdot A\cdot 10^{-4}\approx 100{,}000{,}000\cdot 0.9876 \cdot 10^{-4}=USD 9{,}876$ per bp.
+4. Since $\text{DV01}$ is PV for a 1bp **down** move, for an **up** move $\Delta PV \approx -\text{DV01} \times \Delta bp$. So $\Delta PV \approx -(100{,}000\cdot 5 + (-80{,}000)\cdot 5 + 20{,}000\cdot 3) = -(500{,}000-400{,}000+60{,}000)=-160{,}000\ \text{USD}$.
 5. Coupons are projected from a projection curve while cashflows are discounted with $P_d$. The classic “float = par” telescoping uses one curve for both; with two curves the identity generally fails.
 6. Confirm: which leg carries $+e$ and your pay/receive direction; day count and calendar for each leg; schedule/stubs/effective date; fixing/payment conventions and any lookback/payment delay; and any compounding/averaging conventions on the floating legs.
 
