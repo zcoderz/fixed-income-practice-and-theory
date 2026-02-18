@@ -443,7 +443,7 @@ There is no single “DV01 of the curve” until you specify the **bump object**
 
 **Book conventions used in this chapter**
 - **Bump size:** $1\text{bp} = 10^{-4}$ in rate units.
-- **Sign:** $\displaystyle DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For long fixed-income PV, DV01 is typically positive.
+- **Sign:** `DV01 := PV(rates down 1bp) - PV(base)`. For long fixed-income PV, DV01 is typically positive.
 - **Units:** report in currency per 1bp for the stated portfolio (and state the notional / scaling).
 
 Two common bump objects in curve work are:
@@ -732,7 +732,7 @@ The hedge is: short $USD 3.25$mm 2Y swaps and long $USD 1.60$mm 5Y swaps.
 2. Bootstrapping is sequential inversion; interpolation is the extra assumption that defines off-node values and (therefore) implied forwards.
 3. Interpolating in different “spaces” creates different forward artifacts: linear $y(T)$ $\to$ saw-tooth $f(T)$; log-linear $P(0,T)$ $\to$ piecewise-flat $f(T)$; very smooth $C^2$ choices $\to$ smooth forwards but potential non-local behavior.
 4. Risk depends on the bump object: par-point DV01 bumps a benchmark quote and rebuilds; forward-bucket DV01 bumps the forward curve on a maturity bucket.
-5. Always state bump size ($1\text{bp}=10^{-4}$), units (currency per 1bp for the stated notional/portfolio), and sign ($DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$).
+5. Always state bump size ($1\text{bp}=10^{-4}$), units (currency per 1bp for the stated notional/portfolio), and sign (`DV01 := PV(rates down 1bp) - PV(base)`).
 6. Locality matters: a short-dated bump should not materially move far-dated forwards; “ringing” produces misleading hedge ratios and P&L explain.
 7. Smoothing/regularization trades fit vs stability; use weights to reflect quote quality and avoid smoothing as a substitute for bad data.
 8. Calendar features (turns, event dates, stubs) are best treated as localized knots/overlays so they do not “pollute” the rest of the curve.
