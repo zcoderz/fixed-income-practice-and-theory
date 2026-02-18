@@ -107,7 +107,7 @@ $$\boxed{\Pi_{\text{phys}}(i) = N\left(1 - \frac{P_i}{100}\right)}$$
 **Expand:** Physical settlement is “par minus what you hand over.” If you do not already own a deliverable, you must **source** one to deliver.
 
 **Check (units/bounds):**
-- $P_i$ is a **price in points per 100** (e.g., $P_i=35$ means \$35 per \$100 face).
+- $P_i$ is a **price in points per 100** (e.g., $P_i=35$ means USD 35 per USD 100 face).
 - If $0 \le P_i \le 100$, then $0 \le \Pi_{\text{phys}}(i) \le N$.
 
 ### 39.2.2 The Settlement Timeline
@@ -124,7 +124,7 @@ Exact notice requirements, deadlines, and evidence standards are **documentation
 
 Physical settlement creates a practical problem when the outstanding amount of CDS protection that expects physical delivery is large relative to the supply of deliverable obligations. Protection buyers may be forced to buy deliverables in a hurry, pushing prices up and reducing the effective payout.
 
-**Check (direction and magnitude):** A short squeeze that pushes the CTD price up by $\Delta P$ points reduces the physical-settlement payout for long protection by $N\,\Delta P/100$. For example, on $N=\$100\text{mm}$, a 5‑point squeeze in CTD reduces payout by $\$5\text{mm}$.
+**Check (direction and magnitude):** A short squeeze that pushes the CTD price up by $\Delta P$ points reduces the physical-settlement payout for long protection by $N\,\Delta P/100$. For example, on $N=USD 100\text{mm}$, a 5‑point squeeze in CTD reduces payout by $USD 5\text{mm}$.
 
 > **Desk Reality:** Under physical settlement, “CTD” is not only a valuation concept—it can become an operational constraint if deliverables are scarce.
 
@@ -170,7 +170,7 @@ This alignment is the economic rationale for using "the mid-market value of the 
 
 Cash settlement is especially valuable when physical settlement is impractical because deliverables are scarce relative to CDS notionals.
 
-For example, when Lehman defaulted in September 2008, there was about \$400 billion of CDS contracts and \$155 billion of Lehman debt outstanding. The cash payout to protection buyers (determined by an ISDA auction process) was $91.375 \%$ of principal.
+For example, when Lehman defaulted in September 2008, there was about USD 400 billion of CDS contracts and USD 155 billion of Lehman debt outstanding. The cash payout to protection buyers (determined by an ISDA auction process) was $91.375 \%$ of principal.
 
 ---
 
@@ -203,9 +203,9 @@ $$\boxed{\Pi_{\text{phys}} = N\left(1 - \frac{P_{\text{CTD}}}{100}\right)}$$
 
 The incremental value of being able to “switch deliverables” is the delivery option.
 
-**Check (toy CTD switch):** Suppose the bond you were hedging trades at 43, but another deliverable trades at 37 (prices in points per 100). Per \$100 face, delivering CTD instead of your hedged bond increases payout by $43-37=6$ points.
+**Check (toy CTD switch):** Suppose the bond you were hedging trades at 43, but another deliverable trades at 37 (prices in points per 100). Per USD 100 face, delivering CTD instead of your hedged bond increases payout by $43-37=6$ points.
 
-**Check (dollar conversion):** “6 points” is 6% of notional. On $N=\$100\text{mm}$, the incremental value of switching to CTD is about $\$6\text{mm}$.
+**Check (dollar conversion):** “6 points” is 6% of notional. On $N=USD 100\text{mm}$, the incremental value of switching to CTD is about $USD 6\text{mm}$.
 
 ### 39.4.3 Valuing the Delivery Option (Simple Framework)
 
@@ -297,12 +297,12 @@ where $P_{\text{final}}$ is the cash‑settlement final price (points per 100).
 \]
 This is only an intuition aid—production systems accrue to the actual event date using the contract day count.
 
-**Check (dated accrual):** Consider the example timeline used in Section 39.9: last premium date March 20, 2023 and credit event May 20, 2023. Using ACT/360 for illustration, $\alpha=61/360$. If $N=\$100\text{mm}$ and $s=90$ bp $=0.009$, then accrued premium is:
+**Check (dated accrual):** Consider the example timeline used in Section 39.9: last premium date March 20, 2023 and credit event May 20, 2023. Using ACT/360 for illustration, $\alpha=61/360$. If $N=USD 100\text{mm}$ and $s=90$ bp $=0.009$, then accrued premium is:
 
-$$100{,}000{,}000 \times 0.009 \times \frac{61}{360} = \$152{,}500.$$
+$$100{,}000{,}000 \times 0.009 \times \frac{61}{360} = USD 152{,}500.$$
 
 > **Pitfall — Forgetting accrued premium on default:** Mixing “payout” with “net settlement.”
-> **Why it matters:** You can be off by \$10k–\$100k+ on a single-name trade (and much more on large notionals) if you ignore the final accrual.
+> **Why it matters:** You can be off by USD 10k–USD 100k+ on a single-name trade (and much more on large notionals) if you ignore the final accrual.
 > **Quick check:** Compute $\alpha$ from concrete dates and confirm accrued premium has the same sign as a normal premium payment (buyer pays seller).
 
 ---
@@ -338,7 +338,7 @@ $$\boxed{\text{Upfront} \approx (S_{\text{market}}-S_{\text{coupon}})_{\text{bp}
 
 where $RPV01$ is the risky PV of 1 bp of running premium for the specified contract (in currency per 1 bp, for the stated notional).
 
-**Check (sign):** If $S_{\text{market}} > S_{\text{coupon}}$, the protection buyer pays an upfront amount (in addition to the fixed running coupon). If $S_{\text{market}} < S_{\text{coupon}}$, the upfront flows the other way.
+**Check (sign):** If $S_{\text{market}} \gt S_{\text{coupon}}$, the protection buyer pays an upfront amount (in addition to the fixed running coupon). If $S_{\text{market}} \lt S_{\text{coupon}}$, the upfront flows the other way.
 
 > **Desk Reality:** Many systems treat a CDS quote like a bond quote: “running coupon” is fixed, and “price” is the upfront.
 > **Common break:** Mixing up whether $RPV01$ is per 1 bp **for this notional** (currency/bp) or per 1 bp **per unit notional**.
@@ -369,7 +369,7 @@ Mechanism‑level drivers include:
 5. **Accrued premium on default:** The buyer pays the accrued premium to the event date (Section 39.6), which affects the net economics of long protection versus holding the cash bond.
 6. **Market microstructure:** Differences in liquidity, supply/demand for protection, and technical positioning can dominate in stressed markets.
 
-**Check (toy mismatch):** If you buy a bond at 70 and the auction final price is 35, the bond’s loss is 35 points (70 → 35), while a CDS on \$100 notional pays 65 points (100 → 35). A 1:1 notional hedge can therefore **over‑hedge** a discounted bond; hedge ratios depend on your bond entry price and on the settlement price you expect.
+**Check (toy mismatch):** If you buy a bond at 70 and the auction final price is 35, the bond’s loss is 35 points (70 → 35), while a CDS on USD 100 notional pays 65 points (100 → 35). A 1:1 notional hedge can therefore **over‑hedge** a discounted bond; hedge ratios depend on your bond entry price and on the settlement price you expect.
 
 **Check:** The basis is not an arbitrage identity; it can be positive in some periods and negative in others.
 
@@ -389,7 +389,7 @@ With this convention,
 
 $$\text{Settlement01} := \Pi(P_{\text{final}}-1) - \Pi(P_{\text{final}}) = \frac{N}{100}.$$
 
-**Check (units):** 1 price point is 1% of par. For $N=\$10\text{mm}$, Settlement01 $=\$100{,}000$ per 1‑point move down in $P_{\text{final}}$.
+**Check (units):** 1 price point is 1% of par. For $N=USD 10\text{mm}$, Settlement01 $=USD 100{,}000$ per 1‑point move down in $P_{\text{final}}$.
 
 ### 39.8.4 Deliverable Scarcity (Physical Settlement)
 
@@ -417,7 +417,7 @@ As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, pr
 - Cash settlement date: assume May 25, 2023 for the cashflow table (the protocol sets the actual date)
 
 **Inputs**
-- Notional: $N=\$100\text{mm}$
+- Notional: $N=USD 100\text{mm}$
 - Contractual spread: $s=90$ bp per year $=0.009$
 - Settlement method: cash settlement
 - Auction final price: $P_{\text{final}}=35$ (points per 100 face)
@@ -431,20 +431,20 @@ As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, pr
 
 **Step-by-step**
 1. Translate auction price to protection payout:
-   $$\Pi_{\text{cash}} = N\left(1-\frac{P_{\text{final}}}{100}\right) = 100{,}000{,}000 \times (1-0.35)=\$65{,}000{,}000.$$
+   $$\Pi_{\text{cash}} = N\left(1-\frac{P_{\text{final}}}{100}\right) = 100{,}000{,}000 \times (1-0.35)=USD 65{,}000{,}000.$$
 2. Build the accrual factor from concrete dates:
    - March 20, 2023 → May 20, 2023 is 61 days
    - $\alpha = 61/360$
 3. Compute accrued premium:
-   $$\text{Accrued} = N\cdot s\cdot \alpha = 100{,}000{,}000 \times 0.009 \times \frac{61}{360}=\$152{,}500.$$
+   $$\text{Accrued} = N\cdot s\cdot \alpha = 100{,}000{,}000 \times 0.009 \times \frac{61}{360}=USD 152{,}500.$$
 4. Net the two legs (net cash from seller to buyer):
-   $$\text{Net} = 65{,}000{,}000 - 152{,}500 = \$64{,}847{,}500.$$
+   $$\text{Net} = 65{,}000{,}000 - 152{,}500 = USD 64{,}847{,}500.$$
 5. Settlement‑price risk scalar (for long protection):
    - **Bump object:** $P_{\text{final}}$ (points per 100)
    - **Bump size:** $-1$ point
    - **Units:** currency per 1 point
    - **Sign:** positive for long protection
-   $$\text{Settlement01}=\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=\frac{N}{100}=\$1{,}000{,}000.$$
+   $$\text{Settlement01}=\Pi(P_{\text{final}}-1)-\Pi(P_{\text{final}})=\frac{N}{100}=USD 1{,}000{,}000.$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -455,7 +455,7 @@ As discussed in Section 39.2.3, when CDS notional exceeds deliverable supply, pr
 
 **P&L / Risk Interpretation**
 - The payout is linear in $P_{\text{final}}$: 1 price point is 1% of notional.
-- For this trade, a 5‑point change in $P_{\text{final}}$ changes payout by \$5mm.
+- For this trade, a 5‑point change in $P_{\text{final}}$ changes payout by USD 5mm.
 - Operationally, the key “gotchas” are: misreading price points as fractions, using the wrong day count for $\alpha$, and forgetting to include the final accrual payment.
 
 **Sanity Checks**
@@ -597,53 +597,53 @@ Before modeling settlement outcomes, verify:
 
 ## Mini Problem Set
 
-1. A CDS has $N = \$25\text{mm}$ and auction final price 12. Compute the cash settlement payout.
+1. A CDS has $N = USD 25\text{mm}$ and auction final price 12. Compute the cash settlement payout.
 
-2. For $N = \$10\text{mm}$, compare payouts if final price is 38 vs 42. What is the difference?
+2. For $N = USD 10\text{mm}$, compare payouts if final price is 38 vs 42. What is the difference?
 
-3. Two deliverables are priced at 55 and 60. Under physical settlement with $N = \$10\text{mm}$, what is the CTD and payout?
+3. Two deliverables are priced at 55 and 60. Under physical settlement with $N = USD 10\text{mm}$, what is the CTD and payout?
 
-4. Three deliverables priced 20, 35, 50 with $N = \$10\text{mm}$. Compute physical settlement payout. Compare to cash at $P_{\text{final}} = 35$.
+4. Three deliverables priced 20, 35, 50 with $N = USD 10\text{mm}$. Compute physical settlement payout. Compare to cash at $P_{\text{final}} = 35$.
 
 5. In Q4, the 20-priced bond is ruled ineligible. Recompute the payout and the change.
 
 6. Explain why a soft credit event creates larger delivery option value than a hard event.
 
-7. A buyer holds a bond at 48 with CDS, and CTD after restructuring is 40. Per \$100 face, what is the delivery option value? For $N = \$10\text{mm}$?
+7. A buyer holds a bond at 48 with CDS, and CTD after restructuring is 40. Per USD 100 face, what is the delivery option value? For $N = USD 10\text{mm}$?
 
-8. Spread $s = 400$ bp, default 60 days into a 90-day period, $N = \$20\text{mm}$. Estimate accrued premium (state assumptions).
+8. Spread $s = 400$ bp, default 60 days into a 90-day period, $N = USD 20\text{mm}$. Estimate accrued premium (state assumptions).
 
 9. Derive: if $P_{\text{final}} = P_{\text{CTD}}$, then $\Pi_{\text{cash}} = \Pi_{\text{phys}}$.
 
-10. CTD bond has bid/ask of 25/35 in distressed market. For $N = \$50\text{mm}$, compute the payout range.
+10. CTD bond has bid/ask of 25/35 in distressed market. For $N = USD 50\text{mm}$, compute the payout range.
 
-11. A CDS trades with a 100 bp fixed coupon. Market spread is 350 bp. For $N = \$10\text{mm}$ and $RPV01 = \$4{,}200$ per bp (for this notional), estimate the upfront payment at trade inception. Who pays whom?
+11. A CDS trades with a 100 bp fixed coupon. Market spread is 350 bp. For $N = USD 10\text{mm}$ and $RPV01 = USD 4{,}200$ per bp (for this notional), estimate the upfront payment at trade inception. Who pays whom?
 
-12. Following a credit event, the DC determines auction final price = 22. Protection buyer owes 50 days of accrued premium on a 300 bp contract with $N = \$5\text{mm}$. What is the net payment from seller to buyer?
+12. Following a credit event, the DC determines auction final price = 22. Protection buyer owes 50 days of accrued premium on a 300 bp contract with $N = USD 5\text{mm}$. What is the net payment from seller to buyer?
 
 ---
 
 ### Solution Sketches (Selected)
 
-**Q1:** $\Pi = 25\text{mm} \times (1 - 0.12) = 25\text{mm} \times 0.88 = \$22\text{mm}$
+**Q1:** $\Pi = 25\text{mm} \times (1 - 0.12) = 25\text{mm} \times 0.88 = USD 22\text{mm}$
 
-**Q2:** At 38: $\Pi = 10\text{mm} \times 0.62 = \$6.2\text{mm}$. At 42: $\Pi = 10\text{mm} \times 0.58 = \$5.8\text{mm}$. Difference: $\$0.4\text{mm}$.
+**Q2:** At 38: $\Pi = 10\text{mm} \times 0.62 = USD 6.2\text{mm}$. At 42: $\Pi = 10\text{mm} \times 0.58 = USD 5.8\text{mm}$. Difference: $USD 0.4\text{mm}$.
 
-**Q3:** CTD = 55. $\Pi = 10\text{mm} \times (1 - 0.55) = 10\text{mm} \times 0.45 = \$4.5\text{mm}$
+**Q3:** CTD = 55. $\Pi = 10\text{mm} \times (1 - 0.55) = 10\text{mm} \times 0.45 = USD 4.5\text{mm}$
 
-**Q4:** Physical uses CTD = 20: $\Pi = 10\text{mm} \times 0.80 = \$8.0\text{mm}$. Cash at 35: $\Pi = 10\text{mm} \times 0.65 = \$6.5\text{mm}$. Physical payout is $\$1.5\text{mm}$ higher due to CTD.
+**Q4:** Physical uses CTD = 20: $\Pi = 10\text{mm} \times 0.80 = USD 8.0\text{mm}$. Cash at 35: $\Pi = 10\text{mm} \times 0.65 = USD 6.5\text{mm}$. Physical payout is $USD 1.5\text{mm}$ higher due to CTD.
 
-**Q5:** New CTD = 35: $\Pi = 10\text{mm} \times 0.65 = \$6.5\text{mm}$. Change: $-\$1.5\text{mm}$ from Q4.
+**Q5:** New CTD = 35: $\Pi = 10\text{mm} \times 0.65 = USD 6.5\text{mm}$. Change: $-USD 1.5\text{mm}$ from Q4.
 
 **Q6:** Soft events preserve term structure → different obligations trade at different prices → buyer can choose cheapest. Hard events collapse all debt to one price → no choice benefit.
 
-**Q7:** Delivery option value = \$48 - 40 = \$8$ per $100. For $\$10\text{mm}$: $10{,}000{,}000 \times 0.08 = \$800{,}000$.
+**Q7:** Delivery option value = USD 48 - 40 = USD 8$ per $100. For $USD 10\text{mm}$: $10{,}000{,}000 \times 0.08 = USD 800{,}000$.
 
 **Q9:** $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$. $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$. If $P_{\text{final}} = P_{\text{CTD}}$, both equal $N(1 - P_{\text{CTD}}/100)$. QED.
 
-**Q11:** Spread difference = $350-100=250$ bp. Upfront $\approx 250 \times \$4{,}200 = \$1{,}050{,}000$. Protection buyer pays upfront (market spread > coupon).
+**Q11:** Spread difference = $350-100=250$ bp. Upfront $\approx 250 \times USD 4{,}200 = USD 1{,}050{,}000$. Protection buyer pays upfront (market spread > coupon).
 
-**Q12:** Protection payout: $5{,}000{,}000 \times (1 - 0.22) = \$3{,}900{,}000$. Accrued premium: $5{,}000{,}000 \times 0.03 \times (50/360) = \$20{,}833$. Net: $\$3{,}900{,}000 - \$20{,}833 = \$3{,}879{,}167$ from seller to buyer.
+**Q12:** Protection payout: $5{,}000{,}000 \times (1 - 0.22) = USD 3{,}900{,}000$. Accrued premium: $5{,}000{,}000 \times 0.03 \times (50/360) = USD 20{,}833$. Net: $USD 3{,}900{,}000 - USD 20{,}833 = USD 3{,}879{,}167$ from seller to buyer.
 
 ---
 
