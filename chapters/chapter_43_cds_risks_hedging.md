@@ -110,7 +110,7 @@ $$\boxed{\text{Credit DV01} := -\bigl(PV(S+1\text{bp})-PV(S)\bigr)=-\text{CS01}.
 
 Always check the definition before sizing hedges.
 
-**Near-par approximation (RPV01 scaling):** If the contract is near par ($S_0 \approx S(t,T)$) and you ignore the fact that `RPV01` itself changes under the bump, then the MTM identity implies:
+**Near-par approximation (RPV01 scaling):** If the contract is near par (that is, $S_0$ is close to $S(t,T)$) and you ignore the fact that `RPV01` itself changes under the bump, then the MTM identity implies:
 
 $$\Delta PV \approx N \cdot \text{RPV01}(t,T) \cdot \Delta S,$$
 
@@ -118,7 +118,7 @@ so
 
 $$\text{CS01} \approx N \cdot \text{RPV01}(t,T) \cdot 10^{-4}.$$
 
-When the contract is away from par ($S_0\neq S(t,T)$), the exact CS01 differs from the simple $N\cdot RPV01\cdot 1\text{bp}$ scaling because the calibrated survival curve (and therefore `RPV01`) moves under the bump.
+When the contract is away from par ($S_0$ is not equal to $S(t,T)$), the exact CS01 differs from the simple $N\cdot RPV01\cdot 1\text{bp}$ scaling because the calibrated survival curve (and therefore `RPV01`) moves under the bump.
 
 This parallels the rates DV01 formula from Chapter 11, where DV01 $\approx$ Duration $\times$ Price $\times$ 0.0001.
 
@@ -150,7 +150,7 @@ This produces a "hazard DV01" useful for understanding model sensitivities but n
 > **Why it matters:** Two “CS01” numbers can differ materially if one system bumps par spreads and rebuilds survival, while another holds the survival curve fixed (or bumps hazard nodes). Hedge ratios built from mismatched definitions can be wrong.
 > **Quick check:** When reconciling two CS01s, ask: (i) what curve was bumped (par spreads vs hazard), (ii) was the survival curve rebuilt, and (iii) were discounting and recovery held fixed?
 
-### 43.1.4 Why CS01 Deviates from $N \cdot RPV01 \cdot 1\text{bp}$
+### 43.1.4 Why CS01 Deviates from N × RPV01 × 1 bp
 
 The scaling
 
@@ -371,9 +371,7 @@ $$s_{\text{net}} = s + \sum_{j=1}^{k} n_j\\, h^{(j)}.$$
 **Equivalent hedge notionals** are the $n_j$ that make selected components of $s_{\text{net}}$ close to zero (exactly zero if the system is square and well-conditioned; otherwise least-squares).
 
 **Toy example (2-bucket hedge, diagonal approximation):** suppose your book has bucket CS01s (long protection convention) of $s=(+12{,}000,\ +8{,}000)$ $USD /\text{bp}$ to the (3Y, 7Y) quotes. Suppose a USD 10mm notional on-market 3Y CDS has bucket CS01 $(+3{,}000,\ 0)$ $USD /\text{bp}$ and a USD 10mm on-market 7Y CDS has $(0,\ +6{,}000)$ $USD /\text{bp}$. To neutralize, choose hedge notionals (in units of USD 10mm notional)
-$$
-n_3 = -12{,}000/3{,}000=-4.0,\qquad n_7=-8{,}000/6{,}000\approx -1.33.
-$$
+A diagonal approximation gives $n_3 = -12{,}000/3{,}000=-4.0$ and $n_7=-8{,}000/6{,}000\approx -1.33$.
 Negative notionals mean you **sell protection** in those hedges (negative CS01) to offset the book’s positive CS01.
 
 **Check:** In practice the hedge response matrix is often “somewhat local” (a tenor mostly loads on nearby curve points), but it is not perfectly diagonal once you include bootstrap/interpolation details. Always validate by repricing the full book under the same bucket bumps used to compute the hedge.
@@ -421,7 +419,7 @@ A practical finite-difference estimate is:
 
 $$\Gamma_S \approx \frac{V(+1\text{bp})-2V(0)+V(-1\text{bp})}{(1\text{bp})^2}.$$
 
-**Units:** currency per bp$^2$ for the stated notional.
+**Units:** currency per bp squared for the stated notional.
 
 ### 43.5.2 Intuition: Why Long Protection Often Has Negative Gamma
 
@@ -1062,9 +1060,9 @@ Residual within acceptable tolerance.
 
 ### Solution Sketches (Selected)
 
-1. $ \text{CS01} \approx 20{,}000{,}000 \times 4.2 \times 10^{-4} = USD 8{,}400/\text{bp}. $
+1. $\text{CS01} \approx 20{,}000{,}000 \times 4.2 \times 10^{-4} = USD 8{,}400/\text{bp}.$
 
-2. Per unit notional, $ \text{VOD} = (1-R) - \Delta_0 S_0 = 0.65 - 0.25\times 0.015 = 0.64625 $.  
+2. Per unit notional, $\text{VOD} = (1-R) - \Delta_0 S_0 = 0.65 - 0.25\times 0.015 = 0.64625$.  
    Multiply by USD 5mm: $0.64625 \times 5{,}000{,}000 = USD 3{,}231{,}250$ (about USD 3.23mm).
 
 5. Bond loss fraction $\approx P/100 - R = 0.95-0.40=0.55$. CDS payout fraction $=1-R=0.60$.  
