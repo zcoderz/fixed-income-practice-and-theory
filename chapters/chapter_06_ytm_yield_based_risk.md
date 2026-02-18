@@ -100,9 +100,7 @@ Synonyms: the **dirty** price is also called the **full** or **invoice** price�
 
 Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues about $5/365 \approx 1.4$ cents per day per \$100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
 
-**Check (desk scale):** “1.4 cents per day per \$100 face” sounds tiny until you scale it. On a \$100mm face position, that is roughly
-$$\frac{100{,}000{,}000}{100}\times 0.014 \approx 14{,}000\ \text{USD per day}$$
-of mechanical dirty-price drift when the coupon rate is 5%. Clean-vs-dirty separation keeps this accrual from masquerading as trading P&L.
+**Check (desk scale):** “1.4 cents per day per \$100 face” sounds tiny until you scale it. On a \$100mm face position, $(100{,}000{,}000/100)\times 0.014 \approx 14{,}000$ USD per day of mechanical dirty-price drift when the coupon rate is 5%. Clean-vs-dirty separation keeps this accrual from masquerading as trading P&L.
 
 Clean pricing solves this problem. The clean price strips out the mechanical accrual component, so quoted prices better reflect changes in yields and market conditions. If yields are unchanged, the “jump” at a coupon date is (mostly) an accrued-interest reset, not a sudden deterioration in the bond’s economic value.
 
@@ -702,39 +700,19 @@ This limitation motivates the multi-factor approaches in Chapter 14 (key-rate du
 
 **Step-by-step**
 1. **Translate quote to settlement cash (clean → dirty).**
-
-   $$
-   AI = 3.00\times \frac{150}{184} = 2.4457,\qquad
-   P_{\text{dirty}} = 101.25 + 2.4457 = 103.6957.
-   $$
+   Use $AI = 3.00\times \frac{150}{184} = 2.4457$ and $P_{\text{dirty}} = 101.25 + 2.4457 = 103.6957$.
 
 2. **Solve for YTM $y$ from the dirty price.** Write $r=1+y/2$ and discount each cashflow by $r^{a_i}$. For this example we use an approximation $a_i \approx \text{(days to payment)}/182.5$ to express time in semiannual periods:
-
-   $$
-   \sum_i \frac{CF_i}{r^{a_i}} = 103.6957 \quad\Rightarrow\quad y\approx 5.709\%.
-   $$
+   Solve $\sum_i \frac{CF_i}{r^{a_i}} = 103.6957$, giving $y\approx 5.709\%$.
 
 3. **Compute yield DV01 with a central 1 bp bump.**
-
-   $$
-   DV01_y \approx \frac{P(y-1\text{ bp})-P(y+1\text{ bp})}{2}
-   = \frac{103.7397-103.6516}{2}
-   \approx 0.0440.
-   $$
+   Use $DV01_y \approx \frac{P(y-1\text{ bp})-P(y+1\text{ bp})}{2} = \frac{103.7397-103.6516}{2} \approx 0.0440$.
 
 4. **Scale to dollars (desk unit check).**
-
-   $$
-   DV01_{USD} = \frac{N}{100}\,DV01_y
-   = \frac{1{,}000{,}000}{100}\times 0.0440 \approx 440\;\text{USD per 1 bp}.
-   $$
+   Compute $DV01_{USD} = \frac{N}{100}DV01_y = \frac{1{,}000{,}000}{100}\times 0.0440 \approx 440$ USD per 1 bp.
 
 5. **Optional cross-check: infer modified duration from DV01.**
-
-   $$
-   D_{\text{mod}} = \frac{DV01_y\times 10{,}000}{P}
-   \approx \frac{0.0440\times 10{,}000}{103.6957} \approx 4.24.
-   $$
+   Infer $D_{\text{mod}} = \frac{DV01_y\times 10{,}000}{P} \approx \frac{0.0440\times 10{,}000}{103.6957} \approx 4.24$.
 
 **Cashflows (per 100, dirty-price convention)**
 | Date | Cashflow | Explanation |
@@ -837,7 +815,7 @@ Solve for YTM: $y \approx 3.382\%$
 
 $$DV01_y \approx 0.0193$$
 
-**Comparison:** The two differ by about 2\%. This gap arises because curve DV01 weights longer maturities more heavily (through the $t$ factor in $\exp(-\Delta t)$), while yield DV01 treats all cash flows through one rate.
+**Comparison:** The two differ by about 2\%. This gap arises because curve DV01 weights longer maturities more heavily (through the $t$ factor in `exp(-\Delta t)`), while yield DV01 treats all cash flows through one rate.
 
 ---
 
@@ -1001,9 +979,9 @@ Money market quoting (simple interest with ACT/360) differs from bond quoting (s
 | $DV01_{USD}(N)$ | Dollar DV01 for notional $N$ | currency per 1 bp; $DV01_{USD}(N)=\frac{N}{100}DV01_y$ |
 | $D_{\text{mod}}$ | Modified duration | years; $D_{\text{mod}}=-(1/P)\,dP/dy$ |
 | $D_{\text{Mac}}$ | Macaulay duration | years; $D_{\text{Mac}}=(1+y/2)D_{\text{mod}}$ (semiannual) |
-| $C_y$ | Yield convexity | years$^2$; $C_y=(1/P)\,d^2P/dy^2$ |
+| $C_y$ | Yield convexity | years squared; $C_y=(1/P)\,d^2P/dy^2$ |
 | $P(0,t)$ or $d(t)$ | Discount factor to maturity $t$ | unitless; curve PV: $P=\sum CF_i P(0,t_i)$ |
-| $\text{YTC}$ | Yield-to-call | YTM-style yield for a specified call scenario |
+| $YTC$ | Yield-to-call | YTM-style yield for a specified call scenario |
 | $YTW$ | Yield-to-worst | $\min(YTM, YTC_1,YTC_2,\ldots)$ |
 
 ---
