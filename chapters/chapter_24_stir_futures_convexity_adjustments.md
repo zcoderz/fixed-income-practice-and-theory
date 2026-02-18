@@ -80,27 +80,27 @@ For Fed Funds futures, the final settlement price is set to $100 - 100 \times \b
 
 ### 24.1.3 Contract Value and Tick Size
 
-The Eurodollar and 3-month SOFR futures contracts are designed so that a one-basis-point move in the implied rate has a fixed dollar value. The contract notional is \$1,000,000 and the underlying deposit period is approximately one quarter (0.25 years). A one-basis-point change in the rate changes the interest on this deposit by:
+The Eurodollar and 3-month SOFR futures contracts are designed so that a one-basis-point move in the implied rate has a fixed dollar value. The contract notional is USD1,000,000 and the underlying deposit period is approximately one quarter (0.25 years). A one-basis-point change in the rate changes the interest on this deposit by:
 
-$$\$1{,}000{,}000 \times 0.25 \times 0.0001 = \$25$$
-
-Thus:
-
-$$\boxed{\text{DV01}_{\text{ED/SOFR}} = \$25 \text{ per contract per bp}}$$
-
-This fixed tick value is remarkably convenient for hedging: if your exposure has a DV01 of \$50,000 per basis point, you need exactly 2,000 contracts to hedge it (ignoring the sign of the hedge).
-
-For Fed Funds futures, the contract corresponds to a \$5,000,000 30-day deposit. Using ACT/360 day count:
-
-$$\$5{,}000{,}000 \times \frac{0.0001 \times 30}{360} = \$41.67$$
+$$USD1{,}000{,}000 \times 0.25 \times 0.0001 = USD25$$
 
 Thus:
 
-$$\boxed{\text{DV01}_{\text{FF}} = \$41.67 \text{ per contract per bp (30-day month)}}$$
+$$\boxed{\text{DV01}_{\text{ED/SOFR}} = USD25 \text{ per contract per bp}}$$
 
-For a 31-day month, the DV01 increases proportionally to \$43.06.
+This fixed tick value is remarkably convenient for hedging: if your exposure has a DV01 of USD50,000 per basis point, you need exactly 2,000 contracts to hedge it (ignoring the sign of the hedge).
 
-> **Sanity check:** The Fed Funds DV01 is larger than the ED/SOFR DV01 despite the shorter deposit period because the notional is five times larger (\$5M vs \$1M).
+For Fed Funds futures, the contract corresponds to a USD5,000,000 30-day deposit. Using ACT/360 day count:
+
+$$USD5{,}000{,}000 \times \frac{0.0001 \times 30}{360} = USD41.67$$
+
+Thus:
+
+$$\boxed{\text{DV01}_{\text{FF}} = USD41.67 \text{ per contract per bp (30-day month)}}$$
+
+For a 31-day month, the DV01 increases proportionally to USD43.06.
+
+> **Sanity check:** The Fed Funds DV01 is larger than the ED/SOFR DV01 despite the shorter deposit period because the notional is five times larger (USD5M vs USD1M).
 
 ---
 
@@ -118,7 +118,7 @@ where:
 - $P(t, T)$ is the discount factor (price of a zero-coupon bond) at time $t$ for maturity $T$
 - $\tau = T_2 - T_1$ is the accrual period (year fraction)
 
-**Derivation intuition:** Consider the replication strategy. Invest \$1 in a zero maturing at $T_1$ (costing $P(t, T_1)$ today). At $T_1$, roll this \$1 forward at the forward rate $L$ until $T_2$. The terminal value is $1 + \tau L$. No-arbitrage requires this equals what you would get from directly buying $(1 + \tau L)$ zeros maturing at $T_2$:
+**Derivation intuition:** Consider the replication strategy. Invest USD1 in a zero maturing at $T_1$ (costing $P(t, T_1)$ today). At $T_1$, roll this USD1 forward at the forward rate $L$ until $T_2$. The terminal value is $1 + \tau L$. No-arbitrage requires this equals what you would get from directly buying $(1 + \tau L)$ zeros maturing at $T_2$:
 
 $$P(t, T_1) = (1 + \tau L) \cdot P(t, T_2)$$
 
@@ -241,18 +241,18 @@ When precision matters, treat the approximation as an order-of-magnitude tool an
    $$r^{\text{fwd}} \approx 0.0500 - 0.001338 = 0.048662 \;\; (4.866\%).$$
 
 **Cashflows (what the adjustment “means” in dollars)**
-If you mistakenly use the futures-implied rate as a forward rate for a \$100,000,000 notional 3-month accrual, the rate error is about $13.4$ bp. The interest difference over $\tau\approx 0.25$ years is:
+If you mistakenly use the futures-implied rate as a forward rate for a USD100,000,000 notional 3-month accrual, the rate error is about $13.4$ bp. The interest difference over $\tau\approx 0.25$ years is:
 
-$$100{,}000{,}000 \times 0.25 \times 0.001338 \approx \$33{,}450.$$
+$$100{,}000{,}000 \times 0.25 \times 0.001338 \approx USD33{,}450.$$
 
 **P&L / Risk Interpretation**
 - In curve building, treating futures rates as forwards biases the forward curve upward and can compound across a strip.
-- In hedging, “\$25 per bp” is only meaningful if your exposure DV01 is computed for the same forward bucket and settlement assumptions.
+- In hedging, “USD25 per bp” is only meaningful if your exposure DV01 is computed for the same forward bucket and settlement assumptions.
 
 **Sanity Checks**
 - Limit check: if $\sigma=0$, then $c=0$ and futures and forwards coincide.
 - Units check: $c$ is in **decimal rate units**; multiply by 10,000 to get bp.
-- Sign check: $c>0\Rightarrow r^{\text{fwd}}<r^{\text{fut}}$ (forward below futures).
+- Sign check: $c\gt 0\Rightarrow r^{\text{fwd}}\lt r^{\text{fut}}$ (forward below futures).
 
 ### 24.3.5 Adjustment Magnitude by Maturity
 
@@ -303,7 +303,7 @@ Doubling volatility from 100 bp to 200 bp would quadruple the adjustment to appr
 
 When using futures to hedge a forward exposure, a subtle but important adjustment is required: the **tail**. The issue arises because futures gains and losses settle daily, while the forward exposure settles at maturity. Even if the DV01s match perfectly, the timing mismatch creates hedge slippage.
 
-Consider a hedger with a \$100 million forward exposure at time $T$. The DV01 of this exposure, measured today, reflects discounting back to the present. A futures position with matching face amount would have the same DV01—but futures gains arrive today while the forward exposure settles at $T$. If the hedger reinvests futures gains until $T$, or finances futures losses until $T$, the effective exposure differs from the nominal DV01 match.
+Consider a hedger with a USD100 million forward exposure at time $T$. The DV01 of this exposure, measured today, reflects discounting back to the present. A futures position with matching face amount would have the same DV01—but futures gains arrive today while the forward exposure settles at $T$. If the hedger reinvests futures gains until $T$, or finances futures losses until $T$, the effective exposure differs from the nominal DV01 match.
 
 ### 24.4.2 The Tailing Formula
 
@@ -325,13 +325,13 @@ The intuition: because futures gains can be invested (or losses must be financed
 
 ### 24.4.3 Worked Example: Tailing a 6-Month Hedge
 
-**Problem:** You need to hedge a \$500 million 6-month forward rate exposure. The financing rate is 5%. How many Eurodollar futures contracts should you use?
+**Problem:** You need to hedge a USD500 million 6-month forward rate exposure. The financing rate is 5%. How many Eurodollar futures contracts should you use?
 
 **Step 1: Compute the untailed hedge**
 
 Without tailing, the hedge would use:
-$$\text{Untailed DV01} = \$500{,}000{,}000 \times 0.25 \times 0.0001 = \$12{,}500$$
-$$\text{Untailed contracts} = \frac{\$12{,}500}{\$25} = 500 \text{ contracts}$$
+$$\text{Untailed DV01} = USD500{,}000{,}000 \times 0.25 \times 0.0001 = USD12{,}500$$
+$$\text{Untailed contracts} = \frac{USD12{,}500}{USD25} = 500 \text{ contracts}$$
 
 **Step 2: Apply the tail**
 
@@ -346,7 +346,7 @@ The 12-contract reduction (from 500 to 488) accounts for the fact that futures g
 
 > **Desk Reality:** A “tailed hedge” is a present-value adjustment: it aligns the timing of daily variation-margin cashflows with the cashflow date of the exposure you are hedging.
 > **Common break:** Ignoring tailing for long horizons can lead to systematic over-hedging/under-hedging (the gap grows with the financing horizon and rate level).
-> **What to check:** compute both untailed and tailed contract counts and sanity-check that $\text{tailed} < \text{untailed}$ when $r>0$.
+> **What to check:** compute both untailed and tailed contract counts and sanity-check that $\text{tailed} \lt \text{untailed}$ when $r\gt 0$.
 
 ### 24.4.4 When to Tail
 
@@ -365,12 +365,12 @@ For very long-dated hedges, the tail should be recalculated periodically as time
 
 ### 24.5.1 Contract Mechanics
 
-Fed Funds futures settle based on the arithmetic average of the daily effective federal funds rate over a calendar month. The contract is designed to hedge a \$5,000,000 30-day deposit. Key features:
+Fed Funds futures settle based on the arithmetic average of the daily effective federal funds rate over a calendar month. The contract is designed to hedge a USD5,000,000 30-day deposit. Key features:
 
-- **Notional:** \$5,000,000
+- **Notional:** USD5,000,000
 - **Settlement:** Cash, based on average rate over the contract month
-- **Quote:** \$100 - \bar{r}_{\text{FF}}$ where $\bar{r}_{\text{FF}}$ is the monthly average in percent
-- **DV01:** \$41.67 per bp (30-day month)
+- **Quote:** USD100 - \bar{r}_{\text{FF}}$ where $\bar{r}_{\text{FF}}$ is the monthly average in percent
+- **DV01:** USD41.67 per bp (30-day month)
 
 The averaging feature creates unique properties: the contract is sensitive to the *path* of rates during the month, not just the end-of-month level. This makes Fed Funds futures particularly useful for reading market expectations about Federal Reserve policy.
 
@@ -399,7 +399,7 @@ $$P(\text{hike}) = \frac{r_{\text{post}} - r_{\text{pre}}}{0.25}$$
 
 Here rates are in **percent** (so 25 bp = 0.25). If you work in decimals, replace 0.25 with 0.0025.
 
-**Check (probability bounds):** Under this two-outcome setup, the implied probability must satisfy $0\le p\le 1$. If you compute $p<0$ or $p>1$, at least one assumption is inconsistent with the futures-implied average (common culprits: day weights around the meeting date, effective-vs-target spreads, or needing more than two outcomes).
+**Check (probability bounds):** Under this two-outcome setup, the implied probability must satisfy $0\le p\le 1$. If you compute $p\lt 0$ or $p\gt 1$, at least one assumption is inconsistent with the futures-implied average (common culprits: day weights around the meeting date, effective-vs-target spreads, or needing more than two outcomes).
 
 ### 24.5.3 Worked Example: FOMC Meeting Extraction
 
@@ -454,7 +454,7 @@ $$P = \sum_i CF_i \times d(t_i)$$
 
 where $d(t_i)$ is the discount factor computed from ED futures rates minus the TED spread $s$:
 
-$$d(t_i) = \prod_{j < i} \frac{1}{1 + (r_j^{\text{fut}} - s) \times \tau_j}$$
+$$d(t_i) = \prod_{j \lt i} \frac{1}{1 + (r_j^{\text{fut}} - s) \times \tau_j}$$
 
 The TED spread is the value of $s$ that solves this equation for the observed market price.
 
@@ -478,7 +478,7 @@ Traders use TED spreads to:
 
 **Step-by-step**
 1. Price with a spread-subtracted simple rate:
-   $$\$97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.$$
+   $$USD97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.$$
 2. Solve for the implied spread-subtracted rate:
    $$r^{\text{fut}}-s = \frac{100/97.75 - 1}{0.5} \approx 4.60\%.$$
 3. Therefore,
@@ -509,7 +509,7 @@ Beyond 5 years, some venues extend the color scheme further (e.g., purple/orange
 A **pack** is a single trade that executes **four consecutive quarterly** STIR futures contracts (equal weight in each leg).
 
 **Pack DV01:** Since a pack contains 4 contracts:
-$$\text{Pack DV01} = 4 \times \$25 = \$100 \text{ per bp}$$
+$$\text{Pack DV01} = 4 \times USD25 = USD100 \text{ per bp}$$
 
 **Pack pricing (high level):** packs are typically quoted as the arithmetic average of the four constituent contract prices. Economically, a pack position has the same rate exposure as holding the four legs outright in equal size; the “pack” is just the execution wrapper.
 
@@ -524,7 +524,7 @@ A **bundle** extends the same idea to a longer strip: it trades an **integer mul
 | 5-year bundle | Whites through Golds | 20 | 0-5 years |
 
 **Bundle DV01:**
-$$\text{5-year bundle DV01} = 20 \times \$25 = \$500 \text{ per bp}$$
+$$\text{5-year bundle DV01} = 20 \times USD25 = USD500 \text{ per bp}$$
 
 **Weighted average maturity:** Because bundles are equally weighted by contract, the duration contribution is approximately the midpoint of the coverage period.
 
@@ -545,14 +545,14 @@ SOFR (Secured Overnight Financing Rate) futures are widely used in USD STIR mark
 **3-Month SOFR Futures:**
 - **Reference rate:** Daily compounded SOFR over the reference quarter
 - **Settlement:** At the *end* of the reference period (unlike ED, which settled at the start)
-- **Notional:** \$1,000,000
-- **DV01:** \$25 per bp per contract
-- **Quote convention:** \$100 - R^{\text{SOFR}}$
+- **Notional:** USD1,000,000
+- **DV01:** USD25 per bp per contract
+- **Quote convention:** USD100 - R^{\text{SOFR}}$
 
 **1-Month SOFR Futures:**
 - **Reference rate:** Arithmetic average of daily SOFR over the contract month
-- **Notional:** \$5,000,000 (like Fed Funds)
-- **DV01:** \$41.67 per bp (30-day month)
+- **Notional:** USD5,000,000 (like Fed Funds)
+- **DV01:** USD41.67 per bp (30-day month)
 
 ### 24.8.2 SOFR vs. Eurodollar: Key Differences
 
@@ -692,22 +692,22 @@ For STIR futures, the natural bump object is the contract’s **implied futures 
 
 **Contract DV01 (units).** The standardized tick value makes hedge ratios straightforward. For a contract designed to hedge a money-market deposit with notional $N$ and accrual fraction $\tau$ (ACT/360),
 
-$$\boxed{DV01_{\text{contract}} \approx N\cdot \tau \cdot 10^{-4}\;\;(\$ \text{ per 1bp, for a long futures position})}$$
+$$\boxed{DV01_{\text{contract}} \approx N\cdot \tau \cdot 10^{-4}\;\;(USD \text{ per 1bp, for a long futures position})}$$
 
 In USD STIR contracts this yields the familiar constants:
 
-- Eurodollar/3M SOFR futures: \$25 per bp per contract
-- Fed Funds/1M SOFR futures: \$41.67 per bp per contract (30-day month)
+- Eurodollar/3M SOFR futures: USD25 per bp per contract
+- Fed Funds/1M SOFR futures: USD41.67 per bp per contract (30-day month)
 
-**Hedge ratio.** For an exposure with DV01 of $\text{DV01}_{\text{target}}$ (in \$ per bp, computed under the same bump object definition), the hedge ratio is:
+**Hedge ratio.** For an exposure with DV01 of $\text{DV01}_{\text{target}}$ (in USD per bp, computed under the same bump object definition), the hedge ratio is:
 
-$$\boxed{\text{\# contracts} = -\frac{\text{DV01}_{\text{target}}}{\text{DV01}_{\text{fut}}}}$$
+$$n_{\text{contracts}} = -\frac{\text{DV01}_{\text{target}}}{\text{DV01}_{\text{fut}}}$$
 
 The negative sign says you take the opposite position: a long exposure (positive DV01) is hedged by **selling** futures so the combined DV01 is near zero.
 
-> **Pitfall — “What is being bumped?”** A STIR futures contract’s DV01 is “\$ per 1 bp of the contract’s implied rate.” Your exposure DV01 might instead be computed from a **curve** bump (zeros/par quotes) or from a different forward bucket.
+> **Pitfall — “What is being bumped?”** A STIR futures contract’s DV01 is “USD per 1 bp of the contract’s implied rate.” Your exposure DV01 might instead be computed from a **curve** bump (zeros/par quotes) or from a different forward bucket.
 > **Why it matters:** the hedge ratio can be wrong in size or even sign if the bump objects are not the same.
-> **Quick check:** re-compute $\text{DV01}_{\text{target}}$ as $PV(\text{forward bucket }[T_1,T_2]\text{ down }1\text{bp})-PV(\text{base})$ and verify that dividing by \$25 (or \$41.67) gives a sensible contract count.
+> **Quick check:** re-compute $\text{DV01}_{\text{target}}$ as $PV(\text{forward bucket }[T_1,T_2]\text{ down }1\text{bp})-PV(\text{base})$ and verify that dividing by USD25 (or USD41.67) gives a sensible contract count.
 
 ### 24.10.2 Bucket Hedging with STIR Futures
 
@@ -725,13 +725,13 @@ Practical caveat: liquidity usually declines as you move out the strip, so hedge
 
 ### 24.10.3 Worked Example: Hedging a Forward Rate Exposure
 
-**Problem:** You will pay a floating rate on \$500 million notional over the period [4.00, 4.25] years. Compute the hedge using STIR futures.
+**Problem:** You will pay a floating rate on USD500 million notional over the period [4.00, 4.25] years. Compute the hedge using STIR futures.
 
 **Step 1: Compute exposure DV01**
 
 The exposure is to the forward rate $L(0; 4.00, 4.25)$. If this forward rate increases by 1 bp, the floating payment increases by:
 
-$$\Delta \text{Payment} = N \times \tau \times 0.0001 = 500{,}000{,}000 \times 0.25 \times 0.0001 = \$12{,}500$$
+$$\Delta \text{Payment} = N \times \tau \times 0.0001 = 500{,}000{,}000 \times 0.25 \times 0.0001 = USD12{,}500$$
 
 But this payment occurs at $T = 4.25$, so we must discount it:
 
@@ -739,7 +739,7 @@ $$\text{DV01} = N \times \tau \times P(0, 4.25) \times 0.0001$$
 
 With $P(0, 4.25) = 0.8100$:
 
-$$\text{DV01} = 500{,}000{,}000 \times 0.25 \times 0.8100 \times 0.0001 = \$10{,}125$$
+$$\text{DV01} = 500{,}000{,}000 \times 0.25 \times 0.8100 \times 0.0001 = USD10{,}125$$
 
 **Step 2: Compute untailed hedge ratio**
 
@@ -755,7 +755,7 @@ $$\text{Tailed contracts} = \frac{-405}{1.21} \approx -335 \text{ contracts}$$
 
 The tailed hedge is significantly smaller, reflecting the long horizon and material reinvestment effects.
 
-> **Practical note:** The discount factor $P(0, 4.25)$ depends on whether you use naive or adjusted forwards. Using the naive forward would give $P = 0.8099$ and DV01 = \$10,124—virtually identical here, but the difference compounds for longer-dated exposures.
+> **Practical note:** The discount factor $P(0, 4.25)$ depends on whether you use naive or adjusted forwards. Using the naive forward would give $P = 0.8099$ and DV01 = USD10,124—virtually identical here, but the difference compounds for longer-dated exposures.
 
 ---
 
@@ -833,11 +833,11 @@ When building a curve from STIR futures:
 
 1. STIR futures are quoted as $Q=100-R$ and are marked to market daily; daily settlement is the root cause of the futures-vs-forward wedge.
 2. Forward rates used for curve building come from discount factors: $L(t;T_1,T_2)=\frac{P(t,T_1)-P(t,T_2)}{\tau\,P(t,T_2)}$ with $\tau$ defined by day count.
-3. Define the convexity adjustment by $\text{forward}=\text{futures}-c$; typically $c>0$, so forward rates are lower than futures-implied rates.
+3. Define the convexity adjustment by $\text{forward}=\text{futures}-c$; typically $c\gt 0$, so forward rates are lower than futures-implied rates.
 4. A usable approximation for the wedge is $c \approx \frac{\sigma^2 t^2}{2} + \frac{\sigma^2 \beta t}{2}$ (with $\beta\approx 0.25$ for a 3M deposit).
 5. Order-of-magnitude: with $\sigma\sim 100$ bp/year, $c$ is sub-1bp at short expiries but can be $\sim 10$–15 bp around 5y and $\sim 50$ bp around 10y.
 6. Curve workflow: pre-process futures quotes into forward/FRA-equivalent rates (convexity-adjusted) before bootstrapping discount factors.
-7. Risk workflow: DV01 must specify the bump object, bump size (1 bp $=10^{-4}$), units, and sign; for USD 3M contracts, the per-contract DV01 is about \$25/bp.
+7. Risk workflow: DV01 must specify the bump object, bump size (1 bp $=10^{-4}$), units, and sign; for USD 3M contracts, the per-contract DV01 is about USD25/bp.
 8. Fed Funds futures prices embed a month-weighted average of pre- and post-meeting rates; a one-meeting implied rate (and simple hike/cut probability) comes from the day-weighting identity.
 
 ---
@@ -857,8 +857,8 @@ When building a curve from STIR futures:
 | TED spread | Bond spread relative to ED futures | Credit/rates decomposition |
 | Pack | 4 consecutive quarterly futures | Convenient for curve segment trades |
 | Bundle | Multiple packs from front | Standardized strip positions |
-| ED/SOFR futures DV01 | \$25 per bp per contract | Standardized for easy hedging |
-| FF futures DV01 | \$41.67 per bp per contract (30-day) | Different notional, different DV01 |
+| ED/SOFR futures DV01 | USD25 per bp per contract | Standardized for easy hedging |
+| FF futures DV01 | USD41.67 per bp per contract (30-day) | Different notional, different DV01 |
 
 ---
 
@@ -890,12 +890,12 @@ When building a curve from STIR futures:
 | 1 | What does "STIR" stand for? | Short-Term Interest Rate (futures) |
 | 2 | What is the Eurodollar futures quote convention? | $Q = 100 - R^{\text{fut}}$ where $R^{\text{fut}}$ is in percent |
 | 3 | If ED futures quote is 94.50, what is the implied rate? | 5.50% (since $100 - 94.50 = 5.50$) |
-| 4 | What is the DV01 of one Eurodollar futures contract? | \$25 per basis point |
+| 4 | What is the DV01 of one Eurodollar futures contract? | USD25 per basis point |
 | 5 | How is the forward rate derived from discount factors? | $L = (P(T_1) - P(T_2)) / (\tau \cdot P(T_2))$ |
 | 6 | When are futures and forward rates equal? | When interest rates are deterministic (constant) |
 | 7 | How do we define the convexity adjustment $c$ in this chapter? | Forward rate = Futures rate $- c$ |
 | 8 | Is the convexity adjustment typically positive or negative? | Positive |
-| 9 | What does $c > 0$ imply about futures vs forward rates? | Futures rate exceeds forward rate |
+| 9 | What does $c \gt 0$ imply about futures vs forward rates? | Futures rate exceeds forward rate |
 | 10 | What is the key mechanism causing futures-forward differences? | Daily mark-to-market settlement |
 | 11 | Why does daily settlement create a difference? | Gains reinvested at prevailing rates; losses financed at prevailing rates; correlation creates asymmetry |
 | 12 | How does the adjustment scale with volatility? | Quadratically ($c \propto \sigma^2$) |
@@ -905,7 +905,7 @@ When building a curve from STIR futures:
 | 16 | What is the adjustment for a 5-year contract at 100 bp vol? | Approximately 13 bp |
 | 17 | What is the adjustment for a 10-year contract at 100 bp vol? | Approximately 50 bp |
 | 18 | What is the sanity check when $\sigma = 0$? | Adjustment should equal zero |
-| 19 | What is the Fed Funds futures DV01 (30-day month)? | \$41.67 per basis point |
+| 19 | What is the Fed Funds futures DV01 (30-day month)? | USD41.67 per basis point |
 | 20 | How do you compute the hedge ratio? | # contracts = $-\text{DV01}_{\text{target}} / \text{DV01}_{\text{fut}}$ |
 | 21 | What is the tailed hedge formula? | $N_{\text{fut}} = N_{\text{fwd}} / (1 + r \cdot d/360)$ |
 | 22 | Why do we tail hedges? | To account for reinvestment/financing of daily settlement cash flows |
@@ -930,7 +930,7 @@ When building a curve from STIR futures:
 
 **4.** With the same parameters as Q3, what happens to the adjustment if volatility doubles to $\sigma = 0.02$?
 
-**5.** Your exposure has DV01 = $-\$250,000$/bp. How many Eurodollar futures hedge this? Should you buy or sell?
+**5.** Your exposure has DV01 = $-USD250,000$/bp. How many Eurodollar futures hedge this? Should you buy or sell?
 
 **6.** In a deterministic-rate world, what should the convexity adjustment be? Explain why.
 
@@ -944,7 +944,7 @@ When building a curve from STIR futures:
 
 **11.** For Fed Funds futures, compute the DV01 for a 31-day month.
 
-**12.** You need to hedge a \$200 million 9-month forward exposure. The financing rate is 4%. Compute both the untailed and tailed hedge in ED futures contracts.
+**12.** You need to hedge a USD200 million 9-month forward exposure. The financing rate is 4%. Compute both the untailed and tailed hedge in ED futures contracts.
 
 **13.** The March Fed Funds futures contract trades at 95.25. An FOMC meeting occurs on March 19 (day 19 of 31). Current target is 4.50%. What is the implied post-meeting rate?
 
@@ -964,7 +964,7 @@ When building a curve from STIR futures:
 
 **4.** $\sigma^2$ quadruples when $\sigma$ doubles, so adjustment quadruples: $4 \times 4.88 = 19.5$ bp.
 
-**5.** $\#$ contracts $= -(-250{,}000)/25 = +10{,}000$ contracts. Buy 10,000 contracts (negative DV01 means exposure is short rates, so hedge by going long futures).
+**5.** Number of contracts: $-(-250{,}000)/25 = +10{,}000$. Buy 10,000 contracts (negative DV01 means exposure is short rates, so hedge by going long futures).
 
 **6.** Zero. With no volatility, there are no mark-to-market cash flows, so the settlement timing has no value and futures equal forwards.
 
@@ -978,7 +978,7 @@ When building a curve from STIR futures:
 - Compare the futures-implied forwards (with and without convexity adjustment) against nearby FRA/swap quotes; a persistent “too-high forwards” bias is a red flag.
 - Recompute long-dated PVs/forwards using the same strip with and without convexity adjustment and check whether mispricings grow with maturity roughly like $t^2$ (as the simple approximation predicts).
 
-**11.** For a 31-day month: $DV01 = 5{,}000{,}000\times 0.0001\times 31/360 \approx \$43.06$ per bp per contract.
+**11.** For a 31-day month: $DV01 = 5{,}000{,}000\times 0.0001\times 31/360 \approx USD43.06$ per bp per contract.
 
 ---
 
