@@ -52,7 +52,7 @@ Covered interest parity (CIP) is the no-arbitrage relationship that links spot F
 
 In a simple continuous-compounding setting, the currency forward identity can be written:
 
-$$\boxed{F_0 = S_0 \, e^{(r_d - r_f)T}}$$
+$$\boxed{F_0 = S_0 \\, e^{(r_d - r_f)T}}$$
 
 where $S_0$ is the spot exchange rate (domestic currency per unit of foreign), $r_d$ is the domestic risk-free rate, $r_f$ is the foreign risk-free rate, and $T$ is the time to maturity.
 
@@ -136,8 +136,8 @@ $$\boxed{P_f(0,T) = \frac{F(0,T)}{X(0)} P_d(0,T)}$$
 This is the **FX-implied foreign discount factor** at maturity $T$: given an anchor domestic curve $P_d$ and observed spot/forward FX quotes, $P_f$ is pinned down.
 
 > **Pitfall — FX quote direction:** CIP is algebraically simple, but easy to misapply when spot/forward are quoted in the inverse direction.
-> **Why it matters:** Inverting $X$ or $F$ incorrectly can create $P_f(0,T)>1$ or non-monotone discount factors, and “arbitrage” that is just a sign error.
-> **Quick check:** In domestic-per-foreign terms, if domestic rates are higher than foreign rates, you should typically see $F(0,T) > X(0)$.
+> **Why it matters:** Inverting $X$ or $F$ incorrectly can create $P_f(0,T)\gt 1$ or non-monotone discount factors, and “arbitrage” that is just a sign error.
+> **Quick check:** In domestic-per-foreign terms, if domestic rates are higher than foreign rates, you should typically see $F(0,T) \gt X(0)$.
 
 ### 21.2.2 What Happens When Curves Are Built Independently
 
@@ -176,7 +176,7 @@ Given a strip of FX forwards and a domestic discount curve, we can construct the
 
 **Outputs (What You Produce)**
 - FX-implied EUR discount factors $P_f(0,T)$ and EUR zero rates $r_f(T)$.
-- FX delta of a par FX forward (per €1 notional): $\Delta_{FX}=P_f(0,T)$ USD per (USD/EUR).
+- FX delta of a par FX forward (per EUR1 notional): $\Delta_{FX}=P_f(0,T)$ USD per (USD/EUR).
 
 **Step-by-step**
 1. FX-implied foreign discount factors:
@@ -191,19 +191,19 @@ Given a strip of FX forwards and a domestic discount curve, we can construct the
 | 1.0 | 1.020201 | 0.970446 | 0.990050 | 1.00% |
 | 2.0 | 1.040811 | 0.941765 | 0.980199 | 1.00% |
 
-**Cashflows (per €1 notional, 1Y forward)**
+**Cashflows (per EUR1 notional, 1Y forward)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2027-02-03 | +€1 | receive foreign notional |
+| 2027-02-03 | +EUR1 | receive foreign notional |
 | 2027-02-03 | $-F(0,1)$ USD | pay domestic notional at the contracted forward |
 
 **P&L / Risk Interpretation**
-- A par FX forward has $PV=0$ at inception, but **FX delta is not zero**: $\Delta_{FX}=P_f(0,T)$ per €1.
+- A par FX forward has $PV=0$ at inception, but **FX delta is not zero**: $\Delta_{FX}=P_f(0,T)$ per EUR1.
 - The “triangle check” is a quick build sanity test: domestic curve + FX forwards must imply a sensible foreign curve.
 
 **Sanity Checks**
 - Units: $F/X$ is dimensionless, so $P_f=(F/X)P_d$ is unitless. ✓
-- Monotonicity: $P_f(0,0.5)>P_f(0,1)>P_f(0,2)$. ✓
+- Monotonicity: $P_f(0,0.5)\gt P_f(0,1)\gt P_f(0,2)$. ✓
 - Reproduction: recompute $F = X P_f/P_d$ from the implied curve and recover the input forwards. ✓
 
 ### 21.2.4 The Triangular Arbitrage Logic
@@ -245,7 +245,7 @@ In a frictionless world, the FX-implied foreign curve would exactly match the cu
 
 Andersen and Piterbarg introduce a *pseudo-discount curve* $P^{(L)}$ for LIBOR projections, separate from the true discount curve $P$. The difference is captured by a yield spread:
 
-$$\boxed{P^{(L)}(t) = P(t) \, e^{-s(t) \cdot t}}$$
+$$\boxed{P^{(L)}(t) = P(t) \\, e^{-s(t) \cdot t}}$$
 
 Solving for the spread:
 
@@ -307,20 +307,20 @@ Briefly speaking, CRX basis swaps exchange floating LIBOR payments in one curren
 > ```
 > INCEPTION (t=0):
 > ─────────────────────────────────────────────────────────
->   Party A ──────────────> €100mm ──────────────> Party B
+>   Party A ──────────────> EUR100mm ──────────────> Party B
 >   Party A <──────────────$110mm <──────────────Party B
 >                          (at spot 1.10)
 >
 > QUARTERLY PAYMENTS (t=0.25, 0.50, 0.75, ... 4.75):
 > ─────────────────────────────────────────────────────────
 >   Party A ──────> SOFR × τ × $110mm ──────> Party B
->   Party A <──── (EURIBOR + e) × τ × €100mm <──── Party B
+>   Party A <──── (EURIBOR + e) × τ × EUR100mm <──── Party B
 >                  (e = basis spread, could be -30bp)
 >
 > MATURITY (t=5):
 > ─────────────────────────────────────────────────────────
 >   Party A ──────────────> $110mm ──────────────> Party B
->   Party A <──────────────€100mm <──────────────Party B
+>   Party A <──────────────EUR100mm <──────────────Party B
 >                          (at ORIGINAL spot rate)
 >   Plus final coupon exchange
 > ```
@@ -343,17 +343,17 @@ Exact MTM/resettable mechanics vary by currency pair and documentation (reset fr
 
 ### 21.4.2 Valuation of a Cross-Currency Basis Swap
 
-For a USD/JPY basis swap where the USD leg is floating flat in exchange for JPY floating plus spread $e_¥$, a common valuation form (in a simplified setting) is:
+For a USD/JPY basis swap where the USD leg is floating flat in exchange for JPY floating plus spread $e_JPY$, a common valuation form (in a simplified setting) is:
 
-$$V_{\text{basisswap},\$}(0) = 1 - X(0) \times \left(\sum_{i=0}^{n-1}\left(\frac{P_¥^{(L)}(0,t_i)}{P_¥^{(L)}(0,t_{i+1})} - 1 + e_¥ \tau_i\right) P_¥(0,t_{i+1}) + P_¥(0,t_n)\right)$$
+$$V_{\text{basisswap},USD}(0) = 1 - X(0) \times \left(\sum_{i=0}^{n-1}\left(\frac{P_JPY^{(L)}(0,t_i)}{P_JPY^{(L)}(0,t_{i+1})} - 1 + e_JPY \tau_i\right) P_JPY(0,t_{i+1}) + P_JPY(0,t_n)\right)$$
 
 where:
-- The USD floating leg plus notional repayment collapses to par (\$1) under the simplifying assumption that the USD index curve coincides with the USD discount curve
-- The JPY leg is valued using forward JPY floating rates from $P_¥^{(L)}$ and discounted at $P_¥$
+- The USD floating leg plus notional repayment collapses to par (USD1) under the simplifying assumption that the USD index curve coincides with the USD discount curve
+- The JPY leg is valued using forward JPY floating rates from $P_JPY^{(L)}$ and discounted at $P_JPY$
 
-**Expand (what this expression is doing):** The bracketed term is the PV (in JPY, per unit JPY notional) of “foreign floating coupons + foreign principal,” where the one-period floating coupon is generated by the forward ratio \(P_¥^{(L)}(0,t_i)/P_¥^{(L)}(0,t_{i+1})-1\) and then discounted with \(P_¥(0,t_{i+1})\). The basis spread \(e_¥\) enters as an additive coupon shift \(e_¥\tau_i\) and therefore affects PV approximately linearly. Multiplying by spot \(X(0)\) converts the foreign-leg PV into USD; subtracting from 1 reflects “USD leg at par minus converted foreign-leg PV” under the stated simplifying assumptions.
+**Expand (what this expression is doing):** The bracketed term is the PV (in JPY, per unit JPY notional) of “foreign floating coupons + foreign principal,” where the one-period floating coupon is generated by the forward ratio \(P_JPY^{(L)}(0,t_i)/P_JPY^{(L)}(0,t_{i+1})-1\) and then discounted with \(P_JPY(0,t_{i+1})\). The basis spread \(e_JPY\) enters as an additive coupon shift \(e_JPY\tau_i\) and therefore affects PV approximately linearly. Multiplying by spot \(X(0)\) converts the foreign-leg PV into USD; subtracting from 1 reflects “USD leg at par minus converted foreign-leg PV” under the stated simplifying assumptions.
 
-**Checks (units + limits):** The forward ratio and \(e_¥\tau_i\) are dimensionless, \(P_¥\) is unitless, and the bracket is unitless; multiplying by \(X(0)\) (USD per JPY) produces USD per unit JPY notional. If \(e_¥=0\) and the curve set is internally consistent, the par swap should price near 0 (after consistent notional scaling and conventions). If you bump \(e_¥\) by +1 bp on the leg you receive, PV should move by roughly “foreign spread annuity × spot,” which is a quick sign/scale sanity check.
+**Checks (units + limits):** The forward ratio and \(e_JPY\tau_i\) are dimensionless, \(P_JPY\) is unitless, and the bracket is unitless; multiplying by \(X(0)\) (USD per JPY) produces USD per unit JPY notional. If \(e_JPY=0\) and the curve set is internally consistent, the par swap should price near 0 (after consistent notional scaling and conventions). If you bump \(e_JPY\) by +1 bp on the leg you receive, PV should move by roughly “foreign spread annuity × spot,” which is a quick sign/scale sanity check.
 
 Market quotes a term structure of par basis spreads $e^{par}(T)$ across maturities (often out to 30Y+).
 
@@ -379,9 +379,9 @@ If your curve set is internally consistent, this chain of swaps cannot create or
 >
 > **Step 1: Compute forward JPY LIBOR rates**
 >
-> $L_0 = \frac{1}{0.5}\left(\frac{1}{0.9945} - 1\right) \approx 1.106\%$
+> $L_0 = \frac{1}{0.5}\left(\frac{1}{0.9945} - 1\right) \approx 1.106\\%$
 >
-> $L_1 = \frac{1}{0.5}\left(\frac{0.9945}{0.9885} - 1\right) \approx 1.214\%$
+> $L_1 = \frac{1}{0.5}\left(\frac{0.9945}{0.9885} - 1\right) \approx 1.214\\%$
 >
 > **Step 2: Write par condition**
 >
@@ -422,7 +422,7 @@ But we have only three independent market sources:
 
 In fact, we have too many degrees of freedom: four curves, but only three separate markets to calibrate to. One way of handling this issue is to impose additional assumptions about the relationship between the discount curve $P$ and the pseudo-discount / projection curve $P^{(L)}$ in one chosen currency.
 
-**Assumption 6.5.1 (historical):** In USD, the Libor pseudo-discount curve coincides with the real discount curve, i.e. $P_\$^{(L)}(t,T)=P_\$(t,T)$ for all $t$ and $T,\\,T \\ge t$.
+**Assumption 6.5.1 (historical):** In USD, the Libor pseudo-discount curve coincides with the real discount curve, i.e. $P_USD^{(L)}(t,T)=P_USD(t,T)$ for all $t$ and $T,\\,T \\ge t$.
 
 Post-2007 collateralized discounting breaks this single-curve anchor; it is now generally accepted that the Libor rate is no longer a good proxy for a discounting rate on collateralized trades, so discounting and projection curves must be separated (see Chapter 20).
 
@@ -436,7 +436,7 @@ Using standard bootstrapping from:
 - Funding instruments (e.g., OIS/cash instruments for discounting)
 - Index-referencing instruments (e.g., FRAs/swaps for the chosen projection index)
 
-This gives the USD discount curve $P_\$(t)$ and the USD projection curve $P_\$^{(L)}(t)$.
+This gives the USD discount curve $P_USD(t)$ and the USD projection curve $P_USD^{(L)}(t)$.
 
 **Step 2: Build foreign index curve $P_f^{(L)}(t)$**
 
@@ -452,7 +452,7 @@ where $\varepsilon_i$ is a piecewise constant spread intensity.
 
 Equivalently, in forward-rate form you can write the foreign discount forwards as the foreign projection forwards plus a spread function:
 
-$$f_¥(t) = f_¥^{(L)}(t) + \varepsilon(t), \quad \varepsilon(t) = \sum_{i=0}^{N-1} \varepsilon_i \mathbf{1}_{\{t \in [T_i, T_{i+1})\}}$$
+$$f_JPY(t) = f_JPY^{(L)}(t) + \varepsilon(t), \quad \varepsilon(t) = \sum_{i=0}^{N-1} \varepsilon_i \mathbf{1}_{\\{t \in [T_i, T_{i+1})\\}}$$
 
 The constants $\varepsilon_0, \ldots, \varepsilon_{N-1}$ are calibrated by fitting to par-valued CRX basis swaps maturing at $T_1, \ldots, T_N$.
 
@@ -471,7 +471,7 @@ Iteration starts from the “single-curve” approximation ($P_f^{(L)}$ treated 
 > **Given:**
 >
 > - USD OIS curve (discount = index by bedrock assumption):
->   - $P_\$(0,1) = 0.9600$, $P_\$(0,2) = 0.9200$
+>   - $P_USD(0,1) = 0.9600$, $P_USD(0,2) = 0.9200$
 > - Spot EUR/USD: $X(0) = 1.10$ USD/EUR
 > - EUR swap rates: 1Y @ 3.00%, 2Y @ 3.20% (annual, 30/360)
 > - EUR/USD basis swaps: 1Y @ -20bp, 2Y @ -30bp (on EUR leg)
@@ -496,7 +496,7 @@ Iteration starts from the “single-curve” approximation ($P_f^{(L)}$ treated 
 > For 1Y basis swap at -20bp ($e = -0.0020$):
 >
 > Par condition (simplified): FX-implied constraint must hold
-> $$P_{EUR}(0,1) = \frac{F(0,1)}{X(0)} P_\$(0,1)$$
+> $$P_{EUR}(0,1) = \frac{F(0,1)}{X(0)} P_USD(0,1)$$
 >
 > With basis adjustment: the effective forward embeds the basis spread.
 >
@@ -521,7 +521,7 @@ Iteration starts from the “single-curve” approximation ($P_f^{(L)}$ treated 
 >
 > **Step 5: Check convergence**
 >
-> $|V^{(1)} - V| = |(0.9998, 0.9996) - (1.00, 1.00)| < 0.001$
+> $|V^{(1)} - V| = |(0.9998, 0.9996) - (1.00, 1.00)| \lt 0.001$
 >
 > Tolerance met? If not, update: $V^{(L)}(1) = V^{(L)}(0) - (V^{(1)} - V)$
 >
@@ -584,10 +584,10 @@ This linkage arises because the posted collateral earns the overnight rate. The 
 
 ### 21.6.2 What If Collateral Currency Differs from Trade Currency?
 
-**Expand (two equivalent ways to PV):** If the trade pays USD cashflows but the CSA collateral currency is EUR, you can value a USD cashflow \(C_\$(T)\) either by:
-1. Converting the future USD cashflow into EUR at the maturity-\(T\) FX forward \(F(0,T)\) (USD per EUR): \(C_\$(T)/F(0,T)\) EUR at \(T\); discount on the EUR curve; then convert the PV back to USD at spot \(X(0)\); or
+**Expand (two equivalent ways to PV):** If the trade pays USD cashflows but the CSA collateral currency is EUR, you can value a USD cashflow \(C_USD(T)\) either by:
+1. Converting the future USD cashflow into EUR at the maturity-\(T\) FX forward \(F(0,T)\) (USD per EUR): \(C_USD(T)/F(0,T)\) EUR at \(T\); discount on the EUR curve; then convert the PV back to USD at spot \(X(0)\); or
 2. Using an implied USD discount factor consistent with EUR collateral:
-   $$P_{\$|\text{EUR coll}}(0,T)=\frac{X(0)}{F(0,T)}\,P_{€}(0,T).$$
+   $$P_{USD|\text{EUR coll}}(0,T)=\frac{X(0)}{F(0,T)}\\,P_{EUR}(0,T).$$
 Both views are the same identity rearranged; the important discipline is to use an FX forward curve that is consistent with the collateral regime (i.e., includes the relevant xccy basis inputs).
 
 > **Example 21.6: Same Swap, Different Collateral, Different Value**
@@ -604,7 +604,7 @@ Both views are the same identity rearranged; the important discipline is to use 
 >
 > Approximate PV: $-\sum_{t=1}^{5} (0.04 - 0.042) \times DF_{USD}(t) \times 100mm$
 >
-> With average DF ≈ 0.90: PV ≈ $-0.002 \times 0.90 \times 5 \times 100mm = -\$900,000$
+> With average DF ≈ 0.90: PV ≈ $-0.002 \times 0.90 \times 5 \times 100mm = -USD900,000$
 >
 > **Case B: EUR collateral**
 >
@@ -618,7 +618,7 @@ Both views are the same identity rearranged; the important discipline is to use 
 > With EUR collateral, the USD swap effectively discounts at a rate ~30bp lower than pure USD OIS (because EUR collateral costs less to fund).
 >
 > This changes the PV by approximately:
-> $$\Delta PV \approx 0.0030 \times \text{Duration} \times \text{Notional} = 0.0030 \times 4.5 \times 100mm = \$1.35mm$$
+> $$\Delta PV \approx 0.0030 \times \text{Duration} \times \text{Notional} = 0.0030 \times 4.5 \times 100mm = USD1.35mm$$
 >
 > **The swap is worth more under EUR collateral** when EUR funding is cheaper.
 >
@@ -701,11 +701,11 @@ This risk is distinct from both FX delta and rates DV01. A portfolio can be FX-h
 >
 > $\frac{\partial V}{\partial e} = -N_d A$
 >
-> For $N_d = \$1{,}000{,}000$ and $A = 0.9925$:
+> For $N_d = USD1{,}000{,}000$ and $A = 0.9925$:
 >
 > A +5bp basis widening ($\Delta e = +0.0005$):
 >
-> $\Delta V \approx -1{,}000{,}000 \times 0.9925 \times 0.0005 = -\$496$
+> $\Delta V \approx -1{,}000{,}000 \times 0.9925 \times 0.0005 = -USD496$
 >
 > This is basis risk—separate from FX and rate moves.
 
@@ -735,13 +735,13 @@ where:
 
 > **Example 21.8: Daily P&L Attribution for a 5Y EUR/USD Xccy Swap**
 >
-> **Position:** Long €100mm notional, receive EUR EURIBOR + 0bp, pay USD SOFR
+> **Position:** Long EUR100mm notional, receive EUR EURIBOR + 0bp, pay USD SOFR
 >
 > **Risk exposures:**
-> - FX Delta: $-€4.5mm$ (short EUR via the principal exchange)
-> - USD DV01: $+\$45,000$ per bp (benefit from lower USD rates)
-> - EUR DV01: $+€40,000$ per bp (benefit from lower EUR rates)
-> - Basis01: $+\$4,500$ per bp (benefit from basis tightening)
+> - FX Delta: $-EUR4.5mm$ (short EUR via the principal exchange)
+> - USD DV01: $+USD45,000$ per bp (benefit from lower USD rates)
+> - EUR DV01: $+EUR40,000$ per bp (benefit from lower EUR rates)
+> - Basis01: $+USD4,500$ per bp (benefit from basis tightening)
 >
 > **Day's market moves:**
 > - EUR/USD: 1.1000 → 1.1050 (ΔS = +0.0050, +0.45%)
@@ -752,11 +752,11 @@ where:
 > **P&L attribution:**
 > | Component | Calculation | P&L |
 > |-----------|-------------|-----|
-> | FX | $-€4.5mm \times 0.0050$ | $-\$22,500$ |
-> | USD Rates | $-(+\$45,000) \times (+5)$ | $-\$225,000$ |
-> | EUR Rates | $-(+€40,000) \times (-5) \times 1.1025$ | $+\$220,500$ |
-> | Basis | $+\$4,500 \times 5$ | $+\$22,500$ |
-> | **Total Explained** | | $-\$4,500$ |
+> | FX | $-EUR4.5mm \times 0.0050$ | $-USD22,500$ |
+> | USD Rates | $-(+USD45,000) \times (+5)$ | $-USD225,000$ |
+> | EUR Rates | $-(+EUR40,000) \times (-5) \times 1.1025$ | $+USD220,500$ |
+> | Basis | $+USD4,500 \times 5$ | $+USD22,500$ |
+> | **Total Explained** | | $-USD4,500$ |
 >
 > **Interpretation:** The position was approximately rate-neutral (USD and EUR P&L offset), lost slightly on FX, but gained on basis tightening. Net small loss.
 
@@ -780,12 +780,12 @@ where:
 
 - Domestic = USD, Foreign = EUR
 - Spot $S(0) = 1.1000$ USD/EUR
-- $r_d = 3.00\%$, $r_f = 1.00\%$ (continuous)
+- $r_d = 3.00\\%$, $r_f = 1.00\\%$ (continuous)
 - $T = 0.5$ years
 
 **Solution:**
 
-$$F(0,T) = S(0) \, e^{(r_d - r_f)T} = 1.1000 \times e^{0.02 \times 0.5} = 1.1000 \times 1.010050 = 1.111055 \text{ USD/EUR}$$
+$$F(0,T) = S(0) \\, e^{(r_d - r_f)T} = 1.1000 \times e^{0.02 \times 0.5} = 1.1000 \times 1.010050 = 1.111055 \text{ USD/EUR}$$
 
 **Forward points:** $F - S = 1.111055 - 1.1000 = 0.011055$ USD/EUR
 
@@ -820,8 +820,8 @@ $$P_f^{FX}(0,2) = \frac{F_{mkt}}{S(0)} P_d(0,2) = \frac{1.1500}{1.1000} \times 0
 $$\Delta P = P_f^{FX} - P_f^{OIS} = 0.984572 - 0.980199 = 0.004373$$
 
 **In yield terms:**
-- FX-implied EUR rate: $-\frac{1}{2}\ln(0.984572) = 0.777\%$
-- OIS EUR rate: $-\frac{1}{2}\ln(0.980199) = 1.000\%$
+- FX-implied EUR rate: $-\frac{1}{2}\ln(0.984572) = 0.777\\%$
+- OIS EUR rate: $-\frac{1}{2}\ln(0.980199) = 1.000\\%$
 
 **Mismatch:** ~22 bp in 2Y rates.
 
@@ -837,24 +837,24 @@ A consistent multi-curve framework would calibrate to *both* the OIS market and 
 
 - Domestic = USD, Foreign = JPY
 - Spot $X(0) = 0.0091$ USD/JPY
-- JPY ZCB: ¥100,000,000 payoff at $T = 1$
+- JPY ZCB: JPY100,000,000 payoff at $T = 1$
 - Discount factors: $P_f(0,1) = 0.9900$, $P_d(0,1) = 0.970446$
 
 **Unhedged USD PV:**
-$$PV_{unhedged} = X(0) \times N_f \times P_f(0,1) = 0.0091 \times 100{,}000{,}000 \times 0.9900 = \$900{,}900$$
+$$PV_{unhedged} = X(0) \times N_f \times P_f(0,1) = 0.0091 \times 100{,}000{,}000 \times 0.9900 = USD900{,}900$$
 
 **CIP-implied forward:**
 $$K^* = X(0) \times \frac{P_f}{P_d} = 0.0091 \times \frac{0.9900}{0.970446} = 0.009284 \text{ USD/JPY}$$
 
 **Hedged PV (sell JPY forward at $K^*$):**
-$$PV_{hedged} = K^* \times N_f \times P_d(0,1) = 0.009284 \times 100{,}000{,}000 \times 0.970446 = \$900{,}900$$
+$$PV_{hedged} = K^* \times N_f \times P_d(0,1) = 0.009284 \times 100{,}000{,}000 \times 0.970446 = USD900{,}900$$
 
 **Result:** Under CIP, hedged PV = unhedged PV. ✓
 
 **If basis causes deviation:** Suppose the traded forward is $K_{mkt} = 0.0093$:
-$$PV_{hedged,mkt} = 0.0093 \times 100{,}000{,}000 \times 0.970446 = \$902{,}514$$
+$$PV_{hedged,mkt} = 0.0093 \times 100{,}000{,}000 \times 0.970446 = USD902{,}514$$
 
-**Basis gain:** $\$902{,}514 - \$900{,}900 = \$1{,}614$
+**Basis gain:** $USD902{,}514 - USD900{,}900 = USD1{,}614$
 
 This "extra" PV is the manifestation of cross-currency basis in hedged foreign asset valuation.
 
@@ -903,7 +903,7 @@ Avoid hard-coding “typical” basis levels or signs from memory. Use live mark
 
 ## Summary
 
-1. **CIP is the foundation**: $F(0,T)=X(0)\,P_f(0,T)/P_d(0,T)$ links spot FX, forward FX, and discount factors across currencies. Under consistent compounding assumptions, this is equivalent to the familiar rate form $F_0 = S_0 e^{(r_d - r_f)T}$.
+1. **CIP is the foundation**: $F(0,T)=X(0)\\,P_f(0,T)/P_d(0,T)$ links spot FX, forward FX, and discount factors across currencies. Under consistent compounding assumptions, this is equivalent to the familiar rate form $F_0 = S_0 e^{(r_d - r_f)T}$.
 2. **FX forwards constrain curves**: Given a domestic curve and FX forward quotes, the foreign curve is pinned down point-by-point via $P_f(0,T)=(F(0,T)/X(0))P_d(0,T)$. (Triangle check: domestic curve + forwards $\Rightarrow$ foreign curve.)
 3. **Cross-currency basis is a reconciliation spread**: Basis swap quotes adjust one leg so traded xccy instruments clear given the curve set. Quote conventions (which leg carries the spread; sign) matter as much as the number.
 4. **Basis swaps extend the constraint horizon**: FX forwards tend to be liquid at short maturities; longer-dated constraints come from xccy basis swaps. A one-period xccy basis swap is the same economic object as an FX forward.
@@ -918,11 +918,11 @@ Avoid hard-coding “typical” basis levels or signs from memory. Use live mark
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **Covered interest parity (CIP)** | $F(0,T)=X(0)\,P_f(0,T)/P_d(0,T)$ (with consistent quote direction) | Links FX quotes to curve constraints |
+| **Covered interest parity (CIP)** | $F(0,T)=X(0)\\,P_f(0,T)/P_d(0,T)$ (with consistent quote direction) | Links FX quotes to curve constraints |
 | **FX-implied curve** | Foreign discount factors derived from a domestic curve + FX forwards | Enforces cross-currency consistency (triangle check) |
 | **Cross-currency basis spread ($e$)** | Quoted spread on one leg of a floating–floating xccy swap that makes PV = 0 given the curve set | Market input that reconciles curves; separate risk factor |
 | **Basis01** | $PV(e+1\text{bp})-PV(e)$ with the stated quote convention | Hedge sizing and P&L explain for basis moves |
-| **Forward FX rate** | $X_T(t)=X(t)\,P_f(t,T)/P_d(t,T)$ | Replication and valuation using ZCBs |
+| **Forward FX rate** | $X_T(t)=X(t)\\,P_f(t,T)/P_d(t,T)$ | Replication and valuation using ZCBs |
 | **Discount vs projection curves** | Discount at the collateral/OIS curve; project via index curves | Avoids silent “single-curve” assumptions in multi-curve pricing |
 | **Notional exchange** | Exchange of principals at inception/maturity (or periodically in resettable structures) | Drives FX delta and exposure profile |
 | **Anchor currency / circularity** | Choose an anchor curve set from domestic instruments | Avoids circular calibration across currencies |
@@ -954,8 +954,8 @@ Avoid hard-coding “typical” basis levels or signs from memory. Use live mark
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What does CIP relate? | Spot FX, forward FX, and discount factors across two currencies |
-| 2 | CIP in discount-factor form? | $F(0,T)=X(0)\,P_f(0,T)/P_d(0,T)$ |
-| 3 | Solve for the FX-implied foreign discount factor? | $P_f(0,T)=(F(0,T)/X(0))\,P_d(0,T)$ |
+| 2 | CIP in discount-factor form? | $F(0,T)=X(0)\\,P_f(0,T)/P_d(0,T)$ |
+| 3 | Solve for the FX-implied foreign discount factor? | $P_f(0,T)=(F(0,T)/X(0))\\,P_d(0,T)$ |
 | 4 | What is an “FX-implied curve”? | A foreign discount curve implied by a domestic curve plus a strip of FX forwards |
 | 5 | What is a (floating–floating) xccy basis swap? | Exchange floating payments in two currencies plus a spread; typically includes notional exchanges |
 | 6 | Why are basis swaps used for long maturities? | FX forwards tend to be liquid at the short end; basis swaps provide longer-dated constraints |
@@ -972,13 +972,13 @@ Avoid hard-coding “typical” basis levels or signs from memory. Use live mark
 | 17 | One-period xccy basis swap equals what? | An FX forward (same economic constraint) |
 | 18 | Most common implementation failure mode? | Quote direction / sign / leg mismatch (“basis” that is really a convention error) |
 | 19 | What does “hold fixed” mean in bump risk? | When bumping one factor (spot/curve/basis), keep the others unchanged |
-| 20 | Quick CIP sanity check (domestic-per-foreign quote)? | If domestic rates exceed foreign rates, you should typically see $F(0,T) > X(0)$ |
+| 20 | Quick CIP sanity check (domestic-per-foreign quote)? | If domestic rates exceed foreign rates, you should typically see $F(0,T) \gt X(0)$ |
 
 ---
 
 ## Mini Problem Set
 
-1. **(Compute)** Given $S(0) = 1.25$ USD/EUR, $r_d = 4\%$, $r_f = 1.5\%$, $T = 1$ (continuous), compute $F(0,1)$.
+1. **(Compute)** Given $S(0) = 1.25$ USD/EUR, $r_d = 4\\%$, $r_f = 1.5\\%$, $T = 1$ (continuous), compute $F(0,1)$.
 2. **(Compute)** Given $X(0) = 1.10$, $P_d(0,2) = 0.94$, $P_f(0,2) = 0.98$, compute $F(0,2)$.
 3. **(Compute)** Derive $P_f(0,T)$ from $X(0)$, $F(0,T)$, and $P_d(0,T)$.
 4. **(Compute)** An FX forward receives 1 EUR at $T$ and pays $K$ USD. Write the PV at time 0 and solve for $K$ that makes PV = 0.
@@ -987,25 +987,25 @@ Avoid hard-coding “typical” basis levels or signs from memory. Use live mark
 7. **(Compute)** Build a 3-point FX-implied EUR curve from: $P_d(0.5)=0.99$, $P_d(1)=0.97$, $P_d(2)=0.93$, $X=1.15$, $F(0.5)=1.16$, $F(1)=1.18$, $F(2)=1.22$. Verify monotonicity.
 8. **(Proof/Compute)** In a two-curve setup, show that if $P^{(L)}=P$, the PV of a floating leg with principal repayment telescopes to par.
 9. **(Desk)** If a market forward is far from the CIP-implied forward, outline an arbitrage (or, in practice, which constraint/assumption must be wrong).
-10. **(Compute — P&L Attribution)** A 5Y EUR/USD xccy swap has: FX delta = $-€5\text{mm}$, USD $DV01_d=+\$50\text{k/bp}$, EUR $DV01_f=+€45\text{k/bp}$, $Basis01=+\$5\text{k/bp}$. Over one day: EUR/USD moves 1.10 → 1.12, USD rates +3bp, EUR rates −2bp, quoted basis $e$ moves −30bp → −28bp. Attribute the P&L.
+10. **(Compute — P&L Attribution)** A 5Y EUR/USD xccy swap has: FX delta = $-EUR5\text{mm}$, USD $DV01_d=+USD50\text{k/bp}$, EUR $DV01_f=+EUR45\text{k/bp}$, $Basis01=+USD5\text{k/bp}$. Over one day: EUR/USD moves 1.10 → 1.12, USD rates +3bp, EUR rates −2bp, quoted basis $e$ moves −30bp → −28bp. Attribute the P&L.
 11. **(Desk/Compute)** A corporate can issue USD at 4.90% or EUR at 3.70%. EUR 5Y swap rate is 3.00%, USD 5Y swap rate is 4.00%, and basis is −25bp on the EUR leg. Compute a toy “all-in” USD funding cost via EUR issuance + swap (state what you are assuming).
-12. **(Concept/Compute)** A 5Y USD IRS has $DV01 \approx 48{,}000\,\$/\text{bp}$. If collateral currency changes from USD to EUR and the relevant cross-currency adjustment is about 30bp, estimate the PV impact and list what you would need for a full valuation.
+12. **(Concept/Compute)** A 5Y USD IRS has $DV01 \approx 48{,}000\,USD/\text{bp}$. If collateral currency changes from USD to EUR and the relevant cross-currency adjustment is about 30bp, estimate the PV impact and list what you would need for a full valuation.
 
 ### Solution Sketches (Selected)
-1. $F = 1.25\,e^{(0.04-0.015)\cdot 1} \approx 1.2817$ USD/EUR.
+1. $F = 1.25\\,e^{(0.04-0.015)\cdot 1} \approx 1.2817$ USD/EUR.
 2. $F = 1.10\times (0.98/0.94) \approx 1.1468$.
 5. $s(1) = -\ln(0.9885/0.9900) \approx 0.00152 \approx 15.2\text{ bp}$.
-6. If you ignore FX forwards/basis swaps, the domestic- and foreign-bootstrapped curves generally won’t satisfy $F=X\,P_f/P_d$. The inconsistency shows up as persistent mis-pricing of xccy instruments (or “arbitrage” in a toy world with no frictions).
+6. If you ignore FX forwards/basis swaps, the domestic- and foreign-bootstrapped curves generally won’t satisfy $F=X\\,P_f/P_d$. The inconsistency shows up as persistent mis-pricing of xccy instruments (or “arbitrage” in a toy world with no frictions).
 10. Use
-   $$\Delta PV \approx \Delta_{FX}\,\Delta S - DV01_d\,\Delta r_d - DV01_f\,\Delta r_f\,S + Basis01\,\Delta e,$$
+   $$\Delta PV \approx \Delta_{FX}\\,\Delta S - DV01_d\\,\Delta r_d - DV01_f\\,\Delta r_f\\,S + Basis01\\,\Delta e,$$
    with $S\approx 1.11$:
-   - FX: $-€5\text{mm}\times 0.02 = -\$100{,}000$
-   - USD rates: $-(+\$50\text{k})\times (+3) = -\$150{,}000$
-   - EUR rates: $-(+€45\text{k})\times (-2)\times 1.11 = +\$99{,}900$
-   - Basis: $(+\$5\text{k})\times (+2)=+\$10{,}000$
-   - Total: $\approx -\$140{,}100$
-11. Toy assumption: treat “swap to USD” as adding USD swap rate, plus EUR credit spread, plus basis benefit on the EUR leg. All-in $\approx 4.00\% + 0.70\% - 0.25\% = 4.45\%$ vs 4.90%.
-12. Back-of-envelope: $30\text{bp}\times (48{,}000\,\$/\text{bp})\approx \$1.44\text{mm}$. Full valuation needs the CSA terms (eligible collateral + remuneration), the cross-currency curve/basis model used for discounting translation, and the trade’s exact cashflow schedule.
+   - FX: $-EUR5\text{mm}\times 0.02 = -USD100{,}000$
+   - USD rates: $-(+USD50\text{k})\times (+3) = -USD150{,}000$
+   - EUR rates: $-(+EUR45\text{k})\times (-2)\times 1.11 = +USD99{,}900$
+   - Basis: $(+USD5\text{k})\times (+2)=+USD10{,}000$
+   - Total: $\approx -USD140{,}100$
+11. Toy assumption: treat “swap to USD” as adding USD swap rate, plus EUR credit spread, plus basis benefit on the EUR leg. All-in $\approx 4.00\\% + 0.70\\% - 0.25\\% = 4.45\\%$ vs 4.90%.
+12. Back-of-envelope: $30\text{bp}\times (48{,}000\,USD/\text{bp})\approx USD1.44\text{mm}$. Full valuation needs the CSA terms (eligible collateral + remuneration), the cross-currency curve/basis model used for discounting translation, and the trade’s exact cashflow schedule.
 
 ---
 
