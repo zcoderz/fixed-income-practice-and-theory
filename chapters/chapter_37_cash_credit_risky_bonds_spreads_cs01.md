@@ -372,7 +372,7 @@ The factorization $\hat{Z}(0,T)=Z(0,T)Q(0,T)$ relies on a modeling simplificatio
 In some joint Gaussian specifications, this shows up as a multiplicative correction term of the form
 
 $$
-\hat{Z}(0,T) = Z(0,T)\,Q(0,T)\,\Theta(0,T,\rho),
+\hat{Z}(0,T) = Z(0,T)Q(0,T)\Theta(0,T,\rho)
 $$
 where $\Theta$ depends on the joint dynamics and the correlation parameter $\rho$. The exact form is model-dependent: if you want to include this effect, you must specify the joint rate/hazard model and calibrate its parameters.
 
@@ -402,12 +402,12 @@ $$\boxed{P = \sum_{i=1}^{N} CF_i \\, Z(0, t_i) \\, Q(0, t_i) \\;+\\; RF \cdot D(
 
 where $D(0,T) = -\int_0^T Z(0,s) \\, dQ(0,s)$.
 
-**Check (per-100 vs dollars):** The decomposition above produces $P$ “per 100 face.” For notional $N$ in dollars, convert to dollar PV via $PV_{\mathrm{USD}\\,}=N\cdot P/100$. Many 10,000× errors in credit analytics come from mixing “per 100” prices with dollar notionals.
+**Check (per-100 vs dollars):** The decomposition above produces $P$ “per 100 face.” For notional $N$ in dollars, convert to dollar PV via $PV_{\mathrm{USD}}=N\cdot P/100$. Many 10,000× errors in credit analytics come from mixing “per 100” prices with dollar notionals.
 
 **Derivation Sketch (Step-by-Step):**
 
 1. Decompose payoff into survival and default pieces:
-   $$\text{Payoff} = \sum_i CF_i \\, \mathbf{1}_{\\{\tau \gt  t_i\\}} + RF \\, \mathbf{1}_{\\{\tau \leq T\\}}$$
+   $$\text{Payoff} = \sum_i CF_i I_{\tau \gt t_i} + RF I_{\tau \leq T}$$
 
 2. Discount and take expectation under the (pricing) measure.
 
@@ -897,7 +897,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 4. **DV01 and CS01 (bump-and-reprice):** With continuous discounting, a 1bp down-bump changes PV by approximately
 
    $$
-   DV01 \approx CS01 \approx \left(\sum_i CF_i\, t_i\, e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022 \quad \text{per 100 per bp}.
+   DV01 \approx CS01 \approx \left(\sum_i CF_i t_i e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022 \quad \text{per 100 per bp}.
    $$
    For $N=\mathrm{USD}\\,10\text{ mm}$, $DV01 \approx CS01 \approx 0.022 \times 100{,}000 \approx \mathrm{USD}\\,2{,}200$ per bp.
 
@@ -915,7 +915,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 - A desk-style first-order explain for a long position is:
 
   $$
-  \Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} \;-\; CS01 \cdot \Delta z_{\text{bp}},
+  \Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} - CS01 \cdot \Delta z_{\text{bp}}
   $$
   where $\Delta r_{\text{bp}}$ is the base-curve move (in bp) and $\Delta z_{\text{bp}}$ is the Z-spread move (in bp), both defined consistently with the bump objects above.
 - Example scenario: if rates rise by $+6$bp and Z-spread widens by $+15$bp, then
