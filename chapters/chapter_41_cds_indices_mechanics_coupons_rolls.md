@@ -202,11 +202,7 @@ $$U_{\text{clean}} = (S-C)\\,A_I(S)$$
 
 is nonlinear, and converting **upfront → spread** typically requires a 1D root solve. This matters more when spreads are high.
 
-**Check (why “$A$ fixed” overstates sensitivity at high spreads):** if $U(S)=(S-C)A(S)$, then
-
-$$
-\frac{dU}{dS}=A(S) + (S-C)\,A'(S).
-$$
+**Check (why “$A$ fixed” overstates sensitivity at high spreads):** if $U(S)=(S-C)A(S)$, then $\frac{dU}{dS}=A(S) + (S-C)A'(S)$.
 Because higher spreads typically imply higher hazard and **shorter** expected premium payment lives, $A'(S)\lt 0$. So using a constant $A$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high (a common “why is my DV01 too big?” debugging clue).
 
 ### 41.3.4 Price Quotes (Bond-Style) and the “Subtract 100” Convention
@@ -723,7 +719,7 @@ For risk, always state the bump methodology. We use a +1 bp bump to the par inde
 
 3. Per-name notional $=125\text{mm}/125=USD 1\text{mm}$. Loss fraction $=1-0.30=0.70$. Protection payment $=USD 700{,}000$.
 
-4. $\alpha_i=(90, 91, 92, 90)/360$. Pay$_i$ $=50\text{mm} \\times 0.0050 \\times \\alpha_i = (USD 62{,}500, USD 63{,}194, USD 63{,}889, USD 62{,}500)$.
+4. $\alpha_i=(90, 91, 92, 90)/360$. $\mathrm{Pay}_i=50\text{mm} \\times 0.0050 \\times \\alpha_i = (USD 62{,}500, USD 63{,}194, USD 63{,}889, USD 62{,}500)$.
 
 5. $U_{\\text{clean}}=(52-40)\\text{ bp}\\times 4.25=51\\text{ bp}=0.51\\%$. Since $S\gt C$, the protection buyer **pays** 0.51% upfront.
 
