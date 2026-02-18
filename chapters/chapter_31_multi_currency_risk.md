@@ -147,7 +147,7 @@ This converts the foreign-currency sensitivity to domestic-currency P&L for a pe
 
 > **Desk Reality: FX Delta in Risk Reports**
 >
-> When a trader says "I'm long €50mm FX delta," they mean a 1% EUR appreciation generates P&L of approximately $0.01 \times S_0 \times \mathrm{EUR}\,50\text{mm} = $550,000 (at $S_0 = 1.10$). Risk limits are often expressed in FX01 rather than raw delta because FX01 is currency-agnostic—it tells you the dollar P&L impact directly.
+> When a trader says "I'm long €50mm FX delta," they mean a 1% EUR appreciation generates P&L of approximately $0.01 \times S_0 \times \mathrm{EUR}\,50\text{mm} = 550{,}000$ USD (at $S_0 = 1.10$). Risk limits are often expressed in FX01 rather than raw delta because FX01 is currency-agnostic—it tells you the dollar P&L impact directly.
 
 ### 31.3.2 Rates DV01 by Currency and Curve
 
