@@ -97,7 +97,7 @@ The prices of money market instruments are sometimes quoted using a **discount r
 
 Let:
 - $Y$ be the cash price per $100$ of face value,
-- $q_{\text{disc}}$ be the quoted discount rate in **percent per year** (ACT/360, applied to face value),
+- `q_disc` be the quoted discount rate in **percent per year** (ACT/360, applied to face value),
 - $n$ be days to maturity (calendar days).
 
 Then the market relationship between the cash price and the quote is:
@@ -108,7 +108,7 @@ Many texts write the same relationship as:
 
 $$P = \frac{360}{n}(100 - Y)$$
 
-where $P$ is the quoted price, $Y$ is the cash price, and $n$ is the remaining life of the Treasury bill measured in calendar days. (In this chapter, $q_{\text{disc}}$ plays the role of $P$ in that notation.)
+where $P$ is the quoted price, $Y$ is the cash price, and $n$ is the remaining life of the Treasury bill measured in calendar days. (In this chapter, `q_disc` plays the role of $P$ in that notation.)
 
 Equivalently:
 
@@ -136,7 +136,7 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 > - Cash price per $100$ face, $Y$
 > - Settlement cash amount (buyer pays)
 > - PV at settlement (value of the bill)
-> - $DV01_{\text{disc}}$ (bump object: $q_{\text{disc}}$ down by $1$ bp; units: USD per 1 bp; sign: positive for a long)
+> - $DV01_{\text{disc}}$ (bump object: `q_disc` down by $1$ bp; units: USD per 1 bp; sign: positive for a long)
 >
 > **Step-by-step**
 > 1. Translate quote to interest on face:
@@ -166,13 +166,13 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 > - A different bump object (money-market yield, zero rate, curve node) will generally produce a different “01”. Always state what was bumped.
 >
 > **Sanity Checks**
-> - Units: $q_{\text{disc}}$ is in percent p.a.; $1$ bp $=0.01$ percent points $=10^{-4}$ in decimal.
+> - Units: `q_disc` is in percent p.a.; $1$ bp $=0.01$ percent points $=10^{-4}$ in decimal.
 > - Sign: for a long bill, lower rates $\Rightarrow$ higher price $\Rightarrow DV01 \gt 0$ under the book convention.
 > - Scaling: doubling $N$ doubles both PV and $DV01$; longer $n$ increases $DV01$ linearly.
 >
-> **Pitfall — “01” without a bump object:** saying “DV01 is \$253” is incomplete unless you also specify **what you bumped** (yield, zero rate, par rate, or a quote like $q_{\text{disc}}$). Two systems can both report “DV01” for the same trade and disagree simply because they bumped different objects.
+> **Pitfall — “01” without a bump object:** saying “DV01 is \$253” is incomplete unless you also specify **what you bumped** (yield, zero rate, par rate, or a quote like `q_disc`). Two systems can both report “DV01” for the same trade and disagree simply because they bumped different objects.
 > **Why it matters:** hedge ratios and P&L explain will be wrong even if both systems are “internally consistent.”
-> **Quick check:** when reconciling risk, write down the bump object and units (e.g., “$q_{\text{disc}}$ down 1 bp” vs “zero curve down 1 bp”).
+> **Quick check:** when reconciling risk, write down the bump object and units (e.g., “`q_disc` down 1 bp” vs “zero curve down 1 bp”).
 
 ### 1.1.4 Money Markets: Rates with Day Counts
 
