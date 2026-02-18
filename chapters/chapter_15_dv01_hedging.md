@@ -78,7 +78,7 @@ Accrued interest $AI$ is (approximately) rate-insensitive, so DV01 is essentiall
 
 > **Pitfall — “What is being bumped?” mismatch:** DV01 numbers are only comparable if the **bump object**, **bump size**, **units**, and **sign convention** match.
 > **Why it matters:** A hedge ratio computed from mismatched DV01 definitions can be wrong even when the arithmetic is “correct”.
-> **Quick check:** Write down (i) what curve/yield is bumped, (ii) USD 1\text{bp}=10^{-4}$, (iii) whether DV01 is “rates down” or “rates up”, and (iv) whether the number is per 100, per 1mm, or per contract.
+> **Quick check:** Write down (i) what curve/yield is bumped, (ii) $1\text{bp}=10^{-4}$, (iii) whether DV01 is “rates down” or “rates up”, and (iv) whether the number is per 100, per 1mm, or per contract.
 
 > **Desk Reality:** Rates risk is often communicated as “I’m long $X$ DV01”, meaning PV increases by about $X$ for a 1bp rally under the desk’s bump design.
 > **Common break:** Mixing “per 100 face”, “per USD 1mm notional”, and “per contract” without normalization.
@@ -272,15 +272,15 @@ In practice, a common desk approximation is to use the DV01 of the CTD bond dire
 
 $$\boxed{DV01_{\text{fut}} \approx \frac{DV01_{\text{CTD}}}{CF}}$$
 
-This implies that one futures contract acts like USD 1/CF$ units of the CTD bond in terms of duration exposure.
+This implies that one futures contract acts like USD $1/CF$ units of the CTD bond in terms of duration exposure.
 
 **Worked Example:** Hedge a USD 25,000 position DV01 with Treasury futures.
 
 *   **CTD Stats:** DV01 = 0.0750 per 100; CF = 0.90.
 *   **Contract Size:** USD 100,000 face.
-*   **CTD Risk per Contract:** USD 100{,}000 \times (0.0750/100) = USD 75.00$.
-*   **Futures Risk per Contract:** USD 75.00 / 0.90 = USD 83.33$.
-*   **Hedge Size:** USD 25{,}000 / 83.33 \approx 300$ contracts (Short).
+*   **CTD Risk per Contract:** $100{,}000 \times (0.0750/100) = 75.00$ USD.
+*   **Futures Risk per Contract:** $75.00 / 0.90 = 83.33$ USD.
+*   **Hedge Size:** $25{,}000 / 83.33 \approx 300$ contracts (short).
 
 ### 15.3.3 CTD Switching and the Quality Option
 
@@ -327,9 +327,9 @@ Because futures are marked-to-market daily, gains and losses are realized throug
 
 In practice, desks often apply a **tailed hedge**: scale the hedge by an approximate discounting factor. Under a simple-interest approximation with ACT/360, a common rule-of-thumb is:
 
-$$N^*_{\text{tailed}} \approx N^* \times \left(1-r\\,\frac{d}{360}\right)$$
+$$N_{\text{tailed}} \approx N_{\text{raw}} \times \left(1-r\\,\frac{d}{360}\right)$$
 
-where $r$ is a relevant short rate and $d$ is the number of days to hedge maturity.
+where $N_{\text{raw}}$ is the untailed hedge size, $r$ is a relevant short rate, and $d$ is the number of days to hedge maturity.
 
 **Example:** For a 6-month hedge at 5% rates:
 $$\text{Tailing factor} \approx 1-0.05\times \frac{180}{360}=0.975$$
@@ -572,13 +572,13 @@ Practitioners often think of hedging as a **sequence of decisions**, each removi
 **Setup:**
 *   **Portfolio:** Long 2y (Risk = USD 2k) and Long 10y (Risk = USD 8k). Total Risk = USD 10k.
 *   **Hedge:** Short a 5y bond (Risk = USD 8k per unit).
-*   **Hedge Ratio:** Need USD 10k total protection. USD 10/8 = 1.25$ units.
-*   **Net Position:** Flat DV01 (USD 10k - 1.25 \times 8k = 0$).
+*   **Hedge Ratio:** Need USD 10k total protection. $10/8 = 1.25$ units.
+*   **Net Position:** Flat DV01 (USD 10k - USD 10k = 0).
 
 **Shock:** 2y yields +10bp, 10y yields -5bp (Curve flattens/twists). 5y yields unchanged.
 *   **2y P&L:** $-USD 2{,}000 \times (+10) = -USD 20{,}000$
 *   **10y P&L:** $-USD 8{,}000 \times (-5) = +USD 40{,}000$
-*   **Hedge P&L:** USD 0$ (since 5y didn't move)
+*   **Hedge P&L:** USD 0 (since 5y didn't move)
 *   **Net P&L:** $+USD 20{,}000$
 
 **Conclusion:** The portfolio made USD 20,000 purely from the curve twist, despite being DV01 hedged. Note that the result could easily have been a loss if the twist went the other way.
