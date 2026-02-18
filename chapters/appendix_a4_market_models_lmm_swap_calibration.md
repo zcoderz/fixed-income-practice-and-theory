@@ -43,7 +43,7 @@ Before diving into the models, we establish notation that will be used consisten
 
 ### A4.1.1 Tenor Structure and Forward Rates
 
-Let $0 = T_0 < T_1 < T_2 < \cdots < T_n$ denote a tenor structure with associated year fractions:
+Let $0 = T_0 \lt T_1 \lt T_2 \lt \cdots \lt T_n$ denote a tenor structure with associated year fractions:
 $$\tau_j = T_j - T_{j-1}, \quad j = 1, \ldots, n$$
 
 The **simply-compounded forward rate** $L_j(t)$ for the period $[T_{j-1}, T_j]$, observed at time $t \leq T_{j-1}$, is defined implicitly by:
@@ -56,7 +56,7 @@ $$\boxed{L_j(t) = \frac{1}{\tau_j}\left(\frac{P(t, T_{j-1})}{P(t, T_j)} - 1\righ
 
 ### A4.1.2 Swap Rates and Annuities
 
-For a swap starting at $T_a$ and ending at $T_b$ (with $a < b$), the **swap rate** $S_{a,b}(t)$ is the fixed rate that makes the swap have zero present value at time $t$:
+For a swap starting at $T_a$ and ending at $T_b$ (with $a \lt b$), the **swap rate** $S_{a,b}(t)$ is the fixed rate that makes the swap have zero present value at time $t$:
 $$S_{a,b}(t) = \frac{P(t, T_a) - P(t, T_b)}{\sum_{j=a+1}^{b} \tau_j P(t, T_j)}$$
 
 The denominator is the **annuity** (or **PVBP**):
@@ -100,7 +100,7 @@ The LIBOR Market Model (LMM), developed independently by Brace, Gatarek, and Mus
 ### A4.2.1 Forward Rate Dynamics Under the Forward Measure
 
 Under the $T_j$-forward measure $\mathbb{Q}^j$, the forward rate $L_j(t)$ is a martingale. Brigo & Mercurio (Ch. 6) specify the dynamics as:
-$$\boxed{dL_j(t) = \sigma_j(t) L_j(t) \, dW_j^j(t)}$$
+$$\boxed{dL_j(t) = \sigma_j(t) L_j(t) \\, dW_j^j(t)}$$
 
 where $W_j^j$ is a $\mathbb{Q}^j$-Brownian motion and $\sigma_j(t)$ is a deterministic (or state-dependent) volatility function.
 
@@ -116,7 +116,7 @@ The challenge arises when we want to simulate *multiple* forward rates jointly. 
 Suppose we work under the **spot-LIBOR measure** $\mathbb{Q}^{\mathrm{spot}}$, associated with a **discretely compounded bank account** (often denoted $B_d(t)$ in the literature). Brigo & Mercurio derive the drift adjustment via the change-of-numeraire / Girsanov toolkit.
 
 To state the drift cleanly, define $\beta(t)$ as the index of the **first forward rate that is still stochastic at time $t$** (intuitively: the next reset date on the tenor schedule). Then, for $j \ge \beta(t)$:
-$$\boxed{dL_j(t) = \mu_j(t) L_j(t) \, dt + \sigma_j(t) L_j(t) \, dW_j^{\mathrm{spot}}(t)}$$
+$$\boxed{dL_j(t) = \mu_j(t) L_j(t) \\, dt + \sigma_j(t) L_j(t) \\, dW_j^{\mathrm{spot}}(t)}$$
 
 where the drift is:
 $$\mu_j(t) = \sum_{k=\beta(t)}^{j} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)}$$
@@ -127,8 +127,8 @@ and $\rho_{jk}$ is the instantaneous correlation between the Brownian drivers of
 
 ### A4.2.3 Terminal Measure Dynamics
 
-Alternatively, under the terminal measure $\mathbb{Q}^n$ (numeraire $P(t, T_n)$), forward rates with $j < n$ have *negative* drifts:
-$$dL_j(t) = -\sum_{k=j+1}^{n} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)} L_j(t) dt + \sigma_j(t) L_j(t) \, dW_j^n(t)$$
+Alternatively, under the terminal measure $\mathbb{Q}^n$ (numeraire $P(t, T_n)$), forward rates with $j \lt n$ have *negative* drifts:
+$$dL_j(t) = -\sum_{k=j+1}^{n} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)} L_j(t) dt + \sigma_j(t) L_j(t) \\, dW_j^n(t)$$
 
 > **Practitioner Note:** Terminal measure is sometimes used for Bermudan-style simulations because the numeraire is a fixed final bond and you have a single measure for all rates. Note that the drift typically depends on later-maturity rates, so “simplicity” is relative—choose the simulation measure that best matches your implementation and payoff structure.
 
@@ -141,7 +141,7 @@ The LMM requires specification of:
 **Common volatility parameterizations:**
 
 *Piecewise constant:*
-$$\sigma_j(t) = \sigma_{j,k} \quad \text{for } T_{k-1} \leq t < T_k$$
+$$\sigma_j(t) = \sigma_{j,k} \quad \text{for } T_{k-1} \leq t \lt T_k$$
 
 *Parametric (e.g., Rebonato):*
 $$\sigma_j(t) = (a + b(T_j - t)) e^{-c(T_j - t)} + d$$
@@ -161,13 +161,13 @@ $$\rho_{jk} = 1 - \gamma(1 - e^{-\delta |T_j - T_k|})$$
 ### A4.2.5 Caplet Pricing: Black's Formula Directly
 
 Because $L_j$ is lognormal under $\mathbb{Q}^j$, the caplet price is exactly:
-$$\boxed{\text{Caplet}_j = \tau_j P(0, T_j) \left[ L_j(0) \Phi(d_+) - K \Phi(d_-) \right]}$$
+$$\boxed{\mathrm{Caplet}_j = \tau_j P(0, T_j) \left[ L_j(0) \Phi(d_+) - K \Phi(d_-) \right]}$$
 
 where:
 $$d_\pm = \frac{\ln(L_j(0)/K) \pm \frac{1}{2} v_j^2}{v_j}, \quad v_j = \sqrt{\int_0^{T_{j-1}} \sigma_j(t)^2 dt}$$
 
 The cap price is the sum of caplets:
-$$\text{Cap} = \sum_{j=1}^{n} \text{Caplet}_j$$
+$$\mathrm{Cap} = \sum_{j=1}^{n} \mathrm{Caplet}_j$$
 
 ---
 
@@ -178,10 +178,10 @@ While the LMM is natural for caps/floors, swaptions are more directly handled by
 ### A4.3.1 Swap Rate Dynamics Under the Swap Measure
 
 Under the swap measure $\mathbb{Q}^{a,b}$ with numeraire $A_{a,b}(t)$, the swap rate $S_{a,b}(t)$ is a martingale. Assuming lognormal dynamics:
-$$\boxed{dS_{a,b}(t) = \sigma_{a,b}(t) S_{a,b}(t) \, dW^{a,b}(t)}$$
+$$\boxed{dS_{a,b}(t) = \sigma_{a,b}(t) S_{a,b}(t) \\, dW^{a,b}(t)}$$
 
 This directly implies Black's swaption formula:
-$$\text{Swaption}_{a,b}(0) = A_{a,b}(0) \left[ S_{a,b}(0) \Phi(d_+) - K \Phi(d_-) \right]$$
+$$\mathrm{Swaption}_{a,b}(0) = A_{a,b}(0) \left[ S_{a,b}(0) \Phi(d_+) - K \Phi(d_-) \right]$$
 
 ### A4.3.2 The Inconsistency Problem
 
@@ -192,7 +192,7 @@ This is known as the **co-terminal swaption problem**. The swap market model is 
 ### A4.3.3 Rebonato's Swaption Approximation: The Freezing Technique
 
 Rebonato provides a powerful approximation that connects LMM dynamics to swaption volatilities. The key insight is that swap rates are complicated functions of forward rates:
-$$S_{a,b}(t) = \frac{P(t, T_a) - P(t, T_b)}{A_{a,b}(t)} = \sum_{j=a+1}^{b} w_j(t)\,L_j(t)$$
+$$S_{a,b}(t) = \frac{P(t, T_a) - P(t, T_b)}{A_{a,b}(t)} = \sum_{j=a+1}^{b} w_j(t)\\,L_j(t)$$
 
 where the weights $w_j(t)$ are annuity-normalized discount factors:
 $$w_j(t) = \frac{\tau_j P(t, T_j)}{A_{a,b}(t)}, \qquad \sum_{j=a+1}^{b} w_j(t) = 1.$$
@@ -236,7 +236,7 @@ The forward LIBOR rate $L_j(t)$ relates to instantaneous forwards by:
 $$1 + \tau_j L_j(t) = \frac{P(t, T_{j-1})}{P(t, T_j)} = \exp\left(\int_{T_{j-1}}^{T_j} f(t,u) du\right)$$
 
 Applying Itô's lemma to this relationship and choosing specific HJM volatility structures yields the LMM dynamics. Specifically, choosing:
-$$\sigma^{\text{HJM}}(t,T) = \sum_{j: T_{j-1} \leq T < T_j} \frac{\sigma_j(t) L_j(t)}{1 + \tau_j L_j(t)} \mathbf{1}_{t \leq T_{j-1}}$$
+$$\sigma^{\text{HJM}}(t,T) = \sum_{j: T_{j-1} \leq T \lt T_j} \frac{\sigma_j(t) L_j(t)}{1 + \tau_j L_j(t)} \mathbf{1}_{t \leq T_{j-1}}$$
 
 recovers the LMM.
 
@@ -257,32 +257,32 @@ While the basic LMM assumes constant or deterministic volatility, real swaption 
 
 Brigo & Mercurio (Ch. 11) present the SABR model as developed by Hagan, Kumar, Lesniewski, and Woodward (2002). Under the appropriate forward or swap measure, the forward rate (or swap rate) $F$ evolves as:
 $$\boxed{\begin{aligned}
-dF(t) &= V(t) F(t)^\beta \, dZ(t) \\
-dV(t) &= \nu V(t) \, dW(t) \\
+dF(t) &= V(t) F(t)^\beta \\, dZ(t) \\
+dV(t) &= \nu V(t) \\, dW(t) \\
 V(0) &= \alpha
 \end{aligned}}$$
 
 where:
-- $Z$ and $W$ are correlated Brownian motions with $dZ \cdot dW = \rho \, dt$
+- $Z$ and $W$ are correlated Brownian motions with $dZ \cdot dW = \rho \\, dt$
 - $\beta \in [0, 1]$ controls the CEV-like backbone (with $\beta = 0$ corresponding to a normal/Bachelier-style backbone)
-- $\alpha > 0$ is the initial volatility level
-- $\nu > 0$ is the volatility-of-volatility ("vol-of-vol")
+- $\alpha \gt 0$ is the initial volatility level
+- $\nu \gt 0$ is the volatility-of-volatility ("vol-of-vol")
 - $\rho \in [-1, 1]$ is the correlation between forward and volatility
 
 ### A4.5.2 The Hagan Approximation
 
 The breakthrough of SABR is the closed-form approximation for implied volatility. For a European option with forward $F = F(0)$ and strike $K$:
-$$\boxed{\sigma^{\text{impl}}(K, F) = \frac{\alpha}{(FK)^{(1-\beta)/2} \left[1 + \frac{(1-\beta)^2}{24}\ln^2\frac{F}{K} + \cdots\right]} \cdot \frac{z}{x(z)} \cdot \left\{1 + \epsilon(T)\right\}}$$
+$$\boxed{\sigma^{\text{impl}}(K, F) = \frac{\alpha}{(FK)^{(1-\beta)/2} \left[1 + \frac{(1-\beta)^2}{24}\ln^2\frac{F}{K} + \cdots\right]} \cdot \frac{z}{x(z)} \cdot \left\\{1 + \epsilon(T)\right\\}}$$
 
 where:
 $$z = \frac{\nu}{\alpha}(FK)^{(1-\beta)/2} \ln\frac{F}{K}$$
-$$x(z) = \ln\left\{\frac{\sqrt{1 - 2\rho z + z^2} + z - \rho}{1 - \rho}\right\}$$
+$$x(z) = \ln\left\\{\frac{\sqrt{1 - 2\rho z + z^2} + z - \rho}{1 - \rho}\right\\}$$
 
 and the time-dependent correction is:
 $$\epsilon(T) = \left[\frac{(1-\beta)^2 \alpha^2}{24(FK)^{1-\beta}} + \frac{\rho \beta \nu \alpha}{4(FK)^{(1-\beta)/2}} + \frac{(2 - 3\rho^2)\nu^2}{24}\right] T$$
 
 **At-the-money ($K = F$):**
-$$\boxed{\sigma^{\text{ATM}} = \frac{\alpha}{F^{1-\beta}} \left\{1 + \left[\frac{(1-\beta)^2 \alpha^2}{24 F^{2-2\beta}} + \frac{\rho \beta \nu \alpha}{4 F^{1-\beta}} + \frac{(2-3\rho^2)\nu^2}{24}\right] T\right\}}$$
+$$\boxed{\sigma^{\text{ATM}} = \frac{\alpha}{F^{1-\beta}} \left\\{1 + \left[\frac{(1-\beta)^2 \alpha^2}{24 F^{2-2\beta}} + \frac{\rho \beta \nu \alpha}{4 F^{1-\beta}} + \frac{(2-3\rho^2)\nu^2}{24}\right] T\right\\}}$$
 
 ### A4.5.3 Understanding the SABR Parameters
 
@@ -312,8 +312,8 @@ Each SABR parameter has intuitive meaning for the shape of the volatility smile:
 
 For swaptions, replace the forward rate $F$ with the swap rate $S_{a,b}$. The dynamics under the swap measure $\mathbb{Q}^{a,b}$ are:
 $$\begin{aligned}
-dS_{a,b}(t) &= V(t) S_{a,b}(t)^\beta \, dZ^{a,b}(t) \\
-dV(t) &= \nu V(t) \, dW^{a,b}(t)
+dS_{a,b}(t) &= V(t) S_{a,b}(t)^\beta \\, dZ^{a,b}(t) \\
+dV(t) &= \nu V(t) \\, dW^{a,b}(t)
 \end{aligned}$$
 
 The Hagan formula applies directly with $F \to S_{a,b}(0)$ and $T \to T_a$ (swaption expiry).
@@ -324,7 +324,7 @@ The SABR model, while practical, has known issues:
 
 1. **Arbitrage at extreme strikes:** The Hagan approximation can produce negative implied densities for very OTM options
 2. **Very long-dated maturities:** The approximation can degrade as $T$ grows large
-3. **Negative rates:** Standard SABR assumes $F > 0$; see Section A4.6 for extensions
+3. **Negative rates:** Standard SABR assumes $F \gt 0$; see Section A4.6 for extensions
 4. **No term structure of parameters:** Each expiry is calibrated independently; no dynamic consistency
 
 ---
@@ -336,12 +336,12 @@ Strict Black/log-normal models assume the underlying rate stays positive. When r
 ### A4.6.1 The Bachelier (Normal) Model
 
 The simplest solution is the **Bachelier model** (also called Normal or Gaussian model), where the forward rate follows arithmetic Brownian motion:
-$$dF(t) = \sigma_N \, dW(t)$$
+$$dF(t) = \sigma_N \\, dW(t)$$
 
 Here $\sigma_N$ is the **normal volatility** or **basis-point volatility**, measured in absolute rate terms (e.g., 50 bp/year).
 
 Andersen & Piterbarg provide the Normal option pricing formula. For a call option:
-$$\boxed{c_N(t, F; T, K; \sigma_N) = (F - K)\Phi(d) + \sigma_N\sqrt{T-t} \, \phi(d)}$$
+$$\boxed{c_N(t, F; T, K; \sigma_N) = (F - K)\Phi(d) + \sigma_N\sqrt{T-t} \\, \phi(d)}$$
 
 where:
 $$d = \frac{F - K}{\sigma_N\sqrt{T-t}}$$
@@ -362,9 +362,9 @@ and $\Phi(\cdot)$, $\phi(\cdot)$ are the standard normal CDF and PDF.
 ### A4.6.2 Shifted Lognormal (Displaced Diffusion)
 
 A popular middle ground is the **shifted lognormal** or **displaced diffusion** model:
-$$dF(t) = \sigma (F(t) + s) \, dW(t)$$
+$$dF(t) = \sigma (F(t) + s) \\, dW(t)$$
 
-where $s > 0$ is the **shift parameter**. The shifted forward $\tilde{F} = F + s$ follows geometric Brownian motion, so Black's formula applies to $\tilde{F}$:
+where $s \gt 0$ is the **shift parameter**. The shifted forward $\tilde{F} = F + s$ follows geometric Brownian motion, so Black's formula applies to $\tilde{F}$:
 $$c_{\text{shifted}}(F, K) = c_{\text{Black}}(F + s, K + s)$$
 
 Andersen & Piterbarg give the explicit formula (Proposition 7.2.12):
@@ -376,15 +376,15 @@ $$d_\pm = \frac{\ln\frac{F + s}{K + s} \pm \frac{1}{2}\sigma^2(T-t)}{\sigma\sqrt
 **PV conversion:** As with Black, this is a forward-measure style expression. Multiply by the relevant discount factor/annuity for caplets/swaptions.
 
 **The shift parameter:**
-- Must be large enough that $F + s > 0$ for all scenarios
+- Must be large enough that $F + s \gt 0$ for all scenarios
 - Different desks can use different shifts; always confirm $s$ when comparing “implied vols” across systems
 
 ### A4.6.3 Shifted SABR
 
 For smile modeling with negative rates, the market adopted **shifted SABR**:
 $$\begin{aligned}
-d(F(t) + s) &= V(t) (F(t) + s)^\beta \, dZ(t) \\
-dV(t) &= \nu V(t) \, dW(t)
+d(F(t) + s) &= V(t) (F(t) + s)^\beta \\, dZ(t) \\
+dV(t) &= \nu V(t) \\, dW(t)
 \end{aligned}$$
 
 Apply the standard SABR formula with $F \to F + s$ and $K \to K + s$.
@@ -397,8 +397,8 @@ Apply the standard SABR formula with $F \to F + s$ and $K \to K + s$.
 
 An alternative is **Normal SABR** (Bachelier SABR), which uses arithmetic rather than geometric dynamics:
 $$\begin{aligned}
-dF(t) &= V(t) \, dZ(t) \\
-dV(t) &= \nu V(t) \, dW(t)
+dF(t) &= V(t) \\, dZ(t) \\
+dV(t) &= \nu V(t) \\, dW(t)
 \end{aligned}$$
 
 This is essentially SABR with $\beta = 0$. The Hagan approximation gives normal implied volatility directly.
@@ -561,7 +561,7 @@ Such that model prices match market prices.
 ### A4.9.2 Calibrating to Caps
 
 Caps are the "easy" calibration target because each caplet depends on only one forward rate's volatility. The relationship is:
-$$v_j^{\text{cap}} = \sqrt{\frac{1}{T_{j-1}} \int_0^{T_{j-1}} \sigma_j(t)^2 \, dt}$$
+$$v_j^{\text{cap}} = \sqrt{\frac{1}{T_{j-1}} \int_0^{T_{j-1}} \sigma_j(t)^2 \\, dt}$$
 
 **Piecewise constant volatility:** If $\sigma_j(t) = \sigma_{j,k}$ for $t \in [T_{k-1}, T_k)$:
 $$v_j^2 T_{j-1} = \sum_{k=1}^{j-1} \sigma_{j,k}^2 \tau_k$$
@@ -572,7 +572,7 @@ $$\sigma_{j,j-1}^2 = \frac{v_j^2 T_{j-1} - \sum_{k=1}^{j-2} \sigma_{j,k}^2 \tau_
 ### A4.9.3 Calibrating to Swaptions: The Rebonato Approach
 
 Swaptions involve correlations and multiple forward rates. Using the Rebonato approximation:
-$$v_{a,b}^2 T_a \approx \sum_{j,k=a+1}^{b} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \, dt$$
+$$v_{a,b}^2 T_a \approx \sum_{j,k=a+1}^{b} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt$$
 
 **Strategy 1: Fix correlations, fit volatilities**
 - Assume a correlation structure (e.g., exponential decay)
@@ -587,7 +587,7 @@ $$v_{a,b}^2 T_a \approx \sum_{j,k=a+1}^{b} w_j w_k \rho_{jk} \int_0^{T_a} \sigma
 Calibration is often ill-posed—many parameter combinations fit the data equally well. Regularization imposes additional structure.
 
 **Tikhonov regularization:** Add a penalty term:
-$$\min_\theta \sum_i (V_i^{\text{model}}(\theta) - V_i^{\text{market}})^2 + \lambda \|\theta\|^2$$
+$$\min_\theta \sum_i (V_i^{\text{model}}(\theta) - V_i^{\text{market}})^2 + \lambda \\|\theta\\|^2$$
 
 The regularization parameter $\lambda$ controls the smoothness vs. fit tradeoff.
 
@@ -638,7 +638,7 @@ For practical CMS pricing, desks often use replication arguments—expressing th
 ### A4.10.1 Euler Discretization
 
 For simulation, we discretize the LMM SDE. Under the spot-LIBOR measure $\mathbb{Q}^{\mathrm{spot}}$ with time steps $\Delta t$:
-$$L_j(t + \Delta t) = L_j(t) \exp\left[\left(\mu_j(t) - \frac{1}{2}\sigma_j(t)^2\right)\Delta t + \sigma_j(t)\sqrt{\Delta t} \, Z_j\right]$$
+$$L_j(t + \Delta t) = L_j(t) \exp\left[\left(\mu_j(t) - \frac{1}{2}\sigma_j(t)^2\right)\Delta t + \sigma_j(t)\sqrt{\Delta t} \\, Z_j\right]$$
 
 where $Z_j$ are correlated standard normals: $\mathbb{E}[Z_j Z_k] = \rho_{jk}$.
 
@@ -662,7 +662,7 @@ Bermudan swaptions allow exercise at multiple dates. Pricing requires solving an
 **Longstaff-Schwartz (LSM) algorithm:**
 1. Simulate forward rate paths
 2. At each exercise date $T_k$, going backward:
-   a. Compute exercise value: $\text{Swap Value}_{T_k}$
+   a. Compute exercise value: $\mathrm{SwapValue}_{T_k}$
    b. Regress continuation value on basis functions of state variables
    c. Exercise if exercise value > continuation value
 3. Average discounted payoffs across paths
@@ -713,12 +713,12 @@ where $r_d$ is the daily SOFR and $\delta_d$ is the daily accrual.
 Under the spot-LIBOR measure $\mathbb{Q}^{\mathrm{spot}}$, we derive the drift of $L_j(t)$ using the change-of-numeraire / Girsanov toolkit.
 
 **Setup:** Under $\mathbb{Q}^j$, $L_j$ is a martingale:
-$$dL_j(t) = \sigma_j(t) L_j(t) \, dW_j^j(t)$$
+$$dL_j(t) = \sigma_j(t) L_j(t) \\, dW_j^j(t)$$
 
 **Key idea:** changing measures changes drifts by a covariance term involving the relative volatility of the numeraire ratio.
 
 **Applying Girsanov (high level):** The drift adjustment for $L_j$ under $\mathbb{Q}^{\mathrm{spot}}$ can be written schematically as
-$$\mu_j(t) = \frac{d\langle L_j, M \rangle_t}{L_j(t) \, dt}$$
+$$\mu_j(t) = \frac{d\langle L_j, M \rangle_t}{L_j(t) \\, dt}$$
 
 where $M$ is the martingale part coming from the numeraire change (details in the references).
 
@@ -737,16 +737,16 @@ where $w_j(t) = \tau_j P(t, T_j) / A_{a,b}(t)$ and $\sum_j w_j(t) = 1$.
 $$dS_{a,b}(t) = \sum_j \left(\frac{\partial S}{\partial L_j} dL_j + \frac{\partial S}{\partial w_j} dw_j\right) + \text{cross terms}$$
 
 **Freezing the weights:** Set $w_j(t) \approx w_j(0)$:
-$$dS_{a,b}(t) \approx \sum_j w_j(0) \, dL_j(t)$$
+$$dS_{a,b}(t) \approx \sum_j w_j(0) \\, dL_j(t)$$
 
 **Under swap measure:** $S_{a,b}$ is approximately lognormal with:
 $$\begin{aligned}
-\text{Var}[\ln S_{a,b}(T_a)] &= \int_0^{T_a} \frac{(\sum_j w_j \sigma_j L_j)^2}{S_{a,b}^2} \, dt \\
-&\approx \sum_{j,k} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \, dt
+\text{Var}[\ln S_{a,b}(T_a)] &= \int_0^{T_a} \frac{(\sum_j w_j \sigma_j L_j)^2}{S_{a,b}^2} \\, dt \\
+&\approx \sum_{j,k} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt
 \end{aligned}$$
 
 The swaption implied vol is:
-$$v_{a,b}^2 T_a = \sum_{j,k=a+1}^{b} w_j(0) w_k(0) \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \, dt$$
+$$v_{a,b}^2 T_a = \sum_{j,k=a+1}^{b} w_j(0) w_k(0) \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt$$
 
 ### A4.11.3 SABR Asymptotic Expansion
 
@@ -766,11 +766,11 @@ The result is the formula given in Section A4.5.2. The expansion is accurate to 
 ### Example 1: Caplet Pricing with LMM
 
 **Given:**
-- Forward rate $L_3(0) = 5\%$ for the period $[T_2, T_3]$ with $\tau_3 = 0.25$ (quarterly)
+- Forward rate $L_3(0) = 5\\%$ for the period $[T_2, T_3]$ with $\tau_3 = 0.25$ (quarterly)
 - Discount factor $P(0, T_3) = 0.95$
 - Caplet expiry $T_2 = 0.5$ years
-- Strike $K = 5\%$
-- Black volatility $v = 20\%$
+- Strike $K = 5\\%$
+- Black volatility $v = 20\\%$
 
 **Solution:**
 
@@ -788,22 +788,22 @@ $$= 0.2375 \times 0.05 \times 0.0564 = 0.000670 = 6.70 \text{ bp}$$
 
 **Given:**
 - 1y-into-5y payer swaption
-- Forward swap rate $S = 4\%$
-- Strike $K = 4.5\%$ (50 bp OTM)
+- Forward swap rate $S = 4\\%$
+- Strike $K = 4.5\\%$ (50 bp OTM)
 - SABR parameters: $\alpha = 0.25$, $\beta = 0.5$, $\rho = -0.3$, $\nu = 0.4$
 - Annuity $A_{1,6}(0) = 4.2$
 - Expiry $T = 1$ year
 
 **Solution:**
 
-Step 1: Compute SABR implied volatility at $K = 4.5\%$.
+Step 1: Compute SABR implied volatility at $K = 4.5\\%$.
 
 $(FK)^{(1-\beta)/2} = (0.04 \times 0.045)^{0.25} = 0.0424^{0.25} = 0.454$
 
 $z = \frac{0.4}{0.25} \times 0.454 \times \ln(0.04/0.045) = 1.6 \times 0.454 \times (-0.1178) = -0.0856$
 
-$x(z) = \ln\left\{\frac{\sqrt{1 + 0.6 \times 0.0856 + 0.0856^2} - 0.0856 + 0.3}{1.3}\right\}$
-$= \ln\left\{\frac{1.025 - 0.0856 + 0.3}{1.3}\right\} = \ln(0.954) = -0.047$
+$x(z) = \ln\left\\{\frac{\sqrt{1 + 0.6 \times 0.0856 + 0.0856^2} - 0.0856 + 0.3}{1.3}\right\\}$
+$= \ln\left\\{\frac{1.025 - 0.0856 + 0.3}{1.3}\right\\} = \ln(0.954) = -0.047$
 
 $z/x(z) = -0.0856 / (-0.047) = 1.82$
 
@@ -811,7 +811,7 @@ Leading term: $\frac{\alpha}{(FK)^{(1-\beta)/2}} = \frac{0.25}{0.454} = 0.551$
 
 Time correction (simplified): $\epsilon(T) \approx 0.02$
 
-$\sigma^{\text{impl}} \approx 0.551 \times 1.82 \times 1.02 \approx 1.02 = 102\%$
+$\sigma^{\text{impl}} \approx 0.551 \times 1.82 \times 1.02 \approx 1.02 = 102\\%$
 
 Step 2: Price using Black's formula with this implied vol.
 
@@ -823,13 +823,13 @@ $d_- = 0.394 - 1.02 = -0.626$
 $\Phi(0.394) = 0.653, \quad \Phi(-0.626) = 0.266$
 
 $\text{Swaption} = 4.2 \times [0.04 \times 0.653 - 0.045 \times 0.266]$
-$= 4.2 \times [0.0261 - 0.0120] = 4.2 \times 0.0141 = 0.0593 = 5.93\%$
+$= 4.2 \times [0.0261 - 0.0120] = 4.2 \times 0.0141 = 0.0593 = 5.93\\%$
 
 ### Example 3: Normal Vol Conversion
 
 **Given:**
-- Swap rate $S = 3\%$
-- Black implied vol $\sigma_{\text{Black}} = 25\%$
+- Swap rate $S = 3\\%$
+- Black implied vol $\sigma_{\text{Black}} = 25\\%$
 - Expiry $T = 2$ years
 
 **Find:** Equivalent normal (Bachelier) volatility.
@@ -847,18 +847,18 @@ So 25% Black vol at 3% swap rate ≈ 75 bp normal vol.
 ### Example 4: Shifted Lognormal Pricing
 
 **Given:**
-- Forward rate $F = -0.2\%$ (negative!)
-- Strike $K = 0\%$
-- Shift $s = 2\%$
-- Shifted Black vol $\sigma = 30\%$
+- Forward rate $F = -0.2\\%$ (negative!)
+- Strike $K = 0\\%$
+- Shift $s = 2\\%$
+- Shifted Black vol $\sigma = 30\\%$
 - Expiry $T = 1$ year
 - Discount factor $P(0,T) = 1.002$
 - Year fraction $\tau = 1$
 
 **Solution:**
 
-Shifted forward: $F + s = -0.2\% + 2\% = 1.8\%$
-Shifted strike: $K + s = 0\% + 2\% = 2\%$
+Shifted forward: $F + s = -0.2\\% + 2\\% = 1.8\\%$
+Shifted strike: $K + s = 0\\% + 2\\% = 2\\%$
 
 $d_+ = \frac{\ln(0.018/0.02) + 0.5 \times 0.30^2 \times 1}{0.30 \times 1} = \frac{-0.1054 + 0.045}{0.30} = -0.201$
 $d_- = -0.201 - 0.30 = -0.501$
@@ -868,14 +868,14 @@ $\Phi(-0.201) = 0.420, \quad \Phi(-0.501) = 0.308$
 Caplet (call on rate):
 $= \tau \times P(0,T) \times [(F+s)\Phi(d_+) - (K+s)\Phi(d_-)]$
 $= 1 \times 1.002 \times [0.018 \times 0.420 - 0.02 \times 0.308]$
-$= 1.002 \times [0.00756 - 0.00616] = 1.002 \times 0.00140 = 0.140\%$
+$= 1.002 \times [0.00756 - 0.00616] = 1.002 \times 0.00140 = 0.140\\%$
 
 ### Example 5: LMM Drift Calculation
 
 **Given:**
-- Three forward rates: $L_1 = 4\%$, $L_2 = 4.2\%$, $L_3 = 4.5\%$
+- Three forward rates: $L_1 = 4\\%$, $L_2 = 4.2\\%$, $L_3 = 4.5\\%$
 - Year fractions: $\tau_1 = \tau_2 = \tau_3 = 0.5$
-- Volatilities: $\sigma_1 = 18\%$, $\sigma_2 = 20\%$, $\sigma_3 = 22\%$
+- Volatilities: $\sigma_1 = 18\\%$, $\sigma_2 = 20\\%$, $\sigma_3 = 22\\%$
 - Correlations: $\rho_{12} = 0.95$, $\rho_{13} = 0.85$, $\rho_{23} = 0.92$
 - Simulating under spot measure starting at $T_0$
 
@@ -891,15 +891,15 @@ $k=2$: $\frac{0.5 \times 0.92 \times 0.22 \times 0.20 \times 0.042}{1 + 0.5 \tim
 
 $k=3$: $\frac{0.5 \times 1.0 \times 0.22 \times 0.22 \times 0.045}{1 + 0.5 \times 0.045} = \frac{0.001089}{1.0225} = 0.001065$
 
-$\mu_3(0) = 0.000660 + 0.000833 + 0.001065 = 0.00256 = 0.256\%$
+$\mu_3(0) = 0.000660 + 0.000833 + 0.001065 = 0.00256 = 0.256\\%$
 
 ### Example 6: Rebonato Swaption Vol Approximation
 
 **Given:**
 - 2y-into-3y swaption (swap from $T_2$ to $T_5$)
-- Forward rates: $L_3 = 4\%$, $L_4 = 4.2\%$, $L_5 = 4.4\%$
+- Forward rates: $L_3 = 4\\%$, $L_4 = 4.2\\%$, $L_5 = 4.4\\%$
 - Weights (frozen at $t=0$): $w_3 = 0.32$, $w_4 = 0.33$, $w_5 = 0.35$
-- Volatilities: $\sigma_3 = 20\%$, $\sigma_4 = 19\%$, $\sigma_5 = 18\%$
+- Volatilities: $\sigma_3 = 20\\%$, $\sigma_4 = 19\\%$, $\sigma_5 = 18\\%$
 - All correlations $\rho_{jk} = 0.9$
 - Expiry $T_a = 2$ years
 
@@ -907,9 +907,9 @@ $\mu_3(0) = 0.000660 + 0.000833 + 0.001065 = 0.00256 = 0.256\%$
 
 **Solution:**
 
-$$v_{2,5}^2 \times 2 = \sum_{j,k=3}^{5} w_j w_k \rho_{jk} \int_0^2 \sigma_j \sigma_k \, dt$$
+$$v_{2,5}^2 \times 2 = \sum_{j,k=3}^{5} w_j w_k \rho_{jk} \int_0^2 \sigma_j \sigma_k \\, dt$$
 
-With constant volatilities, $\int_0^2 \sigma_j \sigma_k \, dt = 2 \sigma_j \sigma_k$.
+With constant volatilities, $\int_0^2 \sigma_j \sigma_k \\, dt = 2 \sigma_j \sigma_k$.
 
 Diagonal terms ($j=k$, $\rho=1$):
 - $w_3^2 \times 1 \times 2 \times 0.20^2 = 0.32^2 \times 0.08 = 0.00819$
@@ -924,11 +924,11 @@ Cross terms ($j \neq k$, $\rho=0.9$), factor of 2 for symmetry:
 Total: $0.00819 + 0.00787 + 0.00794 + 0.01446 + 0.01452 + 0.01423 = 0.06721$
 
 $v_{2,5}^2 \times 2 = 0.06721$
-$v_{2,5} = \sqrt{0.06721/2} = \sqrt{0.0336} = 18.3\%$
+$v_{2,5} = \sqrt{0.06721/2} = \sqrt{0.0336} = 18.3\\%$
 
 ### Example 7: SABR Calibration
 
-**Given:** ATM swaption volatility $\sigma^{\text{ATM}} = 20\%$, swap rate $S = 5\%$, expiry $T = 1$ year, $\beta = 0.5$ (fixed).
+**Given:** ATM swaption volatility $\sigma^{\text{ATM}} = 20\\%$, swap rate $S = 5\\%$, expiry $T = 1$ year, $\beta = 0.5$ (fixed).
 
 **Find:** SABR $\alpha$ parameter (ignoring higher-order terms).
 
@@ -942,8 +942,8 @@ $$\alpha = 0.20 \times 0.2236 = 0.0447$$
 ### Example 8: Normal Option Price
 
 **Given:**
-- Forward swap rate $S = 2\%$
-- Strike $K = 2.5\%$
+- Forward swap rate $S = 2\\%$
+- Strike $K = 2.5\\%$
 - Normal volatility $\sigma_N = 80$ bp = 0.80%
 - Expiry $T = 1$ year
 - Annuity $A = 4.5$
@@ -961,7 +961,7 @@ $c_N = (S - K)\Phi(d) + \sigma_N \sqrt{T} \phi(d)$
 $= (-0.005) \times 0.266 + 0.008 \times 0.327$
 $= -0.00133 + 0.00262 = 0.00129$
 
-Swaption = $A \times c_N = 4.5 \times 0.00129 = 0.58\%$
+Swaption = $A \times c_N = 4.5 \times 0.00129 = 0.58\\%$
 
 ### Example 9: Pathwise Delta Calculation
 
@@ -971,7 +971,7 @@ Swaption = $A \times c_N = 4.5 \times 0.00129 = 0.58\%$
 
 **Solution:**
 
-If $L_3(T_2) > K$ (in-the-money):
+If $L_3(T_2) \gt K$ (in-the-money):
 $$\frac{\partial}{\partial L_3(0)} \tau_3 (L_3(T_2) - K) = \tau_3 \frac{\partial L_3(T_2)}{\partial L_3(0)}$$
 
 Under lognormal dynamics:
@@ -980,7 +980,7 @@ $$L_3(T_2) = L_3(0) \exp(\text{drift terms} + \sigma \int_0^{T_2} dW)$$
 $$\frac{\partial L_3(T_2)}{\partial L_3(0)} = \frac{L_3(T_2)}{L_3(0)}$$
 
 So the pathwise delta (when ITM) is:
-$$\frac{\partial \text{Caplet}}{\partial L_3(0)} = \tau_3 \frac{L_3(T_2)}{L_3(0)} \times \mathbf{1}_{L_3(T_2) > K}$$
+$$\frac{\partial \mathrm{Caplet}}{\partial L_3(0)} = \tau_3 \frac{L_3(T_2)}{L_3(0)} \times \mathbf{1}_{L_3(T_2) \gt K}$$
 
 Discount and average over paths to get the Monte Carlo estimate.
 
@@ -988,9 +988,9 @@ Discount and average over paths to get the Monte Carlo estimate.
 
 **Given:**
 - OIS discount factors: $P^{\text{OIS}}(0, T_1) = 0.99$, $P^{\text{OIS}}(0, T_2) = 0.97$
-- SOFR forward rate: $L^{\text{SOFR}} = 3.5\%$
-- Caplet strike $K = 3\%$, $\tau = 1$
-- Black vol $v = 25\%$
+- SOFR forward rate: $L^{\text{SOFR}} = 3.5\\%$
+- Caplet strike $K = 3\\%$, $\tau = 1$
+- Black vol $v = 25\\%$
 
 **Find:** Caplet price.
 
@@ -1005,7 +1005,7 @@ $\Phi(0.74) = 0.770$, $\Phi(0.49) = 0.688$
 
 $\text{Caplet} = \tau \times P^{\text{OIS}}(0, T_2) \times [L^{\text{SOFR}} \Phi(d_+) - K \Phi(d_-)]$
 $= 1 \times 0.97 \times [0.035 \times 0.770 - 0.03 \times 0.688]$
-$= 0.97 \times [0.02695 - 0.02064] = 0.97 \times 0.00631 = 0.612\%$
+$= 0.97 \times [0.02695 - 0.02064] = 0.97 \times 0.00631 = 0.612\\%$
 
 ### Example 11: Correlation Impact on Swaption Vol
 
@@ -1022,13 +1022,13 @@ Recompute cross terms with $\rho = 0.7$:
 
 Total: $0.00819 + 0.00787 + 0.00794 + 0.01124 + 0.01129 + 0.01107 = 0.05760$
 
-$v_{2,5} = \sqrt{0.05760/2} = \sqrt{0.0288} = 17.0\%$
+$v_{2,5} = \sqrt{0.05760/2} = \sqrt{0.0288} = 17.0\\%$
 
 Lower correlation reduces swaption volatility (from 18.3% to 17.0%).
 
 ### Example 12: CMS Convexity Intuition
 
-**Setup:** CMS 10y coupon paying in 3 months. Swap rate currently $S = 4\%$.
+**Setup:** CMS 10y coupon paying in 3 months. Swap rate currently $S = 4\\%$.
 
 **Convexity effect direction:**
 
@@ -1038,7 +1038,7 @@ When rates rise:
 - Under payment measure, these effects don't cancel
 
 The convexity adjustment is typically positive, meaning:
-$$\mathbb{E}^{T_p}[S(T)] > S(0)$$
+$$\mathbb{E}^{T_p}[S(T)] \gt S(0)$$
 
 Rough magnitude: For 10y CMS with 20% vol, 3-month forward, adjustment is typically 1-5 bp.
 
@@ -1047,7 +1047,7 @@ Rough magnitude: For 10y CMS with 20% vol, 3-month forward, adjustment is typica
 **Given:** 5-year Bermudan payer swaption, exercisable quarterly into remaining 5y swap.
 
 **Approximate exercise rule:** Exercise when:
-$$S_{a,b}(T_k) > K + \text{time value premium}$$
+$$S_{a,b}(T_k) \gt K + \text{time value premium}$$
 
 For deep ITM (> 100 bp ITM), time value premium is small; exercise is optimal.
 For near ATM, time value premium can be 10-30 bp depending on volatility.
@@ -1151,7 +1151,7 @@ This approximation is used as a starting point for LSM regression.
 | 15 | What is pathwise differentiation? | Differentiating through simulation paths to compute Greeks |
 | 16 | When does pathwise differentiation fail? | For discontinuous payoffs (barriers, digitals) |
 | 17 | What is the likelihood ratio method? | Using the density score function to compute Greeks; works for any payoff |
-| 18 | What is Tikhonov regularization? | Adding $\lambda\|\theta\|^2$ penalty to calibration objective for stability |
+| 18 | What is Tikhonov regularization? | Adding $\lambda\\|\theta\\|^2$ penalty to calibration objective for stability |
 | 19 | What is eigenvalue zeroing? | Setting small eigenvalues of correlation matrix to zero for lower-rank structure |
 | 20 | In two-curve pricing, what is discounting curve? | OIS curve (overnight rate based) |
 | 21 | In two-curve pricing, what is projection curve? | SOFR curve (for floating rate payments) |
@@ -1160,7 +1160,7 @@ This approximation is used as a starting point for LSM regression.
 | 24 | What are common LSM basis functions? | Low-order polynomials of swap rate, swap rate + intrinsic value |
 | 25 | What is the "backbone" in SABR? | How ATM implied vol changes as the forward rate moves |
 | 26 | What is "vanna skew" in SABR? | Skew component from $\rho$ (forward-vol correlation), proportional to $\rho\nu$ |
-| 27 | What does terminal measure mean? | Numeraire is the final bond $P(t, T_n)$; forward rates $j < n$ have negative drift |
+| 27 | What does terminal measure mean? | Numeraire is the final bond $P(t, T_n)$; forward rates $j \lt n$ have negative drift |
 | 28 | Why use terminal measure for Bermudans? | It can be convenient because the numeraire is a fixed final bond and the drift has a clean summation form; the best choice depends on implementation details. |
 | 29 | What is the ATM SABR vol formula (leading term)? | $\sigma^{\text{ATM}} \approx \alpha / F^{1-\beta}$ |
 | 30 | What is predictor-corrector in LMM simulation? | Two-step method: predict with current drift, correct using averaged drift |
@@ -1174,7 +1174,7 @@ This approximation is used as a starting point for LSM regression.
 | 38 | What is the co-terminal swaption problem? | Different swap rates can't all be lognormal under the same measure |
 | 39 | What causes CMS convexity? | Swap rate and its natural numeraire (annuity) are correlated |
 | 40 | How do you convert Black vol to Normal vol (ATM)? | $\sigma_N \approx \sigma_{\text{Black}} \times F$ |
-| 41 | What is "beta skew" in SABR? | Skew component from $\beta < 1$ (CEV effect), proportional to $(1-\beta)$ |
+| 41 | What is "beta skew" in SABR? | Skew component from $\beta \lt 1$ (CEV effect), proportional to $(1-\beta)$ |
 | 42 | What is "volga" in SABR context? | Smile curvature from vol-of-vol, proportional to $\nu^2$ |
 | 43 | Why calibrate to swaptions not just caps? | Swaptions contain information about rate correlations |
 | 44 | What is the standard correlation structure in LMM? | Exponential decay: $\rho_{jk} = e^{-\beta|j-k|}$ |
@@ -1188,19 +1188,19 @@ This approximation is used as a starting point for LSM regression.
 
 **Problem 1.** Derive the relationship between the forward rate $L_j(t)$ and zero-coupon bond prices. Show that $L_j(t)$ is a martingale under the $T_j$-forward measure $\mathbb{Q}^j$.
 
-**Problem 2.** A 6-month caplet has strike $K = 5\%$, forward rate $L = 5.2\%$, volatility $\sigma = 22\%$, discount factor $P(0, T_j) = 0.975$, and $\tau = 0.5$. Price the caplet using Black's formula.
+**Problem 2.** A 6-month caplet has strike $K = 5\\%$, forward rate $L = 5.2\\%$, volatility $\sigma = 22\\%$, discount factor $P(0, T_j) = 0.975$, and $\tau = 0.5$. Price the caplet using Black's formula.
 
 **Problem 3.** Explain why the LMM drift depends on rates $L_k$ for $k \leq j$ under the spot measure, but on rates $L_k$ for $k \geq j$ under the terminal measure.
 
-**Problem 4.** Given SABR parameters $\alpha = 0.3$, $\beta = 0.5$, $\rho = -0.25$, $\nu = 0.5$, with forward $F = 4\%$ and expiry $T = 2$ years, compute the ATM implied volatility (leading term only).
+**Problem 4.** Given SABR parameters $\alpha = 0.3$, $\beta = 0.5$, $\rho = -0.25$, $\nu = 0.5$, with forward $F = 4\\%$ and expiry $T = 2$ years, compute the ATM implied volatility (leading term only).
 
-**Problem 5.** A swaption is quoted at 75 bp normal vol. If the forward swap rate is $S = 3\%$ and expiry is 1 year, what is the approximate Black implied volatility?
+**Problem 5.** A swaption is quoted at 75 bp normal vol. If the forward swap rate is $S = 3\\%$ and expiry is 1 year, what is the approximate Black implied volatility?
 
 ### Intermediate Problems
 
 **Problem 6.** Using the Rebonato formula, show that if all forward rate volatilities are equal ($\sigma_j = \sigma$ for all $j$) and all correlations are 1, the swaption implied volatility equals the common forward volatility.
 
-**Problem 7.** Consider a shifted lognormal model with shift $s = 1.5\%$. If the current forward rate is $F = -0.5\%$, strike is $K = 0\%$, shifted Black vol is 35%, and $T = 0.5$ years:
+**Problem 7.** Consider a shifted lognormal model with shift $s = 1.5\\%$. If the current forward rate is $F = -0.5\\%$, strike is $K = 0\\%$, shifted Black vol is 35%, and $T = 0.5$ years:
    a) Compute the caplet price
    b) What is the equivalent normal volatility?
 
@@ -1261,7 +1261,7 @@ $$v_{a,b}^2 T_a = \sum_{j,k} w_j w_k \text{Cov}^{a,b}[\ln L_j(T_a), \ln L_k(T_a)
 
 ### Solution to Problem 2
 
-Given: $K = 5\%$, $L = 5.2\%$, $\sigma = 22\%$, $P(0, T_j) = 0.975$, $\tau = 0.5$, $T_{j-1} = 0.5$ (expiry).
+Given: $K = 5\\%$, $L = 5.2\\%$, $\sigma = 22\\%$, $P(0, T_j) = 0.975$, $\tau = 0.5$, $T_{j-1} = 0.5$ (expiry).
 
 $d_+ = \frac{\ln(0.052/0.05) + 0.5 \times 0.22^2 \times 0.5}{0.22\sqrt{0.5}} = \frac{0.0392 + 0.0121}{0.1556} = 0.330$
 
@@ -1270,11 +1270,11 @@ $d_- = 0.330 - 0.1556 = 0.174$
 $\Phi(0.330) = 0.629$, $\Phi(0.174) = 0.569$
 
 Caplet $= 0.5 \times 0.975 \times [0.052 \times 0.629 - 0.05 \times 0.569]$
-$= 0.4875 \times [0.0327 - 0.0285] = 0.4875 \times 0.0042 = 0.205\%$
+$= 0.4875 \times [0.0327 - 0.0285] = 0.4875 \times 0.0042 = 0.205\\%$
 
 ### Solution to Problem 4
 
-$\sigma^{\text{ATM}} \approx \frac{\alpha}{F^{1-\beta}} = \frac{0.3}{0.04^{0.5}} = \frac{0.3}{0.2} = 1.5 = 150\%$
+$\sigma^{\text{ATM}} \approx \frac{\alpha}{F^{1-\beta}} = \frac{0.3}{0.04^{0.5}} = \frac{0.3}{0.2} = 1.5 = 150\\%$
 
 (This is the leading term; the full formula would give a slightly different value including the time correction.)
 
@@ -1282,9 +1282,9 @@ $\sigma^{\text{ATM}} \approx \frac{\alpha}{F^{1-\beta}} = \frac{0.3}{0.04^{0.5}}
 
 ATM approximation: $\sigma_N \approx \sigma_{\text{Black}} \times S$
 
-$75 \text{ bp} = \sigma_{\text{Black}} \times 3\%$
+$75 \text{ bp} = \sigma_{\text{Black}} \times 3\\%$
 
-$\sigma_{\text{Black}} = 0.0075 / 0.03 = 0.25 = 25\%$
+$\sigma_{\text{Black}} = 0.0075 / 0.03 = 0.25 = 25\\%$
 
 ### Solution to Problem 6
 
