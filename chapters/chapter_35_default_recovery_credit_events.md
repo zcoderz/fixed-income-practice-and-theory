@@ -6,7 +6,7 @@
 
 When a credit analyst says "XYZ Corp has defaulted," what exactly does that mean? The answer is less obvious than it first appears—and getting it wrong can be extraordinarily expensive.
 
-Consider this scenario: a trader holds \$50 million notional of CDS protection on a distressed issuer. The reference entity's bonds have collapsed from 95 to 35, equity has cratered, and the financial press is full of restructuring speculation. The trader expects a windfall from the CDS protection. But weeks pass, and no payment arrives. The contract hasn't triggered because no **credit event**—the precise contractual definition that activates CDS protection—has yet occurred. Economic distress is not the same as a contractual trigger.
+Consider this scenario: a trader holds \mathrm{USD}\\,50 million notional of CDS protection on a distressed issuer. The reference entity's bonds have collapsed from 95 to 35, equity has cratered, and the financial press is full of restructuring speculation. The trader expects a windfall from the CDS protection. But weeks pass, and no payment arrives. The contract hasn't triggered because no **credit event**—the precise contractual definition that activates CDS protection—has yet occurred. Economic distress is not the same as a contractual trigger.
 
 This distinction between *economic* distress (what markets price continuously) and a *contractual* credit event (the legal trigger for CDS settlement) lies at the heart of credit derivatives. A CDS can remain "dormant" while spreads widen and bonds trade at distressed prices if the legally defined trigger has not occurred (or has not been noticed/settled under the contract process).
 
@@ -314,7 +314,7 @@ For a protection buyer hedging a particular security, the delivery-option value 
 
 **Check (toy example, hypothetical):** suppose you are hedging a bond quoted at 43 per 100, but after a restructuring another deliverable is quoted at 37. You can (i) sell the 43 bond, (ii) buy the 37 deliverable, and (iii) deliver the cheapest bond into physical settlement. The delivery option is worth about $43-37=6$ points per 100 (i.e., $6\%$ of notional).
 
-**Check (non-negativity and dollars):** For the protection buyer, the delivery option value is non-negative: you can always choose to deliver the cheapest eligible obligation available. In the toy example, “6 points” is $6\%$ of notional, so on $N=\$100\text{mm}$ the delivery-option value is about $\$6\text{mm}$.
+**Check (non-negativity and dollars):** For the protection buyer, the delivery option value is non-negative: you can always choose to deliver the cheapest eligible obligation available. In the toy example, “6 points” is $6\%$ of notional, so on $N=\mathrm{USD}\\,100\text{mm}$ the delivery-option value is about $\mathrm{USD}\\,6\text{mm}$.
 
 ### 35.5.6 Risk Scalars (Bump Object, Size, Units, Sign)
 
@@ -351,7 +351,7 @@ Even before you can do full CDS valuation, you should be able to define (and san
 - Cash settlement date: 2023-05-25 (hypothetical “several days later” date for the cashflow table)
 
 **Inputs**
-- Notional: $N=\$100{,}000{,}000$
+- Notional: $N=\mathrm{USD}\\,100{,}000{,}000$
 - Running spread: $S=90\text{ bp}=0.009$
 - Day count for accrual (example convention): ACT/360
 - Auction final price: $P=35$ per 100 $\Rightarrow R=0.35$, $LGD=0.65$
@@ -364,17 +364,17 @@ Even before you can do full CDS valuation, you should be able to define (and san
 
 **Step-by-step**
 1. Translate the auction price into recovery: $R=P/100=0.35$.
-2. Compute the protection payment: $N(1-R)=100{,}000{,}000\times 0.65=\$65{,}000{,}000$.
+2. Compute the protection payment: $N(1-R)=100{,}000{,}000\times 0.65=\mathrm{USD}\\,65{,}000{,}000$.
 3. Compute accrued premium from the last payment date to default: there are 61 days from 2023-03-20 to 2023-05-20, so $\alpha=61/360$.
-4. Accrued premium $=100{,}000{,}000 \times 0.009 \times (61/360)=\$152{,}500$.
-5. Net default cashflow to the protection buyer (ignoring discounting and settlement lag): $65{,}000{,}000-152{,}500=\$64{,}847{,}500$.
-6. Cashflow-level RecDV01 check: an absolute 1% decrease in recovery changes the protection payment by $+0.01N=+\$1{,}000{,}000$.
+4. Accrued premium $=100{,}000{,}000 \times 0.009 \times (61/360)=\mathrm{USD}\\,152{,}500$.
+5. Net default cashflow to the protection buyer (ignoring discounting and settlement lag): $65{,}000{,}000-152{,}500=\mathrm{USD}\\,64{,}847{,}500$.
+6. Cashflow-level RecDV01 check: an absolute 1% decrease in recovery changes the protection payment by $+0.01N=+\mathrm{USD}\\,1{,}000{,}000$.
 
 **Cashflows (table)**
 | Date | Cashflow (protection buyer) | Explanation |
 |---|---:|---|
-| 2023-05-25 | $+\$65{,}000{,}000$ | Cash-settled protection payment $N(1-R)$ |
-| 2023-05-25 | $-\$152{,}500$ | Accrued premium from 2023-03-20 to 2023-05-20 (ACT/360) |
+| 2023-05-25 | $+\mathrm{USD}\\,65{,}000{,}000$ | Cash-settled protection payment $N(1-R)$ |
+| 2023-05-25 | $-\mathrm{USD}\\,152{,}500$ | Accrued premium from 2023-03-20 to 2023-05-20 (ACT/360) |
 
 **P&L / Risk Interpretation**
 - The protection payment is the “big number”; the accrued premium is a small but real settlement item.
@@ -400,8 +400,8 @@ Reduced-form (hazard-rate) models are the workhorse for CDS valuation (Chapter 3
 
 Let $V_T$ be the firm’s asset value at time $T$, and let $D$ be the debt repayment due at $T$. A simple default rule is:
 
-- If $V_T < D$, default is rational and equity is worth 0.
-- If $V_T > D$, the firm repays debt and equity holders receive $V_T-D$.
+- If $V_T\lt D$, default is rational and equity is worth 0.
+- If $V_T\gt D$, the firm repays debt and equity holders receive $V_T-D$.
 
 So the equity payoff is:
 
@@ -423,7 +423,7 @@ The debt value in this simple setup is $V_0-E_0$.
 
 This is not how CDS curves are built in practice, but it explains why equity and credit move together: both are claims on the same underlying asset value.
 
-**Check (distance-to-default intuition):** In this setup, default occurs when $V_T<D$. The term $d_2$ is often interpreted as a “distance to default”: larger $V_0$ (all else equal) increases $d_2$ and makes default less likely; higher asset volatility $\sigma_V$ tends to reduce $d_2$ and make default more likely even while it increases the option value of equity. This is one reason equity volatility and credit spreads often co-move.
+**Check (distance-to-default intuition):** In this setup, default occurs when $V_T\lt D$. The term $d_2$ is often interpreted as a “distance to default”: larger $V_0$ (all else equal) increases $d_2$ and makes default less likely; higher asset volatility $\sigma_V$ tends to reduce $d_2$ and make default more likely even while it increases the option value of equity. This is one reason equity volatility and credit spreads often co-move.
 
 ### 35.6.3 Check: Limiting Cases (Intuition)
 
@@ -529,15 +529,15 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 ## Mini Problem Set
 
-**1. Protection payment.** A CDS has notional $\$25{,}000{,}000$ and recovery $R=0.35$. Compute the cash-settled protection payment.
+**1. Protection payment.** A CDS has notional $\mathrm{USD}\\,25{,}000{,}000$ and recovery $R=0.35$. Compute the cash-settled protection payment.
 
-**2. Accrued premium.** Notional $\$50{,}000{,}000$, running spread 150 bp, 40 days since the last premium date on ACT/360. Compute accrued premium due on default.
+**2. Accrued premium.** Notional $\mathrm{USD}\\,50{,}000{,}000$, running spread 150 bp, 40 days since the last premium date on ACT/360. Compute accrued premium due on default.
 
-**3. Delivery option.** Two deliverables are quoted at 45 and 38 per 100 after a restructuring. Notional $\$10{,}000{,}000$. Compute the delivery-option value (in dollars).
+**3. Delivery option.** Two deliverables are quoted at 45 and 38 per 100 after a restructuring. Notional $\mathrm{USD}\\,10{,}000{,}000$. Compute the delivery-option value (in dollars).
 
-**4. JTD (cash approximation).** You are a protection buyer with notional $\$100{,}000{,}000$, recovery $R=0.35$, running spread 200 bp, and 30 days of premium accrued (ACT/360). Approximate $JTD \approx N(1-R)-N S \alpha$.
+**4. JTD (cash approximation).** You are a protection buyer with notional $\mathrm{USD}\\,100{,}000{,}000$, recovery $R=0.35$, running spread 200 bp, and 30 days of premium accrued (ACT/360). Approximate $JTD \approx N(1-R)-N S \alpha$.
 
-**5. Recovery DV01 (cash check).** For a cash-settled CDS with notional $\$100{,}000{,}000$, what is the change in the protection payment for an absolute 1% decrease in recovery?
+**5. Recovery DV01 (cash check).** For a cash-settled CDS with notional $\mathrm{USD}\\,100{,}000{,}000$, what is the change in the protection payment for an absolute 1% decrease in recovery?
 
 **6. Concept (soft vs hard).** Why is restructuring “soft,” and why does that make settlement/delivery more complicated?
 
@@ -549,11 +549,11 @@ This is not how CDS curves are built in practice, but it explains why equity and
 
 ### Solution Sketches (Selected)
 
-**1.** $25{,}000{,}000\times(1-0.35)=\$16{,}250{,}000$.
+**1.** $25{,}000{,}000\times(1-0.35)=\mathrm{USD}\\,16{,}250{,}000$.
 
-**2.** $\alpha=40/360$. Accrued $=50{,}000{,}000\times 0.015\times (40/360)=\$83{,}333$ (rounded).
+**2.** $\alpha=40/360$. Accrued $=50{,}000{,}000\times 0.015\times (40/360)=\mathrm{USD}\\,83{,}333$ (rounded).
 
-**3.** Difference $=7$ points per 100 $\Rightarrow 0.07\times 10{,}000{,}000=\$700{,}000$.
+**3.** Difference $=7$ points per 100 $\Rightarrow 0.07\times 10{,}000{,}000=\mathrm{USD}\\,700{,}000$.
 
 **7.** Two drivers: (i) default rates vary over time (systematic risk/default clustering), and (ii) spreads can include non-default components such as liquidity premia and taxes.
 
