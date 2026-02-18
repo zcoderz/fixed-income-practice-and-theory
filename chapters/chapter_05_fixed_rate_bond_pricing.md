@@ -53,9 +53,9 @@ $$\boxed{\text{Cpn} = \frac{Fc}{m}}$$
 
 And the cashflow schedule is:
 
-$$\text{CF}_i = \begin{cases}
-\text{Cpn}, & i = 1, \ldots, N-1 \\
-\text{Cpn} + F, & i = N
+$$CF_i = \begin{cases}
+\mathrm{Cpn}, & i = 1, \ldots, N-1 \\
+\mathrm{Cpn} + F, & i = N
 \end{cases}$$
 
 The final cashflow bundles the last coupon with the principal repayment.
@@ -72,8 +72,8 @@ Setting $c = 0$ produces a zero-coupon bond: all intermediate cashflows vanish, 
 >
 > A coupon bond is not a single instrument. It is just a "stapler" holding together a bag of different zero-coupon bonds.
 > *   **$F=100$, 5% Coupon, 10-Year Bond** =
->     *   20 small coupons (each is a $2.50 zero-coupon bond).
->     *   1 large principal repayment (a $100 zero-coupon bond).
+>     *   20 small coupons (each is a \$2.50 zero-coupon bond).
+>     *   1 large principal repayment (a \$100 zero-coupon bond).
 >
 > **The Insight**: You don't price "The Bond." You price the 21 individual zeroes using their specific discount factors, then add them up. A bond is just a portfolio.
 
@@ -89,7 +89,7 @@ Chapter 2 introduced the discount factor $P(0,t)$ as the present value today of 
 
 This means we can value a bond by decomposing it into its component cashflows and pricing each separately. The total price is simply the sum of the present values of all future cashflows:
 
-$$\boxed{P_{\text{dirty}} = \sum_{i=1}^{N} \text{CF}_i \cdot P(0, t_i)}$$
+$$\boxed{P_{\text{dirty}} = \sum_{i=1}^{N} CF_i \cdot P(0, t_i)}$$
 
 where $t_i$ is the time (in years) from the valuation date to payment date $T_i$.
 
@@ -142,9 +142,9 @@ A fundamental relationship connects the bond's coupon rate to its price relative
 
 | Condition | Bond Type | Price |
 |-----------|-----------|-------|
-| Coupon > Market Yield | **Premium** | $P > 100$ |
+| Coupon > Market Yield | **Premium** | $P \gt 100$ |
 | Coupon = Market Yield | **Par** | $P = 100$ |
-| Coupon < Market Yield | **Discount** | $P < 100$ |
+| Coupon < Market Yield | **Discount** | $P \lt 100$ |
 
 **Why this holds:** If a bond's coupon is higher than current market rates, investors are willing to pay more than $100 for the stream of above-market payments. Conversely, if the coupon is below market rates, the bond must sell below $100 to compensate buyers for the sub-market cashflows.
 
@@ -304,9 +304,9 @@ This example uses a concrete Treasury-style schedule to make the day count and d
 1. **Days in period ($d_{\text{period}}$):** From January 31 to July 31 is 181 days.
 2. **Days elapsed ($d_{\text{elapsed}}$):** From January 31 to February 15 is 15 days.
 3. **Accrual Fraction:** $15 / 181 = 0.08287$.
-4. **Accrued Interest per $100 face:**
+4. **Accrued Interest per \$100 face:**
    $$\text{AI} = \frac{15}{181} \times 2.75 = 0.2279$$
-5. **Accrued Interest per $10,000 face:** $0.2279 \times 100 = \$22.79$
+5. **Accrued Interest per \$10,000 face:** $0.2279 \times 100 = 22.79\ \text{USD}$
 
 Interpretation: the buyer pays \$22.79 of accrued interest at settlement, and then keeps the entire \$275 coupon payment when it is paid on July 31, 2001.
 
@@ -316,7 +316,7 @@ Corporate and municipal bonds in the United States typically use the **30/360** 
 
 The general formula for counting days between dates $(Y_1, M_1, D_1)$ and $(Y_2, M_2, D_2)$ is:
 
-$$\boxed{\text{Days}_{30/360} = 360(Y_2 - Y_1) + 30(M_2 - M_1) + (D_2 - D_1)}$$
+$$\boxed{Days_{30/360} = 360(Y_2 - Y_1) + 30(M_2 - M_1) + (D_2 - D_1)}$$
 
 with standard adjustments at month boundaries (if $D_1 = 31$, set $D_1 = 30$; similar for $D_2$ depending on $D_1$).
 
@@ -328,7 +328,7 @@ Let:
 
 Then (per $100$ face value):
 
-$$\boxed{\text{AI}_{30/360} = \frac{d_{\text{elapsed}}^{30/360}}{d_{\text{period}}^{30/360}} \times \text{Cpn}}$$
+$$\boxed{AI_{30/360} = \frac{d_{\text{elapsed}}^{30/360}}{d_{\text{period}}^{30/360}} \times \mathrm{Cpn}}$$
 
 where $\text{Cpn} = 100 \times c / 2$ for a semiannual coupon bond.
 
@@ -336,7 +336,7 @@ where $\text{Cpn} = 100 \times c / 2$ for a semiannual coupon bond.
 
 Actual/Actual (in period) and 30/360 can produce different accrued interest, especially around month boundaries.
 
-**Example: March 1 to July 3, 8% annual coupon ($4 semiannual)**
+**Example: March 1 to July 3, 8% annual coupon (\$4 semiannual)**
 
 | Convention | Days Elapsed | Days in Period | Accrued Interest |
 |------------|--------------|----------------|------------------|
@@ -368,7 +368,7 @@ All else equal, the corporate bond accrues about three times as much interest ov
 - Denominator: 180 (always, for semiannual)
 - AI = $(90/180) \times 3.00 = 1.5000$
 
-**Difference:** The 30/360 convention produces 1.65 cents more AI per $100 face. On $100 million notional, this is $16,500—material for settlement purposes.
+**Difference:** The 30/360 convention produces 1.65 cents more AI per \$100 face. On $100 million notional, this is $16,500—material for settlement purposes.
 
 > **Desk Reality: Day Count Mismatch P&L Breaks**
 >
@@ -404,8 +404,8 @@ For finer precision, markets use **half-ticks** (indicated by "+") representing 
 **Inputs:**
 - **Bond:** 5 1/2s of January 31, 2003
 - **Quote:** "101-04 5/8" (which is 101-4.625)
-- **Accrued Interest:** $0.2279$ per $100 face (from previous example)
-- **Face Amount:** $10,000
+- **Accrued Interest:** \$0.2279$ per $100 face (from previous example)
+- **Face Amount:** \$10,000
 
 **Step 1: Convert Quote to Decimal Clean Price**
 $$P_{\text{clean}} = 101 + \frac{4.625}{32} = 101 + 0.14453125 = 101.14453125$$
@@ -415,9 +415,9 @@ $$P_{\text{dirty}} = 101.14453125 + 0.2279 = 101.37243125$$
 
 **Step 3: Calculate Invoice Amount**
 For $10,000 face value (which is 100 "units" of $100 par):
-$$\text{Invoice} = 100 \times 101.37243125 = \$10,137.24$$
+$$\text{Invoice} = 100 \times 101.37243125 = 10{,}137.24\ \text{USD}$$
 
-In this example, the invoice cash amount is $10,137.24.
+In this example, the invoice cash amount is \$10,137.24.
 
 ### 5.6.3 Tick Value and P&L Calculation
 
@@ -425,8 +425,8 @@ Every trader needs to know how much money a tick move represents. The **tick val
 
 $$\boxed{\text{Tick Value} = \frac{\text{Notional}}{100} \times \frac{1}{32}}$$
 
-**For $100 million notional:**
-$$\text{Tick Value} = \frac{\$100,000,000}{100} \times \frac{1}{32} = \$1,000,000 \times 0.03125 = \$31,250$$
+**For \$100 million notional:**
+$$\text{Tick Value} = \frac{100{,}000{,}000}{100} \times \frac{1}{32} = 1{,}000{,}000 \times 0.03125 = 31{,}250\ \text{USD}$$
 
 > **Desk Reality: The Handle Game**
 >
@@ -443,7 +443,7 @@ $$\text{Tick Value} = \frac{\$100,000,000}{100} \times \frac{1}{32} = \$1,000,00
 
 ### 5.6.4 Worked Example F: P&L Calculation
 
-**Scenario:** You're long $50 million face value of Treasuries at 99-16. The price moves to 99-20.
+**Scenario:** You're long \$50 million face value of Treasuries at 99-16. The price moves to 99-20.
 
 **Price Change:**
 - Entry: 99-16 = 99.50
@@ -451,18 +451,18 @@ $$\text{Tick Value} = \frac{\$100,000,000}{100} \times \frac{1}{32} = \$1,000,00
 - Change: +4 ticks
 
 **P&L Calculation:**
-$$\text{Tick Value}_{50mm} = \frac{\$50,000,000}{100} \times \frac{1}{32} = \$15,625$$
+$$TV_{50mm} = \frac{50{,}000{,}000}{100} \times \frac{1}{32} = 15{,}625\ \text{USD}$$
 
-$$\text{P\&L} = 4 \text{ ticks} \times \$15,625 = \$62,500$$
+$$\mathrm{PnL} = 4 \text{ ticks} \times 15{,}625 = 62{,}500\ \text{USD}$$
 
 **Quick Reference Table: P&L per Tick by Notional**
 
 | Notional | Tick Value | 5-Tick Move |
 |----------|------------|-------------|
-| $10mm | $3,125 | $15,625 |
-| $50mm | $15,625 | $78,125 |
-| $100mm | $31,250 | $156,250 |
-| $500mm | $156,250 | $781,250 |
+| \$10mm | $3,125 | $15,625 |
+| \$50mm | $15,625 | $78,125 |
+| \$100mm | $31,250 | $156,250 |
+| \$500mm | $156,250 | $781,250 |
 
 > **Practitioner Note:** Electronic trading platforms sometimes quote in 1/64ths (half-ticks) or even 1/128ths (quarter-ticks) for highly liquid on-the-run issues. The tick value scales accordingly: a 1/64th on $100mm is $15,625.
 
@@ -483,7 +483,7 @@ This inverse relationship is the most fundamental property of fixed-income risk.
 Cashflows further in the future are more sensitive to rate changes than near-term cashflows. This is because the discounting effect compounds over time.
 
 **Sensitivity Check:**
-Consider two cashflows, each of $100:
+Consider two cashflows, each of \$100:
 1. Payment in 6 months ($t=0.5$)
 2. Payment in 10 years ($t=10$)
 
@@ -515,14 +515,14 @@ $$\boxed{DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})}$$
 
 For a curve-based PV computed from discount factors, that definition becomes a simple “bump-and-reprice” difference:
 
-$$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \;-\; \sum_{i=1}^{N} CF_i\,P(0,t_i)}$$
+$$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \\;-\\; \sum_{i=1}^{N} CF_i\,P(0,t_i)}$$
 
 **Scaling:** if PV is expressed per $100$ face, multiply by $N/100$ to convert to a notional-$N$ dollar DV01.
 
 **Worked Example (House Template): Quote → Invoice → PV → DV01 (1-Year Note)**
 
 **Context**
-- You are buying $50mm face of a coupon-bearing Treasury note. You need the invoice cash amount, the PV (dirty price), and a one-number rate risk.
+- You are buying \$50mm face of a coupon-bearing Treasury note. You need the invoice cash amount, the PV (dirty price), and a one-number rate risk.
 
 **Timeline (dates are simplified; ignore business-day adjustments)**
 - Trade date: 2026-02-13
@@ -548,20 +548,20 @@ $$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \;-\; \sum
 
 **Step-by-step**
 1. **Quote → decimal clean price**
-   $$P_{\\text{clean}} = 101 + \\frac{12}{32} = 101.3750$$
+   $$P_{\text{clean}} = 101 + \frac{12}{32} = 101.3750$$
 2. **Coupon per period (per $100$ face)**
    $$\text{Cpn} = 100\times \frac{c}{2} = 2.00$$
 3. **Accrued interest to settlement (per $100$ face)**
    $$AI = \frac{32}{181}\times 2.00 = 0.3536$$
 4. **Dirty price and invoice cash amount**
    $$P_{\text{dirty}} = P_{\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
-   $$\text{Invoice} = \frac{N}{100}\times P_{\text{dirty}} = 500{,}000\times 101.7286 = \$50{,}864{,}300$$
+   $$\text{Invoice} = \frac{N}{100}\times P_{\text{dirty}} = 500{,}000\times 101.7286 = \\$50{,}864{,}300$$
 5. **PV from discount factors (per $100$ face)**
    - Cashflows: $CF_1=2.00$ (2026-07-15), $CF_2=102.00$ (2027-01-15)
    $$PV = 2.00(0.9900) + 102.00(0.977927) \approx 101.7286$$
 6. **DV01 (per $100$ face, then scaled to notional)**
    $$DV01_{\text{per }100} = \left[2.00(0.9900404)+102.00(0.9780162)\right]-\left[2.00(0.9900)+102.00(0.977927)\right]\approx 0.00918$$
-   $$DV01_{\$50mm} \approx 0.00918\times 500{,}000 = \$4{,}591 \text{ per bp}$$
+   $$DV01_{50mm} \approx 0.00918\times 500{,}000 = 4{,}591\ \text{USD per bp}$$
 
 **Cashflows (per $100$ face)**
 | Date | Cashflow | Explanation |
@@ -570,13 +570,13 @@ $$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \;-\; \sum
 | 2027-01-15 | 102.00 | coupon + principal |
 
 **P&L / Risk Interpretation**
-- If the discounting curve shifts down by 1 bp (our bump object), the position's PV increases by about $\\$4.6k$; a +1 bp move decreases PV by about $\\$4.6k$.
+- If the discounting curve shifts down by 1 bp (our bump object), the position's PV increases by about $4.6\text{k USD}$; a +1 bp move decreases PV by about $4.6\text{k USD}$.
 - Clean-vs-dirty matters for *cash settlement* (invoice) and for *daily P&L explain* (clean price moves vs accrued interest carry).
 
 **Sanity Checks**
-- $0 \\le AI < \\text{Cpn}$: $0.3536 < 2.00$.
+- $0 \le AI \lt \text{Cpn}$: $0.3536 \lt 2.00$.
 - Units: prices are per $100$; invoice scales by $N/100$; DV01 is USD per 1bp for the stated bump object.
-- Sign: with the book convention, a long bond has $DV01>0$.
+- Sign: with the book convention, a long bond has $DV01 \gt 0$.
 
 ---
 
@@ -604,7 +604,7 @@ The accrued interest calculation also uses the stub period length.
 
 ### 5.8.4 Worked Example G: Short First Coupon
 
-**Scenario:** A 5% semiannual bond is issued March 1, with regular coupon dates of August 15 and February 15. Settlement is March 15.
+**Scenario:** A 5\% semiannual bond is issued March 1, with regular coupon dates of August 15 and February 15. Settlement is March 15.
 
 **Stub Analysis:**
 - Issue date: March 1
@@ -646,7 +646,7 @@ One important driver is *financing mechanics*: when a trader is short an on-the-
 
 A simple financing interpretation in the context of specials: if the bond cannot be borrowed, the trader fails to deliver and does not receive the proceeds from the sale. In effect, the trader loses (at least) a day of interest on those proceeds.
 
-If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\\%$, earning $0\\%$ on proceeds is economically similar to failing to deliver.
+If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\%$, earning $0\%$ on proceeds is economically similar to failing to deliver.
 
 > **Desk Reality:** Fails are not just an ops nuisance; they change the *cash timeline*.
 > **Common break:** P&L explain shows an unexpected funding/carry gap around settlement when deliveries slip.
@@ -692,10 +692,10 @@ Any pricing engine should pass these checks:
 | **Zero Coupon** | If coupon $c=0$ | Price = $F \times P(0, T_N)$ |
 | **Par Check** | Coupon = par yield, at coupon date (AI=0) | Dirty price = 100.00 |
 | **Continuity** | Price across coupon date | Clean price continuous; dirty drops by coupon |
-| **AI Bounds** | Accrued interest | $0 \le \text{AI} < \text{Coupon}$ |
+| **AI Bounds** | Accrued interest | $0 \le \text{AI} \lt \text{Coupon}$ |
 | **AI Sums** | Daily AI over full period | Should sum to full coupon |
 | **Premium/Discount** | Coupon > yield | Price > 100 |
-| **Zero AI Bond** | 0% coupon bond | AI = 0 always |
+| **Zero AI Bond** | 0\% coupon bond | AI = 0 always |
 | **32nds Conversion** | "100-16" | = 100.50 (not 100.16) |
 
 ---
@@ -704,7 +704,7 @@ Any pricing engine should pass these checks:
 
 1. **A bond is a cashflow schedule.** It consists of known coupon payments ($Fc/m$) and a final principal payment ($F$).
 
-2. **Value equals discounted cashflows.** The **law of one price** dictates that $P_{\text{dirty}} = \sum \text{CF}_i \times P(0, t_i)$.
+2. **Value equals discounted cashflows.** The **law of one price** dictates that $P_{\text{dirty}} = \sum CF_i \times P(0, t_i)$.
 
 3. **Curve-based pricing discounts cashflows date-by-date.** Use maturity-specific discount factors (or spot/zero rates) for each payment date. Yield-to-maturity is a one-number IRR summary, not a curve primitive.
 
@@ -718,7 +718,7 @@ Any pricing engine should pass these checks:
 
 8. **Premium bonds have coupon > yield; discount bonds have coupon < yield.** Par bonds have coupon = yield and trade at 100. All bonds "pull to par" over time.
 
-9. **Rates risk needs an explicit bump definition.** Use DV01 with a stated bump object, units, and sign (in this book: $DV01 := PV(\\text{rates down }1\\text{bp})-PV(\\text{base})$).
+9. **Rates risk needs an explicit bump definition.** Use DV01 with a stated bump object, units, and sign (in this book: $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$).
 
 10. **Edge cases require care.** Stub periods need explicit accrual logic; settlement fails change the cash timeline (and therefore funding/carry); defaulted bonds may trade flat.
 
@@ -728,8 +728,8 @@ Any pricing engine should pass these checks:
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **Cashflow Schedule** | The series of future dates and amounts ($T_i, \text{CF}_i$) a bond promises to pay. | The starting point for all valuation. |
-| **Discount Factor** | The value today of $1 at a future date $t$. | Converts future cashflows to present value. |
+| **Cashflow Schedule** | The series of future dates and amounts ($T_i, CF_i$) a bond promises to pay. | The starting point for all valuation. |
+| **Discount Factor** | The value today of \$1 at a future date $t$. | Converts future cashflows to present value. |
 | **Dirty (Invoice) Price** | PV of all future cashflows. | The actual money transferred at settlement. |
 | **Clean (Quoted) Price** | Dirty Price minus Accrued Interest. | Removes accrual drift for price comparison. |
 | **Accrued Interest (AI)** | Pro-rata share of the next coupon earned since the last payment. | Compensates seller for holding time. |
@@ -771,7 +771,7 @@ Any pricing engine should pass these checks:
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is the fundamental formula for bond pricing? | $P_{\text{dirty}} = \sum \text{CF}_i \cdot P(0, t_i)$ |
+| 1 | What is the fundamental formula for bond pricing? | $P_{\text{dirty}} = \sum CF_i \cdot P(0, t_i)$ |
 | 2 | What is the relationship between clean and dirty price? | Dirty = Clean + Accrued Interest |
 | 3 | Which price do traders usually quote? | Clean price |
 | 4 | Which price is actually paid at settlement? | Dirty (Invoice) price |
@@ -801,23 +801,23 @@ Any pricing engine should pass these checks:
 
 **Problem 1 (Easy):** A Treasury is quoted at **98-24**. Convert to decimal.
 
-**Problem 2 (Easy):** Calculate the semiannual coupon payment for a $10,000 face value bond with a 4.50% coupon.
+**Problem 2 (Easy):** Calculate the semiannual coupon payment for a \$10,000 face value bond with a 4.50\% coupon.
 
 **Problem 3 (Easy):** A bond is settled with 60 days elapsed since the last coupon. The full coupon period is 182 days. The semiannual coupon payment is $3.00 per $100 face. Calculate the Accrued Interest using Actual/Actual.
 
 **Problem 4 (Medium):** Discount factors are: $P(0.5)=0.98$, $P(1.0)=0.96$. A bond pays $5 in 6 months and $105 in 1 year. Calculate the dirty price.
 
-**Problem 5 (Medium):** Compare accrued interest using Actual/Actual vs 30/360 for a 6% annual coupon bond, with previous coupon March 1 and settlement April 15. Assume the coupon period is March 1 to September 1 (184 actual days).
+**Problem 5 (Medium):** Compare accrued interest using Actual/Actual vs 30/360 for a 6\% annual coupon bond, with previous coupon March 1 and settlement April 15. Assume the coupon period is March 1 to September 1 (184 actual days).
 
-**Problem 6 (Medium):** You're long $100 million face value of Treasuries. The price moves from 101-08 to 101-13. Calculate your P&L.
+**Problem 6 (Medium):** You're long \$100 million face value of Treasuries. The price moves from 101-08 to 101-13. Calculate your P&L.
 
-**Problem 7 (Medium):** A new-issue bond has a short first coupon period of 120 days (regular period = 180 days). If the regular semiannual coupon is $2.50, what is the first coupon payment?
+**Problem 7 (Medium):** A new-issue bond has a short first coupon period of 120 days (regular period = 180 days). If the regular semiannual coupon is \$2.50, what is the first coupon payment?
 
 **Problem 8 (Analysis):** Explain why a premium bond's price converges to par as maturity approaches, even if yields don't change.
 
 **Problem 9 (Verification):** Your system shows accrued interest of $3.50 for a bond with a semiannual coupon of $3.00. What's wrong?
 
-**Problem 10 (Application):** A Treasury sale fails to settle for 3 days, so you do not receive $50mm of proceeds until 3 days later. Using a 3.00% p.a. funding rate on an Act/360 basis, what is the approximate interest you missed?
+**Problem 10 (Application):** A Treasury sale fails to settle for 3 days, so you do not receive \$50mm of proceeds until 3 days later. Using a 3.00\% p.a. funding rate on an Act/360 basis, what is the approximate interest you missed?
 
 **Problem 11 (Analysis):** Why can curve-based pricing differ from yield-based pricing when the yield curve is not flat?
 
@@ -829,7 +829,7 @@ Any pricing engine should pass these checks:
 
 **1.** $98 + 24/32 = 98.75$
 
-**2.** $10,000 \times 0.045 / 2 = \$225$
+**2.** $10,000 \times 0.045 / 2 = 225\ \text{USD}$
 
 **3.** $\text{AI} = (60/182) \times 3.00 = 0.989$
 
@@ -840,19 +840,19 @@ Any pricing engine should pass these checks:
 - 30/360: Days = $30 + 14 = 44$. AI = $(44/180) \times 3.00 = 0.7333$
 - Difference: negligible in this case.
 
-**6.** Price change = 5 ticks. Tick value = $31,250. P&L = $5 \times 31,250 = \$156,250$ (profit)
+**6.** Price change = 5 ticks. Tick value = 31,250 USD. P&L = $5 \times 31,250 = 156{,}250\ \text{USD}$ (profit)
 
-**7.** First coupon = $2.50 \times (120/180) = \$1.6667$
+**7.** First coupon = $2.50 \times (120/180) = 1.6667\ \text{USD}$
 
 **8.** The premium reflects the PV of above-market coupons. As maturity approaches, fewer above-market coupons remain, so their PV decreases. At maturity, no coupons remain and the bond pays exactly par.
 
-**9.** AI cannot exceed the coupon amount. $3.50 > 3.00$ violates the bound check. Either the AI calculation is wrong (day count error) or the coupon amount is wrong.
+**9.** AI cannot exceed the coupon amount. $3.50 \gt 3.00$ violates the bound check. Either the AI calculation is wrong (day count error) or the coupon amount is wrong.
 
-**10.** Missed interest $\approx 50{,}000{,}000 \times 0.03 \times 3/360 = \$12{,}500$.
+**10.** Missed interest $\approx 50{,}000{,}000 \times 0.03 \times 3/360 = 12{,}500\ \text{USD}$.
 
 **11.** Curve-based pricing discounts each cashflow at its own maturity (via discount factors / spot rates). A single YTM is an IRR chosen to match the bond's price; it does not, in general, discount every cashflow correctly unless the curve is flat (or the cashflow timing happens to align).
 
-**12.** Clean = $101 + 4.625/32 = 101.1445$. Dirty = $101.1445 + 0.2279 = 101.3724$. Invoice on $10,000 face = $101.3724 \times 100 = \$10,137.24$
+**12.** Clean = 101 + 4.625/32 = 101.1445. Dirty = $101.1445 + 0.2279 = 101.3724$. Invoice on $10,000$ face = $101.3724 \times 100 = 10{,}137.24\ \text{USD}$.
 
 ---
 

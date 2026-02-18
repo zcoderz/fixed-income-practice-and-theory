@@ -173,6 +173,24 @@ If something is unclear or you can’t retrieve strong evidence from `books_rag`
 - **Practicality**: include “desk reality” failure modes (but only when evidence exists; otherwise request inputs).
 - **Consistency**: reuse the same definitions across chapters (DV01 sign, clean/dirty, day counts, etc.). When introducing DV01/PV01/CS01, always state bump object, bump size, units, and sign.
 
+## GitHub Math Rendering Guardrails (Mandatory)
+
+- Use inline math as `$...$`; use display math as `$$ ... $$` with blank lines around blocks.
+- Avoid raw `<` and `>` in math; use `\lt`, `\gt`, `\le`, `\ge`.
+- Do not use `\operatorname{...}`; use `\mathrm{...}` or plain symbols.
+- Avoid risky macro+subscript forms like `\text{X}_{i}`; prefer `X_i` or plain identifiers.
+- Avoid escaped dollar `\$` inside math expressions; move currency outside math or write `USD`.
+- Avoid math inside markdown emphasis like `*...$...$...*`.
+- Avoid fragile inline math in headings; prefer plain-text heading labels.
+- Prefer stable symbols in prose where possible (use backticks for identifiers when math is not necessary).
+- Be careful with math inside blockquotes, lists, and tables; if renderer is fragile, rewrite to inline/plain text.
+- After every file edit, run:
+  - `python3 refactor_plan/github_math_escape_validate.py --paths <file> --max-errors 300`
+  - `.venv-github-render/bin/python refactor_plan/mathjax_render_check.py --paths <file> --max-errors 300`
+- After push, run:
+  - `python3 refactor_plan/github_api_render_validate.py --paths <file> --ref main --max-errors 300`
+- A file is only done when `github_api_render_validate.py` returns `OK`.
+
 ## Skills (session-level instructions)
 
 The following “skills” may be available in the Codex environment. Use them when the user request matches the description.

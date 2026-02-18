@@ -30,7 +30,7 @@ We work primarily in a **single-curve setting** for pedagogy. The multi-curve re
 
 ## Learning Objectives
 - Translate a money-market quote (deposit, bill discount yield, FRA, Fed Funds futures) into cashflows or implied rates and then into discount factors.
-- Use the simple-forward identity to move between discount factors and forward rates with an explicit year-fraction \(\tau(\cdot,\cdot)\).
+- Use the simple-forward identity to move between discount factors and forward rates with an explicit year-fraction $\tau(\cdot,\cdot)$.
 - Explain the operational meaning of “fixed in advance” vs “fixed in arrears” and why it matters for cash management.
 - Compute and interpret a 1bp PV sensitivity with an explicit bump object, units, and sign convention.
 - Spot and avoid the most common front-end breaks (day count, yield convention, averaging/compounding, and “what is being bumped?”).
@@ -181,10 +181,10 @@ This distinction matters for basis calculations between Fed Funds futures and co
 
 **Expand (why they differ):** arithmetic averaging adds up rates; geometric averaging multiplies **growth factors**. The difference is “interest-on-interest.” If day fractions are tiny (overnight accruals), the gap is usually small—but it is systematic: with positive rates, compounding makes the geometric return slightly larger than the simple sum of daily interest.
 
-> **Check (toy numbers):** take two equal subperiods of length 0.5 years with simple rates 10% then 20%.
+> **Check (toy numbers):** take two equal subperiods of length 0.5 years with simple rates 10\% then 20\%.
 >
-> - **Geometric/compounded return:** $(1+0.10\times 0.5)(1+0.20\times 0.5)-1 = 1.05\times 1.10 - 1 = 15.5\%$ over the full year.
-> - **Arithmetic-average rate:** the average rate is $(10\%+20\%)/2 = 15\%$, which would imply $15\%$ simple interest over one year.
+> - **Geometric/compounded return:** $(1+0.10\times 0.5)(1+0.20\times 0.5)-1 = 1.05\times 1.10 - 1 = 15.5\\%$ over the full year.
+> - **Arithmetic-average rate:** the average rate is $(10\\%+20\\%)/2 = 15\\%$, which would imply $15\\%$ simple interest over one year.
 >
 > Same underlying daily rates, different aggregation rules → different “period rate” numbers. This is one reason a futures contract on an **arithmetic average** is not the same object as a compounded-in-arrears RFR leg.
 
@@ -223,9 +223,9 @@ For pedagogical examples in this chapter, we ignore spot lags and assume year fr
 > **Repo 101: The Plumbing of Wall Street**
 >
 > A **Repurchase Agreement (Repo)** is legally a *sale* and a *repurchase*, but economically a **collateralized loan**.
-> *   **Leg 1**: I sell you a Treasury bond for $100 today.
-> *   **Leg 2**: I agree to buy it back tomorrow for $100.01.
-> *   **Economics**: I borrowed $100 from you overnight at a 1bp interest rate, using the bond as collateral.
+> *   **Leg 1**: I sell you a Treasury bond for \$100 today.
+> *   **Leg 2**: I agree to buy it back tomorrow for \$100.01.
+> *   **Economics**: I borrowed \$100 from you overnight at a 1bp interest rate, using the bond as collateral.
 >
 > Repo rates (like SOFR) form the bedrock of the modern "Tier 3" secured funding market. Full coverage of repo mechanics is in Chapter 9.
 
@@ -237,18 +237,18 @@ Some money-market instruments (including US T-bills) are quoted using a discount
 >
 > Why do we have two yields? Because we are comparing "Apples to Oranges".
 >
-> *   **Discount Yield (The "Discount")**: "I take 2% off the top."
+> *   **Discount Yield (The "Discount")**: "I take 2\% off the top."
 >     *   Base: **Face Value** ($F$).
 >     *   Math: $\frac{D}{F}$.
->     *   Example: Pay 98, Get 100. Yield = 2/100 = 2%.
-> *   **Investment Yield (The "Return")**: "I add 2% to the bottom."
+>     *   Example: Pay 98, Get 100. Yield = 2/100 = 2\%.
+> *   **Investment Yield (The "Return")**: "I add 2\% to the bottom."
 >     *   Base: **Price Paid** ($P$).
 >     *   Math: $\frac{D}{P}$.
->     *   Example: Pay 98, Get 100. Return = 2/98 = 2.04%.
+>     *   Example: Pay 98, Get 100. Return = 2/98 = 2.04\%.
 >
-> **Rule (mechanical):** If $Y<100$ is the cash price per \$100 face, then $(100-Y)/Y > (100-Y)/100$, so a price‑denominator yield is higher than a face‑denominator “discount yield”.
+> **Rule (mechanical):** If $Y\lt 100$ is the cash price per \$100 face, then $(100-Y)/Y \gt (100-Y)/100$, so a price‑denominator yield is higher than a face‑denominator “discount yield”.
 
-A US Treasury bill with 91 days to maturity quoted at 8 means “8% of face value per 360 days.” For \$100 face, interest over 91 days is \$100 × 0.08 × 91/360 = \$2.0222, so the cash price is \$97.9778 per \$100 face.
+A US Treasury bill with 91 days to maturity quoted at 8 means “8\% of face value per 360 days.” For \$100 face, interest over 91 days is \$100 × 0.08 × 91/360 = \$2.0222, so the cash price is \$97.9778 per \$100 face.
 
 Let $Y$ be the **cash price per \$100 face**, let $d$ be the remaining life in calendar days, and let $q_{\text{disc}}$ be the quoted **bank discount rate** (percent per year, ACT/360, applied to face value). The relationship is:
 
@@ -266,7 +266,7 @@ $$P(0,T) = \frac{Y}{100}$$
 
 #### Caution: Multiple Yield Conventions Exist
 
-An **investment-style yield** (returns on price paid) differs from the bank discount quote. The core point is that a return computed on the **price paid** is higher than the discount computed on **face value** because $Y<100$.
+An **investment-style yield** (returns on price paid) differs from the bank discount quote. The core point is that a return computed on the **price paid** is higher than the discount computed on **face value** because $Y\lt 100$.
 
 One commonly used annualization (often discussed as a “bond‑equivalent” style conversion for bills) is to annualize the holding-period return on a 365-day basis:
 
@@ -278,9 +278,9 @@ Note the differences:
 
 The banker's discount yield is a convenient quoting convention, **not** an internal rate of return.
 
-> **Pitfall — Discount yield is not an IRR:** A T-bill “discount yield” annualizes \((F-\text{Price})/F\) on a 360-day basis, while investment yields annualize returns on the price paid.
+> **Pitfall — Discount yield is not an IRR:** A T-bill “discount yield” annualizes $(F-\text{Price})/F$ on a 360-day basis, while investment yields annualize returns on the price paid.
 > **Why it matters:** Comparing discount yields directly to deposit/OIS rates (or using them as an IRR) leads to wrong relative-value and risk numbers.
-> **Quick check:** Convert quote → cash price first; then compute the simple holding-period return \((F/\text{Price}-1)/\tau(0,T)\) using an explicit day count.
+> **Quick check:** Convert quote → cash price first; then compute the simple holding-period return $(F/\text{Price}-1)/\tau(0,T)$ using an explicit day count.
 
 ### 4.3.3 Forward Rate Agreements (FRAs)
 
@@ -293,11 +293,11 @@ An FRA references the future floating rate for a period $[T_1, T_2]$ and exchang
 > **Analogy: "Pre-Ordering" Your Loan**
 >
 > An FRA is like ordering a pizza for next month at today's fixed price.
-> *   **Lock-In**: You agree to pay 5% for a 3-month loan starting in June.
-> *   **Scenario A (Rates Rise to 7%)**: The market loan costs 7%. You are happy! The FRA seller pays you the difference (2%). Net cost = 5%.
-> *   **Scenario B (Rates Fall to 3%)**: The market loan costs 3%. You are sad. You must pay the FRA seller the difference (2%). Net cost = 5%.
+> *   **Lock-In**: You agree to pay 5\% for a 3-month loan starting in June.
+> *   **Scenario A (Rates Rise to 7\%)**: The market loan costs 7\%. You are happy! The FRA seller pays you the difference (2\%). Net cost = 5\%.
+> *   **Scenario B (Rates Fall to 3\%)**: The market loan costs 3\%. You are sad. You must pay the FRA seller the difference (2\%). Net cost = 5\%.
 >
-> **Result**: No matter where rates go, your net effective rate is locked at 5%.
+> **Result**: No matter where rates go, your net effective rate is locked at 5\%.
 
 #### FRA Value in Terms of Discount Factors
 
@@ -334,7 +334,7 @@ The denominator discounts the net interest difference from $T_2$ back to $T_1$ a
 Fed funds futures are designed to hedge (or take views on) the average effective fed funds rate over a contract month. The canonical contract size is a \$5,000,000 30-day deposit, and the final settlement is based on the average effective fed funds rate over the month.
 
 **Key contract features:**
-- **Notional:** $5,000,000
+- **Notional:** \$5,000,000
 - **Settlement:** Cash-settled based on the arithmetic average of daily effective Fed Funds rates during the contract month
 - **Quote:** $100 - \text{(average rate in percent)}$
 
@@ -344,9 +344,9 @@ $$\text{Average Rate} = \frac{1}{N}\sum_{i=1}^{N} r_i$$
 
 where $N$ is the number of calendar days in the month and $r_i$ is the effective Fed Funds rate on day $i$.
 
-> **Desk Reality:** Fed funds futures are often explained as hedges of a $\$5{,}000{,}000$ 30-day deposit in fed funds. The final settlement price is set to $100 - 100\times \bar r$, where $\bar r$ is the month’s average effective fed funds rate (in percent).
-> **Common break:** In fed funds futures, changing the rate of the $\$5{,}000{,}000$ 30-day underlying by 1 bp changes the interest payment by $\$41.67$ (= $\$5{,}000{,}000 \times (.0001 \times 30)/360$).
-> **What to check:** Hedging a $\$100{,}000{,}000$ investment over a 31-day month requires $20\times(31/30)\approx 20.67$, i.e., 21 fed funds futures contracts (rounding up to an integer contract count).
+> **Desk Reality:** Fed funds futures are often explained as hedges of a $5{,}000{,}000$ USD 30-day deposit in fed funds. The final settlement price is set to $100 - 100\times \bar r$, where $\bar r$ is the month’s average effective fed funds rate (in percent).
+> **Common break:** In fed funds futures, changing the rate of the $5{,}000{,}000$ USD 30-day underlying by 1 bp changes the interest payment by $41.67$ USD (= $5{,}000{,}000 \times (.0001 \times 30)/360$ USD).
+> **What to check:** Hedging a $100{,}000{,}000$ USD investment over a 31-day month requires $20\times(31/30)\approx 20.67$, i.e., 21 fed funds futures contracts (rounding up to an integer contract count).
 
 ### 4.3.5 The "Staircase" Curve: Fed Funds at FOMC Meetings
 
@@ -404,7 +404,7 @@ The quoted price is typically:
 
 $$Q(t;T) = 100 \times (1 - \text{futures rate})$$
 
-For example, a quote of 94.67 implies a futures rate of 5.33%.
+For example, a quote of 94.67 implies a futures rate of 5.33\%.
 
 **SOFR futures distinction:** Unlike legacy Eurodollar futures (which referenced a single 3M LIBOR fixing), SOFR futures reference the compounded overnight rate over the contract period. This is an average of daily rates, not a single term rate fixing.
 
@@ -445,7 +445,7 @@ where $d$ is the number of calendar days (typically 3 for a weekend).
 
 **Expand (scaling intuition):** because $d$ is small, the annualization factor $360/d$ is large (for a 3-day stub it is 120). That means *tiny* differences in discount factors across the stub can translate into “large” annualized turn quotes. When sanity-checking a turn, look first at the stub growth factor $\frac{P(0,\text{Dec 30})}{P(0,\text{Jan 2})}$ or the implied dollar interest over the stub—not the annualized percent alone.
 
-> **Check (toy number):** if $P(0,\text{Dec 30})=0.99990$ and $P(0,\text{Jan 2})=0.99950$, then the 3-day stub return is $(0.99990/0.99950-1)\approx 0.0400\%$. Annualized, $r_{\text{turn}}\approx 0.000400\times 120\approx 4.8\%$. On \$100mm notional, that is about \$40k of interest over the 3-day stub:
+> **Check (toy number):** if $P(0,\text{Dec 30})=0.99990$ and $P(0,\text{Jan 2})=0.99950$, then the 3-day stub return is $(0.99990/0.99950-1)\approx 0.0400\\%$. Annualized, $r_{\text{turn}}\approx 0.000400\times 120\approx 4.8\\%$. On \$100mm notional, that is about \$40k of interest over the 3-day stub:
 > $$100{,}000{,}000\times 0.048\times \frac{3}{360} \approx 40{,}000.$$
 
 **Trading the turn:**
@@ -611,9 +611,9 @@ This locality intuition underlies key-rate DV01 analysis, covered in Chapter 14.
 ### Example 1: Deposit → Discount Factor
 
 **Given:**
-- Overnight (1 day): $r_{\text{ON}} = 4.75\%$
-- 1M (30 days): $r_{1M} = 5.00\%$
-- 3M (90 days): $r_{3M} = 5.20\%$
+- Overnight (1 day): $r_{\text{ON}} = 4.75\\%$
+- 1M (30 days): $r_{1M} = 5.00\\%$
+- 3M (90 days): $r_{3M} = 5.20\\%$
 
 **Accrual factors (ACT/360):**
 
@@ -656,7 +656,7 @@ $$\frac{P(0,1M)}{P(0,3M)} = \frac{0.99585062}{0.98716683} = 1.00879668$$
 **Step 2:** Compute the forward:
 $$F(0;1M,3M) = \frac{1.00879668 - 1}{0.16666667} = \frac{0.00879668}{0.16666667} = 0.05278008$$
 
-$$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
+$$\boxed{F(0;1M,3M) \approx 5.2780\ \text{percent}}$$
 
 ---
 
@@ -675,13 +675,13 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
 
 **Inputs**
 - Face value: \$100 per \$100 face (quote basis); position size: \$100,000,000 face
-- Days to maturity: \(d=91\) (bank discount quotes annualize on ACT/360)
-- Bank discount quote: \(q_{\text{disc}}=5.20\) (percent per year; ACT/360; applied to face)
+- Days to maturity: $d=91$ (bank discount quotes annualize on ACT/360)
+- Bank discount quote: $q_{\text{disc}}=5.20$ (percent per year; ACT/360; applied to face)
 
 **Outputs (What You Produce)**
 - Cash price per \$100 face
-- Discount factor \(P(0,T)\)
-- Risk metric: \(DV01 := PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})\) (units: USD per 1bp; bump object = bank discount quote at this maturity)
+- Discount factor $P(0,T)$
+- Risk metric: $DV01 := PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})$ (units: USD per 1bp; bump object = bank discount quote at this maturity)
 
 **Step-by-step**
 1. Translate quote to cash price (per \$100 face):
@@ -690,17 +690,17 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
    $$P(0,T)=\frac{Y}{100}=0.9868556$$
 3. Compute DV01 (quote bump, rates down 1bp):
    Since $q_{\text{disc}}$ is quoted in percent, $1\text{bp}=0.01$ in this quote unit. Therefore:
-   $$DV01=PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})=\frac{\$100{,}000{,}000}{100}\cdot \frac{d}{360}\cdot 0.01=\$2{,}527.78$$
+   $$DV01=PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})=\frac{\\$100{,}000{,}000}{100}\cdot \frac{d}{360}\cdot 0.01=\\$2{,}527.78$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---|---|
-| 2026-03-02 | \(-\$98{,}685{,}556\) | Pay cash price for \$100mm face |
-| 2026-06-01 | \(+\$100{,}000{,}000\) | Receive face at maturity |
+| 2026-03-02 | $-98{,}685{,}556\ \text{USD}$ | Pay cash price for \$100mm face |
+| 2026-06-01 | $+100{,}000{,}000\ \text{USD}$ | Receive face at maturity |
 
 **P&L / Risk Interpretation**
 - For a long bill, a 1bp *drop* in the quoted bank discount quote increases PV by about \$2.5k per \$100mm face (under this bump definition).
-- Do not compare \(q_{\text{disc}}\) directly to money-market yields without converting to a consistent yield basis.
+- Do not compare $q_{\text{disc}}$ directly to money-market yields without converting to a consistent yield basis.
 
 **Sanity Checks**
 - Units check: $q_{\text{disc}}$ is percent per year and $d/360$ is years, so $q_{\text{disc}}d/360$ is the percent discount off face over the period.
@@ -711,7 +711,7 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\%}$$
 
 ### Example 4: FRA Par Rate from Discount Factors
 
-**Add a 6M deposit:** $r_{6M} = 5.30\%$, $\tau(0,6M) = 0.5$
+**Add a 6M deposit:** $r_{6M} = 5.30\\%$, $\tau(0,6M) = 0.5$
 
 **Step 1:** Compute $P(0,6M)$:
 $$P(0,6M) = \frac{1}{1 + 0.0530 \times 0.5} = \frac{1}{1.0265} = 0.97418400$$
@@ -722,7 +722,7 @@ $$P(0,6M) = \frac{1}{1 + 0.0530 \times 0.5} = \frac{1}{1.0265} = 0.97418400$$
 
 $$F(0;3M,6M) = \frac{\frac{0.98716683}{0.97418400} - 1}{0.25} = \frac{1.01332688 - 1}{0.25} = \frac{0.01332688}{0.25}$$
 
-$$\boxed{K^* = F(0;3M,6M) \approx 5.3308\%}$$
+$$\boxed{K^* = F(0;3M,6M) \approx 5.3308\ \text{percent}}$$
 
 ---
 
@@ -732,8 +732,8 @@ $$\boxed{K^* = F(0;3M,6M) \approx 5.3308\%}$$
 - Notional $N = 100{,}000{,}000$
 - Period: 3M to 6M, $\tau = 0.25$
 - $P(0,6M) = 0.97418400$
-- Forward: $F = 5.3308\%$
-- Contract rate: $K = 5.4308\%$ (10 bp above par)
+- Forward: $F = 5.3308\\%$
+- Contract rate: $K = 5.4308\\%$ (10 bp above par)
 
 **PV formula:**
 $$V_{\text{FRA}}(0) = N \cdot \tau \cdot P(0,6M) \cdot (F - K)$$
@@ -744,7 +744,7 @@ $$V_{\text{FRA}}(0) = N \cdot \tau \cdot P(0,6M) \cdot (F - K)$$
 - $= 25{,}000{,}000 \times 0.97418400 \times (-0.0010)$
 - $= -24{,}354.60$
 
-$$\boxed{V_{\text{FRA}}(0) \approx -\$24{,}355}$$
+$$\boxed{V_{\text{FRA}}(0) \approx -\\$24{,}355}$$
 
 The fixed-rate payer (receive floating, pay fixed) has negative value when paying above the market forward.
 
@@ -755,10 +755,10 @@ The fixed-rate payer (receive floating, pay fixed) has negative value when payin
 **Quotes:**
 | Tenor | Type | Quote | $\tau$ |
 |-------|------|-------|----------|
-| 1M | Deposit | 5.00% | 30/360 |
-| 3M | Deposit | 5.20% | 90/360 |
-| 6M | Deposit | 5.30% | 180/360 |
-| 6x12 | FRA | 5.40% | 180/360 |
+| 1M | Deposit | 5.00\% | 30/360 |
+| 3M | Deposit | 5.20\% | 90/360 |
+| 6M | Deposit | 5.30\% | 180/360 |
+| 6x12 | FRA | 5.40\% | 180/360 |
 
 **Step 1:** Deposits → discount factors (from earlier examples):
 - $P(0,1M) = 0.99585062$
@@ -774,10 +774,10 @@ $$P(0,12M) = \frac{P(0,6M)}{1 + K \cdot \tau(6M,12M)} = \frac{0.97418400}{1 + 0.
 | Maturity | Days | $\tau(0,T)$ | Source | Quote | $P(0,T)$ |
 |----------|------|---------------|--------|-------|----------|
 | 0 | 0 | 0 | — | — | 1.00000000 |
-| 1M | 30 | 0.083333 | Deposit | 5.00% | 0.99585062 |
-| 3M | 90 | 0.250000 | Deposit | 5.20% | 0.98716683 |
-| 6M | 180 | 0.500000 | Deposit | 5.30% | 0.97418400 |
-| 12M | 360 | 1.000000 | FRA 6x12 | 5.40% | 0.94857173 |
+| 1M | 30 | 0.083333 | Deposit | 5.00\% | 0.99585062 |
+| 3M | 90 | 0.250000 | Deposit | 5.20\% | 0.98716683 |
+| 6M | 180 | 0.500000 | Deposit | 5.30\% | 0.97418400 |
+| 12M | 360 | 1.000000 | FRA 6x12 | 5.40\% | 0.94857173 |
 
 ---
 
@@ -793,7 +793,7 @@ $$\Delta P(0,1M) = 0.99584236 - 0.99585062 = -0.00000826$$
 
 **Impact on 1M–3M forward (holding $P(0,3M)$ fixed):**
 
-$$F'(0;1M,3M) = \frac{\frac{0.99584236}{0.98716683} - 1}{0.16666667} = \frac{0.00878831}{0.16666667} = 5.2730\%$$
+$$F'(0;1M,3M) = \frac{\frac{0.99584236}{0.98716683} - 1}{0.16666667} = \frac{0.00878831}{0.16666667} = 5.2730\\%$$
 
 **Summary:** A 1 bp bump in the 1M deposit lowered the 1M–3M forward by about 0.5 bp. Local quote changes have local (but not unit-for-unit) effects on forwards.
 
@@ -804,7 +804,7 @@ $$F'(0;1M,3M) = \frac{\frac{0.99584236}{0.98716683} - 1}{0.16666667} = \frac{0.0
 **Given:** Futures price $Q = 94.67$ for a 3M rate starting at 3M.
 
 **Step 1:** Implied futures rate:
-$$R^{\text{fut}} = 1 - \frac{Q}{100} = 1 - 0.9467 = 0.0533 = 5.33\%$$
+$$R^{\text{fut}} = 1 - \frac{Q}{100} = 1 - 0.9467 = 0.0533 = 5.33\\%$$
 
 **Step 2:** Compare to the forward rate:
 From Example 4: $F(0;3M,6M) \approx 5.3308\%$
@@ -818,33 +818,33 @@ From Example 4: $F(0;3M,6M) \approx 5.3308\%$
 **Scenario:** It is December 1. The FOMC meets on December 14. We want to extract the probability of a 25bp rate cut.
 
 **Given:**
-- Current Fed Funds target: 5.25%
-- December Fed Funds futures price: 94.85 (implying average rate = 5.15%)
+- Current Fed Funds target: 5.25\%
+- December Fed Funds futures price: 94.85 (implying average rate = 5.15\%)
 - December has 31 days
 - Meeting on day 14
 
 **Step 1:** Calculate implied post-meeting average rate
 
-The December average of 5.15% reflects:
-- Days 1-13 (13 days) at the current rate: 5.25%
+The December average of 5.15\% reflects:
+- Days 1-13 (13 days) at the current rate: 5.25\%
 - Days 14-31 (18 days) at the post-meeting rate: unknown
 
-$$5.15\% = \frac{13}{31} \times 5.25\% + \frac{18}{31} \times r_{\text{post}}$$
+$$5.15\\% = \frac{13}{31} \times 5.25\\% + \frac{18}{31} \times r_{\text{post}}$$
 
 Solving for $r_{\text{post}}$:
-$$r_{\text{post}} = \frac{31 \times 5.15\% - 13 \times 5.25\%}{18} = \frac{159.65\% - 68.25\%}{18} = \frac{91.40\%}{18} = 5.078\%$$
+$$r_{\text{post}} = \frac{31 \times 5.15\\% - 13 \times 5.25\\%}{18} = \frac{159.65\\% - 68.25\\%}{18} = \frac{91.40\\%}{18} = 5.078\\%$$
 
 **Step 2:** Calculate probability of 25bp cut
 
 If the only outcomes are:
-- No cut: rate stays at 5.25%
-- 25bp cut: rate goes to 5.00%
+- No cut: rate stays at 5.25\%
+- 25bp cut: rate goes to 5.00\%
 
-$$p_{\text{cut}} = \frac{5.25\% - 5.078\%}{5.25\% - 5.00\%} = \frac{0.172\%}{0.25\%} = 68.8\%$$
+$$p_{\text{cut}} = \frac{5.25\\% - 5.078\\%}{5.25\\% - 5.00\\%} = \frac{0.172\\%}{0.25\\%} = 68.8\\%$$
 
-$$\boxed{p_{\text{cut}} \approx 69\%}$$
+$$\boxed{p_{\text{cut}} \approx 69\\%}$$
 
-**Interpretation:** The market is pricing approximately 69% probability of a 25bp cut at the December FOMC meeting.
+**Interpretation:** The market is pricing approximately 69\% probability of a 25bp cut at the December FOMC meeting.
 
 ---
 
@@ -854,11 +854,11 @@ $$\boxed{p_{\text{cut}} \approx 69\%}$$
 
 | Day | Date | SOFR Rate | Days Applied |
 |-----|------|-----------|--------------|
-| 1 | Mon | 5.30% | 1 |
-| 2 | Tue | 5.31% | 1 |
-| 3 | Wed | 5.32% | 1 |
-| 4 | Thu | 5.31% | 1 |
-| 5 | Fri | 5.30% | 3 (covers weekend) |
+| 1 | Mon | 5.30\% | 1 |
+| 2 | Tue | 5.31\% | 1 |
+| 3 | Wed | 5.32\% | 1 |
+| 4 | Thu | 5.31\% | 1 |
+| 5 | Fri | 5.30\% | 3 (covers weekend) |
 
 **Total calendar days:** 7
 
@@ -882,9 +882,9 @@ $$= 1.001031890$$
 
 $$\text{Compounded Rate} = (1.001031890 - 1) \times \frac{360}{7} = 0.001031890 \times 51.4286$$
 
-$$\boxed{\text{Compounded SOFR} = 5.307\%}$$
+$$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
-**Note:** The compounded rate (5.307%) is very close to the simple average (5.308%) for such a short period. The difference grows for longer periods.
+**Note:** The compounded rate (5.307\%) is very close to the simple average (5.308\%) for such a short period. The difference grows for longer periods.
 
 ---
 
@@ -908,7 +908,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 | Mixing ACT/360 and ACT/365 | Inconsistent discount factors |
 | Ignoring spot lags | Wrong settlement dates |
 | Bootstrap ordering errors | Solving for wrong unknowns |
-| Unit confusion (bp vs %) | Order-of-magnitude errors |
+| Unit confusion (bp vs \%) | Order-of-magnitude errors |
 | Arithmetic vs geometric avg | Small but systematic bias |
 | In-advance vs in-arrears mismatch | Payment timing errors |
 
@@ -920,7 +920,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 **Sign sanity:** Higher rates → lower discount factors.
 
-**Bound checks:** $P(0,T) > 0$, typically $P(0,T) \leq 1$ for non-negative rates.
+**Bound checks:** $P(0,T) \gt 0$, typically $P(0,T) \leq 1$ for non-negative rates.
 
 ---
 
@@ -958,7 +958,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| Discount factor $P(0,T)$ | Price today of $1 at time $T$ | Fundamental pricing primitive |
+| Discount factor $P(0,T)$ | Price today of \$1 at time $T$ | Fundamental pricing primitive |
 | Year fraction $\tau(T_1,T_2)$ | Year fraction under day-count convention | Converts rates to cash interest amounts |
 | Simple rate | Rate with single-period compounding | Standard for money markets |
 | Forward rate identity | $1 + \tau F = P(T_1)/P(T_2)$ | Links discount factors to forwards |
@@ -1010,7 +1010,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 | 14 | Why is interpolation needed? | Only finitely many instruments exist; DFs at all maturities aren't observable. |
 | 15 | Formula to solve $P(0,T_2)$ from a par FRA. | $P(0,T_2) = P(0,T_1)/(1 + K \cdot \tau(T_1,T_2))$ |
 | 16 | State a sign sanity check for deposits. | Higher rates → lower discount factors. |
-| 17 | State a bound check for discount factors. | $P(0,T) > 0$ and typically $\leq 1$ for positive rates. |
+| 17 | State a bound check for discount factors. | $P(0,T) \gt 0$ and typically $\leq 1$ for positive rates. |
 | 18 | What does a STIR futures quote represent? | $Q = 100 \times (1 - \text{futures rate})$ |
 | 19 | Why do futures rates differ from forward rates? | Daily settlement creates funding cost correlation; convexity adjustment needed. |
 | 20 | What changed post-2007 in curve practice? | Single curve → multiple curves (separate discounting and forwarding). |
@@ -1025,13 +1025,13 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 ## Mini Problem Set
 
-1. Compute $P(0,1M)$ from a 1M deposit quote of 4.80% using ACT/360 and 31 days.
+1. Compute $P(0,1M)$ from a 1M deposit quote of 4.80\% using ACT/360 and 31 days.
 
 2. Using $P(0,1M) = 0.9960$ and $P(0,3M) = 0.9880$, compute $F(0;1M,3M)$ with $\tau = 62/360$.
 
-3. A 90-day bill has banker's discount yield 6.00% and face 100. Compute price and $P(0,T)$.
+3. A 90-day bill has banker's discount yield 6.00\% and face 100. Compute price and $P(0,T)$.
 
-4. Given $P(0,6M) = 0.9750$ and a par FRA 6x9 quote of 5.10% with $\tau = 90/360$, compute $P(0,9M)$.
+4. Given $P(0,6M) = 0.9750$ and a par FRA 6x9 quote of 5.10\% with $\tau = 90/360$, compute $P(0,9M)$.
 
 5. Given $P(0,3M) = 0.9900$ and $P(0,6M) = 0.9750$, compute the par 3x6 FRA rate.
 
@@ -1041,7 +1041,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 8. Bump the 3M deposit by +1 bp; recompute $P(0,3M)$ and the 3M–6M forward.
 
-9. A bill is quoted with discount rate 8.00% for 91 days. What is the cash price per $100 face?
+9. A bill is quoted with discount rate 8.00\% for 91 days. What is the cash price per \$100 face?
 
 10. A STIR futures price is 95.25. Compute the implied futures rate.
 
@@ -1049,11 +1049,11 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 12. Describe how curve construction changes from single-curve to multi-curve.
 
-13. **Fed probability extraction:** January Fed Funds futures price is 94.51 (implying 5.49% average). The FOMC meets January 29 (assume January has 31 days). Current target is 5.50%. What is the implied probability of a 25bp cut? Assume only two outcomes: no change or 25bp cut.
+13. **Fed probability extraction:** January Fed Funds futures price is 94.51 (implying 5.49\% average). The FOMC meets January 29 (assume January has 31 days). Current target is 5.50\%. What is the implied probability of a 25bp cut? Assume only two outcomes: no change or 25bp cut.
 
-14. **SOFR compounding:** Given three daily SOFR fixings: Day 1 = 5.00% (1 day), Day 2 = 5.02% (1 day), Day 3 = 5.01% (3 days, weekend). Compute the 5-day compounded rate.
+14. **SOFR compounding:** Given three daily SOFR fixings: Day 1 = 5.00\% (1 day), Day 2 = 5.02\% (1 day), Day 3 = 5.01\% (3 days, weekend). Compute the 5-day compounded rate.
 
-15. **Year-end turn:** An OIS curve shows $P(0, \text{Dec 30}) = 0.99750$ and $P(0, \text{Jan 3}) = 0.99690$. The period spans 4 calendar days (including 2 weekend days). What is the implied overnight rate for this period? If the "normal" overnight rate is 5.00%, what is the turn premium?
+15. **Year-end turn:** An OIS curve shows $P(0, \text{Dec 30}) = 0.99750$ and $P(0, \text{Jan 3}) = 0.99690$. The period spans 4 calendar days (including 2 weekend days). What is the implied overnight rate for this period? If the "normal" overnight rate is 5.00\%, what is the turn premium?
 
 ---
 
@@ -1069,7 +1069,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 5. $F = (0.9900/0.9750 - 1)/0.25 = 0.01538/0.25 = 6.15\%$.
 
-6. $V = 50M \times 0.25 \times 0.9750 \times (0.0500 - 0.0485) = 50M \times 0.25 \times 0.9750 \times 0.0015 = \$18,281$.
+6. $V = 50M \times 0.25 \times 0.9750 \times (0.0500 - 0.0485) = 50M \times 0.25 \times 0.9750 \times 0.0015 = 18{,}281\ \text{USD}$.
 
 7. Follow Example 6 methodology with given quotes.
 
@@ -1077,7 +1077,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\%}$$
 
 ### Solution Sketches (Questions 13–15)
 
-13. Implied average = 5.49%. Days before meeting (1-28): 28 days at 5.50%. Days after (29-31): 3 days at unknown rate.
+13. Implied average = 5.49\%. Days before meeting (1-28): 28 days at 5.50\%. Days after (29-31): 3 days at unknown rate.
 $5.49\% = (28/31) \times 5.50\% + (3/31) \times r_{post}$
 $r_{post} = (31 \times 5.49\% - 28 \times 5.50\%)/3 = (170.19\% - 154\%)/3 = 5.3967\%$
 $p_{cut} = (5.50\% - 5.3967\%)/(5.50\% - 5.25\%) = 0.1033\%/0.25\% = 41.3\%$

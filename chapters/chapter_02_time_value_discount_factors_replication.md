@@ -8,9 +8,9 @@ A client asks you to price a 10-year zero-coupon bond. The trade seems simple—
 
 This question has consumed economists for centuries, and the answer—the **discount factor**—is the single most fundamental concept in fixed income. Get it right, and you can price any deterministic cash flow stream: bonds, swaps, loans, structured products. Get it wrong, and every valuation you produce becomes suspect.
 
-To see why desk teams care: the PV of a single cash flow \(N\) paid at time \(T\) is \(\text{PV} = N \cdot P(0,T)\). If rates shift and \(P(0,T)\) moves, the dollars move. Under continuous compounding with \(P(0,T)=e^{-y(0,T)\,T}\), a small change \(\Delta y\) in the (continuously compounded) zero rate changes PV by about:
+To see why desk teams care: the PV of a single cash flow $N$ paid at time $T$ is $\text{PV} = N \cdot P(0,T)$. If rates shift and $P(0,T)$ moves, the dollars move. Under continuous compounding with $P(0,T)=e^{-y(0,T)\,T}$, a small change $\Delta y$ in the (continuously compounded) zero rate changes PV by about:
 $$\Delta \text{PV} \approx -N \cdot T \cdot P(0,T) \cdot \Delta y$$
-So a 1bp move (\(\Delta y=0.0001\)) on a 10-year \(N=\$100\text{mm}\) cash flow can easily be a **tens-of-thousands of dollars** PV move. Multiply that across a trading book and you get the “mystery P&L” that product control spends nights reconciling.
+So a 1bp move ($\Delta y=0.0001$) on a 10-year $N=100\text{mm}\ \text{USD}$ cash flow can easily be a **tens-of-thousands of dollars** PV move. Multiply that across a trading book and you get the “mystery P&L” that product control spends nights reconciling.
 
 This chapter establishes the foundational machinery for pricing deterministic cash flows:
 
@@ -28,10 +28,10 @@ Prerequisites: [Chapter 1 — Market Quoting, Calendars, and Cashflow Plumbing](
 Follow-on: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 4 — Money-Market Building Blocks](chapters/chapter_04_money_market_building_blocks.md), [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 11 — DV01/PV01: Definitions and Computation](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 17 — Curve Construction: Bootstrapping and Interpolation](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md), [Chapter 19 — Projection Curves, LIBOR/SOFR, and the Multi-Curve Framework](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md)
 
 ## Learning Objectives
-- Translate a deterministic cashflow into discount factors and present value (\(PV\)).
+- Translate a deterministic cashflow into discount factors and present value ($PV$).
 - Extract (bootstrap) short-maturity discount factors from traded bond prices.
 - Explain the law of one price and replication as the core logic behind no-arbitrage pricing.
-- Compute a simply compounded forward rate \(F(0;T_1,T_2)\) from discount factors and interpret it as a breakeven future borrowing rate.
+- Compute a simply compounded forward rate $F(0;T_1,T_2)$ from discount factors and interpret it as a breakeven future borrowing rate.
 - Compute and interpret a first-order rate risk number with an explicit bump object, units, and sign (DV01 preview).
 
 ---
@@ -42,20 +42,20 @@ Follow-on: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle]
 >
 > In fixed income, we often express the same economic reality using three different languages.
 >
-> 1. **Discount Factor \(P(0,T)\)**: The **price** of a zero-coupon bond.
+> 1. **Discount Factor $P(0,T)$**: The **price** of a zero-coupon bond.
 >    - *Intuition:* "The Price Tag." ($0.95$)
-> 2. **Zero Rate \(y(0,T)\)**: The **single rate** over \([0,T]\) that reproduces \(P(0,T)\) under a stated compounding convention.
->    - *Intuition:* "The Sticker Percentage." (e.g., \(5\%\) continuously compounded)
-> 3. **Forward Rate \(F(0;T_1,T_2)\)**: The **breakeven rate** you can lock in today for the future period \([T_1,T_2]\).
+> 2. **Zero Rate $y(0,T)$**: The **single rate** over $[0,T]$ that reproduces $P(0,T)$ under a stated compounding convention.
+>    - *Intuition:* "The Sticker Percentage." (e.g., $5\%$ continuously compounded)
+> 3. **Forward Rate $F(0;T_1,T_2)$**: The **breakeven rate** you can lock in today for the future period $[T_1,T_2]$.
 >    - *Intuition:* "The Future Borrowing Quote."
 >
 > They are mathematically equivalent—you can convert one to another—but they label the same item differently. We start with the **Discount Factor** because it is the most fundamental: it is a price.
 
 ### 2.1.1 Definition
 
-The **discount factor** \(d(t)\) is the present value today of one unit of currency received at time \(t\). We write \(d(T)\) (equivalently \(P(0,T)\)) for the discount factor from today (time 0) to maturity \(T\).
+The **discount factor** $d(t)$ is the present value today of one unit of currency received at time $t$. We write $d(T)$ (equivalently $P(0,T)$) for the discount factor from today (time 0) to maturity $T$.
 
-If \(d(0.5) = 0.97557\), then \$1 received in six months is worth 97.557 cents today. Equivalently, \(d(0.5)\) is the price today (per \$1 face) of a zero-coupon bond paying \$1 in six months.
+If $d(0.5) = 0.97557$, then \$1 received in six months is worth 97.557 cents today. Equivalently, $d(0.5)$ is the price today (per \$1 face) of a zero-coupon bond paying \$1 in six months.
 
 This simple definition has powerful implications. If we know the discount factor for each future date, we can price any security with deterministic cash flows by multiplying each cash flow by its corresponding discount factor and summing them up.
 
@@ -89,14 +89,14 @@ $$102.0334 = 107.125 \times d(1)$$
 
 $$d(1) = 0.95247$$
 
-**Anchor (price \(\leftrightarrow\) rate):** discount factors are *prices*. If you want to express the same information as a rate, you are just re-parameterizing the same object. For example, under continuous compounding:
+**Anchor (price $\leftrightarrow$ rate):** discount factors are *prices*. If you want to express the same information as a rate, you are just re-parameterizing the same object. For example, under continuous compounding:
 $$y(0,T)=-\frac{1}{T}\ln P(0,T)=-\frac{1}{T}\ln d(T).$$
 
 **Check (translate the numbers):** the extracted discount factors translate into annualized rates. Using the formula above:
-- \(y(0,0.5)\approx -\ln(0.97557)/0.5 \approx 4.95\%\)
-- \(y(0,1.0)\approx -\ln(0.95247)/1.0 \approx 4.87\%\)
+- $y(0,0.5)\approx -\ln(0.97557)/0.5 \approx 4.95\%$
+- $y(0,1.0)\approx -\ln(0.95247)/1.0 \approx 4.87\%$
 
-This “translation” is useful operationally: if a discount factor looks suspicious, convert it into a rate you can sanity-check. Conversely, if someone gives you a rate quote, convert to \(P(0,T)\) before mixing instruments with different compounding and day-count conventions.
+This “translation” is useful operationally: if a discount factor looks suspicious, convert it into a rate you can sanity-check. Conversely, if someone gives you a rate quote, convert to $P(0,T)$ before mixing instruments with different compounding and day-count conventions.
 
 ### 2.1.3 Sequential Extraction (Bootstrapping Preview)
 
@@ -116,7 +116,7 @@ This sequential approach—solving for one discount factor at a time using known
 
 The collection of discount factors across all maturities is called the **discount function** or discount factor curve. With positive rates, discount factors typically fall with maturity: the longer you delay receiving \$1, the less it is worth today.
 
-A plot of \(P(0,T)\) against \(T\) makes this relationship vivid: even “a few percent” rates compound over time, so a long-dated \$1 payment can be worth only a small fraction of a dollar today. This dramatic decline is why discounting matters so much for long-dated cash flows.
+A plot of $P(0,T)$ against $T$ makes this relationship vivid: even “a few percent” rates compound over time, so a long-dated \$1 payment can be worth only a small fraction of a dollar today. This dramatic decline is why discounting matters so much for long-dated cash flows.
 
 ### 2.1.5 Discount Factors in Negative Rate Environments
 
@@ -126,12 +126,12 @@ $$P(0,1) = e^{-(-0.005) \times 1} = e^{0.005} = 1.00501$$
 
 **Economic meaning:** you would have to pay about $1.005 today to receive $1 in one year. In other words, “safe storage of value” can have a price; negative yields are one way markets express that price.
 
-This matters operationally because some “sanity checks” built for positive-rate environments implicitly assume \(P(0,T)\le 1\).
+This matters operationally because some “sanity checks” built for positive-rate environments implicitly assume $P(0,T)\le 1$.
 
 > **Desk Reality: Operational Impacts of Negative Rates**
 >
 > Negative rates tend to break “folk assumptions” that are hard-coded into spreadsheets and risk systems, for example:
-> - assuming \(P(0,T)\le 1\) or assuming discount factors are strictly decreasing;
+> - assuming $P(0,T)\le 1$ or assuming discount factors are strictly decreasing;
 > - assuming all coupon bonds price below par for low coupons;
 > - sanity checks that flag negative forwards as “errors” even when they are economically possible.
 >
@@ -142,8 +142,8 @@ This matters operationally because some “sanity checks” built for positive-r
 Before using any discount factor curve, verify:
 
 1. **$P(0,0) = 1$**: A dollar today is worth a dollar today
-2. **$P(0,T) > 0$**: Discount factors must be positive (no infinite rates)
-3. **Monotonicity (positive rates)**: $P(0,T_1) > P(0,T_2)$ when $T_1 < T_2$
+2. **$P(0,T) \gt 0$**: Discount factors must be positive (no infinite rates)
+3. **Monotonicity (positive rates)**: $P(0,T_1) \gt P(0,T_2)$ when $T_1 \lt T_2$
 4. **Repricing**: Bonds used to extract discount factors should reprice exactly
 
 ---
@@ -152,9 +152,9 @@ Before using any discount factor curve, verify:
 
 ### 2.2.1 The Formula
 
-Given a set of deterministic cash flows $\{C_1, C_2, \ldots, C_n\}$ paid at times $\{T_1, T_2, \ldots, T_n\}$, the present value is:
+Given a set of deterministic cash flows $\\{C_1, C_2, \ldots, C_n\\}$ paid at times $\\{T_1, T_2, \ldots, T_n\\}$, the present value is:
 
-$$\boxed{\text{PV}_0 = \sum_{i=1}^{n} C_i \, P(0, T_i)}$$
+$$\boxed{PV_0 = \sum_{i=1}^{n} C_i \, P(0, T_i)}$$
 
 This formula is the "pricing kernel" for all fixed cash-flow instruments: discount each cash flow at its own maturity-specific discount factor, then sum.
 
@@ -177,8 +177,8 @@ Notice that present value is **linear** in the cash flows: doubling all cash flo
 **Unit check:** $C_i$ is in currency units; $P(0, T_i)$ is dimensionless (currency per currency). The product is currency, and the sum is currency. Correct.
 
 **Sanity checks:**
-- If $C_k = 1$ and all other $C_i = 0$, then $\text{PV}_0 = P(0, T_k)$—the price of a zero.
-- If all $T_i \to 0$, then $P(0, T_i) \to 1$ and $\text{PV}_0 \to \sum_i C_i$—immediate cash is undiscounted.
+- If $C_k = 1$ and all other $C_i = 0$, then $PV_0 = P(0, T_k)$—the price of a zero.
+- If all $T_i \to 0$, then $P(0, T_i) \to 1$ and $PV_0 \to \sum_i C_i$—immediate cash is undiscounted.
 - With positive rates, if discount factors fall, PV falls—consistent with rates moving inversely to prices.
 
 ---
@@ -224,7 +224,7 @@ When prices deviate from the law of one price, practitioners describe securities
 
 An **arbitrage** is a trade with no net investment that never loses money and has a strictly positive gain in at least one scenario. One convenient way to write this idea is:
 
-$$\boxed{\text{Arbitrage: Initial Cost} \leq 0, \; \text{Payoff} \geq 0, \; P[\text{Payoff} > 0] > 0}$$
+$$\boxed{\text{Arbitrage: Initial Cost} \leq 0, \\; \text{Payoff} \geq 0, \\; P[\text{Payoff} \gt 0] \gt 0}$$
 
 In words: you pay nothing (or receive cash) upfront, you never lose money, and there's a positive probability of making money. This is a "free lunch"—and in efficient markets, free lunches get eaten quickly.
 
@@ -318,7 +318,7 @@ This direct observability makes STRIPS valuable for curve construction. However,
 
 ### 2.5.4 STRIPS as Building Blocks
 
-Economically, any coupon Treasury is a **portfolio of STRIPS**: one strip for each coupon date plus a final strip for principal. A 2-year Treasury with semiannual coupons of \(C\) and principal of \(100\) is equivalent to:
+Economically, any coupon Treasury is a **portfolio of STRIPS**: one strip for each coupon date plus a final strip for principal. A 2-year Treasury with semiannual coupons of $C$ and principal of $100$ is equivalent to:
 - $C$ units of the 0.5-year strip
 - $C$ units of the 1.0-year strip
 - $C$ units of the 1.5-year strip
@@ -354,7 +354,7 @@ Depending on relative pricing, professionals can arbitrage by buying bonds and s
 
 ### 2.6.1 Definition
 
-While discount factors directly answer “what is \$1 at time \(T\) worth today?”, investors often prefer to express the time value of money as *rates*. A **zero (spot) rate** \(y(0,T)\) is the single annualized rate over \([0,T]\) that reproduces the discount factor \(P(0,T)\) under a stated compounding convention.
+While discount factors directly answer “what is \$1 at time $T$ worth today?”, investors often prefer to express the time value of money as *rates*. A **zero (spot) rate** $y(0,T)$ is the single annualized rate over $[0,T]$ that reproduces the discount factor $P(0,T)$ under a stated compounding convention.
 
 The relationship depends on the compounding convention.
 
@@ -372,16 +372,16 @@ $$\boxed{y(0,T) = -\frac{1}{T} \ln P(0,T)}$$
 > $$\text{Rate} \times \text{Years} \approx 72 \implies \text{Doubling}$$
 >
 > - If the interest rate is 6%, it takes $\approx 12$ years to double your money ($6 \times 12 = 72$).
-> - In discount factor terms: If \(y(0,12) = 6\%\) (continuous), then \(P(0, 12) \approx 0.50\).
+> - In discount factor terms: If $y(0,12) = 6\%$ (continuous), then $P(0, 12) \approx 0.50$.
 > - (Exact check: $e^{-0.06 \times 12} = e^{-0.72} \approx 0.487$. Close enough for mental math!)
 
 **Semiannual compounding** (used for U.S. Treasury yields):
 
 $$P(0,T) = \frac{1}{\left(1 + \frac{y_{sa}(0,T)}{2}\right)^{2T}}$$
 
-where \(y_{sa}(0,T)\) denotes the semiannually compounded zero rate.
+where $y_{sa}(0,T)$ denotes the semiannually compounded zero rate.
 
-Under continuous compounding, compounding over \(n\) years multiplies by \(e^{Rn}\) and discounting over \(n\) years multiplies by \(e^{-Rn}\).
+Under continuous compounding, compounding over $n$ years multiplies by $e^{Rn}$ and discounting over $n$ years multiplies by $e^{-Rn}$.
 
 ### 2.6.2 Why Continuous Compounding?
 
@@ -409,61 +409,61 @@ The continuous rate is lower because more frequent compounding achieves the same
 
 ### 2.7.1 What Is a Forward Rate?
 
-A **forward rate** is the interest rate agreed today for a loan or investment over a future period \([T_1,T_2]\). Under no-arbitrage, forward rates are not “forecasts”; they are *breakeven rates implied by today’s discount factors*.
+A **forward rate** is the interest rate agreed today for a loan or investment over a future period $[T_1,T_2]$. Under no-arbitrage, forward rates are not “forecasts”; they are *breakeven rates implied by today’s discount factors*.
 
 ### 2.7.2 The Investor's Choice: Spot vs. Forward
 
 The forward-rate idea comes from a simple “two strategies” comparison:
 
-- **Strategy A:** invest from 0 to \(T_2\) in one step.
-- **Strategy B:** invest from 0 to \(T_1\), then reinvest from \(T_1\) to \(T_2\).
+- **Strategy A:** invest from 0 to $T_2$ in one step.
+- **Strategy B:** invest from 0 to $T_1$, then reinvest from $T_1$ to $T_2$.
 
-If markets allow you to lock in the \(T_1 \to T_2\) reinvestment rate today (e.g., with a forward contract or by trading zero-coupon bonds), **no-arbitrage** says Strategies A and B must have the same terminal value. The rate that makes them equal is the forward rate.
+If markets allow you to lock in the $T_1 \to T_2$ reinvestment rate today (e.g., with a forward contract or by trading zero-coupon bonds), **no-arbitrage** says Strategies A and B must have the same terminal value. The rate that makes them equal is the forward rate.
 
 ### 2.7.3 The Forward Rate Calculation
 
-A standard no-arbitrage identity for the **simple (simply compounded)** forward rate for the future period \([S,T]\) is:
+A standard no-arbitrage identity for the **simple (simply compounded)** forward rate for the future period $[S,T]$ is:
 
 $$\boxed{1+(T-S)\,F(t;S,T)=\frac{P(t,S)}{P(t,T)}}$$
 
-At \(t=0\), and writing the year fraction as \(\tau(S,T)\) (often \(\tau=T-S\) when times are already year-fractions), the same identity is:
+At $t=0$, and writing the year fraction as $\tau(S,T)$ (often $\tau=T-S$ when times are already year-fractions), the same identity is:
 
 $$\boxed{1+\tau(S,T)\,F(0;S,T)=\frac{P(0,S)}{P(0,T)}}$$
 
-Interpretation: the right-hand side is the *growth factor* from \(S\) to \(T\) implied by today’s discount curve. The left-hand side is the growth factor from earning a simple rate \(F\) over the same year fraction.
+Interpretation: the right-hand side is the *growth factor* from $S$ to $T$ implied by today’s discount curve. The left-hand side is the growth factor from earning a simple rate $F$ over the same year fraction.
 
 ### 2.7.4 Forward Rates from Spot Rates (Continuous Compounding)
 
-With continuous compounding, it is convenient to define a continuously compounded forward rate \(f_c(0;T_1,T_2)\) for \([T_1,T_2]\). If \(y(0,T_1)\) and \(y(0,T_2)\) are continuously compounded zero rates, then:
+With continuous compounding, it is convenient to define a continuously compounded forward rate $f_c(0;T_1,T_2)$ for $[T_1,T_2]$. If $y(0,T_1)$ and $y(0,T_2)$ are continuously compounded zero rates, then:
 
 $$\boxed{f_c(0;T_1,T_2)=\frac{y(0,T_2)\,T_2-y(0,T_1)\,T_1}{T_2-T_1}}$$
 
-This formula essentially says that the forward rate is the marginal rate required to bridge the gap between the return at \(T_1\) and the return at \(T_2\).
+This formula essentially says that the forward rate is the marginal rate required to bridge the gap between the return at $T_1$ and the return at $T_2$.
 
 ### 2.7.5 Forward Rates from Discount Factors (Simple Compounding)
 
-Solving the identity in Section 2.7.3 for \(F\) gives a practical formula (FRA-style, simple compounding):
+Solving the identity in Section 2.7.3 for $F$ gives a practical formula (FRA-style, simple compounding):
 
 $$\boxed{F(t; S, T)=\frac{1}{T-S}\left(\frac{P(t,S)}{P(t,T)}-1\right)}$$
 
-and at \(t=0\):
+and at $t=0$:
 
 $$\boxed{F(0; S, T)=\frac{1}{\tau(S,T)}\left(\frac{P(0,S)}{P(0,T)}-1\right)}$$
 
-**Intuition:** The ratio \(P(0,S)/P(0,T)\) is the implied growth factor from \(S\) to \(T\). Subtracting 1 gives total interest over the period, and dividing by the year fraction \(\tau(S,T)\) annualizes it to a simple rate.
+**Intuition:** The ratio $P(0,S)/P(0,T)$ is the implied growth factor from $S$ to $T$. Subtracting 1 gives total interest over the period, and dividing by the year fraction $\tau(S,T)$ annualizes it to a simple rate.
 
 ### 2.7.6 Locking In the Forward Rate: A Worked Example
 
 The forward rate is not just an abstract calculation—it can be *locked in* using today's bonds. Here's how:
 
-**Goal:** Lock in a *simple forward rate* for the period from \(S=0.5\) to \(T=1.0\).
+**Goal:** Lock in a *simple forward rate* for the period from $S=0.5$ to $T=1.0$.
 
 **Strategy (forward investment replication):**
-- At time 0: **sell** 1 unit of the \(S\)-maturity zero and **buy** \(\frac{P(0,S)}{P(0,T)}\) units of the \(T\)-maturity zero (zero net investment).
-- At time \(S\): you must **pay** \$1 (to settle the short \(S\)-maturity zero).
-- At time \(T\): you **receive** \(\frac{P(0,S)}{P(0,T)}\) dollars.
+- At time 0: **sell** 1 unit of the $S$-maturity zero and **buy** $\frac{P(0,S)}{P(0,T)}$ units of the $T$-maturity zero (zero net investment).
+- At time $S$: you must **pay** \$1 (to settle the short $S$-maturity zero).
+- At time $T$: you **receive** $\frac{P(0,S)}{P(0,T)}$ dollars.
 
-This is a forward investment of \$1 at \(S\) that grows deterministically to \(\frac{P(0,S)}{P(0,T)}\) at \(T\). By no-arbitrage, the simple forward rate satisfies:
+This is a forward investment of \$1 at $S$ that grows deterministically to $\frac{P(0,S)}{P(0,T)}$ at $T$. By no-arbitrage, the simple forward rate satisfies:
 
 $$1+\tau(S,T)\,F(0;S,T)=\frac{P(0,S)}{P(0,T)}$$
 
@@ -508,7 +508,7 @@ Using the wrong discounting assumptions is a common source of valuation differen
 
 **Mechanics (intuition):** in a fully collateralized trade with frequent variation margin, the position is continuously “reset” by cash collateral. If you are out-of-the-money you post cash and earn the CSA’s collateral remuneration rate on that balance; if you are in-the-money you receive cash and pay interest at that same rate. In that idealized setting, the collateral remuneration rate is the natural “carry rate” for the position, so discounting at some other curve is equivalent to assuming a different interest-on-collateral rule and will show up as a systematic PV difference.
 
-> **Check (toy number):** suppose a collateralized trade pays \$1 in one year and the collateral remuneration rate is 5% (continuous compounding, toy). Discounting at 5% gives \(PV\approx e^{-0.05}=0.9512\). Discounting at 6% gives \(PV\approx e^{-0.06}=0.9418\). The gap is about 0.94 cents per \$1 notional—around \$9.4mm per \$1bn notional—before any convexity or curve-shape effects. This is why “which curve?” is not a detail.
+> **Check (toy number):** suppose a collateralized trade pays \$1 in one year and the collateral remuneration rate is 5% (continuous compounding, toy). Discounting at 5% gives $PV\approx e^{-0.05}=0.9512$. Discounting at 6% gives $PV\approx e^{-0.06}=0.9418$. The gap is about 0.94 cents per \$1 notional—around \$9.4mm per \$1bn notional—before any convexity or curve-shape effects. This is why “which curve?” is not a detail.
 
 > **Desk Reality: “Which Curve Are You Using?”**
 >
@@ -568,15 +568,15 @@ For this book, the important message is: replication gives a benchmark price in 
 
 Present value is obtained by appropriately discounting all future cash flows: multiply each cash flow by its discount factor and sum the discounted values.
 
-We now consider the sensitivity of price (present value) to a **parallel shift** of the yield curve. Suppose deterministic cashflows \(x_i\) are paid at times \(t_i\) and discounted at continuously compounded spot rates \(r_i\). Then:
+We now consider the sensitivity of price (present value) to a **parallel shift** of the yield curve. Suppose deterministic cashflows $x_i$ are paid at times $t_i$ and discounted at continuously compounded spot rates $r_i$. Then:
 
 $$PV(0)=\sum_{i=0}^{n} x_i e^{-r_i t_i}$$
 
-Under a parallel shift by \(\lambda\), each spot rate becomes \(r_i+\lambda\), so:
+Under a parallel shift by $\lambda$, each spot rate becomes $r_i+\lambda$, so:
 
 $$PV(\lambda)=\sum_{i=0}^{n} x_i e^{-(r_i+\lambda) t_i}$$
 
-We then differentiate to find (at \(\lambda=0\)):
+We then differentiate to find (at $\lambda=0$):
 
 $$\left.\frac{dPV(\lambda)}{d\lambda}\right|_{\lambda=0}=-\sum_{i=0}^{n} t_i x_i e^{-r_i t_i}$$
 
@@ -586,7 +586,7 @@ $$PV_0=\sum_i C_i\,P(0,T_i),\qquad y_\lambda(0,T):=y(0,T)+\lambda$$
 
 $$PV(\lambda)=\sum_i C_i \, e^{-(y(0,T_i)+\lambda)\,T_i}$$
 
-and for a small parallel shift \(\Delta y\) in continuously compounded zero rates:
+and for a small parallel shift $\Delta y$ in continuously compounded zero rates:
 
 $$\boxed{\Delta PV \approx -\sum_i C_i \, T_i \, P(0, T_i) \, \Delta y}$$
 
@@ -608,26 +608,26 @@ $$\boxed{\frac{1}{PV(0)}\left.\frac{dPV(\lambda)}{d\lambda}\right|_{\lambda=0}=-
 
 ### DV01 (Preview): Bump Object, Units, and Sign
 
-One common analytical definition of yield-based DV01 (when the bumped “rate factor” is the bond’s yield \(y\)) is:
+One common analytical definition of yield-based DV01 (when the bumped “rate factor” is the bond’s yield $y$) is:
 
 $$DV01 = -\frac{1}{10{,}000}\,\frac{dP}{dy}$$
 
-where \(P\) is the bond price (PV).
+where $P$ is the bond price (PV).
 
 Throughout this book we use an equivalent finite-difference convention, for a **stated bump object**:
 
 $$\boxed{DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})}$$
 
 To make that definition operational, you must specify the **bump object**. For this chapter’s deterministic-cashflow setting, use:
-- **Bump object:** parallel shift of the continuously compounded zero curve \(y(0,T)\) by \(-1\) bp at all relevant maturities.
+- **Bump object:** parallel shift of the continuously compounded zero curve $y(0,T)$ by $-1$ bp at all relevant maturities.
 - **Units:** currency per 1bp, for the stated notional.
-- **Sign:** for a long position with positive cashflows, \(DV01>0\) (rates down \(\Rightarrow\) PV up).
+- **Sign:** for a long position with positive cashflows, $DV01 \gt 0$ (rates down $\Rightarrow$ PV up).
 
 Under the first-order approximation above, this bump gives:
 
 $$\boxed{DV01 \approx \left(\sum_i C_i\,T_i\,P(0,T_i)\right)\times 10^{-4}}$$
 
-**Interpretation:** longer-dated cash flows (larger \(T_i\)) typically contribute more to rate risk. This relationship is the foundation of **duration** (Chapter 11).
+**Interpretation:** longer-dated cash flows (larger $T_i$) typically contribute more to rate risk. This relationship is the foundation of **duration** (Chapter 11).
 
 > **Pitfall — “DV01” without a bump object:** Two systems can both report “DV01” and still materially disagree because they bump different things (yield vs. zero rates vs. par quotes, different node designs, different day counts).
 > **Why it matters:** hedge ratios and P&L explain break (wrong sign or wrong magnitude).
@@ -650,35 +650,35 @@ $$\boxed{DV01 \approx \left(\sum_i C_i\,T_i\,P(0,T_i)\right)\times 10^{-4}}$$
 
 **Inputs**
 - Instrument: \$100 face paid at maturity (zero-coupon).
-- Notional (face): \(N=\$100{,}000{,}000\).
-- Quote (hypothetical): continuously compounded 5-year zero rate \(y(0,5.0)=4.20\%\).
-- Compounding: continuous; treat \(T=5.0\) years for this toy example.
+- Notional (face): $N=100{,}000{,}000\ \text{USD}$.
+- Quote (hypothetical): continuously compounded 5-year zero rate $y(0,5.0)=4.20\%$.
+- Compounding: continuous; treat $T=5.0$ years for this toy example.
 
 **Outputs (What You Produce)**
-- Discount factor: \(P(0,5.0)\).
-- PV: \(PV_0\) in dollars.
-- Risk: \(DV01\) with bump object “parallel \(-1\) bp shift in \(y(0,T)\)”.
+- Discount factor: $P(0,5.0)$.
+- PV: $PV_0$ in dollars.
+- Risk: $DV01$ with bump object “parallel $-1$ bp shift in $y(0,T)$”.
 
 **Step-by-step**
-1. **Quote \(\to\) discount factor:** \(P(0,5.0)=e^{-0.042\times 5}=e^{-0.21}\approx 0.8106\).
-2. **PV:** \(PV_0=N\cdot P(0,5.0)\approx \$100{,}000{,}000\times 0.8106=\$81.06\text{mm}\).
-3. **DV01 (book convention):** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\).
-   - Exact: \(PV_{\downarrow 1bp}=N\cdot e^{-(0.042-0.0001)\times 5}\), so \(DV01=PV_{\downarrow 1bp}-PV_0\approx \$40.5\text{k}\).
-   - First-order check: \(DV01\approx PV_0\times T\times 10^{-4}\approx 81.06\text{mm}\times 5\times 10^{-4}=\$40.5\text{k}\).
+1. **Quote $\to$ discount factor:** $P(0,5.0)=e^{-0.042\times 5}=e^{-0.21}\approx 0.8106$.
+2. **PV:** $PV_0=N\cdot P(0,5.0)\approx 100{,}000{,}000\times 0.8106=81.06\text{mm USD}$.
+3. **DV01 (book convention):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$.
+   - Exact: $PV_{\downarrow 1bp}=N\cdot e^{-(0.042-0.0001)\times 5}$, so $DV01=PV_{\downarrow 1bp}-PV_0\approx 40.5\text{k USD}$.
+   - First-order check: $DV01\approx PV_0\times T\times 10^{-4}\approx 81.06\text{mm}\times 5\times 10^{-4}=40.5\text{k USD}$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2031-02-17 | \(+\$100{,}000{,}000\) | principal STRIP maturity payment |
+| 2031-02-17 | $+100{,}000{,}000\ \text{USD}$ | principal STRIP maturity payment |
 
 **P&L / Risk Interpretation**
-- A risk report \(DV01\approx \$40.5\text{k/bp}\) means a 10bp rally (rates down) gives about \(+\$405\text{k}\) of PV change (first order), before convexity and curve-shape effects.
+- A risk report $DV01\approx 40.5\text{k USD/bp}$ means a 10bp rally (rates down) gives about $+405\text{k USD}$ of PV change (first order), before convexity and curve-shape effects.
 - This is why “just one future cashflow” can dominate book risk when it is large and long-dated.
 
 **Sanity Checks**
-- Units: \(P(0,T)\) is unitless; \(PV\) is currency; \(DV01\) is currency per 1bp. ✓
-- Sign: long STRIP \(\Rightarrow\) rates down increases PV \(\Rightarrow DV01>0\). ✓
-- Limit: as \(T\to 0\), \(DV01\to 0\). ✓
+- Units: $P(0,T)$ is unitless; $PV$ is currency; $DV01$ is currency per 1bp. ✓
+- Sign: long STRIP $\Rightarrow$ rates down increases PV $\Rightarrow DV01 \gt 0$. ✓
+- Limit: as $T\to 0$, $DV01\to 0$. ✓
 
 ---
 
@@ -706,7 +706,7 @@ The discount factor is the reciprocal of the growth factor: $P(0,T) = \frac{1}{1
 | 1.00 | $1/(1 + 0.053 \times 1.00)$ | 0.94967 |
 
 **Step 2: Continuously Compounded Zero Rates**
-Using \(y(0,T) = -\frac{1}{T} \ln P(0,T)\):
+Using $y(0,T) = -\frac{1}{T} \ln P(0,T)$:
 
 | Maturity | Zero Rate (continuous) |
 |----------|------------------------|
@@ -722,7 +722,7 @@ Continuous:
 $$f_c(0; 0.5, 1.0) = \frac{0.0516 \times 1.0 - 0.0494 \times 0.5}{1.0 - 0.5} = \frac{0.0516 - 0.0247}{0.5} = 5.38\%$$
 
 **Sanity checks:**
-- Discount factors are positive and decrease with maturity ($0.988 > 0.975 > 0.949$). ✓
+- Discount factors are positive and decrease with maturity ($0.988 \gt 0.975 \gt 0.949$). ✓
 - Zero rates increase with maturity (upward-sloping curve). ✓
 - The forward rate (5.46%) exceeds the six-month spot rate (5.00%)—consistent with the rising spot curve. ✓
 
@@ -733,14 +733,14 @@ $$f_c(0; 0.5, 1.0) = \frac{0.0516 \times 1.0 - 0.0494 \times 0.5}{1.0 - 0.5} = \
 **Goal:** Price a 1-year note paying a 6% annual coupon semiannually.
 
 **Cash flows:**
-- Time 0.5: coupon of 3 (since \(6\%/2 \times 100 = 3\) per 100 face)
+- Time 0.5: coupon of 3 (since $6\%/2 \times 100 = 3$ per 100 face)
 - Time 1.0: coupon + principal of 103 (per 100 face)
 
 **Calculation:**
 Using the discount factors from Example A:
 
-$$\text{PV}_0 = 3 \times 0.97561 + 103 \times 0.94967$$
-$$\text{PV}_0 = 2.927 + 97.816 = \boxed{100.74}$$
+$$PV_0 = 3 \times 0.97561 + 103 \times 0.94967$$
+$$PV_0 = 2.927 + 97.816 = \boxed{100.74}$$
 
 **Interpretation:** The bond is worth 100.74 per 100 face. Since this exceeds par, the coupon rate (6%) must be higher than the prevailing market yield (which we saw was around 5-5.3%).
 
@@ -753,8 +753,8 @@ $$\text{PV}_0 = 2.927 + 97.816 = \boxed{100.74}$$
 **Goal:** Price a claim paying 50 at $T = 0.5$ and 105 at $T = 1.0$ by constructing a replicating portfolio.
 
 **Replicating portfolio:**
-- 50 units of the 6-month zero (each pays 1 at \(T=0.5\))
-- 105 units of the 1-year zero (each pays 1 at \(T=1.0\))
+- 50 units of the 6-month zero (each pays 1 at $T=0.5$)
+- 105 units of the 1-year zero (each pays 1 at $T=1.0$)
 
 This portfolio produces exactly the claim's cash flows.
 
@@ -778,7 +778,7 @@ You have locked in a risk-free profit of $1.00$ with zero net future obligations
 
 **Given:** From the bootstrapped discount factors above, $d(1.0) = 0.95247$.
 
-**Expected STRIPS price:** A 1-year C-STRIP should trade at $95.247$ per $100 face.
+**Expected STRIPS price:** A 1-year C-STRIP should trade at \$95.247$ per $100 face.
 
 **Verification:** If the STRIPS traded at $95.50$, it would be **rich** by $0.253$. Arbitrageurs could:
 1. Strip a coupon bond to create the synthetic zero
@@ -835,7 +835,7 @@ This exactly equals the forward rate—confirming the lock-in works.
 
 **Boundary checks:**
 - $P(0, 0) = 1$ (A dollar today is worth a dollar today)
-- $P(0, T) > 0$ for all sensible finite rates.
+- $P(0, T) \gt 0$ for all sensible finite rates.
 
 **Monotonicity (positive rates):**
 - $P(0, T)$ should decrease as $T$ increases.
@@ -850,9 +850,9 @@ This exactly equals the forward rate—confirming the lock-in works.
 
 This chapter established the fundamental pricing framework for deterministic cash flows:
 
-1. **Discount factors** \(P(0,T)\) give the present value today of \$1 paid at time \(T\). They can be extracted from traded instruments by solving pricing equations.
+1. **Discount factors** $P(0,T)$ give the present value today of \$1 paid at time $T$. They can be extracted from traded instruments by solving pricing equations.
 
-2. **Present value** is computed as $\text{PV}_0 = \sum_i C_i P(0, T_i)$—multiply each cash flow by its discount factor and sum. This is the "pricing kernel" for fixed cash flows.
+2. **Present value** is computed as $PV_0 = \sum_i C_i P(0, T_i)$—multiply each cash flow by its discount factor and sum. This is the "pricing kernel" for fixed cash flows.
 
 3. **The law of one price** states that identical cash flows must have identical prices, absent confounding factors (liquidity, repo specials, taxes, credit, balance sheet).
 
@@ -860,7 +860,7 @@ This chapter established the fundamental pricing framework for deterministic cas
 
 5. **Treasury STRIPS** are zero-coupon securities that make discount factors directly observable, though liquidity and tax effects can cause small deviations.
 
-6. **Zero rates** are an alternative expression: \(P(0,T)=e^{-y(0,T)\,T}\) under continuous compounding. They re-parameterize the same discount factor curve.
+6. **Zero rates** are an alternative expression: $P(0,T)=e^{-y(0,T)\,T}$ under continuous compounding. They re-parameterize the same discount factor curve.
 
 7. **Forward rates** are implied future borrowing costs that can be locked in using today's bonds. They link spot rates at adjacent maturities.
 
@@ -878,17 +878,17 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| Discount factor \(P(0,T)\) | PV today of \$1 at time \(T\) | The fundamental building block for pricing. |
+| Discount factor $P(0,T)$ | PV today of \$1 at time $T$ | The fundamental building block for pricing. |
 | Present value | $\sum_i C_i P(0,T_i)$ | The price of any deterministic cash-flow stream. |
 | Law of one price | Same cash flows → same price | Justifies using one curve to price all instruments. |
 | Replication | Portfolio matching target's cash flows | Provides the proof for the no-arbitrage price. |
 | STRIPS | Zero-coupon securities from stripped Treasuries | Make discount factors directly observable. |
-| Zero rate \(y(0,T)\) | Rate such that \(P(0,T)=e^{-y(0,T)\,T}\) (continuous) | A convenient way to quote the same discount curve. |
-| Forward rate \(F(0;T_1,T_2)\) | Breakeven simple rate for \([T_1,T_2]\) implied by discount factors | Turn discount factors into future-period borrowing/lending rates. |
+| Zero rate $y(0,T)$ | Rate such that $P(0,T)=e^{-y(0,T)\,T}$ (continuous) | A convenient way to quote the same discount curve. |
+| Forward rate $F(0;T_1,T_2)$ | Breakeven simple rate for $[T_1,T_2]$ implied by discount factors | Turn discount factors into future-period borrowing/lending rates. |
 | OIS discounting | Using overnight rates for collateralized PV | The post-2007 shift for many derivatives contexts. |
 | CSA | Credit Support Annex specifying collateral terms | Determines which discount curve to use. |
 | Limits to arbitrage | Constraints preventing perfect price enforcement | Balance sheet, funding, liquidity, counterparty. |
-| DV01 (book convention) | \(PV(\text{rates down }1\text{bp})-PV(\text{base})\) for a stated bump object | Forces unit/sign clarity and supports hedge sizing. |
+| DV01 (book convention) | $PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object | Forces unit/sign clarity and supports hedge sizing. |
 
 ---
 
@@ -896,15 +896,15 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 | Symbol | Meaning | Units / Convention |
 |---|---|---|
-| \(P(0,T)\), \(d(T)\) | discount factor to \(T\) | unitless; \(P(T,T)=1\) |
-| \(y(0,T)\) | continuously compounded zero rate to \(T\) | per year; \(P(0,T)=e^{-y(0,T)\,T}\) |
-| \(y_{sa}(0,T)\) | semiannually compounded zero rate to \(T\) | per year; \(P(0,T)=(1+y_{sa}(0,T)/2)^{-2T}\) |
-| \(F(0;T_1,T_2)\) | simply compounded forward rate over \([T_1,T_2]\) | per year; \(1+\tau(T_1,T_2)F=P(0,T_1)/P(0,T_2)\) |
-| \(f_c(0;T_1,T_2)\) | continuously compounded forward rate over \([T_1,T_2]\) | per year; \(f_c=(y(0,T_2)T_2-y(0,T_1)T_1)/(T_2-T_1)\) |
-| \(\tau(T_1,T_2)\) | year fraction between dates | years; depends on day count |
-| \(C_i\) | deterministic cashflow paid at \(T_i\) | currency; positive = receive |
-| \(PV_0\) | present value at time 0 | currency |
-| \(DV01\) | PV change for rates down 1bp | currency per 1bp; define bump object + sign |
+| $P(0,T)$, $d(T)$ | discount factor to $T$ | unitless; $P(T,T)=1$ |
+| $y(0,T)$ | continuously compounded zero rate to $T$ | per year; $P(0,T)=e^{-y(0,T)\,T}$ |
+| $y_{sa}(0,T)$ | semiannually compounded zero rate to $T$ | per year; $P(0,T)=(1+y_{sa}(0,T)/2)^{-2T}$ |
+| $F(0;T_1,T_2)$ | simply compounded forward rate over $[T_1,T_2]$ | per year; $1+\tau(T_1,T_2)F=P(0,T_1)/P(0,T_2)$ |
+| $f_c(0;T_1,T_2)$ | continuously compounded forward rate over $[T_1,T_2]$ | per year; $f_c=(y(0,T_2)T_2-y(0,T_1)T_1)/(T_2-T_1)$ |
+| $\tau(T_1,T_2)$ | year fraction between dates | years; depends on day count |
+| $C_i$ | deterministic cashflow paid at $T_i$ | currency; positive = receive |
+| $PV_0$ | present value at time 0 | currency |
+| $DV01$ | PV change for rates down 1bp | currency per 1bp; define bump object + sign |
 
 ---
 
@@ -912,15 +912,15 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What is \(d(T)\) or \(P(0,T)\)? | The present value today of \$1 received at time \(T\). |
-| 2 | How do you price deterministic cash flows $\{(T_i, C_i)\}$? | $\sum_i C_i P(0, T_i)$ |
+| 1 | What is $d(T)$ or $P(0,T)$? | The present value today of \$1 received at time $T$. |
+| 2 | How do you price deterministic cash flows $\\{(T_i, C_i)\\}$? | $\sum_i C_i P(0, T_i)$ |
 | 3 | What is the law of one price? | Identical cash flows imply identical prices, absent confounding factors. |
 | 4 | What are examples of confounding factors? | Liquidity, special financing (repo specials), taxes, credit risk, balance sheet costs. |
-| 5 | What is \(P(0,T)\) economically? | The price today of a zero-coupon bond paying \$1 at \(T\). |
+| 5 | What is $P(0,T)$ economically? | The price today of a zero-coupon bond paying \$1 at $T$. |
 | 6 | Under continuous compounding, what is the PV of $A$ at $T$ discounted at rate $R$? | $A e^{-RT}$ |
-| 7 | Define the continuously compounded zero rate \(y(0,T)\). | The rate such that \(P(0,T)=e^{-y(0,T)\,T}\). |
-| 8 | How do you extract \(y(0,T)\) from \(P(0,T)\)? | \(y(0,T)= -\frac{1}{T}\ln P(0,T)\) |
-| 9 | What is the continuous forward rate from zero rates? | \(f_c=\frac{y(0,T_2)T_2-y(0,T_1)T_1}{T_2-T_1}\) |
+| 7 | Define the continuously compounded zero rate $y(0,T)$. | The rate such that $P(0,T)=e^{-y(0,T)\,T}$. |
+| 8 | How do you extract $y(0,T)$ from $P(0,T)$? | $y(0,T)= -\frac{1}{T}\ln P(0,T)$ |
+| 9 | What is the continuous forward rate from zero rates? | $f_c=\frac{y(0,T_2)T_2-y(0,T_1)T_1}{T_2-T_1}$ |
 | 10 | What is the FRA-style forward rate from discount factors? | $F = \frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)} - 1\right)$ |
 | 11 | What is replication? | Constructing a portfolio with the same cash flows as the target security. |
 | 12 | If a claim's market price differs from replication cost, what exists? | An arbitrage opportunity (buy cheap, sell rich). |
@@ -937,7 +937,7 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 | 23 | What is a CSA? | Credit Support Annex—specifies collateral arrangements for OTC derivatives. |
 | 24 | What are limits to arbitrage? | Balance sheet, funding, liquidity, and counterparty constraints that prevent perfect price enforcement. |
 | 25 | How can you lock in a forward rate? | Sell units of the longer-dated zero and buy the shorter-dated zero, resulting in a forward loan. |
-| 26 | What is this book’s DV01 convention? | \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) for a stated bump object. |
+| 26 | What is this book’s DV01 convention? | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object. |
 
 ---
 
@@ -945,9 +945,9 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 ### Questions
 
-1. **Discount factor basics.** If $P(0,1) = 0.95$, what is the PV of $200 paid at $T = 1$?
+1. **Discount factor basics.** If $P(0,1) = 0.95$, what is the PV of \$200 paid at $T = 1$?
 
-2. **Zero rate extraction.** Using \(P(0,2) = 0.90\), compute the continuously compounded 2-year zero rate \(y(0,2)\).
+2. **Zero rate extraction.** Using $P(0,2) = 0.90$, compute the continuously compounded 2-year zero rate $y(0,2)$.
 
 3. **Forward rate (FRA-style).** If $P(0, 0.5) = 0.98$ and $P(0, 1.0) = 0.95$, compute the simply compounded forward rate $F(0; 0.5, 1.0)$ with $\tau = 0.5$.
 
@@ -959,7 +959,7 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 7. **Deposit-to-DF conversion.** A 9-month deposit rate is 6% on Actual/360 with 270 days. Using $\tau = 270/360 = 0.75$, compute $P(0, 0.75)$.
 
-8. **Forward from zero rates.** Zero rates (continuous) are \(y(0,1) = 4\%\) and \(y(0,2) = 5\%\). Compute \(f_c(0; 1, 2)\).
+8. **Forward from zero rates.** Zero rates (continuous) are $y(0,1) = 4\%$ and $y(0,2) = 5\%$. Compute $f_c(0; 1, 2)$.
 
 9. **Compounding conversion.** Convert 8% quarterly compounding to continuous.
 
@@ -973,13 +973,13 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 14. **Limits to arbitrage.** An off-the-run Treasury trades 5bp cheap to the fitted curve. Explain why this "cheapness" might persist despite the apparent arbitrage opportunity.
 
-15. **(Compute) DV01 of a zero.** A \$100mm zero-coupon cashflow pays at \(T=5\) with discount factor \(P(0,5)=0.8106\). Using the book’s bump object “parallel \(-1\)bp shift in \(y(0,T)\)”, approximate \(DV01\).
+15. **(Compute) DV01 of a zero.** A \$100mm zero-coupon cashflow pays at $T=5$ with discount factor $P(0,5)=0.8106$. Using the book’s bump object “parallel $-1$bp shift in $y(0,T)$”, approximate $DV01$.
 
 ### Brief Solutions (1–8, 15)
 
 1. $\text{PV} = 200 \times 0.95 = 190$
 
-2. \(y(0,2) = -\frac{1}{2} \ln(0.90) = -0.5 \times (-0.1054) = 0.0527 = 5.27\%\)
+2. $y(0,2) = -\frac{1}{2} \ln(0.90) = -0.5 \times (-0.1054) = 0.0527 = 5.27\%$
 
 3. $F = \frac{1}{0.5}\left(\frac{0.98}{0.95} - 1\right) = 2 \times (1.0316 - 1) = 6.32\%$
 
@@ -991,9 +991,9 @@ The key conceptual insight: **arbitrage and replication turn pricing into a mech
 
 7. $P(0, 0.75) = \frac{1}{1 + 0.06 \times 0.75} = \frac{1}{1.045} = 0.9569$
 
-8. \(f_c(0; 1, 2) = \frac{0.05 \times 2 - 0.04 \times 1}{2 - 1} = 0.06 = 6\%\)
+8. $f_c(0; 1, 2) = \frac{0.05 \times 2 - 0.04 \times 1}{2 - 1} = 0.06 = 6\%$
 
-15. \(PV_0 = N\cdot P(0,5)=\$100{,}000{,}000\times 0.8106=\$81.06\text{mm}\). First order: \(DV01 \approx PV_0\times T\times 10^{-4}=81.06\text{mm}\times 5\times 10^{-4}\approx \$40.5\text{k}\).
+15. $PV_0 = N\cdot P(0,5)=100{,}000{,}000\times 0.8106=81.06\text{mm USD}$. First order: $DV01 \approx PV_0\times T\times 10^{-4}=81.06\text{mm}\times 5\times 10^{-4}\approx 40.5\text{k USD}$.
 
 ---
 

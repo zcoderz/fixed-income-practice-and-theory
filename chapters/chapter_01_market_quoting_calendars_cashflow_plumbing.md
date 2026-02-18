@@ -79,7 +79,7 @@ Quoting clean prices and separating accrued interest avoids a mechanical sawtoot
 > **Example: Tick Size and Bid/Ask**
 >
 > Quotes in 32nds make small spreads natural to discuss in “ticks.” For illustration, a one‑tick (1/32 of par) spread on $100 million face corresponds to:
-> $$\$100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = \$31{,}250$$
+> $$100{,}000{,}000\ \text{USD} \times \frac{1}{32} \times \frac{1}{100} = 31{,}250\ \text{USD}$$
 >
 > A half‑tick (1/64) would be half that amount.
 
@@ -114,7 +114,7 @@ Equivalently:
 
 $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 
-**Why the discount quote understates investor return:** the quote divides the discount $(100-Y)$ by face value, but the investor’s cash outlay is $Y$. The simple-hold return over the bill’s life is $\frac{100-Y}{Y}$, which is larger than $\frac{100-Y}{100}$ when $Y<100$.
+**Why the discount quote understates investor return:** the quote divides the discount $(100-Y)$ by face value, but the investor’s cash outlay is $Y$. The simple-hold return over the bill’s life is $\frac{100-Y}{Y}$, which is larger than $\frac{100-Y}{100}$ when $Y\lt 100$.
 
 > **Worked Example A (House Template): T-bill discount quote → cash price → PV → DV01 (quote bump)**
 >
@@ -128,7 +128,7 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 > - Maturity date: 2026-04-08 (91 calendar days after settlement)
 >
 > **Inputs**
-> - Face value notional: $N = \$10{,}000{,}000$
+> - Face value notional: $N = 10{,}000{,}000\ \text{USD}$
 > - Quoted discount rate: $q_{\text{disc}} = 5.00$ (percent p.a., ACT/360, on face value)
 > - Days to maturity: $n = 91$
 >
@@ -167,7 +167,7 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 >
 > **Sanity Checks**
 > - Units: $q_{\text{disc}}$ is in percent p.a.; $1$ bp $=0.01$ percent points $=10^{-4}$ in decimal.
-> - Sign: for a long bill, lower rates $\Rightarrow$ higher price $\Rightarrow DV01>0$ under the book convention.
+> - Sign: for a long bill, lower rates $\Rightarrow$ higher price $\Rightarrow DV01 \gt 0$ under the book convention.
 > - Scaling: doubling $N$ doubles both PV and $DV01$; longer $n$ increases $DV01$ linearly.
 >
 > **Pitfall — “01” without a bump object:** saying “DV01 is \$253” is incomplete unless you also specify **what you bumped** (yield, zero rate, par rate, or a quote like $q_{\text{disc}}$). Two systems can both report “DV01” for the same trade and disagree simply because they bumped different objects.
@@ -221,7 +221,7 @@ This fraction—(days between dates) / (days in reference period)—is the **acc
 
 - Reference period: March 1 to September 1 = 184 actual days
 - Days elapsed: March 1 to July 3 = 124 actual days
-- Interest earned: $\frac{124}{184} \times \$4 = \$2.6957$
+- Interest earned: $\frac{124}{184} \times 4\ \text{USD} = 2.6957\ \text{USD}$
 
 **30/360:** Used for US corporate and municipal bonds. Assumes 30 days per month and 360 days per year.
 
@@ -232,7 +232,7 @@ Under 30/360, we assume 30 days per month and 360 days per year when carrying ou
 
 - Days elapsed: $(4 \times 30) + 2 = 122$ days (4 full months plus 2 days)
 - Reference period: 180 days (6 months × 30 days)
-- Interest earned: $\frac{122}{180} \times \$4 = \$2.7111$
+- Interest earned: $\frac{122}{180} \times 4\ \text{USD} = 2.7111\ \text{USD}$
 
 ### 1.2.3 The 30/360 Day Counting Algorithm
 
@@ -299,10 +299,10 @@ Think of day counts like measurement systems. Quoting a rate as "5%" without spe
 
 The same economic arrangement can have different quoted rates depending on the day count. Consider a loan from February 15, 2001, to August 15, 2001 (181 actual days):
 
-- At 5% under Actual/360: $\text{Interest} = 5\% \times \frac{181}{360} = 2.5139\%$
-- At 5% under semiannual compounding: $\text{Interest} = \frac{5\%}{2} = 2.500\%$
-- At 5% under monthly compounding: $\text{Interest} = (1 + 0.05/12)^6 - 1 = 2.5262\%$
-- At 5% under daily compounding: $\text{Interest} = (1 + 0.05/365)^{181} - 1 = 2.5103\%$
+- At 5% under Actual/360: $\text{Interest} = 5\\% \times \frac{181}{360} = 2.5139\\%$
+- At 5% under semiannual compounding: $\text{Interest} = \frac{5\\%}{2} = 2.500\\%$
+- At 5% under monthly compounding: $\text{Interest} = (1 + 0.05/12)^6 - 1 = 2.5262\\%$
+- At 5% under daily compounding: $\text{Interest} = (1 + 0.05/365)^{181} - 1 = 2.5103\\%$
 
 Different numbers, same economic reality: if cashflows are computed correctly, the economic payment is the same. The danger is mixing conventions mid-calculation.
 
@@ -312,9 +312,9 @@ Different numbers, same economic reality: if cashflows are computed correctly, t
 >
 > | Convention | Day Fraction | Accrued Interest |
 > |------------|--------------|------------------|
-> | ACT/ACT | $\frac{92}{182} = 0.5055$ | $\$100mm \times 3\% \times 0.5055 = \$1,516,484$ |
-> | 30/360 | $\frac{90}{180} = 0.5000$ | $\$100mm \times 3\% \times 0.5000 = \$1,500,000$ |
-> | ACT/360 | $\frac{92}{180} = 0.5111$ | $\$100mm \times 3\% \times 0.5111 = \$1,533,333$ |
+> | ACT/ACT | $\frac{92}{182} = 0.5055$ | $100\text{mm} \times 3\% \times 0.5055 = 1{,}516{,}484\ \text{USD}$ |
+> | 30/360 | $\frac{90}{180} = 0.5000$ | $100\text{mm} \times 3\% \times 0.5000 = 1{,}500{,}000\ \text{USD}$ |
+> | ACT/360 | $\frac{92}{180} = 0.5111$ | $100\text{mm} \times 3\% \times 0.5111 = 1{,}533{,}333\ \text{USD}$ |
 >
 > **Difference:** The gap between highest and lowest is $33,333—material for trade confirmation and P&L.
 
@@ -393,19 +393,19 @@ Practical rule: before comparing rates across systems, convert them to a common 
 
 **Worked Example D:** Convert 10% semiannual to continuous.
 
-$$R_c = 2 \ln(1 + 0.10/2) = 2 \ln(1.05) = 2 \times 0.04879 = 0.09758 = 9.758\%$$
+$$R_c = 2 \ln(1 + 0.10/2) = 2 \ln(1.05) = 2 \times 0.04879 = 0.09758 = 9.758\\%$$
 
 The continuous rate is lower because interest is being compounded more frequently.
 
 **Worked Example E:** Convert 8% continuous to quarterly.
 
-$$R_m = 4 \times (e^{0.08/4} - 1) = 4 \times (e^{0.02} - 1) = 4 \times 0.0202 = 0.0808 = 8.08\%$$
+$$R_m = 4 \times (e^{0.08/4} - 1) = 4 \times (e^{0.02} - 1) = 4 \times 0.0202 = 0.0808 = 8.08\\%$$
 
-This means on a $1,000 loan with interest paid quarterly, each payment would be $\$1,000 \times 0.0808/4 = \$20.20$.
+This means on a 1,000 USD loan with interest paid quarterly, each payment would be $1{,}000 \times 0.0808/4 = 20.20$ USD.
 
 **Worked Example F:** Convert 6% semiannual to quarterly.
 
-$$R_2 = 4\left[\left(1 + \frac{0.06}{2}\right)^{2/4} - 1\right] = 4\left[(1.03)^{0.5} - 1\right] = 4 \times 0.01489 = 0.0596 = 5.96\%$$
+$$R_2 = 4\left[\left(1 + \frac{0.06}{2}\right)^{2/4} - 1\right] = 4\left[(1.03)^{0.5} - 1\right] = 4 \times 0.01489 = 0.0596 = 5.96\\%$$
 
 ---
 
@@ -436,14 +436,14 @@ Settlement matters for two key reasons:
 
 **Mechanics (cashflows → PV):** a fixed-income instrument is a schedule of future cashflows. Given discount factors $P(t,T_i)$, the present value at valuation date $t$ is:
 
-$$\boxed{PV(t) = \sum_i CF_i \, P(t, T_i)}$$
+$$\boxed{PV(t) = \sum_i CF_i \\, P(t, T_i)}$$
 
 Settlement then specifies *when* the invoice cash is exchanged. To reconcile a quoted price to a model PV, be explicit about your valuation date (trade date vs settlement date vs end-of-day) and carry the value between dates consistently. Over a short settlement lag, that adjustment is essentially “interest on the cash you pay/receive because settlement is later,” so it scales with notional and short rates.
 
 > **Check (order of magnitude): settlement lag is funding-sized**
 >
 > Suppose you buy \$100,000,000 face of a bond at a dirty price of 99.30, so the invoice amount is about \$99.30mm. If settlement is 3 calendar days later and you use a hypothetical 5% p.a. discount rate for that lag (ACT/360, simple interest), the time value over the lag is roughly:
-> $$99.30\text{mm}\times 0.05 \times \frac{3}{360} \approx \$41{,}000.$$
+> $$99.30\text{mm}\times 0.05 \times \frac{3}{360} \approx 41{,}000\ \text{USD}.$$
 > This is not “alpha”; it’s a mechanical timing effect. If your system prices as of trade date but accrues AI to settlement (or vice versa), this is the kind of reconciliation break you’ll see.
 
 ### 1.4.3 When Settlement Fails
@@ -464,12 +464,12 @@ A useful (but imperfect) intuition is that failing can compete with borrowing th
 >
 > A common market convention is to apply a daily fails charge for delivery-versus-payment (DVP) Treasury trades. One widely used functional form is:
 >
-> $$\boxed{C \;=\; \frac{1}{360}\times 0.01 \times \max(3 - R,\; F)\times P}$$
+> $$\boxed{C \\;=\\; \frac{1}{360}\times 0.01 \times \max(3 - R,\\; F)\times P}$$
 >
 > where:
 > - $C$ = fails charge amount, in dollars (accrues each calendar day during the fail);
 > - $P$ = “trade proceeds”, i.e., the amount of funds due from the non-failing party (for DVP);  
->   *(Here $P$ denotes proceeds—don’t confuse it with bond price notation elsewhere in this chapter.)*
+>   *(Here P denotes proceeds. Do not confuse it with bond price notation elsewhere in this chapter.)*
 > - $R$ = reference short rate used for the charge calculation (definition is convention-specific);
 > - $F$ = floor in percentage points per annum so the charge does not collapse to zero when rates are very low (definition is convention-specific).
 >
@@ -477,7 +477,7 @@ A useful (but imperfect) intuition is that failing can compete with borrowing th
 >
 > **Intuition:** when short rates are low, failing is otherwise “cheap,” so the fails charge creates an explicit cost. When short rates are high enough, the opportunity cost of not receiving proceeds is already meaningful and the explicit charge may be small or zero (subject to any floor).
 >
-> **Worked number (order of magnitude):** If $P=\$100{,}000{,}000$ and the applicable fails charge rate is 2% per annum, then $C \approx 100{,}000{,}000 \times 0.02/360 = \$5{,}556$ per day.
+> **Worked number (order of magnitude):** If $P=100{,}000{,}000\ \text{USD}$ and the applicable fails charge rate is 2% per annum, then $C \approx 100{,}000{,}000 \times 0.02/360 = 5{,}556\ \text{USD}$ per day.
 
 One historical stress episode: after September 11, 2001, operational disruption increased Treasury settlement fails and reduced the availability of on-the-run collateral in the specials market, contributing to shortages.
 
@@ -566,7 +566,7 @@ where $r_i$ is the overnight rate on day $i$, $\hat{d}_i = d_i/360$, $d_i$ is th
 > $$\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 = 1.001031$$
 >
 > **Step 3:** Annualize:
-> $$\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\%$$
+> $$\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\\%$$
 
 Because the rate is determined from realized overnight fixings, operational timing conventions (when you observe rates and when you pay) are part of the contract specification. This book treats those timing conventions as inputs (we return to them when discussing curve construction and instrument mechanics later).
 
@@ -615,7 +615,7 @@ Nov 15    Mar 15 (4 months) Jun 15 (3 months)
           ↑ Long stub       ↑ Regular
 ```
 
-*In a "Long First Stub," the first payment covers more than one full period (e.g., 4 months instead of 3). The payment will be $\approx 1.33 \times$ a normal coupon.*
+*In a "Long First Stub," the first payment covers more than one full period (e.g., 4 months instead of 3). The payment will be approximately 1.33x a normal coupon.*
 
 ---
 
@@ -703,13 +703,13 @@ Most trading desks quote clean and track accrued interest separately, then recon
 > - May 15 to November 15 = 184 days (full period)
 >
 > **Step 2:** Calculate accrued interest (ACT/ACT)
-> $$AI = \frac{61}{184} \times \frac{5\%}{2} \times 100 = \frac{61}{184} \times 2.50 = 0.829$$
+> $$AI = \frac{61}{184} \times \frac{5\\%}{2} \times 100 = \frac{61}{184} \times 2.50 = 0.829$$
 >
 > **Step 3:** Calculate dirty price
 > $$P_{\text{dirty}} = 98.50 + 0.829 = 99.329$$
 >
 > **Step 4:** Cash exchanged on $1mm face
-> $$\text{Cash} = \$1,000,000 \times \frac{99.329}{100} = \$993,290$$
+> $$\text{Cash} = 1{,}000{,}000\ \text{USD} \times \frac{99.329}{100} = 993{,}290\ \text{USD}$$
 >
 > **Sanity check:** Dirty price > clean price (positive accrued). Accrued ≈ 1/3 of semiannual coupon (61/184 ≈ 33%). ✓
 
@@ -833,7 +833,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 | $CF_i$ | Cashflow paid at date $T_i$ | currency; signed with positive = receive |
 | $P(t,T)$ or $d(T)$ | Discount factor | unitless; PV at $t$ of $1$ paid at $T$ |
 | $\tau(t_1,t_2)$ (also $\alpha$, $\Delta$) | Year fraction between dates | years; depends on day count convention |
-| $c$ | Coupon rate | per year; coupon cashflow $\approx N\,c\,\tau$ |
+| $c$ | Coupon rate | per year; coupon cashflow $\approx N\\,c\\,\tau$ |
 | $m$ | Compounding / payment frequency | per year |
 | $z(T)$ | Zero (spot) rate to maturity $T$ | per year; compounding basis must be stated |
 | $f(T_1, T_2)$ | Forward rate for period $[T_1, T_2]$ | per year; day count + compounding must be stated |
@@ -917,9 +917,9 @@ The following notation appears in this chapter (and many symbols reappear in lat
 
 2. $\text{AI} = (60/182) \times 3 = 0.989$
 
-3. $1{,}000{,}000 \times 0.04 \times 90/360 = \$10{,}000$
+3. $1{,}000{,}000 \times 0.04 \times 90/360 = 10{,}000\ \text{USD}$
 
-4. $R_c = 2\ln(1.04) = 2 \times 0.0392 = 7.84\%$
+4. $R_c = 2\ln(1.04) = 2 \times 0.0392 = 7.84\\%$
 
 5. Friday (Wednesday + 2 business days)
 
@@ -929,17 +929,17 @@ The following notation appears in this chapter (and many symbols reappear in lat
 
 8. $102.50 + 1.875 = 104.375$
 
-9. Interest = $100 \times 0.05 \times 91/360 = \$1.2639$; Cash price = $100 - 1.2639 = \$98.7361$
+9. Interest = $100 \times 0.05 \times 91/360 = 1.2639\ \text{USD}$; Cash price = $100 - 1.2639 = 98.7361\ \text{USD}$
 
-10. $R_2 = 4[(1.03)^{0.5} - 1] = 4 \times 0.01489 = 5.96\%$
+10. $R_2 = 4[(1.03)^{0.5} - 1] = 4 \times 0.01489 = 5.96\\%$
 
 11. Aug 27 → Aug 30 = 3 days; Aug 30 → Nov 15 = 2 months + 15 days = 75 days. Total = 78 days.
 
-12. Days from Mar 1 to Jul 3 = 124; Days from Mar 1 to Sep 1 = 184; Semiannual coupon = $4; AI = $(124/184) \times 4 = \$2.6957$
+12. Days from Mar 1 to Jul 3 = 124; Days from Mar 1 to Sep 1 = 184; Semiannual coupon = $4$; AI = $(124/184) \times 4 = 2.6957\ \text{USD}$
 
 13. Days from Nov 10 to Dec 20 = 40 days. Accrual fraction = 40/360 = 0.1111. Payment = $5{,}000{,}000 \times 0.015 \times 0.1111 \approx 8{,}333$ (USD).
 
-14. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 = 0.000731$. Annualized: $0.000731 \times 360/5 = 5.26\%$
+14. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 = 0.000731$. Annualized: $0.000731 \times 360/5 = 5.26\\%$
 
 15. (a) Interest per $100$: $100 \times 0.045 \times 182/360 = 2.275$ so $Y=97.725$. (b) Cash paid: $25{,}000{,}000 \times 0.97725 = 24{,}431{,}250\text{ USD}$. (c) $DV01_{\text{disc}} = N \times (n/360) \times 10^{-4} = 25{,}000{,}000 \times 182/360 \times 10^{-4} = 1{,}263.89\text{ USD}$.
 ---
