@@ -199,13 +199,9 @@ This chapter's "Tranche PV01" is item (1) unless explicitly stated otherwise.
 
 #### Intuition
 
-$\mathrm{PV01}_{\mathrm{tranche spread}}$ is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
+`PV01_tranche_spread` is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
 
-**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial PV/\partial s \lt 0$ so $\mathrm{PV01}_{\mathrm{tranche spread}}$ is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if a tranche has face $N_{\mathrm{tr}}^{\mathrm{face}}=W F=USD 40\mathrm{mm}$, an average surviving fraction of $Q_{\mathrm{avg}}\approx 75\%$, and about $T=5$ years of premium, then
-$$
-|\mathrm{PV01}_{\mathrm{tranche spread}}|\ \mathrm{per bp} \;\approx\; 10^{-4}\times Q_{\mathrm{avg}} \times N_{\mathrm{tr}}^{\mathrm{face}} \times T \;\approx\; 10^{-4}\times 0.75\times 40\mathrm{mm}\times 5 \;\approx\; USD 15{,}000,
-$$
-before discounting and accrual details. If your PV01 is $USD 150{,}000/\mathrm{bp}$, you are probably off by a factor of 10 in bp/percent or notional scaling.
+**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial PV/\partial s \lt 0$ so `PV01_tranche_spread` is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if tranche face is `N_tr_face = W*F = USD 40mm`, average surviving fraction is about `Q_avg = 75%`, and premium runs for about `T = 5` years, then `|PV01_tranche_spread| per bp ≈ 1e-4 * Q_avg * N_tr_face * T ≈ USD 15,000`, before discounting and accrual details. If your PV01 is `USD 150,000/bp`, you are probably off by a factor of 10 in bp/percent or notional scaling.
 
 #### How It Appears in Practice
 
@@ -290,7 +286,7 @@ $$\boxed{G = F \cdot \Delta \mathrm{TL} \;\;\;(\mathrm{USD})}$$
 
 A common modeling recipe for the **post-event MTM** is:
 1. Remove the defaulted name from the remaining portfolio (updating portfolio notional/factor consistently).
-2. Treat the realized loss as consuming subordination: shift strikes down by the loss increment, $A \rightarrow A - \Delta L$ and $D \rightarrow D - \Delta L$ (equivalently: $K_1 \rightarrow K_1 - H_0(1-R_0)$ and $K_2 \rightarrow K_2 - H_0(1-R_0)$).
+2. Treat the realized loss as consuming subordination: shift strikes down by the loss increment, $A \rightarrow A - \Delta L$ and $D \rightarrow D - \Delta L$ (equivalently: `K1 -> K1 - H0*(1-R0)` and `K2 -> K2 - H0*(1-R0)`).
 3. Reprice the surviving tranche on the reduced outstanding to obtain $\mathrm{PV}_{\mathrm{after}}$.
 
 In this chapter, we treat VOD/JTD-style measures as **total default-event value change**: post-event MTM change plus any immediate cash loss payment. Some systems report the cash payment and the MTM change separately; confirm your reporting convention.
@@ -1161,9 +1157,9 @@ Compute $\mathrm{TL}(L) = \min(\max(L - A, 0), W)$ and $\mathrm{ON}(L) = W - \ma
 | 10% | 7% | 7% | 4% (cap) | 0% |
 | 20% | 17% | 17% | 4% (cap) | 0% |
 
-**Convert to dollars** (multiply by $F = 100$mm):
-- At $L = 5\%$: tranche loss = $2\% \times 100$mm = USD 2.0mm; outstanding = USD 2.0mm.
-- At $L = 10\%$: tranche loss = $4\% \times 100$mm = USD 4.0mm; outstanding = USD 0.
+**Convert to dollars** (multiply by `F = USD 100mm`):
+- At `L = 5%`: tranche loss = `2% * 100mm = USD 2.0mm`; outstanding = USD 2.0mm.
+- At `L = 10%`: tranche loss = `4% * 100mm = USD 4.0mm`; outstanding = USD 0.
 
 ---
 
@@ -1510,7 +1506,7 @@ $$\boxed{G = \Delta\mathrm{TL} \cdot F = 0.004 \times 100\mathrm{mm} = USD 0.40\
 #### PV Change Proxy
 
 - Immediate protection payment to long protection is $+USD 0.40$mm.
-- Remaining outstanding tranche notional decreases from $W \cdot F = 0.04 \cdot 100$mm $= USD 4.0$mm to $(W - \Delta\mathrm{TL})F = 0.036 \cdot 100$mm $= USD 3.6$mm.
+- Remaining outstanding tranche notional decreases from `W*F = 0.04*100mm = USD 4.0mm` to `(W-DeltaTL)*F = 0.036*100mm = USD 3.6mm`.
 - Premium leg PV will drop (because premium is paid on outstanding); protection leg PV also drops (less remaining protection).
 
 A book-consistent way to capture the total jump is VOD, which includes repricing after the default and adding/subtracting $G$.
@@ -1523,7 +1519,7 @@ Use same portfolio and tranche.
 
 **Cluster event:**
 - $k = 5$ defaults simultaneously, each with $R = 40\%$.
-- Total loss dollars $= 5 \times 0.60$mm $= 3.0$mm.
+- Total loss dollars = `5 * 0.60mm = 3.0mm`.
 - $\Delta L = 3.0/100 = 0.03 = 3\%$.
 
 **Assume $L^- = 2.8\% = 0.028$. Then $L^+ = 0.058 = 5.8\%$.**
@@ -1561,7 +1557,7 @@ Single-name default with $L^- = 2.8\%$ and face value USD 1mm.
 
 - LGD = 80%, loss dollars = USD 0.80mm → $\Delta L = 0.008 = 0.8\%$
 - $L^+ = 3.6\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 3.6 - 3.0 = 0.6\%$
-- $G = 0.006 \times 100$mm $= USD 0.60$mm
+- `G = 0.006 * 100mm = USD 0.60mm`
 
 #### Case R = 40%
 
@@ -1571,7 +1567,7 @@ From Example 10: $G = USD 0.40$mm
 
 - LGD = 40%, loss dollars = USD 0.40mm → $\Delta L = 0.004 = 0.4\%$
 - $L^+ = 3.2\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 0.2\%$
-- $G = 0.002 \times 100$mm $= USD 0.20$mm
+- `G = 0.002 * 100mm = USD 0.20mm`
 
 **Sensitivity (finite difference):**
 
@@ -1598,7 +1594,7 @@ $$-373.38 + h \cdot 248.23 = 0 \quad\Rightarrow\quad h = \frac{373.38}{248.23} =
 
 #### Validation Under Small Spread Move
 
-Assume both tranche contractual spreads increase by $\Delta s = +5$bp.
+Assume both tranche contractual spreads increase by `Delta s = +5bp`.
 
 **Target P&L:**
 
@@ -1624,7 +1620,7 @@ Use the PV01-neutral portfolio from Example 13:
 
 **Now apply a clustered default shock from no prior losses:**
 - $k = 8$ defaults, each USD 1mm face, recovery 40%.
-- Each loss = USD 0.60mm → total loss = $8 \times 0.60 = USD 4.8$mm.
+- Each loss = USD 0.60mm → total loss = `8 * 0.60 = USD 4.8mm`.
 - Portfolio loss fraction jump: $\Delta L = 4.8/100 = 4.8\%$.
 
 **Compute tranche loss increments from $L^- = 0$ to $L^+ = 4.8\%$:**
@@ -1815,9 +1811,9 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 1. (Compute) Tranche $[2\%,5\%]$: compute $\mathrm{TL}(L)$ for $L=\{0,1,3,6\}\%$.
 2. (Compute) Premium PV (toy grid): $F=50$mm, $[A,D]=[3\%,7\%]$ so $W=4\%$, $s=200$bp, $Q(t_0,t_1,t_2)=\{1,0.95,0.90\}$, $Z(t_1,t_2)=\{0.99,0.98\}$, $\Delta(t_0,t_1,t_2)=\{0.5,0.5\}$. Compute $\mathrm{PV}_{\mathrm{prem}}$ using trapezoid on expected outstanding.
 3. (Compute) Protection PV (toy grid): using $F=50$mm, $\mathrm{ETL}(t_0,t_1,t_2)=\{0,0.002,0.005\}$ and $Z(t_1,t_2)=\{0.99,0.97\}$, compute $\mathrm{PV}_{\mathrm{prot}}$.
-4. (Compute) Par spread (toy): using Problems 2–3 and ignoring upfront, solve for $s^{\star}$ such that $\mathrm{PV}_{\mathrm{prot}}=\mathrm{PV}_{\mathrm{prem}}$.
-5. (Compute) PV01 (central difference): $\mathrm{PV}(s-1\mathrm{bp})=1.20$mm and $\mathrm{PV}(s+1\mathrm{bp})=1.15$mm. Compute contractual tranche PV01.
-6. (Compute) CorrDelta and Corr01: $\mathrm{PV}(0.2)=-0.05$mm and $\mathrm{PV}(0.4)=0.35$mm. Approximate CorrDelta around $0.3$ with $\Delta\rho=0.1$, and compute Corr01.
+4. (Compute) Par spread (toy): using Problems 2–3 and ignoring upfront, solve for `s_star` such that `PV_prot = PV_prem`.
+5. (Compute) PV01 (central difference): `PV(s-1bp)=1.20mm` and `PV(s+1bp)=1.15mm`. Compute contractual tranche PV01.
+6. (Compute) CorrDelta and Corr01: `PV(0.2)=-0.05mm` and `PV(0.4)=0.35mm`. Approximate CorrDelta around `0.3` with `Delta rho = 0.1`, and compute Corr01.
 7. (Compute) Default-event loss payment: $F=500$mm, tranche $[3,7]$, realized loss jumps from $L^-=2.5\%$ to $L^+=3.15\%$. Compute the immediate loss payment $G$ to a long-protection holder (assume the tranche is hit).
 8. (Concept) In one paragraph: why is contractual tranche PV01 not the same as “systemic DV01” to issuer spreads? Name the bumped object in each case.
 9. (Desk) A book is PV01-neutral to contractual spread bumps, but a default causes a large loss. List two diagnostics/tests that would have caught the jump/clustering exposure.
@@ -1826,12 +1822,12 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 ### Solution Sketches (Selected)
 
 1. $A=2\%$, $W=3\%$. $\mathrm{TL}(0\%)=0\%$, $\mathrm{TL}(1\%)=0\%$, $\mathrm{TL}(3\%)=1\%$, $\mathrm{TL}(6\%)=3\%$ (capped at $W$).
-2. $F\cdot W\cdot s_{\mathrm{dec}}=50\mathrm{mm}\cdot 0.04\cdot 0.02=USD 40{,}000$ per year. Trapezoid sum $=\sum_i \Delta_i Z_i\frac{Q_{i-1}+Q_i}{2}=0.935875$. So $\mathrm{PV}_{\mathrm{prem}}\approx 40{,}000\cdot 0.935875=USD 37{,}435$.
-3. $\Delta\mathrm{ETL}_1=0.2\%=0.002$, $\Delta\mathrm{ETL}_2=0.3\%=0.003$. $\mathrm{PV}_{\mathrm{prot}}=50\mathrm{mm}\cdot[0.99(0.002)+0.97(0.003)]=USD 244{,}500$.
-4. Using the annuity sum from (2): $\mathrm{PV}_{\mathrm{prem}}=F\cdot W\cdot s_{\mathrm{dec}}\cdot 0.935875$. Solve $s_{\mathrm{dec}}=244{,}500/(50\mathrm{mm}\cdot 0.04\cdot 0.935875)=0.13065$, so $s^{\star}\approx 1306.5$bp.
-5. $\mathrm{PV01}\approx \frac{1.15-1.20}{2}\mathrm{ mm/bp}=-0.025\mathrm{ mm/bp}=-USD 25{,}000/\mathrm{bp}.$
-6. $\mathrm{CorrDelta}\approx \frac{0.35-(-0.05)}{0.2}=2.0$mm per unit $\rho$. $\mathrm{Corr01}\approx 0.01\cdot 2.0\mathrm{mm}=0.02$mm $=USD 20{,}000$ per +1% absolute.
-7. Before: $\mathrm{TL}(2.5\%)=0$. After: $\mathrm{TL}(3.15\%)=\min(3.15\%-3\%,4\%)=0.15\%$. So $G=0.15\%\cdot 500\mathrm{mm}=USD 0.75$mm.
+2. `F*W*s_dec = 50mm*0.04*0.02 = USD 40,000` per year. Trapezoid sum is `sum_i Delta_i Z_i (Q_{i-1}+Q_i)/2 = 0.935875`. So `PV_prem ≈ 40,000*0.935875 = USD 37,435`.
+3. `DeltaETL1=0.002`, `DeltaETL2=0.003`. `PV_prot = 50mm*[0.99(0.002)+0.97(0.003)] = USD 244,500`.
+4. Using the annuity sum from (2): `PV_prem = F*W*s_dec*0.935875`. Solve `s_dec=244,500/(50mm*0.04*0.935875)=0.13065`, so `s_star ≈ 1306.5bp`.
+5. `PV01 ≈ (1.15-1.20)/2 mm/bp = -0.025 mm/bp = -USD 25,000/bp`.
+6. `CorrDelta ≈ (0.35-(-0.05))/0.2 = 2.0mm` per unit rho. `Corr01 ≈ 0.01*2.0mm = 0.02mm = USD 20,000` per +1% absolute.
+7. Before: `TL(2.5%)=0`. After: `TL(3.15%)=min(3.15%-3%,4%)=0.15%`. So `G=0.15%*500mm=USD 0.75mm`.
 8. Contractual PV01 bumps the tranche’s running premium $s$ holding the tranche loss/discount inputs fixed. “Systemic DV01” bumps issuer CDS curves (all names), rebuilds hazard rates and the tranche loss distribution, and reprices the tranche.
 9. Example diagnostics: (i) compute VOD/JTD name-by-name and a $k$-name clustered-default scenario; (ii) run a default-event scenario on a “PV01-hedged” book to quantify the jump component not explained by PV01.
 
