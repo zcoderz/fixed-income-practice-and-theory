@@ -95,11 +95,11 @@ The annuity has a natural interpretation: it is the present value of receiving 1
 
 The annuity appears everywhere in swap analysis:
 
-1. **Par swap rate:** the par fixed rate $K^*$ is the value of $K$ that makes the swap PV zero. For a forward-starting swap that begins at $T_k$ and ends at $T_{k+m}$, a standard expression is
-   $$\boxed{K^*(t) = \frac{P_d(t, T_k) - P_d(t, T_{k+m})}{A_{k,m}(t)}} \quad \text{where} \quad A_{k,m}(t)=\sum_{i=k+1}^{k+m} \alpha_i P_d(t,T_i).$$
+1. **Par swap rate:** the par fixed rate $K^{\ast}$ is the value of $K$ that makes the swap PV zero. For a forward-starting swap that begins at $T_k$ and ends at $T_{k+m}$, a standard expression is
+   $$\boxed{K^{\ast}(t) = \frac{P_d(t, T_k) - P_d(t, T_{k+m})}{A_{k,m}(t)}} \quad \text{where} \quad A_{k,m}(t)=\sum_{i=k+1}^{k+m} \alpha_i P_d(t,T_i).$$
 
 2. **Off-market swap PV (rate difference × annuity):** a useful intuition (and often a good approximation for small moves) is
-   $$\boxed{PV_{\text{rec}}(t)\approx N \, A(t)\, (K - K^*(t))}$$
+   $$\boxed{PV_{\text{rec}}(t)\approx N \, A(t)\, (K - K^{\ast}(t))}$$
    with the sign flipping for the payer. The main caveat is that $A(t)$ itself depends on the curve(s), so for larger moves you generally reprice rather than treat $A$ as constant.
 
 3. **Swaption payoffs:** A payer swaption exercised at expiry is worth $N \times A \times \max(K^{\text{swap}} - K^{\text{strike}}, 0)$
@@ -175,7 +175,7 @@ To be precise, we define:
 - **PV01-to-$K$:** Sensitivity to the contracted fixed rate (holding curves fixed)
 - **Curve PV01 or DV01:** Sensitivity to a curve bump (e.g., +1bp parallel shift)
 
-The distinction matters enormously. Consider an at-market swap where $K = K^*$ and $PV \approx 0$.
+The distinction matters enormously. Consider an at-market swap where $K = K^{\ast}$ and $PV \approx 0$.
 
 - The PV01-to-$K$ is, by construction, $N \times A \times 0.0001$: it answers “what if the fixed rate in the contract were 1bp higher?”
 - A curve DV01 answers a different question: “what if the market curve(s) move by 1bp under a specified bump-and-rebuild rule?”
@@ -227,7 +227,7 @@ Here is a simple timeline mental model. Let $T_{\text{next}}$ be the next reset/
 - **Right after a reset:** the floating coupon for the coming accrual period is set to a then-current fixing. The floating leg resembles a par floater, so there is little long-horizon fixed-cashflow exposure left to “drag around.”
 - **Between resets:** the most “locked” cashflow is the next coupon amount implied by the last fixing (plus any short stub). The main PV sensitivity is therefore discounting over the short horizon to $T_{\text{next}}$, which is why the floating leg’s DV01 is small compared with the fixed leg’s DV01.
 
-**Toy scale check:** Suppose $T_{\text{next}}=0.25$y (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\%$. The next coupon cash amount is $N\alpha L\approx 100\text{mm}\times 0.25\times 0.04=USD1.0$mm. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=USD25$. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional—hence “short duration.”
+**Toy scale check:** Suppose $T_{\text{next}}=0.25$y (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\%$. The next coupon cash amount is approximately $100\text{mm}\times 0.25\times 0.04=1.0$ million USD. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=25$ USD. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional - hence “short duration.”
 
 ---
 
@@ -392,7 +392,7 @@ Two quick implications (when $DV01_A$ and $DV01_B$ are reported as **magnitudes*
 **Cashflows (schematic)**
 | Date | Cashflow | Explanation |
 |---|---|---|
-| each coupon date | Bond: +$0.03 \times 10\text{mm}$ | fixed coupons received |
+| each coupon date | Bond: +0.03 x 10mm | fixed coupons received |
 | maturity | Bond: +$10\text{mm}$ | principal received |
 | each fixed leg date | Swap: pay $K_{\text{swap}} \times \alpha_i \times N_{\text{swap}}$ | fixed coupons paid |
 | each float leg date | Swap: receive floating coupon | index-linked receipts |
@@ -481,7 +481,7 @@ $$-USD100,000,000 \times (99.995813\% - 100\%) = USD4,187$$
 
 **Check (order of magnitude):** A single 6-month forward bucket bumped by 1bp changes expected cashflows for roughly one accrual period. A crude scale is
 $$|\Delta PV|\approx N\times \alpha \times P(0,T)\times 10^{-4}.$$
-With $N=USD100$mm, $\alpha\approx 0.5$, and a mid-curve discount factor around $0.95$–$0.99$, this gives about $USD4.75\text{k}$–$USD4.95\text{k}$ per bp—consistent with the same ballpark as $USD4{,}187$. The exact number depends on the bump-and-rebuild rule and the position’s bucket weights.
+With $N=USD100$mm, $\alpha\approx 0.5$, and a mid-curve discount factor around $0.95$-$0.99$, this gives about USD4.75k-USD4.95k per bp - consistent with the same ballpark as USD4,187. The exact number depends on the bump-and-rebuild rule and the position’s bucket weights.
 
 Across all buckets, the **sum of bucket exposures** is (approximately) the exposure to a simultaneous 1bp shift in all forwards. Under simplifying assumptions (e.g., a flat curve and consistent bump/rebuild rules), this sum can be very close to the fixed-leg DV01.
 
@@ -812,7 +812,7 @@ Rule of thumb: if a DV01 is quoted **per 100 face**, divide by 100 before scalin
 | 16 | In multi-curve, what does the projection curve determine? | Expected floating cashflows (forward rates) |
 | 17 | In multi-curve, what does the discount curve determine? | Present values of all cashflows |
 | 18 | Why is discount PV01 often smaller than projection PV01? | Discount bump scales both legs; projection bump changes only floating |
-| 19 | Par swap rate formula (simple form)? | $K^* = (P(t,T_k) - P(t,T_{k+m})) / A$ |
+| 19 | Par swap rate formula (simple form)? | $K^{\ast} = (P(t,T_k) - P(t,T_{k+m})) / A$ |
 | 20 | Operational difference: paying fixed vs shorting bond? | Swap is off-balance sheet, no repo exposure; short bond requires borrowing, exposed to squeeze |
 
 ---
@@ -823,7 +823,7 @@ Rule of thumb: if a DV01 is quoted **per 100 face**, divide by 100 before scalin
 
 1. **[Easy - Calculation]** Given a 4-year semiannual-pay swap with discount factors $P(0.5) = 0.985$, $P(1) = 0.97$, $P(1.5) = 0.955$, $P(2) = 0.94$, $P(2.5) = 0.925$, $P(3) = 0.91$, $P(3.5) = 0.895$, $P(4) = 0.88$, compute the annuity $A$ and PV01-to-$K$ for $N = USD50\text{mm}$.
 
-2. **[Easy - Calculation]** With forwards $F_1 = 2.5\%$, $F_2 = 2.8\%$, $F_3 = 3.1\%$, $F_4 = 3.4\%$ (annual) and discount factors $P(1) = 0.975$, $P(2) = 0.95$, $P(3) = 0.92$, $P(4) = 0.89$, compute the par swap rate $K^*$.
+2. **[Easy - Calculation]** With forwards $F_1 = 2.5\%$, $F_2 = 2.8\%$, $F_3 = 3.1\%$, $F_4 = 3.4\%$ (annual) and discount factors $P(1) = 0.975$, $P(2) = 0.95$, $P(3) = 0.92$, $P(4) = 0.89$, compute the par swap rate $K^{\ast}$.
 
 3. **[Medium - Application]** For a payer swap with $K = 3.5\%$ (above par), using the data from problem 2, compute the swap PV per $USD100\text{mm}$ notional. Is it positive or negative to the payer?
 
@@ -857,7 +857,7 @@ $PV01_K = 50\text{mm} \times 3.73 \times 0.0001 = USD18,650$.
 
 Annuity: $A = 0.975 + 0.95 + 0.92 + 0.89 = 3.735$.
 
-$K^* = 0.10976 / 3.735 = 2.94\%$.
+$K^{\ast} = 0.10976 / 3.735 = 2.94\%$.
 
 **3.** $PV_{\text{pay}} = N(\sum F_i P_i - KA) = N(0.10976 - 0.035 \times 3.735) = N(0.10976 - 0.13073) = -0.02097 \times N$.
 
