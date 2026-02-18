@@ -72,19 +72,19 @@ Accrued premium sign convention (between coupon dates): positive for short prote
 
 Definition used here:
 
-$$\text{CS01} = \frac{\partial PV}{\partial S} \times (1 \text{ bp})$$
+$$CS01 = \frac{\partial PV}{\partial S} \times (1 \text{ bp})$$
 
 where $S$ is the quoted/par spread being bumped (single-name CDS spread, index spread, tranche spread—explicitly stated each time).
 
-- **Long protection CDS:** $PV$ increases when $S$ widens $\Rightarrow$ CS01 $> 0$.
-- **Short protection CDS:** CS01 $< 0$.
-- **Long cash bond:** $PV$ decreases when credit spread widens $\Rightarrow$ bond "credit CS01" $< 0$ (if you measure it as $\Delta PV$ for $+1$ bp spread).
+- **Long protection CDS:** $PV$ increases when $S$ widens $\Rightarrow$ CS01 $\gt 0$.
+- **Short protection CDS:** CS01 $\lt 0$.
+- **Long cash bond:** $PV$ decreases when credit spread widens $\Rightarrow$ bond "credit CS01" $\lt 0$ (if you measure it as $\Delta PV$ for $+1$ bp spread).
 
 ### Jump-to-Default (JTD) Sign Convention
 
 We measure JTD as the instantaneous PV jump at default (a scenario jump, not an infinitesimal derivative):
 
-$$\text{JTD} \equiv PV_{\text{post-default}} - PV_{\text{pre-default}}$$
+$$JTD \equiv PV_{\text{post-default}} - PV_{\text{pre-default}}$$
 
 For long protection CDS, JTD is typically positive (you receive protection payment net of accrued premium). This is the value-on-default (VOD) framework in the sources.
 
@@ -99,9 +99,9 @@ For long protection CDS, JTD is typically positive (you receive protection payme
 - Spreads are quoted in bp/year; valuation uses decimals with $1 \text{ bp} = 10^{-4}$.
 - **Single-name CDS valuation identity (risk measure anchor):** the mark-to-market of a standard running-spread CDS can be written as
 
-$$V(t,T) = (S(t,T) - S_0) \cdot \text{RPV01}(t,T)$$
+$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T)$$
 
-(per unit notional), where $\text{RPV01}$ is the risky PV01 of the premium leg.
+(per unit notional), where $RPV01$ is the risky PV01 of the premium leg.
 
 ### Index Contracts (Mechanics Assumed)
 
@@ -128,10 +128,10 @@ If that sign convention feels confusing, re-check the CDS MTM identity in Chapte
 | $Z(t,u)$ | Discount factor from $t$ to $u$ |
 | $Q(t,u)$ | Survival probability from $t$ to $u$ |
 | $R$ | Recovery rate (decimal, e.g., 0.40) |
-| $\text{RPV01}(t,T)$ | Risky PV01 (PV of 1 bp/yr premium leg per unit notional) |
-| $\text{CS01}$ | Spread DV01 (PV change for +1 bp change in quoted spread) |
-| $\text{DV01}_r$ | Rates DV01 (PV change for +1 bp parallel move in chosen risk-free curve) |
-| $\text{VOD}$ | Value-on-default (PV jump at default), used as JTD measure |
+| $RPV01(t,T)$ | Risky PV01 (PV of 1 bp/yr premium leg per unit notional) |
+| $CS01$ | Spread DV01 (PV change for +1 bp change in quoted spread) |
+| $DV01_r$ | Rates DV01 (PV change for +1 bp parallel move in chosen risk-free curve) |
+| $VOD$ | Value-on-default (PV jump at default), used as JTD measure |
 | $U_I$ | Index upfront payment (currency) |
 | $M$ | Number of names in an index |
 | $A, B$ | Tranche attachment/detachment points (as portfolio loss fractions) |
@@ -167,7 +167,7 @@ If you already know these, skim this section and jump to Section 52.3.
 
 For any instrument valued as $PV(S, \cdot)$, define
 
-$$\boxed{\text{CS01} \equiv \frac{\partial PV}{\partial S} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
+$$\boxed{CS01 \equiv \frac{\partial PV}{\partial S} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
 
 What spread is bumped must be specified:
 
@@ -179,15 +179,15 @@ What spread is bumped must be specified:
 
 Using the CDS MTM identity
 
-$$V(t,T) = (S(t,T) - S_0) \cdot \text{RPV01}(t,T),$$
+$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T),$$
 
 a small spread move gives
 
-$$dV \approx \text{RPV01}(t,T) \, dS,$$
+$$dV \approx RPV01(t,T) \\, dS,$$
 
 so per unit notional:
 
-$$\boxed{\text{CS01}_{\text{CDS}} \approx \text{RPV01}(t,T) \times 10^{-4}}$$
+$$\boxed{CS01_{\text{CDS}} \approx RPV01(t,T) \times 10^{-4}}$$
 
 #### Intuition
 
@@ -195,7 +195,7 @@ CS01 is the "linear spread risk": how much PV changes for small spread moves.
 
 #### How It Appears in Practice
 
-Risk systems compute $\text{RPV01}$ and CS01 by maturity; traders/risk managers size hedges to neutralize CS01 (or bucketed CS01).
+Risk systems compute $RPV01$ and CS01 by maturity; traders/risk managers size hedges to neutralize CS01 (or bucketed CS01).
 
 **Common beginner mistakes (worth watching for in P&L explains):**
 
@@ -213,7 +213,7 @@ If these distinctions feel unfamiliar, Chapter 43 is the prerequisite for the re
 
 Let $r$ represent the relevant risk-free curve level (or yield). Define
 
-$$\boxed{\text{DV01}_r \equiv \frac{\partial PV}{\partial r} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
+$$\boxed{DV01_r \equiv \frac{\partial PV}{\partial r} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
 
 #### Intuition
 
@@ -231,13 +231,13 @@ Duration/DV01 hedging is standard; it immunizes against small parallel shifts bu
 
 For a position with pre-default PV $PV$ and post-default PV $PV'$:
 
-$$\boxed{\text{JTD} \equiv PV' - PV \quad \text{(USD)}}$$
+$$\boxed{JTD \equiv PV' - PV \quad \text{(USD)}}$$
 
 #### Source-Backed CDS Expression (Value-on-Default / VOD)
 
 For a CDS, the value-on-default is expressed (per unit notional) as:
 
-$$\text{VOD} = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot \text{RPV01}(t,T)$$
+$$VOD = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot RPV01(t,T)$$
 
 (long protection sign).
 
@@ -247,7 +247,7 @@ $$\text{VOD} = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot \text{RPV
 
 CS01 is "small move"; JTD is the discontinuity when default happens.
 
-**Concrete intuition:** If you are long protection on $5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \times 5{,}000{,}000 = \$3{,}000{,}000$ (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
+**Concrete intuition:** If you are long protection on USD 5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \times 5{,}000{,}000 = 3{,}000{,}000$ USD (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
 
 #### Practice
 
@@ -261,7 +261,7 @@ Hedging CS01 does not hedge JTD (especially single-name default vs index hedge).
 
 Recovery sensitivity (per unit notional) can be measured as
 
-$$\text{Rec01} \equiv \frac{\partial PV}{\partial R} \times 0.01 \quad \text{(USD per 1\% recovery)}$$
+$$Rec01 \equiv \frac{\partial PV}{\partial R} \times 0.01 \quad \text{(USD per 1\\% recovery)}$$
 
 #### Source-Backed CDS Recovery Sensitivity
 
@@ -292,11 +292,11 @@ The gap between these is the **index basis** (Chapters 46–47 cover this in dep
 
 O'Kane provides the precise intrinsic valuation framework. The intrinsic upfront value of an index (viewed as an equally weighted portfolio of constituent CDS) is:
 
-$$\boxed{V_I(t) = \frac{1}{M} \sum_{m=1}^{M} (S_m(t,T) - C(T)) \cdot \text{RPV01}_m(t,T)}$$
+$$\boxed{V_I(t) = \frac{1}{M} \sum_{m=1}^{M} (S_m(t,T) - C(T)) \cdot RPV01_m(t,T)}$$
 
 The market upfront value using a flat index curve is:
 
-$$\boxed{U_I(t) = (S_I(t,T) - C(T)) \cdot \text{RPV01}_I(t,T)}$$
+$$\boxed{U_I(t) = (S_I(t,T) - C(T)) \cdot RPV01_I(t,T)}$$
 
 O’Kane calls this the **intrinsic** view because it prices the index as the sum (average) of its constituent CDS values.
 
@@ -352,7 +352,7 @@ If tranches are new, pause here and read Chapters 49–51 first. The rest of thi
 
 #### Tranche PV01
 
-The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using expected discounted outstanding tranche notional; the source gives a tranche $\text{RPV01}$ expression and defines tranche PV01 as the sensitivity to 1 bp spread change.
+The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using expected discounted outstanding tranche notional; the source gives a tranche $RPV01$ expression and defines tranche PV01 as the sensitivity to 1 bp spread change.
 
 #### Correlation Sensitivity
 
@@ -528,23 +528,23 @@ Buckets used in this chapter: 0–3Y, 3–7Y, 7–10Y (coarse).
 
 | Exposure (units) | Definition | Bond leg | CDS leg | Net intuition |
 |------------------|------------|----------|---------|---------------|
-| $\text{CS01}_{0\text{–}3}$ (USD/bp) | $\partial PV / \partial S \times 1\text{bp}$ | usually 0 | usually 0 | maturity placement |
-| $\text{CS01}_{3\text{–}7}$ (USD/bp) | 5Y risk mostly here | $< 0$ (long bond) | $> 0$ (long prot) | can offset if sized |
-| $\text{CS01}_{7\text{–}10}$ (USD/bp) | long-end bucket | 0 | 0 | — |
+| $CS01_{0\text{–}3}$ (USD/bp) | $\partial PV / \partial S \times 1\text{bp}$ | usually 0 | usually 0 | maturity placement |
+| $CS01_{3\text{–}7}$ (USD/bp) | 5Y risk mostly here | $\lt 0$ (long bond) | $\gt 0$ (long prot) | can offset if sized |
+| $CS01_{7\text{–}10}$ (USD/bp) | long-end bucket | 0 | 0 | — |
 | Rates DV01 (USD/bp) | $\partial PV / \partial r \times 1\text{bp}$ | typically $\neq 0$ | ~0 | residual rates unless hedged |
-| JTD (USD) | PV jump at default | $-(P - R) \times N$ | $+\text{VOD} \times N$ for long prot | can be matched, but not automatic |
-| Rec01 (USD per 1%) | $\partial PV / \partial R \times 1\%$ | depends on bond recovery view | CDS recovery sensitivity | mismatches matter |
+| JTD (USD) | PV jump at default | $-(P - R) \times N$ | $+VOD \times N$ for long prot | can be matched, but not automatic |
+| Rec01 (USD per 1%) | $\partial PV / \partial R \times 1\\%$ | depends on bond recovery view | CDS recovery sensitivity | mismatches matter |
 | Basis sensitivity | PV change when CDS and bond spreads move differently | yes | yes | this is the residual you keep |
 
 ##### Hedge Set and Hedge Ratios (Show Math)
 
 **Rates hedge (DV01 neutralization):**
 
-$$N_{\text{rates hedge}} = -\frac{\text{DV01}_r^{\text{bond}}}{\text{DV01}_r^{\text{hedge instr}}}$$
+$$N_{\text{rates hedge}} = -\frac{DV01_r^{\text{bond}}}{DV01_r^{\text{hedge instr}}}$$
 
 **Credit hedge (CS01 match):**
 
-$$N_{\text{CDS}} = -\frac{\text{CS01}_{\text{bond}}}{\text{CS01}_{\text{CDS per \$ notional}}}$$
+$$N_{\text{CDS}} = -\frac{CS01_{\text{bond}}}{CS01_{\text{CDS per USD  notional}}}$$
 
 **Event hedge (JTD match):** motivated by the loss-on-default mismatch discussion (bond loss $P - R$ vs CDS loss $1 - R$).
 
@@ -583,7 +583,7 @@ The basis trade can fail in multiple ways, corresponding to the fundamental and 
 ##### Implementation Checklist + Verification Tests
 
 - Reprice each leg under the same discounting assumptions where applicable (and document differences).
-- Verify signs: long protection CS01 $> 0$; long bond credit CS01 $< 0$.
+- Verify signs: long protection CS01 $\gt 0$; long bond credit CS01 $\lt 0$.
 - Bump stability: CS01 should be stable for $\pm 1$ bp bumps; if not, you are in nonlinear regime.
 - Event test: run default today with recovery sweep.
 
@@ -632,7 +632,7 @@ We bucket both single-name and index CS01 into 0–3Y / 3–7Y / 7–10Y (coarse
 
 | Exposure (units) | Single-name leg | Index hedge leg | Net risk comment |
 |------------------|-----------------|-----------------|------------------|
-| $\text{CS01}_{3\text{–}7}$ (USD/bp) | dominant | dominant | can be matched |
+| $CS01_{3\text{–}7}$ (USD/bp) | dominant | dominant | can be matched |
 | JTD (USD) | large (single default) | small per-name (diversified) | not hedged by CS01 match |
 | Rec01 (USD/1%) | meaningful | meaningful | can mismatch |
 | Basis sensitivity | single vs index composition | yes | residual "proxy basis" |
@@ -642,11 +642,11 @@ We bucket both single-name and index CS01 into 0–3Y / 3–7Y / 7–10Y (coarse
 
 **CS01 match:**
 
-$$N_{\text{index}} = -\frac{\text{CS01}_{\text{single}}}{\text{CS01}_{\text{index per \$ notional}}}$$
+$$N_{\text{index}} = -\frac{CS01_{\text{single}}}{CS01_{\text{index per USD  notional}}}$$
 
 **If a beta $\beta$ is imposed:**
 
-$$N_{\text{index}} = -\frac{\beta \cdot \text{CS01}_{\text{single}}}{\text{CS01}_{\text{index per \$ notional}}}$$
+$$N_{\text{index}} = -\frac{\beta \cdot CS01_{\text{single}}}{CS01_{\text{index per USD  notional}}}$$
 
 (Beta treatment is a desk convention input in these notes.)
 
@@ -717,9 +717,9 @@ Express a view on the shape of a single name's credit curve: steepening (short e
 
 | Exposure (units) | Short leg | Long leg | Net |
 |------------------|-----------|----------|-----|
-| $\text{CS01}_{3Y}$ (USD/bp) | $> 0$ (long prot) | 0 | positive |
-| $\text{CS01}_{5Y}$ (USD/bp) | 0 | $< 0$ (short prot) | negative |
-| $\text{CS01}_{\text{net}}$ (USD/bp) | — | — | ~0 by construction |
+| $CS01_{3Y}$ (USD/bp) | $\gt 0$ (long prot) | 0 | positive |
+| $CS01_{5Y}$ (USD/bp) | 0 | $\lt 0$ (short prot) | negative |
+| $CS01_{\text{net}}$ (USD/bp) | — | — | ~0 by construction |
 | JTD (USD) | positive (receive prot pmt) | negative (pay prot pmt) | net depends on accrual |
 | Rec01 (USD/1%) | meaningful | meaningful | partial offset |
 
@@ -727,9 +727,9 @@ Express a view on the shape of a single name's credit curve: steepening (short e
 
 **CS01-neutral sizing:**
 
-$$\boxed{N_{\text{long}} = N_{\text{short}} \times \frac{\text{RPV01}_{\text{short}}}{\text{RPV01}_{\text{long}}}}$$
+$$\boxed{N_{\text{long}} = N_{\text{short}} \times \frac{RPV01_{\text{short}}}{RPV01_{\text{long}}}}$$
 
-For a 3Y/5Y steepener with $\text{RPV01}_{3Y} = 2.8$ and $\text{RPV01}_{5Y} = 4.5$:
+For a 3Y/5Y steepener with $RPV01_{3Y} = 2.8$ and $RPV01_{5Y} = 4.5$:
 
 $$N_{5Y} = N_{3Y} \times \frac{2.8}{4.5} = 0.622 \times N_{3Y}$$
 
@@ -816,7 +816,7 @@ Build a disciplined P&L explain for an index position:
 
 If hedging spread risk with another index:
 
-$$N_{\text{hedge}} = -\frac{\text{CS01}_{\text{target}}}{\text{CS01}_{\text{hedge}}}$$
+$$N_{\text{hedge}} = -\frac{CS01_{\text{target}}}{CS01_{\text{hedge}}}$$
 
 If hedging with constituents, see strategy A2/Example 4 and note basis complications.
 
@@ -892,7 +892,7 @@ Understand P&L drivers when switching between series, focusing on the three key 
 
 If goal is spread-neutral switch:
 
-$$N_{\text{new}} = N_{\text{old}} \cdot \frac{\text{CS01}_{\text{old}}}{\text{CS01}_{\text{new}}}$$
+$$N_{\text{new}} = N_{\text{old}} \cdot \frac{CS01_{\text{old}}}{CS01_{\text{new}}}$$
 
 (sign consistent with long/short protection).
 
@@ -1015,11 +1015,11 @@ If these objects feel interchangeable, pause and review Chapter 51 — this is w
 
 If you hedge portfolio‑wide spread risk with an index CDS, size the index notional to offset the tranche’s **systemic DV01** (not the tranche’s contractual spread PV01):
 
-$$N_{\text{index}} \approx -\frac{\text{SystemicDV01}_{\text{tranche}}}{\text{CS01}_{\text{index per \$ notional}}}$$
+$$N_{\text{index}} \approx -\frac{SystemicDV01_{\text{tranche}}}{CS01_{\text{index per USD  notional}}}$$
 
 **Adjacent tranche PV01 hedge:**
 
-$$N_{\text{hedge tranche}} = -\frac{\text{PV01}_{\text{target tranche}}}{\text{PV01}_{\text{hedge tranche}}}$$
+$$N_{\text{hedge tranche}} = -\frac{PV01_{\text{target tranche}}}{PV01_{\text{hedge tranche}}}$$
 
 ##### Scenario Test Suite
 
@@ -1038,7 +1038,7 @@ $$N_{\text{hedge tranche}} = -\frac{\text{PV01}_{\text{target tranche}}}{\text{P
 ##### Implementation Checklist + Verification Tests
 
 - Bump PV01 with $\pm 1$ bp; check symmetry.
-- Corr01: revalue with $\rho \pm 1\%$; confirm stable sign/magnitude.
+- Corr01: revalue with $\rho \pm 1\\%$; confirm stable sign/magnitude.
 - Run discrete default scenarios: 1 default, 5 defaults, 10 defaults; compare hedge performance.
 
 ---
@@ -1049,14 +1049,14 @@ This is a **toy** illustration of how you might combine two tranches to reduce (
 
 #### Setup (Toy Numbers)
 
-- Reference portfolio: $N=125$ names (equal-weight), total $F = \$1{,}250$mm.
+- Reference portfolio: $N=125$ names (equal-weight), total $F = USD 1{,}250$mm.
 - Equity tranche: 0–3% (long protection).
 - Senior tranche: 15–30% (long protection).
 - Current implied correlation parameter: $\rho_0$ (exact model details omitted).
 
-Assume your risk system reports (per $\$10$mm tranche notional):
-- Equity Corr01 (long protection): $-\$80{,}000$ per +1% correlation bump
-- Senior Corr01 (long protection): $+\$150{,}000$ per +1% correlation bump
+Assume your risk system reports (per $USD 10$mm tranche notional):
+- Equity Corr01 (long protection): $-USD 80{,}000$ per +1% correlation bump
+- Senior Corr01 (long protection): $+USD 150{,}000$ per +1% correlation bump
 
 These signs encode the intuition: higher correlation can make equity safer (hurting long‑protection equity) while making senior tail riskier (helping long‑protection senior).
 
@@ -1064,7 +1064,7 @@ These signs encode the intuition: higher correlation can make equity safer (hurt
 
 To target Corr01 neutrality at the current point:
 
-$$N_{\text{equity}} \approx N_{\text{senior}}\times \frac{|\text{Corr01}_{\text{senior}}|}{|\text{Corr01}_{\text{equity}}|} = N_{\text{senior}}\times \frac{150}{80} = 1.875\,N_{\text{senior}}.$$
+$$N_{\text{equity}} \approx N_{\text{senior}}\times \frac{|\text{Corr01}_{\text{senior}}|}{|\text{Corr01}_{\text{equity}}|} = N_{\text{senior}}\times \frac{150}{80} = 1.875\\,N_{\text{senior}}.$$
 
 #### Residual Exposures (Why “Corr01-Neutral” ≠ “Risk-Neutral”)
 
@@ -1237,7 +1237,7 @@ O'Kane lists key limitations that matter for desk intuition:
 
 Despite these limitations, O’Kane connects the intuition to correlation models: in one‑factor copula models, defaults are often driven by a latent “asset” variable in the same broad spirit as structural models.
 
-**Desk note (intuition, not a pricing formula):** the Merton linkage $\sigma_E = \sigma_A\,\Phi(d_1)\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
+**Desk note (intuition, not a pricing formula):** the Merton linkage $\sigma_E = \sigma_A\\,\Phi(d_1)\\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
 
 ### Strategy Card: D1 — Senior vs Subordinated CDS
 
@@ -1260,16 +1260,16 @@ Exploit deviations of the senior-sub spread ratio from its theoretical value, or
 
 | Exposure (units) | Senior leg | Sub leg | Net |
 |------------------|-----------|---------|-----|
-| $\text{CS01}$ (USD/bp) | < 0 (short prot) | > 0 (long prot) | can match or intentional residual |
+| $CS01$ (USD/bp) | $\lt 0$ (short prot) | $\gt 0$ (long prot) | can match or intentional residual |
 | JTD (USD) | negative | positive | recovery-dependent residual |
 | Rec01 (USD/1%) | senior recovery sens | sub recovery sens | **key residual**: different recovery drives P&L |
-| Default event | pays $(1 - R_{\text{sen}})$ | receives $(1 - R_{\text{sub}})$ | net gain if $R_{\text{sub}} < R_{\text{sen}}$ (typical) |
+| Default event | pays $(1 - R_{\text{sen}})$ | receives $(1 - R_{\text{sub}})$ | net gain if $R_{\text{sub}} \lt R_{\text{sen}}$ (typical) |
 
 ##### Hedge Set and Hedge Ratios
 
 **CS01-neutral sizing:**
 
-$$N_{\text{sen}} = N_{\text{sub}} \times \frac{\text{RPV01}_{\text{sub}}}{\text{RPV01}_{\text{sen}}}$$
+$$N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}$$
 
 **Ratio-neutral sizing (maintaining spread ratio):**
 
@@ -1434,37 +1434,37 @@ This section is here so you can sanity-check what a risk system is doing under t
 
 **Source-backed starting point:**
 
-$$V(t,T) = (S(t,T) - S_0) \cdot \text{RPV01}(t,T) \quad \text{(per unit notional)}.$$
+$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T) \quad \text{(per unit notional)}.$$
 
 **Differentiate w.r.t. market spread $S$:**
 
-$$\frac{\partial V}{\partial S} = \text{RPV01}(t,T).$$
+$$\frac{\partial V}{\partial S} = RPV01(t,T).$$
 
 **Therefore,**
 
-$$\boxed{\text{CS01} = \frac{\partial PV}{\partial S} \times 10^{-4} = N \cdot \text{RPV01}(t,T) \cdot 10^{-4}}$$
+$$\boxed{CS01 = \frac{\partial PV}{\partial S} \times 10^{-4} = N \cdot RPV01(t,T) \cdot 10^{-4}}$$
 
 **Unit check:**
 
-$\text{RPV01}$ has units "years" (PV of 1 bp/yr premium). Multiply by $10^{-4}$ (per bp) and notional $N$ (USD) $\Rightarrow$ USD/bp.
+$RPV01$ has units "years" (PV of 1 bp/yr premium). Multiply by $10^{-4}$ (per bp) and notional $N$ (USD) $\Rightarrow$ USD/bp.
 
 ---
 
 ### 52.11.2 CS01-Based Hedge Ratio Derivation
 
-Let target position have $\text{CS01}_T$ and hedge instrument have $\text{CS01}_H$, both sign-inclusive (USD/bp).
+Let target position have $CS01_T$ and hedge instrument have $CS01_H$, both sign-inclusive (USD/bp).
 
 We want:
 
-$$\text{CS01}_{\text{net}} = \text{CS01}_T + N_H \cdot \text{CS01}_H^{(\$1)} = 0.$$
+$$CS01_{\text{net}} = CS01_T + N_H \cdot CS01_H^{(USD 1)} = 0.$$
 
 Solve:
 
-$$\boxed{N_H = -\frac{\text{CS01}_T}{\text{CS01}_H^{(\$1)}}}$$
+$$\boxed{N_H = -\frac{CS01_T}{CS01_H^{(USD 1)}}}$$
 
 If CS01s are already in USD/bp for stated notionals:
 
-$$N_H = -\frac{\text{CS01}_T}{\text{CS01}_H} \times N_H^{\text{current}}.$$
+$$N_H = -\frac{CS01_T}{CS01_H} \times N_H^{\text{current}}.$$
 
 ---
 
@@ -1472,17 +1472,17 @@ $$N_H = -\frac{\text{CS01}_T}{\text{CS01}_H} \times N_H^{\text{current}}.$$
 
 **Source-backed VOD expression:**
 
-$$\text{VOD} = (1 - R - \text{Accrued}) - (S - S_0) \cdot \text{RPV01}.$$
+$$VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01.$$
 
 **Interpretation:**
 
 If position is at par ($S = S_0$), then
 
-$$\text{VOD} \approx 1 - R - \text{Accrued}.$$
+$$VOD \approx 1 - R - \text{Accrued}.$$
 
 **Dollar JTD:**
 
-$$\boxed{\text{JTD} = N \cdot \text{VOD}}$$
+$$\boxed{JTD = N \cdot VOD}$$
 
 **Unit check:**
 
@@ -1494,7 +1494,7 @@ $1 - R$ is unitless fraction of notional; accrued is fraction; multiply by $N$ g
 
 For a portfolio, approximate P&L over horizon as:
 
-$$\boxed{\Delta PV \approx \sum_i (\text{CS01}_i \cdot \Delta S_i) + (\text{Rec01} \cdot \Delta R) + \text{JTD}_{\text{events}} + \text{BasisTerm} + \text{Residual}}$$
+$$\boxed{\Delta PV \approx \sum_i (CS01_i \cdot \Delta S_i) + (Rec01 \cdot \Delta R) + JTD_{\text{events}} + BasisTerm + Residual}$$
 
 - **CS01 term:** linear spread moves (bucketed by maturity or instrument).
 - **Rec01 term:** recovery assumption change.
@@ -1547,12 +1547,12 @@ $$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry
 
 #### Setup
 
-- Bond face: $N_B = \$1{,}000{,}000$
-- Bond full price: $P = 101$ (per 100) $\Rightarrow$ market value $= 1.01 \times 1{,}000{,}000 = \$1{,}010{,}000$
-- Recovery assumption: $R = 40\% \Rightarrow$ recovery value $\$400{,}000$
+- Bond face: $N_B = USD 1{,}000{,}000$
+- Bond full price: $P = 101$ (per 100) $\Rightarrow$ market value $= 1.01 \times 1{,}000{,}000 = USD 1{,}010{,}000$
+- Recovery assumption: $R = 40\\% \Rightarrow$ recovery value $USD 400{,}000$
 - Bond default loss (JTD for long bond):
 
-$$\text{JTD}_{\text{bond}} = -(P - R) \times N_B = -(1.01 - 0.40) \times 1{,}000{,}000 = -\$610{,}000.$$
+$$JTD_{\text{bond}} = -(P - R) \times N_B = -(1.01 - 0.40) \times 1{,}000{,}000 = -USD 610{,}000.$$
 
 (Loss-on-default mismatch is a key basis driver in the sources.)
 
@@ -1562,23 +1562,23 @@ Assume we buy protection at par: $S = S_0 = 150$ bp $\Rightarrow$ pre-default MT
 
 Accrued premium at default (assume halfway through quarter): $\Delta = 0.125$
 
-$$\text{Accrued} = N_{\text{CDS}} \times (0.015) \times 0.125 = 0.001875 \, N_{\text{CDS}}.$$
+$$\text{Accrued} = N_{\text{CDS}} \times (0.015) \times 0.125 = 0.001875 \\, N_{\text{CDS}}.$$
 
 JTD for long protection at par (using VOD logic):
 
-$$\text{JTD}_{\text{CDS}} \approx N_{\text{CDS}} \times (1 - R) - \text{Accrued} = 0.60 N_{\text{CDS}} - 0.001875 N_{\text{CDS}} = 0.598125 \, N_{\text{CDS}}.$$
+$$JTD_{\text{CDS}} \approx N_{\text{CDS}} \times (1 - R) - \text{Accrued} = 0.60 N_{\text{CDS}} - 0.001875 N_{\text{CDS}} = 0.598125 \\, N_{\text{CDS}}.$$
 
-Solve $0.598125 N_{\text{CDS}} = \$610{,}000$:
+Solve $0.598125 N_{\text{CDS}} = USD 610{,}000$:
 
-$$N_{\text{CDS}} = \frac{610{,}000}{0.598125} = \$1{,}019{,}853.71 \approx \$1.02\text{mm}.$$
+$$N_{\text{CDS}} = \frac{610{,}000}{0.598125} = USD 1{,}019{,}853.71 \approx USD 1.02\text{mm}.$$
 
 #### Spread Sensitivities
 
-Assume CDS $\text{RPV01} = 4.5$. Then:
+Assume CDS $RPV01 = 4.5$. Then:
 
-$$\text{CS01}_{\text{CDS}} = N_{\text{CDS}} \cdot \text{RPV01} \cdot 10^{-4} = 1{,}019{,}853.71 \times 4.5 \times 10^{-4} = \$458.93/\text{bp}.$$
+$$CS01_{\text{CDS}} = N_{\text{CDS}} \cdot RPV01 \cdot 10^{-4} = 1{,}019{,}853.71 \times 4.5 \times 10^{-4} = USD 458.93/\text{bp}.$$
 
-Assume bond credit CS01 (toy): $\text{CS01}_{\text{bond}} = -\$420/\text{bp}$.
+Assume bond credit CS01 (toy): $CS01_{\text{bond}} = -USD 420/\text{bp}$.
 
 #### Basis-Move Scenario
 
@@ -1586,8 +1586,8 @@ CDS spread widens $+20$ bp; bond spread widens $+5$ bp (basis widens).
 
 **P&L (linear):**
 
-- Bond: $\Delta PV_B = -420 \times 5 = -\$2{,}100$.
-- CDS: $\Delta PV_{\text{CDS}} = +458.93 \times 20 = +\$9{,}178.68$.
+- Bond: $\Delta PV_B = -420 \times 5 = -USD 2{,}100$.
+- CDS: $\Delta PV_{\text{CDS}} = +458.93 \times 20 = +USD 9{,}178.68$.
 - **Net:** $+7{,}078.68$.
 
 #### Interpretation
@@ -1615,7 +1615,7 @@ Suppose the bond is financed via repo at Libor + 25bp initially. During a credit
 
 **Additional funding cost over 3 months:**
 
-$$\text{Funding cost} = 1{,}010{,}000 \times 0.0125 \times 0.25 = \$3{,}156.25$$
+$$\text{Funding cost} = 1{,}010{,}000 \times 0.0125 \times 0.25 = USD 3{,}156.25$$
 
 #### Combined Scenario: Basis Widens + Funding Shock
 
@@ -1645,14 +1645,14 @@ If CDS and bond spreads move together (basis unchanged, no spread P&L):
 
 #### Setup
 
-- Corporate bond notional: $N_C = \$10\text{mm}$
-- Rates DV01 (sign-inclusive for +1bp rates move): $\text{DV01}_{r,C} = -\$7{,}500/\text{bp}$
-- Treasury hedge instrument DV01 per $1mm (long): $-\$850/\text{bp}$
-- If we short Treasuries, DV01 becomes $+\$850/\text{bp}$ per $1mm.
+- Corporate bond notional: $N_C = USD 10\text{mm}$
+- Rates DV01 (sign-inclusive for +1bp rates move): $DV01_{r,C} = -USD 7{,}500/\text{bp}$
+- Treasury hedge instrument DV01 per USD 1mm (long): $-850$ USD/bp.
+- If we short Treasuries, DV01 becomes $+850$ USD/bp per USD 1mm.
 
 #### DV01 Hedge Ratio
 
-Need $-7{,}500 + 850 \times N_T\text{ (\$1mm units)} = 0$
+Need $-7{,}500 + 850 \times N_T\text{ (USD 1mm units)} = 0$
 
 $$N_T = \frac{7{,}500}{850} = 8.8235 \text{ mm}.$$
 
@@ -1667,13 +1667,13 @@ So: **short $8.8235mm Treasuries.**
 #### P&L
 
 **Rates move:**
-- Corporate: $-7{,}500 \times 10 = -\$75{,}000$
-- Short Treasury: $+(850 \times 8.8235) \times 10 = +7{,}500 \times 10 = +\$75{,}000$
+- Corporate: $-7{,}500 \times 10 = -USD 75{,}000$
+- Short Treasury: $+(850 \times 8.8235) \times 10 = +7{,}500 \times 10 = +USD 75{,}000$
 - **Net rates P&L $\approx 0$.**
 
 **Credit move:**
-- Assume corporate credit CS01 (toy): $\text{CS01}_{\text{corp}} = -\$6{,}500/\text{bp}$ (for $10mm).
-- $\Delta PV_{\text{credit}} = -6{,}500 \times 50 = -\$325{,}000$
+- Assume corporate credit CS01 (toy): $CS01_{\text{corp}} = -6{,}500$ USD/bp (for USD 10mm).
+- $\Delta PV_{\text{credit}} = -6{,}500 \times 50 = -USD 325{,}000$
 
 #### Conclusion
 
@@ -1687,33 +1687,33 @@ So: **short $8.8235mm Treasuries.**
 
 #### Setup
 
-- Single-name CDS: long protection, $N_s = \$10\text{mm}$, $\text{RPV01}_s = 4.5$
+- Single-name CDS: long protection, $N_s = USD 10\text{mm}$, $RPV01_s = 4.5$
 
-$$\text{CS01}_s = 10{,}000{,}000 \times 4.5 \times 10^{-4} = \$4{,}500/\text{bp}.$$
+$$CS01_s = 10{,}000{,}000 \times 4.5 \times 10^{-4} = USD 4{,}500/\text{bp}.$$
 
-- Index CDS: use $\text{RPV01}_I = 4.2$ (toy). CS01 per $10mm long protection:
+- Index CDS: use $RPV01_I = 4.2$ (toy). CS01 per USD 10mm long protection:
 
-$$\text{CS01}_{I, \$10mm} = 10{,}000{,}000 \times 4.2 \times 10^{-4} = \$4{,}200/\text{bp}.$$
+$$CS01_{I, USD 10mm} = 10{,}000{,}000 \times 4.2 \times 10^{-4} = USD 4{,}200/\text{bp}.$$
 
 Hedge by short protection on index.
 
 #### Hedge Notional
 
-Solve $\text{CS01}_s + \text{CS01}_I^{\text{(short)}} = 0$:
+Solve $CS01_s + CS01_I^{\text{(short)}} = 0$:
 
-$$4{,}500 - 4{,}200 \times \frac{N_I}{10\text{mm}} = 0 \Rightarrow N_I = 10\text{mm} \times \frac{4{,}500}{4{,}200} = \$10.7143\text{mm}.$$
+$$4{,}500 - 4{,}200 \times \frac{N_I}{10\text{mm}} = 0 \Rightarrow N_I = 10\text{mm} \times \frac{4{,}500}{4{,}200} = USD 10.7143\text{mm}.$$
 
 #### Scenario A: Broad +10 bp Move (Both)
 
-- Single-name: $+4{,}500 \times 10 = +\$45{,}000$
-- Index short: $-4{,}200 \times 1.07143 \times 10 = -\$45{,}000$
+- Single-name: $+4{,}500 \times 10 = +USD 45{,}000$
+- Index short: $-4{,}200 \times 1.07143 \times 10 = -USD 45{,}000$
 - **Net $\approx 0$.**
 
 #### Scenario B: Idiosyncratic Single-Name +50 bp, Index +10 bp
 
-- Single-name: $+4{,}500 \times 50 = +\$225{,}000$
+- Single-name: $+4{,}500 \times 50 = +USD 225{,}000$
 - Index short: $-45{,}000$
-- **Net: $+\$180{,}000$** (residual idiosyncratic spread risk).
+- **Net: $+USD 180{,}000$** (residual idiosyncratic spread risk).
 
 #### Event Note (JTD)
 
@@ -1730,7 +1730,7 @@ If the single name defaults, single-name JTD is large; index hedge only absorbs 
 #### Approximation Used
 
 - Small index with $M = 3$ names.
-- Index notional $N_I = \$30\text{mm} \Rightarrow \$10\text{mm}$ per name.
+- Index notional $N_I = USD 30\text{mm} \Rightarrow USD 10\text{mm}$ per name.
 - Assume all maturities aligned at 5Y.
 
 #### Constituent RPV01s (Toy)
@@ -1743,16 +1743,16 @@ If the single name defaults, single-name JTD is large; index hedge only absorbs 
 
 Index RPV01 $\approx$ average $= 4.6$
 
-$$\text{CS01}_I = 30{,}000{,}000 \times 4.6 \times 10^{-4} = \$13{,}800/\text{bp}.$$
+$$CS01_I = 30{,}000{,}000 \times 4.6 \times 10^{-4} = USD 13{,}800/\text{bp}.$$
 
 #### Constituent Hedge (Short Protection on Names to Hedge Long Protection Index)
 
 Short each name $10mm:
 
-- A: $-10{,}000{,}000 \times 4.5 \times 10^{-4} = -\$4{,}500/\text{bp}$
-- B: $-\$4{,}700/\text{bp}$
-- C: $-\$4{,}600/\text{bp}$
-- **Total:** $-\$13{,}800/\text{bp}$, which offsets index $+\$13{,}800/\text{bp}$.
+- A: $-10{,}000{,}000 \times 4.5 \times 10^{-4} = -USD 4{,}500/\text{bp}$
+- B: $-USD 4{,}700/\text{bp}$
+- C: $-USD 4{,}600/\text{bp}$
+- **Total:** $-USD 13{,}800/\text{bp}$, which offsets index $+USD 13{,}800/\text{bp}$.
 
 #### Parallel +10 bp Scenario
 
@@ -1772,15 +1772,15 @@ If one name widens much more than index (or index basis shifts), hedge breaks—
 
 #### Setup
 
-- $M = 3$, index notional $N_I = \$10\text{mm}$, coupon $C = 100$ bp.
+- $M = 3$, index notional $N_I = USD 10\text{mm}$, coupon $C = 100$ bp.
 - Constituent 5Y spreads (bp): $S_1 = 120$, $S_2 = 90$, $S_3 = 110$.
 - Constituent RPV01s: $4.5, 4.7, 4.6$.
 - Quoted index spread: $S_I = 110$ bp.
-- Index RPV01: $\text{RPV01}_I = 4.6$.
+- Index RPV01: $RPV01_I = 4.6$.
 
 #### Compute Intrinsic Spread (RPV01-Weighted Average)
 
-$$S_{\text{intr}} = \frac{\sum_m \text{RPV01}_m S_m}{\sum_m \text{RPV01}_m} = \frac{4.5(120) + 4.7(90) + 4.6(110)}{4.5 + 4.7 + 4.6} = 106.4493 \text{ bp}.$$
+$$S_{\text{intr}} = \frac{\sum_m RPV01_m S_m}{\sum_m RPV01_m} = \frac{4.5(120) + 4.7(90) + 4.6(110)}{4.5 + 4.7 + 4.6} = 106.4493 \text{ bp}.$$
 
 #### Index Basis (Spread)
 
@@ -1790,33 +1790,33 @@ $$\text{Basis} = S_I - S_{\text{intr}} = 110 - 106.4493 = 3.5507 \text{ bp}.$$
 
 **Market upfront value at coupon $C$:**
 
-$$U_{\text{mkt}} = N_I \cdot \text{RPV01}_I \cdot (S_I - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot (10) \cdot 10^{-4} = \$46{,}000.$$
+$$U_{\text{mkt}} = N_I \cdot RPV01_I \cdot (S_I - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot (10) \cdot 10^{-4} = USD 46{,}000.$$
 
 **Intrinsic upfront using constituents** (equal-weight notional $N_I/M = 3.3333\text{mm}$):
 
 - Name 1: $(120 - 100) = 20$ bp
-  - $PV_1 = 3.3333\text{mm} \cdot 4.5 \cdot 20 \cdot 10^{-4} = \$30{,}000$
+  - $PV_1 = 3.3333\text{mm} \cdot 4.5 \cdot 20 \cdot 10^{-4} = USD 30{,}000$
 - Name 2: $(90 - 100) = -10$ bp
-  - $PV_2 = 3.3333\text{mm} \cdot 4.7 \cdot (-10) \cdot 10^{-4} = -\$15{,}666.67$
+  - $PV_2 = 3.3333\text{mm} \cdot 4.7 \cdot (-10) \cdot 10^{-4} = -USD 15{,}666.67$
 - Name 3: $(110 - 100) = 10$ bp
-  - $PV_3 = 3.3333\text{mm} \cdot 4.6 \cdot 10 \cdot 10^{-4} = \$15{,}333.33$
-- **Sum** $V_{\text{intr}} = \$29{,}666.67$
+  - $PV_3 = 3.3333\text{mm} \cdot 4.6 \cdot 10 \cdot 10^{-4} = USD 15{,}333.33$
+- **Sum** $V_{\text{intr}} = USD 29{,}666.67$
 
 #### Basis PV
 
-$$U_{\text{mkt}} - V_{\text{intr}} = 46{,}000 - 29{,}666.67 = \$16{,}333.33,$$
+$$U_{\text{mkt}} - V_{\text{intr}} = 46{,}000 - 29{,}666.67 = USD 16{,}333.33,$$
 
 which also equals:
 
-$$N_I \cdot \text{RPV01}_I \cdot \text{Basis} \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 3.5507 \cdot 10^{-4} = \$16{,}333.33.$$
+$$N_I \cdot RPV01_I \cdot \text{Basis} \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 3.5507 \cdot 10^{-4} = USD 16{,}333.33.$$
 
 #### Basis P&L Scenario
 
 Suppose basis decreases by 2 bp due to index tightening (constituents unchanged):
 
 - Index $\Delta S_I = -2$ bp.
-- Index CS01: $10{,}000{,}000 \times 4.6 \times 10^{-4} = \$4{,}600/\text{bp}$.
-- A position long index protection has P&L $\Delta PV = 4{,}600 \times (-2) = -\$9{,}200$.
+- Index CS01: $10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$.
+- A position long index protection has P&L $\Delta PV = 4{,}600 \times (-2) = -USD 9{,}200$.
 - The constituent legs (unchanged) contribute $\approx 0$.
 
 **Interpretation:** basis moves can dominate short-horizon hedges.
@@ -1829,33 +1829,33 @@ Suppose basis decreases by 2 bp due to index tightening (constituents unchanged)
 
 #### Setup (Long Protection on Index)
 
-- Notional $N = \$10\text{mm}$
+- Notional $N = USD 10\text{mm}$
 - Coupon $C = 100$ bp
 - Market spread at inception $S = 120$ bp
-- $\text{RPV01}(t_0) = 4.6$, $\text{RPV01}(t_1) = 4.4$ after one quarter
+- $RPV01(t_0) = 4.6$, $RPV01(t_1) = 4.4$ after one quarter
 - Quarter fraction $\Delta = 0.25$
 
-#### Upfront at Inception (Paid by Protection Buyer Because $S > C$)
+#### Upfront at Inception (Paid by Protection Buyer Because $S \gt C$)
 
-$$U_0 = N \cdot \text{RPV01}(t_0) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 20 \cdot 10^{-4} = \$92{,}000.$$
+$$U_0 = N \cdot RPV01(t_0) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 20 \cdot 10^{-4} = USD 92{,}000.$$
 
 #### Coupon Paid over the Quarter (Carry Cashflow)
 
-$$\text{Coupon CF} = -N \cdot C \cdot 10^{-4} \cdot \Delta = -10{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.25 = -\$25{,}000.$$
+$$\text{Coupon CF} = -N \cdot C \cdot 10^{-4} \cdot \Delta = -10{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.25 = -USD 25{,}000.$$
 
 #### Unchanged Spreads: MTM "Amortization" Effect
 
 At $t_1$, with spreads unchanged at $S = 120$ bp, the contract value at coupon $C$ is:
 
-$$V(t_1) = N \cdot \text{RPV01}(t_1) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.4 \cdot 20 \cdot 10^{-4} = \$88{,}000.$$
+$$V(t_1) = N \cdot RPV01(t_1) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.4 \cdot 20 \cdot 10^{-4} = USD 88{,}000.$$
 
 Since we paid $U_0 = 92{,}000$ upfront at inception, the clean value relative to inception is:
 
-$$\Delta V_{\text{clean}} = 88{,}000 - 92{,}000 = -\$4{,}000.$$
+$$\Delta V_{\text{clean}} = 88{,}000 - 92{,}000 = -USD 4{,}000.$$
 
 #### Carry under Unchanged Spreads (Quarter)
 
-$$\text{Carry P\&L} \approx \text{Coupon CF} + \Delta V_{\text{clean}} = -25{,}000 - 4{,}000 = -\$29{,}000.$$
+$$\text{Carry P\\&L} \approx \text{Coupon CF} + \Delta V_{\text{clean}} = -25{,}000 - 4{,}000 = -USD 29{,}000.$$
 
 **Interpretation:** even with unchanged spreads, the upfront-related value decays as maturity shortens (RPV01 falls).
 
@@ -1867,29 +1867,29 @@ $$\text{Carry P\&L} \approx \text{Coupon CF} + \Delta V_{\text{clean}} = -25{,}0
 
 #### Setup (Continue Long Protection Example Style)
 
-- Notional $N = \$10\text{mm}$, coupon $C = 100$ bp
+- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp
 - Upfront paid at inception (from Example 6): $U_0 = 92{,}000$
 - Assume spread curve is upward sloping:
   - 5Y par spread at $t_0$: 120 bp
   - After 1 month, remaining maturity $\approx 4.92$Y has par spread 118 bp (curve held fixed, you "roll down")
-- $\text{RPV01}(t_1) = 4.57$ (toy, slightly lower due to shorter maturity)
+- $RPV01(t_1) = 4.57$ (toy, slightly lower due to shorter maturity)
 - Monthly coupon accrual (approx): $\Delta = 1/12$
 
 #### MTM at $t_1$ Holding Curve Fixed
 
-$$V(t_1) = N \cdot 4.57 \cdot (118 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.57 \cdot 18 \cdot 10^{-4} = \$82{,}260.$$
+$$V(t_1) = N \cdot 4.57 \cdot (118 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.57 \cdot 18 \cdot 10^{-4} = USD 82{,}260.$$
 
 #### Clean Value Relative to Inception
 
-$$\Delta V_{\text{clean}} = 82{,}260 - 92{,}000 = -\$9{,}740.$$
+$$\Delta V_{\text{clean}} = 82{,}260 - 92{,}000 = -USD 9{,}740.$$
 
 #### Coupon Accrual over 1 Month
 
-$$\text{Coupon accrual} = -N \cdot 100 \cdot 10^{-4} \cdot \frac{1}{12} = -10{,}000{,}000 \cdot 0.01 \cdot 0.083333 = -\$8{,}333.33.$$
+$$\text{Coupon accrual} = -N \cdot 100 \cdot 10^{-4} \cdot \frac{1}{12} = -10{,}000{,}000 \cdot 0.01 \cdot 0.083333 = -USD 8{,}333.33.$$
 
 #### Rolldown + Carry over Month (No Curve Change Beyond Aging)
 
-$$\text{P\&L} \approx -8{,}333.33 - 9{,}740 = -\$18{,}073.33.$$
+$$\text{P\\&L} \approx -8{,}333.33 - 9{,}740 = -USD 18{,}073.33.$$
 
 ---
 
@@ -1901,9 +1901,9 @@ O'Kane identifies two primary sources of P&L impact during the roll: (1) composi
 
 #### Setup
 
-- Notional $N = \$10\text{mm}$, coupon $C = 100$ bp.
-- Old series: $S_{\text{old}} = 115$ bp, $\text{RPV01}_{\text{old}} = 4.1$ (remaining maturity ~4.5Y)
-- New series: $S_{\text{new}} = 120$ bp, $\text{RPV01}_{\text{new}} = 4.6$ (full 5Y maturity)
+- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp.
+- Old series: $S_{\text{old}} = 115$ bp, $RPV01_{\text{old}} = 4.1$ (remaining maturity ~4.5Y)
+- New series: $S_{\text{new}} = 120$ bp, $RPV01_{\text{new}} = 4.6$ (full 5Y maturity)
 - Position: long protection.
 
 #### Understanding the Spread Difference
@@ -1920,9 +1920,9 @@ $$\Delta S_{\text{composition}} \approx 0 \text{ bp}$$
 
 #### MTM Values (Pre-Upfront)
 
-$$V_{\text{old}} = N \cdot 4.1 \cdot (115 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.1 \cdot 15 \cdot 10^{-4} = \$61{,}500.$$
+$$V_{\text{old}} = N \cdot 4.1 \cdot (115 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.1 \cdot 15 \cdot 10^{-4} = USD 61{,}500.$$
 
-$$V_{\text{new}} = N \cdot 4.6 \cdot (120 - 100) \cdot 10^{-4} = \$92{,}000.$$
+$$V_{\text{new}} = N \cdot 4.6 \cdot (120 - 100) \cdot 10^{-4} = USD 92{,}000.$$
 
 #### Cash to Switch (Close Old, Open New)
 
@@ -1930,17 +1930,17 @@ $$V_{\text{new}} = N \cdot 4.6 \cdot (120 - 100) \cdot 10^{-4} = \$92{,}000.$$
 - Open new: pay $92,000.
 - **Net cash outflow:**
 
-$$92{,}000 - 61{,}500 = \$30{,}500.$$
+$$92{,}000 - 61{,}500 = USD 30{,}500.$$
 
 #### CS01-Adjusted Notional for Spread-Neutral Switch
 
 If the goal is to maintain the same CS01 exposure after rolling:
 
-$$\text{CS01}_{\text{old}} = 10{,}000{,}000 \times 4.1 \times 10^{-4} = \$4{,}100/\text{bp}$$
-$$\text{CS01}_{\text{new per \$10mm}} = 10{,}000{,}000 \times 4.6 \times 10^{-4} = \$4{,}600/\text{bp}$$
+$$CS01_{\text{old}} = 10{,}000{,}000 \times 4.1 \times 10^{-4} = USD 4{,}100/\text{bp}$$
+$$CS01_{\text{new per USD 10mm}} = 10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$$
 
 To maintain $4,100/bp CS01 on the new series:
-$$N_{\text{new}} = 10{,}000{,}000 \times \frac{4{,}100}{4{,}600} = \$8{,}913{,}043$$
+$$N_{\text{new}} = 10{,}000{,}000 \times \frac{4{,}100}{4{,}600} = USD 8{,}913{,}043$$
 
 This means **reducing notional by ~11%** when rolling to maintain spread-neutral exposure.
 
@@ -1948,14 +1948,14 @@ This means **reducing notional by ~11%** when rolling to maintain spread-neutral
 
 Suppose bid/offer equivalent to 0.5 bp spread on each leg.
 
-- Approx PV cost per leg $\approx \text{CS01} \times 0.5$.
-- Use $\text{CS01}_{\text{new}} \approx 4{,}600$ USD/bp
-- Cost per leg $\approx 4{,}600 \times 0.5 = \$2{,}300$
-- Two legs $\Rightarrow$ total $\approx \$4{,}600$
+- Approx PV cost per leg $\approx CS01 \times 0.5$.
+- Use $CS01_{\text{new}} \approx 4{,}600$ USD/bp
+- Cost per leg $\approx 4{,}600 \times 0.5 = USD 2{,}300$
+- Two legs $\Rightarrow$ total $\approx USD 4{,}600$
 
 #### Total "All-In" Cash Impact
 
-$$30{,}500 + 4{,}600 = \$35{,}100.$$
+$$30{,}500 + 4{,}600 = USD 35{,}100.$$
 
 #### Interpretation
 
@@ -1984,13 +1984,13 @@ The new series trades **tighter** than the old series despite the longer maturit
 
 #### Roll P&L Impact
 
-- Old series: $S_{\text{old}} = 115$ bp, $V_{\text{old}} = \$61{,}500$
+- Old series: $S_{\text{old}} = 115$ bp, $V_{\text{old}} = USD 61{,}500$
 - New series: $S_{\text{new}} = 111.6$ bp
 
-$$V_{\text{new}} = 10{,}000{,}000 \cdot 4.6 \cdot (111.6 - 100) \cdot 10^{-4} = \$53{,}360$$
+$$V_{\text{new}} = 10{,}000{,}000 \cdot 4.6 \cdot (111.6 - 100) \cdot 10^{-4} = USD 53{,}360$$
 
 **Net cash inflow** (favorable roll):
-$$61{,}500 - 53{,}360 = \$8{,}140 \text{ received}$$
+$$61{,}500 - 53{,}360 = USD 8{,}140 \text{ received}$$
 
 #### Key Lesson
 
@@ -2010,10 +2010,10 @@ For index: a default causes a payout on that name and reduces future premium by 
 
 #### Toy Setup
 
-- Total index notional: $N = \$10\text{mm}$
+- Total index notional: $N = USD 10\text{mm}$
 - $M = 5 \Rightarrow$ notional per name $N_m = 2\text{mm}$
 - Coupon $C = 100$ bp
-- Final price $FP = 35\% \Rightarrow R = 0.35$
+- Final price $FP = 35\\% \Rightarrow R = 0.35$
 - Accrual since last coupon: 50 days on Actual/360:
 
 $$\Delta = \frac{50}{360} = 0.1388889.$$
@@ -2022,25 +2022,25 @@ $$\Delta = \frac{50}{360} = 0.1388889.$$
 
 **Protection payment:**
 
-$$(1 - R) N_m = (1 - 0.35) \times 2{,}000{,}000 = 0.65 \times 2{,}000{,}000 = \$1{,}300{,}000.$$
+$$(1 - R) N_m = (1 - 0.35) \times 2{,}000{,}000 = 0.65 \times 2{,}000{,}000 = USD 1{,}300{,}000.$$
 
 **Accrued premium owed by protection buyer on that name:**
 
-$$N_m \cdot C \cdot 10^{-4} \cdot \Delta = 2{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.1388889 = 2{,}000{,}000 \cdot 0.01 \cdot 0.1388889 = \$2{,}777.78.$$
+$$N_m \cdot C \cdot 10^{-4} \cdot \Delta = 2{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.1388889 = 2{,}000{,}000 \cdot 0.01 \cdot 0.1388889 = USD 2{,}777.78.$$
 
 **Net immediate cash:**
 
-$$1{,}300{,}000 - 2{,}777.78 = \$1{,}297{,}222.22.$$
+$$1{,}300{,}000 - 2{,}777.78 = USD 1{,}297{,}222.22.$$
 
 #### Future Coupon Impact
 
 **Before default:** quarterly coupon on $10mm:
 
-$$10{,}000{,}000 \cdot 0.01 \cdot 0.25 = \$25{,}000.$$
+$$10{,}000{,}000 \cdot 0.01 \cdot 0.25 = USD 25{,}000.$$
 
-**After default,** notional reduced by $1/M = 20\% \Rightarrow$ remaining $= 8\text{mm}$:
+**After default,** notional reduced by $1/M = 20\\% \Rightarrow$ remaining $= 8\text{mm}$:
 
-$$8{,}000{,}000 \cdot 0.01 \cdot 0.25 = \$20{,}000.$$
+$$8{,}000{,}000 \cdot 0.01 \cdot 0.25 = USD 20{,}000.$$
 
 Coupon reduces by $5,000 per quarter from then on (toy).
 
@@ -2053,28 +2053,28 @@ Coupon reduces by $5,000 per quarter from then on (toy).
 #### Setup
 
 - Long protection on index
-- Notional $N = \$10\text{mm}$, coupon $C = 100$ bp
-- $\text{RPV01} = 4.6 \Rightarrow \text{CS01} = 10{,}000{,}000 \times 4.6 \times 10^{-4} = \$4{,}600/\text{bp}$
-- One-month horizon; use Example 7's carry+rolldown under fixed curve: $-\$18{,}073.33$
+- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp
+- $RPV01 = 4.6 \Rightarrow CS01 = 10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$
+- One-month horizon; use Example 7's carry+rolldown under fixed curve: $-USD 18{,}073.33$
 
 #### Observed Changes (Toy)
 
 **Index spread widens $+10$ bp** $\Rightarrow$ spread P&L:
 
-$$\Delta PV_{\text{spread}} = 4{,}600 \times 10 = +\$46{,}000.$$
+$$\Delta PV_{\text{spread}} = 4{,}600 \times 10 = +USD 46{,}000.$$
 
 **One constituent defaults** in a large index $M = 125$ (so per-name notional small):
 
-- $N_m = 10{,}000{,}000 / 125 = \$80{,}000$
-- $FP = 35\% \Rightarrow 1 - R = 0.65$
+- $N_m = 10{,}000{,}000 / 125 = USD 80{,}000$
+- $FP = 35\\% \Rightarrow 1 - R = 0.65$
 - Accrual: 50/360
 - Default cash:
 
-$$0.65 \cdot 80{,}000 - 80{,}000 \cdot 0.01 \cdot 0.1388889 = 52{,}000 - 111.11 = \$51{,}888.89.$$
+$$0.65 \cdot 80{,}000 - 80{,}000 \cdot 0.01 \cdot 0.1388889 = 52{,}000 - 111.11 = USD 51{,}888.89.$$
 
 #### P&L Explain
 
-$$\Delta PV \approx \underbrace{(-18{,}073.33)}_{\text{carry+rolldown}} + \underbrace{46{,}000}_{\text{spread move}} + \underbrace{51{,}888.89}_{\text{default event}} = \$79{,}815.56.$$
+$$\Delta PV \approx \underbrace{(-18{,}073.33)}_{\text{carry+rolldown}} + \underbrace{46{,}000}_{\text{spread move}} + \underbrace{51{,}888.89}_{\text{default event}} = USD 79{,}815.56.$$
 
 #### Interpretation
 
@@ -2088,23 +2088,23 @@ Linear spread risk and discrete event risk both matter; carry/rolldown is smalle
 
 #### Setup
 
-- Tranche position notional $N_T = \$10\text{mm}$
-- Tranche $\text{RPV01}_T = 3.2$ (toy)
+- Tranche position notional $N_T = USD 10\text{mm}$
+- Tranche $RPV01_T = 3.2$ (toy)
 - At-par tranche: contractual spread = market spread, so PV $\approx 0$.
 
 #### Revalue for ±1 bp
 
 **If spread widens by +1 bp:**
 
-$$PV(+1) = N_T \cdot 3.2 \cdot 1 \cdot 10^{-4} = 10{,}000{,}000 \cdot 3.2 \cdot 10^{-4} = \$3{,}200.$$
+$$PV(+1) = N_T \cdot 3.2 \cdot 1 \cdot 10^{-4} = 10{,}000{,}000 \cdot 3.2 \cdot 10^{-4} = USD 3{,}200.$$
 
 **If spread tightens by −1 bp:**
 
-$$PV(-1) = -\$3{,}200.$$
+$$PV(-1) = -USD 3{,}200.$$
 
 #### Finite Difference PV01
 
-$$\text{PV01} = \frac{PV(+1) - PV(-1)}{2} = \frac{3{,}200 - (-3{,}200)}{2} = \$3{,}200/\text{bp}.$$
+$$PV01 = \frac{PV(+1) - PV(-1)}{2} = \frac{3{,}200 - (-3{,}200)}{2} = USD 3{,}200/\text{bp}.$$
 
 ---
 
@@ -2114,18 +2114,18 @@ $$\text{PV01} = \frac{PV(+1) - PV(-1)}{2} = \frac{3{,}200 - (-3{,}200)}{2} = \$3
 
 #### Setup
 
-- Same tranche notional $N_T = \$10\text{mm}$
+- Same tranche notional $N_T = USD 10\text{mm}$
 - Model-reported PVs (toy) for a given tranche:
-  - $PV(\rho = 20\%) = -\$400{,}000$
-  - $PV(\rho = 30\%) = -\$350{,}000$
+  - $PV(\rho = 20\%) = -USD 400{,}000$
+  - $PV(\rho = 30\%) = -USD 350{,}000$
 
 #### Correlation P&L for +10% Correlation
 
-$$\Delta PV = -350{,}000 - (-400{,}000) = +\$50{,}000.$$
+$$\Delta PV = -350{,}000 - (-400{,}000) = +USD 50{,}000.$$
 
 #### Correlation 01 (Per 1% Correlation)
 
-$$\text{Corr01} \approx \frac{50{,}000}{10} = \$5{,}000 \text{ per } 1\%.$$
+$$\text{Corr01} \approx \frac{50{,}000}{10} = USD 5{,}000 \text{ per } 1\\%.$$
 
 #### Interpretation
 
@@ -2139,36 +2139,36 @@ This tranche benefits (PV increases) when dependence increases. The source empha
 
 #### Setup
 
-- Portfolio has $M = 100$ equal names; each default has recovery $R = 40\% \Rightarrow$ loss per default on portfolio notional:
+- Portfolio has $M = 100$ equal names; each default has recovery $R = 40\\% \Rightarrow$ loss per default on portfolio notional:
 
-$$\ell = \frac{1 - R}{M} = \frac{0.60}{100} = 0.006 = 0.6\%.$$
+$$\ell = \frac{1 - R}{M} = \frac{0.60}{100} = 0.006 = 0.6\\%.$$
 
-- Consider equity tranche $[A, B] = [0\%, 3\%] \Rightarrow B - A = 3\%$.
-- Tranche notional (toy) $N_T = \$10\text{mm}$.
+- Consider equity tranche $[A, B] = [0\\%, 3\\%] \Rightarrow B - A = 3\\%$.
+- Tranche notional (toy) $N_T = USD 10\text{mm}$.
 
 #### Scenario 1: 1 Default
 
-Portfolio loss $L = 0.6\%$.
+Portfolio loss $L = 0.6\\%$.
 
 Tranche loss fraction:
 
-$$L_{[0,3]} = \frac{\min(L, 3\%)}{3\%} = \frac{0.6\%}{3\%} = 0.20.$$
+$$L_{[0,3]} = \frac{\min(L, 3\\%)}{3\\%} = \frac{0.6\\%}{3\\%} = 0.20.$$
 
 Dollar loss on tranche (for protection seller):
 
-$$0.20 \times 10{,}000{,}000 = \$2{,}000{,}000.$$
+$$0.20 \times 10{,}000{,}000 = USD 2{,}000{,}000.$$
 
 #### Scenario 2: 5 Defaults (Cluster)
 
-Portfolio loss $L = 5 \times 0.6\% = 3.0\%$.
+Portfolio loss $L = 5 \times 0.6\\% = 3.0\\%$.
 
 Tranche loss fraction:
 
-$$L_{[0,3]} = \frac{3.0\%}{3\%} = 1.00.$$
+$$L_{[0,3]} = \frac{3.0\\%}{3\\%} = 1.00.$$
 
 Dollar loss:
 
-$$1.00 \times 10{,}000{,}000 = \$10{,}000{,}000.$$
+$$1.00 \times 10{,}000{,}000 = USD 10{,}000{,}000.$$
 
 #### Why PV01 Hedges Fail
 
@@ -2184,17 +2184,17 @@ A clustered default scenario creates a jump in realized loss that is not proport
 
 #### Setup
 
-- **Target tranche:** equity $[0, 3]$, notional $N_E = \$10\text{mm}$, $\text{PV01}_E = \$3{,}200/\text{bp}$ (from Example 11).
-- **Hedge tranche:** mezz $[3, 7]$, assume $\text{PV01}_M = \$1{,}800/\text{bp}$ per $10mm notional (toy).
+- **Target tranche:** equity $[0, 3]$, notional $N_E = USD 10\text{mm}$, $PV01_E = USD 3{,}200/\text{bp}$ (from Example 11).
+- **Hedge tranche:** mezz `[3, 7]`, assume $PV01_M = 1{,}800$ USD/bp per USD 10mm notional (toy).
 - **Goal:** PV01-neutral hedge of spread moves.
 
 #### Hedge Ratio
 
-Need $\text{PV01}_E + \text{PV01}_M \times (N_M / 10\text{mm}) \times \text{sign} = 0$.
+Need $PV01_E + PV01_M \times (N_M / 10\text{mm}) \times \text{sign} = 0$.
 
 If we take opposite spread exposure using mezz, the notional ratio is:
 
-$$\frac{N_M}{10\text{mm}} = \frac{\text{PV01}_E}{\text{PV01}_M} = \frac{3{,}200}{1{,}800} = 1.7778 \Rightarrow N_M = \$17.778\text{mm}.$$
+$$\frac{N_M}{10\text{mm}} = \frac{PV01_E}{PV01_M} = \frac{3{,}200}{1{,}800} = 1.7778 \Rightarrow N_M = USD 17.778\text{mm}.$$
 
 #### Check under Small +1 bp Spread Move
 
@@ -2206,15 +2206,15 @@ $$\frac{N_M}{10\text{mm}} = \frac{\text{PV01}_E}{\text{PV01}_M} = \frac{3{,}200}
 
 Use the same portfolio assumptions as Example 13.
 
-**Clustered defaults: 10 defaults** $\Rightarrow L = 10 \times 0.6\% = 6\%$.
+**Clustered defaults: 10 defaults** $\Rightarrow L = 10 \times 0.6\\% = 6\\%$.
 
-**Equity tranche $[0, 3]$ loss fraction** $= 1.00 \Rightarrow$ $10mm loss.
+**Equity tranche `[0, 3]` loss fraction** $= 1.00 \Rightarrow$ USD 10mm loss.
 
 **Mezz tranche $[3, 7]$ loss fraction:**
 
-$$L_{[3,7]} = \frac{\min(\max(6\% - 3\%, 0), 4\%)}{4\%} = \frac{3\%}{4\%} = 0.75.$$
+$$L_{[3,7]} = \frac{\min(\max(6\\% - 3\\%, 0), 4\\%)}{4\\%} = \frac{3\\%}{4\\%} = 0.75.$$
 
-Dollar loss on mezz notional $N_M = 17.778\text{mm}$ is $0.75 \times 17.778\text{mm} = \$13.333\text{mm}$.
+Dollar loss on mezz notional $N_M = 17.778\text{mm}$ is $0.75 \times 17.778\text{mm} = USD 13.333\text{mm}$.
 
 #### Interpretation
 
@@ -2270,8 +2270,8 @@ This chapter is an educational risk framework. It does not provide recommendatio
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **CS01 (Spread DV01)** | PV change per +1 bp change in quoted spread: $\text{CS01} = \frac{\partial PV}{\partial S} \times 10^{-4}$ | The primary linear risk measure for credit positions; must specify *which* spread is bumped |
-| **JTD / VOD** | Jump-to-default = $PV_{\text{post}} - PV_{\text{pre}}$; VOD = $(1-R-\text{Accrued}) - (S-S_0) \cdot \text{RPV01}$ | Captures discontinuous default risk that CS01 hedges do not neutralize |
+| **CS01 (Spread DV01)** | PV change per +1 bp change in quoted spread: $CS01 = \frac{\partial PV}{\partial S} \times 10^{-4}$ | The primary linear risk measure for credit positions; must specify *which* spread is bumped |
+| **JTD / VOD** | Jump-to-default = $PV_{\text{post}} - PV_{\text{pre}}$; VOD = $(1-R-\text{Accrued}) - (S-S_0) \cdot RPV01$ | Captures discontinuous default risk that CS01 hedges do not neutralize |
 | **Bond–CDS Basis** | CDS spread − Bond Libor spread (typically asset swap spread) | Twelve drivers (6 fundamental + 6 market) per O'Kane; a persistent tradeable phenomenon |
 | **Loss-on-Default Mismatch** | Bond loss = $P - R$; CDS loss = $1 - R$; difference when bond price ≠ 100 | A basis driver that causes hedge ratios to differ from par assumptions |
 | **Intrinsic vs Quoted Basis** | Gap between index's quoted spread and RPV01-weighted average of constituent spreads | Driven by restructuring clause, liquidity, and "index leads the market" effects |
@@ -2323,18 +2323,18 @@ This chapter is an educational risk framework. It does not provide recommendatio
 
 **Key formulas:**
 
-- CDS MTM: $V = (S - S_0) \cdot \text{RPV01}$.
-- CS01 hedge: $N_H = -\text{CS01}_T / \text{CS01}_H$.
-- VOD/JTD (CDS): $\text{VOD} = (1 - R - \text{Accrued}) - (S - S_0) \cdot \text{RPV01}$.
+- CDS MTM: $V = (S - S_0) \cdot RPV01$.
+- CS01 hedge: $N_H = -CS01_T / CS01_H$.
+- VOD/JTD (CDS): $VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$.
 - Tranche loss: $L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)$.
 - Senior-sub spread ratio: $S_{\text{sub}}/S_{\text{sen}} = (1 - R_{\text{sub}})/(1 - R_{\text{sen}})$.
-- Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times \text{RPV01}_{\text{long}} / \text{RPV01}_{\text{short}}$.
+- Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times RPV01_{\text{long}} / RPV01_{\text{short}}$.
 
 ---
 
 ### Example 16: Senior vs Subordinated CDS — Recovery-Driven Spread Relationship
 
-**Setup:** Consider a BBB-rated issuer with both senior unsecured and subordinated CDS traded. Market recovery assumptions: $R_{\text{sen}} = 40\%$, $R_{\text{sub}} = 20\%$. Senior 5Y CDS trades at $S_{\text{sen}} = 120$ bp.
+**Setup:** Consider a BBB-rated issuer with both senior unsecured and subordinated CDS traded. Market recovery assumptions: $R_{\text{sen}} = 40\\%$, $R_{\text{sub}} = 20\\%$. Senior 5Y CDS trades at $S_{\text{sen}} = 120$ bp.
 
 **Question:** What should the subordinated CDS spread be under the equal-default-probability assumption? If sub CDS actually trades at 170 bp, is the trade attractive?
 
@@ -2355,9 +2355,9 @@ The theoretical ratio is $0.80/0.60 = 1.333$. Actual market sub spread is 170 bp
 
 **Trade construction (if you believe in the model):** Buy protection on senior, sell protection on sub (harvesting the excess sub spread). Size CS01-neutral:
 
-$$N_{\text{sen}} = N_{\text{sub}} \times \frac{\text{RPV01}_{\text{sub}}}{\text{RPV01}_{\text{sen}}}$$
+$$N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}$$
 
-If $\text{RPV01}_{\text{sen}} = 4.1$ and $\text{RPV01}_{\text{sub}} = 3.8$ (lower survival probability compresses RPV01), then for $5mm sub notional:
+If $RPV01_{\text{sen}} = 4.1$ and $RPV01_{\text{sub}} = 3.8$ (lower survival probability compresses RPV01), then for USD 5mm sub notional:
 
 $$N_{\text{sen}} = 5 \times \frac{3.8}{4.1} = 4.63\text{mm}$$
 
@@ -2373,28 +2373,28 @@ $$N_{\text{sen}} = 5 \times \frac{3.8}{4.1} = 4.63\text{mm}$$
 
 **CS01-neutral sizing:** Per O'Kane's framework, match the CS01 so parallel moves cancel:
 
-Given: $\text{RPV01}_{3Y} = 2.5$, $\text{RPV01}_{5Y} = 3.6$ (both per $1mm notional).
+Given: $RPV01_{3Y} = 2.5$, $RPV01_{5Y} = 3.6$ (both per USD 1mm notional).
 
-$$N_{3Y} = N_{5Y} \times \frac{\text{RPV01}_{5Y}}{\text{RPV01}_{3Y}} = 10\text{mm} \times \frac{3.6}{2.5} = 14.4\text{mm}$$
+$$N_{3Y} = N_{5Y} \times \frac{RPV01_{5Y}}{RPV01_{3Y}} = 10\text{mm} \times \frac{3.6}{2.5} = 14.4\text{mm}$$
 
-**P&L scenarios (per $10mm 5Y notional, $14.4mm 3Y notional):**
+**P&L scenarios (per USD 10mm 5Y notional, USD 14.4mm 3Y notional):**
 
 | Scenario | 3Y move | 5Y move | 3Y P&L | 5Y P&L | Net P&L |
 |----------|---------|---------|--------|--------|---------|
-| Parallel +50bp | +50 | +50 | $+50 \times 14.4 \times 2.5 \times 10^{-4} = +\$18{,}000$ | $-50 \times 10 \times 3.6 \times 10^{-4} = -\$18{,}000$ | **$0** |
-| Curve flattens | -100 | -30 | $-100 \times 14.4 \times 2.5 \times 10^{-4} = -\$36{,}000$ | $+30 \times 10 \times 3.6 \times 10^{-4} = +\$10{,}800$ | **-$25,200** |
-| Curve normalizes (3Y tightens) | -150 | +20 | $-\$54{,}000$ | $-\$7{,}200$ | **-$61,200** |
+| Parallel +50bp | +50 | +50 | $+50 \times 14.4 \times 2.5 \times 10^{-4} = +18{,}000$ USD | $-50 \times 10 \times 3.6 \times 10^{-4} = -18{,}000$ USD | **USD 0** |
+| Curve flattens | -100 | -30 | $-100 \times 14.4 \times 2.5 \times 10^{-4} = -36{,}000$ USD | $+30 \times 10 \times 3.6 \times 10^{-4} = +10{,}800$ USD | **-USD 25,200** |
+| Curve normalizes (3Y tightens) | -150 | +20 | $-54{,}000$ USD | $-7{,}200$ USD | **-USD 61,200** |
 | Default | — | — | Lose on 3Y (short prot) | Gain on 5Y (long prot) | Net depends on timing |
 
-Wait — check the signs. Short protection on 3Y means CS01 < 0; when 3Y spreads *tighten* (move negative), short protection *gains*:
+Wait — check the signs. Short protection on 3Y means CS01 $\lt 0$; when 3Y spreads *tighten* (move negative), short protection *gains*:
 
 | Scenario | 3Y move | 5Y move | 3Y P&L (short prot) | 5Y P&L (long prot) | Net P&L |
 |----------|---------|---------|---------------------|---------------------|---------|
-| Curve flattens (3Y tightens -100, 5Y flat) | -100 | 0 | $+\$36{,}000$ | $\$0$ | **+$36,000** |
-| Curve normalizes (3Y -150, 5Y -30) | -150 | -30 | $+\$54{,}000$ | $-\$10{,}800$ | **+$43,200** |
-| Default | — | — | ~$-(1-R) \times 14.4\text{mm}$ | ~$+(1-R) \times 10\text{mm}$ | **-$2.6mm** net loss |
+| Curve flattens (3Y tightens -100, 5Y flat) | -100 | 0 | $+36{,}000$ USD | USD 0 | **+USD 36,000** |
+| Curve normalizes (3Y -150, 5Y -30) | -150 | -30 | $+54{,}000$ USD | $-10{,}800$ USD | **+USD 43,200** |
+| Default | — | — | ~$-(1-R) \times 14.4\text{mm}$ | ~$+(1-R) \times 10\text{mm}$ | **-USD 2.6mm** net loss |
 
-**Key risk:** JTD is *not* hedged. The 3Y short protection notional exceeds 5Y long protection notional, so default produces a net loss of approximately $(1-R)(14.4 - 10) = 0.65 \times 4.4 = \$2.86\text{mm}$.
+**Key risk:** JTD is *not* hedged. The 3Y short protection notional exceeds 5Y long protection notional, so default produces a net loss of approximately $(1-R)(14.4 - 10) = 0.65 \times 4.4 = USD 2.86\text{mm}$.
 
 > **Desk Reality:** This is why HY curve trades are dangerous — the CS01-neutral sizing creates a JTD mismatch. Some desks cap the notional ratio or add a JTD overlay.
 
@@ -2406,21 +2406,21 @@ Wait — check the signs. Short protection on 3Y means CS01 < 0; when 3Y spreads
 
 **Carry calculation (annualized, per $10mm notional):**
 
-- Bond coupon received (spread component): $+180$ bp $= +\$180{,}000$/yr
-- CDS premium paid: $-150$ bp $= -\$150{,}000$/yr
-- Funding cost (spread over LIBOR): $-50$ bp $= -\$50{,}000$/yr
-- **Net carry: $-20$ bp $= -\$20{,}000$/yr**
+- Bond coupon received (spread component): $+180$ bp $= +USD 180{,}000$/yr
+- CDS premium paid: $-150$ bp $= -USD 150{,}000$/yr
+- Funding cost (spread over LIBOR): $-50$ bp $= -USD 50{,}000$/yr
+- **Net carry: $-20$ bp $= -USD 20{,}000$/yr**
 
 The "free lunch" of $-30$ bp basis is consumed by $-50$ bp funding cost, leaving negative net carry.
 
 **Funding stress scenario:** Suppose your funding cost widens to LIBOR + 120 bp (credit crunch):
 
-- New net carry: $180 - 150 - 120 = -90$ bp $= -\$90{,}000$/yr
-- The position now *bleeds* $\$90{,}000$/yr while waiting for convergence
+- New net carry: $180 - 150 - 120 = -90$ bp $= -USD 90{,}000$/yr
+- The position now *bleeds* $USD 90{,}000$/yr while waiting for convergence
 
 **MTM impact:** If market expects elevated funding for 2 years, the MTM loss is approximately:
 
-$$\Delta PV \approx -90 \text{ bp} \times \text{RPV01}_{\text{bond}} \times \text{Notional} \approx -90 \times 4.0 \times 10^{-4} \times 10{,}000{,}000 = -\$360{,}000$$
+$$\Delta PV \approx -90 \text{ bp} \times RPV01_{\text{bond}} \times \text{Notional} \approx -90 \times 4.0 \times 10^{-4} \times 10{,}000{,}000 = -USD 360{,}000$$
 
 **Desk note:** funding and balance-sheet costs are institution-specific. The same “basis” package can be positive carry for one participant and negative carry for another, and funding terms can change rapidly in stress—so always stress the financing leg, not just the spread leg.
 
@@ -2444,11 +2444,11 @@ $$\Delta PV \approx -90 \text{ bp} \times \text{RPV01}_{\text{bond}} \times \tex
 - Short equity: $5mm notional
 - Long CDS protection: $5mm notional, RPV01 = 4.3
 
-Equity loss: $5\text{mm} \times 37.5\% = -\$1.875\text{mm}$ (stock jumps from $40 to $55)
+Equity loss: $5\text{mm} \times 37.5\% = -USD 1.875\text{mm}$ (stock jumps from $40 to $55)
 
-CDS gain: $(350 - 90) \times 4.3 \times 10^{-4} \times 5{,}000{,}000 = +\$559{,}000$
+CDS gain: $(350 - 90) \times 4.3 \times 10^{-4} \times 5{,}000{,}000 = +USD 559{,}000$
 
-**Net: $-\$1.316\text{mm}$** — the CDS gain doesn't cover the equity loss because CDS leverage is lower than equity sensitivity.
+**Net: $-USD 1.316\text{mm}$** — the CDS gain doesn't cover the equity loss because CDS leverage is lower than equity sensitivity.
 
 > **Desk Reality:** LBO trades are notoriously difficult to size correctly. The equity move is discontinuous (tender premium), while CDS moves are large but capped. Professional desks often use options on equity (puts) rather than short stock to limit downside, and overweight the CDS leg. The key insight from the Merton model is that equity is effectively a call option—its sensitivity to leverage events can dwarf CDS sensitivity.
 
@@ -2458,29 +2458,29 @@ These post‑event levels are **toy numbers** for sizing intuition only. Actual 
 
 ### Example 20: Correlation Shock on Equity-Senior Combo
 
-**Setup (toy):** you build a Corr01‑neutral package at $\rho=25\%$ using two tranches with opposite Corr01 signs.
+**Setup (toy):** you build a Corr01‑neutral package at $\rho=25\\%$ using two tranches with opposite Corr01 signs.
 
-Assume (per $\$10$mm tranche notional):
-- Equity tranche (0–3%, **long protection**): Corr01 $= -\$8{,}000$ per +1% corr
-- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +\$15{,}000$ per +1% corr
+Assume (per $USD 10$mm tranche notional):
+- Equity tranche (0–3%, **long protection**): Corr01 $= -USD 8{,}000$ per +1% corr
+- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +USD 15{,}000$ per +1% corr
 
-To Corr01‑neutralize locally, take $\$10$mm senior long protection and $\$18.75$mm equity long protection:
+To Corr01‑neutralize locally, take $USD 10$mm senior long protection and $USD 18.75$mm equity long protection:
 
-$$+15{,}000 \; + \; 1.875\times(-8{,}000) \approx 0.$$
+$$+15{,}000 \\; + \\; 1.875\times(-8{,}000) \approx 0.$$
 
 **Scenario:** correlation jumps from 25% to 40% (a +15% shock).
 
-Corr01 itself is not constant; suppose at $\rho=40\%$ the sensitivities become:
-- Equity Corr01 $= -\$5{,}000$ per +1%
-- Senior Corr01 $= +\$18{,}000$ per +1%
+Corr01 itself is not constant; suppose at $\rho=40\\%$ the sensitivities become:
+- Equity Corr01 $= -USD 5{,}000$ per +1%
+- Senior Corr01 $= +USD 18{,}000$ per +1%
 
 Then the package is no longer Corr01‑neutral at the new level:
 
-$$\text{Net Corr01}_{40\%} \approx 18{,}000 + 1.875\times(-5{,}000) = 8{,}625 \text{ USD per 1\%}.$$
+$$NetCorr01_{40\\%} \approx 18{,}000 + 1.875\times(-5{,}000) = 8{,}625 \text{ USD per 1\\%}.$$
 
 A crude convexity estimate uses the average net Corr01 over the move:
 
-$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$$
+$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700.$$
 
 **Takeaway:** Corr01‑neutralization is a *local* hedge; large correlation moves introduce convexity/hedge‑ratio drift. Validate correlation packages with stressed moves, not just +/‑1% bumps.
 
@@ -2523,7 +2523,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 3. **Q:** What is RPV01? **A:** PV of 1 bp/yr of premium leg per unit notional (risky PV01).
 
-4. **Q:** Give the CDS MTM identity used for CS01. **A:** $V = (S - S_0) \cdot \text{RPV01}$.
+4. **Q:** Give the CDS MTM identity used for CS01. **A:** $V = (S - S_0) \cdot RPV01$.
 
 5. **Q:** Define JTD in these notes. **A:** $PV_{\text{post-default}} - PV_{\text{pre-default}}$.
 
@@ -2573,7 +2573,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 28. **Q:** What is a key risk management lesson about "perfect storm" events? **A:** Multiple adverse moves can coincide; stress testing is essential.
 
-29. **Q:** What is the simplest CS01 hedge ratio? **A:** $N_H = -\text{CS01}_T / \text{CS01}_H$.
+29. **Q:** What is the simplest CS01 hedge ratio? **A:** $N_H = -CS01_T / CS01_H$.
 
 30. **Q:** What is the core discipline of this chapter? **A:** Define exposures, hedge explicitly, then enumerate failure modes.
 
@@ -2601,7 +2601,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 42. **Q:** Why might a new index series trade tighter than the old series? **A:** Composition improvement (removing distressed names) can dominate the maturity extension effect.
 
-43. **Q:** How do you calculate CS01-adjusted notional for spread-neutral roll? **A:** $N_{\text{new}} = N_{\text{old}} \times \frac{\text{CS01}_{\text{old}}}{\text{CS01}_{\text{new}}}$.
+43. **Q:** How do you calculate CS01-adjusted notional for spread-neutral roll? **A:** $N_{\text{new}} = N_{\text{old}} \times \frac{CS01_{\text{old}}}{CS01_{\text{new}}}$.
 
 44. **Q:** What's the risk of rolling "flat notional" between index series? **A:** You increase spread exposure because RPV01 increases with longer maturity (new series has higher CS01 per dollar).
 
@@ -2641,63 +2641,63 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 ---
 
-**1.** A 5Y CDS has $\text{RPV01} = 4.2$. Compute CS01 per $1mm notional for long protection.
+**1.** A 5Y CDS has $RPV01 = 4.2$. Compute CS01 per USD 1mm notional for long protection.
 
-> **Sketch:** $\text{CS01} = 1{,}000{,}000 \times 4.2 \times 10^{-4} = \$420/\text{bp}$.
+> **Sketch:** $CS01 = 1{,}000{,}000 \times 4.2 \times 10^{-4} = USD 420/\text{bp}$.
 
 ---
 
-**2.** A long bond has rates DV01 $-\$6{,}000/\text{bp}$. A hedging Treasury has DV01 $-\$800/\text{bp}$ per $1mm (long). What Treasury notional (short) DV01-hedges the bond?
+**2.** A long bond has rates DV01 $-6{,}000$ USD/bp. A hedging Treasury has DV01 $-800$ USD/bp per USD 1mm (long). What Treasury notional (short) DV01-hedges the bond?
 
 > **Sketch:** Short notional $N$ gives $+800N$. Solve $-6000 + 800N = 0 \Rightarrow N = 7.5\text{mm}$.
 
 ---
 
-**3.** Using VOD at par $\approx 1 - R - \text{Accrued}$, compute JTD for long protection with notional $5mm, $R = 40\%$, accrued premium $6,000.
+**3.** Using VOD at par $\approx 1 - R - \text{Accrued}$, compute JTD for long protection with notional USD 5mm, $R = 40\%$, accrued premium USD 6,000.
 
 > **Sketch:** $0.60 \times 5{,}000{,}000 - 6{,}000 = 2{,}994{,}000$.
 
 ---
 
-**4.** A single-name has CS01 $+3{,}800/\text{bp}$. An index has CS01 $+4{,}200/\text{bp}$ per $10mm. What index notional (short protection) CS01-hedges the single name?
+**4.** A single-name has CS01 $+3{,}800$ USD/bp. An index has CS01 $+4{,}200$ USD/bp per USD 10mm. What index notional (short protection) CS01-hedges the single name?
 
 > **Sketch:** Need $-4{,}200(N/10) + 3{,}800 = 0 \Rightarrow N = 9.0476\text{mm}$.
 
 ---
 
-**5.** Compute tranche loss fraction for $[A, B] = [3\%, 7\%]$ when portfolio loss $L = 5\%$.
+**5.** Compute tranche loss fraction for $[A, B] = [3\\%, 7\\%]$ when portfolio loss $L = 5\\%$.
 
 > **Sketch:** Loss in tranche $= \min(\max(5 - 3, 0), 4) / 4 = 2/4 = 0.5$.
 
 ---
 
-**6.** A tranche PV at $\rho = 15\%$ is $-200k$ and at $\rho = 20\%$ is $-230k$. Compute Corr01.
+**6.** A tranche PV at $\rho = 15\\%$ is $-200k$ and at $\rho = 20\\%$ is $-230k$. Compute Corr01.
 
 > **Sketch:** $\Delta PV = -30k$ for +5% corr $\Rightarrow$ Corr01 $\approx -6k$ per 1%.
 
 ---
 
-**7.** An index default on one name pays $(1 - R) N_m$. If $N = 25\text{mm}$, $M = 125$, $R = 35\%$, compute payout ignoring accrued.
+**7.** An index default on one name pays $(1 - R) N_m$. If $N = 25\text{mm}$, $M = 125$, $R = 35\\%$, compute payout ignoring accrued.
 
 > **Sketch:** $N_m = 25/125 = 0.2\text{mm}$; payout $= 0.65 \times 200k = 130k$.
 
 ---
 
-**8.** You have a bond–CDS package with bond CS01 $-500/\text{bp}$ and CDS CS01 $+450/\text{bp}$ per $1mm. What CDS notional makes CS01 net zero?
+**8.** You have a bond–CDS package with bond CS01 $-500$ USD/bp and CDS CS01 $+450$ USD/bp per USD 1mm. What CDS notional makes CS01 net zero?
 
 > **Sketch:** Need $+450N - 500 = 0 \Rightarrow N = 1.1111\text{mm}$.
 
 ---
 
-**9.** For an index long protection position, coupon $C = 100$ bp, notional $10mm, month fraction 1/12. Compute coupon accrual cashflow sign and magnitude.
+**9.** For an index long protection position, coupon $C = 100$ bp, notional USD 10mm, month fraction 1/12. Compute coupon accrual cashflow sign and magnitude.
 
-> **Sketch:** Long protection pays premium: $-10\text{mm} \cdot 0.01 \cdot 1/12 = -\$8{,}333.33$.
+> **Sketch:** Long protection pays premium: $-10\text{mm} \cdot 0.01 \cdot 1/12 = -USD 8{,}333.33$.
 
 ---
 
-**10.** A PV01-neutral adjacent tranche hedge uses notional ratio $N_H = \text{PV01}_T / \text{PV01}_H$. If PV01s are 2,400 and 1,600 (both per $10mm), compute hedge notional for a $20mm target.
+**10.** A PV01-neutral adjacent tranche hedge uses notional ratio $N_H = PV01_T / PV01_H$. If PV01s are 2,400 and 1,600 (both per USD 10mm), compute hedge notional for a USD 20mm target.
 
-> **Sketch:** Ratio $= 2400/1600 = 1.5$. For $20mm target (=2×$10mm), hedge notional $= 2 \times 1.5 \times 10\text{mm} = 30\text{mm}$.
+> **Sketch:** Ratio $= 2400/1600 = 1.5$. For USD 20mm target (=2×USD 10mm), hedge notional $= 2 \times 1.5 \times 10\text{mm} = 30\text{mm}$.
 
 ---
 
@@ -2741,27 +2741,27 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +\$64{,}700.$
 
 ---
 
-**21.** A senior CDS trades at 100 bp with $R_{\text{sen}} = 40\%$. A subordinated CDS trades at 175 bp with $R_{\text{sub}} = 20\%$. (a) Compute the theoretical sub spread using the O'Kane senior-sub relationship. (b) Is sub CDS rich or cheap relative to the model? (c) What recovery assumption would rationalize the market sub spread?
+**21.** A senior CDS trades at 100 bp with $R_{\text{sen}} = 40\\%$. A subordinated CDS trades at 175 bp with $R_{\text{sub}} = 20\\%$. (a) Compute the theoretical sub spread using the O'Kane senior-sub relationship. (b) Is sub CDS rich or cheap relative to the model? (c) What recovery assumption would rationalize the market sub spread?
 
-> **Sketch:** (a) $S_{\text{sub}}^{\text{fair}} = 100 \times (1-0.20)/(1-0.40) = 133.3$ bp. (b) Market sub at 175 is wide of model by ~42 bp — sub protection looks cheap (or market prices lower sub recovery). (c) Solve $175 = 100 \times (1-R_{\text{sub}})/(0.60)$ → $R_{\text{sub}} = 1 - 1.05 = -5\%$, which is impossible, so the gap must reflect liquidity premium or correlation with default intensity, not pure recovery.
-
----
-
-**22.** You want to construct a CS01-neutral 3Y-5Y HY curve steepener. 5Y notional is $10mm with $\text{RPV01}_{5Y} = 3.4$. 3Y has $\text{RPV01}_{3Y} = 2.2$. (a) Compute 3Y notional. (b) Compute the JTD mismatch at recovery $R = 30\%$. (c) Should you add a JTD overlay? How?
-
-> **Sketch:** (a) $N_{3Y} = 10 \times 3.4/2.2 = 15.45\text{mm}$. (b) JTD mismatch: $(1-R)(N_{3Y} - N_{5Y}) = 0.70 \times 5.45 = \$3.82\text{mm}$ net loss on default. (c) Yes — buy additional 5Y protection for the JTD gap: $\Delta N_{5Y} = 5.45/(1) = 5.45\text{mm}$ (adjusting for the fact that both legs pay $(1-R)$ at default, so you need $N_{3Y} - N_{5Y} = 5.45\text{mm}$ of additional 5Y protection). This breaks CS01 neutrality — trade-off between curve and default risk.
+> **Sketch:** (a) $S_{\text{sub}}^{\text{fair}} = 100 \times (1-0.20)/(1-0.40) = 133.3$ bp. (b) Market sub at 175 is wide of model by ~42 bp — sub protection looks cheap (or market prices lower sub recovery). (c) Solve $175 = 100 \times (1-R_{\text{sub}})/(0.60)$ → $R_{\text{sub}} = 1 - 1.05 = -5\\%$, which is impossible, so the gap must reflect liquidity premium or correlation with default intensity, not pure recovery.
 
 ---
 
-**23.** A negative basis package has: bond spread 200 bp, CDS spread 160 bp (basis = $-40$ bp), funding cost = LIBOR + 60 bp. (a) Compute annual carry per $10mm. (b) At what funding cost does the trade break even? (c) If funding widens to LIBOR + 150 bp during a crisis and stays there for 6 months, what is the carry loss?
+**22.** You want to construct a CS01-neutral 3Y-5Y HY curve steepener. 5Y notional is USD 10mm with $RPV01_{5Y} = 3.4$. 3Y has $RPV01_{3Y} = 2.2$. (a) Compute 3Y notional. (b) Compute the JTD mismatch at recovery $R = 30\%$. (c) Should you add a JTD overlay? How?
 
-> **Sketch:** (a) Carry $= (200 - 160 - 60) \times 10^{-4} \times 10{,}000{,}000 = -\$20{,}000$/yr (negative carry). (b) Break-even: $200 - 160 - x = 0 \Rightarrow x = 40$ bp. (c) At LIBOR + 150: carry $= (200-160-150) = -110$ bp $= -\$110{,}000$/yr. Over 6 months: $-\$55{,}000$.
+> **Sketch:** (a) $N_{3Y} = 10 \times 3.4/2.2 = 15.45\text{mm}$. (b) JTD mismatch: $(1-R)(N_{3Y} - N_{5Y}) = 0.70 \times 5.45 = USD 3.82\text{mm}$ net loss on default. (c) Yes — buy additional 5Y protection for the JTD gap: $\Delta N_{5Y} = 5.45/(1) = 5.45\text{mm}$ (adjusting for the fact that both legs pay $(1-R)$ at default, so you need $N_{3Y} - N_{5Y} = 5.45\text{mm}$ of additional 5Y protection). This breaks CS01 neutrality — trade-off between curve and default risk.
 
 ---
 
-**24.** An LBO increases a firm's leverage from 2× to 5× EBITDA. Pre-LBO: senior CDS = 80 bp, equity price = $45. Post-LBO: senior CDS = 280 bp, equity tender at $60. You are short $3mm equity and long $8mm CDS protection with $\text{RPV01} = 4.0$. (a) Compute equity leg P&L. (b) Compute CDS leg P&L. (c) Was the trade profitable? (d) What sizing change would improve the outcome?
+**23.** A negative basis package has: bond spread 200 bp, CDS spread 160 bp (basis = $-40$ bp), funding cost = LIBOR + 60 bp. (a) Compute annual carry per USD 10mm. (b) At what funding cost does the trade break even? (c) If funding widens to LIBOR + 150 bp during a crisis and stays there for 6 months, what is the carry loss?
 
-> **Sketch:** (a) Equity loss: $3\text{mm} \times (60-45)/45 = 3\text{mm} \times 33.3\% = -\$1{,}000{,}000$. (b) CDS gain: $(280-80) \times 4.0 \times 10^{-4} \times 8{,}000{,}000 = +\$640{,}000$. (c) Net: $-\$360{,}000$ — unprofitable. (d) Increase CDS notional relative to equity — the CDS leg needs more weight because equity jumps are larger (percentage) than CDS spread moves. Alternatively, use equity puts to cap equity loss.
+> **Sketch:** (a) Carry $= (200 - 160 - 60) \times 10^{-4} \times 10{,}000{,}000 = -USD 20{,}000$/yr (negative carry). (b) Break-even: $200 - 160 - x = 0 \Rightarrow x = 40$ bp. (c) At LIBOR + 150: carry $= (200-160-150) = -110$ bp $= -USD 110{,}000$/yr. Over 6 months: $-USD 55{,}000$.
+
+---
+
+**24.** An LBO increases a firm's leverage from 2× to 5× EBITDA. Pre-LBO: senior CDS = 80 bp, equity price = $45. Post-LBO: senior CDS = 280 bp, equity tender at $60. You are short $3mm equity and long $8mm CDS protection with $RPV01 = 4.0$. (a) Compute equity leg P&L. (b) Compute CDS leg P&L. (c) Was the trade profitable? (d) What sizing change would improve the outcome?
+
+> **Sketch:** (a) Equity loss: $3\text{mm} \times (60-45)/45 = 3\text{mm} \times 33.3\% = -USD 1{,}000{,}000$. (b) CDS gain: $(280-80) \times 4.0 \times 10^{-4} \times 8{,}000{,}000 = +USD 640{,}000$. (c) Net: $-USD 360{,}000$ — unprofitable. (d) Increase CDS notional relative to equity — the CDS leg needs more weight because equity jumps are larger (percentage) than CDS spread moves. Alternatively, use equity puts to cap equity loss.
 
 ---
 
