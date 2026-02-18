@@ -56,7 +56,7 @@ $$\boxed{L(T; A, D) = \frac{\min(L(T), D) - \min(L(T), A)}{D - A}}$$
 
 This piecewise-linear function has kinks at $A$ and $D$. Below $A$, the tranche suffers no loss (subordination absorbs everything). Between $A$ and $D$, losses pass through dollar-for-dollar. Above $D$, the tranche is wiped out.
 
-**Why nonlinearity matters:** Because tranche loss is nonlinear in portfolio loss, the expected tranche loss $\mathbb{E}[L(T; A, D)]$ depends on the *entire distribution* of $L(T)$, not just its mean. Two portfolios with identical expected losses but different loss *distributions* will have different tranche expected losses.
+**Why nonlinearity matters:** Because tranche loss is nonlinear in portfolio loss, the expected tranche loss $\mathbb{E}[L(T; A, D)]$ depends on the entire distribution of $L(T)$, not just its mean. Two portfolios with identical expected losses but different loss distributions will have different tranche expected losses.
 
 This is Jensen's inequality at work: for a nonlinear function $f$, generally $\mathbb{E}[f(X)] \neq f(\mathbb{E}[X])$.
 
@@ -122,7 +122,7 @@ The sign flip between equity and senior is not an anomaly—it's the fundamental
 
 > **Desk Reality:** “Long correlation” means *PV increases when the desk’s dependence parameter increases* (under the desk’s pricing and calibration methodology).
 > **Common break:** People mix position direction (long/short protection), correlation definition (compound vs. base), and bump/rebuild rules, which can flip the sign.
-> **What to check:** Compute Corr01 from two reprices $PV(\rho+1\%)-PV(\rho)$ for the stated position, holding calibration and interpolation rules fixed.
+> **What to check:** Compute Corr01 from two reprices $PV(\rho+1\\%)-PV(\rho)$ for the stated position, holding calibration and interpolation rules fixed.
 
 ### 50.1.4 Position Matters: Long vs. Short Protection
 
@@ -149,12 +149,12 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 
 **Inputs**
 - Portfolio: $N=125$ equal-weight names; horizon $T=5$ years.
-- Marginal default probability to $T$: $p=2\%$ (hypothetical).
-- Recovery: $R=40\%$ so $\mathrm{LGD}=60\%$.
+- Marginal default probability to $T$: $p=2\\%$ (hypothetical).
+- Recovery: $R=40\\%$ so $\mathrm{LGD}=60\\%$.
 - Tranches (loss strikes are fractions of portfolio notional):
-  - Equity: $[A,D]=[0\%,3\%]$
-  - Super-senior: $[A,D]=[30\%,100\%]$
-- Position: **short protection** on each tranche, tranche notional $N_{\text{tr}}=\$10$mm.
+  - Equity: $[A,D]=[0\\%,3\\%]$
+  - Super-senior: $[A,D]=[30\\%,100\\%]$
+- Position: **short protection** on each tranche, tranche notional $N_{\text{tr}}=USD 10$mm.
 - Premium: running spread $s=500$bp per year (hypothetical), paid on **surviving tranche notional**.
 - Discounting: ignore for sign intuition (set $Z(0,T)\approx 1$).
 - Two dependence extremes (limiting cases):
@@ -164,13 +164,13 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 **Outputs (What You Produce)**
 - Expected tranche loss fraction (ETL): $\mathbb{E}[L(T;A,D)]$ (unitless, in $[0,1]$).
 - Expected surviving fraction: $\mathbb{E}[1-L(T;A,D)]$ (unitless).
-- Toy PV per \$1 of tranche notional (short protection):
+- Toy PV per USD 1 of tranche notional (short protection):
   $$
-  PV \approx sT\,\\mathbb{E}[1-L(T;A,D)]-\\mathbb{E}[L(T;A,D)].
+  PV \approx sT\\,\\mathbb{E}[1-L(T;A,D)]-\\mathbb{E}[L(T;A,D)].
   $$
 
 **Step-by-step**
-1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\,(K/N)$.
+1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\\,(K/N)$.
 2. Map portfolio loss to tranche loss fraction:
    $$
    L(T;A,D)=\frac{\\min(L(T),D)-\\min(L(T),A)}{D-A}.
@@ -181,16 +181,16 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 **Cashflows (table)** *(toy: expected values shown at maturity)*
 | Date | Cashflow | Explanation |
 |---|---|---|
-| 2031-02-15 | $+sT\,N_{\text{tr}}\,\\mathbb{E}[1-L(T;A,D)]$ | Premium received by short-protection holder |
-| 2031-02-15 | $-N_{\text{tr}}\,\\mathbb{E}[L(T;A,D)]$ | Expected protection payment by short-protection holder |
+| 2031-02-15 | $+sT\\,N_{\text{tr}}\\,\\mathbb{E}[1-L(T;A,D)]$ | Premium received by short-protection holder |
+| 2031-02-15 | $-N_{\text{tr}}\\,\\mathbb{E}[L(T;A,D)]$ | Expected protection payment by short-protection holder |
 
 **Results (numbers)** *(with the inputs above; independence computed under a binomial model)*
 | Tranche | $\mathbb{E}[L]$ at $\rho=0$ | $\mathbb{E}[L]$ at $\rho\to 1$ | Toy PV (short prot) at $\rho=0$ | Toy PV (short prot) at $\rho\to 1$ |
 |---|---:|---:|---:|---:|
-| Equity $0\text{–}3\%$ | 0.3976 | 0.0200 | $-0.2470\times N_{\text{tr}}$ | $+0.2250\times N_{\text{tr}}$ |
-| Super-senior $30\text{–}100\%$ | $\approx 0$ | 0.0086 | $+0.2500\times N_{\text{tr}}$ | $+0.2393\times N_{\text{tr}}$ |
+| Equity $0\text{–}3\\%$ | 0.3976 | 0.0200 | $-0.2470\times N_{\text{tr}}$ | $+0.2250\times N_{\text{tr}}$ |
+| Super-senior $30\text{–}100\\%$ | $\approx 0$ | 0.0086 | $+0.2500\times N_{\text{tr}}$ | $+0.2393\times N_{\text{tr}}$ |
 
-For $N_{\text{tr}}=\$10\text{mm}$, the equity PV increases by about $\$4.72\text{mm}$ when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about $\$0.11\text{mm}$.
+For $N_{\text{tr}}=USD 10\text{mm}$, the equity PV increases by about $USD 4.72\text{mm}$ when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about $USD 0.11\text{mm}$.
 
 **P&L / Risk Interpretation**
 - The **equity short-protection** position benefits when dependence increases (PV up): it is **long correlation** under the book’s sign convention.
@@ -261,7 +261,7 @@ where $t_\nu^{-1}$ is the inverse t-distribution CDF and $\nu$ is degrees of fre
 
 For synthetic CDOs, the copula approach is natural:
 
-1. **Marginals are market-observable:** Single-name CDS curves give us $Q_i(t) = \Pr(\tau_i > t)$ for each name.
+1. **Marginals are market-observable:** Single-name CDS curves give us $Q_i(t) = \Pr(\tau_i \gt t)$ for each name.
 
 2. **Joint behavior is the unknown:** How defaults cluster is what we're trying to model/calibrate.
 
@@ -294,7 +294,7 @@ where:
 - $\rho \in [0,1]$: the **correlation parameter**
 
 **Equivalent notation (common in credit texts):** the same one-factor Gaussian latent-variable construction is often written as
-$$\boxed{A_i=\beta_i Z+\sqrt{1-\beta_i^2}\,\varepsilon_i}$$
+$$\boxed{A_i=\beta_i Z+\sqrt{1-\beta_i^2}\\,\varepsilon_i}$$
 with a market factor $Z\sim N(0,1)$ and a loading $\beta_i\in[0,1]$. In the flat-correlation case, $\beta_i=\sqrt{\rho}$ and $Z=X$.
 
 **Verification:** $Z_i$ is standard normal: $\mathbb{E}[Z_i] = 0$, $\text{Var}(Z_i) = \rho + (1-\rho) = 1$.
@@ -306,15 +306,15 @@ This is the "flat correlation" assumption: all pairs have the same correlation $
 
 ### 50.3.2 Default Thresholds from Marginal Probabilities
 
-Given marginal default probability $\text{PD}_i(T) = 1 - Q_i(T)$ from CDS calibration, we set a threshold:
+Given marginal default probability $PD_i(T) = 1 - Q_i(T)$ from CDS calibration, we set a threshold:
 
-$$a_i(T) = \Phi^{-1}(\text{PD}_i(T))$$
+$$a_i(T) = \Phi^{-1}(PD_i(T))$$
 
 and define default by time $T$ as:
 
 $$\tau_i \le T \iff Z_i \le a_i(T)$$
 
-**Why this works:** $\Pr(Z_i \le a_i(T)) = \Phi(a_i(T)) = \text{PD}_i(T)$, matching the marginal.
+**Why this works:** $\Pr(Z_i \le a_i(T)) = \Phi(a_i(T)) = PD_i(T)$, matching the marginal.
 
 Equivalently, in terms of survival probability $Q_i(T)$, the threshold can be written as $a_i(T)=\Phi^{-1}(1-Q_i(T))$.
 
@@ -351,11 +351,11 @@ $$a = \Phi^{-1}(0.02) = -2.054$$
 
 | Factor $X$ | Market State | Conditional PD $p(X)$ | Interpretation |
 |------------|--------------|----------------------|----------------|
-| $+2$ | Very good | $\Phi\left(\frac{-2.054 - 0.5 \times 2}{0.866}\right) = \Phi(-3.53) = 0.02\%$ | Almost no defaults |
-| $+1$ | Good | $\Phi\left(\frac{-2.054 - 0.5}{0.866}\right) = \Phi(-2.95) = 0.16\%$ | Very few defaults |
-| $0$ | Normal | $\Phi\left(\frac{-2.054}{0.866}\right) = \Phi(-2.37) = 0.89\%$ | Below average |
-| $-1$ | Bad | $\Phi\left(\frac{-2.054 + 0.5}{0.866}\right) = \Phi(-1.80) = 3.6\%$ | Elevated defaults |
-| $-2$ | Very bad | $\Phi\left(\frac{-2.054 + 1.0}{0.866}\right) = \Phi(-1.22) = 11.1\%$ | Crisis-level defaults |
+| $+2$ | Very good | $\Phi\left(\frac{-2.054 - 0.5 \times 2}{0.866}\right) = \Phi(-3.53) = 0.02\\%$ | Almost no defaults |
+| $+1$ | Good | $\Phi\left(\frac{-2.054 - 0.5}{0.866}\right) = \Phi(-2.95) = 0.16\\%$ | Very few defaults |
+| $0$ | Normal | $\Phi\left(\frac{-2.054}{0.866}\right) = \Phi(-2.37) = 0.89\\%$ | Below average |
+| $-1$ | Bad | $\Phi\left(\frac{-2.054 + 0.5}{0.866}\right) = \Phi(-1.80) = 3.6\\%$ | Elevated defaults |
+| $-2$ | Very bad | $\Phi\left(\frac{-2.054 + 1.0}{0.866}\right) = \Phi(-1.22) = 11.1\\%$ | Crisis-level defaults |
 
 **Step 3: Compute conditional expected portfolio loss**
 
@@ -375,14 +375,14 @@ For a 0-3% equity tranche in the $X = -2$ scenario:
 
 For the same tranche in the $X = 0$ scenario:
 - Portfolio loss of 0.53% is below 3% detachment
-- Equity tranche loss = $\min(0.53\%, 3\%) / 3\% = 17.7\%$
+- Equity tranche loss = $\min(0.53\\%, 3\\%) / 3\\% = 17.7\\%$
 
 **Key insight:** Conditioning creates "default clustering." In bad states, conditional PD jumps from 2% to 11%—a 5× increase. This is how correlation drives tail risk.
 
 ### 50.3.5 Limiting Cases and Sanity Checks
 
 **$\rho = 0$ (independence):**
-$$Z_i = \varepsilon_i, \quad p_i(T \mid X = x) = \Phi(a_i(T)) = \text{PD}_i(T)$$
+$$Z_i = \varepsilon_i, \quad p_i(T \mid X = x) = \Phi(a_i(T)) = PD_i(T)$$
 Conditional equals marginal; defaults are independent.
 
 **$\rho \to 1$ (comonotonicity):**
@@ -398,14 +398,14 @@ All latent variables collapse to the single factor. Defaults become perfectly de
 **Definition (Upper and lower tail dependence):** Given r.v.'s $X_1$ and $X_2$ with marginal distributions $F_1$ and $F_2$,
 $$
 \begin{aligned}
-\lambda_{\mathrm{U}} & =\lim _{u \uparrow 1} \mathbb{P}\!\left[X_{2}>F_{2}^{-1}(u) \mid X_{1}>F_{1}^{-1}(u)\right], \\
-\lambda_{\mathrm{L}} & =\lim _{u \downarrow 0} \mathbb{P}\!\left[X_{2} \leq F_{2}^{-1}(u) \mid X_{1} \leq F_{1}^{-1}(u)\right] .
+\lambda_{\mathrm{U}} & =\lim _{u \uparrow 1} \mathbb{P}\\!\left[X_{2}\gt F_{2}^{-1}(u) \mid X_{1}\gt F_{1}^{-1}(u)\right], \\
+\lambda_{\mathrm{L}} & =\lim _{u \downarrow 0} \mathbb{P}\\!\left[X_{2} \leq F_{2}^{-1}(u) \mid X_{1} \leq F_{1}^{-1}(u)\right] .
 \end{aligned}
 $$
 
 Intuition: $\lambda_{\mathrm{U}}$ is a limiting conditional probability of a joint extreme in the upper tail; $\lambda_{\mathrm{L}}$ is the analogous object in the lower tail.
 
-**The Gaussian copula has zero tail dependence:** $\lambda_{\mathrm{U}} = \lambda_{\mathrm{L}} = 0$ for all $\rho < 1$. (Only at $\rho=1$ do these coefficients jump to 1.)
+**The Gaussian copula has zero tail dependence:** $\lambda_{\mathrm{U}} = \lambda_{\mathrm{L}} = 0$ for all $\rho \lt 1$. (Only at $\rho=1$ do these coefficients jump to 1.)
 
 Interpretation: in the Gaussian case, extremes are **asymptotically independent** — seeing one name in a very extreme state does not force another name to also be extreme, unless $\rho$ is literally 1.
 
@@ -435,7 +435,7 @@ where $t_{\nu+1}(\cdot)$ is the CDF of the Student's t-distribution with $\nu+1$
 For large portfolios with identical names, the one-factor Gaussian copula admits a powerful analytical simplification known as the Large Homogeneous Portfolio (LHP) model (often called the Vasicek limit).
 
 **Assumptions:**
-- $N$ names with identical marginal default probabilities: $\text{PD}_i(T) = p$ for all $i$
+- $N$ names with identical marginal default probabilities: $PD_i(T) = p$ for all $i$
 - Identical recovery rates: $R_i = R$
 - Equal weights: $w_i = 1/N$
 - Flat correlation: $\rho$ for all pairs
@@ -561,8 +561,8 @@ This is an illustrative toy scenario: a mezzanine tranche can have multiple impl
 Consider a 3-7% mezzanine tranche on CDX quoted at a running spread of 250bp (hypothetical).
 
 **Model calculation shows:**
-- At $\rho = 8\%$: Model spread = 250bp ✓
-- At $\rho = 75\%$: Model spread = 250bp ✓
+- At $\rho = 8\\%$: Model spread = 250bp ✓
+- At $\rho = 75\\%$: Model spread = 250bp ✓
 
 **Two solutions exist because:**
 1. At low $\rho$: Loss distribution is concentrated; moderate losses hit mezzanine
@@ -580,7 +580,7 @@ $$\sum_{k} w_k \cdot \mathbb{E}[L(T; A_k, D_k)] = E$$
 
 where the sum is over contiguous tranches covering the capital structure and $w_k = D_k - A_k$.
 
-**The problem:** If we use *different* compound correlations $\rho_k$ for each tranche (as implied by market prices), we're using *different models* for each tranche. The expected losses computed under these different models will not sum to $E$.
+**The problem:** If we use different compound correlations $\rho_k$ for each tranche (as implied by market prices), we're using different models for each tranche. The expected losses computed under these different models will not sum to $E$.
 
 Practically, this violates a basic consistency requirement: tranche expected losses (weighted by width) should add up to portfolio expected loss when tranches span the capital structure. Using different compound correlations tranche‑by‑tranche breaks that add‑up property.
 
@@ -606,7 +606,7 @@ The key insight: rather than finding a single $\rho$ for each tranche, we find a
 > *   **The Fix**: Don't price $[3, 7]$. Price $[0, 7]$ and $[0, 3]$ separately.
 >     *   Find $\rho_3$ that fits the market price of the Equity tranche $[0, 3]$.
 >     *   Find $\rho_7$ that fits the virtually constructed Equity tranche $[0, 7]$.
-> *   **The Result**: A "Skew" of correlations. Often $\rho_3 < \rho_7 < \rho_{10}$.
+> *   **The Result**: A "Skew" of correlations. Often $\rho_3 \lt \rho_7 \lt \rho_{10}$.
 > *   **Why?**: Senior tranches effectively "bid up" correlation (demand protection against tail risk), just like deep OTM puts bid up implied volatility (skew).
 
 ### 50.6.2 Pricing Non-Equity Tranches
@@ -754,7 +754,7 @@ Negative values indicate an interpolation/calibration artifact (not a “negativ
 
 **The pathology:** Interpolation can produce:
 - **Spikes:** Unrealistically high density at certain strikes
-- **Negative regions:** $f(K) < 0$, which is mathematically impossible for a true distribution
+- **Negative regions:** $f(K) \lt 0$, which is mathematically impossible for a true distribution
 
 In practice, these show up as non-monotone tranchelet spreads, unstable hedge ratios, and “bumps that propagate” far from the bumped node.
 
@@ -762,7 +762,7 @@ In practice, these show up as non-monotone tranchelet spreads, unstable hedge ra
 
 A partial remedy: instead of interpolating base *correlation*, interpolate base tranche *expected loss* (ETL) directly.
 
-$$\psi(T, K) = \text{interpolate}(\{\psi(T, K_i)\})$$
+$$\psi(T, K) = \text{interpolate}(\\{\psi(T, K_i)\\})$$
 
 Then back out the implied correlation from interpolated ETL.
 
@@ -898,7 +898,7 @@ To isolate correlation exposure from spread exposure, traders construct **delta-
 - Compute deltas for both legs under the same methodology
 
 **Step 2:** Size positions to offset index spread exposure
-- For every \$1 of equity sold, buy $k$ of senior (where $k$ = equity delta / senior delta)
+- For every USD 1 of equity sold, buy $k$ of senior (where $k$ = equity delta / senior delta)
 
 **Step 3:** Monitor and rebalance
 - Deltas change as spreads move
@@ -960,7 +960,7 @@ Prudent risk management requires stress testing beyond base case calibration:
 - Simulate large dependence shifts and steepening/flattening of the correlation skew
 
 **Recovery stress:**
-- Test sensitivity to recovery assumptions ($R = 20\%$ vs. $40\%$ vs. $60\%$)
+- Test sensitivity to recovery assumptions ($R = 20\\%$ vs. $40\\%$ vs. $60\\%$)
 
 **Jump-to-default:**
 - Scenario analysis for individual name defaults
@@ -984,7 +984,7 @@ In principle, the only “perfect” correlation hedge for a tranche is the **sa
 
 For portfolios that are not standard indices, practitioners use **mapping techniques** to borrow correlation from liquid index tranches.
 
-The purpose of mapping is to choose a “standard” strike $K_s^*$ on a liquid index so that its base correlation $\rho_s(K_s^*)$ can be used as an input when pricing a bespoke tranche.
+The purpose of mapping is to choose a “standard” strike $K_s^{\star}$ on a liquid index so that its base correlation $\rho_s(K_s^{\star})$ can be used as an input when pricing a bespoke tranche.
 
 **Key mapping approaches:**
 
@@ -1095,7 +1095,7 @@ $$p(+1) = \Phi\left(\frac{-2.054 - 0.447}{0.894}\right) = \Phi(-2.80) = 0.0026$$
 ### Example 4: Full Base Correlation Bootstrap
 
 **Market data (toy):**
-- Portfolio: 125 names, 5y maturity, $R = 40\%$
+- Portfolio: 125 names, 5y maturity, $R = 40\\%$
 - Discount rate: 5% continuous
 
 | Tranche | Market Spread (bps) | Upfront |
@@ -1104,34 +1104,34 @@ $$p(+1) = \Phi\left(\frac{-2.054 - 0.447}{0.894}\right) = \Phi(-2.80) = 0.0026$$
 | 3–7% | 250 running | — |
 | 7–10% | 85 running | — |
 
-**Step 1: Calibrate $\rho(3\%)$**
+**Step 1: Calibrate $\rho(3\\%)$**
 
 Using one-factor Gaussian copula, find $\rho$ such that equity tranche PV = 0 at 35% upfront + 500bp running.
 
 Iterating:
-- $\rho = 10\%$: Model upfront = 42% (too high)
-- $\rho = 20\%$: Model upfront = 33% (too low)
-- $\rho = 18\%$: Model upfront = 35.1% ≈ market
+- $\rho = 10\\%$: Model upfront = 42% (too high)
+- $\rho = 20\\%$: Model upfront = 33% (too low)
+- $\rho = 18\\%$: Model upfront = 35.1% ≈ market
 
-**Result:** $\rho(3\%) = 18\%$
+**Result:** $\rho(3\\%) = 18\\%$
 
-**Step 2: Calibrate $\rho(7\%)$**
+**Step 2: Calibrate $\rho(7\\%)$**
 
-Holding $\rho(3\%) = 18\%$ fixed, find $\rho(7\%)$ such that [3%, 7%] tranche prices at 250bp.
+Holding $\rho(3\\%) = 18\\%$ fixed, find $\rho(7\\%)$ such that [3%, 7%] tranche prices at 250bp.
 
 Compute [3%, 7%] ETL as:
-$$\text{ETL}_{3,7} = \frac{\psi(7\%, \rho(7\%)) - \psi(3\%, \rho(3\%))}{0.04}$$
+$$ETL_{3,7} = \frac{\psi(7\\%, \rho(7\\%)) - \psi(3\\%, \rho(3\\%))}{0.04}$$
 
 Iterating:
-- $\rho(7\%) = 25\%$: Implied spread = 230bp (too low)
-- $\rho(7\%) = 30\%$: Implied spread = 255bp (close)
-- $\rho(7\%) = 29\%$: Implied spread = 249bp ≈ market
+- $\rho(7\\%) = 25\\%$: Implied spread = 230bp (too low)
+- $\rho(7\\%) = 30\\%$: Implied spread = 255bp (close)
+- $\rho(7\\%) = 29\\%$: Implied spread = 249bp ≈ market
 
-**Result:** $\rho(7\%) = 29\%$
+**Result:** $\rho(7\\%) = 29\\%$
 
-**Step 3: Calibrate $\rho(10\%)$**
+**Step 3: Calibrate $\rho(10\\%)$**
 
-Similarly: **Result:** $\rho(10\%) = 38\%$
+Similarly: **Result:** $\rho(10\\%) = 38\\%$
 
 **Final base correlation curve:**
 | Strike | Base Correlation |
@@ -1147,18 +1147,18 @@ Similarly: **Result:** $\rho(10\%) = 38\%$
 Using the base correlations from Example 4, price tranchelets [4%, 5%] and [5%, 6%].
 
 **Linear interpolation:**
-$$\rho(4\%) = 18\% + \frac{1}{4}(29\% - 18\%) = 20.75\%$$
-$$\rho(5\%) = 18\% + \frac{2}{4}(29\% - 18\%) = 23.5\%$$
-$$\rho(6\%) = 18\% + \frac{3}{4}(29\% - 18\%) = 26.25\%$$
+$$\rho(4\\%) = 18\\% + \frac{1}{4}(29\\% - 18\\%) = 20.75\\%$$
+$$\rho(5\\%) = 18\\% + \frac{2}{4}(29\\% - 18\\%) = 23.5\\%$$
+$$\rho(6\\%) = 18\\% + \frac{3}{4}(29\\% - 18\\%) = 26.25\\%$$
 
 **Compute tranchelet ETLs:**
-- $\psi(4\%, 20.75\%) = 2.85\%$
-- $\psi(5\%, 23.5\%) = 3.80\%$
-- $\psi(6\%, 26.25\%) = 4.70\%$
+- $\psi(4\\%, 20.75\\%) = 2.85\\%$
+- $\psi(5\\%, 23.5\\%) = 3.80\\%$
+- $\psi(6\\%, 26.25\\%) = 4.70\\%$
 
 **Tranchelet spreads (using simplified spread ≈ ETL / risky PV01):**
-- [4%, 5%]: ETL = $(3.80 - 2.85)/0.01 = 95\%$ → spread ≈ 1900bp
-- [5%, 6%]: ETL = $(4.70 - 3.80)/0.01 = 90\%$ → spread ≈ 1800bp
+- [4%, 5%]: ETL = $(3.80 - 2.85)/0.01 = 95\\%$ → spread ≈ 1900bp
+- [5%, 6%]: ETL = $(4.70 - 3.80)/0.01 = 90\\%$ → spread ≈ 1800bp
 
 **Monotonicity check:** [5%, 6%] has more subordination but lower spread than [4%, 5%]. ✓ Passes.
 
@@ -1168,14 +1168,14 @@ $$\rho(6\%) = 18\% + \frac{3}{4}(29\% - 18\%) = 26.25\%$$
 
 ### Example 6: Recovery Sensitivity
 
-Using Example 4 setup with $\rho(3\%) = 18\%$ calibrated at $R = 40\%$.
+Using Example 4 setup with $\rho(3\\%) = 18\\%$ calibrated at $R = 40\\%$.
 
-**Question:** What happens to implied $\rho(3\%)$ if we assume $R = 50\%$?
+**Question:** What happens to implied $\rho(3\\%)$ if we assume $R = 50\\%$?
 
-**At $R = 50\%$:** Higher recovery means lower loss-given-default, so the same tranche spread requires *lower* correlation to generate enough expected loss.
+**At $R = 50\\%$:** Higher recovery means lower loss-given-default, so the same tranche spread requires *lower* correlation to generate enough expected loss.
 
 Recalibrating:
-- With $R = 50\%$, $\rho(3\%) = 14\%$ matches the 35% upfront
+- With $R = 50\\%$, $\rho(3\\%) = 14\\%$ matches the 35% upfront
 
 **Key insight:** Recovery and correlation are not independently identifiable from a single tranche quote. Higher assumed recovery implies lower implied correlation.
 
@@ -1186,17 +1186,17 @@ Recalibrating:
 **Setup:** Use calibrated base correlations from Example 4.
 
 **Equity [0–3%] correlation 01:**
-1. Compute PV at $\rho(3\%) = 18\%$: PV = 0 (calibrated)
-2. Bump to $\rho(3\%) = 19\%$: recompute ETL and PV
-3. $\text{Corr01} = \text{PV}(19\%) - \text{PV}(18\%)$
+1. Compute PV at $\rho(3\\%) = 18\\%$: PV = 0 (calibrated)
+2. Bump to $\rho(3\\%) = 19\\%$: recompute ETL and PV
+3. $\text{Corr01} = \text{PV}(19\\%) - \text{PV}(18\\%)$
 
 Result (sign): Corr01 $>0$ (short protection gains when correlation rises)
 
 **Senior [7–10%] correlation 01:**
-1. Bump both $\rho(7\%)$ and $\rho(10\%)$ by 1%
+1. Bump both $\rho(7\\%)$ and $\rho(10\\%)$ by 1%
 2. Recompute tranche PV
 
-Result (sign): Corr01 $<0$ (short protection loses when correlation rises)
+Result (sign): Corr01 $\lt 0$ (short protection loses when correlation rises)
 
 **Sign confirmation:** Opposite signs across capital structure, as expected.
 
@@ -1227,7 +1227,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 **Setup:** CDX 5Y, correlation at mid-levels
 
 **Position:**
-- Sell \$10mm notional equity protection (0-3%)
+- Sell USD 10mm notional equity protection (0-3%)
 - Buy senior protection (10-15%)
 
 **Illustrative deltas (toy):**
@@ -1239,22 +1239,22 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 - Senior notional needed: $200mm / 2 = $100mm
 
 **Resulting position:**
-- Sell \$10mm 0-3% protection
-- Buy \$100mm 10-15% protection
+- Sell USD 10mm 0-3% protection
+- Buy USD 100mm 10-15% protection
 - Spread-neutral but long correlation
 
 **P&L for +5% correlation move:**
-- Equity: +\$500k (gains from lower ETL)
-- Senior: +\$250k (gains from higher ETL, but you're long protection)
-- Net: +\$750k
+- Equity: +USD 500k (gains from lower ETL)
+- Senior: +USD 250k (gains from higher ETL, but you're long protection)
+- Net: +USD 750k
 
 ---
 
 ### Example 10: High-Dependence Scenario (Toy)
 
-**Setup:** Portfolio with 5% expected loss, $R = 40\%$
+**Setup:** Portfolio with 5% expected loss, $R = 40\\%$
 
-**Normal environment ($\rho = 25\%$):**
+**Normal environment ($\rho = 25\\%$):**
 
 | Tranche | ETL |
 |---------|-----|
@@ -1263,7 +1263,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 | 10-15% | 2% |
 | 15-30% | 0.1% |
 
-**High-dependence environment ($\rho = 60\%$):**
+**High-dependence environment ($\rho = 60\\%$):**
 
 | Tranche | ETL |
 |---------|-----|
@@ -1335,8 +1335,8 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 | Tranche loss mapping | $L(T;A,D)=\frac{\min(L(T),D)-\min(L(T),A)}{D-A}$ | Nonlinearity drives dependence sensitivity |
 | Copula | A joint CDF written in terms of marginal CDFs + a dependence function | Separates marginals from dependence |
 | Sklar’s theorem | Joint CDF = copula of marginals; unique if marginals continuous | Foundation for copula construction |
-| One-factor Gaussian latent variable | $Z_i=\sqrt{\rho}\,X+\sqrt{1-\rho}\,\varepsilon_i$ | Workhorse dependence parametrization |
-| Conditional default probability | $p_i(T\mid X=x)=\Phi\!\left(\frac{a_i(T)-\sqrt{\rho}\,x}{\sqrt{1-\rho}}\right)$ | Turns $N$-D dependence into 1-D integration |
+| One-factor Gaussian latent variable | $Z_i=\sqrt{\rho}\\,X+\sqrt{1-\rho}\\,\varepsilon_i$ | Workhorse dependence parametrization |
+| Conditional default probability | $p_i(T\mid X=x)=\Phi\\!\left(\frac{a_i(T)-\sqrt{\rho}\\,x}{\sqrt{1-\rho}}\right)$ | Turns $N$-D dependence into 1-D integration |
 | Tail dependence | Limit probability of joint extremes; summarized by $\lambda_{\mathrm{U}},\lambda_{\mathrm{L}}$ | Senior risk is tail-sensitive |
 | LHP/Vasicek limit | Large homogeneous portfolio approximation | Fast intuition + approximations |
 | Base-tranche ETL | $\psi(T,K)=\mathbf{E}_{\rho(K)}[\min(L(T),K)]$ | Core object for base correlation + density checks |
@@ -1396,25 +1396,25 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 ## Mini Problem Set
 
 1. (Compute) Prove the bounds $L(T;A,D)\in[0,1]$.
-2. (Compute) For $A=3\%$, $D=7\%$, compute tranche loss fractions when $L(T)=2\%$, $5\%$, $10\%$.
-3. (Compute) Ten names have PD $=5\%$. Under independence, compute $\Pr(K\ge 3)$, where $K$ is the number of defaults.
+2. (Compute) For $A=3\\%$, $D=7\\%$, compute tranche loss fractions when $L(T)=2\\%$, $5\\%$, $10\\%$.
+3. (Compute) Ten names have PD $=5\\%$. Under independence, compute $\Pr(K\ge 3)$, where $K$ is the number of defaults.
 4. (Compute) For the same PD, under perfect dependence (all-default-or-none), compute $\Pr(K\ge 3)$.
 5. (Compute) Compute the default threshold $a=\Phi^{-1}(0.01)$.
 6. (Concept) Starting from $Z_i=\sqrt{\rho}X+\sqrt{1-\rho}\varepsilon_i$, derive $p_i(T\mid X=x)$.
 7. (Concept) Explain why $\rho=0$ gives independence in the one-factor model.
 8. (Concept) Explain why $\rho\to 1$ gives “all-or-nothing” clustering.
-9. (Compute) Using $\lambda = 2t_{\nu+1}\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$, compute $\lambda$ for a t-copula with $\rho=0.7$, $\nu=4$.
+9. (Compute) Using $\lambda = 2t_{\nu+1}\\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$, compute $\lambda$ for a t-copula with $\rho=0.7$, $\nu=4$.
 10. (Desk) Name two diagnostics for base-correlation interpolation artifacts and what “failure” looks like.
 11. (Concept) For **short protection**, explain why equity and super-senior can have opposite Corr01 signs.
-12. (Compute) A tranche has $PV(\rho)=\$1.20$mm and $PV(\rho+1\%)=\$1.26$mm (same methodology). Compute Corr01.
+12. (Compute) A tranche has $PV(\rho)=USD 1.20$mm and $PV(\rho+1\%)=USD 1.26$mm (same methodology). Compute Corr01.
 
 ### Solution Sketches (Selected)
-2. $L=2\%<A\Rightarrow L(T;A,D)=0$. $L=5\%\Rightarrow (0.05-0.03)/0.04=0.5$. $L=10\%>D\Rightarrow L(T;A,D)=1$.
+2. $L=2\\%\lt A\Rightarrow L(T;A,D)=0$. $L=5\\%\Rightarrow (0.05-0.03)/0.04=0.5$. $L=10\\%\gt D\Rightarrow L(T;A,D)=1$.
 3. $\Pr(K\ge 3)=1-\sum_{k=0}^2 {10\choose k}0.05^k0.95^{10-k}\approx 0.0115$ (about 1.15%).
-4. Perfect dependence implies $K\in\{0,10\}$ with $\Pr(K=10)=0.05$. Hence $\Pr(K\ge 3)=0.05$.
+4. Perfect dependence implies $K\in\\{0,10\\}$ with $\Pr(K=10)=0.05$. Hence $\Pr(K\ge 3)=0.05$.
 5. $a=\Phi^{-1}(0.01)\approx -2.3263$.
-9. With $\nu=4$, $\nu+1=5$: $\lambda=2t_{5}\!\left(-\sqrt{5\times 0.3/1.7}\right)\approx 0.3907$.
-12. $\mathrm{Corr01}=PV(\rho+0.01)-PV(\rho)=\$0.06\text{mm}=\$60{,}000$ per 1% dependence bump.
+9. With $\nu=4$, $\nu+1=5$: $\lambda=2t_{5}\\!\left(-\sqrt{5\times 0.3/1.7}\right)\approx 0.3907$.
+12. $\mathrm{Corr01}=PV(\rho+0.01)-PV(\rho)=USD 0.06\text{mm}=USD 60{,}000$ per 1% dependence bump.
 
 ## References
 - (Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives*, “Gaussian copula and default clustering”; “LHP model”; “Compound correlation”; “Base correlation”; “Implied loss density”; “ETL interpolation”.)
