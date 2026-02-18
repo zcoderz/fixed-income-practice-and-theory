@@ -44,7 +44,7 @@ Understanding the index basis connects directly to the mechanics covered in **Ch
 | **Instrument focus** | CDS portfolio indices (CDX / iTraxx) treated as equal-notional portfolios of single-name CDS unless explicitly stated |
 | **Premium accrual** | Quarterly premium; ACT/360 |
 | **Discounting** | $P(t,u)$ is the risk-free discount factor from $t$ to $u$ |
-| **Credit modeling** | Each name $m$ has default time $\tau_m$, recovery $R_m$, and survival probability $Q_m(t,u) = \mathbb{P}(\tau_m > u \mid \mathcal{F}_t)$ |
+| **Credit modeling** | Each name $m$ has default time $\tau_m$, recovery $R_m$, and survival probability $Q_m(t,u) = \mathbb{P}(\tau_m \gt u \mid \mathcal{F}_t)$ |
 | **Quote object** | Standardized fixed coupon $C(T)$ plus an upfront $U(t,T)$ at trade/settlement (unfunded index) |
 | **Index basis sign** | $b(t,T) := S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)$ (positive basis = index quoted wider than intrinsic) |
 | **1bp** | $1\text{bp}=10^{-4}$ in decimal spread units |
@@ -65,24 +65,24 @@ To derive the intrinsic spread, start from the present values of the protection 
 
 For the **protection leg**, a credit event on name $m$ results in a loss of $(1-R_m)/M$ to a long-protection index position. Using the single-name par identity “protection-leg PV = spread $\times$ RPV01,” the index protection-leg PV can be written as:
 
-$$\text{Index protection leg PV}(t) = \frac{1}{M} \sum_{m=1}^{M} S_m(t,T) \cdot \text{RPV01}_m(t,T)$$
+$$\text{Index protection leg PV}(t) = \frac{1}{M} \sum_{m=1}^{M} S_m(t,T) \cdot RPV01_m(t,T)$$
 
 For the **premium leg**, contractually, a credit event reduces the spread payments by factor $1/M$. The premium leg value is:
 
-$$\text{Index premium leg PV}(t) = \frac{C(T)}{M} \sum_{m=1}^{M} \text{RPV01}_m(t,T)$$
+$$\text{Index premium leg PV}(t) = \frac{C(T)}{M} \sum_{m=1}^{M} RPV01_m(t,T)$$
 
 Therefore the intrinsic value can be written (in RPV01 form) as:
 
 **Short protection (premium leg minus protection leg):**
-$$\boxed{V_{\text{short}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( C(T) - S_m(t,T) \right) \text{RPV01}_m(t,T)}$$
+$$\boxed{V_{\text{short}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( C(T) - S_m(t,T) \right) RPV01_m(t,T)}$$
 
 **Long protection (protection leg minus premium leg):**
-$$\boxed{V_{\text{intrinsic}}(t,T) := -V_{\text{short}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( S_m(t,T) - C(T) \right) \text{RPV01}_m(t,T)}$$
+$$\boxed{V_{\text{intrinsic}}(t,T) := -V_{\text{short}}(t,T) = \frac{1}{M} \sum_{m=1}^{M} \left( S_m(t,T) - C(T) \right) RPV01_m(t,T)}$$
 
 This formula has an elegant interpretation:
 - $(S_m - C)$ is the "off-market" amount for name $m$—how much its par spread differs from the index coupon
-- $\text{RPV01}_m$ is the risky annuity per unit notional (years); multiply by $N$ and $1\text{bp}=10^{-4}$ to get dollars per bp
-- The product $(S_m - C)\times \text{RPV01}_m$ is the upfront contribution in points of notional (and in dollars after multiplying by $N$)
+- $RPV01_m$ is the risky annuity per unit notional (years); multiply by $N$ and $1\text{bp}=10^{-4}$ to get dollars per bp
+- The product $(S_m - C)\times RPV01_m$ is the upfront contribution in points of notional (and in dollars after multiplying by $N$)
 
 **Sanity checks:**
 - If $S_m = C$ for all names, intrinsic value is zero (the index is "at par")
@@ -92,11 +92,11 @@ This formula has an elegant interpretation:
 
 RPV01 is the key building block for CDS valuation. Under a continuous-premium approximation, it can be written as:
 
-$$\boxed{\text{RPV01}_m(t,T) \equiv \int_t^T P(t,u) \, Q_m(t,u) \, du}$$
+$$\boxed{RPV01_m(t,T) \equiv \int_t^T P(t,u) \, Q_m(t,u) \, du}$$
 
-This represents the present value of receiving \$1 per year, continuously, until default or maturity—whichever comes first. The survival probability $Q_m(t,u)$ ensures we only count premium periods where the name survives.
+This represents the present value of receiving USD 1 per year, continuously, until default or maturity—whichever comes first. The survival probability $Q_m(t,u)$ ensures we only count premium periods where the name survives.
 
-**Check (continuous vs discrete):** in production, $\text{RPV01}$ is computed on the actual premium schedule (quarterly dates, ACT/360 accrual) and includes the expected premium accrued if default happens between coupon dates. The continuous-time integral is a compact intuition anchor: it makes the dependence on discounting and survival explicit and makes the units obvious.
+**Check (continuous vs discrete):** in production, $RPV01$ is computed on the actual premium schedule (quarterly dates, ACT/360 accrual) and includes the expected premium accrued if default happens between coupon dates. The continuous-time integral is a compact intuition anchor: it makes the dependence on discounting and survival explicit and makes the units obvious.
 
 **Unit analysis:**
 - $P(t,u)$ is unitless (discount factor)
@@ -116,33 +116,33 @@ The intrinsic spread $S_{\text{intrinsic}}$ is defined as the **flat** index spr
 
 Mathematically, we calculate the upfront value of the index using a flat index curve as:
 
-$$U_I(t) = (S_I(t,T) - C(T)) \cdot \text{RPV01}_I(t,T)$$
+$$U_I(t) = (S_I(t,T) - C(T)) \cdot RPV01_I(t,T)$$
 
 Equating the bottom-up intrinsic upfront and the flat-curve index upfront:
 
 $$\boxed{\frac{1}{M} \sum_{m=1}^{M}\left(S_{m}(t, T)-C(T)\right) \cdot \mathrm{RPV01}_{m}(t, T)=\left(S_{\mathrm{intrinsic}}(t, T)-C(T)\right) \cdot \mathrm{RPV01}_{I}(t, T)}$$
 
-Here $\text{RPV01}_I$ is calculated using a flat index curve—a market convention for index pricing. Because $\text{RPV01}_I$ itself depends on the spread level, this equation is mildly nonlinear and requires solving iteratively (e.g., via Newton-Raphson or bisection).
+Here $RPV01_I$ is calculated using a flat index curve—a market convention for index pricing. Because $RPV01_I$ itself depends on the spread level, this equation is mildly nonlinear and requires solving iteratively (e.g., via Newton-Raphson or bisection).
 
-**Check (why “RPV01 fixed” can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\,\text{RPV01}_I(S)$, then
+**Check (why “RPV01 fixed” can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\,RPV01_I(S)$, then
 $$
-\frac{dU}{dS}=\text{RPV01}_I(S) + (S-C)\,\frac{d\,\text{RPV01}_I}{dS}.
+\frac{dU}{dS}=RPV01_I(S) + (S-C)\,\frac{d\,RPV01_I}{dS}.
 $$
-Higher spreads typically imply shorter survival and a **smaller** $\text{RPV01}_I$, so $d\,\text{RPV01}_I/dS<0$. That means the constant-$\text{RPV01}$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high.
+Higher spreads typically imply shorter survival and a **smaller** $RPV01_I$, so $d\,RPV01_I/dS\lt 0$. That means the constant-$RPV01$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high.
 
 ### 46.1.5 The Operational Approximation: RPV01-Weighted Average
 
 For practical purposes, a close approximation avoids solving the nonlinear equation. If the individual spread curves are reasonably homogeneous, we can approximate:
 
-$$\text{RPV01}_I(t,T) \simeq \frac{1}{M} \sum_{m=1}^{M} \text{RPV01}_m(t,T)$$
+$$RPV01_I(t,T) \simeq \frac{1}{M} \sum_{m=1}^{M} RPV01_m(t,T)$$
 
 This allows cancellation of the coupon term, yielding:
 
-$$\boxed{S_{\text{intrinsic}}(t,T) \approx \frac{\sum_{m=1}^{M} S_m(t,T) \cdot \text{RPV01}_m(t,T)}{\sum_{m=1}^{M} \text{RPV01}_m(t,T)}}$$
+$$\boxed{S_{\text{intrinsic}}(t,T) \approx \frac{\sum_{m=1}^{M} S_m(t,T) \cdot RPV01_m(t,T)}{\sum_{m=1}^{M} RPV01_m(t,T)}}$$
 
 **Derivation sketch:**
 1. Start from the exact equation above
-2. Approximate $\text{RPV01}_I \approx \frac{1}{M} \sum_m \text{RPV01}_m$
+2. Approximate $RPV01_I \approx \frac{1}{M} \sum_m RPV01_m$
 3. The coupon term cancels on both sides
 4. Solve for $S_{\text{intrinsic}}$
 
@@ -156,9 +156,9 @@ The key mechanical point is simple: **RPV01 tends to be smaller for wider (riski
 
 Write the intrinsic spread as a weighted average:
 
-$$S_{\text{intrinsic}} \approx \sum_{m=1}^{M} w_m S_m, \qquad w_m := \frac{\text{RPV01}_m}{\sum_{k=1}^{M} \text{RPV01}_k}.$$
+$$S_{\text{intrinsic}} \approx \sum_{m=1}^{M} w_m S_m, \qquad w_m := \frac{RPV01_m}{\sum_{k=1}^{M} RPV01_k}.$$
 
-If (in your model and in the cross section of names you are looking at) $\text{RPV01}_m$ is decreasing in $S_m$, then high-spread names receive smaller weights and the intrinsic spread is pulled toward the tighter names.
+If (in your model and in the cross section of names you are looking at) $RPV01_m$ is decreasing in $S_m$, then high-spread names receive smaller weights and the intrinsic spread is pulled toward the tighter names.
 
 **Numerical demonstration (2-name toy example, hypothetical):**
 
@@ -187,7 +187,7 @@ The distressed name contributes 10% weight despite being 50% of the portfolio by
 
 A useful diagnostic is to compute both:
 - the equal-weight average spread, $\bar{S} := \frac{1}{M}\sum_{m=1}^{M} S_m$, and
-- the intrinsic spread, $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,\text{RPV01}_m}{\sum_m \text{RPV01}_m}$.
+- the intrinsic spread, $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,RPV01_m}{\sum_m RPV01_m}$.
 
 The gap $\bar{S} - S_{\text{intrinsic}}$ is a quick proxy for dispersion and for how much the basket is dominated by a few high-spread/low-RPV01 names.
 
@@ -208,8 +208,8 @@ The **index basis** is the difference between where the index actually trades an
 $$\boxed{b(t,T) = S_{\text{quoted}}(t,T) - S_{\text{intrinsic}}(t,T)}$$
 
 With this sign convention:
-- $b > 0$: Index quoted **wider** than intrinsic (index "cheap" vs constituents)
-- $b < 0$: Index quoted **tighter** than intrinsic (index "rich" vs constituents)
+- $b \gt 0$: Index quoted **wider** than intrinsic (index "cheap" vs constituents)
+- $b \lt 0$: Index quoted **tighter** than intrinsic (index "rich" vs constituents)
 
 **Sanity check:** If the index is quoted at 85 bp and the constituents imply 82 bp, then $b=+3$ bp (positive basis = quoted wider than intrinsic).
 
@@ -235,25 +235,25 @@ Whichever quote object you start from, **convert to a common representation firs
 
 **Check (spread basis ↔ upfront basis):** for spread-quoted indices under the local $RPV01$-fixed approximation,
 $$
-\Delta PV \approx N \cdot \text{RPV01}_I \cdot \Delta b,
+\Delta PV \approx N \cdot RPV01_I \cdot \Delta b,
 $$
 and the corresponding **clean upfront** change as percent of notional is approximately
 $$
-\Delta U_{\%} \approx 0.01 \times A_I \times \Delta b_{\text{bp}}.
+\Delta U_{\mathrm{pct}} \approx 0.01 \times A_I \times \Delta b_{\text{bp}}.
 $$
-Example: if $A_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\%}\approx 0.01\times 4.2\times 3 = 0.126\%$ (0.126 points), i.e., about $\$126k$ per $\$100\text{mm}$ notional.
+Example: if $A_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\mathrm{pct}}\approx 0.01\times 4.2\times 3 = 0.126\%$ (0.126 points), i.e., about $USD 126k$ per $USD 100\text{mm}$ notional.
 
 > **Pitfall — Spread quote vs points-upfront:** Confusing “bp” quotes with “price/points” quotes (and forgetting the fixed coupon).
 > **Why it matters:** You can compute the wrong settlement cash and the wrong basis by an order of magnitude.
-> **Quick check:** Write down $(C,\ S_{\text{quoted}},\ \text{RPV01},\ N)$ and recompute the upfront in (i) points of notional and (ii) dollars.
+> **Quick check:** Write down $(C,\ S_{\text{quoted}},\ RPV01,\ N)$ and recompute the upfront in (i) points of notional and (ii) dollars.
 
 ### 46.2.3 Basis P&L Impact
 
 > **Desk Reality: Why Basis Matters for P&L**
 >
-> On a \$100mm long-protection index position with RPV01 of 4.2 years, a **+3 bp basis widening** moves PV by about:
+> On a USD 100mm long-protection index position with RPV01 of 4.2 years, a **+3 bp basis widening** moves PV by about:
 >
-> $$\Delta \text{PV} \approx 100,000,000 \times 3 \times 10^{-4} \times 4.2 = +\$126,000$$
+> $$\Delta \text{PV} \approx 100,000,000 \times 3 \times 10^{-4} \times 4.2 = +USD 126,000$$
 >
 > This is pure basis P&L—distinct from parallel spread moves. A portfolio manager who hedges single-name exposure with an index can be perfectly CS01-neutral and still experience this P&L from basis volatility.
 >
@@ -449,8 +449,8 @@ You then apply $\alpha$ (either to spreads or to forward hazard rates, depending
 >
 > **Solution:** Apply PSA to scale constituent curves so intrinsic = 60 bp. Now your tranche model and your index hedge are calibrated to the same underlying.
 >
-> **Numerical example:** On a \$50mm tranche with index RPV01 of 4.0 years and 5 bp basis:
-> $$\text{Daily P\&L break risk} \approx 50{,}000{,}000 \times 5 \times 10^{-4} \times 4.0 = \$100{,}000$$
+> **Numerical example:** On a USD 50mm tranche with index RPV01 of 4.0 years and 5 bp basis:
+> $$\text{Daily PnL break risk} \approx 50{,}000{,}000 \times 5 \times 10^{-4} \times 4.0 = USD 100{,}000$$
 >
 > This isn't a one-time error—it's a systematic mismatch that compounds over time.
 
@@ -470,21 +470,21 @@ implemented as: bump the quoted index level $S_{\text{quoted}}$ up by $+1\text{b
 - **Sign convention (this chapter):** long protection has **positive** Basis01 (basis widening helps long-protection index PV)
 
 **Expand:** To first order (ignoring the small change in RPV01 under the bump),
-$$\Delta PV \approx N \cdot \text{RPV01}_I(t,T)\cdot \Delta b,$$
+$$\Delta PV \approx N \cdot RPV01_I(t,T)\cdot \Delta b,$$
 so
-$$\boxed{\text{Basis01} \approx N \cdot \text{RPV01}_I(t,T)\cdot 10^{-4}.}$$
+$$\boxed{Basis01 \approx N \cdot RPV01_I(t,T)\cdot 10^{-4}.}$$
 
-**Check (numbers):** For $N=\$100\text{mm}$ and $\text{RPV01}_I=4.0$ years, $\text{Basis01}\approx \$40{,}000/\text{bp}$. A +3bp basis widening is roughly +\$120k for a long-protection index position.
+**Check (numbers):** For $N=USD 100\text{mm}$ and $RPV01_I=4.0$ years, $Basis01\approx USD 40{,}000/\text{bp}$. A +3bp basis widening is roughly +USD 120k for a long-protection index position.
 
 ### 46.5.2 P&L Decomposition: Index vs Constituents
 
 Consider a book with both index and constituent positions. Total P&L decomposes as:
 
-$$\Delta \text{PV} \approx \underbrace{N_I \cdot \text{CS01}_I \cdot \Delta S_{\text{quoted}}}_{\text{Index spread P\&L}} - \underbrace{\sum_m N_m \cdot \text{CS01}_m \cdot \Delta S_m}_{\text{Constituent P\&L}}$$
+$$\Delta \text{PV} \approx \underbrace{N_I \cdot CS01_I \cdot \Delta S_{\text{quoted}}}_{\text{Index spread PnL}} - \underbrace{\sum_m N_m \cdot CS01_m \cdot \Delta S_m}_{\text{Constituent PnL}}$$
 
 Here `CS01` is the PV change for a **+1bp** bump (i.e., $+10^{-4}$ in decimal spread units) to the relevant par-spread quote (index or single-name), using your chosen curve-rebuild rule; units are currency per 1bp for the stated notional. In this chapter, long protection has positive CS01.
 
-If you've hedged to be CS01-neutral ($N_I \cdot \text{CS01}_I = \sum_m N_m \cdot \text{CS01}_m$), parallel moves cancel. But residual P&L emerges from:
+If you've hedged to be CS01-neutral ($N_I \cdot CS01_I = \sum_m N_m \cdot CS01_m$), parallel moves cancel. But residual P&L emerges from:
 - **Basis moves:** $\Delta S_{\text{quoted}} \neq \sum_m w_m \Delta S_m$
 - **Idiosyncratic moves:** Individual names move differently than the weighted average
 - **Convexity:** Large moves where first-order hedging breaks down
@@ -493,12 +493,12 @@ If you've hedged to be CS01-neutral ($N_I \cdot \text{CS01}_I = \sum_m N_m \cdot
 
 To hedge a long-protection index position with short-protection constituent trades, match CS01:
 
-$$\text{Index CS01} = N_I \times 10^{-4} \times \text{RPV01}_I$$
+$$\text{Index CS01} = N_I \times 10^{-4} \times RPV01_I$$
 
-$$\text{Constituent CS01} = \sum_m N_m \times 10^{-4} \times \text{RPV01}_m$$
+$$\text{Constituent CS01} = \sum_m N_m \times 10^{-4} \times RPV01_m$$
 
 For equal constituent notionals, set:
-$$N_m = \frac{N_I \cdot \text{RPV01}_I}{\sum_m \text{RPV01}_m}$$
+$$N_m = \frac{N_I \cdot RPV01_I}{\sum_m RPV01_m}$$
 
 **Residual risks (failure modes):**
 - Basis changes (quoted index moves without corresponding constituent move)
@@ -550,7 +550,7 @@ For a pure index position, idiosyncratic delta is zero (by construction—you ho
 | 5 | 90 | 3.6 |
 
 **Step 1: Compute weighted numerator**
-| Name | $S_m \times \text{RPV01}_m$ |
+| Name | $S_m \times RPV01_m$ |
 |------|---------------------------|
 | 1 | $50 \times 4.4 = 220$ |
 | 2 | $60 \times 4.2 = 252$ |
@@ -560,7 +560,7 @@ For a pure index position, idiosyncratic delta is zero (by construction—you ho
 | **Sum** | **1380** |
 
 **Step 2: Compute denominator**
-$$\sum_m \text{RPV01}_m = 4.4 + 4.2 + 4.0 + 3.8 + 3.6 = 20.0$$
+$$\sum_m RPV01_m = 4.4 + 4.2 + 4.0 + 3.8 + 3.6 = 20.0$$
 
 **Step 3: Intrinsic spread**
 $$S_{\text{intrinsic}} = \frac{1380}{20.0} = 69.0 \text{ bp}$$
@@ -628,10 +628,10 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 - Next coupon payment date: 2026-03-20
 
 **Inputs**
-- Notional: $N=\$100{,}000{,}000$
+- Notional: $N=USD 100{,}000{,}000$
 - Index coupon: $C=60$ bp
 - Quoted index level: $S_{\text{quoted}}=72$ bp
-- Index RPV01: $\text{RPV01}_I=4.5$ years (per unit notional, from your index pricer at the quoted level)
+- Index RPV01: $RPV01_I=4.5$ years (per unit notional, from your index pricer at the quoted level)
 - Day count: ACT/360
 
 **Outputs (What You Produce)**
@@ -643,30 +643,30 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 **Step-by-step**
 1. **Translate quote to upfront points**
    - Spread difference: $\Delta S := S_{\text{quoted}}-C = 12\text{ bp} = 12\times 10^{-4}=0.0012$
-   - Upfront (points of notional): $U = \Delta S \cdot \text{RPV01}_I = 0.0012 \times 4.5 = 0.0054$
+   - Upfront (points of notional): $U = \Delta S \cdot RPV01_I = 0.0012 \times 4.5 = 0.0054$
    - Interpretation: $U=0.54\%$ of notional (54 points per 10,000 notional, or “54 bp points”)
 
 2. **Convert upfront points to dollars**
-   $$U_{\$} = N \cdot U = 100{,}000{,}000 \times 0.0054 = \$540{,}000.$$
+   $$U_{\mathrm{USD}} = N \cdot U = 100{,}000{,}000 \times 0.0054 = USD 540{,}000.$$
 
 3. **Compute accrued premium to settlement**
    - Accrual fraction to settlement: $\tau=\frac{27}{360}=0.075$ (27 actual days from 2025-12-20 to 2026-01-16)
    - Full quarter accrual fraction: $\tau_{\text{qtr}}=\frac{90}{360}=0.25$ (2025-12-20 to 2026-03-20)
    - Accrued running premium (dollars):
-   $$\text{Accrued}_{\$}=N \cdot C \cdot \tau = 100{,}000{,}000 \times 0.0060 \times 0.075 = \$45{,}000.$$
+   $$Accrued_{\mathrm{USD}}=N \cdot C \cdot \tau = 100{,}000{,}000 \times 0.0060 \times 0.075 = USD 45{,}000.$$
 
 4. **Settlement cash amount (buyer of protection)**
-   $$\text{Settlement cash paid} = U_{\$} + \text{Accrued}_{\$} = 540{,}000 + 45{,}000 = \$585{,}000.$$
+   $$\text{Settlement cash paid} = U_{\mathrm{USD}} + Accrued_{\mathrm{USD}} = 540{,}000 + 45{,}000 = USD 585{,}000.$$
 
 **Cashflows (protection buyer sign convention: pay = negative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-01-16 | $-\$585{,}000$ | Upfront + accrued premium paid at settlement |
-| 2026-03-20 | $-\$150{,}000$ | Full quarter running coupon: $-N\cdot C\cdot \tau_{\text{qtr}}=-100\text{mm}\cdot 0.0060\cdot 0.25$ |
+| 2026-01-16 | $-USD 585{,}000$ | Upfront + accrued premium paid at settlement |
+| 2026-03-20 | $-USD 150{,}000$ | Full quarter running coupon: $-N\cdot C\cdot \tau_{\text{qtr}}=-100\text{mm}\cdot 0.0060\cdot 0.25$ |
 
 **P&L / Risk Interpretation**
-- The upfront sign is intuitive: if $S_{\text{quoted}}>C$, the protection buyer pays upfront; if $S_{\text{quoted}}<C$, the protection buyer receives upfront.
-- A quick “risk scalar” is $\text{Basis01}\approx N\cdot \text{RPV01}_I\cdot 10^{-4}=100{,}000{,}000\times 4.5\times 10^{-4}=\$45{,}000/\text{bp}$ (buyer of protection).
+- The upfront sign is intuitive: if $S_{\text{quoted}}\gt C$, the protection buyer pays upfront; if $S_{\text{quoted}}\lt C$, the protection buyer receives upfront.
+- A quick “risk scalar” is $Basis01\approx N\cdot RPV01_I\cdot 10^{-4}=100{,}000{,}000\times 4.5\times 10^{-4}=USD 45{,}000/\text{bp}$ (buyer of protection).
 
 **Sanity Checks**
 - **Limit check:** If $S_{\text{quoted}}=C$, then $U=0$ and settlement cash is just accrued premium.
@@ -736,45 +736,45 @@ The proportional adjustment preserves relative ranking while forcing intrinsic t
 
 ### Example 7: CS01-Neutral Hedge Design
 
-**Position:** Long protection on \$100mm index with RPV01 = 4.1 years
+**Position:** Long protection on USD 100mm index with RPV01 = 4.1 years
 
 **Index CS01:**
-$$\text{CS01}_I = \$100mm \times 10^{-4} \times 4.1 = \$41{,}000/\text{bp}$$
+$$CS01_I = USD 100mm \times 10^{-4} \times 4.1 = USD 41{,}000/\text{bp}$$
 
 **Hedge:** Short protection on 5 constituents with RPV01 = [4.4, 4.2, 4.0, 3.8, 3.6] years
 
 For equal notional per name $N_m$:
 $$5 \cdot N_m \times 10^{-4} \times \frac{20}{5} = 41{,}000$$
 $$N_m \times 10^{-4} \times 4.0 = 8{,}200$$
-$$N_m = \$20.5mm$$
+$$N_m = USD 20.5mm$$
 
-**Hedge:** \$20.5mm short protection per name (5 names, total $102.5mm notional) vs $100mm long protection index.
+**Hedge:** USD 20.5mm short protection per name (5 names, total $102.5mm notional) vs $100mm long protection index.
 
 ---
 
 ### Example 8: Basis Trade P&L Scenarios
 
 **Position:** CS01-neutral (Example 7)
-- Long protection index: CS01 = +\$41k/bp
-- Short protection constituents: CS01 = -\$41k/bp
+- Long protection index: CS01 = +USD 41k/bp
+- Short protection constituents: CS01 = -USD 41k/bp
 
 **Scenario (i): Parallel widening, no basis change**
 - Index widens 20 bp, each name widens 20 bp
-- Index P&L: $+20 \times 41k = +\$820k$
-- Hedge P&L: $-20 \times 41k = -\$820k$
+- Index P&L: $+20 \times 41k = +USD 820k$
+- Hedge P&L: $-20 \times 41k = -USD 820k$
 - **Net: $0$** (systematic risk hedged)
 
 **Scenario (ii): Pure basis move**
 - Constituents unchanged, index tightens 10 bp
-- Index P&L: $-10 \times 41k = -\$410k$
+- Index P&L: $-10 \times 41k = -USD 410k$
 - Hedge P&L: $0$
-- **Net: -\$410k** (basis P&L)
+- **Net: -USD 410k** (basis P&L)
 
 **Scenario (iii): Idiosyncratic constituent widening**
 - Index unchanged, Name 5 widens 100 bp (others flat)
 - Index P&L: $0$
-- Hedge P&L on Name 5: $-100 \times (20.5mm \times 10^{-4} \times 3.6) = -\$738k$
-- **Net: -\$738k** (idiosyncratic risk)
+- Hedge P&L on Name 5: $-100 \times (20.5mm \times 10^{-4} \times 3.6) = -USD 738k$
+- **Net: -USD 738k** (idiosyncratic risk)
 
 ---
 
@@ -806,7 +806,7 @@ $$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} =
 
 ### Example 10: Cross-Series Hedging Residual Risk
 
-**Situation:** You hold \$50mm long protection on an off-the-run IG index series (“Series $N$”). You want to hedge using the liquid on-the-run series (“Series $N\!+\!1$”).
+**Situation:** You hold USD 50mm long protection on an off-the-run IG index series (“Series $N$”). You want to hedge using the liquid on-the-run series (“Series $N\!+\!1$”).
 
 **Key differences between series:**
 - Series $N$ and $N\!+\!1$ have different constituents (names are added/removed at roll)
@@ -815,12 +815,12 @@ $$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} =
 
 **Hedge design:**
 - Match CS01: Both series have RPV01 ≈ 4.1 years
-- Hedge notional: \$50mm Series $N\!+\!1$ short protection (proxy hedge)
+- Hedge notional: USD 50mm Series $N\!+\!1$ short protection (proxy hedge)
 
 **Residual risks:**
 
 1. **Composition mismatch:** Names present in Series $N$ but not in $N\!+\!1$ create idiosyncratic exposure. If one of those names widens 50 bp, your Series $N$ position gains, but your Series $N\!+\!1$ hedge does not respond.
-   - Estimated impact (if $M=125$ names): $\approx \$50\text{mm} \times (1/125) \times 50\text{bp} \times 4.1 \times 10^{-4} \approx \$8{,}200$
+   - Estimated impact (if $M=125$ names): $\approx USD 50\text{mm} \times (1/125) \times 50\text{bp} \times 4.1 \times 10^{-4} \approx USD 8{,}200$
 
 2. **Series basis:** If Series $N$ trades at a different basis to its intrinsic than Series $N\!+\!1$, you have a basis mismatch.
    - If Series $N$ basis is -2 bp and Series $N\!+\!1$ is 0 bp, you're effectively short 2 bp of series basis.
@@ -828,9 +828,9 @@ $$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} =
 3. **Maturity mismatch:** Series $N\!+\!1$ has more remaining maturity. If curves steepen (long end widens more), the hedge underperforms.
 
 **P&L scenario:** Series $N$ and $N\!+\!1$ both widen 10 bp, but Series $N$ basis widens 3 bp while Series $N\!+\!1$ stays flat.
-- Series $N$ P&L: +10 bp × \$41k/bp = +$410k (spread) + 3 bp × $41k/bp = +$123k (basis) = +$533k
+- Series $N$ P&L: +10 bp × USD 41k/bp = +$410k (spread) + 3 bp × $41k/bp = +$123k (basis) = +$533k
 - Series $N\!+\!1$ P&L: -10 bp × $41k/bp = -$410k
-- **Net: +\$123k** (series basis slippage benefited you this time)
+- **Net: +USD 123k** (series basis slippage benefited you this time)
 
 ---
 
@@ -886,7 +886,7 @@ Practical data notes:
 6. Basis is a distinct risk factor: a portfolio can be CS01-neutral and still generate P&L when basis moves.
 7. “Arbitraging” basis is not free: execution, margin, contract mismatch risk, and convergence uncertainty limit trades.
 8. A **portfolio swap adjustment (PSA)** adjusts constituent curves so intrinsic matches quoted; this is useful when pricing/calibrating products that depend on both.
-9. Define **Basis01** explicitly (bump object/size/units/sign) to measure basis exposure; for long protection, $\text{Basis01}\approx N\cdot \text{RPV01}_I\cdot 10^{-4}$.
+9. Define **Basis01** explicitly (bump object/size/units/sign) to measure basis exposure; for long protection, $Basis01\approx N\cdot RPV01_I\cdot 10^{-4}$.
 10. For tranche/index option calibration (Chapters 48–50), consistency (intrinsic = quoted) is a prerequisite before interpreting tranche Greeks or hedge ratios.
 
 ## Key Concepts
@@ -915,14 +915,14 @@ Practical data notes:
 | $U$ | Upfront (points of notional) | unitless fraction; dollars = $N\cdot U$ |
 | $P(t,u)$ | Discount factor | unitless |
 | $Q_m(t,u)$ | Survival probability of name $m$ | unitless |
-| $\text{RPV01}_m,\ \text{RPV01}_I$ | Risky annuities (name/index) | years per unit notional |
+| $RPV01_m,\ RPV01_I$ | Risky annuities (name/index) | years per unit notional |
 
 ## Flashcards
 
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is the intrinsic index spread? | The spread implied by valuing the index bottom-up from constituent CDS curves under the index quote convention |
-| 2 | What is the intrinsic spread approximation? | $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,\text{RPV01}_m}{\sum_m \text{RPV01}_m}$ |
+| 2 | What is the intrinsic spread approximation? | $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,RPV01_m}{\sum_m RPV01_m}$ |
 | 3 | Why isn't intrinsic the simple average of constituent spreads? | Wider/riskier names typically have smaller RPV01 (shorter expected premium-paying life), so they receive less weight |
 | 4 | Define index basis (sign convention) | $b = S_{\text{quoted}} - S_{\text{intrinsic}}$; positive basis means index quoted wider than intrinsic |
 | 5 | Name three drivers of index basis | Documentation mismatch, liquidity/technicals, roll/composition effects (plus measurement/executability effects) |
@@ -932,7 +932,7 @@ Practical data notes:
 | 9 | What is the portfolio swap adjustment (PSA)? | A calibration step that adjusts constituent curves so the basket-implied index matches the quoted index |
 | 10 | Why is PSA useful for tranche/index option work? | You want one consistent set of curves that reproduces the quoted index before calibrating products built on the index |
 | 11 | What happens to index notional after a default (equal-weight index)? | It is reduced by $1/M$ (via the index factor); future premium cashflows shrink accordingly |
-| 12 | What's the spread-to-upfront mapping (spread-quoted index)? | Upfront points per unit notional: $U \approx (S_{\text{quoted}}-C)\cdot \text{RPV01}_I$ |
+| 12 | What's the spread-to-upfront mapping (spread-quoted index)? | Upfront points per unit notional: $U \approx (S_{\text{quoted}}-C)\cdot RPV01_I$ |
 | 13 | If all constituent spreads and RPV01s are equal, what is intrinsic? | The common spread (weighted average reduces to simple average) |
 | 14 | How does bid-ask dispersion affect intrinsic? | It creates an executable intrinsic *band*; a mid-based intrinsic may not be tradeable |
 | 15 | Define Basis01 (bump object/units/sign) | PV change for +1bp increase in $b$, implemented as +1bp bump to $S_{\text{quoted}}$ holding constituents fixed; units $/\text{bp}$; positive for long protection |
@@ -941,7 +941,7 @@ Practical data notes:
 | 18 | What happens to intrinsic when dispersion increases? | It often falls relative to the simple average because wide names carry smaller RPV01 weights |
 | 19 | Name two limits to basis arbitrage | Execution/market impact and margin/capital constraints (also contract mismatch and convergence uncertainty) |
 | 20 | In stress, what can happen to basis? | Basis can widen when the index reprices faster than the constituent snapshot; convergence timing is uncertain |
-| 21 | What P&L impact does a +3bp basis widening have on \$100mm with RPV01=4.2? | Approx $100mm \times 3 \times 10^{-4} \times 4.2 \approx \$126{,}000$ (long-protection index view) |
+| 21 | What P&L impact does a +3bp basis widening have on USD 100mm with RPV01=4.2? | Approx $100mm \times 3 \times 10^{-4} \times 4.2 \approx USD 126{,}000$ (long-protection index view) |
 
 ## Mini Problem Set
 
@@ -949,15 +949,15 @@ Practical data notes:
 
 1. Compute intrinsic spread for 4 names: spreads [40, 60, 80, 100] bp, RPV01 [4.5, 4.0, 3.5, 3.0] years.
 2. Given quoted = 90 bp, intrinsic = 86 bp, compute basis and interpret.
-3. Compute the upfront (dollars) for: $C=50$ bp, $S=80$ bp, $\text{RPV01}=4.2$ years, $N=\$200\text{mm}$.
+3. Compute the upfront (dollars) for: $C=50$ bp, $S=80$ bp, $RPV01=4.2$ years, $N=USD 200\text{mm}$.
 4. Why does a 1000 bp name get less weight in intrinsic than a 10 bp name?
 5. Compute a bid/ask intrinsic band: 2 names, Name A bid/ask 90/110, Name B 10/12, both RPV01=4.0.
 6. Explain how documentation differences (e.g., restructuring treatment) can create a systematic cross-index basis.
 7. Design a proportional PSA for a 3-name index quoted at 60 bp, constituents [50, 60, 80] bp with equal RPV01.
-8. What is the CS01 of a \$50mm index position with RPV01 = 4.2?
+8. What is the CS01 of a USD 50mm index position with RPV01 = 4.2?
 9. Explain why PSA is not unique (different adjustment choices can match the index but produce slightly different adjusted curves).
 10. Show that if all RPV01s are equal, intrinsic equals the simple average spread.
-11. A basis trade is long index protection, short constituent protection, CS01-neutral. If basis tightens 2 bp, what is P&L on \$100mm notional with RPV01=4.0?
+11. A basis trade is long index protection, short constituent protection, CS01-neutral. If basis tightens 2 bp, what is P&L on USD 100mm notional with RPV01=4.0?
 12. How should intrinsic calculation change if the index has non-equal weights $w_m$?
 13. Explain how a roll from an old to a new series can affect basis even if “credit unchanged.”
 14. Describe a scenario where the index moves 20 bp before the constituent snapshot updates in a crisis.
@@ -969,9 +969,9 @@ Practical data notes:
 
 **1.** Intrinsic $=\frac{40(4.5)+60(4.0)+80(3.5)+100(3.0)}{4.5+4.0+3.5+3.0}=\frac{1000}{15}=66.67$ bp.
 
-**3.** Upfront dollars $=N\cdot (S-C)\cdot 10^{-4}\cdot \text{RPV01}=200\text{mm}\cdot 30\cdot 10^{-4}\cdot 4.2=\$2.52\text{mm}$.
+**3.** Upfront dollars $=N\cdot (S-C)\cdot 10^{-4}\cdot RPV01=200\text{mm}\cdot 30\cdot 10^{-4}\cdot 4.2=USD 2.52\text{mm}$.
 
-**8.** $\text{CS01}\approx N\cdot \text{RPV01}\cdot 10^{-4}=50\text{mm}\cdot 4.2\cdot 10^{-4}=\$21{,}000/\text{bp}$.
+**8.** $CS01\approx N\cdot RPV01\cdot 10^{-4}=50\text{mm}\cdot 4.2\cdot 10^{-4}=USD 21{,}000/\text{bp}$.
 
 **4.** Intrinsic uses RPV01 weights. A very wide name has lower survival and a shorter expected premium-paying life, so its RPV01 is smaller and it receives less weight than its “count weight.”
 
