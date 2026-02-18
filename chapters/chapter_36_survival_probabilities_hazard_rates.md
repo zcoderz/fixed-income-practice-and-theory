@@ -92,9 +92,11 @@ $$\boxed{\Pr(t_1 \lt  \tau \leq t_2) = Q(t_1) - Q(t_2)}$$
 This identity is the workhorse for turning a survival curve into period-by-period default probabilities.
 
 **Check (telescoping on a grid):** On a grid $0=t_0\lt t_1\lt \dots\lt t_n$, the interval default probabilities add up:
+
 $$
 \sum_{i=1}^n \Pr(t_{i-1}\lt \tau\le t_i)=\sum_{i=1}^n \bigl(Q(t_{i-1})-Q(t_i)\bigr)=1-Q(t_n).
 $$
+
 If your interval probabilities do not sum to the cumulative default probability $1-Q(t_n)$, something is inconsistent.
 
 ---
@@ -625,9 +627,11 @@ When someone says “credit risk went up,” ask: *what object moved and what wa
 - **Sign (common-sense check):** higher $h$ means more default risk $\Rightarrow$ long risky cashflows usually lose PV.
 
 **Check (magnitude of a 1bp/year hazard bump):** A parallel bump $\Delta h=10^{-4}$ changes deterministic survival multiplicatively:
+
 $$
-Q_{\text{bumped}}(t)=Q(t)\,e^{-\Delta h\,t}.
+Q_{\text{bumped}}(t)=Q(t)e^{-\Delta h t}.
 $$
+
 At $t=5$y, this factor is $e^{-0.0005}\approx 0.9995$, i.e., about a 0.05% relative drop in survival. The survival change can look small, but the PV impact can still be meaningful on large notionals because it multiplies large cashflows.
 
 **(2) CS01 (spread risk)** (definition used in this book)
@@ -802,7 +806,7 @@ $$\boxed{\text{Algorithm: Threshold Simulation for Default Time}}$$
 
 **Output:** Simulated default time $\tau$
 
-1. **Draw** $E \sim \text{Exponential}(1)$ (equivalently, $E = -\ln(U)$ where $U \sim \text{Uniform}(0,1)$)
+1. **Draw** `E ~ Exponential(1)` (equivalently, `E = -ln(U)` where `U ~ Uniform(0,1)`)
 2. **Compute** cumulative hazard function $H(t) = \int_0^t h(s) ds$
 3. **Solve** $H(\tau) = E$ for $\tau$
 
@@ -857,8 +861,11 @@ In basic reduced-form models, $h(t)$ is a deterministic function calibrated to m
 
 A **Cox process** (or doubly stochastic process) extends the framework to allow $h(t)$ to be itself a stochastic process. McNeil provides the formal definition:
 
-**Definition (McNeil 9.11):** A random time $\tau$ is called **doubly stochastic** with respect to background filtration $(\mathcal{F}_t)$ if $\tau$ admits the conditional hazard-rate process $(\gamma_t)$ and:
-$$\Pr(\tau \gt  t \mid \mathcal{F}_\infty) = \exp\left(-\int_0^t \gamma_s \, ds\right)$$
+**Definition (McNeil 9.11):** A random time `tau` is called **doubly stochastic** with respect to background filtration `F_t` if `tau` admits the conditional hazard-rate process `gamma_t` and:
+
+$$
+\Pr(\tau \gt t \mid \mathcal{F}_{\infty}) = \exp\left(-\int_0^t \gamma_s\,ds\right)
+$$
 
 ### 36.12.2 Why Stochastic Hazard Matters
 
@@ -1180,7 +1187,7 @@ Before trusting any survival curve, run these checks:
 10. The **credit triangle** $S = h(1-R)$ provides intuition but requires simplifying assumptions
 11. **Curve shapes** signal credit quality: upward-sloping (safe now), inverted (distressed), flat (transitional)
 12. **Arbitrage bounds** constrain how inverted curves can get
-13. **Threshold simulation** ($\tau = H^{-1}(E)$ where $E \sim \text{Exp}(1)$) enables Monte Carlo for credit
+13. **Threshold simulation** (`\tau = H^{-1}(E)` where `E ~ Exp(1)`) enables Monte Carlo for credit
 
 ---
 
@@ -1197,7 +1204,7 @@ Before trusting any survival curve, run these checks:
 | Real-world hazard | From historical defaults | Used for risk management and capital |
 | Piecewise-constant hazard | $h(t) = h_i$ on $[t_{i-1}, t_i)$ | Industry standard for curve construction |
 | Inverted curve | Short spreads > long spreads | Signals distressed credit; near-term survival uncertain |
-| Threshold simulation | $\tau = H^{-1}(E)$, $E \sim \text{Exp}(1)$ | Monte Carlo method for default times |
+| Threshold simulation | `\tau = H^{-1}(E)`, `E ~ Exp(1)` | Monte Carlo method for default times |
 
 ---
 
@@ -1254,7 +1261,7 @@ Before trusting any survival curve, run these checks:
 | 30 | Why does recovery assumption matter for implied hazard? | $h = S/(1-R)$; higher $R$ means higher implied $h$ |
 | 31 | What does an inverted credit curve signal? | Distressed credit; high near-term default risk, lower long-term if survives |
 | 32 | What does an upward-sloping credit curve signal? | Investment grade; safe today, uncertain in long term |
-| 33 | How to simulate a default time from survival curve? | Draw $E \sim \text{Exp}(1)$, set $\tau = H^{-1}(E)$ |
+| 33 | How to simulate a default time from survival curve? | Draw `E ~ Exp(1)`, set `\tau = H^{-1}(E)` |
 | 34 | What constrains how inverted a curve can be? | No-arbitrage: $h(t) \geq 0$; implies bounds on spread decline rate |
 | 35 | Spread 500bp, R=40% → hazard? | $h = 0.05/0.60 = 8.33\%$/year |
 | 36 | Hazard 2%, 5 years → survival probability? | $Q(5) = e^{-0.10} = 90.5\%$ |
@@ -1272,7 +1279,7 @@ Before trusting any survival curve, run these checks:
 4. (Compute) For constant $h=2\%$, compute $\Pr(1\lt \tau\le 3)$.
 5. (Concept) Prove that $f(t)=h(t)Q(t)$ implies $\int_0^T f(t)\,dt = 1-Q(T)$.
 6. (Compute) Credit triangle: $S=80$ bp and $R=35\%$. Compute $h$.
-7. (Compute) $N=\mathrm{USD}\\,5$mm, $R=40\%$, $Q(5)=0.88$. Compute undiscounted 5Y expected loss.
+7. (Compute) $N=\mathrm{USD}\\,5\text{mm}$, $R=40\%$, $Q(5)=0.88$. Compute undiscounted 5Y expected loss.
 8. (Compute) Piecewise hazard: $h=1\%$ on $[0,1)$ and $h=4\%$ on $[1,2)$. Compute $Q(2)$.
 9. (Compute) Threshold simulation: $E=1.2\sim\mathrm{Exp}(1)$ and constant $h=0.04$. Compute $\tau$.
 10. (Concept) When should you use risk-neutral vs real-world default probabilities?
