@@ -1166,9 +1166,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 **A9.** Decrease. With upward-sloping curve, early exchanges favor you (receive fixed > expected floating). As these positive-value exchanges settle, remaining swap expected to have negative value to you—counterparty exposure declines.
 
 **A10.** Receiver-fixed has $DV01\gt 0$ under the book convention, so a **rates up** move is approximately the opposite sign:
-$$
-\Delta PV \approx -DV01 \times 75 \approx -45{,}000 \times 75 = -3{,}375{,}000\ \text{USD}
-$$
+So $\Delta PV \approx -DV01 \times 75 \approx -3{,}375{,}000$ USD.
 So the receiver-fixed position is roughly $-USD3.375$ million; the payer-fixed counterparty has positive exposure of about USD3.375 million (ignoring collateral and convexity).
 
 **A11.** Bid: 4.50% - 0.05% = 4.45%; Offer: 4.50% + 0.02% = 4.52%
