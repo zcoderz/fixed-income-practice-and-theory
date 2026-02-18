@@ -46,7 +46,7 @@ $$\boxed{F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)}} \tag{CIP-DF}$$
 
 This is covered interest parity (CIP) in discount-factor form. The relationship arises because converting currencies via the forward market must produce the same value as converting via the spot market and investing the proceeds.
 
-**Intuition:** If domestic interest rates exceed foreign rates ($P_d < P_f$ for the same maturity), then $F > X$—the foreign currency trades at a forward premium. This compensates a domestic investor for holding the lower-yielding foreign currency: the forward rate locks in an appreciation that offsets the interest differential.
+**Intuition:** If domestic interest rates exceed foreign rates ($P_d \lt P_f$ for the same maturity), then $F \gt X$—the foreign currency trades at a forward premium. This compensates a domestic investor for holding the lower-yielding foreign currency: the forward rate locks in an appreciation that offsets the interest differential.
 
 **Unit check:** $P_f/P_d$ is dimensionless; $X(0)$ has units domestic/foreign; hence $F(0,T)$ has units domestic/foreign. ✓
 
@@ -62,11 +62,11 @@ This is covered interest parity (CIP) in discount-factor form. The relationship 
 
 Consider a forward where at time $T$ you receive 1 unit of foreign currency and pay $K$ units of domestic currency. The time-0 present value in domestic currency is:
 
-$$\boxed{\text{PV}_0^{(d)} = X(0) P_f(0,T) - K P_d(0,T)} \tag{FXF-PV}$$
+$$\boxed{PV_0^{(d)} = X(0) P_f(0,T) - K P_d(0,T)} \tag{FXF-PV}$$
 
 **Derivation:** "Receive 1 foreign at $T$" is economically equivalent to holding a foreign zero-coupon bond paying 1 at $T$, worth $P_f(0,T)$ in foreign terms; converting at spot gives domestic value $X(0) P_f(0,T)$. "Pay $K$ domestic at $T$" is a domestic ZCB liability of PV $K P_d(0,T)$. The net is their difference.
 
-**At-market forward:** Setting $\text{PV}_0 = 0$ and solving for $K$:
+**At-market forward:** Setting $PV_0 = 0$ and solving for $K$:
 
 $$K^* = X(0) \frac{P_f(0,T)}{P_d(0,T)} = F(0,T)$$
 
@@ -85,10 +85,10 @@ An FX swap combines two legs:
 For example, a bank with euros that needs dollars might enter the following transaction:
 
 *Near leg (time 0):*
-- Pay €100 million, receive \$110 million at spot $X(0) = 1.10$ USD/EUR
+- Pay €100 million, receive USD 110 million at spot $X(0) = 1.10$ USD/EUR
 
-*Far leg (time $T=1$):*
-- Pay \$111.5 million, receive €100 million at forward $F(0,1) = 1.115$
+***Far leg (time $T=1$):***
+- Pay USD 111.5 million, receive \mathrm{EUR}\,100 million at forward $F(0,1) = 1.115$
 
 From the perspective of the USD receiver, the trade is “borrow USD / lend EUR”: you receive USD now and repay USD at $T$, while paying EUR now and receiving EUR at $T$.
 
@@ -121,8 +121,8 @@ A single-period FX swap is economically very close to an FX forward (and a one-p
 
 For a single period, FX swap and XCCY swap economics are identical. Consider:
 
-- **FX Swap:** Pay \$100m at T=0, receive $100 \times (1 + r_{USD} \times T)$ at T=1 (implicitly through forward rate)
-- **XCCY Swap (1 period):** Pay \$100m at T=0, receive USD floating at T=1, exchange principals at maturity
+- **FX Swap:** Pay USD 100m at T=0, receive $100 \times (1 + r_{\mathrm{USD}} \times T)$ at T=1 (implicitly through forward rate)
+- **XCCY Swap (1 period):** Pay USD 100m at T=0, receive USD floating at T=1, exchange principals at maturity
 
 Both achieve the same economic transfer. However, for multi-period swaps:
 
@@ -131,7 +131,7 @@ Both achieve the same economic transfer. However, for multi-period swaps:
 
 This “roll” risk is one reason long-dated hedgers often prefer multi-period cross-currency swaps to repeated short-dated rolls.
 
-**Check (roll-cost scaling):** Rolling is economically “re-fixing” your funding spread. If the implied funding differential moves by 10 bp between rolls, then on a $\$100$m notional the cash impact over a quarter is roughly $\$100$m $\times 10$ bp $\times 0.25 \approx \$25{,}000$ (ignoring compounding). That is small per roll but meaningful when leveraged or when basis moves are large in stress.
+**Check (roll-cost scaling):** Rolling is economically “re-fixing” your funding spread. If the implied funding differential moves by 10 bp between rolls, then on a $\mathrm{USD} 100$m notional the cash impact over a quarter is roughly $\mathrm{USD} 100$m $\times 10$ bp $\times 0.25 \approx \mathrm{USD} 25{,}000$ (ignoring compounding). That is small per roll but meaningful when leveraged or when basis moves are large in stress.
 
 ---
 
@@ -142,7 +142,7 @@ This “roll” risk is one reason long-dated hedgers often prefer multi-period 
 A cross-currency swap exchanges cashflows in two currencies. In the common floating–floating **basis** form, the parties exchange floating coupons in two currencies and (typically) exchange notionals at inception and maturity. One leg may include a spread $b$ (the basis).
 
 The canonical structure for a cross-currency basis swap:
-- **At inception:** Exchange notionals at spot (e.g., pay \$100m USD, receive €90.9m at $X(0)=1.10$)
+- **At inception:** Exchange notionals at spot (e.g., pay USD 100m USD, receive \mathrm{EUR}\,90.9m at $X(0)=1.10$)
 - **During the life:** Party A pays USD floating (e.g., SOFR); Party B pays EUR floating (e.g., EURIBOR) **plus or minus a spread** $b$
 - **At maturity:** Re-exchange the same notionals
 
@@ -152,9 +152,9 @@ To make signs concrete, take domestic = USD, foreign = EUR, and a position that 
 
 | Date | USD leg (receive) | EUR leg (pay) |
 |---|---:|---:|
-| Inception | $+N_{\mathrm{USD}}$ | $-N_{\mathrm{EUR}}$ |
-| Each payment date $t_{i+1}$ | $+N_{\mathrm{USD}}\,L_{\mathrm{USD}}(t_i,t_{i+1})\,\tau_i$ | $-N_{\mathrm{EUR}}\,(L_{\mathrm{EUR}}(t_i,t_{i+1})+b)\,\tau_i$ |
-| Maturity | $+N_{\mathrm{USD}}$ | $-N_{\mathrm{EUR}}$ |
+| Inception | $+N_{\mathrm{\mathrm{USD}}}$ | $-N_{\mathrm{EUR}}$ |
+| Each payment date $t_{i+1}$ | $+N_{\mathrm{\mathrm{USD}}}\,L_{\mathrm{\mathrm{USD}}}(t_i,t_{i+1})\,\tau_i$ | $-N_{\mathrm{EUR}}\,(L_{\mathrm{EUR}}(t_i,t_{i+1})+b)\,\tau_i$ |
+| Maturity | $+N_{\mathrm{\mathrm{USD}}}$ | $-N_{\mathrm{EUR}}$ |
 
 The other side has the opposite signs. Some contracts omit notional exchanges, include stubs, or place the basis on the other leg—always confirm the exact payoff definition.
 
@@ -187,9 +187,9 @@ Value each leg in its own currency, discount on the appropriate curve, and conve
 
 For a swap where you receive domestic floating and pay foreign floating plus basis:
 
-$$\boxed{\text{PV}^{(d)} = \text{PV}_d^{(d)} - X(0) \cdot \text{PV}_f^{(f)}(b)}$$
+$$\boxed{PV^{(d)} = PV_d^{(d)} - X(0) \cdot PV_f^{(f)}(b)}$$
 
-where $\text{PV}_d^{(d)}$ is the domestic-currency PV of the domestic leg (discounted on the domestic curve), and $\text{PV}_f^{(f)}(b)$ is the foreign-currency PV of the foreign leg (discounted on the foreign curve, including the basis spread).
+where $PV_d^{(d)}$ is the domestic-currency PV of the domestic leg (discounted on the domestic curve), and $PV_f^{(f)}(b)$ is the foreign-currency PV of the foreign leg (discounted on the foreign curve, including the basis spread).
 
 ### 30.4.2 Separating Projection and Discounting
 
@@ -205,24 +205,24 @@ This separation matters whenever the floating index embeds credit/liquidity prem
 
 One concrete example (USD/JPY basis swap, PV reported in USD): receive USD floating flat and pay JPY floating plus a spread $b$, with notionals exchanged at inception (at spot) and re-exchanged at maturity.
 
-To keep notation compact, the expression below suppresses explicit notionals. In practice you compute each leg PV in its own currency using its contractual notional (e.g., $N_{\mathrm{USD}}$ and $N_{\mathrm{JPY}}$), then convert the JPY PV into USD using the spot $X(0)$ under the chapter quote direction (domestic per 1 foreign).
+To keep notation compact, the expression below suppresses explicit notionals. In practice you compute each leg PV in its own currency using its contractual notional (e.g., $N_{\mathrm{\mathrm{USD}}}$ and $N_{\mathrm{JPY}}$), then convert the JPY PV into USD using the spot $X(0)$ under the chapter quote direction (domestic per 1 foreign).
 
 $$\boxed{
 \begin{aligned}
-V_{\text{basisswap},\mathrm{USD}}(0) &= \sum_{i=0}^{n-1} L_{\mathrm{USD}}(0; t_i, t_{i+1}) \,\tau_i\, P_{\mathrm{USD}}(0, t_{i+1}) + P_{\mathrm{USD}}(0, t_n) \\
+V_{\text{basisswap},\mathrm{\mathrm{USD}}}(0) &= \sum_{i=0}^{n-1} L_{\mathrm{\mathrm{USD}}}(0; t_i, t_{i+1}) \,\tau_i\, P_{\mathrm{\mathrm{USD}}}(0, t_{i+1}) + P_{\mathrm{\mathrm{USD}}}(0, t_n) \\
 &\quad - X(0) \left( \sum_{i=0}^{n-1} \big(L_{\mathrm{JPY}}(0; t_i, t_{i+1}) + b\big) \,\tau_i\, P_{\mathrm{JPY}}(0, t_{i+1}) + P_{\mathrm{JPY}}(0, t_n) \right)
 \end{aligned}
 } \tag{XCCY-PV}$$
 
 If the USD projection curve equals the USD discount curve, the PV of the USD floating leg (including the final notional payment) is approximately 1 *per unit USD notional* at inception; the non-trivial part of the valuation is then the FX-converted foreign leg (plus basis).
 
-**Check (single-curve limiting case):** In an idealized single-curve world where each floating index is projected and discounted on the same curve and $b=0$, each “float + final notional” leg prices to par (≈ 1 per unit notional). If notionals are spot-matched at inception (e.g., $N_{\mathrm{USD}} = X(0)\,N_{\mathrm{JPY}}$ under USD-per-JPY quoting), the two par legs cancel at inception and the swap is near zero PV. A non-zero par basis $b$ in practice comes from curve/collateral choices and frictions, not from the mechanical notional exchanges.
+**Check (single-curve limiting case):** In an idealized single-curve world where each floating index is projected and discounted on the same curve and $b=0$, each “float + final notional” leg prices to par (≈ 1 per unit notional). If notionals are spot-matched at inception (e.g., $N_{\mathrm{\mathrm{USD}}} = X(0)\,N_{\mathrm{JPY}}$ under USD-per-JPY quoting), the two par legs cancel at inception and the swap is near zero PV. A non-zero par basis $b$ in practice comes from curve/collateral choices and frictions, not from the mechanical notional exchanges.
 
 **What each curve does:**
 
 | Curve | Role |
 |-------|------|
-| $P_{\mathrm{USD}}(0,T)$ | Discounts USD cashflows |
+| $P_{\mathrm{\mathrm{USD}}}(0,T)$ | Discounts USD cashflows |
 | $P_{\mathrm{JPY}}(0,T)$ | Discounts JPY cashflows |
 | $P_{\mathrm{JPY}}^{(L)}(0,T)$ | Generates forward JPY rates via ratio formula |
 | $X(0)$ | Converts foreign-currency PV into domestic PV |
@@ -233,10 +233,10 @@ If the USD projection curve equals the USD discount curve, the PV of the USD flo
 Under CIP, there is an equivalence between two valuation approaches for a foreign cashflow $C_f(T)$:
 
 **Approach A:** Foreign discount + spot conversion
-$$\text{PV}^{(d)} = X(0) \cdot P_f(0,T) \cdot C_f(T)$$
+$$PV^{(d)} = X(0) \cdot P_f(0,T) \cdot C_f(T)$$
 
 **Approach B:** Forward FX + domestic discount
-$$\text{PV}^{(d)} = P_d(0,T) \cdot F(0,T) \cdot C_f(T)$$
+$$PV^{(d)} = P_d(0,T) \cdot F(0,T) \cdot C_f(T)$$
 
 These are identical when $F(0,T) = X(0) \frac{P_f(0,T)}{P_d(0,T)}$:
 
@@ -283,25 +283,25 @@ Throughout these examples:
 - Quote direction: $X$ is USD per EUR (domestic = USD, foreign = EUR).
 - Spot: $X(0)=1.10$ USD/EUR.
 - 1Y forward quote: $F_{\mathrm{mkt}}(0,1)=1.1150$ USD/EUR (equivalently, forward points of $+0.0150$).
-- Notional: $N_f=€10{,}000{,}000$; implied USD notional $N_d=X(0)N_f=\$11{,}000{,}000$.
-- Discount factors (toy inputs for illustration): $P_{\mathrm{USD}}(0,1)=0.98$, $P_{\mathrm{EUR}}(0,1)=0.99$.
+- Notional: $N_f=\mathrm{EUR}\,10{,}000{,}000$; implied USD notional $N_d=X(0)N_f=\mathrm{USD} 11{,}000{,}000$.
+- Discount factors (toy inputs for illustration): $P_{\mathrm{\mathrm{USD}}}(0,1)=0.98$, $P_{\mathrm{EUR}}(0,1)=0.99$.
 
 **Outputs**
-- CIP-fair forward $F^*(0,1)$ (given $P_{\mathrm{USD}},P_{\mathrm{EUR}}$).
+- CIP-fair forward $F^{\star}(0,1)$ (given $P_{\mathrm{\mathrm{USD}}},P_{\mathrm{EUR}}$).
 - PV in USD of the far-leg exchange at the quoted forward.
 - FX delta (units: EUR; PV sensitivity to spot $X$).
 
 **Step-by-step**
 1. **Translate quote → cashflows (from the USD receiver’s perspective):**
-   - Near leg (2026-02-19): receive $\$11.0$m, pay $€10.0$m.
-   - Far leg (2027-02-19): pay $\$11.15$m, receive $€10.0$m.
+   - Near leg (2026-02-19): receive $\mathrm{USD} 11.0$m, pay $\mathrm{EUR}\,10.0$m.
+   - Far leg (2027-02-19): pay $\mathrm{USD} 11.15$m, receive $\mathrm{EUR}\,10.0$m.
 2. **Compute the CIP-fair forward from discount factors:**
-   $$F^*(0,1)=X(0)\frac{P_{\mathrm{EUR}}(0,1)}{P_{\mathrm{USD}}(0,1)}=1.10\times\frac{0.99}{0.98}=1.11122449\ \text{USD/EUR}.$$
+   $$F^{\star}(0,1)=X(0)\frac{P_{\mathrm{EUR}}(0,1)}{P_{\mathrm{USD}}(0,1)}=1.10\times\frac{0.99}{0.98}=1.11122449\ \text{USD/EUR}.$$
 3. **Compute PV of the far-leg forward exchange (USD PV):**
    $$PV_0=\underbrace{X(0)\,P_{\mathrm{EUR}}(0,1)\,N_f}_{\text{PV of receiving EUR at maturity}}-\underbrace{F_{\mathrm{mkt}}(0,1)\,P_{\mathrm{USD}}(0,1)\,N_f}_{\text{PV of paying USD at maturity}}.$$
-   Numerically, per EUR: $1.10\times 0.99 - 1.1150\times 0.98 = -0.0037$ USD/EUR, so $PV_0\approx-\$37{,}000$.
+   Numerically, per EUR: $1.10\times 0.99 - 1.1150\times 0.98 = -0.0037$ USD/EUR, so $PV_0\approx-\mathrm{USD} 37{,}000$.
 4. **Compute FX delta (hold curves fixed):**
-   $$\frac{\partial PV_0}{\partial X(0)}=P_{\mathrm{EUR}}(0,1)\,N_f \approx 0.99\times €10{,}000{,}000 = €9.9\text{m}.$$
+   $$\frac{\partial PV_0}{\partial X(0)}=P_{\mathrm{EUR}}(0,1)\,N_f \approx 0.99\times \mathrm{EUR}\,10{,}000{,}000 = \mathrm{EUR}\,9.9\text{m}.$$
 
 **Cashflows**
 
@@ -311,14 +311,14 @@ Throughout these examples:
 | 2027-02-19 | -11,150,000 | +10,000,000 | Far-leg notional exchange at forward |
 
 **P&L / Risk interpretation**
-- If $F_{\mathrm{mkt}} > F^*$, the USD receiver is paying “too many USD per EUR” on the far leg relative to the discount-factor parity, so the trade is negative PV (here $\approx -\$37k$).
+- If $F_{\mathrm{mkt}} \gt F^{\star}$, the USD receiver is paying “too many USD per EUR” on the far leg relative to the discount-factor parity, so the trade is negative PV (here $\approx -\mathrm{USD} 37k$).
 - The FX delta in EUR units tells you the first-order PV impact (in USD) of moving the spot $X$: $\Delta PV \approx (\partial PV/\partial X)\,\Delta X$.
-- In real books, $P_{\mathrm{USD}},P_{\mathrm{EUR}}$ and the effective $F$ used in PV may depend on collateral and curve choices (see Section 30.4.5).
+- In real books, $P_{\mathrm{\mathrm{USD}}},P_{\mathrm{EUR}}$ and the effective $F$ used in PV may depend on collateral and curve choices (see Section 30.4.5).
 
 **Sanity checks**
 - Units: $F$ and $X$ are USD/EUR; $P$ is unitless; PV is USD.
 - Sign: receiving EUR/pay USD at maturity is long EUR forward; PV decreases when the forward $K$ increases.
-- Quick parity check: $F^*/X = P_{\mathrm{EUR}}/P_{\mathrm{USD}} = 0.99/0.98$.
+- Quick parity check: $F^{\star}/X = P_{\mathrm{EUR}}/P_{\mathrm{\mathrm{USD}}} = 0.99/0.98$.
 
 ### 30.5.2 Example B: FX Swap-Implied Domestic Rate
 
@@ -340,7 +340,7 @@ If the directly observed USD funding rate for the same maturity/day count differ
 | EUR discount factors | $P_f(0, 0.5) = 0.9950$, $P_f(0, 1.0) = 0.9900$ |
 | USD projection curve | $P_d^{(L)}(0, 0.5) = 0.9890$, $P_d^{(L)}(0, 1.0) = 0.9775$ |
 | EUR projection curve | $P_f^{(L)}(0, 0.5) = 0.9940$, $P_f^{(L)}(0, 1.0) = 0.9880$ |
-| Notionals | $N_d = \$100{,}000{,}000$, $N_f = N_d / X(0) = €90{,}909{,}090.91$ |
+| Notionals | $N_d = \mathrm{USD} 100{,}000{,}000$, $N_f = N_d / X(0) = \mathrm{EUR}\,90{,}909{,}090.91$ |
 
 **Step 1: Compute forward floating rates**
 
@@ -358,10 +358,10 @@ $$L_f(0; 0.5, 1.0) = \frac{1}{0.5}\left(\frac{0.9940}{0.9880} - 1\right) = 1.214
 
 | Date | USD cashflow | EUR cashflow |
 |------|-------------:|-------------:|
-| 0 | $-\$100{,}000{,}000$ | $+€90{,}909{,}090.91$ |
-| 0.5 | $+\$1{,}112{,}235$ | $-€90.91\text{m} \times (1.2072\% + b) \times 0.5$ |
-| 1.0 | $+\$1{,}176{,}471$ | $-€90.91\text{m} \times (1.2146\% + b) \times 0.5$ |
-| 1.0 | $+\$100{,}000{,}000$ | $-€90{,}909{,}090.91$ |
+| 0 | $-\mathrm{USD} 100{,}000{,}000$ | $+\mathrm{EUR}\,90{,}909{,}090.91$ |
+| 0.5 | $+\mathrm{USD} 1{,}112{,}235$ | $-\mathrm{EUR}\,90.91\text{m} \times (1.2072\% + b) \times 0.5$ |
+| 1.0 | $+\mathrm{USD} 1{,}176{,}471$ | $-\mathrm{EUR}\,90.91\text{m} \times (1.2146\% + b) \times 0.5$ |
+| 1.0 | $+\mathrm{USD} 100{,}000{,}000$ | $-\mathrm{EUR}\,90{,}909{,}090.91$ |
 
 ### 30.5.4 Example D: Solving for Par Basis Spread
 
@@ -369,42 +369,42 @@ We find $b_{\text{par}}$ such that the swap has zero PV at inception.
 
 **Step 1: PV of USD leg**
 
-- PV(coupon 0.5): $\$1{,}112{,}235 \times 0.99 = \$1{,}101{,}112$
-- PV(coupon 1.0): $\$1{,}176{,}471 \times 0.98 = \$1{,}152{,}941$
-- PV(principal): $\$100{,}000{,}000 \times 0.98 = \$98{,}000{,}000$
+- PV(coupon 0.5): $\mathrm{USD} 1{,}112{,}235 \times 0.99 = \mathrm{USD} 1{,}101{,}112$
+- PV(coupon 1.0): $\mathrm{USD} 1{,}176{,}471 \times 0.98 = \mathrm{USD} 1{,}152{,}941$
+- PV(principal): $\mathrm{USD} 100{,}000{,}000 \times 0.98 = \mathrm{USD} 98{,}000{,}000$
 
-Total: $\text{PV}_d = \$100{,}254{,}053$
+Total: $PV_d = \mathrm{USD} 100{,}254{,}053$
 
 **Step 2: PV of EUR leg without basis**
 
 Coupon amounts (no basis):
-- At 0.5: $90{,}909{,}091 \times 1.2072\% \times 0.5 = €548{,}747$
-- At 1.0: $90{,}909{,}091 \times 1.2146\% \times 0.5 = €552{,}080$
+- At 0.5: $90{,}909{,}091 \times 1.2072\% \times 0.5 = \mathrm{EUR}\,548{,}747$
+- At 1.0: $90{,}909{,}091 \times 1.2146\% \times 0.5 = \mathrm{EUR}\,552{,}080$
 
 Discounted PV:
-- PV(coupon 0.5): $€548{,}747 \times 0.9950 = €546{,}003$
-- PV(coupon 1.0): $€552{,}080 \times 0.9900 = €546{,}559$
-- PV(principal): $€90{,}909{,}091 \times 0.9900 = €90{,}000{,}000$
+- PV(coupon 0.5): $\mathrm{EUR}\,548{,}747 \times 0.9950 = \mathrm{EUR}\,546{,}003$
+- PV(coupon 1.0): $\mathrm{EUR}\,552{,}080 \times 0.9900 = \mathrm{EUR}\,546{,}559$
+- PV(principal): $\mathrm{EUR}\,90{,}909{,}091 \times 0.9900 = \mathrm{EUR}\,90{,}000{,}000$
 
-Total (no basis): $\text{PV}_{f,0} = €91{,}092{,}562$
+Total (no basis): $PV_{f,0} = \mathrm{EUR}\,91{,}092{,}562$
 
-Converted to USD: $X(0) \cdot \text{PV}_{f,0} = 1.10 \times €91{,}092{,}562 = \$100{,}201{,}818$
+Converted to USD: $X(0) \cdot PV_{f,0} = 1.10 \times \mathrm{EUR}\,91{,}092{,}562 = \mathrm{USD} 100{,}201{,}818$
 
 **Step 3: Basis PV term**
 
 Basis adds $b \cdot \tau_i \cdot N_f$ at each payment. The PV of basis coupons:
-$$\text{PV}_{\text{basis}}^{(f)} = N_f \cdot b \cdot \sum_{k=1}^{2} \tau_k P_f(0, t_k) = N_f \cdot b \cdot (0.5 \times 0.9950 + 0.5 \times 0.9900) = N_f \cdot b \times 0.9925$$
+$$PV_{\text{basis}}^{(f)} = N_f \cdot b \cdot \sum_{k=1}^{2} \tau_k P_f(0, t_k) = N_f \cdot b \cdot (0.5 \times 0.9950 + 0.5 \times 0.9900) = N_f \cdot b \times 0.9925$$
 
-The "basis annuity": $A_f = €90{,}909{,}091 \times 0.9925 = €90{,}227{,}273$
+The "basis annuity": $A_f = \mathrm{EUR}\,90{,}909{,}091 \times 0.9925 = \mathrm{EUR}\,90{,}227{,}273$
 
 **Step 4: Par condition**
 
-$$0 = \text{PV}_d - X(0)(\text{PV}_{f,0} + A_f \cdot b_{\text{par}})$$
+$$0 = PV_d - X(0)(PV_{f,0} + A_f \cdot b_{\text{par}})$$
 
 Solving:
-$$b_{\text{par}} = \frac{\text{PV}_d / X(0) - \text{PV}_{f,0}}{A_f} = \frac{\$100{,}254{,}053 / 1.10 - €91{,}092{,}562}{€90{,}227{,}273}$$
+$$b_{\text{par}} = \frac{PV_d / X(0) - PV_{f,0}}{A_f} = \frac{\mathrm{\mathrm{\mathrm{USD}}}\,100{,}254{,}053 / 1.10 - \mathrm{EUR}\,91{,}092{,}562}{\mathrm{EUR}\,90{,}227{,}273}$$
 
-$$b_{\text{par}} = \frac{€91{,}140{,}049 - €91{,}092{,}562}{€90{,}227{,}273} = \frac{€47{,}487}{€90{,}227{,}273} = 0.0526\% \approx 5.26 \text{ bp}$$
+$$b_{\text{par}} = \frac{\mathrm{EUR}\,91{,}140{,}049 - \mathrm{EUR}\,91{,}092{,}562}{\mathrm{EUR}\,90{,}227{,}273} = \frac{\mathrm{EUR}\,47{,}487}{\mathrm{EUR}\,90{,}227{,}273} = 0.0526\% \approx 5.26 \text{ bp}$$
 
 **Takeaway:** The par basis depends on spot FX, both discount curves, and both projection curves.
 
@@ -417,7 +417,7 @@ This example values a more realistic 5-year swap using the same framework.
 | Parameter | Value |
 |-----------|-------|
 | Spot | $X(0) = 1.08$ USD/EUR |
-| Notionals | \$100m USD, €92.59m EUR |
+| Notionals | USD 100m USD, €92.59m EUR |
 | Tenor | 5 years, annual payments |
 | Basis | EUR leg pays EURIBOR + 25bp ($b = 0.0025$) |
 | USD receives | SOFR flat |
@@ -436,14 +436,14 @@ This example values a more realistic 5-year swap using the same framework.
 
 | Year | Forward Rate | Cashflow | DF | PV |
 |------|--------------|----------|-----|-----|
-| 1 | 4.00% | \$4,000,000 | 0.9600 | \$3,840,000 |
-| 2 | 4.20% | \$4,200,000 | 0.9180 | \$3,855,600 |
-| 3 | 4.30% | \$4,300,000 | 0.8750 | \$3,762,500 |
-| 4 | 4.40% | \$4,400,000 | 0.8320 | \$3,660,800 |
-| 5 | 4.50% | \$4,500,000 | 0.7900 | \$3,555,000 |
-| 5 | Principal | \$100,000,000 | 0.7900 | \$79,000,000 |
+| 1 | 4.00% | USD 4,000,000 | 0.9600 | USD 3,840,000 |
+| 2 | 4.20% | USD 4,200,000 | 0.9180 | USD 3,855,600 |
+| 3 | 4.30% | USD 4,300,000 | 0.8750 | USD 3,762,500 |
+| 4 | 4.40% | USD 4,400,000 | 0.8320 | USD 3,660,800 |
+| 5 | 4.50% | USD 4,500,000 | 0.7900 | USD 3,555,000 |
+| 5 | Principal | USD 100,000,000 | 0.7900 | USD 79,000,000 |
 
-**Total USD PV:** \$97,673,900
+**Total USD PV:** USD 97,673,900
 
 **Step 2: EUR leg cashflows and PV (including 25bp basis)**
 
@@ -460,20 +460,20 @@ This example values a more realistic 5-year swap using the same framework.
 
 **Step 3: Convert and compute swap PV**
 
-$$\text{PV}^{(\$)} = \text{PV}_d - X(0) \cdot \text{PV}_f = \$97{,}673{,}900 - 1.08 \times €93{,}127{,}500$$
+$$PV^{(\mathrm{\mathrm{\mathrm{USD}}}\,)} = PV_d - X(0) \cdot PV_f = \mathrm{\mathrm{\mathrm{USD}}}\,97{,}673{,}900 - 1.08 \times \mathrm{EUR}\,93{,}127{,}500$$
 
-$$\text{PV}^{(\$)} = \$97{,}673{,}900 - \$100{,}577{,}700 = -\$2{,}903{,}800$$
+$$PV^{(\mathrm{\mathrm{\mathrm{USD}}}\,)} = \mathrm{\mathrm{\mathrm{USD}}}\,97{,}673{,}900 - \mathrm{\mathrm{\mathrm{USD}}}\,100{,}577{,}700 = -\mathrm{\mathrm{\mathrm{USD}}}\,2{,}903{,}800$$
 
 **Interpretation:** At 25bp basis, this swap is off-market (negative PV for the USD receiver). The par basis would be lower than 25bp given these curves.
 
 **Step 4: Compute par basis**
 
 Using the basis annuity approach:
-$$A_f = €92{,}592{,}593 \times (0.9750 + 0.9480 + 0.9200 + 0.8910 + 0.8620) = €92{,}592{,}593 \times 4.596 = €425{,}555{,}556$$
+$$A_f = \mathrm{EUR}\,92{,}592{,}593 \times (0.9750 + 0.9480 + 0.9200 + 0.8910 + 0.8620) = \mathrm{EUR}\,92{,}592{,}593 \times 4.596 = \mathrm{EUR}\,425{,}555{,}556$$
 
 PV of EUR leg without basis ≈ €91,048,519 (removing the 25bp from each coupon)
 
-$$b_{\text{par}} = \frac{\$97{,}673{,}900/1.08 - €91{,}048{,}519}{€425{,}555{,}556} = \frac{€90{,}438{,}796 - €91{,}048{,}519}{€425{,}555{,}556}$$
+$$b_{\text{par}} = \frac{\mathrm{\mathrm{\mathrm{USD}}}\,97{,}673{,}900/1.08 - \mathrm{EUR}\,91{,}048{,}519}{\mathrm{EUR}\,425{,}555{,}556} = \frac{\mathrm{EUR}\,90{,}438{,}796 - \mathrm{EUR}\,91{,}048{,}519}{\mathrm{EUR}\,425{,}555{,}556}$$
 
 $$b_{\text{par}} \approx -14.3 \text{ bp}$$
 
@@ -484,13 +484,13 @@ The negative par basis indicates EUR funding is cheaper than USD funding in this
 The “box” is a common way to **separate** an XCCY position into (i) single-currency curve risk in each currency and (ii) cross-currency basis risk. Conceptually, you start with an XCCY basis swap and add single-currency IRS so that the floating-index exposures largely cancel.
 
 **Step 1: Start with an XCCY basis swap (EUR leg carries basis)**
-- Receive USD floating on notional $N_{\mathrm{USD}}$
-- Pay EUR floating $+\ b$ on notional $N_{\mathrm{EUR}} = N_{\mathrm{USD}}/X(0)$
+- Receive USD floating on notional $N_{\mathrm{\mathrm{USD}}}$
+- Pay EUR floating $+\ b$ on notional $N_{\mathrm{EUR}} = N_{\mathrm{\mathrm{USD}}}/X(0)$
 - Vanilla form: exchange notionals at inception and maturity
 
 **Step 2: Add single-currency IRS to offset the floating legs**
 - EUR IRS: receive EUR floating, pay EUR fixed on $N_{\mathrm{EUR}}$
-- USD IRS: pay USD floating, receive USD fixed on $N_{\mathrm{USD}}$
+- USD IRS: pay USD floating, receive USD fixed on $N_{\mathrm{\mathrm{USD}}}$
 
 After these hedges, the EUR and USD floating coupons are largely removed. What remains is:
 - The **basis coupons** (paying or receiving $b$ on the basis leg)
@@ -498,7 +498,7 @@ After these hedges, the EUR and USD floating coupons are largely removed. What r
 - **FX delta** because any foreign-currency PV (including notional exchanges and basis coupons) is converted at spot
 
 **Basis-only P&L approximation (hold curves and spot fixed):**
-$\Delta \text{PV} \approx \frac{\partial \text{PV}}{\partial b}\,\Delta b$. For a basis payer, $\frac{\partial \text{PV}}{\partial b} < 0$, so a 10 bp tightening (basis down 10 bp) produces a positive P&L of approximately $10 \times$ basis DV01.
+$\Delta PV \approx \frac{\partial PV}{\partial b}\,\Delta b$. For a basis payer, $\frac{\partial PV}{\partial b} \lt 0$, so a 10 bp tightening (basis down 10 bp) produces a positive P&L of approximately $10 \times$ basis DV01.
 
 > **Desk Reality: What the “box” is (and isn’t)**
 >
@@ -523,16 +523,16 @@ Risk numbers depend on (i) what is bumped and (ii) what is held fixed. Throughou
 
 ### 30.6.1 FX Delta
 
-For a position valued as $\text{PV}^{(d)} = \text{PV}_d - X(0) \cdot \text{PV}_f^{(f)}$, holding all curves and the foreign PV fixed:
+For a position valued as $PV^{(d)} = PV_d - X(0) \cdot PV_f^{(f)}$, holding all curves and the foreign PV fixed:
 
-$$\boxed{\frac{\partial \text{PV}^{(d)}}{\partial X(0)} = -\text{PV}_f^{(f)}}$$
+$$\boxed{\frac{\partial PV^{(d)}}{\partial X(0)} = -PV_f^{(f)}}$$
 
 **Interpretation:** If you pay the foreign leg, you are “short foreign PV” in domestic terms. When the foreign currency strengthens ($X$ rises for a domestic/foreign quote), the foreign leg becomes more expensive, reducing your PV.
 
-**Units:** $\partial \text{PV}^{(d)}/\partial X$ has units of foreign currency (here: EUR) because $X$ is USD/EUR.
+**Units:** $\partial PV^{(d)}/\partial X$ has units of foreign currency (here: EUR) because $X$ is USD/EUR.
 
-**From Example D:** FX delta $\approx -€91.14\text{m}$. For $X(0)=1.10$, a +1% spot shock is $\Delta X \approx 0.011$, so
-$$\Delta \text{PV} \approx -€91{,}140{,}049 \times 0.011 = -\$1{,}002{,}540$$
+**From Example D:** FX delta $\approx -\mathrm{EUR}\,91.14\text{m}$. For $X(0)=1.10$, a +1% spot shock is $\Delta X \approx 0.011$, so
+$$\Delta PV \approx -\mathrm{EUR}\,91{,}140{,}049 \times 0.011 = -\mathrm{\mathrm{\mathrm{USD}}}\,1{,}002{,}540$$
 
 ### 30.6.2 Domestic and Foreign DV01 (Discount Curves)
 
@@ -542,8 +542,8 @@ For a receive-USD-float / pay-EUR-float-plus-basis position, there are two disco
 - **Foreign DV01:** bump the foreign discount curve down 1 bp, holding domestic curves and FX fixed.
 
 **From Example D calculations (hold-fixed):**
-- A +1 bp *increase* in USD discount rates reduces PV by about $\$9{,}771$, so $DV01_{\mathrm{USD}} \approx +\$9{,}771/\text{bp}$.
-- A +1 bp *increase* in EUR discount rates increases PV by about $\$9{,}893$, so $DV01_{\mathrm{EUR}} \approx -\$9{,}893/\text{bp}$.
+- A +1 bp *increase* in USD discount rates reduces PV by about $\mathrm{USD} 9{,}771$, so $DV01_{\mathrm{\mathrm{USD}}} \approx +\mathrm{USD} 9{,}771/\text{bp}$.
+- A +1 bp *increase* in EUR discount rates increases PV by about $\mathrm{USD} 9{,}893$, so $DV01_{\mathrm{EUR}} \approx -\mathrm{USD} 9{,}893/\text{bp}$.
 
 **Note on bump schemes:** In an arbitrage-consistent setup, bumping one curve may require re-implying FX forwards or other curves (“bump-and-rebuild”). Different “hold fixed” choices produce different DV01s; document the bump object and what is held fixed.
 
@@ -551,26 +551,26 @@ For a receive-USD-float / pay-EUR-float-plus-basis position, there are two disco
 
 The basis spread $b$ enters additively in the foreign leg coupons. From the XCCY-PV formula:
 
-$$\boxed{\frac{\partial \text{PV}}{\partial b} = -X(0) \cdot N_f \cdot \sum_i \tau_i P_f(0, t_{i+1})}$$
+$$\boxed{\frac{\partial PV}{\partial b} = -X(0) \cdot N_f \cdot \sum_i \tau_i P_f(0, t_{i+1})}$$
 
 This is negative for the basis payer: when the basis you pay widens, your PV falls. With the chapter DV01 convention (basis **down** 1 bp),
-$$DV01_b \approx -\frac{\partial \text{PV}}{\partial b}\times 10^{-4}.$$
+$$DV01_b \approx -\frac{\partial PV}{\partial b}\times 10^{-4}.$$
 
 **From Example D:**
-$$DV01_b = 1.10 \times €90{,}909{,}091 \times 0.9925 / 10{,}000 \approx +\$9{,}925 \text{ per bp}$$
+$$DV01_b = 1.10 \times \mathrm{EUR}\,90{,}909{,}091 \times 0.9925 / 10{,}000 \approx +\mathrm{\mathrm{\mathrm{USD}}}\,9{,}925 \text{ per bp}$$
 
-A +5bp widening (basis up) costs approximately $5 \times \$9{,}925 \approx \$49{,}625$ for the basis payer.
+A +5bp widening (basis up) costs approximately $5 \times \mathrm{USD} 9{,}925 \approx \mathrm{USD} 49{,}625$ for the basis payer.
 
 ### 30.6.4 Risk Summary Table
 
-For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
+For a receive-USD-float / pay-EUR-float-plus-basis position on USD 100m:
 
 | Risk Factor | Sensitivity | Sign Intuition |
 |-------------|-------------|----------------|
 | FX delta | -€91.14m | Short EUR: EUR strength hurts |
-| USD DV01 (rates down) | +\$9,771/bp | Long USD cashflows: lower rates help |
-| EUR DV01 (rates down) | -\$9,893/bp | Short EUR cashflows: lower rates hurt |
-| Basis DV01 (basis down) | +\$9,925/bp | Paying basis: tighter basis helps |
+| USD DV01 (rates down) | +USD 9,771/bp | Long USD cashflows: lower rates help |
+| EUR DV01 (rates down) | -USD 9,893/bp | Short EUR cashflows: lower rates hurt |
+| Basis DV01 (basis down) | +USD 9,925/bp | Paying basis: tighter basis helps |
 
 ---
 
@@ -592,7 +592,7 @@ For a receive-USD-float / pay-EUR-float-plus-basis position on \$100m:
 
 ### 30.7.2 Hedging Foreign Liabilities
 
-**Scenario:** A German corporation has issued \$200m of USD-denominated bonds to access the deeper U.S. market. The USD coupons create FX exposure for a company whose revenues are in EUR.
+**Scenario:** A German corporation has issued USD 200m of USD-denominated bonds to access the deeper U.S. market. The USD coupons create FX exposure for a company whose revenues are in EUR.
 
 **Solution:** Enter a cross-currency swap:
 - Pay USD floating (to offset USD bond coupons, possibly with a USD fixed-to-float swap first)
@@ -757,25 +757,25 @@ Even when the pricing math is correct, many breaks come from inconsistent **date
 ## Mini Problem Set
 
 1. (Compute) $X(0)=1.25$, $P_d(0,1)=0.96$, $P_f(0,1)=0.98$. Compute the no-arbitrage forward $F(0,1)$.
-2. (Compute) You receive $€1{,}000{,}000$ and pay $\$1{,}300{,}000$ at $T=1$. Given $X(0)=1.28$ USD/EUR, $P_d(0,1)=0.97$, $P_f(0,1)=0.98$, compute PV in USD.
+2. (Compute) You receive $\mathrm{EUR}\,1{,}000{,}000$ and pay $\mathrm{USD} 1{,}300{,}000$ at $T=1$. Given $X(0)=1.28$ USD/EUR, $P_d(0,1)=0.97$, $P_f(0,1)=0.98$, compute PV in USD.
 3. (Compute) An FX swap has $F/X = 1.006$, foreign simple rate $r_f=2.0\%$, and $\tau=0.5$. Compute the implied domestic simple rate $r_d$.
-4. (Compute) A basis payer has $X(0)=1.10$, $N_f=€50\text{m}$, semiannual accruals $\tau_1=\tau_2=0.5$, and foreign discount factors $P_f(0,0.5)=0.995$, $P_f(0,1.0)=0.990$. Compute $DV01_b$ in USD (basis down 1bp, hold-fixed).
+4. (Compute) A basis payer has $X(0)=1.10$, $N_f=\mathrm{EUR}\,50\text{m}$, semiannual accruals $\tau_1=\tau_2=0.5$, and foreign discount factors $P_f(0,0.5)=0.995$, $P_f(0,1.0)=0.990$. Compute $DV01_b$ in USD (basis down 1bp, hold-fixed).
 5. (Concept) Give one reason the two FX conversion approaches in Section 30.4.4 can disagree even if each is coded correctly.
-6. (Concept) A report shows “USD DV01 = \$12k/bp” for an XCCY book. List two questions you would ask to interpret the number.
+6. (Concept) A report shows “USD DV01 = USD 12k/bp” for an XCCY book. List two questions you would ask to interpret the number.
 7. (Desk) You see a persistent PV break between two systems for the same XCCY trade. List three common root causes to check first.
 8. (Desk) In one sentence, explain why “basis is just a spread” is an unsafe implementation mindset.
-9. (Compute) Using Example D’s basis DV01 magnitude $\approx \$9{,}925/\text{bp}$ for the basis payer, estimate the PV impact of a +7 bp basis widening (hold-fixed).
+9. (Compute) Using Example D’s basis DV01 magnitude $\approx \mathrm{USD} 9{,}925/\text{bp}$ for the basis payer, estimate the PV impact of a +7 bp basis widening (hold-fixed).
 10. (Concept) If you change quote direction from USD/EUR to EUR/USD, what must you do to keep FX delta and hedges consistent?
 
 ### Solution Sketches (Selected)
 
 1. $F = X\,P_f/P_d = 1.25\times 0.98/0.96 = 1.2760$ USD per foreign.
-2. Use $PV = X P_f N_f - K P_d N_f$ with $N_f=€1\text{m}$, $K=1.30$: $1.28\times 0.98\times 1{,}000{,}000 - 1.30\times 0.97\times 1{,}000{,}000 = -\$6{,}600$.
+2. Use $PV = X P_f N_f - K P_d N_f$ with $N_f=\mathrm{EUR}\,1\text{m}$, $K=1.30$: $1.28\times 0.98\times 1{,}000{,}000 - 1.30\times 0.97\times 1{,}000{,}000 = -\mathrm{USD} 6{,}600$.
 3. $1+r_d\tau=(F/X)(1+r_f\tau)\Rightarrow r_d = \big((F/X)(1+r_f\tau)-1\big)/\tau$. Here $r_d=((1.006)(1+0.02\times 0.5)-1)/0.5=3.212\%$.
-4. $DV01_b = X N_f\sum_i \tau_i P_f /10{,}000$. Here $\sum \tau P_f=0.5(0.995)+0.5(0.990)=0.9925$, so $DV01_b=1.10\times 50{,}000{,}000\times 0.9925/10{,}000\approx \$5{,}459/\text{bp}$.
+4. $DV01_b = X N_f\sum_i \tau_i P_f /10{,}000$. Here $\sum \tau P_f=0.5(0.995)+0.5(0.990)=0.9925$, so $DV01_b=1.10\times 50{,}000{,}000\times 0.9925/10{,}000\approx \mathrm{USD} 5{,}459/\text{bp}$.
 5. If you “bump one input” (e.g., a curve) but hold other objects fixed (e.g., FX forwards) that are linked by CIP in the base calibration, the two approaches will no longer be consistent by construction.
 7. Common checks: (i) CSA/collateral assumptions and discount curves, (ii) value dates/calendars and $\tau$, (iii) quote direction/points conversion and which leg carries basis.
-9. A +7 bp widening means $b$ increases by 7 bp, so PV decreases by about $7\times \$9{,}925 \approx \$69{,}475$ for the basis payer (hold-fixed).
+9. A +7 bp widening means $b$ increases by 7 bp, so PV decreases by about $7\times \mathrm{USD} 9{,}925 \approx \mathrm{USD} 69{,}475$ for the basis payer (hold-fixed).
 
 ---
 
