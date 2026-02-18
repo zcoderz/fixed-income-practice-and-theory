@@ -106,11 +106,7 @@ $$\boxed{\mathrm{Corr01} := PV(\rho+0.01)-PV(\rho)}$$
 - **Units:** currency per 1% correlation.
 - **Interpretation:** Corr01 > 0 means the position’s PV increases when the desk’s dependence parameter increases.
 
-**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is to compute Corr01 using both a one-sided bump and a symmetric difference:
-$$
-\mathrm{Corr01sym} \approx \frac{PV(\rho+0.01)-PV(\rho-0.01)}{2}
-$$
-holding the same calibration/interpolation rules fixed. Large discrepancies flag nonlinearity or methodology instability (and should push you toward scenario shocks rather than relying on a local number).
+**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is `Corr01sym ≈ (PV(rho+0.01)-PV(rho-0.01))/2`, holding the same calibration/interpolation rules fixed. Large discrepancies flag nonlinearity or methodology instability (and should push you toward scenario shocks rather than relying on a local number).
 
 | Tranche | Corr01 sign (short protection) | Corr01 sign (long protection) | Intuition |
 |---------|-------------------------------|------------------------------|-----------|
@@ -165,16 +161,12 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 - Expected tranche loss fraction (ETL): $\mathbb{E}[L(T;A,D)]$ (unitless, in $[0,1]$).
 - Expected surviving fraction: $\mathbb{E}[1-L(T;A,D)]$ (unitless).
 - Toy PV per USD 1 of tranche notional (short protection):
-  $$
-  PV \approx sT\\,\\mathbb{E}[1-L(T;A,D)]-\\mathbb{E}[L(T;A,D)]
-  $$
+  `PV ≈ sT * E[1-L(T;A,D)] - E[L(T;A,D)]`
 
 **Step-by-step**
 1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\\,(K/N)$.
 2. Map portfolio loss to tranche loss fraction:
-   $$
-   L(T;A,D)=\frac{\\min(L(T),D)-\\min(L(T),A)}{D-A}
-   $$
+   `L(T;A,D) = [min(L(T),D)-min(L(T),A)]/(D-A)`
 3. Compute ETL $=\\mathbb{E}[L(T;A,D)]$ and expected survival $=\\mathbb{E}[1-L(T;A,D)]$.
 4. Plug into the toy PV formula above.
 
@@ -302,7 +294,7 @@ with a market factor $Z\sim N(0,1)$ and a loading $\beta_i\in[0,1]$. In the flat
 **Pairwise correlation:** For $i \neq j$:
 $$\text{Corr}(Z_i, Z_j) = \mathbb{E}[Z_i Z_j] = \rho \mathbb{E}[X^2] + 0 = \rho$$
 
-This is the "flat correlation" assumption: all pairs have the same correlation $\rho$.
+This is the "flat correlation" assumption: all pairs have the same correlation `rho`.
 
 ### 50.3.2 Default Thresholds from Marginal Probabilities
 
@@ -396,25 +388,21 @@ All latent variables collapse to the single factor. Defaults become perfectly de
 ### 50.3.6 Tail Dependence: The Critical Limitation
 
 **Definition (Upper and lower tail dependence):** Given r.v.'s $X_1$ and $X_2$ with marginal distributions $F_1$ and $F_2$,
-$$
-\lambda_{\mathrm{U}} =\lim _{u \uparrow 1} \mathbb{P}\\!\left[X_{2}\gt F_{2}^{-1}(u) \mid X_{1}\gt F_{1}^{-1}(u)\right]
-$$
+`lambda_U = lim_{u->1} P[X2 > F2^{-1}(u) | X1 > F1^{-1}(u)]`
 
-$$
-\lambda_{\mathrm{L}} =\lim _{u \downarrow 0} \mathbb{P}\\!\left[X_{2} \leq F_{2}^{-1}(u) \mid X_{1} \leq F_{1}^{-1}(u)\right]
-$$
+`lambda_L = lim_{u->0} P[X2 <= F2^{-1}(u) | X1 <= F1^{-1}(u)]`
 
 Intuition: $\lambda_{\mathrm{U}}$ is a limiting conditional probability of a joint extreme in the upper tail; $\lambda_{\mathrm{L}}$ is the analogous object in the lower tail.
 
 **The Gaussian copula has zero tail dependence:** $\lambda_{\mathrm{U}} = \lambda_{\mathrm{L}} = 0$ for all $\rho \lt 1$. (Only at $\rho=1$ do these coefficients jump to 1.)
 
-Interpretation: in the Gaussian case, extremes are **asymptotically independent** — seeing one name in a very extreme state does not force another name to also be extreme, unless $\rho$ is literally 1.
+Interpretation: in the Gaussian case, extremes are **asymptotically independent** — seeing one name in a very extreme state does not force another name to also be extreme, unless `rho` is literally 1.
 
-**Check (asymptotic vs finite-tail intuition):** “zero tail dependence” is a *limit* statement. At finite but high quantiles (e.g., 99th percentile moves), a Gaussian copula with high $\rho$ can still generate strong joint stress; it just does not deliver a strictly positive limiting conditional probability as you push the quantile to 100%.
+**Check (asymptotic vs finite-tail intuition):** “zero tail dependence” is a *limit* statement. At finite but high quantiles (e.g., 99th percentile moves), a Gaussian copula with high `rho` can still generate strong joint stress; it just does not deliver a strictly positive limiting conditional probability as you push the quantile to 100%.
 
 **Why this matters for senior tranches:** Senior tranches are tail-driven instruments. They only suffer losses in extreme scenarios where many names default together. A model with no tail dependence may systematically underestimate senior tranche risk.
 
-**The t-copula alternative:** Unlike the Gaussian copula, the Student‑t copula has non-zero tail dependence. For a t-copula with correlation $\rho$ and $\nu$ degrees of freedom:
+**The t-copula alternative:** Unlike the Gaussian copula, the Student‑t copula has non-zero tail dependence. For a t-copula with correlation `rho` and $\nu$ degrees of freedom:
 
 $$\boxed{\lambda_{\mathrm{U}} = \lambda_{\mathrm{L}} = 2 t_{\nu+1}\left(-\frac{\sqrt{\nu+1}\sqrt{1-\rho}}{\sqrt{1+\rho}}\right)}$$
 
@@ -439,7 +427,7 @@ For large portfolios with identical names, the one-factor Gaussian copula admits
 - $N$ names with identical marginal default probabilities: $PD_i(T) = p$ for all $i$
 - Identical recovery rates: $R_i = R$
 - Equal weights: $w_i = 1/N$
-- Flat correlation: $\rho$ for all pairs
+- Flat correlation: `rho` for all pairs
 
 **The key insight:** As $N \to \infty$, conditional on the systematic factor $X = x$, the portfolio loss converges to its conditional expectation by the law of large numbers:
 
@@ -504,7 +492,7 @@ This reduces to a bivariate normal integral:
 
 $$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\left(\Phi^{-1}(p), -\Phi^{-1}\left(\frac{K}{1-R}\right); -\sqrt{\rho}\right)}$$
 
-where $\Phi_2(a, b; \rho)$ is the bivariate standard normal CDF with correlation $\rho$.
+where $\Phi_2(a, b; \rho)$ is the bivariate standard normal CDF with correlation `rho`.
 
 ### 50.4.4 Sanity Checks on LHP
 
@@ -540,7 +528,7 @@ For bespoke portfolios with heterogeneous names, Monte Carlo simulation of the f
 
 ### 50.5.1 Definition
 
-**Compound correlation** is the flat correlation $\rho$ that, when used in the one-factor Gaussian copula, reprices a given tranche to its market value:
+**Compound correlation** is the flat correlation `rho` that, when used in the one-factor Gaussian copula, reprices a given tranche to its market value:
 
 $$\boxed{PV(A, D, \rho^*) = 0}$$
 
@@ -548,16 +536,16 @@ This is a one-dimensional root-finding problem: find $\rho^*$ such that model PV
 
 ### 50.5.2 The Multiple Solutions Problem
 
-For equity and super-senior tranches, PV is typically monotonic in $\rho$, yielding a unique solution. But for **mezzanine tranches**, PV can be non-monotonic in $\rho$, potentially yielding:
+For equity and super-senior tranches, PV is typically monotonic in `rho`, yielding a unique solution. But for **mezzanine tranches**, PV can be non-monotonic in `rho`, potentially yielding:
 
 - **Two solutions:** The market spread can be consistent with both a low and high correlation
 - **No solution:** The market spread may be outside the model's feasible range
 
-In practice, mezzanine tranche PV can be non-monotonic in $\rho$ over some ranges, producing multiple implied compound-correlation roots.
+In practice, mezzanine tranche PV can be non-monotonic in `rho` over some ranges, producing multiple implied compound-correlation roots.
 
 ### 50.5.3 Worked Example: Two Valid Compound Correlations
 
-This is an illustrative toy scenario: a mezzanine tranche can have multiple implied compound correlations because the tranche PV can be non-monotonic in $\rho$.
+This is an illustrative toy scenario: a mezzanine tranche can have multiple implied compound correlations because the tranche PV can be non-monotonic in `rho`.
 
 Consider a 3-7% mezzanine tranche on CDX quoted at a running spread of 250bp (hypothetical).
 
@@ -566,12 +554,12 @@ Consider a 3-7% mezzanine tranche on CDX quoted at a running spread of 250bp (hy
 - At $\rho = 75\\%$: Model spread = 250bp ✓
 
 **Two solutions exist because:**
-1. At low $\rho$: Loss distribution is concentrated; moderate losses hit mezzanine
-2. At high $\rho$: Distribution is bimodal; either no loss (equity absorbs) or catastrophic loss (mezzanine wiped out)
+1. At low `rho`: Loss distribution is concentrated; moderate losses hit mezzanine
+2. At high `rho`: Distribution is bimodal; either no loss (equity absorbs) or catastrophic loss (mezzanine wiped out)
 
 **Why this is problematic:** The two correlations imply *completely different* loss distributions and *completely different* hedges. Which one is "right"?
 
-The exact values depend on the marginals, recovery, maturity, and premium schedule; the point is that mezzanine-tranche PV need not be monotone in $\rho$.
+The exact values depend on the marginals, recovery, maturity, and premium schedule; the point is that mezzanine-tranche PV need not be monotone in `rho`.
 
 ### 50.5.4 Failure of Conservation of Expected Loss
 
@@ -597,7 +585,7 @@ This inconsistency motivated the development of base correlation as a more coher
 
 $$\psi(T, K; \rho(K)) = \text{Market ETL for } [0, K]$$
 
-The key insight: rather than finding a single $\rho$ for each tranche, we find a $\rho$ for each *detachment point*, always measuring from zero.
+The key insight: rather than finding a single `rho` for each tranche, we find a `rho` for each *detachment point*, always measuring from zero.
 
 > **Deep Dive: Base Correlation (The "Implied Volatility" of Credit)**
 >
@@ -616,10 +604,7 @@ Any tranche $[A, D]$ is priced as the difference of two base tranches:
 
 $$\boxed{\mathbb{E}[L(T; A, D)] = \frac{\psi(T, D) - \psi(T, A)}{D - A}}$$
 
-where the base-tranche ETL function is
-$$
-\psi(T,K):=\mathbf{E}_{\rho(K)}[\min(L(T),K)].
-$$
+where the base-tranche ETL function is `psi(T,K) = E_{rho(K)}[min(L(T),K)]`.
 
 **Note the asymmetry:** The tranche $[A, D]$ uses *two different* correlations: $\rho(A)$ for the lower bound and $\rho(D)$ for the upper bound.
 
@@ -643,14 +628,14 @@ where the tranche PV uses the base correlation formula with $\rho(K_1)$ and $\rh
 
 > **Desk Reality: The Base Correlation Victory**
 >
-> Compound correlation seemed natural—one $\rho$ per tranche. But it had fatal flaws:
+> Compound correlation seemed natural—one `rho` per tranche. But it had fatal flaws:
 >
-> 1. **Multiple solutions for mezzanine tranches**: Which $\rho$ is "right"?
-> 2. **Non-monotonic behavior**: Higher $\rho$ doesn't always mean higher price
+> 1. **Multiple solutions for mezzanine tranches**: Which `rho` is "right"?
+> 2. **Non-monotonic behavior**: Higher `rho` doesn't always mean higher price
 > 3. **No interpolation method**: You can't price a 4-5% tranche from 0-3% and 3-7%
 >
 > Base correlation solved all three:
-> - **More stable than compound corr**: base tranche PV is typically monotonic in $\rho$, so each $K$ has a well-defined implied correlation
+> - **More stable than compound corr**: base tranche PV is typically monotonic in `rho`, so each $K$ has a well-defined implied correlation
 > - **Quotable**: you can talk about “correlation at strike $K$” just like “implied vol at strike”
 > - **Interpolatable (with caveats)**: you can draw a curve through calibration points (and then deal with interpolation pathologies in Section 50.8)
 >
@@ -750,9 +735,7 @@ $$\boxed{f(K)=-\frac{\partial^2 \psi(T,K)}{\partial K^2}}$$
 For a valid probability distribution, $f(K)\ge 0$ everywhere.
 
 **Check (finite-difference density approximation):** on a uniform strike grid with spacing $\Delta K$, a quick diagnostic is
-$$
-f(K_i)\ \approx\ -\frac{\psi(T,K_{i+1}) - 2\psi(T,K_i) + \psi(T,K_{i-1})}{(\Delta K)^2}
-$$
+`f(K_i) ≈ -[psi(T,K_{i+1}) - 2*psi(T,K_i) + psi(T,K_{i-1})]/(Delta K)^2`
 Negative values indicate an interpolation/calibration artifact (not a “negative probability”), and they often coincide with negative tranchelet spreads or unstable Corr01 hedges.
 
 **The pathology:** Interpolation can produce:
@@ -807,7 +790,7 @@ A common practical view is that the 0–3% tranche already prices “extreme-los
 >
 > 1. **Everyone speaks the same language**: Base correlation is the lingua franca
 > 2. **Alternative models don't necessarily hedge better**: You're still exposed to correlation moves
-> 3. **Market quotes reflect model limitations**: the observed skew often compensates for what a flat-$\rho$ Gaussian model misses
+> 3. **Market quotes reflect model limitations**: the observed skew often compensates for what a flat-`rho` Gaussian model misses
 > 4. **"If everyone uses the wrong model consistently, it's still useful for relative value"**
 >
 > This parallels Black-Scholes in equity options: wrong for large moves, but still the quoting convention.
@@ -1109,7 +1092,7 @@ $$p(+1) = \Phi\left(\frac{-2.054 - 0.447}{0.894}\right) = \Phi(-2.80) = 0.0026$$
 
 **Step 1: Calibrate $\rho(3\\%)$**
 
-Using one-factor Gaussian copula, find $\rho$ such that equity tranche PV = 0 at 35% upfront + 500bp running.
+Using one-factor Gaussian copula, find `rho` such that equity tranche PV = 0 at 35% upfront + 500bp running.
 
 Iterating:
 - $\rho = 10\\%$: Model upfront = 42% (too high)
@@ -1299,10 +1282,10 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 
 | Pitfall | Description |
 |---------|-------------|
-| **Confusing correlation with dependence** | $\rho$ is a model parameter, not the true dependence |
+| **Confusing correlation with dependence** | `rho` is a model parameter, not the true dependence |
 | **Ignoring recovery** | Recovery affects $L_{\max}$ and correlation calibration |
 | **Naive interpolation** | Linear base correlation can create arbitrage |
-| **Treating implied $\rho$ as stable** | Implied correlations move with market conditions |
+| **Treating implied `rho` as stable** | Implied correlations move with market conditions |
 | **Ignoring tail dependence** | Gaussian copula underestimates senior risk |
 
 ### 50.14.3 Verification Tests
@@ -1325,7 +1308,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 5. The one-factor Gaussian latent-variable model gives conditional independence and a simple conditional default probability; tranche ETLs follow by integrating over the factor.
 6. Gaussian copulas are asymptotically tail independent; t-copulas have positive tail dependence, which matters most for senior tranches.
 7. The LHP/Vasicek limit provides fast analytical approximations that are useful for intuition and scenario analysis.
-8. Compound correlation (one flat $\rho$ per tranche) can have multiple roots for mezzanine tranches and is not a consistent “smile” model across strikes.
+8. Compound correlation (one flat `rho` per tranche) can have multiple roots for mezzanine tranches and is not a consistent “smile” model across strikes.
 9. Base correlation (one $\rho(K)$ per detachment) is a quoting language; tranche ETL is computed from two base-tranche ETLs $\psi(T,K)$.
 10. Interpolation/extrapolation rules can imply negative densities or non-monotone tranchelet spreads; diagnostics belong in every implementation.
 11. Corr01 is methodology-dependent: always state bump object, bump size, units, and rebuild rule, and validate with scenario shocks (not only local bumps).
@@ -1359,7 +1342,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 | $Q(t;A,D)$ | tranche survival curve | $Q(t;A,D)=\mathbb{E}[1-L(t;A,D)]$ |
 | $\psi(T,K)$ | base-tranche ETL | $\psi(T,K)=\mathbf{E}_{\rho(K)}[\min(L(T),K)]$ |
 | $f(K)$ | implied loss density | $f(K)=-\partial^2\psi(T,K)/\partial K^2$ |
-| $\rho$ | dependence parameter | model parameter; specify compound vs base node |
+| `rho` | dependence parameter | model parameter; specify compound vs base node |
 | $\Phi,\Phi^{-1}$ | standard normal CDF / inverse | unitless |
 | $t_\nu,t_\nu^{-1}$ | t CDF / inverse | unitless |
 | $\lambda_{\mathrm{U}},\lambda_{\mathrm{L}}$ | tail dependence coefficients | unitless |
@@ -1374,15 +1357,15 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 | 2 | What is Sklar's theorem? | Any joint CDF can be written as a copula of its marginals; unique if marginals continuous |
 | 3 | Write the one-factor Gaussian latent variable | $Z_i = \sqrt{\rho}X + \sqrt{1-\rho}\varepsilon_i$ |
 | 4 | What is the conditional default probability formula? | $\Phi((a_i - \sqrt{\rho}x)/\sqrt{1-\rho})$ |
-| 5 | What happens to portfolio loss distribution when $\rho$ increases? | Mass shifts to extremes (more "no loss" and more "high loss") |
-| 6 | How does equity tranche ETL respond to higher $\rho$? | Decreases (more mass at "no loss") |
-| 7 | How does senior tranche ETL respond to higher $\rho$? | Increases (more mass at tail) |
+| 5 | What happens to portfolio loss distribution when `rho` increases? | Mass shifts to extremes (more "no loss" and more "high loss") |
+| 6 | How does equity tranche ETL respond to higher `rho`? | Decreases (more mass at "no loss") |
+| 7 | How does senior tranche ETL respond to higher `rho`? | Increases (more mass at tail) |
 | 8 | What is tail dependence? | Probability of joint extremes in the limit |
 | 9 | Does Gaussian copula have tail dependence? | No ($\lambda_{\mathrm{U}} = \lambda_{\mathrm{L}} = 0$) |
 | 10 | Does t-copula have tail dependence? | Yes, for finite degrees of freedom |
 | 11 | What is the t-copula tail dependence formula? | $\lambda = 2t_{\nu+1}(-\sqrt{(\nu+1)(1-\rho)/(1+\rho)})$ |
-| 12 | What is compound correlation? | Flat $\rho$ that reprices a single tranche |
-| 13 | Why can compound correlation fail for mezzanine? | PV may be non-monotonic in $\rho$, giving multiple solutions |
+| 12 | What is compound correlation? | Flat `rho` that reprices a single tranche |
+| 13 | Why can compound correlation fail for mezzanine? | PV may be non-monotonic in `rho`, giving multiple solutions |
 | 14 | What is base correlation? | Correlation $\rho(K)$ assigned to base tranche $[0,K]$ |
 | 15 | How is non-equity tranche ETL computed under base correlation? | $[\psi(D;\rho(D)) - \psi(A;\rho(A))]/(D-A)$ |
 | 16 | What is the base correlation bootstrap? | Sequential calibration: $\rho(K_1)$ from equity, then $\rho(K_2)$ from [K_1,K_2], etc. |
