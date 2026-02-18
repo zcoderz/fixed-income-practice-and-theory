@@ -730,7 +730,7 @@ Practitioners should run specific "stress tests" to validate hedges:
 ## Mini Problem Set
 
 1. (Compute) A bond has DV01 = 0.072 per 100 and position face $F=USD 15$mm. Compute position DV01 in $USD /\text{bp}$.
-2. (Compute) Long $F_A=USD 15$mm of Bond A (DV01 = 0.072 per 100). Hedge with Bond B (DV01 = 0.060 per 100). Compute hedge face $F_B$.
+2. (Compute) Long `F_A = USD 15mm` of Bond A (DV01 = 0.072 per 100). Hedge with Bond B (DV01 = 0.060 per 100). Compute hedge face $F_B$.
 3. (Compute) DV01 is quoted as 0.085 per 100. A trader mistakenly treats it as 0.085 per $USD 1$ face. By what factor is risk overstated?
 4. (Compute) Portfolio value $P=USD 120$mm, duration $D_P=6.5$. Futures contract value $V_F=USD 110{,}000$, CTD duration $D_F=7.8$. Estimate contracts using the duration-based hedge ratio.
 5. (Compute) 5Y annual swap with discount factors 0.99, 0.97, 0.95, 0.93, 0.91 and $\tau_i=1$. Compute PV01 per $USD 1$mm notional.
