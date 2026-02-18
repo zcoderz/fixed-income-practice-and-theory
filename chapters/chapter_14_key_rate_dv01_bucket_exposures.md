@@ -301,7 +301,7 @@ Standard choices for $\mu_k(t)$ are piecewise-triangular or piecewise-flat funct
 Quarterly short-term rate futures are a natural hedge instrument for forward buckets because each contract targets a specific 3-month accrual period (up to details of convexity and the exact contract definition).
 
 **The Instrument:**
-If a contract corresponds to a $3$ month accrual period (about $0.25$ years) on a $ USD 1{,}000{,}000$ notional, then a 1bp rate change is approximately
+If a contract corresponds to a $3$ month accrual period (about $0.25$ years) on a USD 1,000,000 notional, then a 1bp rate change is approximately
 
 $$1{,}000{,}000 \times 1 \text{ bp} \times 0.25 \text{ years} = USD 25$$
 
