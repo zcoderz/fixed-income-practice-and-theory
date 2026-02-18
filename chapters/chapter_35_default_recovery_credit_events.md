@@ -219,7 +219,7 @@ where $h$ is a hazard rate (per year) and $R$ is recovery.
 
 If the observed market spread is 200 bp, the “extra” 80 bp is not automatically a mistake: it can reflect risk premia, liquidity/tax effects, and model/convention choices.
 
-> **Pitfall — “$h \approx S/LGD$” without assumptions:** The “credit triangle” heuristic comes from strong simplifications (flat hazard, simplified discounting, recovery convention, etc.). Use it for intuition and sanity checks, not as an identity.
+> **Pitfall — "h ≈ S/LGD" without assumptions:** The “credit triangle” heuristic comes from strong simplifications (flat hazard, simplified discounting, recovery convention, etc.). Use it for intuition and sanity checks, not as an identity.
 
 ---
 
@@ -495,7 +495,7 @@ This is not how CDS curves are built in practice, but it explains why equity and
 | $D$ | Debt repayment due at $T$ (Merton) |
 | $E_0, E_T$ | Equity value at time 0 and $T$ (Merton) |
 | $r$ | Risk-free rate (per year) |
-| $\sigma_V$ | Asset volatility (1/$\sqrt{\text{year}}$) |
+| $\sigma_V$ | Asset volatility (1 per sqrt(year)) |
 | $\Phi(\cdot)$ | Standard normal CDF |
 | $d_1, d_2$ | Black–Scholes terms (Merton) |
 
