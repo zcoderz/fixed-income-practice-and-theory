@@ -183,7 +183,7 @@ $$\boxed{E(t) = \max(V(t) - C(t), 0)}$$
 - If $V=50$ and $C=55$, then $E=0$ and the bank returns $55-50=5$ of collateral.
 - If $V=-50$ and $C=-55$, then $E=\max(-50-(-55),0)=5$. (Excess collateral posted may not come back.)
 
-**Check (interpret the “$V\lt 0$ but $E\gt 0$” case):** The last line is often the surprise. Exposure is about what you can lose if the counterparty defaults, not about whether your MTM is positive. If you have posted more collateral than you currently owe (because of timing, thresholds, haircuts, or disputes), that excess collateral is effectively a receivable from the counterparty and can be at risk while they hold it.
+**Check (interpret the "V less than 0 but E greater than 0" case):** The last line is often the surprise. Exposure is about what you can lose if the counterparty defaults, not about whether your MTM is positive. If you have posted more collateral than you currently owe (because of timing, thresholds, haircuts, or disputes), that excess collateral is effectively a receivable from the counterparty and can be at risk while they hold it.
 
 ### 32.3.2 Variation Margin (VM)
 
@@ -228,9 +228,11 @@ $$\boxed{C_{\text{effective}} = C_{\text{market}} \times (1 - \text{haircut})}$$
 Thresholds and MTAs are operational features that intentionally leave a band of residual uncollateralized exposure.
 
 A **threshold** means VM is required only above a certain amount. A simple stylized rule is:
+
 $$
 \text{VM call}(t)=\max(V(t)-H,0),
 $$
+
 where $H$ is the threshold (for the bank's exposure to the counterparty).
 
 The threshold creates a **residual unsecured band**—even with VM in place, exposure up to the threshold level remains uncollateralized.
@@ -344,9 +346,11 @@ This stale-collateral effect means that even under "perfect collateralization," 
 - The net effect is that at close-out time $\tau$, the collateral you actually hold is closer to a *past* MTM than to $V(\tau)$. The MPOR parameter $c$ is a modeling knob that represents this margin-outage window.
 
 **Check (magnitude):** In the stylized two-way, zero-threshold VM convention $C(\tau)\approx V(\tau-c)$, the gap exposure is the positive part of the MTM change over the outage window:
+
 $$
 E(\tau)=\max(V(\tau)-V(\tau-c),0).
 $$
+
 So if a portfolio MTM can move by “a few million” over $c$ days in stressed scenarios, a few million of gap exposure is not a bug—it is the mechanism.
 
 > **Analogy: The Stale GPS**
@@ -360,9 +364,11 @@ Assume two-way, zero-threshold VM, and a cure period of $c=20$ days. On a given 
 - Portfolio value 20 days earlier is $V(\tau-c)=45$.
 
 Under the “stale collateral” convention, the calculation assumes the bank has collateral worth $45$ at the default time $\tau$. The exposure is:
+
 $$
 E(\tau)=\max(50-45,0)=5.
 $$
+
 
 If instead $V(\tau-c)=55$, the assumption implies collateral worth $55$ at $\tau$ and $E(\tau)=0$ (and excess collateral would be returned).
 
@@ -379,14 +385,17 @@ This section standardizes the core exposure metrics used by risk, credit limits,
 ### 32.6.1 Current Exposure (CE)
 
 **Current exposure** is exposure computed from today’s MTM and today’s collateral:
+
 $$
 CE := E(0)=\max(V(0)-C(0),0).
 $$
+
 Informally: it is the replacement cost *right now* if the counterparty defaulted immediately (before recovery and close-out costs).
 
 ### 32.6.2 Potential Future Exposure (PFE) and Maximum PFE (MPFE)
 
 **Potential future exposure (PFE)** for a given date is the maximum exposure at that date, with a high degree of statistical confidence (i.e., a high percentile of the exposure distribution):
+
 $$
 \boxed{PFE_q(t) := \inf\\{x : P(E(t) \leq x) \geq q\\}}.
 $$
@@ -400,34 +409,42 @@ $$
 ### 32.6.3 Expected Exposure (EE)
 
 **Expected exposure at time $t$** is the mean of the exposure distribution:
+
 $$
 \boxed{EE(t) := \mathbb{E}[E(t)] = \mathbb{E}[\max(V(t) - C(t), 0)]}.
 $$
 
+
 ### 32.6.4 Expected Positive Exposure (EPE)
 
 **EPE** is a time-aggregated measure of $EE(t)$. A common convention is a time-weighted average:
+
 $$
 EPE := \frac{1}{T}\int_0^T EE(t)\\,dt
 \quad\text{or}\quad
 EPE \approx \sum_i w_i\\,EE(t_i).
 $$
+
 Because definitions vary (time grid, weighting, collateral treatment), always confirm the exact EPE definition used by your system.
 
 ### 32.6.5 Exposure at Default (EAD) (Preview)
 
 **Exposure at default** is exposure evaluated at the (random) default time $\tau$:
+
 $$
 EAD := E(\tau).
 $$
+
 This object appears in some capital and expected-loss calculations, but the detailed frameworks are outside this chapter’s scope.
 
 ### 32.6.6 Expected Negative Exposure (ENE) and DVA (Preview)
 
 From the counterparty’s perspective, the relevant “mirror” quantity is the positive part of $(C-V)$. Under our sign convention, define:
+
 $$
 \boxed{ENE(t) := \mathbb{E}[\max(C(t)-V(t),0)] = \mathbb{E}[\max(-(V(t)-C(t)),0)]}.
 $$
+
 
 Downstream, **DVA** uses ENE in an analogous way to how CVA uses EE. A full treatment of DVA belongs in Chapter 34.
 
@@ -541,13 +558,17 @@ For **currency swaps / cross-currency trades** with a large notional exchange at
 ### 32.8.2 Forward Contracts
 
 For an uncollateralized forward to **buy** an asset at price $K$ at time $T$, the value at time $t$ can be written (in simple settings) as:
+
 $$
 V(t) = (F_t - K)\\,D(t,T),
 $$
+
 so the exposure is:
+
 $$
 E(t)=\max(V(t),0)=D(t,T)\\,\max(F_t-K,0).
 $$
+
 This makes the intuition clear: the forward’s positive exposure behaves like a **call option** on the forward price $F_t$.
 
 ### 32.8.3 Options: Bounded and Asymmetric Exposure
@@ -983,10 +1004,7 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 **Step-by-step**
 1. Collateral held at $\tau$ is based on the earlier MTM, so $C(\tau)=45\text{mm}$.
-2. Exposure at close-out:
-   $$
- E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\mathrm{USD}\\,5\text{mm}.
- $$
+2. Exposure at close-out: $E(\tau)=\max(V(\tau)-C(\tau),0)=\max(50-45,0)=\mathrm{USD}\\,5\text{mm}$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
