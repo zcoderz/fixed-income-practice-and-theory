@@ -68,8 +68,8 @@ $$\Delta(t_{n-1}, t_n) = \frac{\text{DayDiff}(t_{n-1}, t_n)}{360}$$
 
 **Sign check:** If you write cashflows from the position-holder perspective (positive = received), then premium payments are **negative** for the protection buyer and **positive** for the protection seller:
 $$
-\text{PremiumCashflow}_{\text{buyer}}(t_n)=-N\,s\,\Delta(t_{n-1},t_n),\qquad
-\text{PremiumCashflow}_{\text{seller}}(t_n)=+N\,s\,\Delta(t_{n-1},t_n).
+PremiumCashflow_{\mathrm{buyer}}(t_n)=-N s \Delta(t_{n-1},t_n),\qquad
+PremiumCashflow_{\mathrm{seller}}(t_n)=+N s \Delta(t_{n-1},t_n).
 $$
 
 **Example:** Consider a USD 10 million notional CDS with a 35 bp running spread. For a 91-day quarter:
@@ -218,7 +218,7 @@ $$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = USD 
 
 **Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium:
 $$
-\text{AccruedPrem}(\tau)\approx \tfrac{1}{2}\,N\,s\,\Delta(t_{n-1},t_n).
+AccruedPrem(\tau)\approx \frac{1}{2} N s \Delta(t_{n-1},t_n).
 $$
 This is the same mid-period-default intuition used later when approximating the accrued-at-default contribution to `RPV01`.
 
@@ -292,7 +292,7 @@ Start from the building blocks from Chapter 36.
 
 $$\hat{Z}(t, t_n) = Z(t, t_n) \cdot Q(t, t_n)$$
 
-where $Z(t, t_n)$ is the risk-free discount factor and $Q(t, t_n)$ is the survival probability.
+where `Z(t, t_n)` is the risk-free discount factor and `Q(t, t_n)` is the survival probability.
 
 **Component 1 — Scheduled Payments:**
 
@@ -314,7 +314,7 @@ Combining both components and applying the mid-period-default approximation yiel
 
 $$\boxed{A(t, T) = \frac{1}{2} \sum_{n=1}^{N} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) + Q(t, t_n))}$$
 
-This elegant formula averages adjacent survival probabilities for each period, capturing both the scheduled payment (weighted by $Q(t, t_n)$) and the expected accrued at default (difference term).
+This elegant formula averages adjacent survival probabilities for each period, capturing both the scheduled payment (weighted by `Q(t, t_n)`) and the expected accrued at default (difference term).
 
 **Sanity checks:**
 - If $Q(t, t_n) = 1$ for all $n$ (no default risk), $A$ reduces to the risk-free annuity
@@ -435,7 +435,7 @@ where:
 
 **Check (units and sign):** $A$ has units of years and $(s-c)$ has units of 1/year, so $U$ is dimensionless (a fraction of notional). If $s\gt c$ (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
 $$
-Upfront_{\mathrm{USD}} \approx (s-c)_{\text{bp}}\times \text{RPV01}(t,T).
+Upfront_{\mathrm{USD}} \approx (s-c)_{\mathrm{bp}} \times RPV01(t,T).
 $$
 - $c$ = fixed coupon (decimal)
 
@@ -752,7 +752,7 @@ Before booking a CDS trade, verify:
 | $N$ | CDS notional (face value) |
 | $s$ | Running spread (decimal per annum; 100 bp = 0.01) |
 | $c$ | Fixed coupon (decimal per annum) |
-| $\Delta(t_1, t_2)$ | Accrual fraction = DayDiff$(t_1, t_2)$/360 |
+| $\Delta(t_1, t_2)$ | Accrual fraction = DayDiff(t_1, t_2)/360 |
 | $\tau$ | Credit event date |
 | $R$ | Recovery rate (fraction of par) |
 | $Z(t, T)$ | Risk-free discount factor from $t$ to $T$ |
