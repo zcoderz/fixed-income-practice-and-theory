@@ -721,7 +721,7 @@ This risk is distinct from both FX delta and rates DV01. A portfolio can be FX-h
 ### 21.7.5 P&L Attribution for Cross-Currency Portfolios
 
 This book uses the DV01 convention: **DV01 is positive for positions that gain when rates fall**. Under that convention, the linear P&L approximation is:
-$$\boxed{\Delta PV \approx \underbrace{\Delta_{FX} \cdot \delta S}_{\text{FX}} - \underbrace{DV01_d \cdot \delta r_d}_{\text{Dom Rates}} - \underbrace{DV01_f \cdot \delta r_f \cdot S}_{\text{For Rates}} + \underbrace{Basis01 \cdot \delta e}_{\text{Basis}} + \underbrace{\theta}_{\text{Carry}} + \underbrace{\varepsilon}_{\text{Unexplained}}}$$
+$$\Delta PV \approx \Delta_{FX}\cdot\delta S - DV01_d\cdot\delta r_d - DV01_f\cdot\delta r_f\cdot S + Basis01\cdot\delta e + \theta + \varepsilon$$
 
 where:
 - $\Delta_{FX}$: FX delta
