@@ -8,7 +8,7 @@ What if you could model the entire yield curve—every forward rate for every ma
 
 This is precisely what the Heath-Jarrow-Morton (HJM) framework delivers. Introduced in 1992, HJM models the evolution of the **entire instantaneous forward-rate curve** $T \mapsto f(t,T)$ rather than specifying a single short-rate process and deriving everything else.
 
-The central insight—and the practical payoff—is the **HJM drift restriction**: once you specify how volatile each point on the forward curve is (the volatility function $\sigma(t,T)$), no-arbitrage pins down the drift $\alpha(t,T)$. You cannot freely choose both. This is why people often summarize HJM as *“choose the volatility; the drift follows mechanically.”*
+The central insight—and the practical payoff—is the **HJM drift restriction**: once you specify how volatile each point on the forward curve is (the volatility function `sigma(t,T)`), no-arbitrage pins down the drift $\alpha(t,T)$. You cannot freely choose both. This is why people often summarize HJM as *“choose the volatility; the drift follows mechanically.”*
 
 HJM is also a unifying viewpoint: many familiar term structure models (e.g., Ho–Lee, Hull–White) can be seen as special cases of HJM, and market models like LMM can be viewed as a discretized HJM built on **simply compounded** forward rates.
 
@@ -106,7 +106,7 @@ $$D(t,T) = \frac{B(t)}{B(T)} = \exp\\!\left(-\int_t^T r(s)\\,ds\right).$$
 
 ## 1. Core Concepts (Definitions First)
 
-### 1.1 Zero-coupon bond price $P(t,T)$
+### 1.1 Zero-coupon bond price P(t,T)
 
 **Formal definition:** $P(t,T)$ is the time-$t$ price of a claim paying 1 at $T$.
 
@@ -116,7 +116,7 @@ $$D(t,T) = \frac{B(t)}{B(T)} = \exp\\!\left(-\int_t^T r(s)\\,ds\right).$$
 
 ---
 
-### 1.2 Short rate $r(t)$ and money-market account $B(t)$
+### 1.2 Short rate r(t) and money-market account B(t)
 
 **Formal definition:**
 
@@ -128,7 +128,7 @@ $$\frac{dB(t)}{B(t)} = r(t)\\,dt, \quad B(0) = 1, \quad B(t) = \exp\\!\left(\int
 
 ---
 
-### 1.3 Instantaneous forward rate $f(t,T)$ and its link to $P(t,T)$
+### 1.3 Instantaneous forward rate f(t,T) and its link to P(t,T)
 
 **Formal definition (instantaneous forward):**
 
@@ -146,7 +146,7 @@ $$\boxed{P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right)}$$
 
 ---
 
-### 1.4 HJM state variable: the entire forward curve $f(t,\cdot)$
+### 1.4 HJM state variable: the entire forward curve f(t,·)
 
 **Formal definition:** The HJM "state" at time $t$ is the function $T \mapsto f(t,T)$ for all maturities $T \geq t$. The model specifies consistent dynamics for this curve across all $T$.
 
@@ -182,7 +182,7 @@ $$\boxed{P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right)}$$
 
 ---
 
-### 1.5 Volatility specification $\sigma(t,T)$
+### 1.5 Volatility specification sigma(t,T)
 
 **Formal definition:** In HJM, for each maturity $T$, $f(t,T)$ follows a diffusion with instantaneous volatility $\sigma(t,T)$ (possibly vector-valued for multi-factor models).
 
@@ -192,7 +192,7 @@ $$\boxed{P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right)}$$
 
 ---
 
-### 1.6 No-arbitrage principle in HJM: discounted bond prices are martingales under $\mathbb{Q}^B$
+### 1.6 No-arbitrage principle in HJM: discounted bond prices are martingales under Q^B
 
 **Formal statement:** Under the measure associated with numeraire $B(t)$, any traded price divided by $B(t)$ is a martingale (Fact One).
 
@@ -214,7 +214,7 @@ $$\boxed{P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right)}$$
 
 ## 2. HJM Setup: From Bond Prices to Forward-Rate Dynamics
 
-### 2.1 Start from $P(t,T)$ and define $f(t,T)$
+### 2.1 Start from P(t,T) and define f(t,T)
 
 Given $P(t,T)$, define the instantaneous forward:
 
@@ -244,7 +244,7 @@ $$P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right).$$
 
 ---
 
-### 2.3 Risk-neutral (money-market) vs $T$-forward measure: conceptual difference
+### 2.3 Risk-neutral (money-market) vs T-forward measure: conceptual difference
 
 **Under $\mathbb{Q}^B$ (numeraire $B(t)$):**
 - Pricing uses discounting by the money-market account; traded prices divided by $B(t)$ are martingales.
@@ -385,7 +385,7 @@ under the risk-neutral measure (here $W$ is one-dimensional).
 
 ## 4. Measures Commonly Used with HJM (Risk-Neutral vs Forward Measures)
 
-### 4.1 Why the $T$-forward measure is natural for payoffs at $T$
+### 4.1 Why the T-forward measure is natural for payoffs at T
 
 If a claim pays $H_T$ at time $T$, choosing the ZCB numeraire $P(t,T)$ yields the pricing identity
 
@@ -475,7 +475,7 @@ So you cannot choose $\alpha$ and $\sigma$ independently.
 
 ---
 
-### 5.2 Common $\sigma(t,T)$ shapes supported in the sources
+### 5.2 Common sigma(t,T) shapes supported in the sources
 
 **(i) Separable (Carverhill) structure**
 
@@ -1031,7 +1031,7 @@ where $w_i$ are weights (often inverse bid-offer or inverse vega).
 
 ## 8. Math and Derivations (Step-by-Step)
 
-### 8.1 Derive $f(t,T)$ from $P(t,T)$
+### 8.1 Derive f(t,T) from P(t,T)
 
 Starting from the definition of the instantaneous forward rate:
 
@@ -1043,7 +1043,7 @@ assuming the bond-price term structure is sufficiently smooth in $T$.
 
 ---
 
-### 8.2 Derive $P(t,T)$ from $f(t,\cdot)$
+### 8.2 Derive P(t,T) from f(t,·)
 
 Integrate the definition:
 
@@ -1147,7 +1147,7 @@ where $\sigma_P(s,T,\tau) = \Lambda(T,\tau) \cdot \eta(s) \cdot e^{-\int_s^T \ka
 
 ---
 
-### Example 1: Compute $f(0,T)$ from a discount curve $P(0,T)$ (finite-difference)
+### Example 1: Compute f(0,T) from a discount curve P(0,T) (finite-difference)
 
 Suppose the time-0 discount factors are:
 
@@ -1173,7 +1173,7 @@ $$f(0,2) \approx -\frac{\ln P(0,2.5) - \ln P(0,1.5)}{2.5 - 1.5} = -\frac{-0.070 
 
 ---
 
-### Example 2: Given $\sigma(t,T)$, compute implied $\alpha(t,T)$ using HJM drift restriction
+### Example 2: Given sigma(t,T), compute implied alpha(t,T) using HJM drift restriction
 
 Assume one-factor HJM with constant forward volatility:
 
@@ -1193,7 +1193,7 @@ $$\alpha(t,T) = \sigma(t,T) \int_t^T \sigma(t,u)\\,du = 0.01 \int_t^T 0.01\\,du 
 
 ---
 
-### Example 3: Limiting case $\sigma = 0$
+### Example 3: Limiting case sigma = 0
 
 If $\sigma(t,T) = 0$ for all $(t,T)$, then
 
@@ -1203,7 +1203,7 @@ So the forward curve evolves deterministically (no Brownian shock and no volatil
 
 ---
 
-### Example 4: One-factor vs two-factor $\sigma$: how the drift changes (inner product)
+### Example 4: One-factor vs two-factor sigma: how the drift changes (inner product)
 
 Let $d = 2$ factors with constant volatilities:
 
@@ -1224,7 +1224,7 @@ Compare to one-factor case with only $\sigma = 0.01$: $\alpha = 0.0002$. **Two f
 
 ---
 
-### Example 5: $T$-forward measure intuition: price of 1 paid at $T$
+### Example 5: T-forward measure intuition: price of 1 paid at T
 
 **Payoff:** $H_T = 1$ at $T = 2$. Suppose $P(0,2) = 0.94933$.
 
@@ -1252,7 +1252,7 @@ $$\mu^U = 0.020 - 0.10(0 - 0.05) = 0.020 + 0.005 = 0.025.$$
 
 ---
 
-### Example 7: "Vol choice impacts drift": compare two $\sigma$ shapes
+### Example 7: "Vol choice impacts drift": compare two sigma shapes
 
 Fix $t = 0$, $T = 2$ so $\Delta = T - t = 2$.
 
@@ -1302,7 +1302,7 @@ Compute $\sigma\\,\Delta W = 0.01 \cdot 0.10 = 0.001$.
 
 ---
 
-### Example 9: Reconstruct $P(t,T)$ from the updated curve; check positivity/monotonicity
+### Example 9: Reconstruct P(t,T) from the updated curve; check positivity/monotonicity
 
 Approximate the integral $\int_t^T f(t,u)\\,du$ by piecewise-constant forwards over:
 
