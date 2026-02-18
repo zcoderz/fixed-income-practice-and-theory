@@ -67,9 +67,11 @@ In the multi-curve framework, we work with:
 - one or more **index (projection) curves** $P^{(k)}(0,T)$ used to generate forward rates for a particular floating index $k$ (3M term, 6M term, compounded SOFR, etc.).
 
 A convenient abstraction is a **multi-index curve group**,
+
 $$
-\{P_d(\cdot), P^{(1)}(\cdot),\ldots,P^{(K)}(\cdot)\}
+\mathcal{G} = \left(P_d(\cdot), P^{(1)}(\cdot),\ldots,P^{(K)}(\cdot)\right)
 $$
+
 i.e., one discounting curve and one index curve per tenor/index.
 
 ### 19.2.1 The Roles of the Curves
@@ -103,8 +105,9 @@ The key point: $P^{(k)}$ is **not** a tradable discount factor; it is a curve ob
 In a single-curve world, a standard FRN that resets to the curve trades at par (ignoring credit/liquidity, accrued interest, and idiosyncratic funding), because the floating-leg PV telescopes. In a multi-curve world, the coupons are projected from an index curve $P^{(k)}$ but discounted on $P_d$, so that telescoping identity no longer holds.
 
 A simple PV expression (toy, ignoring spreads/convexity) is:
+
 $$
-PV \approx \sum_{i=1}^n P_d(0,T_i)\,N\,\tau_i\,F_k(0;T_{i-1},T_i) + P_d(0,T_n)\,N
+PV \approx \sum_{i=1}^n P_d(0,T_i) N \tau_i F_k(0;T_{i-1},T_i) + P_d(0,T_n) N
 $$
 
 **Expand (where the “par” identity went):** Define the *discount-implied* forward on the same accrual period,
@@ -206,9 +209,11 @@ Projection curves are usually built in a *curve group* rather than independently
 2. Build other tenors as **spread curves** to the base using basis swap quotes.
 
 A convenient representation is multiplicative:
+
 $$
 P^{(2)}(t)=P^{(1)}(t)\exp\left(-\int_0^t \eta^{1,2}(s)\,ds\right)
 $$
+
 where $\eta^{1,2}$ is a (typically piecewise-constant) spread function calibrated to basis instruments.
 
 This spread-based construction helps keep risk interpretable: moves in instruments that build the base curve tend to shift many forwards together, while moves in basis quotes primarily change the relative spread between tenors (see Section 19.5).
@@ -451,9 +456,11 @@ Risk numbers are only meaningful once you state:
 - **sign convention:** how the bump is defined.
 
 In this book we use the convention:
+
 $$
 DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})
 $$
+
 for the stated bump object. (So a “long rates” position typically has positive DV01.)
 
 In a multi-curve setup you typically need at least three scalars:
