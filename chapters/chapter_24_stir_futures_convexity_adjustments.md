@@ -76,7 +76,7 @@ In decimal form: $r^{\text{fut}} = 0.0475$.
 
 This convention means that a one-basis-point increase in the implied rate corresponds to a 0.01 decrease in price. The standardized relationship makes DV01 calculations straightforward (see Section 24.10).
 
-For Fed Funds futures, the final settlement price is set to $100 - 100 \times \bar{r}_{\text{FF}}$, where $\bar{r}_{\text{FF}}$ is the monthly average effective fed funds rate (in percent).
+For Fed Funds futures, the final settlement price is set to $100 - 100 \times r_{\mathrm{FF,avg}}$, where $r_{\mathrm{FF,avg}}$ is the monthly average effective fed funds rate (in percent).
 
 ### 24.1.3 Contract Value and Tick Size
 
@@ -369,7 +369,7 @@ Fed Funds futures settle based on the arithmetic average of the daily effective 
 
 - **Notional:** USD5,000,000
 - **Settlement:** Cash, based on average rate over the contract month
-- **Quote:** USD100 - \bar{r}_{\text{FF}}$ where $\bar{r}_{\text{FF}}$ is the monthly average in percent
+- **Quote:** $100 - r_{\mathrm{FF,avg}}$, where $r_{\mathrm{FF,avg}}$ is the monthly average in percent
 - **DV01:** USD41.67 per bp (30-day month)
 
 The averaging feature creates unique properties: the contract is sensitive to the *path* of rates during the month, not just the end-of-month level. This makes Fed Funds futures particularly useful for reading market expectations about Federal Reserve policy.
@@ -701,7 +701,7 @@ In USD STIR contracts this yields the familiar constants:
 
 **Hedge ratio.** For an exposure with DV01 of $\text{DV01}_{\text{target}}$ (in USD per bp, computed under the same bump object definition), the hedge ratio is:
 
-$$n_{\text{contracts}} = -\frac{\text{DV01}_{\text{target}}}{\text{DV01}_{\text{fut}}}$$
+$$n_{\text{contracts}} = -\frac{DV01_{target}}{DV01_{fut}}$$
 
 The negative sign says you take the opposite position: a long exposure (positive DV01) is hedged by **selling** futures so the combined DV01 is near zero.
 
