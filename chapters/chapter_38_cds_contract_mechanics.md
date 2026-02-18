@@ -67,6 +67,7 @@ $$\Delta(t_{n-1}, t_n) = \frac{\text{DayDiff}(t_{n-1}, t_n)}{360}$$
 **Unit check:** $N$ (dollars) × $s$ (1/year) × $\Delta$ (years) = dollars. The spread is quoted per annum, and the accrual fraction converts the annual rate to the period's portion.
 
 **Sign check:** If you write cashflows from the position-holder perspective (positive = received), then premium payments are **negative** for the protection buyer and **positive** for the protection seller:
+
 $$
 PremiumCashflow_{\mathrm{buyer}}(t_n)=-N s \Delta(t_{n-1},t_n),\qquad
 PremiumCashflow_{\mathrm{seller}}(t_n)=+N s \Delta(t_{n-1},t_n).
@@ -217,6 +218,7 @@ $$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = USD 
 **Sanity check:** The accrued amount (USD 4,764) is less than a full quarter's premium (USD 8,847), as expected since default occurred roughly halfway through the period.
 
 **Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium:
+
 $$
 AccruedPrem(\tau)\approx \frac{1}{2} N s \Delta(t_{n-1},t_n).
 $$
@@ -434,6 +436,7 @@ where:
 - $s$ = quoted spread (decimal)
 
 **Check (units and sign):** $A$ has units of years and $(s-c)$ has units of 1/year, so $U$ is dimensionless (a fraction of notional). If $s\gt c$ (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
+
 $$
 Upfront_{\mathrm{USD}} \approx (s-c)_{\mathrm{bp}} \times RPV01(t,T).
 $$
