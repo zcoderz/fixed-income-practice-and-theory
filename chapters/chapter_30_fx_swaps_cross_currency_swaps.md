@@ -112,7 +112,7 @@ A single-period FX swap is economically very close to an FX forward (and a one-p
 
 | Feature | FX Swap | Cross-Currency (Basis) Swap |
 |---------|---------|---------------------------|
-| **Horizon (typical)** | Liquid out to $\sim$1y in interbank markets | Used for multi-year horizons when FX forwards are illiquid |
+| **Horizon (typical)** | Liquid out to ~1y in interbank markets | Used for multi-year horizons when FX forwards are illiquid |
 | **Structure** | One near notional exchange + one far notional exchange | Periodic floating coupons in two currencies; basis $b$ on one leg; notionals often exchanged at inception and maturity |
 | **Main quote** | Outright forward or forward points | Basis spread $b$ (and which leg it applies to) |
 | **Primary risks** | FX spot + forward points/basis | FX spot + domestic and foreign curves + basis |
@@ -131,7 +131,7 @@ Both achieve the same economic transfer. However, for multi-period swaps:
 
 This “roll” risk is one reason long-dated hedgers often prefer multi-period cross-currency swaps to repeated short-dated rolls.
 
-**Check (roll-cost scaling):** Rolling is economically “re-fixing” your funding spread. If the implied funding differential moves by 10 bp between rolls, then on a $\mathrm{USD} 100$m notional the cash impact over a quarter is roughly $\mathrm{USD} 100$m $\times 10$ bp $\times 0.25 \approx \mathrm{USD} 25{,}000$ (ignoring compounding). That is small per roll but meaningful when leveraged or when basis moves are large in stress.
+**Check (roll-cost scaling):** Rolling is economically “re-fixing” your funding spread. If the implied funding differential moves by 10 bp between rolls, then on a USD 100m notional the cash impact over a quarter is roughly $100 \times 10\text{ bp} \times 0.25 = 25{,}000$ USD (ignoring compounding). That is small per roll but meaningful when leveraged or when basis moves are large in stress.
 
 ---
 
@@ -293,12 +293,12 @@ Throughout these examples:
 
 **Step-by-step**
 1. **Translate quote → cashflows (from the USD receiver’s perspective):**
-   - Near leg (2026-02-19): receive $\mathrm{USD} 11.0$m, pay $\mathrm{EUR}\,10.0$m.
-   - Far leg (2027-02-19): pay $\mathrm{USD} 11.15$m, receive $\mathrm{EUR}\,10.0$m.
+   - Near leg (2026-02-19): receive USD 11.0m, pay EUR 10.0m.
+   - Far leg (2027-02-19): pay USD 11.15m, receive EUR 10.0m.
 2. **Compute the CIP-fair forward from discount factors:**
    $$F^{\star}(0,1)=X(0)\frac{P_{\mathrm{EUR}}(0,1)}{P_{\mathrm{USD}}(0,1)}=1.10\times\frac{0.99}{0.98}=1.11122449\ \text{USD/EUR}.$$
 3. **Compute PV of the far-leg forward exchange (USD PV):**
-   $$PV_0=\underbrace{X(0)\,P_{\mathrm{EUR}}(0,1)\,N_f}_{\text{PV of receiving EUR at maturity}}-\underbrace{F_{\mathrm{mkt}}(0,1)\,P_{\mathrm{USD}}(0,1)\,N_f}_{\text{PV of paying USD at maturity}}.$$
+   $$PV_0 = X(0)\,P_{\mathrm{EUR}}(0,1)\,N_f - F_{\mathrm{mkt}}(0,1)\,P_{\mathrm{USD}}(0,1)\,N_f.$$
    Numerically, per EUR: $1.10\times 0.99 - 1.1150\times 0.98 = -0.0037$ USD/EUR, so $PV_0\approx-\mathrm{USD} 37{,}000$.
 4. **Compute FX delta (hold curves fixed):**
    $$\frac{\partial PV_0}{\partial X(0)}=P_{\mathrm{EUR}}(0,1)\,N_f \approx 0.99\times \mathrm{EUR}\,10{,}000{,}000 = \mathrm{EUR}\,9.9\text{m}.$$
