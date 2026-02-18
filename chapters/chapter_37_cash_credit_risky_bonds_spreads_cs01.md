@@ -369,12 +369,7 @@ $$\boxed{\hat{Z}(0,T) = Z(0,T) \\, Q(0,T)}$$
 
 The factorization $\hat{Z}(0,T)=Z(0,T)Q(0,T)$ relies on a modeling simplification (often phrased as an “independence” assumption) that makes default timing separable from discounting. If interest rates and hazard rates are modeled jointly and are materially correlated, the risky zero-coupon bond price need not equal $ZQ$.
 
-In some joint Gaussian specifications, this shows up as a multiplicative correction term of the form
-
-$$
-\hat{Z}(0,T) = Z(0,T)Q(0,T)\Theta(0,T,\rho)
-$$
-where $\Theta$ depends on the joint dynamics and the correlation parameter $\rho$. The exact form is model-dependent: if you want to include this effect, you must specify the joint rate/hazard model and calibrate its parameters.
+In some joint Gaussian specifications, this shows up as a multiplicative correction term of the form $\hat{Z}(0,T) = Z(0,T)Q(0,T)\Theta(0,T,\rho)$, where $\Theta$ depends on the joint dynamics and the correlation parameter $\rho$. The exact form is model-dependent: if you want to include this effect, you must specify the joint rate/hazard model and calibrate its parameters.
 
 **Sanity check:** if $\rho=0$ (or the relevant volatilities are zero), then $\Theta \to 1$ and you recover $\hat{Z}=ZQ$.
 
@@ -894,11 +889,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
    PV(r,z) = \sum_i CF_i \exp\bigl(-(r+z)t_i\bigr).
    \]
    With $r+z = 5.80\\%$, this gives $PV \approx 101.33$ per 100, consistent with the dirty price.
-4. **DV01 and CS01 (bump-and-reprice):** With continuous discounting, a 1bp down-bump changes PV by approximately
-
-   $$
-   DV01 \approx CS01 \approx \left(\sum_i CF_i t_i e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022 \quad \text{per 100 per bp}.
-   $$
+4. **DV01 and CS01 (bump-and-reprice):** With continuous discounting, a 1bp down-bump changes PV by approximately $DV01 \approx CS01 \approx \left(\sum_i CF_i t_i e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022$ per 100 per bp.
    For $N=\mathrm{USD}\\,10\text{ mm}$, $DV01 \approx CS01 \approx 0.022 \times 100{,}000 \approx \mathrm{USD}\\,2{,}200$ per bp.
 
 **Cashflows (table)**
@@ -913,10 +904,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 
 **P&L / Risk Interpretation**
 - A desk-style first-order explain for a long position is:
-
-  $$
-  \Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} - CS01 \cdot \Delta z_{\text{bp}}
-  $$
+  $\Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} - CS01 \cdot \Delta z_{\text{bp}}$.
   where $\Delta r_{\text{bp}}$ is the base-curve move (in bp) and $\Delta z_{\text{bp}}$ is the Z-spread move (in bp), both defined consistently with the bump objects above.
 - Example scenario: if rates rise by $+6$bp and Z-spread widens by $+15$bp, then
   \[
