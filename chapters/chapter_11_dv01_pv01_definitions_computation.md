@@ -174,19 +174,19 @@ Here $P$ is the bond’s price in the same units you want DV01 to be reported in
 >
 > **Inputs**
 > - Face $N=USD 25{,}000{,}000$
-> - Coupon $c=4.00\%USD  per year, paid semiannually (2.00 per 100 every 6 months)
-> - Yield $y=4.50\%USD  (bond-style YTM with semiannual compounding)
+> - Coupon $c=4.00\%$ per year, paid semiannually (2.00 per 100 every 6 months)
+> - Yield $y=4.50\%$ (bond-style YTM with semiannual compounding)
 >
 > **Outputs**
 > - Dirty price per 100 (here $AI=0$, so clean = dirty): $P_0 \approx 99.0538$
 > - DV01 per 100 (rates **down** 1bp in yield): $DV01 \approx 0.01881$
-> - Position DV01: $DV01_{USD } \approx 0.01881\times\frac{25{,}000{,}000}{100} \approx USD 4{,}702USD  per 1bp
+> - Position DV01: $DV01_{USD} \approx 0.01881\times\frac{25{,}000{,}000}{100} \approx 4{,}702$ USD per 1bp
 >
 > **Step-by-step**
-> 1. Price the bond at $y$: $P_0=\sum_{t=1}^{4} \frac{CF_t}{(1+y/2)^t}USD .
+> 1. Price the bond at $y$: $P_0=\sum_{t=1}^{4} \frac{CF_t}{(1+y/2)^t}$.
 > 2. Reprice at $y\pm 1\text{bp}$: $P_{\uparrow}=P(y+10^{-4})$ and $P_{\downarrow}=P(y-10^{-4})$.
-> 3. Central-difference DV01: $DV01=(P_{\downarrow}-P_{\uparrow})/2USD .
-> 4. Scale to position: $DV01_{USD }=DV01_{\text{per 100}}\times N/100USD .
+> 3. Central-difference DV01: $DV01=(P_{\downarrow}-P_{\uparrow})/2$.
+> 4. Scale to position: $DV01_{USD}=DV01_{\text{per 100}}\times N/100$.
 >
 > **Cashflows (per 100 face)**
 >
@@ -316,7 +316,7 @@ which is why curve DV01 is closely related to a PV-weighted average maturity. As
 
 > **Example 11.4: Curve DV01 via a Parallel Zero-Curve Bump**
 >
-> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at $z=4.50\%USD , so $P(0,t)=e^{-z t}$.
+> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at $z=4.50\%$, so $P(0,t)=e^{-z t}$.
 >
 > **Base PV**
 > $$P_0=\sum_{t=1}^{4} 5e^{-0.045t}+105e^{-0.045\cdot 5}\approx 101.7388$$
