@@ -127,10 +127,12 @@ A fixed spread is typically added to one of the legs to make the swap value at i
 The **par basis spread** $e_{1,2}(T)$ is the spread added to one leg such that the net present value of the swap is zero at inception.
 
 One convenient way to write the par condition (spread added to the tenor-1 leg) is:
+
 $$
-\sum_{i=0}^{n^{2}(T)-1} L^{2}(0; t_{i}^{2}, t_{i+1}^{2}) \tau_{i}^{2} P_d(0,t_{i+1}^{2})
-= \sum_{i=0}^{n^{1}(T)-1}\left(L^{1}(0; t_{i}^{1}, t_{i+1}^{1})+e^{1,2}(T)\right)\tau_{i}^{1} P_d(0,t_{i+1}^{1})
+\sum_i L^{(2)}_i\,\tau^{(2)}_i\,P_d(0,t^{(2)}_{i+1})
+= \sum_i \left(L^{(1)}_i + e^{1,2}(T)\right)\tau^{(1)}_i\,P_d(0,t^{(1)}_{i+1})
 $$
+
 
 Here $P_d$ is the discount curve, and $e^{1,2}(T)$ is the quoted spread for exchanging tenor 1 for tenor 2 to maturity $T$. The market convention for which leg carries the spread varies; the equation above is a *notation choice* that makes the algebra explicit.
 
@@ -333,8 +335,8 @@ To bootstrap the 6M curve point by point:
 > $$= 2.29\% \times 0.25 \times 0.9950 + 2.47\% \times 0.25 \times 0.9900 = 0.5696\% + 0.6113\% = 1.1809\%$$
 >
 > **Step 3:** Set 6M leg PV equal and solve for $F^{(6M)}$
-> $$F^{(6M)}_{0-6M} \times 0.50 \times P_d(0.50) = 0.011809$$
-> $$F^{(6M)}_{0-6M} \times 0.50 \times 0.9900 = 0.011809$$
+> $$F_{6M} \times 0.50 \times P_d(0.50) = 0.011809$$
+> $$F_{6M} \times 0.50 \times 0.9900 = 0.011809$$
 > $$F^{(6M)}_{0-6M} = 2.386\%$$
 >
 > **Step 4:** Convert to pseudo-discount factor
