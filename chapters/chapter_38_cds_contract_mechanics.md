@@ -217,11 +217,7 @@ $$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = USD 
 
 **Sanity check:** The accrued amount (USD 4,764) is less than a full quarter's premium (USD 8,847), as expected since default occurred roughly halfway through the period.
 
-**Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium:
-
-$$
-AccruedPrem(\tau)\approx \frac{1}{2} N s \Delta(t_{n-1},t_n).
-$$
+**Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium: $AccruedPrem(\tau)\approx \frac{1}{2} N s \Delta(t_{n-1},t_n)$.
 This is the same mid-period-default intuition used later when approximating the accrued-at-default contribution to `RPV01`.
 
 ### 38.4.2 Premium Payments Stop at Default
