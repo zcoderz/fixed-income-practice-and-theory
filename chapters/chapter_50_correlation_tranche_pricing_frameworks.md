@@ -99,16 +99,16 @@ Practitioners often summarize this sensitivity with a “correlation 01” (Corr
 
 Define Corr01 for the **stated position** as:
 
-$$\boxed{\\mathrm{Corr01} := PV(\rho+0.01)-PV(\rho)}$$
+$$\boxed{\mathrm{Corr01} := PV(\rho+0.01)-PV(\rho)}$$
 
-- **Bump object:** specify what “$\rho$” means (flat compound correlation, a node on a base-correlation curve/surface, or another dependence parameter) and how the curve/surface is rebuilt after the bump.
+- **Bump object:** specify what `rho` means (flat compound correlation, a node on a base-correlation curve/surface, or another dependence parameter) and how the curve/surface is rebuilt after the bump.
 - **Bump size:** an absolute +1% correlation bump (e.g., 0.30 → 0.31).
 - **Units:** currency per 1% correlation.
 - **Interpretation:** Corr01 > 0 means the position’s PV increases when the desk’s dependence parameter increases.
 
-**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is to compute Corr01 using both a one-sided bump and a symmetric difference,
+**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is to compute Corr01 using both a one-sided bump and a symmetric difference:
 $$
-\mathrm{Corr01}_{\text{sym}} \approx \frac{PV(\rho+0.01)-PV(\rho-0.01)}{2},
+\mathrm{Corr01sym} \approx \frac{PV(\rho+0.01)-PV(\rho-0.01)}{2}
 $$
 holding the same calibration/interpolation rules fixed. Large discrepancies flag nonlinearity or methodology instability (and should push you toward scenario shocks rather than relying on a local number).
 
@@ -154,7 +154,7 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 - Tranches (loss strikes are fractions of portfolio notional):
   - Equity: $[A,D]=[0\\%,3\\%]$
   - Super-senior: $[A,D]=[30\\%,100\\%]$
-- Position: **short protection** on each tranche, tranche notional $N_{\text{tr}}=USD 10$mm.
+- Position: **short protection** on each tranche, tranche notional `N_tr = USD 10mm`.
 - Premium: running spread $s=500$bp per year (hypothetical), paid on **surviving tranche notional**.
 - Discounting: ignore for sign intuition (set $Z(0,T)\approx 1$).
 - Two dependence extremes (limiting cases):
@@ -166,14 +166,14 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 - Expected surviving fraction: $\mathbb{E}[1-L(T;A,D)]$ (unitless).
 - Toy PV per USD 1 of tranche notional (short protection):
   $$
-  PV \approx sT\\,\\mathbb{E}[1-L(T;A,D)]-\\mathbb{E}[L(T;A,D)].
+  PV \approx sT\\,\\mathbb{E}[1-L(T;A,D)]-\\mathbb{E}[L(T;A,D)]
   $$
 
 **Step-by-step**
 1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\\,(K/N)$.
 2. Map portfolio loss to tranche loss fraction:
    $$
-   L(T;A,D)=\frac{\\min(L(T),D)-\\min(L(T),A)}{D-A}.
+   L(T;A,D)=\frac{\\min(L(T),D)-\\min(L(T),A)}{D-A}
    $$
 3. Compute ETL $=\\mathbb{E}[L(T;A,D)]$ and expected survival $=\\mathbb{E}[1-L(T;A,D)]$.
 4. Plug into the toy PV formula above.
@@ -204,7 +204,7 @@ For $N_{\text{tr}}=USD 10\text{mm}$, the equity PV increases by about $USD 4.72\
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you define PV from the correct side (short vs long protection)?
-- Did you specify what “$\rho$” means (compound vs base) and how you rebuild after a bump?
+- Did you specify what `rho` means (compound vs base) and how you rebuild after a bump?
 - Are you holding marginals fixed when you change dependence (so expected portfolio loss stays the same)?
 - Are your tranche strikes in **decimals** (0.03, not 3)?
 
@@ -397,10 +397,11 @@ All latent variables collapse to the single factor. Defaults become perfectly de
 
 **Definition (Upper and lower tail dependence):** Given r.v.'s $X_1$ and $X_2$ with marginal distributions $F_1$ and $F_2$,
 $$
-\begin{aligned}
-\lambda_{\mathrm{U}} & =\lim _{u \uparrow 1} \mathbb{P}\\!\left[X_{2}\gt F_{2}^{-1}(u) \mid X_{1}\gt F_{1}^{-1}(u)\right], \\
-\lambda_{\mathrm{L}} & =\lim _{u \downarrow 0} \mathbb{P}\\!\left[X_{2} \leq F_{2}^{-1}(u) \mid X_{1} \leq F_{1}^{-1}(u)\right] .
-\end{aligned}
+\lambda_{\mathrm{U}} =\lim _{u \uparrow 1} \mathbb{P}\\!\left[X_{2}\gt F_{2}^{-1}(u) \mid X_{1}\gt F_{1}^{-1}(u)\right]
+$$
+
+$$
+\lambda_{\mathrm{L}} =\lim _{u \downarrow 0} \mathbb{P}\\!\left[X_{2} \leq F_{2}^{-1}(u) \mid X_{1} \leq F_{1}^{-1}(u)\right]
 $$
 
 Intuition: $\lambda_{\mathrm{U}}$ is a limiting conditional probability of a joint extreme in the upper tail; $\lambda_{\mathrm{L}}$ is the analogous object in the lower tail.
@@ -484,14 +485,14 @@ The portfolio loss equals $\ell$ when:
 $$(1-R) \cdot \Phi\left(\frac{a - \sqrt{\rho}x}{\sqrt{1-\rho}}\right) = \ell$$
 
 Solving:
-$$x^*(\ell) = \frac{a - \sqrt{1-\rho}\Phi^{-1}(\ell/(1-R))}{\sqrt{\rho}}$$
+$$x^{\star}(\ell) = \frac{a - \sqrt{1-\rho}\Phi^{-1}(\ell/(1-R))}{\sqrt{\rho}}$$
 
 **Step 4: Derive the loss CDF**
 
 Since $L$ is monotonically decreasing in $X$ (bad factor = high loss):
-$$\Pr(L \le \ell) = \Pr(X \ge x^*(\ell)) = 1 - \Phi(x^*(\ell)) = \Phi(-x^*(\ell))$$
+$$\Pr(L \le \ell) = \Pr(X \ge x^{\star}(\ell)) = 1 - \Phi(x^{\star}(\ell)) = \Phi(-x^{\star}(\ell))$$
 
-Substituting $x^*$:
+Substituting $x^{\star}$:
 $$F_L(\ell) = \Phi\left(\frac{\sqrt{1-\rho}\Phi^{-1}(\ell/(1-R)) - a}{\sqrt{\rho}}\right)$$
 
 **Step 5: Analytical ETL for base tranches**
@@ -602,7 +603,7 @@ The key insight: rather than finding a single $\rho$ for each tranche, we find a
 >
 > In option markets, every strike has its own "Implied Volatility." In credit, every detachment point has its own "Base Correlation."
 >
-> *   **The Problem**: Tranche prices are inconsistent if you force one correlation $\rho$ on the whole capital structure.
+> *   **The Problem**: Tranche prices are inconsistent if you force one correlation `rho` on the whole capital structure.
 > *   **The Fix**: Don't price $[3, 7]$. Price $[0, 7]$ and $[0, 3]$ separately.
 >     *   Find $\rho_3$ that fits the market price of the Equity tranche $[0, 3]$.
 >     *   Find $\rho_7$ that fits the virtually constructed Equity tranche $[0, 7]$.
@@ -738,7 +739,9 @@ In extreme cases, interpolation can produce **negative implied spreads** for thi
 
 Define the base-tranche expected loss function:
 
-$$\psi(T,K)=\mathbf{E}_{\rho(K)}[\min(L(T),K)] \qquad \text{(base tranche }[0,K]\text{)}.$$
+$$\psi(T,K)=\mathbf{E}_{\rho(K)}[\min(L(T),K)]$$
+
+for base tranche $[0,K]$.
 
 The **implied portfolio loss density** satisfies:
 
@@ -748,7 +751,7 @@ For a valid probability distribution, $f(K)\ge 0$ everywhere.
 
 **Check (finite-difference density approximation):** on a uniform strike grid with spacing $\Delta K$, a quick diagnostic is
 $$
-f(K_i)\ \approx\ -\frac{\psi(T,K_{i+1}) - 2\psi(T,K_i) + \psi(T,K_{i-1})}{(\Delta K)^2}.
+f(K_i)\ \approx\ -\frac{\psi(T,K_{i+1}) - 2\psi(T,K_i) + \psi(T,K_{i-1})}{(\Delta K)^2}
 $$
 Negative values indicate an interpolation/calibration artifact (not a “negative probability”), and they often coincide with negative tranchelet spreads or unstable Corr01 hedges.
 
@@ -1190,7 +1193,7 @@ Recalibrating:
 2. Bump to $\rho(3\\%) = 19\\%$: recompute ETL and PV
 3. $\text{Corr01} = \text{PV}(19\\%) - \text{PV}(18\\%)$
 
-Result (sign): Corr01 $>0$ (short protection gains when correlation rises)
+Result (sign): Corr01 $\gt 0$ (short protection gains when correlation rises)
 
 **Senior [7–10%] correlation 01:**
 1. Bump both $\rho(7\\%)$ and $\rho(10\\%)$ by 1%
@@ -1406,7 +1409,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 9. (Compute) Using $\lambda = 2t_{\nu+1}\\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$, compute $\lambda$ for a t-copula with $\rho=0.7$, $\nu=4$.
 10. (Desk) Name two diagnostics for base-correlation interpolation artifacts and what “failure” looks like.
 11. (Concept) For **short protection**, explain why equity and super-senior can have opposite Corr01 signs.
-12. (Compute) A tranche has $PV(\rho)=USD 1.20$mm and $PV(\rho+1\%)=USD 1.26$mm (same methodology). Compute Corr01.
+12. (Compute) A tranche has `PV(rho)=USD 1.20mm` and `PV(rho+1%)=USD 1.26mm` (same methodology). Compute Corr01.
 
 ### Solution Sketches (Selected)
 2. $L=2\\%\lt A\Rightarrow L(T;A,D)=0$. $L=5\\%\Rightarrow (0.05-0.03)/0.04=0.5$. $L=10\\%\gt D\Rightarrow L(T;A,D)=1$.
@@ -1414,7 +1417,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 4. Perfect dependence implies $K\in\\{0,10\\}$ with $\Pr(K=10)=0.05$. Hence $\Pr(K\ge 3)=0.05$.
 5. $a=\Phi^{-1}(0.01)\approx -2.3263$.
 9. With $\nu=4$, $\nu+1=5$: $\lambda=2t_{5}\\!\left(-\sqrt{5\times 0.3/1.7}\right)\approx 0.3907$.
-12. $\mathrm{Corr01}=PV(\rho+0.01)-PV(\rho)=USD 0.06\text{mm}=USD 60{,}000$ per 1% dependence bump.
+12. Corr01 $=PV(\rho+0.01)-PV(\rho)=0.06$ mm USD $=60{,}000$ USD per 1% dependence bump.
 
 ## References
 - (Dominic O’Kane, *Modelling Single-name and Multi-name Credit Derivatives*, “Gaussian copula and default clustering”; “LHP model”; “Compound correlation”; “Base correlation”; “Implied loss density”; “ETL interpolation”.)
