@@ -57,7 +57,7 @@ All else equal, a payer swap benefits when rates rise (floating receipts rise wh
 
 > **Desk Reality:** Traders say “paying” / “receiving” (meaning paying/receiving fixed).
 > **Common break:** People translate “pay fixed” into “long the swap” and flip the PV/DV01 sign.
-> **What to check:** Write \(V_{\text{payer}}=PV_{\text{float}}-PV_{\text{fixed}}\) and apply the book DV01 sign convention before you size a hedge.
+> **What to check:** Write $V_{\text{payer}}=PV_{\text{float}}-PV_{\text{fixed}}$ and apply the book DV01 sign convention before you size a hedge.
 
 ### 25.1.3 Why Notional Is Not Exchanged
 
@@ -99,7 +99,7 @@ $$\boxed{CF_j^{\text{fix}} = N \cdot c \cdot \tau_j^{\text{fix}}}$$
 
 where $\tau_j^{\text{fix}}$ is the accrual factor (year fraction) for that period, computed according to the applicable day count convention.
 
-**Day count conventions matter.** The fixed rate is always quoted with a day count convention (commonly 30/360 or ACT/365). The day count determines \(\tau_j^{\text{fix}}\) and therefore the cash amount exchanged.
+**Day count conventions matter.** The fixed rate is always quoted with a day count convention (commonly 30/360 or ACT/365). The day count determines $\tau_j^{\text{fix}}$ and therefore the cash amount exchanged.
 
 ### 25.2.2 Floating Leg Cashflows
 
@@ -109,22 +109,22 @@ $$\boxed{CF_{i+1}^{\text{flt}} = N \cdot L_k(T_i; T_i, T_{i+1}) \cdot \tau_i^{\t
 
 where $L_k(T_i; T_i, T_{i+1})$ is the floating reference rate for tenor $k$ observed at time $T_i$.
 
-**The floating day count often differs from the fixed.** Many money-market indices (including SOFR and legacy IBORs) use ACT/360. That means a “one-year” interval can have a year fraction greater than 1 under ACT/360 (e.g., \(365/360\)), while the fixed leg might accrue exactly 1.0 under 30/360.
+**The floating day count often differs from the fixed.** Many money-market indices (including SOFR and legacy IBORs) use ACT/360. That means a “one-year” interval can have a year fraction greater than 1 under ACT/360 (e.g., $365/360$), while the fixed leg might accrue exactly 1.0 under 30/360.
 
 ### 25.2.3 Example: A 2-Year USD Swap Schedule
 
-Consider a \$100 million swap with:
+Consider a USD100 million swap with:
 - Fixed leg: 3.00% semiannual, 30/360
 - Floating leg: quarterly money-market index, ACT/360 (set in advance, paid in arrears)
 
 The fixed leg pays (every six months):
-\$100,000,000 × 3.00% × 0.5 = \$1,500,000.
+USD100,000,000 × 3.00% × 0.5 = USD1,500,000.
 
 The floating leg pays (each quarter):
-\$100,000,000 × \(R\) × \((n/360)\), where \(R\) is the annualized floating rate and \(n\) is the actual number of days in the accrual period.
+USD100,000,000 × $R$ × $(n/360)$, where $R$ is the annualized floating rate and $n$ is the actual number of days in the accrual period.
 
-Example: if \(R=2.20\%\) and the quarter has \(n=92\) days, the floating coupon is:
-\$100,000,000 × 0.022 × (92/360) = \$562,222.
+Example: if $R=2.20\%$ and the quarter has $n=92$ days, the floating coupon is:
+USD100,000,000 × 0.022 × (92/360) = USD562,222.
 
 Cash settlement is typically **netted** on dates where both legs pay: only the difference between the fixed and floating amounts is exchanged. On dates where only one leg pays, that leg’s payment is exchanged.
 
@@ -138,7 +138,7 @@ SOFR-based swap legs differ from term-index swap legs mainly in how the floating
 
 SOFR is an overnight rate. To calculate a floating coupon over a multi-day accrual period, you compound the daily overnight rates over that period and then annualize the result on the relevant day-count basis.
 
-For a period from day 1 to day \(n\), with daily overnight rates \(r_1, r_2, \ldots, r_n\) and corresponding day counts \(d_1, d_2, \ldots, d_n\), one common annualized compounding convention is:
+For a period from day 1 to day $n$, with daily overnight rates $r_1, r_2, \ldots, r_n$ and corresponding day counts $d_1, d_2, \ldots, d_n$, one common annualized compounding convention is:
 
 $$\boxed{R_{\text{compound}} = \frac{360}{D} \left[\prod_{i=1}^{n} \left(1 + r_i \cdot \frac{d_i}{360}\right) - 1\right]}$$
 
@@ -176,7 +176,7 @@ A common USD “fixed vs SOFR” swap structure looks similar to the legacy USD 
 
 ### 25.3.5 Example: Computing a SOFR Floating Payment
 
-**Problem:** Calculate the floating payment for a \$50 million notional swap over a 91-day quarter, given daily SOFR rates.
+**Problem:** Calculate the floating payment for a USD50 million notional swap over a 91-day quarter, given daily SOFR rates.
 
 **Given:** For simplicity, assume constant SOFR of 4.25% for all 91 days (in practice, rates vary daily).
 
@@ -192,9 +192,9 @@ Note that the compounded rate (4.302%) slightly exceeds the simple average (4.25
 
 **Step 3: Calculate the payment**
 
-$$\text{Payment} = \$50,000,000 \times 0.04302 \times \frac{91}{360} = \$543,697$$
+$$\text{Payment} = USD50,000,000 \times 0.04302 \times \frac{91}{360} = USD543,697$$
 
-**Sanity check:** Simple interest would give \$50M × 4.25% × (91/360) = \$537,153. The compounded amount is about \$6,500 higher—a small but meaningful difference on large notionals.
+**Sanity check:** Simple interest would give USD50M × 4.25% × (91/360) = USD537,153. The compounded amount is about USD6,500 higher—a small but meaningful difference on large notionals.
 
 ---
 
@@ -280,7 +280,7 @@ The CSA specifies:
 
 To value any derivative, we discount expected cashflows to the present:
 
-$$V = \sum_i E[\text{CF}_i] \cdot P_d(0, T_i)$$
+$$V = \sum_i E[CF_i] \cdot P_d(0, T_i)$$
 
 where $P_d(0, T)$ is the discount factor from the *discounting curve* for maturity $T$.
 
@@ -301,7 +301,7 @@ The swap has zero value at inception by construction—that is what defines the 
 $$\boxed{V_{\text{payer}} = PV_{\text{float}} - PV_{\text{fixed}}}$$
 $$\boxed{V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = -V_{\text{payer}}}$$
 
-**Sign interpretation:** If rates have risen since inception, forward rates exceed the fixed rate, making $PV_{\text{float}} > PV_{\text{fixed}}$. The payer swap has positive value—the payer locked in a below-market fixed rate and receives above-market floating payments.
+**Sign interpretation:** If rates have risen since inception, forward rates exceed the fixed rate, making $PV_{\text{float}} \gt PV_{\text{fixed}}$. The payer swap has positive value—the payer locked in a below-market fixed rate and receives above-market floating payments.
 
 ### 25.5.3 Worked Example: Valuing a Swap from Leg Cashflows
 
@@ -314,17 +314,17 @@ Consider a swap with 1.2 years remaining, fixed rate 3% paid semiannually, and a
 | 1.2 | -1.500 | +1.857 | +0.357 | 0.9600 | +0.343 |
 | **Total** | | | | | **+0.292** |
 
-The swap value of +\$0.292 million (per \$100 million notional) reflects that floating rates have risen above the fixed rate, benefiting the floating receiver.
+The swap value of +USD0.292 million (per USD100 million notional) reflects that floating rates have risen above the fixed rate, benefiting the floating receiver.
 
 > **Technique: Napkin Valuation**
 >
 > You don't always need a computer to know if you're winning or losing.
 > *   **Rule of thumb (receiver-fixed):** $\text{PV} \approx -\text{Notional} \times (\text{New Par Swap Rate} - \text{Your Fixed Rate}) \times \text{Duration}$
 > *   **Example**:
->     *   You receive fixed 3.00% on \$100M for 5 years.
+>     *   You receive fixed 3.00% on USD100M for 5 years.
 >     *   Market rates rise to 3.50%.
 >     *   Duration $\approx$ 4.5 years.
->     *   $\text{PV} \approx -\$100\text{M} \times (0.0350 - 0.0300) \times 4.5 = -\$2.25\text{M}$
+>     *   $\text{PV} \approx -USD100\text{M} \times (0.0350 - 0.0300) \times 4.5 = -USD2.25\text{M}$
 >     *   **Sign check:** You receive 3.00%, but the market now pays 3.50%, so the position is worth less.
 
 ---
@@ -350,7 +350,7 @@ The annuity represents the present value of receiving 1 unit of coupon (as a rat
 ### 25.6.2 Why Swaps Trade at Par
 
 Most vanilla swaps are traded with **no upfront exchange**. The fixed rate is therefore set so that the trade is fair at inception:
-\(PV_{\text{fixed}} = PV_{\text{float}}\).
+$PV_{\text{fixed}} = PV_{\text{float}}$.
 
 If the fixed rate were set above or below par, one party would be receiving something of value at inception and (in a frictionless world) an upfront payment would be required to restore fairness.
 
@@ -450,7 +450,7 @@ $$\boxed{c_{\text{par}}^{\text{multi}} = \frac{\sum_i \tau_i^{\text{flt}} \cdot 
 
 **Critical observation:** The telescoping identity fails in multi-curve. Since forwards come from $P_k$ but discounting uses $P_d$, the convenient $1 - P(0,T)$ result no longer applies. You must compute each floating coupon's PV explicitly.
 
-> **Pitfall — Telescoping in Multi-Curve:** Using \(PV_{\text{float}}/N = 1-P_d(0,T)\) when your forwards come from a different curve.
+> **Pitfall — Telescoping in Multi-Curve:** Using $PV_{\text{float}}/N = 1-P_d(0,T)$ when your forwards come from a different curve.
 > **Why it matters:** You will misprice the floating leg and get misleading “basis” P&L and risk.
 > **Quick check:** If your spreadsheet can compute the floating PV without referencing the projection curve, you implicitly assumed single-curve.
 
@@ -459,12 +459,12 @@ $$\boxed{c_{\text{par}}^{\text{multi}} = \frac{\sum_i \tau_i^{\text{flt}} \cdot 
 Full swap risk reports and hedging workflows are covered in Chapter 26, but you should already be able to read a risk scalar **with units and sign**.
 
 - **Bump object (state it explicitly):** the curve object you bump and rebuild. A common choice is the **discounting-curve zero rates** (equivalently discount factors), with the projection curve held fixed for a “discounting DV01” view.
-- **Bump size:** 1bp \(=10^{-4}\).
-- **Definition (this book):** \(DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})\) for the stated bump object.
-- **Units:** currency per 1bp for the stated notional (e.g., USD per 1bp for \(N=\$100\text{ million}\)).
-- **Sign (implied by the definition):** receiver-fixed has \(DV01>0\); payer-fixed has \(DV01<0\).
+- **Bump size:** 1bp $=10^{-4}$.
+- **Definition (this book):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for the stated bump object.
+- **Units:** currency per 1bp for the stated notional (e.g., USD per 1bp for $N=USD100\text{ million}$).
+- **Sign (implied by the definition):** receiver-fixed has $DV01\gt 0$; payer-fixed has $DV01\lt 0$.
 
-**Pitfall — PVBP vs DV01:** \(\text{PVBP}_{\text{fixed}}\) answers “what happens if I bump the *contractual fixed rate* \(c\) by 1 bp, holding curves fixed?” DV01 answers “what happens if I bump a *curve object* by 1 bp and rebuild/reprice?” Both are currency per bp, but they are sensitivities to different objects; if a report says “PVBP” without stating the bump object, treat it as ambiguous.
+**Pitfall — PVBP vs DV01:** $\text{PVBP}_{\text{fixed}}$ answers “what happens if I bump the contractual fixed rate $c$ by 1 bp, holding curves fixed?” DV01 answers “what happens if I bump a curve object by 1 bp and rebuild/reprice?” Both are currency per bp, but they are sensitivities to different objects; if a report says “PVBP” without stating the bump object, treat it as ambiguous.
 
 **Expand (multi-curve risk buckets):** In a two-curve setup, it is common to report at least:
 - **Discount DV01:** bump the discount curve (projection held fixed).
@@ -472,7 +472,7 @@ Full swap risk reports and hedging workflows are covered in Chapter 26, but you 
 - **Basis DV01:** bump the spread/basis linking projection to discount (or between projection curves).
 These buckets are all “rate-like” but hedge with different instruments; Chapter 26 covers the standard hedging workflow.
 
-A useful intermediate object is the fixed-leg annuity \(A^{\text{fix}}(0)\). Holding curves fixed, bumping the contractual fixed rate \(c\) up by 1bp changes the receiver-fixed PV by approximately:
+A useful intermediate object is the fixed-leg annuity $A^{\text{fix}}(0)$. Holding curves fixed, bumping the contractual fixed rate $c$ up by 1bp changes the receiver-fixed PV by approximately:
 $$\boxed{\text{PVBP}_{\text{fixed}} \approx N \cdot A^{\text{fix}}(0) \cdot 10^{-4}.}$$
 
 Rule of thumb: the DV01 magnitude is often on the same order as the fixed-leg PVBP because the floating leg has little duration beyond the next reset, but the exact relation depends on the curve-bump methodology and the valuation date.
@@ -494,21 +494,21 @@ Rule of thumb: the DV01 magnitude is often on the same order as the fixed-leg PV
 - Fixed payment dates (semiannual): 2026-09-04, 2027-03-04
 
 **Inputs**
-- Notional: \(N=\$100{,}000{,}000\)
-- Fixed leg: semiannual, 30/360 (so \(\tau^{\text{fix}}=0.5\) each period)
-- Floating leg: quarterly, ACT/360 (so \(\tau_i = \text{days}/360\))
-- Discounting curve discount factors \(P_d(0,T)\):
+- Notional: $N=USD100{,}000{,}000$
+- Fixed leg: semiannual, 30/360 (so $\tau^{\text{fix}}=0.5$ each period)
+- Floating leg: quarterly, ACT/360 (so $\tau_i = \text{days}/360$)
+- Discounting curve discount factors $P_d(0,T)$:
 
-| Date | \(P_d\) |
+| Date | $P_d$ |
 |---|---:|
 | 2026-06-04 | 0.9940 |
 | 2026-09-04 | 0.9880 |
 | 2026-12-04 | 0.9820 |
 | 2027-03-04 | 0.9760 |
 
-- Projection curve discount factors \(P_{3M}(0,T)\) for the floating index (assume \(P_{3M}(0)=1\)):
+- Projection curve discount factors $P_{3M}(0,T)$ for the floating index (assume $P_{3M}(0)=1$):
 
-| Date | \(P_{3M}\) |
+| Date | $P_{3M}$ |
 |---|---:|
 | 2026-06-04 | 0.9930 |
 | 2026-09-04 | 0.9860 |
@@ -516,49 +516,49 @@ Rule of thumb: the DV01 magnitude is often on the same order as the fixed-leg PV
 | 2027-03-04 | 0.9720 |
 
 **Outputs (What You Produce)**
-- Par fixed rate: \(c_{\text{par}} \approx 2.859\%\)
-- Receiver-fixed NPV at \(c=3.20\%\): \(V_{\text{recv}} \approx +\$335{,}249\)
-- Fixed-leg PVBP (1bp): \(\text{PVBP}_{\text{fixed}} \approx \$9{,}820/\text{bp}\) for \(N=\$100\text{ million}\)
+- Par fixed rate: $c_{\text{par}} \approx 2.859\%$
+- Receiver-fixed NPV at $c=3.20\%$: $V_{\text{recv}} \approx +USD335{,}249$
+- Fixed-leg PVBP (1bp): $\text{PVBP}_{\text{fixed}} \approx USD9{,}820/\text{bp}$ for $N=USD100\text{ million}$
 
 **Step-by-step**
 1. **Build accrual factors (ACT/360) for the floating leg**
-   - 2026-03-04 → 2026-06-04: \(92/360 \approx 0.2556\)
-   - 2026-06-04 → 2026-09-04: \(92/360 \approx 0.2556\)
-   - 2026-09-04 → 2026-12-04: \(91/360 \approx 0.2528\)
-   - 2026-12-04 → 2027-03-04: \(90/360 = 0.25\)
+   - 2026-03-04 → 2026-06-04: $92/360 \approx 0.2556$
+   - 2026-06-04 → 2026-09-04: $92/360 \approx 0.2556$
+   - 2026-09-04 → 2026-12-04: $91/360 \approx 0.2528$
+   - 2026-12-04 → 2027-03-04: $90/360 = 0.25$
 
 2. **Compute forward rates from the projection curve**
    $$L_i = \frac{1}{\tau_i}\left(\frac{P_{3M}(0,T_{i-1})}{P_{3M}(0,T_i)}-1\right)$$
-   Using \(P_{3M}(0)=1\), the implied quarterly forwards are approximately:
-   - \(L_1 \approx 2.758\%\), \(L_2 \approx 2.778\%\), \(L_3 \approx 2.829\%\), \(L_4 \approx 2.881\%\)
+   Using $P_{3M}(0)=1$, the implied quarterly forwards are approximately:
+   - $L_1 \approx 2.758\%$, $L_2 \approx 2.778\%$, $L_3 \approx 2.829\%$, $L_4 \approx 2.881\%$
 
 3. **PV the floating leg using the discount curve**
-   $$PV_{\text{float}} = N\sum_i \tau_i\,L_i\,P_d(0,T_i) \approx \$2{,}807{,}151$$
+   $$PV_{\text{float}} = N\sum_i \tau_i\,L_i\,P_d(0,T_i) \approx USD2{,}807{,}151$$
 
 4. **Compute the fixed-leg annuity and the par rate**
    $$A^{\text{fix}}(0)=0.5\,P_d(0,\text{2026-09-04})+0.5\,P_d(0,\text{2027-03-04})=0.9820$$
    $$c_{\text{par}}=\frac{(PV_{\text{float}}/N)}{A^{\text{fix}}(0)}\approx 2.859\%$$
 
 5. **Value an off-market fixed rate**
-   For a receive-fixed swap at \(c=3.20\%\),
-   $$V_{\text{recv}} \approx N\,(c-c_{\text{par}})\,A^{\text{fix}}(0) \approx +\$335{,}249.$$
+   For a receive-fixed swap at $c=3.20\%$,
+   $$V_{\text{recv}} \approx N\,(c-c_{\text{par}})\,A^{\text{fix}}(0) \approx +USD335{,}249.$$
 
-**Cashflows (Receiver-Fixed, Pay-Float; \(c=3.20\%\))**
+**Cashflows (Receiver-Fixed, Pay-Float; $c=3.20\%$)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-06-04 | \(-\$704{,}935\) | pay floating |
-| 2026-09-04 | \(+\$890{,}061\) | receive fixed, pay floating |
-| 2026-12-04 | \(-\$715{,}015\) | pay floating |
-| 2027-03-04 | \(+\$879{,}835\) | receive fixed, pay floating |
+| 2026-06-04 | $-USD704{,}935$ | pay floating |
+| 2026-09-04 | $+USD890{,}061$ | receive fixed, pay floating |
+| 2026-12-04 | $-USD715{,}015$ | pay floating |
+| 2027-03-04 | $+USD879{,}835$ | receive fixed, pay floating |
 
 **P&L / Risk Interpretation**
 - The NPV is the upfront amount (in PV terms) you would receive/pay to enter a swap at a fixed rate away from par.
 - Receiver-fixed is long rates risk: if the par swap rate rises after you trade, your PV tends to fall.
 
 **Sanity Checks**
-- **Units:** discount factors are unitless; rates are “per year”; \(\tau\) is in years; cashflows are in USD.
-- **Day-count check:** over this calendar year, the floating-leg ACT/360 accrual sums to \(365/360\approx 1.0139\), while the fixed-leg 30/360 accrual sums to exactly 1.0.
-- **Par check:** setting \(c=c_{\text{par}}\) makes the PV approximately zero (up to rounding).
+- **Units:** discount factors are unitless; rates are “per year”; $\tau$ is in years; cashflows are in USD.
+- **Day-count check:** over this calendar year, the floating-leg ACT/360 accrual sums to $365/360\approx 1.0139$, while the fixed-leg 30/360 accrual sums to exactly 1.0.
+- **Par check:** setting $c=c_{\text{par}}$ makes the PV approximately zero (up to rounding).
 
 ### Example A: Par Swap Rate from Discount Factors (Single-Curve)
 
@@ -589,27 +589,27 @@ $$c_{\text{par}} = \frac{0.0300}{0.9775} = 0.03069 \approx 3.069\%$$
 
 **Problem:** Value a swap where the fixed rate differs from the par rate.
 
-**Setup:** Same curves as Example A, notional $N = \$100,000,000$, but the swap has a fixed rate of $c = 3.20\%$ (above par).
+**Setup:** Same curves as Example A, notional $N = USD100,000,000$, but the swap has a fixed rate of $c = 3.20\%$ (above par).
 
 **Step 1: PV of floating leg**
 
 Using the single-curve identity:
-$$PV_{\text{float}} = N(1 - P(0,1)) = \$100,000,000 \times 0.0300 = \$3,000,000$$
+$$PV_{\text{float}} = N(1 - P(0,1)) = USD100,000,000 \times 0.0300 = USD3,000,000$$
 
 **Step 2: PV of fixed leg**
 
-$$PV_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = \$100,000,000 \times 0.032 \times 0.9775 = \$3,128,000$$
+$$PV_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = USD100,000,000 \times 0.032 \times 0.9775 = USD3,128,000$$
 
 **Step 3: Swap NPV**
 
 For the receiver (receive fixed, pay float):
-$$V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = \$3,128,000 - \$3,000,000 = +\$128,000$$
+$$V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = USD3,128,000 - USD3,000,000 = +USD128,000$$
 
 For the payer (pay fixed, receive float):
-$$V_{\text{payer}} = -\$128,000$$
+$$V_{\text{payer}} = -USD128,000$$
 
 **Alternative formula:** Using the off-market relationship:
-$$V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}(0) = \$100,000,000 \times (0.032 - 0.03069) \times 0.9775 = \$128,000 \checkmark$$
+$$V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}(0) = USD100,000,000 \times (0.032 - 0.03069) \times 0.9775 = USD128,000 \checkmark$$
 
 ### Example C: Multi-Curve vs. Single-Curve Pricing
 
@@ -700,11 +700,11 @@ If a 5-year par swap rate is 4.00% but a client wants to pay fixed at 3.50%, the
 
 $$\text{Upfront} = N \times (c_{\text{par}} - c_{\text{off-market}}) \times A^{\text{fix}}$$
 
-**Example:** \$100 million notional, 5-year, with annuity factor 4.5:
+**Example:** USD100 million notional, 5-year, with annuity factor 4.5:
 
-$$\text{Upfront} = \$100M \times (0.0400 - 0.0350) \times 4.5 = \$2,250,000$$
+$$\text{Upfront} = USD100M \times (0.0400 - 0.0350) \times 4.5 = USD2,250,000$$
 
-The client pays \$2.25 million upfront and then pays 3.50% fixed over the life of the swap.
+The client pays USD2.25 million upfront and then pays 3.50% fixed over the life of the swap.
 
 ### 25.9.3 Swap Termination and Unwinds
 
@@ -723,9 +723,9 @@ $$V = N \times (c_{\text{market}} - c_{\text{old}}) \times A^{\text{fix}}$$
 
 The annuity for a 9-year swap paying semiannually can be approximated from the discount factor, or computed directly. Using approximate annuity of 7.5:
 
-$$V \approx \$10,000,000 \times (0.0625 - 0.0575) \times 7.5 = \$375,000$$
+$$V \approx USD10,000,000 \times (0.0625 - 0.0575) \times 7.5 = USD375,000$$
 
-You *receive* approximately \$375,000 to terminate the swap.
+You *receive* approximately USD375,000 to terminate the swap.
 
 > **Desk Reality: Unwind vs. Offset**
 >
@@ -943,12 +943,12 @@ This asymmetry is one reason why credit risk management for swap portfolios requ
 
 ### 25.16.1 Why Swap Credit Exposure Is Not “Notional”
 
-A swap’s notional is not exchanged. Credit exposure is therefore not “\$N at risk”; it is the **mark-to-market (NPV)**: what you would lose if the counterparty defaulted today and you had to replace the trade.
+A swap’s notional is not exchanged. Credit exposure is therefore not “USDN at risk”; it is the **mark-to-market (NPV)**: what you would lose if the counterparty defaulted today and you had to replace the trade.
 
 Key implications:
 1. **No principal at risk:** losses are bounded by the swap’s value at default, not by notional.
 2. **Netting matters:** under master agreements/clearing, offsetting trades can net, reducing exposure.
-3. **Order-of-magnitude intuition:** PV swings are often on the order of \(|DV01| \times |\Delta y_{bp}|\). For example, if a \$100 million swap has \(DV01 \approx \$40{,}000/\text{bp}\), then a 50bp move is on the order of \$2 million of PV swing—not \$100 million.
+3. **Order-of-magnitude intuition:** PV swings are often on the order of $|DV01| \times |\Delta y_{bp}|$. For example, if a USD100 million swap has $DV01 \approx USD40{,}000/\text{bp}$, then a 50bp move is on the order of USD2 million of PV swing—not USD100 million.
 
 ### 25.16.2 Collateral and Margin (CSA / CCP)
 
@@ -1127,7 +1127,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **Q4.** For Q3, if the swap fixed rate is 20bp above par, compute the receiver PV per unit notional.
 
-**Q5.** A payer swap has $N = \$50M$, $A^{\text{fix}} = 4.2$, and $c$ is 10bp above par. Approximate PV.
+**Q5.** A payer swap has $N = USD50M$, $A^{\text{fix}} = 4.2$, and $c$ is 10bp above par. Approximate PV.
 
 **Q6.** Write the general multi-curve par rate formula.
 
@@ -1137,11 +1137,11 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **Q9.** The term structure is upward-sloping and you enter a 5-year receiver swap at par. Should you expect your counterparty credit exposure to increase or decrease over the first few years? Explain.
 
-**Q10.** A $100 million receiver-fixed swap has $DV01 = \$45{,}000/\text{bp}$ (book convention; stated bump object). If discounting rates move **up** by 75bp since inception and the swap was entered at par, approximate the PV change and state which side has positive exposure (ignore collateral and convexity).
+**Q10.** A $100 million receiver-fixed swap has $DV01 = USD45{,}000/\text{bp}$ (book convention; stated bump object). If discounting rates move **up** by 75bp since inception and the swap was entered at par, approximate the PV change and state which side has positive exposure (ignore collateral and convexity).
 
 **Q11.** The 10-year Treasury yields 4.50% and 10-year swap spreads are quoted at -5/+2 basis points. What are the bid and offer swap rates?
 
-**Q12.** Calculate the approximate compounded SOFR payment on \$25 million notional over a 92-day period, assuming constant daily SOFR of 5.00%.
+**Q12.** Calculate the approximate compounded SOFR payment on USD25 million notional over a 92-day period, assuming constant daily SOFR of 5.00%.
 
 ---
 
@@ -1155,7 +1155,7 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A4.** $V_{\text{recv}}/N = (c - c_{\text{par}}) \cdot A = 0.002 \times 0.9735 = 0.00195$
 
-**A5.** $V_{\text{payer}} = -N(c - c_{\text{par}}) \cdot A = -\$50M \times 0.001 \times 4.2 = -\$210,000$
+**A5.** $V_{\text{payer}} = -N(c - c_{\text{par}}) \cdot A = -USD50M \times 0.001 \times 4.2 = -USD210,000$
 
 **A6.** $c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} L_k(0; T_i, T_{i+1}) P_d(0, T_{i+1})}{\sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})}$
 
@@ -1165,15 +1165,15 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A9.** Decrease. With upward-sloping curve, early exchanges favor you (receive fixed > expected floating). As these positive-value exchanges settle, remaining swap expected to have negative value to you—counterparty exposure declines.
 
-**A10.** Receiver-fixed has $DV01>0$ under the book convention, so a **rates up** move is approximately the opposite sign:
-\[
-\Delta PV \approx -DV01 \times 75 \approx -\$45{,}000 \times 75 = -\$3.375\text{ million.}
-\]
-So the receiver-fixed position is roughly \(-\$3.375\) million; the payer-fixed counterparty has positive exposure of about \$3.375 million (ignoring collateral and convexity).
+**A10.** Receiver-fixed has $DV01\gt 0$ under the book convention, so a **rates up** move is approximately the opposite sign:
+$$
+\Delta PV \approx -DV01 \times 75 \approx -USD45{,}000 \times 75 = -USD3.375\text{ million}
+$$
+So the receiver-fixed position is roughly $-USD3.375$ million; the payer-fixed counterparty has positive exposure of about USD3.375 million (ignoring collateral and convexity).
 
 **A11.** Bid: 4.50% - 0.05% = 4.45%; Offer: 4.50% + 0.02% = 4.52%
 
-**A12.** Compounded factor: $(1 + 0.05/360)^{92} = 1.01289$. Period rate: $(360/92) \times 0.01289 = 5.044\%$. Payment: $\$25M \times 0.05044 \times (92/360) = \$322,256$
+**A12.** Compounded factor: $(1 + 0.05/360)^{92} = 1.01289$. Period rate: $(360/92) \times 0.01289 = 5.044\%$. Payment: $USD25M \times 0.05044 \times (92/360) = USD322,256$
 
 ---
 
