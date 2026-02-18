@@ -437,8 +437,8 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | Scenario P&L | $\Delta PV \approx -\mathbf{k}^\top\boldsymbol{\delta}$ | Unit/sign-safe first-order P&L |
 | Hedge matrix $\mathbf{H}$ | Columns are hedge KR01 vectors per hedge unit | Solves multi-instrument hedges |
 | Butterfly | 3-leg trade targeting curvature with neutrality constraints | The canonical “curve-shape” trade |
-| PCA loading $\mathbf{u}_j$ | Eigenvector of yield-change covariance | Defines factor direction |
-| PCA score $z_{j,t}$ | Projection $\mathbf{u}_j^\top \Delta \mathbf{y}_t$ | Realized factor move |
+| PCA loading `u_j` | Eigenvector of yield-change covariance | Defines factor direction |
+| PCA score `z_{j,t}` | Projection `u_j^T Δy_t` | Realized factor move |
 | Var share | $\lambda_j/\mathrm{tr}(\Sigma)$ | “How much variance” a factor explains |
 | Hedge ratio $h^{\ast}$ | $\mathrm{Cov}(\Delta X,\Delta Y)/\mathrm{Var}(\Delta Y)$ | Minimum-variance proxy hedge |
 | Residual risk | Variance not removed by hedge (e.g., $1-R^2$) | What you still own after hedging |
@@ -456,10 +456,10 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | $\mathbf{H}$ | hedge matrix | (currency per bp) per hedge unit |
 | $\mathbf{n}$ | hedge weights / notionals | hedge units; signed (long +) |
 | $\Delta \mathbf{y}_t$ | yield-change vector | bp over horizon |
-| $\Sigma$ | covariance of $\Delta \mathbf{y}$ | bp$^2$ |
-| $\mathbf{u}_j$ | PCA loading vector | unitless; normalized to $\\|\mathbf{u}_j\\|=1$ |
-| $\lambda_j$ | PCA eigenvalue | bp$^2$ |
-| $z_{j,t}$ | PCA score | bp |
+| $\Sigma$ | covariance of $\Delta \mathbf{y}$ | bp-squared |
+| `u_j` | PCA loading vector | unitless; normalized to `||u_j|| = 1` |
+| $\lambda_j$ | PCA eigenvalue | bp-squared |
+| `z_{j,t}` | PCA score | bp |
 | $\beta$ | regression slope (yield regression) | bp/bp (unitless) |
 | $\rho$ | correlation | unitless in $[-1,1]$ |
 | $\varepsilon_t$ | regression residual | bp |
@@ -478,7 +478,7 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | 7 | What is a twist shock in 2y/5y/10y toy form? | $(+1,0,-1)$ bp (short up, long down). |
 | 8 | What is the “parallel fallacy”? | Interpreting net DV01 near zero as “low rate risk.” |
 | 9 | What constraints does a 3-leg butterfly typically impose? | Two neutrality constraints (often level and slope), leaving curvature exposure. |
-| 10 | What does PCA produce? | Orthogonal loadings $\mathbf{u}_j$ and scores $z_{j,t}$ that summarize yield changes. |
+| 10 | What does PCA produce? | Orthogonal loadings `u_j` and scores `z_{j,t}` that summarize yield changes. |
 | 11 | What is “variance explained” in PCA? | $\lambda_j/\mathrm{tr}(\Sigma)$, the fraction of total variance attributed to factor $j$. |
 | 12 | What is the minimum-variance hedge ratio $h^{\ast}$? | $h^{\ast}=\mathrm{Cov}(\Delta X,\Delta Y)/\mathrm{Var}(\Delta Y)=\rho\sigma_X/\sigma_Y$. |
 | 13 | How do you translate a yield regression $\beta$ into hedge units? | $N^* \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}$. |
