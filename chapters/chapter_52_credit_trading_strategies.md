@@ -1049,7 +1049,7 @@ This is a **toy** illustration of how you might combine two tranches to reduce (
 
 #### Setup (Toy Numbers)
 
-- Reference portfolio: $N=125$ names (equal-weight), total $F = USD 1{,}250$mm.
+- Reference portfolio: $N=125$ names (equal-weight), total notional USD 1,250mm.
 - Equity tranche: 0–3% (long protection).
 - Senior tranche: 15–30% (long protection).
 - Current implied correlation parameter: $\rho_0$ (exact model details omitted).
@@ -1871,7 +1871,7 @@ $$\text{Carry P\\&L} \approx \text{Coupon CF} + \Delta V_{\text{clean}} = -25{,}
 - Upfront paid at inception (from Example 6): $U_0 = 92{,}000$
 - Assume spread curve is upward sloping:
   - 5Y par spread at $t_0$: 120 bp
-  - After 1 month, remaining maturity $\approx 4.92$Y has par spread 118 bp (curve held fixed, you "roll down")
+  - After 1 month, remaining maturity is about 4.92Y with par spread 118 bp (curve held fixed, you "roll down")
 - $RPV01(t_1) = 4.57$ (toy, slightly lower due to shorter maturity)
 - Monthly coupon accrual (approx): $\Delta = 1/12$
 
@@ -1939,8 +1939,9 @@ If the goal is to maintain the same CS01 exposure after rolling:
 $$CS01_{\text{old}} = 10{,}000{,}000 \times 4.1 \times 10^{-4} = USD 4{,}100/\text{bp}$$
 $$CS01_{\text{new per USD 10mm}} = 10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$$
 
-To maintain $4,100/bp CS01 on the new series:
-$$N_{\text{new}} = 10{,}000{,}000 \times \frac{4{,}100}{4{,}600} = USD 8{,}913{,}043$$
+To maintain 4,100 USD/bp CS01 on the new series:
+
+`N_new = 10,000,000 * (4,100 / 4,600) = USD 8,913,043`
 
 This means **reducing notional by ~11%** when rolling to maintain spread-neutral exposure.
 
@@ -2288,7 +2289,7 @@ This chapter is an educational risk framework. It does not provide recommendatio
 | **Funding Risk** | Exposure to repo/financing rate changes on funded instruments | CDS is unfunded; bonds face funding risk that can dominate carry |
 | **Negative Basis** | CDS spread < bond asset swap spread; synthetic protection cheaper than cash | Exploitable if funding cost is low enough; destroyed by funding stress |
 | **Positive Basis** | CDS spread > bond spread; protection demand exceeds cash supply | Tends to emerge during distress; squeeze dynamics |
-| **Senior-Sub Spread Ratio** | $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$ under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
+| **Senior-Sub Spread Ratio** | `S_sub/S_sen = (1-R_sub)/(1-R_sen)` under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
 | **Merton Model (Credit)** | Equity = call on firm assets; debt = cash − put on assets | Links equity and credit markets; basis for equity-CDS RV trades |
 | **LCDS** | Loan CDS referencing loans and embedding a cancellation feature | Often trades tighter than vanilla CDS due to higher expected recovery; conventions and liquidity matter |
 | **CDS Curve Inversion** | Short-dated spreads exceed long-dated (common in HY distressed) | Signals near-term default risk; curve trades carry JTD mismatch |
@@ -2310,7 +2311,7 @@ This chapter is an educational risk framework. It does not provide recommendatio
 8. **Indices have intrinsic vs quoted basis**; the portfolio swap adjustment reconciles them but is "somewhat arbitrary" (O'Kane).
 9. **Index rolls create P&L** from composition changes and maturity extension—these can offset or compound.
 10. **CDS curve strategies** require CS01-neutral sizing but carry inherent JTD mismatch from unequal notionals.
-11. **Capital structure arbitrage** exploits the senior-sub spread relationship ($S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$), but recovery uncertainty is the dominant risk.
+11. **Capital structure arbitrage** exploits the senior-sub spread relationship (`S_sub/S_sen = (1-R_sub)/(1-R_sen)`), but recovery uncertainty is the dominant risk.
 12. **Tranche risk is multi-dimensional**: systemic delta, systemic gamma, idiosyncratic delta, idiosyncratic gamma, Corr01, carry, and theta all matter.
 13. **Equity and senior tranches have opposite correlation exposures**: Corr01 is negative for equity, positive for senior (for long protection).
 14. **Positive gamma positions typically have negative carry** (O'Kane)—there is a cost to owning convexity.
@@ -2327,7 +2328,7 @@ This chapter is an educational risk framework. It does not provide recommendatio
 - CS01 hedge: $N_H = -CS01_T / CS01_H$.
 - VOD/JTD (CDS): $VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$.
 - Tranche loss: $L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)$.
-- Senior-sub spread ratio: $S_{\text{sub}}/S_{\text{sen}} = (1 - R_{\text{sub}})/(1 - R_{\text{sen}})$.
+- Senior-sub spread ratio: `S_sub/S_sen = (1 - R_sub)/(1 - R_sen)`.
 - Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times RPV01_{\text{long}} / RPV01_{\text{short}}$.
 
 ---
@@ -2392,7 +2393,7 @@ Wait — check the signs. Short protection on 3Y means CS01 $\lt 0$; when 3Y spr
 |----------|---------|---------|---------------------|---------------------|---------|
 | Curve flattens (3Y tightens -100, 5Y flat) | -100 | 0 | $+36{,}000$ USD | USD 0 | **+USD 36,000** |
 | Curve normalizes (3Y -150, 5Y -30) | -150 | -30 | $+54{,}000$ USD | $-10{,}800$ USD | **+USD 43,200** |
-| Default | — | — | ~$-(1-R) \times 14.4\text{mm}$ | ~$+(1-R) \times 10\text{mm}$ | **-USD 2.6mm** net loss |
+| Default | — | — | `~-(1-R) * 14.4mm` | `~+(1-R) * 10mm` | **-USD 2.6mm** net loss |
 
 **Key risk:** JTD is *not* hedged. The 3Y short protection notional exceeds 5Y long protection notional, so default produces a net loss of approximately $(1-R)(14.4 - 10) = 0.65 \times 4.4 = USD 2.86\text{mm}$.
 
@@ -2611,7 +2612,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700
 
 47. **Q:** What is the "positive basis squeeze"? **A:** When CDS spreads widen above bond spreads—often during distress when protection demand surges and bond liquidity dries up.
 
-48. **Q:** What is the senior-sub CDS spread ratio under equal hazard rates? **A:** $S_{\text{sub}} / S_{\text{sen}} = (1 - R_{\text{sub}}) / (1 - R_{\text{sen}})$ — driven purely by recovery difference.
+48. **Q:** What is the senior-sub CDS spread ratio under equal hazard rates? **A:** `S_sub / S_sen = (1 - R_sub) / (1 - R_sen)` — driven purely by recovery difference.
 
 49. **Q:** What does the Merton model say about equity and debt? **A:** Equity is a call option on firm assets; debt is equivalent to risk-free cash minus a put on firm assets.
 
