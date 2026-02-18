@@ -889,15 +889,15 @@ $$CS01_I \approx V(S-1) - V(S) = 54{,}300 - 50{,}000 = 4{,}300\ \text{ USD  /bp}
 - Next payment date: 2026-06-20 (then quarterly)
 
 **Inputs**
-- **Position:** Ford CDS, notional $N_{\text{Ford}}=USD 20$mm, long protection.
+- **Position:** Ford CDS, notional `N_Ford = USD 20mm`, long protection.
   - Risk system output (under this chapter’s CS01 convention): $CS01_{\text{Ford}}=-4{,}900\ USD/\text{bp}$.
 - **Hedge instrument:** CDX.IG index (same maturity bucket), short protection CS01 per USD 1mm:
   - $CS01_{I}(1)=+425\ USD /\text{bp per USD 1mm}$.
 - **Cashflow assumptions (for settlement intuition only):** index coupon $C=100$ bp, quarterly ACT/360; quoted upfront to the protection buyer $U=2.20\\%$ of notional. *(All numbers are hypothetical inputs for the example.)*
 
 **Outputs (What You Produce)**
-- CS01-matched index hedge notional: $N_I=11.53$mm (sell protection).
-- Beta-adjusted index hedge notional (if $\beta_{\text{Ford,IG}}=1.5$): $N_I=17.29$mm.
+- CS01-matched index hedge notional: `N_I = 11.53mm` (sell protection).
+- Beta-adjusted index hedge notional (if $\beta_{\text{Ford,IG}}=1.5$): `N_I = 17.29mm`.
 - Example settlement cash on the index hedge (seller receives upfront on settlement): $USD 0.0220 \times 11.53\text{mm} \approx USD 253{,}660$ (accrual is zero here because we trade on a coupon date).
 
 **Step-by-step**
@@ -914,7 +914,7 @@ $$CS01_I \approx V(S-1) - V(S) = 54{,}300 - 50{,}000 = 4{,}300\ \text{ USD  /bp}
 **Cashflows (table)**
 | Date | Cashflow (seller of index protection) | Explanation |
 |---|---:|---|
-| 2026-03-24 | +USD 253,660 | Upfront received on $N_I=11.53$mm at $U=2.20\\%$ (example) |
+| 2026-03-24 | +USD 253,660 | Upfront received on `N_I = 11.53mm` at $U=2.20\\%$ (example) |
 | 2026-06-20 | +USD 29,500 | Premium: $C\times \Delta \times N$ with $C=100$ bp and $\Delta\approx 92/360$ |
 | Default date (if any constituent defaults) | $-\frac{N_I}{M}\left(1-\frac{FP}{100}\right)$ | Protection payment for one defaulted name share (equal-weight stylization) |
 
@@ -1111,7 +1111,7 @@ If both positions had the same defaulted constituent with equal weight, reductio
 
 ### Example 10: Recovery Sensitivity Sweep
 
-Per-name notional $N_m = USD 10$mm.
+Per-name notional `N_m = USD 10mm`.
 
 | Final Price $FP$ | Recovery Rate | Payout |
 |------------------|---------------|--------|
