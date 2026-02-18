@@ -264,7 +264,8 @@ This is paid by the protection buyer to the seller and is separate from the prot
 
 > **Pitfall — CDS premium accrual on default:** forgetting the accrued premium cashflow (or getting its sign wrong).
 > **Why it matters:** the net cash settlement is wrong even when the auction payout is correct.
-> **Quick check:** compute $N\\,s\\,\alpha$ using the contract day count and confirm buyer net $=$ protection payout $ - N\\,s\\,\alpha$.
+> **Quick check:** compute $N\\,s\\,\alpha$ using the contract day count and confirm
+> $\text{buyer net} = \text{protection payout} - N\\,s\\,\alpha$.
 
 ---
 
