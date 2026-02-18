@@ -57,7 +57,7 @@ The distinction matters: VM aims to eliminate current exposure by matching colla
 
 Real-world CSAs rarely require collateral posting for every dollar of MTM movement. Two parameters create friction:
 
-**Threshold ($H$):** The MTM level below which VM need not be posted. If the threshold is $\mathrm{USD}\\,10\text{m}$, no collateral is required when $|V| \lt \mathrm{USD}\\,10\text{m}$, but if $V = \mathrm{USD}\\,11\text{m}$, the counterparty must post $\mathrm{USD}\\,1\text{m}$ in collateral.
+**Threshold ($H$):** The MTM level below which VM need not be posted. If the threshold is USD 10m, no collateral is required when $|V| \lt \mathrm{USD}\\,10\text{m}$, but if $V = \mathrm{USD}\\,11\text{m}$, the counterparty must post $\mathrm{USD}\\,1\text{m}$ in collateral.
 
 **Minimum transfer amount (MTA):** The smallest collateral transfer that will actually occur. If MTA is $500{,}000$ and the required collateral movement is $300{,}000$, no transfer happens. This avoids the operational cost of nuisance transfers.
 
@@ -329,9 +329,11 @@ Interpretation: start from domestic “risk-free” discounting in $x$, then **a
 These checks are not just “math niceties”: they tell you what must be true for slogans like “OIS everywhere” to be safe in your specific CSA.
 
 **Check (toy numeric, hypothetical):** Suppose rates are flat and constant with $r^x=2.00\\%$, $r^y=1.00\\%$, and the collateral remuneration in $y$ is $c^y=1.30\\%$. Then
+
 $$
 r_{\text{eff}}^{x|y}=2.00\\%+(1.30\\%-1.00\\%)=2.30\\%.
 $$
+
 A domestic $x$-currency receive cashflow of $X_T^x=\mathrm{USD}\\,1{,}000{,}000$ at $T=1$ has PV $\approx e^{-0.023}\times 1{,}000{,}000=\mathrm{USD}\\,977{,}270$. If instead $c^y=r^y$, then $r_{\text{eff}}^{x|y}=2.00\%$ and PV $\approx e^{-0.020}\times 1{,}000{,}000=\mathrm{USD}\\,980{,}199$. The $\sim \mathrm{USD}\\,2.9\text{k}$ difference comes purely from the collateral spread $c^y-r^y$.
 
 ### 33.5.4 Cheapest-to-Deliver (CTD) and Standardization (SCSA)
@@ -509,13 +511,10 @@ This is real money that affects the economics of holding positions.
 For an OIS-discounted portfolio, a natural first risk scalar is the sensitivity of PV to the **OIS discount curve**.
 
 **Definition (this book’s convention):**
-- **Bump object:** the OIS *discount* curve (e.g., a parallel shift of continuously-compounded OIS zero rates $y^{\text{OIS}}(0,T)$)
+- **Bump object:** the OIS *discount* curve (e.g., a parallel shift of continuously-compounded OIS zero rates `y^{OIS}(0,T)`)
 - **Bump size:** 1 bp $=10^{-4}$
 - **Units:** currency per 1 bp for the stated notional
-- **Sign convention:**  
-  $$
-  DV01 := PV(\text{OIS rates down }1\text{bp})-PV(\text{base}).
-  $$
+- **Sign convention:** $DV01 := PV(\text{OIS rates down }1\text{bp})-PV(\text{base})$.
 
 **What is held fixed?** In this definition, the projected cashflows are held fixed (same fixings and same projection curve); only the *discount factors* change.
 
@@ -526,9 +525,11 @@ $$DV01 \\;\approx\\; 10^{-4}\sum_i t_i \cdot P^{\text{OIS}}(0,t_i) \cdot CF(t_i)
 **Sign check:** for a positive cashflow stream, OIS rates down $\Rightarrow$ discount factors up $\Rightarrow$ PV up, so $DV01\gt 0$.
 
 **Check (toy magnitude):** For a single receive cashflow of $+\mathrm{USD}\\,1{,}000{,}000$ at $t=5$y with $P^{\text{OIS}}(0,5)=0.90$, the approximation gives
+
 $$
 DV01 \approx 10^{-4}\times 5 \times 0.90 \times 1{,}000{,}000 \approx \mathrm{USD}\\,450 \text{ per 1bp}.
 $$
+
 If you compute a DV01 that is 10× or 100× larger for this kind of toy stream, suspect a units (bp vs %) or time (years vs days) mismatch.
 
 ### 33.8.2 Discounting Basis Exposure
@@ -600,14 +601,8 @@ $$\Delta PV = \mathrm{USD}\\,975{,}000 - \mathrm{USD}\\,970{,}000 = \mathrm{USD}
 1. **Translate rates to cashflows** (toy $\Delta=1$):
    - Fixed cashflow at $t_i$: $CF^{\text{fixed}}_i = N\cdot K\cdot \Delta$
    - Float cashflow at $t_i$: $CF^{\text{float}}_i = N\cdot L_i\cdot \Delta$
-2. **Compute PV on the OIS curve**:
-   $$
-   PV = \sum_i P^{\text{OIS}}(0,t_i)\\,\bigl(CF^{\text{float}}_i-CF^{\text{fixed}}_i\bigr).
-   $$
-3. **Compute discount-curve DV01** (rates down 1bp, forwards held fixed) using the first-order approximation from Section 33.8:
-   $$
-   DV01 \approx 10^{-4}\sum_i t_i\\,P^{\text{OIS}}(0,t_i)\\,\bigl(CF^{\text{float}}_i-CF^{\text{fixed}}_i\bigr).
-   $$
+2. **Compute PV on the OIS curve**: $PV = \sum_i P^{\text{OIS}}(0,t_i)\\,\bigl(CF^{\text{float}}_i-CF^{\text{fixed}}_i\bigr)$.
+3. **Compute discount-curve DV01** (rates down 1bp, forwards held fixed) using the first-order approximation from Section 33.8: $DV01 \approx 10^{-4}\sum_i t_i\\,P^{\text{OIS}}(0,t_i)\\,\bigl(CF^{\text{float}}_i-CF^{\text{fixed}}_i\bigr)$.
 
 **Cashflows**
 | Date | Net cashflow | Explanation |
@@ -616,12 +611,14 @@ $$\Delta PV = \mathrm{USD}\\,975{,}000 - \mathrm{USD}\\,970{,}000 = \mathrm{USD}
 | 2028-02-19 | $N(L_2-K)\Delta = \mathrm{USD}\\,359{,}000$ | receive float $-$ pay fixed |
 
 **PV**
+
 $$
 PV \approx 0.9750\times 59{,}000 + 0.9500\times 359{,}000
 = 57{,}525 + 341{,}050 = \mathrm{USD}\\,398{,}575.
 $$
 
 **OIS discount-curve DV01**
+
 $$
 DV01 \approx 10^{-4}\left(1\times 0.9750\times 59{,}000 + 2\times 0.9500\times 359{,}000\right)
 = 10^{-4}\left(57{,}525 + 682{,}100\right)=\mathrm{USD}\\,73.96 \approx \mathrm{USD}\\,74\text{ per bp}.
@@ -868,7 +865,7 @@ $$\boxed{V(0) = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025} = \mathrm{USD}\\,
 
 ### Example 33.11: Domestic PV with Foreign-Currency Collateral (Toy)
 
-This example illustrates the “$r^x + c^y - r^y$” discounting identity from Section 33.5 in a simple constant-rate toy world.
+This example illustrates the `r^x + c^y - r^y` discounting identity from Section 33.5 in a simple constant-rate toy world.
 
 **Setup (hypothetical, continuous compounding):**
 - Payoff currency: USD ($x=\text{USD}$)
@@ -974,7 +971,7 @@ Before saying "OIS discounting," verify:
 
 **Saying "OIS discounting" without specifying details:** Which overnight rate? What if the CSA allows multiple currencies?
 
-**Ignoring thresholds and margin lags:** These create residual unsecured exposure. A “$\mathrm{USD}\\,10\text{m}$ threshold CSA” leaves up to $\mathrm{USD}\\,10\text{m}$ unsecured—that's credit risk.
+**Ignoring thresholds and margin lags:** These create residual unsecured exposure. A "USD 10m threshold CSA" leaves up to USD 10m unsecured—that's credit risk.
 
 **Confusing CVA with "just a spread":** CVA is an expectation of discounted loss depending on exposure profiles, collateral terms, and default probabilities—not a simple spread.
 
