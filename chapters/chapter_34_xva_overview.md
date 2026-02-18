@@ -149,17 +149,20 @@ The product $(1-R) q_i v_i$ gives expected loss from defaults in interval $i$; s
 
 ### 34.2.3 Computing Default Probabilities
 
-The $q_i$ are **risk-neutral** default probabilities, typically implied from market credit instruments (e.g., CDS). In reduced-form (intensity) models one works with a hazard rate $h(t)$ and the survival probability
+The $q_i$ are **risk-neutral** default probabilities, typically implied from market credit instruments (e.g., CDS). In reduced-form (intensity) models one works with a hazard rate $h(t)$ and the survival probability.
+
 $$
 Q(t)=\exp\Big(-\int_0^t h(u)\\,du\Big).
 $$
 
-In a very common *approximation*, if $s_i$ is a credit spread for maturity $t_i$ and recovery is treated as constant $R$, the average hazard rate over $[0,t_i]$ is
+In a very common *approximation*, if $s_i$ is a credit spread for maturity $t_i$ and recovery is treated as constant $R$, the average hazard rate over $[0,t_i]$ is:
+
 $$
 \bar{h}_i \approx \frac{s_i}{1-R}.
 $$
 
-Then $Q(t_i)\approx e^{-\bar{h}_i t_i}$, and a discrete interval default probability is
+Then the approximation is `Q(t_i) \approx exp(-\bar{h}_i t_i)`, and a discrete interval default probability is:
+
 $$
 q_i = Q(t_{i-1})-Q(t_i).
 $$
@@ -294,14 +297,10 @@ This example follows the “exposure grid + default curve” pipeline: **exposur
    - $q_1=0.0328$, $q_2=0.0317$, $q_3=0.0307$, $q_4=0.0296$, $q_5=0.0287$
 4. Discount expected exposures $v_i = EE_i \cdot P(0,t_i^{\ast})$ (in \mathrm{USD}\\,mm):
    - $v=[1.47,\\,2.35,\\,2.52,\\,1.91,\\,1.26]$
-5. Assemble CVA:
-   $$
-   \text{CVA} = (1-R)\sum_{i=1}^5 q_i v_i
-   =0.60\times 0.2929\text{ mm} \approx \mathrm{USD}\\,175{,}700.
-   $$
+5. Assemble CVA: $\text{CVA} = (1-R)\sum_{i=1}^5 q_i v_i =0.60\times 0.2929\text{ mm} \approx \mathrm{USD}\\,175{,}700.$
 
 **Cashflows (expected loss contributions)**
-Think of each interval as contributing a PV “expected loss cashflow” $ (1-R)q_iv_i$.
+Think of each interval as contributing a PV “expected loss cashflow” $(1-R) q_i v_i$.
 
 | Approx date | PV expected loss | Explanation |
 |---|---:|---|
