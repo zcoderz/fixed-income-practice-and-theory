@@ -906,7 +906,7 @@ When building a curve from STIR futures:
 | 17 | What is the adjustment for a 10-year contract at 100 bp vol? | Approximately 50 bp |
 | 18 | What is the sanity check when $\sigma = 0$? | Adjustment should equal zero |
 | 19 | What is the Fed Funds futures DV01 (30-day month)? | USD41.67 per basis point |
-| 20 | How do you compute the hedge ratio? | # contracts = $-\text{DV01}_{\text{target}} / \text{DV01}_{\text{fut}}$ |
+| 20 | How do you compute the hedge ratio? | # contracts = $-DV01_{target} / DV01_{fut}$ |
 | 21 | What is the tailed hedge formula? | $N_{\text{fut}} = N_{\text{fwd}} / (1 + r \cdot d/360)$ |
 | 22 | Why do we tail hedges? | To account for reinvestment/financing of daily settlement cash flows |
 | 23 | What does a TED spread measure? | A bond's value relative to ED futures (spread over LIBOR) |
