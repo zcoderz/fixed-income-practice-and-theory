@@ -98,9 +98,9 @@ Synonyms: the **dirty** price is also called the **full** or **invoice** price�
 
 ### 6.2.2 Why Markets Quote Clean Prices
 
-Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues about $5/365 \approx 1.4$ cents per day per \$100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
+Consider what would happen if markets quoted dirty prices. Between coupon dates, interest accrues mechanically—a 5% coupon bond accrues about $5/365 \approx 1.4$ cents per day per USD 100 face. If quotes reflected this accrual, bond prices would drift upward between coupons and jump down on payment dates, even if nothing changed about the bond's fundamental value.
 
-**Check (desk scale):** “1.4 cents per day per \$100 face” sounds tiny until you scale it. On a \$100mm face position, $(100{,}000{,}000/100)\times 0.014 \approx 14{,}000$ USD per day of mechanical dirty-price drift when the coupon rate is 5%. Clean-vs-dirty separation keeps this accrual from masquerading as trading P&L.
+**Check (desk scale):** “1.4 cents per day per USD 100 face” sounds tiny until you scale it. On a USD 100mm face position, $(100{,}000{,}000/100)\times 0.014 \approx 14{,}000$ USD per day of mechanical dirty-price drift when the coupon rate is 5%. Clean-vs-dirty separation keeps this accrual from masquerading as trading P&L.
 
 Clean pricing solves this problem. The clean price strips out the mechanical accrual component, so quoted prices better reflect changes in yields and market conditions. If yields are unchanged, the “jump” at a coupon date is (mostly) an accrued-interest reset, not a sudden deterioration in the bond’s economic value.
 
@@ -214,7 +214,7 @@ Consider an investor who purchases a 10-year, 8% annual coupon bond at par (pric
 
 **Base Case: Rates Stay at 8%**
 
-Each annual coupon of \$8 is reinvested at 8%. At maturity:
+Each annual coupon of 8 USD is reinvested at 8%. At maturity:
 
 | Year | Coupon | Years to Compound | Future Value |
 |------|--------|-------------------|--------------|
@@ -1024,7 +1024,7 @@ Money market quoting (simple interest with ACT/360) differs from bond quoting (s
 | 32 | Why do liability managers care about reinvestment risk? | Coupon reinvestment rates are unknown, making total return uncertain |
 | 33 | Three components of total return? | Coupon income + Reinvestment income + Price change |
 | 34 | Which bond type has zero reinvestment risk? | Zero-coupon bonds (no intermediate cash flows) |
-| 35 | What does "long 50k DV01" mean? | Position gains \$50,000 for every 1 bp decline in rates |
+| 35 | What does "long 50k DV01" mean? | Position gains USD 50,000 for every 1 bp decline in rates |
 
 ---
 
