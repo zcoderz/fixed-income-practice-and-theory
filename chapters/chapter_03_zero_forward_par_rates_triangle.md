@@ -1004,7 +1004,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 9. **Convention**: $R_{sa} = 2(e^{0.05/2} - 1) = 2(1.0253 - 1) = 5.06\\%$.
 
-10. **Bootstrapping**: Yes. Step 1: Use 1y par rate $C_1 = (1-P_1)/(P_1)$ to solve for $P(1)$ (assuming annual, $P_1 = 1/(1+C_1)$). Step 2: Use 2y par equation: $1 = C_2 \cdot P_1 + C_2 \cdot P_2 + P_2 = C_2(P_1 + P_2) + P_2$. Rearrange: $P_2 = (1 - C_2 \cdot P_1)/(1 + C_2)$.
+10. **Bootstrapping**: Yes. Step 1: Use 1y par rate $C_1 = (1-P_1)/(P_1)$ to solve for $P(1)$ (assuming annual, `P1 = 1 / (1 + C1)`). Step 2: Use 2y par equation: $1 = C_2 \cdot P_1 + C_2 \cdot P_2 + P_2 = C_2(P_1 + P_2) + P_2$. Rearrange: $P_2 = (1 - C_2 \cdot P_1)/(1 + C_2)$.
 
 11. **Instantaneous Forward**: $f(0,T) = -\frac{d}{dT}(-0.04T - 0.002T^2) = 0.04 + 0.004T$.
 

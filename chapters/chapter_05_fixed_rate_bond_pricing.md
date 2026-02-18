@@ -718,7 +718,7 @@ Any pricing engine should pass these checks:
 
 8. **Premium bonds have coupon > yield; discount bonds have coupon < yield.** Par bonds have coupon = yield and trade at 100. All bonds "pull to par" over time.
 
-9. **Rates risk needs an explicit bump definition.** Use DV01 with a stated bump object, units, and sign (in this book: $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$).
+9. **Rates risk needs an explicit bump definition.** Use DV01 with a stated bump object, units, and sign (in this book: `DV01 := PV(rates down 1bp) - PV(base)`).
 
 10. **Edge cases require care.** Stub periods need explicit accrual logic; settlement fails change the cash timeline (and therefore funding/carry); defaulted bonds may trade flat.
 
@@ -740,7 +740,7 @@ Any pricing engine should pass these checks:
 | **Discount Bond** | Bond trading below par (coupon < yield). | Indicates below-market coupon payments. |
 | **32nds (Ticks)** | Treasury pricing unit ($1/32 \approx 0.03125$). | Historical convention for quoting. |
 | **Tick Value** | Dollar P&L per 1/32 price move. | $31,250 per tick on $100mm. |
-| **DV01** | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object. | A one-number rate risk; must define what is being bumped. |
+| **DV01** | `DV01 := PV(rates down 1bp) - PV(base)` for a stated bump object. | A one-number rate risk; must define what is being bumped. |
 | **Stub Period** | First or last coupon period that differs from standard length. | Requires pro-rated coupon calculation. |
 | **Flat Trading** | Trading without accrued interest (AI = 0). | Applies to defaulted bonds. |
 
@@ -789,7 +789,7 @@ Any pricing engine should pass these checks:
 | 16 | What is a "stub period"? | A first or last coupon period that is shorter or longer than standard |
 | 17 | What happens to clean price across a coupon payment date? | It is continuous (does not jump) |
 | 18 | What happens to dirty price when a coupon is paid? | It drops by approximately the coupon amount |
-| 19 | Define DV01 in this book. | $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$ for a stated bump object; units = currency per 1bp. |
+| 19 | Define DV01 in this book. | `DV01 := PV(rates down 1bp) - PV(base)` for a stated bump object; units = currency per 1bp. |
 | 20 | How do you calculate P&L for a 4-tick move on $50mm? | 4 × ($50mm/100 × 1/32) = 4 × $15,625 = $62,500 |
 | 21 | What is the key difference between curve-based and yield-based pricing? | Curve-based discounts each cashflow with its own discount factor; yield-based uses a single IRR (YTM). |
 

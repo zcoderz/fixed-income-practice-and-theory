@@ -79,7 +79,7 @@ Quoting clean prices and separating accrued interest avoids a mechanical sawtoot
 > **Example: Tick Size and Bid/Ask**
 >
 > Quotes in 32nds make small spreads natural to discuss in “ticks.” For illustration, a one‑tick (1/32 of par) spread on $100 million face corresponds to:
-> $$100{,}000{,}000\ \text{USD} \times \frac{1}{32} \times \frac{1}{100} = 31{,}250\ \text{USD}$$
+> `100,000,000 USD × (1/32) × (1/100) = 31,250 USD`
 >
 > A half‑tick (1/64) would be half that amount.
 
@@ -541,7 +541,7 @@ The compounding formula for RFRs is:
 
 $$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}(1 + r_i \hat{d}_i) - 1\right] \times \frac{360}{D}}$$
 
-where $r_i$ is the overnight rate on day $i$, $\hat{d}_i = d_i/360$, $d_i$ is the number of days that rate applies (usually 1, but 3 over weekends), and $D = \sum_{i} d_i$ is the total number of days in the period.
+where $r_i$ is the overnight rate on day $i$, `d_hat_i = d_i/360`, `d_i` is the number of days that rate applies (usually 1, but 3 over weekends), and `D = sum_i d_i` is the total number of days in the period.
 
 > **Worked Example G: SOFR Compounding**
 >
@@ -709,7 +709,7 @@ Most trading desks quote clean and track accrued interest separately, then recon
 > $$P_{\text{dirty}} = 98.50 + 0.829 = 99.329$$
 >
 > **Step 4:** Cash exchanged on $1mm face
-> $$\text{Cash} = 1{,}000{,}000\ \text{USD} \times \frac{99.329}{100} = 993{,}290\ \text{USD}$$
+> `Cash = 1,000,000 USD × (99.329/100) = 993,290 USD`
 >
 > **Sanity check:** Dirty price > clean price (positive accrued). Accrued ≈ 1/3 of semiannual coupon (61/184 ≈ 33%). ✓
 
@@ -837,7 +837,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 | $m$ | Compounding / payment frequency | per year |
 | $z(T)$ | Zero (spot) rate to maturity $T$ | per year; compounding basis must be stated |
 | $f(T_1, T_2)$ | Forward rate for period $[T_1, T_2]$ | per year; day count + compounding must be stated |
-| $q_{\text{disc}}$ | T-bill quoted discount rate | percent points p.a. on face value, ACT/360 |
+| `q_disc` | T-bill quoted discount rate | percent points p.a. on face value, ACT/360 |
 | $R_c$ | Continuously compounded rate | per year |
 | $R_m$ | Rate compounded $m$ times per year | per year |
 | $DV01$ | “01” PV sensitivity | currency per 1 bp for a *stated bump object*; book convention: $PV(\text{rates down }1\text{bp})-PV(\text{base})$ |
@@ -866,7 +866,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 | 16 | How many days between Feb 28 and Mar 1 under 30/360? | 3 days (Feb 28 → Feb 30 → Mar 1) |
 | 17 | How many days between Feb 28 and Mar 1 under ACT/ACT? | 1 day |
 | 18 | Why is continuous compounding used in derivatives pricing? | Mathematical convenience: discount factors multiply simply |
-| 19 | How are T-bill discount quotes related to cash prices? | $q_{\text{disc}} = \frac{360}{n}(100 - Y)$ where $q_{\text{disc}}$ is the discount quote (% p.a.) and $Y$ is cash price per $100$ face |
+| 19 | How are T-bill discount quotes related to cash prices? | `q_disc = (360/n) * (100 - Y)` where `q_disc` is the discount quote (% p.a.) and `Y` is cash price per `100` face |
 | 20 | Give an example of a holiday calendar used in EUR contracts | TARGET (product-specific) |
 | 21 | What is a settlement fail? | When the seller cannot deliver securities on the agreed settlement date |
 | 22 | What is DV01 and what is the “bump object”? | DV01 is PV change per 1 bp for a defined rate/quote bump; you must state what is being bumped (yield/zero/par/quote) and the sign convention |

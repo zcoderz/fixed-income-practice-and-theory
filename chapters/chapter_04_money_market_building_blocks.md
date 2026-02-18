@@ -446,7 +446,7 @@ where $d$ is the number of calendar days (typically 3 for a weekend).
 **Expand (scaling intuition):** because $d$ is small, the annualization factor $360/d$ is large (for a 3-day stub it is 120). That means *tiny* differences in discount factors across the stub can translate into “large” annualized turn quotes. When sanity-checking a turn, look first at the stub growth factor $\frac{P(0,\text{Dec 30})}{P(0,\text{Jan 2})}$ or the implied dollar interest over the stub—not the annualized percent alone.
 
 > **Check (toy number):** if $P(0,\text{Dec 30})=0.99990$ and $P(0,\text{Jan 2})=0.99950$, then the 3-day stub return is $(0.99990/0.99950-1)\approx 0.0400\\%$. Annualized, $r_{\text{turn}}\approx 0.000400\times 120\approx 4.8\\%$. On \$100mm notional, that is about \$40k of interest over the 3-day stub:
-> $$100{,}000{,}000\times 0.048\times \frac{3}{360} \approx 40{,}000.$$
+> `100,000,000 × 0.048 × (3/360) ≈ 40,000`
 
 **Trading the turn:**
 - **Long turn:** Lend over the stub if you think the realized rate will be higher than what the curve implies
@@ -585,7 +585,7 @@ $$\frac{\partial P}{\partial r} = -\frac{\tau}{(1 + r \cdot \tau)^2}$$
 
 **Interpretation:** The short-end discount factor is most sensitive to (i) larger accrual fractions and (ii) lower rate levels. Even small $\tau$ matters because front-end PVs are dominated by short-dated cashflows.
 
-**A concrete “01” (bump object + units + sign):** For a deterministic cashflow of notional $N$ paid at $T$, $PV = N\cdot P(0,T)$. Define the **local** DV01 to the simple quote $r$ used in $P(0,T)=1/(1+r\tau)$ (with $\tau:=\tau(0,T)$) as:
+**A concrete “01” (bump object + units + sign):** For a deterministic cashflow of notional $N$ paid at $T$, $PV = N\cdot P(0,T)$. Define the **local** DV01 to the simple quote $r$ used in $P(0,T)=1/(1+r\tau)$ (with `tau := tau(0,T)`) as:
 $$DV01 := PV(r-1\text{bp})-PV(r)$$
 Using $P(0,T)=1/(1+r\tau)$ and $1\text{bp}=10^{-4}$, a first-order approximation is:
 $$DV01 \approx N\cdot \frac{\tau}{(1+r\tau)^2}\cdot 10^{-4}\quad\text{(currency per 1bp; positive for long PV risk).}$$
@@ -684,8 +684,8 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\ \text{percent}}$$
 - Risk metric: $DV01 := PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})$ (units: USD per 1bp; bump object = bank discount quote at this maturity)
 
 **Step-by-step**
-1. Translate quote to cash price (per \$100 face):
-   $$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$$
+1. Translate quote to cash price (per \$100 face):  
+   `$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$`
 2. Convert price to discount factor:
    $$P(0,T)=\frac{Y}{100}=0.9868556$$
 3. Compute DV01 (quote bump, rates down 1bp):

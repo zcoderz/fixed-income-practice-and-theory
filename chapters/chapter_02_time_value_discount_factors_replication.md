@@ -69,13 +69,13 @@ This simple definition has powerful implications. If we know the discount factor
 
 Discount factors are not directly quoted in the market—they must be extracted from traded instruments. The example below uses Treasury coupon bonds and works from short maturities to long: solve for the shortest discount factor first, then use it to solve for the next one, and so on.
 
-**Worked example (Treasury bond):** On February 15, 2001, the $7\frac{7}{8}$s of August 15, 2001, traded at $101\text{-}12\frac{3}{4}$ (i.e., $101 + 12.75/32 = 101.3984\%$ of face). This bond pays its final coupon plus principal in six months: $100 + 7.875/2 = 103.9375$. Therefore:
+**Worked example (Treasury bond):** On February 15, 2001, the `7 7/8s` of August 15, 2001, traded at `101-12 3/4` (i.e., $101 + 12.75/32 = 101.3984\%$ of face). This bond pays its final coupon plus principal in six months: $100 + 7.875/2 = 103.9375$. Therefore:
 
 $$101.3984 = 103.9375 \times d(0.5)$$
 
 Solving implies $d(0.5) = 0.97557$.
 
-For a one-year bond—say, the $14\frac{1}{4}$s of February 15, 2002, trading at $108\text{-}31+$ (or $108.984375$)—the cash flows are $7.125$ in six months and $107.125$ in one year. The pricing equation is:
+For a one-year bond—say, the `14 1/4s` of February 15, 2002, trading at `108-31+` (or $108.984375$)—the cash flows are $7.125$ in six months and $107.125$ in one year. The pricing equation is:
 
 $$108.984375 = 7.125 \times d(0.5) + 107.125 \times d(1)$$
 
@@ -234,7 +234,7 @@ The existence of arbitrage opportunities is what enforces the law of one price. 
 
 **Replication** means constructing a portfolio that produces the same cash flows as a target security. Under no-arbitrage, the target must be priced at the cost of its replicating portfolio.
 
-**Worked example (coupon bond replication):** Consider the $10\frac{3}{4}$s of February 15, 2003. It has four remaining cash flows: $5.375$ at each of 0.5, 1.0, and 1.5 years, and $105.375$ at 2.0 years. Using the discount factors for those maturities (from Section 2.1), you can value the bond directly. You can also replicate its cash flows using a portfolio of shorter-maturity instruments; under no-arbitrage, both approaches must agree.
+**Worked example (coupon bond replication):** Consider the `10 3/4s` of February 15, 2003. It has four remaining cash flows: $5.375$ at each of 0.5, 1.0, and 1.5 years, and $105.375$ at 2.0 years. Using the discount factors for those maturities (from Section 2.1), you can value the bond directly. You can also replicate its cash flows using a portfolio of shorter-maturity instruments; under no-arbitrage, both approaches must agree.
 
 The key insight of replication is that we can match cash flows at each date by working backward from the final payment.
 
@@ -267,10 +267,10 @@ The replicating portfolio constructed from the underlying bond set has a total c
 
 ### 2.4.4 Identifying Rich/Cheap Securities
 
-Suppose the $10\frac{3}{4}$s traded at 110.938 while the replication value is 111.041. The bond is therefore **cheap** by $111.041-110.938 = 0.103$ (about 3.3 32nds).
+Suppose the `10 3/4s` traded at 110.938 while the replication value is 111.041. The bond is therefore **cheap** by $111.041-110.938 = 0.103$ (about 3.3 32nds).
 
 An arbitrageur could exploit this by:
-1. **Buy** the $10\frac{3}{4}$s at 110.938
+1. **Buy** the `10 3/4s` at 110.938
 2. **Sell** the replicating portfolio at 111.041
 3. **Pocket** $0.103$ today with zero net future cash flows
 
