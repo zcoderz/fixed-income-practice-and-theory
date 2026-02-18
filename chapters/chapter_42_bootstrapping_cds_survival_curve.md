@@ -49,7 +49,7 @@ A useful starting point is the analogy between interest-rate curve building and 
 |----------------|--------|
 | Discount curve $Z(t)$ | Survival curve $Q(t)$ |
 | Short rate $r(s)$ | Hazard rate $\lambda(s)$ |
-| No-arbitrage: $r(s) > 0$ | No-arbitrage: $\lambda(s) > 0$ |
+| No-arbitrage: $r(s) \gt 0$ | No-arbitrage: $\lambda(s) \gt 0$ |
 | $Z(t) = \exp(-\int_0^t r(s) ds)$ | $Q(t) = \exp(-\int_0^t \lambda(s) ds)$ |
 | Zero rate $z(t) = -(1/t)\ln Z(t)$ | Zero default rate $z(t) = -(1/t)\ln Q(t)$ |
 | Forward rate $f(t) = -Z(t)^{-1} \partial Z(t)/\partial t$ | Forward default rate $h(t) = -Q(t)^{-1} \partial Q(t)/\partial t$ |
@@ -89,12 +89,12 @@ The premium leg PV is packaged via $RPV01(0,T)$, the premium-leg PV per unit run
 $$
 \text{RPV01}(0,T)
 = \sum_{n=1}^{N} \Delta_n Z(0,t_n) Q(0,t_n)
-\;+\; \sum_{n=1}^{N} \int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\, Z(0,s)\,(-dQ(0,s)).
+\\;+\\; \sum_{n=1}^{N} \int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\\, Z(0,s)\\,(-dQ(0,s)).
 $$
 
 The integral term can be approximated cheaply on the coupon grid. A common trapezoid-style approximation is:
 $$
-\int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\, Z(0,s)\,(-dQ(0,s))
+\int_{t_{n-1}}^{t_n} \Delta(t_{n-1},s)\\, Z(0,s)\\,(-dQ(0,s))
 \approx
 \frac{1}{2}\Delta_n Z(0,t_n)\left(Q(0,t_{n-1})-Q(0,t_n)\right),
 $$
@@ -105,14 +105,14 @@ $$
 
 For the protection leg, a standard expression (per unit notional) is:
 $$
-\text{Protection PV}(0,T) = (1-R)\int_0^T Z(0,s)\,(-dQ(0,s)),
+\text{Protection PV}(0,T) = (1-R)\int_0^T Z(0,s)\\,(-dQ(0,s)),
 $$
 which can be discretized on a chosen grid (e.g., premium dates) as:
 $$
 \text{Protection PV}(0,T) \approx \frac{1-R}{2} \sum_{k=1}^{K} \left(Z(0,t_{k-1}) + Z(0,t_k)\right) \left(Q(0,t_{k-1}) - Q(0,t_k)\right).
 $$
 
-Both expressions depend on the survival curve $Q(0,t)$. Given market CDS spreads $\{S_m\}$ at maturities $\{T_m\}$, we must find a survival curve such that each CDS has zero mark-to-market at inception.
+Both expressions depend on the survival curve $Q(0,t)$. Given market CDS spreads $\\{S_m\\}$ at maturities $\\{T_m\\}$, we must find a survival curve such that each CDS has zero mark-to-market at inception.
 
 ---
 
@@ -154,10 +154,10 @@ The bootstrap algorithm solves for survival probabilities sequentially, starting
 
 The algorithm requires:
 
-1. **Market CDS quotes** $\{(T_m, S_m)\}_{m=1}^{M}$, sorted by increasing maturity
+1. **Market CDS quotes** $\\{(T_m, S_m)\\}_{m=1}^{M}$, sorted by increasing maturity
 2. **Discount curve** $Z(0,t)$ at all needed times (treated as an input; must be consistent with your collateral/funding assumptions)
 3. **Recovery assumption** $R$ (an input to the model; often assumed constant within a curve build)
-4. **Premium schedule** $\{t_n\}$ and accrual fractions $\Delta_n$ (must match the CDS contract specification used by the quotes)
+4. **Premium schedule** $\\{t_n\\}$ and accrual fractions $\Delta_n$ (must match the CDS contract specification used by the quotes)
 5. **Integration/discretization grid** for the protection leg (e.g., premium dates, or a finer grid if you are doing numerical integration)
 
 ### 42.3.2 The Algorithm Steps
@@ -167,7 +167,7 @@ The bootstrap algorithm is:
 1. Initialize the survival curve with $Q(T_0=0)=1$.
 2. Set $m=1$.
 3. Solve for $Q(T_m)$ such that the mark-to-market of the $T_m$ CDS at the market spread $S_m$ is zero, using the previously determined curve segments to value cashflows up to $T_m$.
-4. Enforce the no-arbitrage bound $0 < Q(T_m) \le Q(T_{m-1})$.
+4. Enforce the no-arbitrage bound $0 \lt Q(T_m) \le Q(T_{m-1})$.
 5. Add $(T_m, Q(T_m))$ to the curve, set $m \leftarrow m+1$, and repeat until all maturities are bootstrapped.
 
 ### 42.3.3 The Root-Finding Problem
@@ -178,9 +178,9 @@ The objective function is the mark-to-market value as a function of $Q(T_m)$:
 
 $$f(Q(T_m)) = \text{Protection PV}(0,T_m) - S_m \cdot \text{RPV01}(0,T_m) = 0$$
 
-The bounds for the root search come from the no-arbitrage constraint: $0 < Q(T_m) \leq Q(T_{m-1})$.
+The bounds for the root search come from the no-arbitrage constraint: $0 \lt Q(T_m) \leq Q(T_{m-1})$.
 
-**Expand (why the root is well-behaved):** earlier curve segments are fixed from prior bootstrap steps; changing $Q(T_m)$ only changes survival (and therefore cashflow PVs) on the new interval $(T_{m-1},T_m]$ under your interpolation rule. As you increase $Q(T_m)$ (more survival on the new interval), the protection PV *decreases* while $RPV01$ *increases*. So $f(Q(T_m))$ is typically **monotone decreasing**, which is why bracketing methods like bisection are so robust here.
+**Expand (why the root is well-behaved):** earlier curve segments are fixed from prior bootstrap steps; changing $Q(T_m)$ only changes survival (and therefore cashflow PVs) on the new interval $(T_{m-1},T_m]$ under your interpolation rule. As you increase $Q(T_m)$ (more survival on the new interval), the protection PV decreases while $RPV01$ increases. So $f(Q(T_m))$ is typically **monotone decreasing**, which is why bracketing methods like bisection are so robust here.
 
 **Check (bracketing logic):** in a “normal” quote set, $f(Q(T_{m-1}))$ is negative (too much premium PV relative to protection when you assume *no* incremental default past $T_{m-1}$) and $f(0^+)$ is positive (too much protection PV when you assume near-certain default by $T_m$). If you cannot get a sign change over $(0,Q(T_{m-1})]$, there is no admissible $Q(T_m)$ and the calibration failure is a genuine arbitrage/inconsistency signal (Section 42.5).
 
@@ -222,9 +222,9 @@ $$\boxed{Q(t) = Q(T_{n-1}) \exp\left(-(t - T_{n-1}) h\right)}$$
 
 **Check (hazard units + scale):** $h$ has units $1/\text{year}$. If survival drops from $Q(1)=0.98$ to $Q(2)=0.94$, then
 $$
-h=\ln\!\left(\frac{0.98}{0.94}\right)\approx 0.0417\ \text{year}^{-1},
+h=\ln\\!\left(\frac{0.98}{0.94}\right)\approx 0.0417\ \text{year}^{-1},
 $$
-which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\%$.
+which corresponds to a conditional default probability over that year of about $1-e^{-h}\approx 4.1\\%$.
 
 **Why this method works:** No-arbitrage requires $h(t) \geq 0$, which is guaranteed as long as $Q(T_n) \leq Q(T_{n-1})$ at each skeleton point. The piecewise-constant structure ensures that if the skeleton is arbitrage-free, the interpolated curve is also arbitrage-free everywhere.
 
@@ -260,7 +260,7 @@ Not all CDS quote sets can be calibrated to a valid survival curve. When the inp
 
 The fundamental constraint is that survival probabilities must be non-increasing:
 
-$$\boxed{\frac{d\,Q(0,t)}{dt} \leq 0 \quad \text{for all } t > 0}$$
+$$\boxed{\frac{d\\,Q(0,t)}{dt} \leq 0 \quad \text{for all } t \gt 0}$$
 
 Equivalently, the forward default rate must be non-negative: $h(t) \geq 0$. If this constraint is violated, you are modeling a world where the credit becomes *more* likely to survive the longer you wait—an economic absurdity.
 
@@ -339,9 +339,9 @@ Understanding *why* the bootstrap produces local sensitivities requires examinin
 
 ### 42.6.1 The Sensitivity Matrix
 
-When hedging a CDS book, we need to know how bumping each market quote affects each position. Consider hedging a CDS position $V$ using on-market CDS at standard tenors $\{S_{1Y}, S_{3Y}, S_{5Y}, S_{7Y}, S_{10Y}\}$.
+When hedging a CDS book, we need to know how bumping each market quote affects each position. Consider hedging a CDS position $V$ using on-market CDS at standard tenors $\\{S_{1Y}, S_{3Y}, S_{5Y}, S_{7Y}, S_{10Y}\\}$.
 
-The hedge notionals $\{N_i\}$ satisfy the system of linear equations:
+The hedge notionals $\\{N_i\\}$ satisfy the system of linear equations:
 
 $$-\frac{\partial V}{\partial S_i} = \sum_{j=1}^{M} N_j \frac{\partial V_j}{\partial S_i} \quad \text{for } i = 1, \ldots, M$$
 
@@ -389,7 +389,7 @@ This is the "CDS equivalent notional"—how much of the $T_i$-maturity on-market
 
 **Definition (bucket CS01):** for any position with present value $V$, define the tenor-$T_i$ CS01 as
 $$
-CS01_i \;:=\; V(\,S_i + 1\text{ bp}\,;\ \text{rebuild curve}\,) - V(\,S_i\,;\ \text{base}\,)
+CS01_i \\;:=\\; V(\\,S_i + 1\text{ bp}\\,;\ \text{rebuild curve}\\,) - V(\\,S_i\\,;\ \text{base}\\,)
 $$
 where the **bump object** is the *market par CDS spread quote* $S_i$ (in decimal), the **bump size** is $1\text{ bp}=10^{-4}$, and the curve is rebuilt using the same bootstrap + interpolation rule. Units: currency per 1bp for the stated notional. Sign: for long protection, $CS01_i$ is typically positive (spreads widen $\Rightarrow$ protection becomes more valuable); for short protection it is typically negative.
 
@@ -434,14 +434,14 @@ $$\lambda \approx \frac{S}{1 - R}$$
 Recovery sensitivity is convention-dependent, so you must define **what is held fixed**.
 
 For curve construction and curve-based risk, a common desk definition is:
-- Hold the *market CDS quotes* $\{S_m\}$ fixed,
-- bump the recovery input by **+1% absolute** (e.g., $40\% \rightarrow 41\%$),
+- Hold the *market CDS quotes* $\\{S_m\\}$ fixed,
+- bump the recovery input by **+1% absolute** (e.g., $40\\% \rightarrow 41\\%$),
 - rebuild the survival curve with the same bootstrap + interpolation rule,
 - revalue the position.
 
 Define:
 $$
-Rec01 \;:=\; PV(R+1\%) - PV(R)
+Rec01 \\;:=\\; PV(R+1\\%) - PV(R)
 $$
 Units: currency per 1% recovery (absolute). Sign depends on position direction and whether the instrument is on-market or off-market.
 
@@ -563,8 +563,8 @@ CDS curve building is convention-sensitive because the par spread is defined by 
    $$
    \text{Accrued} =
    \begin{cases}
-   +\Delta(t_{n^{*}-1},t)\,S_0 & \text{(short protection)} \\
-   -\Delta(t_{n^{*}-1},t)\,S_0 & \text{(long protection).}
+   +\Delta(t_{n^{*}-1},t)\\,S_0 & \text{(short protection)} \\
+   -\Delta(t_{n^{*}-1},t)\\,S_0 & \text{(long protection).}
    \end{cases}
    $$
    Here $t$ is the valuation date and $t_{n^{*}-1}$ is the most recent coupon date before $t$.
@@ -597,7 +597,7 @@ This section gives one worked bootstrap example in a simplified setting and then
 > **Note (simplification):** Real single-name CDS uses quarterly payments on standard dates with Actual/360 accrual and premium accrued on default. We use annual payments and year-fractions $t=1,2,\ldots$ only to keep the arithmetic short; the bootstrap logic is unchanged.
 
 **Inputs**
-- Recovery: $R = 40\%$
+- Recovery: $R = 40\\%$
 - Discount factors (toy):
 
 | $t$ (years) | $Z(0,t)$ |
@@ -630,7 +630,7 @@ This section gives one worked bootstrap example in a simplified setting and then
 
    Using the trapezoid approximations from Section 42.1.3 with annual payments, the par condition can be written in terms of $x = S/(1-R)$:
 
-   $$x = \frac{(Z_0 + Z_1)(Q_0 - Q_1)}{Z_1(Q_0 + Q_1)} \quad \text{with } Q_0=1,\, Z_0=1.$$
+   $$x = \frac{(Z_0 + Z_1)(Q_0 - Q_1)}{Z_1(Q_0 + Q_1)} \quad \text{with } Q_0=1,\\, Z_0=1.$$
 
    Here $x = 0.012/0.60 = 0.02$. Solving gives:
 
@@ -663,12 +663,12 @@ This section gives one worked bootstrap example in a simplified setting and then
 | default date $\tau \in (t_{n-1}, t_n]$ | $-S \cdot \Delta(t_{n-1},\tau)$ | premium accrued on default (contractual) |
 
 **P&L / Risk Interpretation**
-- The hazards $\{h_1,h_2,h_3\}$ are the curve parameters implied by the spread quotes under your interpolation rule.
+- The hazards $\\{h_1,h_2,h_3\\}$ are the curve parameters implied by the spread quotes under your interpolation rule.
 - If the 5Y quote widens and you rebuild the curve while holding 1Y and 3Y quotes fixed, the change should be concentrated in the last segment (locality). This makes CS01-based P&L attribution interpretable: “5Y widened $\Rightarrow$ 5Y bucket drove the move.”
 
 **Sanity Checks**
 - **Units check:** $(1-R)$ is unitless. Spread $S$ has units 1/year. $RPV01$ has units years (per unit notional). Therefore $S \cdot RPV01$ has units of “fraction of notional,” matching the protection leg PV per unit notional.
-- **Sign check:** $h(t)\ge 0 \Rightarrow Q(0,t)$ must be non-increasing. Here $Q(1)>Q(3)>Q(5)$.
+- **Sign check:** $h(t)\ge 0 \Rightarrow Q(0,t)$ must be non-increasing. Here $Q(1)\gt Q(3)\gt Q(5)$.
 - **Limit check:** If all spreads were $0$, the solution would be $h(t)=0$ and $Q(0,t)=1$.
 - **Repricing check:** Plug the resulting curve back into the par-spread formula and confirm you recover 120/160/200 bp.
 
@@ -676,7 +676,7 @@ This section gives one worked bootstrap example in a simplified setting and then
 - Schedule generation: payment dates, accrual start/end, and maturity dates (standard-date vs exact-year maturity).
 - Accrued premium: included in $RPV01$ consistently and not double-counted with clean/full MTM quoting.
 - Day count: $\Delta_n$ computed on the contract’s day count (often Actual/360).
-- Bounds and root solver: enforce $0<Q(T_m)\le Q(T_{m-1})$; verify the objective changes sign in the bracket.
+- Bounds and root solver: enforce $0\lt Q(T_m)\le Q(T_{m-1})$; verify the objective changes sign in the bracket.
 - Discount factors: interpolated consistently; $Z(0,0)=1$; no accidental “percent vs decimal” scaling.
 
 ### 42.11.2 QA Diagnostics: Monotonicity and Locality (Same Toy Curve)
@@ -800,7 +800,7 @@ The parallels between CDS survival curve bootstrapping and interest rate curve b
 | Benchmark instruments | Deposits, futures, swaps | CDS at standard tenors |
 | Calibration condition | Reprice benchmarks exactly | Reprice CDS spreads exactly |
 | Preferred interpolation | Often piecewise flat forwards | Piecewise constant hazard |
-| Key constraint | $r(t) > 0$ (non-negative rates)* | $h(t) \geq 0$ (non-negative hazard) |
+| Key constraint | $r(t) \gt 0$ (non-negative rates)* | $h(t) \geq 0$ (non-negative hazard) |
 | Speed requirement | Moderate (few curves) | High (thousands of issuers) |
 | Locality preference | Moderate | Strong |
 
@@ -840,13 +840,13 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 
 | Concept | Definition | Why It Matters |
 |---------|------------|----------------|
-| **Survival curve** | $Q(0,t) = \Pr(\tau > t)$ at all times $t$ | Foundation for all CDS valuation |
+| **Survival curve** | $Q(0,t) = \Pr(\tau \gt t)$ at all times $t$ | Foundation for all CDS valuation |
 | **Piecewise-constant hazard** | $h(t)$ constant between skeleton points | Stable interpolation; preserves no-arbitrage |
 | **Par CDS spread** | Running spread $S$ that makes CDS MTM zero at inception | The quote you bootstrap to |
 | **RPV01** | Premium-leg PV per unit spread (includes accrued-on-default term under the chosen approximation) | Translates quotes into PV and CS01 |
 | **Protection PV** | Expected discounted default payment $(1-R)$ under the survival curve | The other leg of the par condition |
 | **Bootstrap algorithm** | Sequential solve from short to long maturity | Fast, local, exact repricing |
-| **No-arbitrage bound** | $0 < Q(T_m) \leq Q(T_{m-1})$ | Ensures non-negative hazard rates |
+| **No-arbitrage bound** | $0 \lt Q(T_m) \leq Q(T_{m-1})$ | Ensures non-negative hazard rates |
 | **Arbitrage boundary** | $S_m \gtrsim S_{m-1}(T_{m-1}/T_m)$ | Detects impossible quote combinations |
 | **Diagonal Jacobian** | $\partial V_j/\partial S_i = 0$ for $i \neq j$ | Locality; simple hedge computation |
 | **Clean vs full MTM** | $\text{Clean MTM}=\text{Full MTM}-\text{Accrued}$ (with sign depending on long/short protection) | Reconciliation and unwind cash amounts |
@@ -878,7 +878,7 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 |---|----------|--------|
 | 1 | What is the goal of CDS survival curve bootstrapping? | Construct a full term structure of survival probabilities from finite CDS market quotes |
 | 2 | What is the preferred interpolation method? | Linear interpolation of $-\ln Q(t)$, equivalent to piecewise-constant hazard |
-| 3 | What no-arbitrage bound must each bootstrap step enforce? | $0 < Q(T_m) \leq Q(T_{m-1})$, ensuring non-negative hazard |
+| 3 | What no-arbitrage bound must each bootstrap step enforce? | $0 \lt Q(T_m) \leq Q(T_{m-1})$, ensuring non-negative hazard |
 | 4 | What happens if the 3Y spread is too low relative to the 1Y spread? | Bootstrap fails—no non-negative hazard can fit both quotes |
 | 5 | Give the approximate arbitrage boundary formula | $S_m \gtrsim S_{m-1}(T_{m-1}/T_m)$ |
 | 6 | Why is locality a desirable curve property? | Ensures quote bumps affect only nearby maturities, making hedges predictable |
@@ -907,7 +907,7 @@ The survival curve is the foundation for CDS mark-to-market, risk measures (Chap
 ## Mini Problem Set
 
 1. (Compute) Convert 250 bp to decimal spread per year.
-2. (Compute) If $R = 35\%$ and $S = 200$ bp, compute $x = S/(1-R)$.
+2. (Compute) If $R = 35\\%$ and $S = 200$ bp, compute $x = S/(1-R)$.
 3. (Compute) Given $Q(1) = 0.97$ and $Q(3) = 0.91$, compute the constant hazard rate on $(1, 3]$.
 4. (Compute) Given $Q(3) = 0.91$ and $h = 0.04$ on $(3, 5]$, compute $Q(5)$.
 5. (Sanity) A bootstrapped curve shows $Q(3) = 0.95$ and $Q(5) = 0.97$. What is wrong and what does it imply about $h(t)$?
