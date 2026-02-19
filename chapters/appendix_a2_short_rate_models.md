@@ -2223,7 +2223,9 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**4. Solve the ODE $B_t - aB + 1 = 0$ with $B(T,T) = 0$ and recover $B(t,T)$.**
+**4. Solve the Vasicek B-ODE and recover the closed form for B(t,T).**
+
+Given ODE: $B_t - aB + 1 = 0$ with $B(T,T) = 0$.
 
 *Sketch:* Solve linear ODE; $B(t,T) = (1 - e^{-a(T-t)})/a$.
 
@@ -2235,7 +2237,9 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**6. Using Hull's CIR positivity statement, determine whether parameters $a = 0.2$, $b = 0.03$, $\sigma = 0.15$ satisfy the strict-positivity condition.**
+**6. Using Hull's CIR positivity statement, test whether the given parameters satisfy strict positivity.**
+
+Given: $a = 0.2$, $b = 0.03$, $\sigma = 0.15$.
 
 *Sketch:* Compute $2ab = 0.012$, $\sigma^2 = 0.0225$; condition fails, so it may touch zero.
 
@@ -2265,7 +2269,7 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**12. For CIR, write $\gamma$ and interpret its role in $A(t,T)$ and $B(t,T)$.**
+**12. For CIR, write gamma and interpret its role in A(t,T) and B(t,T).**
 
 ---
 
@@ -2285,19 +2289,25 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**17. For Hull-White with $a = 0.05$, $\sigma = 0.01$, compute $\sigma_p$ for a ZCB option with $T = 2$, $S = 5$.**
+**17. For Hull-White, compute sigma_p for a ZCB option.**
+
+Given: $a = 0.05$, $\sigma = 0.01$, $T = 2$, $S = 5$.
 
 *Sketch:* $B(T,S) = \frac{1-e^{-0.05 \times 3}}{0.05} = 2.77$; variance term $= \frac{1-e^{-0.2}}{0.1} = 1.81$; $\sigma_p = 0.01 \times 2.77 \times \sqrt{1.81} \approx 0.0373$.
 
 ---
 
-**18. In Hull-White tree construction, given $a = 0.1$, $\sigma = 0.01$, $\Delta t = 0.5$, compute $\Delta R$ and $j_{\max}$.**
+**18. In Hull-White tree construction, compute Delta R and j_max.**
+
+Given: $a = 0.1$, $\sigma = 0.01$, $\Delta t = 0.5$.
 
 *Sketch:* $\Delta R = 0.01\sqrt{1.5} = 0.01225$; $j_{\max} = \lceil 0.184/0.05 \rceil = 4$.
 
 ---
 
-**19. Compute branching probabilities $(p_u, p_m, p_d)$ at node $j = 2$ in the $R^{\star}$ tree with $a = 0.1$, $\Delta t = 0.5$.**
+**19. Compute branching probabilities at node j = 2 in the R-star tree.**
+
+Given: $a = 0.1$, $\Delta t = 0.5$.
 
 *Sketch:*
 - $a^2 j^2 \Delta t^2 = 0.01 \times 4 \times 0.25 = 0.01$
@@ -2308,7 +2318,9 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**20. For CIR with $a = 0.3$, $b = 0.05$, $\sigma = 0.1$, compute the degrees of freedom $\nu$ of the transition distribution and verify the Feller condition.**
+**20. For CIR, compute the transition degrees of freedom nu and verify the Feller condition.**
+
+Given: $a = 0.3$, $b = 0.05$, $\sigma = 0.1$.
 
 *Sketch:* $\nu = 4ab/\sigma^2 = 4 \times 0.3 \times 0.05/0.01 = 6$. Check: $2ab = 0.03 \geq \sigma^2 = 0.01$ ✓ (strict positivity).
 
@@ -2322,7 +2334,9 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**22. (CIR Simulation) Given CIR parameters $a = 0.5$, $b = 0.02$, $\sigma = 0.15$, $r_0 = 0.01$:**
+**22. (CIR Simulation)**
+
+Given CIR parameters: $a = 0.5$, $b = 0.02$, $\sigma = 0.15$, $r_0 = 0.01$.
 **(a)** Verify the Feller condition.
 **(b)** What simulation method should you use and why?
 **(c)** If you use Euler with reflection, what bias do you expect?
@@ -2340,7 +2354,12 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 ---
 
-**24. (Black-Karasinski) Show that if $\ln r(t)$ follows the OU process $d\ln r = [\theta(t) - a\ln r]dt + \sigma dW$, then $r(t)$ conditional on $r(s)$ is lognormally distributed. What is the conditional mean of $\ln r(t)$?**
+**24. (Black-Karasinski) Show lognormality of r(t) under OU dynamics for ln r(t).**
+
+Assume:
+$$d\ln r = [\theta(t) - a\ln r]dt + \sigma dW.$$
+
+Question: given $r(s)$, what is the conditional mean of $\ln r(t)$?
 
 *Sketch:* The OU process for $\ln r$ has explicit solution:
 $$\ln r(t) = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du + \sigma\int_s^t e^{-a(t-u)}dW(u)$$
