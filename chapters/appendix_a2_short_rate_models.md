@@ -2326,7 +2326,9 @@ Given: $a = 0.3$, $b = 0.05$, $\sigma = 0.1$.
 
 ---
 
-**21. (Model Selection) A desk needs to price a 5-year Bermudan swaption exercisable annually into a 10-year swap. They also need to compute PFE for XVA. Recommend models for each use case and justify.**
+**21. (Model Selection)**
+
+A desk needs to price a 5-year Bermudan swaption exercisable annually into a 10-year swap. They also need to compute PFE for XVA. Recommend models for each use case and justify.
 
 *Sketch:*
 - **Bermudan pricing:** Hull-White trinomial tree, calibrated to co-terminal swaptions (1Yx14Y, 2Yx13Y, ... 5Yx10Y all ending at year 15). One-factor sufficient for single Bermudan; two-factor (G2++) if better cube fit needed.
@@ -2336,15 +2338,15 @@ Given: $a = 0.3$, $b = 0.05$, $\sigma = 0.1$.
 
 **22. (CIR Simulation)**
 
-Given CIR parameters: $a = 0.5$, $b = 0.02$, $\sigma = 0.15$, $r_0 = 0.01$.
+Given CIR parameters: `a = 0.5`, `b = 0.02`, `sigma = 0.15`, `r0 = 0.01`.
 **(a)** Verify the Feller condition.
 **(b)** What simulation method should you use and why?
 **(c)** If you use Euler with reflection, what bias do you expect?
 
 *Sketch:*
-- (a) $2ab = 0.02$, $\sigma^2 = 0.0225$. Since $0.02 \lt 0.0225$, Feller is violated ($\nu \lt 2$).
+- (a) Compute `2ab = 0.02` and `sigma^2 = 0.0225`. Since `0.02 < 0.0225`, Feller is violated (`nu < 2`).
 - (b) Use QE scheme or exact simulation. Euler with reflection will introduce significant bias since the process can touch zero.
-- (c) Reflection artificially increases the process near zero, biasing paths upward. The bias is most severe when starting near zero (as here, $r_0 = 0.01$).
+- (c) Reflection artificially increases the process near zero, biasing paths upward. The bias is most severe when starting near zero (as here, `r0 = 0.01`).
 
 ---
 
