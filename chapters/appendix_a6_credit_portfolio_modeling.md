@@ -748,11 +748,11 @@ O'Kane (Ch. 20.9) frames the challenge: "The issue is that the majority of CDO t
 
 O'Kane develops a general mapping framework. The goal is to find a function $g$ such that:
 
-$$K_S^* = g(K_B; \mathcal{I}_B, \mathcal{I}_S)$$
+$$K_S^{\star} = g(K_B; \mathcal{I}_B, \mathcal{I}_S)$$
 
 where $\mathcal{I}_B$ and $\mathcal{I}_S$ represent information about the bespoke and standard portfolios. Then:
 
-$$\rho_B(K_B) = \rho_S(K_S^*)$$
+$$\rho_B(K_B) = \rho_S(K_S^{\star})$$
 
 **Desirable properties of the mapping:**
 1. Interpolates correctly between known index portfolios
@@ -765,7 +765,7 @@ $$\rho_B(K_B) = \rho_S(K_S^*)$$
 
 The simplest approach sets $g(x) = x$:
 
-$$K_S^* = K_B$$
+$$K_S^{\star} = K_B$$
 
 **Example (O'Kane):** A bespoke tranche with 4%-8% attachment/detachment simply uses interpolated base correlations $\rho_S(4\\%)$ and $\rho_S(8\\%)$ from the standard curve.
 
@@ -775,11 +775,11 @@ $$K_S^* = K_B$$
 
 O'Kane describes ATM mapping (Ahluwalia et al. 2004): the mapping preserves the ratio of tranche strike to portfolio expected loss.
 
-$$\boxed{K_S^* = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}}$$
+$$\boxed{K_S^{\star} = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}}$$
 
 **Example (O'Kane):** A 4%-8% HY tranche where HY expected loss is 20% and IG expected loss is 5%:
 
-$$K_S^* = 4\\% \times \frac{5\\%}{20\\%} = 1\\%$$
+$$K_S^{\star} = 4\\% \times \frac{5\\%}{20\\%} = 1\\%$$
 
 The bespoke 4% strike maps to a 1% standard strike. This makes intuitive sense: a 4% tranche on a risky portfolio should be priced like a more subordinate tranche on a safer portfolio.
 
@@ -794,15 +794,15 @@ The TLP method (O'Kane Ch. 20.9.4) equates the fraction of expected portfolio lo
 
 $$\boxed{\text{TLP}(K) = \frac{\mathbb{E}_{\rho(K)}[\min(L, K)]}{\mathbb{E}[L]}}$$
 
-The mapping finds $K_S^*$ such that:
+The mapping finds $K_S^{\star}$ such that:
 
-$$\frac{\mathbb{E}_{\rho_S(K_S^*)}[\min(L_S, K_S^*)]}{\mathbb{E}[L_S]} = \frac{\mathbb{E}_{\rho_S(K_S^*)}[\min(L_B, K_B)]}{\mathbb{E}[L_B]}$$
+$$\frac{\mathbb{E}_{\rho_S(K_S^{\star})}[\min(L_S, K_S^{\star})]}{\mathbb{E}[L_S]} = \frac{\mathbb{E}_{\rho_S(K_S^{\star})}[\min(L_B, K_B)]}{\mathbb{E}[L_B]}$$
 
 **Algorithm:**
 1. Construct the index TLP curve: for each $K_S$, compute $TLP_S(K_S)$
 2. For the bespoke strike $K_B$, compute $TLP_B(K_B)$ for various trial correlations
-3. Find $K_S^*$ where the index TLP equals the bespoke TLP
-4. Set $\rho_B(K_B) = \rho_S(K_S^*)$
+3. Find $K_S^{\star}$ where the index TLP equals the bespoke TLP
+4. Set $\rho_B(K_B) = \rho_S(K_S^{\star})$
 
 **Why TLP is better:** O'Kane explains that TLP captures spread dispersion, not just average spread. A bespoke portfolio with the same average spread but more dispersion will have different TLP behavior.
 
@@ -823,8 +823,8 @@ Consider pricing a [5%, 10%] bespoke tranche on a 50-name HY portfolio using CDX
 - Using $\rho = 35\\%$: $\mathbb{E}[\min(L_B, 5\\%)] = 4.5\\%$
 - $TLP_B(5\\%) = 4.5\\% / 15\\% = 30\\%$
 
-Step 3: Find `KS*` where `TLP_S(KS*) = 30%`.
-- Interpolating: $K_S^* \approx 1.5\\%$
+**Step 3:** Find $K_S^{\star}$ where $TLP_S(K_S^{\star}) = 30\\%$.
+- Interpolating: $K_S^{\star} \approx 1.5\\%$
 
 **Step 4:** Use $\rho_S(1.5\\%)$ for the bespoke 5% base tranche
 
@@ -1782,7 +1782,7 @@ This appendix has extended beyond the base correlation framework to survey the l
 | 45 | What distribution does the number of defaults follow in CreditRisk+? | Sum of independent negative binomial random variables (one per gamma factor) |
 | 46 | RFL model: what are the calibrated parameters for CDX NA IG? | $\alpha = 54.25\\%$, $\beta = 31.16\\%$, $\Theta = -2.58$ |
 | 47 | Double-t model: what are the calibrated parameters for CDX NA IG? | $\nu_Z = 7.0$, $\nu_\varepsilon = 2.5$, $\rho = 15.0\\%$ |
-| 48 | ATM mapping formula for bespoke pricing? | $K_S^* = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}$ |
+| 48 | ATM mapping formula for bespoke pricing? | $K_S^{\star} = K_B \times \frac{\mathbb{E}[L_S]}{\mathbb{E}[L_B]}$ |
 
 ---
 
@@ -1835,7 +1835,7 @@ Use TLP mapping to price a [5%, 10%] bespoke tranche:
 - Index base correlation: $\rho(3\\%) = 22\\%$, $\rho(7\\%) = 35\\%$
 
 (a) Compute the bespoke TLP at $K_B = 5\\%$
-(b) Find the index strike $K_S^*$ with the same TLP
+(b) Find the index strike $K_S^{\star}$ with the same TLP
 (c) What base correlation should be used?
 
 ### Problem 7: Basel IRB Capital
