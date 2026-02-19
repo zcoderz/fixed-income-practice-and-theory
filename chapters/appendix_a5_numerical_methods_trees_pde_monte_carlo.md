@@ -28,7 +28,7 @@ By the end of this appendix, you should be able to look at a derivative specific
 | Convention | Description |
 |------------|-------------|
 | **Measure / pricing** | Risk-neutral pricing with discounting at the (possibly time-varying) short rate |
-| **Pricing identity** | $V(t)=\mathbb{E}\Big[\exp\big(-\int_t^T r(u)\,du\big)\,V(T)\mid\mathcal{F}_t\Big]$ |
+| **Pricing identity** | $V(t)=\mathbb{E}\Big[\exp\big(-\int_t^T r(u)\\,du\big)\\,V(T)\mid\mathcal{F}_t\Big]$ |
 | **State** | $x\in\mathbb{R}^d$ denotes the **Markov** state (if it exists); $d$ is the **state dimension** |
 | **Discretization** | $\Delta t$ for time step; $\Delta x$ (or $\Delta S$) for spatial step; $n$ for Monte Carlo replications |
 | **Error** | **Bias** (systematic) vs **variance** (statistical); **discretization** error (grid/time) vs **simulation** error (sampling) |
@@ -62,7 +62,7 @@ We use "explicit / implicit / Crank–Nicolson" in the standard finite-differenc
 | $V(t,x)$ | Derivative value at time $t$ and state $x$ |
 | $H(\cdot)$ | Payoff functional (may be path-dependent) |
 | $r(t)$ | Short rate |
-| $D(t,T)$ | Discount factor: $D(t,T)=\exp\!\left(-\int_t^T r(u)\,du\right)$ |
+| $D(t,T)$ | Discount factor: $D(t,T)=\exp\\!\left(-\int_t^T r(u)\\,du\right)$ |
 | $\Delta t$ | Time step |
 | $\Delta x$ / $\Delta S$ | Spatial step |
 | $n$ | Monte Carlo sample size |
@@ -82,7 +82,7 @@ We use "explicit / implicit / Crank–Nicolson" in the standard finite-differenc
 **Formal Definition:**
 
 - **Value function view:** $V(t,x)$ is the price conditional on current time and state.
-- **Expectation view:** $V(t)=\mathbb{E}\!\left[D(t,T)\,V(T)\mid \mathcal{F}_t\right]$.
+- **Expectation view:** $V(t)=\mathbb{E}\\!\left[D(t,T)\\,V(T)\mid \mathcal{F}_t\right]$.
 
 **Intuition:**
 
@@ -114,7 +114,7 @@ Rates: 1F short-rate models (low $d$) can use PDE/trees; market models with many
 
 **Formal Definition:**
 
-A payoff is **path dependent** if it depends on the history $\{S(u):u\le T\}$ beyond the current state $x$.
+A payoff is **path dependent** if it depends on the history $\\{S(u):u\le T\\}$ beyond the current state $x$.
 
 **Intuition:**
 
@@ -214,7 +214,7 @@ When simulating stochastic differential equations, we must distinguish between t
 **The SDE Setting:**
 
 Consider an Itô SDE:
-$$dX_t = a(X_t)\,dt + b(X_t)\,dW_t$$
+$$dX_t = a(X_t)\\,dt + b(X_t)\\,dW_t$$
 
 We simulate using a discrete approximation $\hat{X}_n$ with time step $h = T/n$.
 
@@ -240,11 +240,11 @@ for all sufficiently smooth test functions $f$. Weak convergence measures how we
 
 **Euler–Maruyama Scheme:**
 
-$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\,Z_k, \quad Z_k \sim N(0,1)$$
+$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\\,Z_k, \quad Z_k \sim N(0,1)$$
 
 **Milstein Scheme:**
 
-$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\,Z_k + \frac{1}{2}b(\hat{X}_k)b'(\hat{X}_k)(Z_k^2 - 1)h$$
+$$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\\,Z_k + \frac{1}{2}b(\hat{X}_k)b'(\hat{X}_k)(Z_k^2 - 1)h$$
 
 The Milstein correction term $\frac{1}{2}bb'(Z^2-1)h$ captures the Itô–Stratonovich correction and improves strong convergence from order 1/2 to order 1.
 
@@ -384,13 +384,13 @@ The tree **recombines** because $ud = 1$, so an up move followed by a down move 
 At maturity ($i = N$):
 $$f_{N,j} = \text{payoff}(S_{N,j})$$
 
-For earlier nodes ($i < N$):
-$$f_{i,j} = e^{-r\Delta t}\left[p\,f_{i+1,j+1} + (1-p)\,f_{i+1,j}\right]$$
+For earlier nodes ($i \lt N$):
+$$f_{i,j} = e^{-r\Delta t}\left[p\\,f_{i+1,j+1} + (1-p)\\,f_{i+1,j}\right]$$
 
 **Backward Induction for American Options:**
 
 At each node, compare continuation value with immediate exercise:
-$$f_{i,j} = \max\left\{\text{exercise value}, \; e^{-r\Delta t}\left[p\,f_{i+1,j+1} + (1-p)\,f_{i+1,j}\right]\right\}$$
+$$f_{i,j} = \max\left\\{\text{exercise value}, \\; e^{-r\Delta t}\left[p\\,f_{i+1,j+1} + (1-p)\\,f_{i+1,j}\right]\right\\}$$
 
 ### A5.4.2 Alternative Binomial Parameterizations
 
@@ -429,7 +429,7 @@ where $\nu = r - q - \sigma^2/2$ and typically $\Delta x = \sigma\sqrt{3\Delta t
 
 **Hull–White Tree Construction:**
 
-For the Hull–White model $dr = [\theta(t) - ar]\,dt + \sigma\,dW$:
+For the Hull–White model $dr = [\theta(t) - ar]\\,dt + \sigma\\,dW$:
 
 1. Build a trinomial tree for $x = r - \alpha(t)$ where $\alpha(t)$ is the mean-reverting level
 2. The tree for $x$ is standard with mean reversion
@@ -549,7 +549,7 @@ $$c_j^* = \frac{1}{1+r\Delta t}\left(\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sig
 
 **Stability Condition:** The explicit method requires all "probabilities" to be non-negative:
 
-$$\boxed{\Delta t < \frac{1}{\sigma^2 j_{\max}^2}}$$
+$$\boxed{\Delta t \lt \frac{1}{\sigma^2 j_{\max}^2}}$$
 
 When this is violated, the method produces negative option prices and fails to converge.
 
@@ -584,7 +584,7 @@ Use 2–4 fully implicit steps near maturity to damp oscillations, then switch t
 
 For American options, at each time step after solving the linear system:
 
-$$f_{i,j} \leftarrow \max\left(f_{i,j}, \; \text{payoff}(j\Delta S)\right)$$
+$$f_{i,j} \leftarrow \max\left(f_{i,j}, \\; \text{payoff}(j\Delta S)\right)$$
 
 This enforces the early exercise constraint.
 
@@ -592,7 +592,7 @@ This enforces the early exercise constraint.
 
 The mathematically proper formulation of the American option PDE is:
 
-$$\boxed{\min\left(\frac{\partial V}{\partial t} + \mathcal{L}V - rV, \; V - h\right) = 0}$$
+$$\boxed{\min\left(\frac{\partial V}{\partial t} + \mathcal{L}V - rV, \\; V - h\right) = 0}$$
 
 where $h(S) = \max(K-S, 0)$ for a put. This says: either the PDE holds with equality (continuation region) or the value equals the payoff (exercise region). Penalty methods and PSOR solve this LCP efficiently.
 
@@ -692,7 +692,7 @@ $$V_0 = \mathbb{E}\left[e^{-rT} H(S_T)\right]$$
 
 **MC Estimator:**
 
-Generate $n$ independent paths $\{S_T^{(1)}, \ldots, S_T^{(n)}\}$ and compute:
+Generate $n$ independent paths $\\{S_T^{(1)}, \ldots, S_T^{(n)}\\}$ and compute:
 
 $$\boxed{\hat{V}_n = \frac{1}{n}\sum_{k=1}^{n} e^{-rT} H(S_T^{(k)})}$$
 
@@ -707,19 +707,19 @@ $$\hat{V}_n \pm 1.96 \times \text{SE}$$
 
 ### A5.6.2 Simulating Geometric Brownian Motion
 
-For GBM: $dS = (r-q)S\,dt + \sigma S\,dW$
+For GBM: $dS = (r-q)S\\,dt + \sigma S\\,dW$
 
 **Exact Simulation (over interval $[0,T]$):**
 
-$$S_T = S_0 \exp\left[\left(r - q - \frac{\sigma^2}{2}\right)T + \sigma\sqrt{T}\,Z\right], \quad Z \sim N(0,1)$$
+$$S_T = S_0 \exp\left[\left(r - q - \frac{\sigma^2}{2}\right)T + \sigma\sqrt{T}\\,Z\right], \quad Z \sim N(0,1)$$
 
 **Euler Discretization (time-stepping):**
 
-$$S_{t+\Delta t} = S_t + (r-q)S_t\Delta t + \sigma S_t\sqrt{\Delta t}\,Z_t$$
+$$S_{t+\Delta t} = S_t + (r-q)S_t\Delta t + \sigma S_t\sqrt{\Delta t}\\,Z_t$$
 
 **Milstein Scheme (higher order):**
 
-$$S_{t+\Delta t} = S_t + (r-q)S_t\Delta t + \sigma S_t\sqrt{\Delta t}\,Z_t + \frac{1}{2}\sigma^2 S_t\left(Z_t^2 - 1\right)\Delta t$$
+$$S_{t+\Delta t} = S_t + (r-q)S_t\Delta t + \sigma S_t\sqrt{\Delta t}\\,Z_t + \frac{1}{2}\sigma^2 S_t\left(Z_t^2 - 1\right)\Delta t$$
 
 ### A5.6.3 Variance Reduction Techniques
 
@@ -799,7 +799,7 @@ Longstaff and Schwartz (2001) introduced regression-based MC for American/Bermud
 
 **Algorithm (Glasserman Ch. 8):**
 
-1. **Simulate paths:** Generate $n$ paths forward: $\{S_0, S_{t_1}^{(k)}, \ldots, S_{t_m}^{(k)}\}_{k=1}^{n}$
+1. **Simulate paths:** Generate $n$ paths forward: $\\{S_0, S_{t_1}^{(k)}, \ldots, S_{t_m}^{(k)}\\}_{k=1}^{n}$
 
 2. **Initialize at maturity:** $V_m^{(k)} = h_m(S_{t_m}^{(k)})$
 
@@ -944,9 +944,9 @@ Carr and Madan (1999) showed how to price a continuum of strikes simultaneously 
 
 **Setup:** Let $k = \ln K$ be the log-strike, and $C_T(k)$ the call price for that strike. Carr and Madan derive:
 
-$$C_T(k) = \frac{e^{-\alpha k}}{\pi}\int_0^\infty e^{-iuk}\psi_T(u)\,du$$
+$$C_T(k) = \frac{e^{-\alpha k}}{\pi}\int_0^\infty e^{-iuk}\psi_T(u)\\,du$$
 
-where $\alpha > 0$ is a damping parameter (needed for integrability) and $\psi_T$ is a modified characteristic function:
+where $\alpha \gt 0$ is a damping parameter (needed for integrability) and $\psi_T$ is a modified characteristic function:
 
 $$\psi_T(u) = \frac{e^{-rT}\phi_T(u - (1+\alpha)i)}{\alpha^2 + \alpha - u^2 + iu(2\alpha + 1)}$$
 
@@ -974,7 +974,7 @@ where the coefficients $A_k$ are related to the characteristic function.
 
 **COS Formula for European Options:**
 
-$$\boxed{V = e^{-rT} \sum_{k=0}^{N-1} \text{Re}\left\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\} \cdot H_k}$$
+$$\boxed{V = e^{-rT} \sum_{k=0}^{N-1} \text{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\\} \cdot H_k}$$
 
 where:
 - $\phi(u)$ is the characteristic function of $\ln(S_T/S_0)$
@@ -1083,7 +1083,7 @@ Fourier methods are **not appropriate** for:
 - Crank–Nicolson for second-order accuracy
 
 **Use Monte Carlo When:**
-- High-dimensional problems ($d > 3$)
+- High-dimensional problems ($d \gt 3$)
 - Path-dependent payoffs (Asians, lookbacks)
 - Complex model dynamics
 - Parallelization is available
@@ -1121,7 +1121,7 @@ Raw wall-clock times vary wildly by language (Python vs C++), hardware (CPU vs G
 
 ### Example A5.1: CRR Binomial Tree — American Put
 
-**Setup:** $S_0 = 50$, $K = 50$, $T = 5$ months, $r = 10\%$, $\sigma = 40\%$, $q = 0$
+**Setup:** $S_0 = 50$, $K = 50$, $T = 5$ months, $r = 10\\%$, $\sigma = 40\\%$, $q = 0$
 
 **Step 1: Compute parameters**
 Convert maturity to years: $T = 5/12$.
@@ -1142,9 +1142,9 @@ At each node, compute stock prices. At node $(i,j)$: $S_{i,j} = 50 \times 1.1224
 At maturity: $f_{5,j} = \max(50 - S_{5,j}, 0)$
 
 At earlier nodes:
-$$f_{i,j} = \max\left\{50 - S_{i,j}, \; e^{-0.10/12}[0.507 f_{i+1,j+1} + 0.493 f_{i+1,j}]\right\}$$
+$$f_{i,j} = \max\left\\{50 - S_{i,j}, \\; e^{-0.10/12}[0.507 f_{i+1,j+1} + 0.493 f_{i+1,j}]\right\\}$$
 
-**Result:** The American put price is approximately $\$4.49$ (Hull Example).
+**Result:** The American put price is approximately USD 4.49 (Hull Example).
 
 ---
 
@@ -1170,9 +1170,9 @@ Then apply early exercise: $f_{i,j} \leftarrow \max(f_{i,j}, 50 - j\Delta S)$
 
 **Step 4: Read off price**
 
-The price at $S = 50$ (i.e., $j = 10$) gives the option value: $\approx \$4.26$ (Hull Table 21.5).
+The price at $S = 50$ (i.e., $j = 10$) gives the option value: approximately USD 4.26 (Hull Table 21.5).
 
-**Stability Check:** Need $1 - \sigma^2 j^2 \Delta t > 0$, so $j < \sqrt{24/(0.16)} \approx 12.2$. The explicit method fails for $j \ge 13$.
+**Stability Check:** Need $1 - \sigma^2 j^2 \Delta t \gt 0$, so $j \lt \sqrt{24/(0.16)} \approx 12.2$. The explicit method fails for $j \ge 13$.
 
 ---
 
@@ -1180,14 +1180,14 @@ The price at $S = 50$ (i.e., $j = 10$) gives the option value: $\approx \$4.26$ 
 
 **Setup:** Same American put as above.
 
-**Step 1:** Solve implicit system (tridiagonal) to get American put value: $\$4.07$
+**Step 1:** Solve implicit system (tridiagonal) to get American put value: USD 4.07
 
-**Step 2:** Same grid gives European put: $\$3.91$
+**Step 2:** Same grid gives European put: USD 3.91
 
-**Step 3:** Black–Scholes European put: $\$4.08$
+**Step 3:** Black–Scholes European put: USD 4.08
 
 **Step 4:** Control variate adjustment:
-$$\hat{V}_{\text{American}} = 4.07 + (4.08 - 3.91) = \$4.24$$
+$$\hat{V}_{\text{American}} = 4.07 + (4.08 - 3.91) = 4.24$$
 
 This is more accurate than the raw grid estimate.
 
@@ -1195,7 +1195,7 @@ This is more accurate than the raw grid estimate.
 
 ### Example A5.4: Monte Carlo for European Call
 
-**Setup:** $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\%$, $\sigma = 20\%$, $q = 0$ (no dividends)
+**Setup:** $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\\%$, $\sigma = 20\\%$, $q = 0$ (no dividends)
 
 **Step 1: Generate $n = 10{,}000$ paths**
 
@@ -1223,7 +1223,7 @@ $$\text{SE} = \frac{\hat{\sigma}_H}{\sqrt{10000}}$$
 
 ### Example A5.5: Antithetic Variates
 
-**Using the same setup as Example A5.4** ($S_0 = 100$, $K = 100$, $r = 5\%$, $\sigma = 20\%$, $q = 0$):
+**Using the same setup as Example A5.4** ($S_0 = 100$, $K = 100$, $r = 5\\%$, $\sigma = 20\\%$, $q = 0$):
 
 For each pair $(Z, -Z)$, since $r - q - \sigma^2/2 = 0.03$:
 - Path 1: $S_T^{(+)} = 100\exp[0.03 + 0.20 Z]$
@@ -1252,7 +1252,7 @@ where $\hat{\beta}$ is estimated from sample covariance.
 
 ### Example A5.7: LSMC for Bermudan Put
 
-**Setup:** $S_0 = 36$, $K = 40$, $T = 1$, $r = 6\%$, $\sigma = 20\%$, 50 exercise dates
+**Setup:** $S_0 = 36$, $K = 40$, $T = 1$, $r = 6\\%$, $\sigma = 20\\%$, 50 exercise dates
 
 **Step 1: Simulate 50,000 paths**
 
@@ -1266,11 +1266,11 @@ $$V_{50}^{(k)} = \max(40 - S_{50}^{(k)}, 0)$$
 At each date $i$, for paths where immediate exercise is in-the-money:
 - **Regress** discounted continuation values on basis functions: $1, S, S^2$
 - **Fitted continuation value:** $\hat{C}_i(S) = \beta_0 + \beta_1 S + \beta_2 S^2$
-- **Exercise if:** $40 - S_i^{(k)} > \hat{C}_i(S_i^{(k)})$
+- **Exercise if:** $40 - S_i^{(k)} \gt \hat{C}_i(S_i^{(k)})$
 
 **Step 4: Average discounted cash flows**
 
-**Result:** Bermudan put price $\approx \$4.47$ (vs. European $\approx \$3.84$)
+**Result:** Bermudan put price is approximately USD 4.47 (vs. European approximately USD 3.84)
 
 ---
 
@@ -1278,10 +1278,10 @@ At each date $i$, for paths where immediate exercise is in-the-money:
 
 **For European call under GBM:**
 
-$$\Delta = \mathbb{E}\left[e^{-rT}\mathbf{1}_{S_T > K}\frac{S_T}{S_0}\right]$$
+$$\Delta = \mathbb{E}\left[e^{-rT}\mathbf{1}_{S_T \gt K}\frac{S_T}{S_0}\right]$$
 
 For each path:
-$$\Delta^{(k)} = e^{-rT}\mathbf{1}_{S_T^{(k)} > K}\frac{S_T^{(k)}}{S_0}$$
+$$\Delta^{(k)} = e^{-rT}\mathbf{1}_{S_T^{(k)} \gt K}\frac{S_T^{(k)}}{S_0}$$
 
 Average gives an unbiased estimate of delta.
 
@@ -1291,7 +1291,7 @@ Average gives an unbiased estimate of delta.
 
 ### Example A5.9: Trinomial Tree for Hull–White Model
 
-**Setup:** Hull–White model $dr = [\theta(t) - 0.1r]\,dt + 0.01\,dW$
+**Setup:** Hull–White model $dr = [\theta(t) - 0.1r]\\,dt + 0.01\\,dW$
 
 **Step 1: Build tree for $x = r - \alpha(t)$**
 
@@ -1326,7 +1326,7 @@ Backward induction with call constraint at each exercise date.
 ### Example A5.11: COS Method for Heston European Call
 
 **Setup:** Heston model parameters:
-- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\%$
+- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\\%$
 - $v_0 = 0.04$ (initial variance)
 - $\kappa = 2.0$ (mean reversion speed)
 - $\theta = 0.04$ (long-run variance)
@@ -1349,17 +1349,17 @@ using the Heston formula (complex arithmetic).
 
 **Step 3: Apply COS formula**
 
-$$V = e^{-rT} \sum_{k=0}^{127} \text{Re}\left\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\} \cdot H_k$$
+$$V = e^{-rT} \sum_{k=0}^{127} \text{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\\} \cdot H_k$$
 
 where $H_k$ are the call payoff coefficients.
 
-**Result:** Call price $\approx \$10.32$ (computed in < 1 ms)
+**Result:** Call price is approximately USD 10.32 (computed in < 1 ms)
 
 **Convergence Check:**
-- $N = 32$: $\$10.317$
-- $N = 64$: $\$10.3198$
-- $N = 128$: $\$10.3199$
-- $N = 256$: $\$10.3199$
+- $N = 32$: USD 10.317
+- $N = 64$: USD 10.3198
+- $N = 128$: USD 10.3199
+- $N = 256$: USD 10.3199
 
 Exponential convergence is evident: accuracy stabilizes rapidly.
 
@@ -1369,10 +1369,10 @@ Exponential convergence is evident: accuracy stabilizes rapidly.
 
 **Setup:** Two correlated stocks:
 - $S_1(0) = S_2(0) = 100$
-- $\sigma_1 = 20\%$, $\sigma_2 = 25\%$
+- $\sigma_1 = 20\\%$, $\sigma_2 = 25\\%$
 - $\rho = 0.5$ (correlation)
 - Payoff: $\max(0.5 S_1 + 0.5 S_2 - K, 0)$
-- $K = 100$, $T = 1$, $r = 5\%$
+- $K = 100$, $T = 1$, $r = 5\\%$
 
 **Step 1: Set up 2D grid**
 
@@ -1398,23 +1398,23 @@ At each time step:
 
 Cross-derivative $\mathcal{L}_{12}$ is treated explicitly or via Craig–Sneyd.
 
-**Result:** Basket call price $\approx \$13.47$
+**Result:** Basket call price is approximately USD 13.47
 
-**Comparison:** MC with $10^6$ paths gives $\$13.46 \pm 0.02$. ADI is faster and deterministic.
+**Comparison:** MC with $10^6$ paths gives USD 13.46 ± 0.02. ADI is faster and deterministic.
 
 ---
 
 ### Example A5.13: Barrier Option with Continuity Correction
 
 **Setup:** Down-and-out call
-- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\%$, $\sigma = 20\%$
+- $S_0 = 100$, $K = 100$, $T = 1$, $r = 5\\%$, $\sigma = 20\\%$
 - Barrier $B = 90$, monitored **daily** (252 observations)
 
 **Problem:** FD methods naturally handle continuous barriers. For discrete monitoring, we need a correction.
 
 **Step 1: Price with continuous barrier (FD)**
 
-Set $V(B, t) = 0$ as boundary condition. Result: $V_{\text{cont}} = \$6.21$
+Set $V(B, t) = 0$ as boundary condition. Result: $V_{\text{cont}} = 6.21$ (USD).
 
 **Step 2: Apply Broadie–Glasserman–Kou correction**
 
@@ -1423,9 +1423,9 @@ $$B_{\text{eff}} = 90 \cdot e^{-0.00734} = 90 \cdot 0.9927 = 89.34$$
 
 **Step 3: Re-price with effective barrier**
 
-Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} = \$6.58$
+Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} = 6.58$ (USD).
 
-**Verification:** MC simulation with explicit daily monitoring gives $\$6.55 \pm 0.05$.
+**Verification:** MC simulation with explicit daily monitoring gives USD 6.55 ± 0.05.
 
 **Interpretation:** The discrete barrier is "further away" in probability terms because the price has fewer chances to cross it. The effective barrier correction captures this effect elegantly.
 
@@ -1436,7 +1436,7 @@ Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} =
 ### A5.10.1 Common Pitfalls
 
 **Trees:**
-- Using too few time steps ($N < 50$) for accurate pricing
+- Using too few time steps ($N \lt 50$) for accurate pricing
 - Ignoring odd/even oscillation in convergence
 - Forgetting to adjust for dividends in CRR formulas
 
@@ -1532,7 +1532,7 @@ Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} =
 - Tridiagonal: Always use Thomas algorithm ($O(n)$)
 - Banded with width $w$: Use banded solver if $w \ll n$
 - General sparse: Use iterative methods (CG, GMRES)
-- Dense: Only for small systems ($n < 1000$)
+- Dense: Only for small systems ($n \lt 1000$)
 
 ### A5.10.6 Common Production Bugs
 
@@ -1544,7 +1544,7 @@ Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} =
 >
 > 3. **Settlement timing:** Off-by-one errors in settlement dates can shift discounting by a day.
 >
-> 4. **Integer overflow:** Large grids with 32-bit indexing: $1000 \times 1000 \times 1000 = 10^9 > 2^{31}$.
+> 4. **Integer overflow:** Large grids with 32-bit indexing: $1000 \times 1000 \times 1000 = 10^9 \gt 2^{31}$.
 >
 > 5. **NaN propagation:** One NaN in a grid infects the entire backward induction. Always check inputs.
 >
@@ -1605,7 +1605,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 | 1 | What are the CRR binomial tree parameters? | $u = e^{\sigma\sqrt{\Delta t}}$, $d = 1/u$, $p = (e^{(r-q)\Delta t} - d)/(u-d)$ |
 | 2 | What does "recombining tree" mean? | $ud = 1$, so up-then-down equals down-then-up; gives $O(N)$ terminal nodes |
 | 3 | State the Lax Equivalence Theorem | For well-posed linear PDEs: Consistency + Stability ⇒ Convergence |
-| 4 | What is the stability condition for explicit FD? | $\Delta t < 1/(\sigma^2 j_{\max}^2)$; all "probabilities" must be non-negative |
+| 4 | What is the stability condition for explicit FD? | $\Delta t \lt 1/(\sigma^2 j_{\max}^2)$; all "probabilities" must be non-negative |
 | 5 | Why is implicit FD unconditionally stable? | It inverts a tridiagonal matrix at each step, damping all modes |
 | 6 | What is the Crank–Nicolson scheme? | Average of implicit and explicit: second-order in time, unconditionally stable |
 | 7 | Why does C-N oscillate for digital options? | Discontinuous payoffs create high-frequency modes that C-N doesn't damp |
@@ -1641,7 +1641,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 ### Warm-Up (Conceptual)
 
-**Problem 1:** Explain why Monte Carlo becomes the only practical method when $d > 3$.
+**Problem 1:** Explain why Monte Carlo becomes the only practical method when $d \gt 3$.
 
 **Problem 2:** A colleague says "I used explicit FD and got negative option prices." What went wrong?
 
@@ -1651,7 +1651,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 ### Computational (Trees)
 
-**Problem 5:** Construct a 3-step CRR tree for a European put with $S_0 = 100$, $K = 95$, $T = 0.25$, $r = 5\%$, $\sigma = 30\%$. Compute the option price.
+**Problem 5:** Construct a 3-step CRR tree for a European put with $S_0 = 100$, $K = 95$, $T = 0.25$, $r = 5\\%$, $\sigma = 30\\%$. Compute the option price.
 
 **Problem 6:** For the tree in Problem 5, convert to an American put. At which nodes would early exercise occur?
 
@@ -1661,7 +1661,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 **Problem 8:** Set up the implicit FD difference equation for a European call. What are $a_j$, $b_j$, $c_j$?
 
-**Problem 9:** For explicit FD with $\sigma = 40\%$, $\Delta t = 1/12$, $\Delta S = 5$, determine the maximum $j$ (stock price level) for which the method is stable.
+**Problem 9:** For explicit FD with $\sigma = 40\\%$, $\Delta t = 1/12$, $\Delta S = 5$, determine the maximum $j$ (stock price level) for which the method is stable.
 
 **Problem 10:** Explain why transforming to $Z = \ln S$ makes explicit FD equivalent to a trinomial tree with constant probabilities.
 
@@ -1681,15 +1681,15 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 **Problem 16:** Explain the bias-variance tradeoff when using finite-difference bumping for Greeks in Monte Carlo.
 
-**Problem 17:** A barrier option has payoff that depends on whether $\max_{t \le T} S_t > B$. Can you use standard FD? What modifications are needed?
+**Problem 17:** A barrier option has payoff that depends on whether $\max_{t \le T} S_t \gt B$. Can you use standard FD? What modifications are needed?
 
 **Problem 18:** When does the COS method outperform Carr–Madan FFT, and when is the reverse true?
 
 ### Solution Sketches
 
-**Problem 1:** Grid methods scale as $O(N^d)$ in memory and computation; for $d > 3$, this becomes prohibitive. MC scales as $O(nd)$—linear in dimension.
+**Problem 1:** Grid methods scale as $O(N^d)$ in memory and computation; for $d \gt 3$, this becomes prohibitive. MC scales as $O(nd)$—linear in dimension.
 
-**Problem 2:** Stability condition violated. Need $\Delta t < 1/(\sigma^2 j^2)$. Either decrease $\Delta t$, use implicit method, or transform to $\ln S$.
+**Problem 2:** Stability condition violated. Need $\Delta t \lt 1/(\sigma^2 j^2)$. Either decrease $\Delta t$, use implicit method, or transform to $\ln S$.
 
 **Problem 4:** Strong convergence measures pathwise accuracy: does the simulated path match the true path? Weak convergence measures distributional accuracy: does the distribution of the simulated value match the true distribution? Strong matters for hedging simulations (tracking P&L along paths); weak suffices for pricing (only need $\mathbb{E}[H(S_T)]$).
 
