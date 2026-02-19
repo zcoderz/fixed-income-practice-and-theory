@@ -181,7 +181,7 @@ Under the swap measure $\mathbb{Q}^{a,b}$ with numeraire $A_{a,b}(t)$, the swap 
 $$\boxed{dS_{a,b}(t) = \sigma_{a,b}(t) S_{a,b}(t) \\, dW^{a,b}(t)}$$
 
 This directly implies Black's swaption formula:
-$$V^{\mathrm{swpt}}_{a,b}(0) = A_{a,b}(0) \left[ S_{a,b}(0) \Phi(d_{+}) - K \Phi(d_{-}) \right]$$
+$$V(0) = A(0) \left[ S(0) \Phi(d^{+}) - K \Phi(d^{-}) \right]$$
 
 ### A4.3.2 The Inconsistency Problem
 
