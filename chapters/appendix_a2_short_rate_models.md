@@ -556,6 +556,7 @@ This is the exogenous term structure idea: the initial curve is taken from the m
 **Step 1 (Input): Market Curve $P^M(0,t)$ and Its Forward Rates**
 
 Assume the market discount curve $t \mapsto P^M(0,t)$ is given and sufficiently smooth, and define the market instantaneous forward rates:
+
 $$f^M(0,t) = -\frac{\partial \ln P^M(0,t)}{\partial t}$$
 
 **Step 2 (Choose $a, \sigma$; Then set `theta(t)`)**
@@ -1466,6 +1467,7 @@ with boundary $P(T,T) = 1$.
 **Step 1 (Guess Exponential-Affine Form)**
 
 Assume:
+
 $$P(t,T) = A(t,T) e^{-B(t,T)r}$$
 
 **Step 2 (Differentiate)**
@@ -2359,16 +2361,26 @@ Given CIR parameters: `a = 0.5`, `b = 0.02`, `sigma = 0.15`, `r0 = 0.01`.
 **24. (Black-Karasinski) Show lognormality of r(t) under OU dynamics for ln r(t).**
 
 Assume:
-$$d\ln r = [\theta(t) - a\ln r]dt + \sigma dW.$$
 
-Question: given $r(s)$, what is the conditional mean of $\ln r(t)$?
+$$
+d\ln r = [\theta(t) - a\ln r]dt + \sigma dW
+$$
 
-*Sketch:* The OU process for $\ln r$ has explicit solution:
-$$\ln r(t) = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du + \sigma\int_s^t e^{-a(t-u)}dW(u)$$
+Question: given `r(s)`, what is the conditional mean of `ln r(t)`?
 
-The stochastic integral is Gaussian (Itô integral of deterministic function), so $\ln r(t) | \mathcal{F}_s$ is Gaussian. Therefore $r(t) = e^{\ln r(t)}$ is lognormal.
+*Sketch:* The OU process for `ln r` has explicit solution:
 
-Conditional mean: $\mathbb{E}[\ln r(t) | r(s)] = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du$.
+$$
+\ln r(t) = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du + \sigma\int_s^t e^{-a(t-u)}dW(u)
+$$
+
+The stochastic integral is Gaussian (Itô integral of a deterministic function), so `ln r(t)` conditional on `F_s` is Gaussian. Therefore `r(t) = exp(ln r(t))` is lognormal.
+
+Conditional mean:
+
+$$
+\mathbb{E}[\ln r(t) \mid r(s)] = \ln r(s)e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du
+$$
 
 ---
 
