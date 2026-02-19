@@ -2299,7 +2299,12 @@ $$\alpha_i = \frac{1}{\Delta t}\ln\left(\frac{\sum_j Q_{i,j}e^{-j\Delta R\Delta 
 
 **19. Compute branching probabilities $(p_u, p_m, p_d)$ at node $j = 2$ in the $R^{\star}$ tree with $a = 0.1$, $\Delta t = 0.5$.**
 
-*Sketch:* $a^2 j^2 \Delta t^2 = 0.01 \times 4 \times 0.25 = 0.01$; $aj\Delta t = 0.1$; $p_u = \frac{1}{6} + \frac{1}{2}(0.01 - 0.1) = 0.122$; $p_m = \frac{2}{3} - 0.01 = 0.657$; $p_d = \frac{1}{6} + \frac{1}{2}(0.01 + 0.1) = 0.222$.
+*Sketch:*
+- $a^2 j^2 \Delta t^2 = 0.01 \times 4 \times 0.25 = 0.01$
+- $aj\Delta t = 0.1$
+- $p_u = \frac{1}{6} + \frac{1}{2}(0.01 - 0.1) = 0.122$
+- $p_m = \frac{2}{3} - 0.01 = 0.657$
+- $p_d = \frac{1}{6} + \frac{1}{2}(0.01 + 0.1) = 0.222$
 
 ---
 
