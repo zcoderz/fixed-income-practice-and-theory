@@ -127,7 +127,7 @@ and $\rho_{jk}$ is the instantaneous correlation between the Brownian drivers of
 
 ### A4.2.3 Terminal Measure Dynamics
 
-Alternatively, under the terminal measure $\mathbb{Q}^n$ (numeraire $P(t, T_n)$), forward rates with $j \lt n$ have *negative* drifts:
+Alternatively, under the terminal measure $\mathbb{Q}^n$ (numeraire `P(t,T_n)`), forward rates with $j \lt n$ have *negative* drifts:
 $$dL_j(t) = -\sum_{k=j+1}^{n} \frac{\tau_k \rho_{jk} \sigma_j(t) \sigma_k(t) L_k(t)}{1 + \tau_k L_k(t)} L_j(t) dt + \sigma_j(t) L_j(t) \\, dW_j^n(t)$$
 
 > **Practitioner Note:** Terminal measure is sometimes used for Bermudan-style simulations because the numeraire is a fixed final bond and you have a single measure for all rates. Note that the drift typically depends on later-maturity rates, so “simplicity” is relative—choose the simulation measure that best matches your implementation and payoff structure.
@@ -161,13 +161,13 @@ $$\rho_{jk} = 1 - \gamma(1 - e^{-\delta |T_j - T_k|})$$
 ### A4.2.5 Caplet Pricing: Black's Formula Directly
 
 Because $L_j$ is lognormal under $\mathbb{Q}^j$, the caplet price is exactly:
-$$\boxed{\mathrm{Caplet}_j = \tau_j P(0, T_j) \left[ L_j(0) \Phi(d_+) - K \Phi(d_-) \right]}$$
+$$\boxed{C_j = \tau_j P(0, T_j) \left[ L_j(0) \Phi(d_{+}) - K \Phi(d_{-}) \right]}$$
 
 where:
 $$d_\pm = \frac{\ln(L_j(0)/K) \pm \frac{1}{2} v_j^2}{v_j}, \quad v_j = \sqrt{\int_0^{T_{j-1}} \sigma_j(t)^2 dt}$$
 
 The cap price is the sum of caplets:
-$$\mathrm{Cap} = \sum_{j=1}^{n} \mathrm{Caplet}_j$$
+$$C_{\mathrm{cap}} = \sum_{j=1}^{n} C_j$$
 
 ---
 
@@ -181,7 +181,7 @@ Under the swap measure $\mathbb{Q}^{a,b}$ with numeraire $A_{a,b}(t)$, the swap 
 $$\boxed{dS_{a,b}(t) = \sigma_{a,b}(t) S_{a,b}(t) \\, dW^{a,b}(t)}$$
 
 This directly implies Black's swaption formula:
-$$\mathrm{Swaption}_{a,b}(0) = A_{a,b}(0) \left[ S_{a,b}(0) \Phi(d_+) - K \Phi(d_-) \right]$$
+$$V^{\mathrm{swpt}}_{a,b}(0) = A_{a,b}(0) \left[ S_{a,b}(0) \Phi(d_{+}) - K \Phi(d_{-}) \right]$$
 
 ### A4.3.2 The Inconsistency Problem
 
@@ -236,7 +236,7 @@ The forward LIBOR rate $L_j(t)$ relates to instantaneous forwards by:
 $$1 + \tau_j L_j(t) = \frac{P(t, T_{j-1})}{P(t, T_j)} = \exp\left(\int_{T_{j-1}}^{T_j} f(t,u) du\right)$$
 
 Applying Itô's lemma to this relationship and choosing specific HJM volatility structures yields the LMM dynamics. Specifically, choosing:
-$$\sigma^{\text{HJM}}(t,T) = \sum_{j: T_{j-1} \leq T \lt T_j} \frac{\sigma_j(t) L_j(t)}{1 + \tau_j L_j(t)} \mathbf{1}_{t \leq T_{j-1}}$$
+$$\sigma^{\text{HJM}}(t,T) = \sum_{j: T_{j-1} \leq T \lt T_j} \frac{\sigma_j(t) L_j(t)}{1 + \tau_j L_j(t)} \mathbb{I}[t \leq T_{j-1}]$$
 
 recovers the LMM.
 
@@ -256,11 +256,9 @@ While the basic LMM assumes constant or deterministic volatility, real swaption 
 ### A4.5.1 SABR Model Dynamics
 
 Brigo & Mercurio (Ch. 11) present the SABR model as developed by Hagan, Kumar, Lesniewski, and Woodward (2002). Under the appropriate forward or swap measure, the forward rate (or swap rate) $F$ evolves as:
-$$\boxed{\begin{aligned}
-dF(t) &= V(t) F(t)^\beta \\, dZ(t) \\
-dV(t) &= \nu V(t) \\, dW(t) \\
-V(0) &= \alpha
-\end{aligned}}$$
+$$dF(t) = V(t) F(t)^\beta \\, dZ(t)$$
+$$dV(t) = \nu V(t) \\, dW(t)$$
+$$V(0) = \alpha$$
 
 where:
 - $Z$ and $W$ are correlated Brownian motions with $dZ \cdot dW = \rho \\, dt$
@@ -311,10 +309,8 @@ Each SABR parameter has intuitive meaning for the shape of the volatility smile:
 ### A4.5.4 SABR for Swaptions
 
 For swaptions, replace the forward rate $F$ with the swap rate $S_{a,b}$. The dynamics under the swap measure $\mathbb{Q}^{a,b}$ are:
-$$\begin{aligned}
-dS_{a,b}(t) &= V(t) S_{a,b}(t)^\beta \\, dZ^{a,b}(t) \\
-dV(t) &= \nu V(t) \\, dW^{a,b}(t)
-\end{aligned}$$
+$$dS_{a,b}(t) = V(t) S_{a,b}(t)^\beta \\, dZ^{a,b}(t)$$
+$$dV(t) = \nu V(t) \\, dW^{a,b}(t)$$
 
 The Hagan formula applies directly with $F \to S_{a,b}(0)$ and $T \to T_a$ (swaption expiry).
 
@@ -348,7 +344,7 @@ $$d = \frac{F - K}{\sigma_N\sqrt{T-t}}$$
 
 and $\Phi(\cdot)$, $\phi(\cdot)$ are the standard normal CDF and PDF.
 
-**PV conversion:** This is the option price in forward units. Multiply by the appropriate numeraire/discount factor to get PV (e.g., caplet PV uses $\tau_j P(t,T_j)$; swaption PV uses the annuity $A_{a,b}(t)$).
+**PV conversion:** This is the option price in forward units. Multiply by the appropriate numeraire/discount factor to get PV (e.g., caplet PV uses $\tau_j P(t,T_j)$; swaption PV uses the annuity `A_{a,b}(t)`).
 
 **Key properties:**
 - The forward rate can go negative
@@ -382,10 +378,8 @@ $$d_\pm = \frac{\ln\frac{F + s}{K + s} \pm \frac{1}{2}\sigma^2(T-t)}{\sigma\sqrt
 ### A4.6.3 Shifted SABR
 
 For smile modeling with negative rates, the market adopted **shifted SABR**:
-$$\begin{aligned}
-d(F(t) + s) &= V(t) (F(t) + s)^\beta \\, dZ(t) \\
-dV(t) &= \nu V(t) \\, dW(t)
-\end{aligned}$$
+$$d(F(t) + s) = V(t) (F(t) + s)^\beta \\, dZ(t)$$
+$$dV(t) = \nu V(t) \\, dW(t)$$
 
 Apply the standard SABR formula with $F \to F + s$ and $K \to K + s$.
 
@@ -396,10 +390,8 @@ Apply the standard SABR formula with $F \to F + s$ and $K \to K + s$.
 ### A4.6.4 Normal SABR
 
 An alternative is **Normal SABR** (Bachelier SABR), which uses arithmetic rather than geometric dynamics:
-$$\begin{aligned}
-dF(t) &= V(t) \\, dZ(t) \\
-dV(t) &= \nu V(t) \\, dW(t)
-\end{aligned}$$
+$$dF(t) = V(t) \\, dZ(t)$$
+$$dV(t) = \nu V(t) \\, dW(t)$$
 
 This is essentially SABR with $\beta = 0$. The Hagan approximation gives normal implied volatility directly.
 
@@ -740,10 +732,8 @@ $$dS_{a,b}(t) = \sum_j \left(\frac{\partial S}{\partial L_j} dL_j + \frac{\parti
 $$dS_{a,b}(t) \approx \sum_j w_j(0) \\, dL_j(t)$$
 
 **Under swap measure:** $S_{a,b}$ is approximately lognormal with:
-$$\begin{aligned}
-\text{Var}[\ln S_{a,b}(T_a)] &= \int_0^{T_a} \frac{(\sum_j w_j \sigma_j L_j)^2}{S_{a,b}^2} \\, dt \\
-&\approx \sum_{j,k} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt
-\end{aligned}$$
+$$\mathrm{Var}[\ln S_{a,b}(T_a)] = \int_0^{T_a} \frac{(\sum_j w_j \sigma_j L_j)^2}{S_{a,b}^2} \\, dt$$
+$$\mathrm{Var}[\ln S_{a,b}(T_a)] \approx \sum_{j,k} w_j w_k \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt$$
 
 The swaption implied vol is:
 $$v_{a,b}^2 T_a = \sum_{j,k=a+1}^{b} w_j(0) w_k(0) \rho_{jk} \int_0^{T_a} \sigma_j(t) \sigma_k(t) \\, dt$$
@@ -1120,7 +1110,7 @@ This approximation is used as a starting point for LSM regression.
 | $\mathbb{Q}^j$ | $T_j$-forward measure |
 | $\mathbb{Q}^{a,b}$ | Swap measure |
 | $\mathbb{Q}^{\mathrm{spot}}$ | Spot-LIBOR measure (single simulation measure on the tenor grid) |
-| $\mathbb{Q}^n$ | Terminal measure (numeraire $P(t,T_n)$) |
+| $\mathbb{Q}^n$ | Terminal measure (numeraire `P(t,T_n)`) |
 | $\beta(t)$ | Index of first forward rate still stochastic at time $t$ |
 | $\alpha, \beta, \rho, \nu$ | SABR parameters |
 | $\sigma_N$ | Normal (Bachelier) volatility |
@@ -1160,7 +1150,7 @@ This approximation is used as a starting point for LSM regression.
 | 24 | What are common LSM basis functions? | Low-order polynomials of swap rate, swap rate + intrinsic value |
 | 25 | What is the "backbone" in SABR? | How ATM implied vol changes as the forward rate moves |
 | 26 | What is "vanna skew" in SABR? | Skew component from $\rho$ (forward-vol correlation), proportional to $\rho\nu$ |
-| 27 | What does terminal measure mean? | Numeraire is the final bond $P(t, T_n)$; forward rates $j \lt n$ have negative drift |
+| 27 | What does terminal measure mean? | Numeraire is the final bond `P(t,T_n)`; forward rates $j \lt n$ have negative drift |
 | 28 | Why use terminal measure for Bermudans? | It can be convenient because the numeraire is a fixed final bond and the drift has a clean summation form; the best choice depends on implementation details. |
 | 29 | What is the ATM SABR vol formula (leading term)? | $\sigma^{\text{ATM}} \approx \alpha / F^{1-\beta}$ |
 | 30 | What is predictor-corrector in LMM simulation? | Two-step method: predict with current drift, correct using averaged drift |
