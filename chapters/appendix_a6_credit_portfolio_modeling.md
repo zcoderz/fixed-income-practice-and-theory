@@ -87,7 +87,7 @@ This depends on the *entire distribution* of $L(T)$, not just its mean.
 The term "correlation" is used loosely in credit markets, but McNeil et al. clarify the distinction between different dependence concepts:
 
 **Default correlation:** The correlation between default indicators:
-$$\rho_{ij}^{\text{def}}(T) = \text{Corr}(\mathbf{1}_{\\{\tau_i \leq T\\}}, \mathbf{1}_{\\{\tau_j \leq T\\}})$$
+$$\rho_{ij}^{def}(T) = \mathrm{Corr}(I(\tau_i \leq T), I(\tau_j \leq T))$$
 
 **Asset correlation:** In structural models, the correlation between latent asset values:
 $$\rho_{ij}^{\text{asset}} = \text{Corr}(Z_i, Z_j)$$
@@ -531,9 +531,9 @@ While the categories above focus on copula and intensity-based approaches, the i
 
 $$\tilde{M} \mid \boldsymbol{\Psi} = \boldsymbol{\psi} \sim \text{Poi}\left(\sum_{i=1}^{m} k_i \boldsymbol{w}_i' \boldsymbol{\psi}\right)$$
 
-McNeil et al. show that for $p$ gamma factors, "$\tilde{M}$ is equal in distribution to a sum of $p$ independent negative binomial random variables."
+McNeil et al. show that for $p$ gamma factors, "`Mtilde` is equal in distribution to a sum of $p$ independent negative binomial random variables."
 
-3. **Panjer recursion:** The loss distribution can be computed efficiently using actuarial techniques. McNeil et al. note: "Using Panjer recursion, it is possible to derive simple recursion formulas for the probabilities $P(\tilde{M} = k)$."
+3. **Panjer recursion:** The loss distribution can be computed efficiently using actuarial techniques. McNeil et al. note: "Using Panjer recursion, it is possible to derive simple recursion formulas for the probabilities `P(Mtilde = k)`."
 
 **Advantages:**
 - Closed-form loss distribution (no Monte Carlo needed)
@@ -940,12 +940,8 @@ Schönbucher's Markov chain model (2005) directly models the portfolio loss proc
 
 **Generator matrix:** The dynamics are governed by the generator matrix $A(t)$ with elements $a_{ij}(t)$ representing the rate of transition from $i$ to $j$ defaults.
 
-For a single-step model (one default at a time):
-$$A(t) = \begin{pmatrix}
--a_0(t) & a_0(t) & 0 & \cdots \\
-0 & -a_1(t) & a_1(t) & \cdots \\
-\vdots & & \ddots & \\
-\end{pmatrix}$$
+For a single-step model (one default at a time), the generator entries are:
+$$a_{i,i}(t) = -a_i(t), \qquad a_{i,i+1}(t) = a_i(t), \qquad a_{i,j}(t) = 0 \text{ for } j \notin \{i, i+1\}.$$
 
 **No-arbitrage conditions:** The transition rates must satisfy:
 - $a_{ij}(t) \geq 0$ for $i \lt j$
@@ -1266,7 +1262,7 @@ $$C_M(u_1, \ldots, u_N) = \min(u_1, \ldots, u_N)$$
 ### A6.10.5 Dynamic Bottom-Up Intensities: Unit Checks
 
 **Intensity Gamma (Business-Time) Model:**
-- $c_i(t)$: hazard per unit business time (dimension $1/(\text{business-time})$)
+- $c_i(t)$: hazard per unit business time (dimension `1/(business-time)`)
 - $I(t)$: business time (same dimension as time if scaled)
 - $\int c_i \\, dI$ is dimensionless ⇒ exponent is dimensionless ⇒ survival probability is valid ✓
 
@@ -1645,10 +1641,10 @@ $$\approx 0.145$$
 So **WCDR = 14.5%** at the 99.9% confidence level.
 
 2. **99.9% VaR:**
-$$VaR_{99.9\\%} = WCDR \times LGD \times \text{Portfolio Notional}$$
+$$VaR_{0.999} = WCDR \times LGD \times \text{Portfolio Notional}$$
 
 If portfolio notional is \$100 million:
-$$VaR_{99.9\\%} = 0.145 \times 0.45 \times 100 = 6.525$$
+$$VaR_{0.999} = 0.145 \times 0.45 \times 100 = 6.525$$
 
 3. **Expected loss for comparison:**
 $$EL = p \times LGD \times \text{Notional} = 0.015 \times 0.45 \times 100 = 0.675$$
