@@ -2362,25 +2362,19 @@ Given CIR parameters: `a = 0.5`, `b = 0.02`, `sigma = 0.15`, `r0 = 0.01`.
 
 Assume:
 
-$$
-d\ln r = [\theta(t) - a\ln r]dt + \sigma dW
-$$
+`d ln r = [theta(t) - a ln r] dt + sigma dW`.
 
 Question: given `r(s)`, what is the conditional mean of `ln r(t)`?
 
 *Sketch:* The OU process for `ln r` has explicit solution:
 
-$$
-\ln r(t) = \ln r(s) e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du + \sigma\int_s^t e^{-a(t-u)}dW(u)
-$$
+`ln r(t) = ln r(s) exp(-a(t-s)) + integral_{u=s}^{t} exp(-a(t-u)) theta(u) du + sigma integral_{u=s}^{t} exp(-a(t-u)) dW(u)`.
 
 The stochastic integral is Gaussian (Itô integral of a deterministic function), so `ln r(t)` conditional on `F_s` is Gaussian. Therefore `r(t) = exp(ln r(t))` is lognormal.
 
 Conditional mean:
 
-$$
-\mathbb{E}[\ln r(t) \mid r(s)] = \ln r(s)e^{-a(t-s)} + \int_s^t e^{-a(t-u)}\theta(u)du
-$$
+`E[ln r(t) | r(s)] = ln r(s) exp(-a(t-s)) + integral_{u=s}^{t} exp(-a(t-u)) theta(u) du`.
 
 ---
 
