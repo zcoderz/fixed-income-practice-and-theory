@@ -1644,7 +1644,7 @@ So **WCDR = 14.5%** at the 99.9% confidence level.
 $$VaR_{0.999} = WCDR \times LGD \times \text{Portfolio Notional}$$
 
 If portfolio notional is \$100 million:
-$$VaR_{0.999} = 0.145 \times 0.45 \times 100 = 6.525$$
+Numerically, `VaR_0.999 = 0.145 * 0.45 * 100 = 6.525` (USD millions).
 
 3. **Expected loss for comparison:**
 $$EL = p \times LGD \times \text{Notional} = 0.015 \times 0.45 \times 100 = 0.675$$
