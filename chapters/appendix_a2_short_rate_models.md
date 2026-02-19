@@ -2352,7 +2352,7 @@ Given CIR parameters: `a = 0.5`, `b = 0.02`, `sigma = 0.15`, `r0 = 0.01`.
 
 **23. (Calibration Limitations) Explain why a one-factor Hull-White model cannot simultaneously fit ATM cap volatilities and the full swaption volatility surface. What is the mathematical reason?**
 
-*Sketch:* After fitting the initial curve with $\theta(t)$, Hull-White has only 2 free parameters ($a$, $\sigma$). The swaption surface has many more degrees of freedom (e.g., 100 points for a 10×10 cube). Mathematically, one-factor models imply perfect correlation between all forward rates, but different swaption expiry/tenor combinations require different correlation structures. With perfect correlation, all swaption volatilities are determined by the single parameter $\sigma$ and mean-reversion $a$, which cannot match the rich structure observed in markets.
+*Sketch:* After fitting the initial curve with `theta(t)`, Hull-White has only two free parameters (`a` and `sigma`). The swaption surface has many more degrees of freedom (for example, 100 points in a 10x10 cube). Mathematically, a one-factor model implies perfect correlation across all forward-rate maturities, but different swaption expiry/tenor combinations require richer correlation structures. Under perfect correlation, model-implied swaption volatilities are pinned down by `a` and `sigma`, so the model cannot reproduce the full observed market surface.
 
 ---
 
