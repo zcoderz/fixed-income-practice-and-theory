@@ -77,7 +77,7 @@ We use "explicit / implicit / Crank–Nicolson" in the standard finite-differenc
 
 ## A5.2 Core Concepts
 
-### A5.2.1 Pricing Target: $V(t,x)$ or $PV=\mathbb{E}[\text{discounted payoff}]$
+### A5.2.1 Pricing Target: V(t,x) or PV = E[discounted payoff]
 
 **Formal Definition:**
 
@@ -537,13 +537,13 @@ Complexity: $O(M)$ per time step, $O(MN)$ total.
 
 The **explicit** method evaluates spatial derivatives at the **known** time level:
 
-$$\boxed{f_{i,j} = a_j^* f_{i+1,j-1} + b_j^* f_{i+1,j} + c_j^* f_{i+1,j+1}}$$
+$$\boxed{f_{i,j} = a_j^{\star} f_{i+1,j-1} + b_j^{\star} f_{i+1,j} + c_j^{\star} f_{i+1,j+1}}$$
 
 where:
 
-$$a_j^* = \frac{1}{1+r\Delta t}\left(-\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
-$$b_j^* = \frac{1}{1+r\Delta t}\left(1 - \sigma^2 j^2\Delta t\right)$$
-$$c_j^* = \frac{1}{1+r\Delta t}\left(\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
+$$a_j^{\star} = \frac{1}{1+r\Delta t}\left(-\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
+$$b_j^{\star} = \frac{1}{1+r\Delta t}\left(1 - \sigma^2 j^2\Delta t\right)$$
+$$c_j^{\star} = \frac{1}{1+r\Delta t}\left(\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
 
 **Interpretation:** Hull shows these coefficients can be interpreted as transition probabilities, making the explicit method **equivalent to a trinomial tree**.
 
@@ -809,7 +809,7 @@ Longstaff and Schwartz (2001) introduced regression-based MC for American/Bermud
    $$C_i(x) \approx \sum_{j=1}^{M} \beta_{ij}\psi_j(x)$$
 
    b. **Exercise decision:** For each path, exercise if:
-   $$h_i(S_{t_i}^{(k)}) \geq \hat{C}_i(S_{t_i}^{(k)})$$
+   $$h_i(S_{t_i}^{(k)}) \geq \widehat{C}(S_{t_i}^{(k)})$$
 
    c. **Update cash flows:** Based on exercise decision
 
@@ -1160,11 +1160,11 @@ $$f_{i,j} = \max\left\\{50 - S_{i,j}, \\; e^{-0.10/12}[0.507 f_{i+1,j+1} + 0.493
 
 $$a_j^* = \frac{1}{1+0.10/24}\left(-\frac{0.10 \cdot j}{2 \cdot 24} + \frac{0.16 \cdot j^2}{2 \cdot 24}\right)$$
 
-(Similar for $b_j^*, c_j^*$)
+(Similar for $b_j^{\star}, c_j^{\star}$)
 
 **Step 3: Apply recursion**
 
-$$f_{i,j} = a_j^* f_{i+1,j-1} + b_j^* f_{i+1,j} + c_j^* f_{i+1,j+1}$$
+$$f_{i,j} = a_j^{\star} f_{i+1,j-1} + b_j^{\star} f_{i+1,j} + c_j^{\star} f_{i+1,j+1}$$
 
 Then apply early exercise: $f_{i,j} \leftarrow \max(f_{i,j}, 50 - j\Delta S)$
 
