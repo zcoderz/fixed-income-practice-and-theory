@@ -2267,72 +2267,6 @@ This chapter is an educational risk framework. It does not provide recommendatio
 
 ---
 
-## Key Concepts Summary
-
-| Concept | Definition | Why It Matters |
-|---------|------------|----------------|
-| **CS01 (Spread DV01)** | PV change per +1 bp change in quoted spread: $CS01 = \frac{\partial PV}{\partial S} \times 10^{-4}$ | The primary linear risk measure for credit positions; must specify *which* spread is bumped |
-| **JTD / VOD** | Jump-to-default = $PV_{\text{post}} - PV_{\text{pre}}$; VOD = $(1-R-\text{Accrued}) - (S-S_0) \cdot RPV01$ | Captures discontinuous default risk that CS01 hedges do not neutralize |
-| **Bond–CDS Basis** | CDS spread − Bond Libor spread (typically asset swap spread) | Twelve drivers (6 fundamental + 6 market) per O'Kane; a persistent tradeable phenomenon |
-| **Loss-on-Default Mismatch** | Bond loss = $P - R$; CDS loss = $1 - R$; difference when bond price ≠ 100 | A basis driver that causes hedge ratios to differ from par assumptions |
-| **Intrinsic vs Quoted Basis** | Gap between index's quoted spread and RPV01-weighted average of constituent spreads | Driven by restructuring clause, liquidity, and "index leads the market" effects |
-| **Portfolio Swap Adjustment** | Adjusting constituent curves so intrinsic index value = quoted value | Often required for tranche/correlation analytics; the specific adjustment rule is a modeling choice |
-| **Index Roll P&L** | P&L from switching series due to (1) composition changes and (2) maturity extension | The two effects can offset or compound; crucial for roll timing decisions |
-| **Systemic DV01 / Delta** | PV change under a parallel portfolio spread move, and the hedge notional implied by the source definition | Leverage tends to be highest for equity and lower for senior; hedge ratios are regime/model dependent |
-| **Systemic Gamma** | Second-order tranche sensitivity to parallel spread moves | Negative for equity (large moves hurt), positive for senior (large moves help) |
-| **Corr01** | PV change per +1% correlation increase | *Opposite* sign for equity vs senior: negative for equity, positive for senior (long protection) |
-| **Tranche Loss Fraction** | $L_{[A,B]} = \frac{1}{B-A}(\max(L-A,0) - \max(L-B,0))$ | Translates portfolio loss to tranche-specific loss; highly nonlinear for equity |
-| **Gamma vs Carry Trade-off** | Convexity exposures can come with adverse carry/theta | Always evaluate carry and convexity together under scenarios; avoid “carry-only” thinking |
-| **Strategy Card Discipline** | Exposures + Hedges + Failure Modes | Every strategy must enumerate residual risks and scenarios where hedges break |
-| **Idiosyncratic Delta** | Tranche sensitivity to single-name spread move | Differs from systemic delta; reveals name-specific risk concentration |
-| **Delivery Option** | CDS protection buyer's right to choose cheapest deliverable bond | Widens CDS spreads relative to bonds; source of basis |
-| **Funding Risk** | Exposure to repo/financing rate changes on funded instruments | CDS is unfunded; bonds face funding risk that can dominate carry |
-| **Negative Basis** | CDS spread < bond asset swap spread; synthetic protection cheaper than cash | Exploitable if funding cost is low enough; destroyed by funding stress |
-| **Positive Basis** | CDS spread > bond spread; protection demand exceeds cash supply | Tends to emerge during distress; squeeze dynamics |
-| **Senior-Sub Spread Ratio** | `S_sub/S_sen = (1-R_sub)/(1-R_sen)` under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
-| **Merton Model (Credit)** | Equity = call on firm assets; debt = cash − put on assets | Links equity and credit markets; basis for equity-CDS RV trades |
-| **LCDS** | Loan CDS referencing loans and embedding a cancellation feature | Often trades tighter than vanilla CDS due to higher expected recovery; conventions and liquidity matter |
-| **CDS Curve Inversion** | Short-dated spreads exceed long-dated (common in HY distressed) | Signals near-term default risk; curve trades carry JTD mismatch |
-| **Corr01 Convexity** | Corr01 itself changes with correlation level (second-order) | Corr01-neutral is local; large moves require full revaluation and scenario testing |
-
----
-
-## 52.14 Summary and Key Takeaways
-
-### 16-Bullet Executive Summary
-
-1. A credit "strategy" must be written as **exposures + hedges + failure modes** (not a slogan).
-2. **CS01 is linear spread risk**; specify exactly what spread is bumped.
-3. **JTD/VOD captures default discontinuity**; CS01 hedges do not neutralize default jumps.
-4. **Recovery/final price** is a key state variable; mismatches drive hedge surprises.
-5. **Bond–CDS basis has six fundamental drivers** (O'Kane): funding, delivery option, technical default, loss-on-default mismatch, premium accrued at default, and CDS non-negativity.
-6. **Bond–CDS basis has six market drivers** (O'Kane): relative liquidity, CDO issuance effects, new bond/loan issuance, convertible arbitrage flows, demand for protection, and funding risk.
-7. **Negative basis persistence** depends on funding costs; the "same" trade has different economics for bank desks vs hedge funds.
-8. **Indices have intrinsic vs quoted basis**; the portfolio swap adjustment reconciles them but is "somewhat arbitrary" (O'Kane).
-9. **Index rolls create P&L** from composition changes and maturity extension—these can offset or compound.
-10. **CDS curve strategies** require CS01-neutral sizing but carry inherent JTD mismatch from unequal notionals.
-11. **Capital structure arbitrage** exploits the senior-sub spread relationship (`S_sub/S_sen = (1-R_sub)/(1-R_sen)`), but recovery uncertainty is the dominant risk.
-12. **Tranche risk is multi-dimensional**: systemic delta, systemic gamma, idiosyncratic delta, idiosyncratic gamma, Corr01, carry, and theta all matter.
-13. **Equity and senior tranches have opposite correlation exposures**: Corr01 is negative for equity, positive for senior (for long protection).
-14. **Positive gamma positions typically have negative carry** (O'Kane)—there is a cost to owning convexity.
-15. **Crisis behavior differs by strategy**: funding stress destroys basis trades; correlation spikes destroy tranche RV; curve inversion signals imminent default.
-16. **Always run a scenario suite:** parallel, dispersion, default event, roll/series basis, correlation/tail shocks, and funding stress.
-
-### Cheat Sheet
-
-**Strategy card:** Objective → Instruments → Exposures table → Hedge ratios → Scenario suite → Failure modes → Checks.
-
-**Key formulas:**
-
-- CDS MTM: $V = (S - S_0) \cdot RPV01$.
-- CS01 hedge: $N_H = -CS01_T / CS01_H$.
-- VOD/JTD (CDS): $VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$.
-- Tranche loss: $L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)$.
-- Senior-sub spread ratio: `S_sub/S_sen = (1 - R_sub)/(1 - R_sen)`.
-- Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times RPV01_{\text{long}} / RPV01_{\text{short}}$.
-
----
-
 ### Example 16: Senior vs Subordinated CDS — Recovery-Driven Spread Relationship
 
 **Setup:** Consider a BBB-rated issuer with both senior unsecured and subordinated CDS traded. Market recovery assumptions: $R_{\text{sen}} = 40\\%$, $R_{\text{sub}} = 20\\%$. Senior 5Y CDS trades at $S_{\text{sen}} = 120$ bp.
@@ -2513,6 +2447,72 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700
 | 18 | Negative Basis Funding Stress | Carry decomposition, funding risk |
 | 19 | Equity-CDS Relative Value (LBO) | Merton model application, sizing |
 | 20 | Correlation Shock on Combo | Corr01 convexity, local vs global hedging |
+
+---
+
+## Key Concepts Summary
+
+| Concept | Definition | Why It Matters |
+|---------|------------|----------------|
+| **CS01 (Spread DV01)** | PV change per +1 bp change in quoted spread: $CS01 = \frac{\partial PV}{\partial S} \times 10^{-4}$ | The primary linear risk measure for credit positions; must specify *which* spread is bumped |
+| **JTD / VOD** | Jump-to-default = $PV_{\text{post}} - PV_{\text{pre}}$; VOD = $(1-R-\text{Accrued}) - (S-S_0) \cdot RPV01$ | Captures discontinuous default risk that CS01 hedges do not neutralize |
+| **Bond–CDS Basis** | CDS spread − Bond Libor spread (typically asset swap spread) | Twelve drivers (6 fundamental + 6 market) per O'Kane; a persistent tradeable phenomenon |
+| **Loss-on-Default Mismatch** | Bond loss = $P - R$; CDS loss = $1 - R$; difference when bond price ≠ 100 | A basis driver that causes hedge ratios to differ from par assumptions |
+| **Intrinsic vs Quoted Basis** | Gap between index's quoted spread and RPV01-weighted average of constituent spreads | Driven by restructuring clause, liquidity, and "index leads the market" effects |
+| **Portfolio Swap Adjustment** | Adjusting constituent curves so intrinsic index value = quoted value | Often required for tranche/correlation analytics; the specific adjustment rule is a modeling choice |
+| **Index Roll P&L** | P&L from switching series due to (1) composition changes and (2) maturity extension | The two effects can offset or compound; crucial for roll timing decisions |
+| **Systemic DV01 / Delta** | PV change under a parallel portfolio spread move, and the hedge notional implied by the source definition | Leverage tends to be highest for equity and lower for senior; hedge ratios are regime/model dependent |
+| **Systemic Gamma** | Second-order tranche sensitivity to parallel spread moves | Negative for equity (large moves hurt), positive for senior (large moves help) |
+| **Corr01** | PV change per +1% correlation increase | *Opposite* sign for equity vs senior: negative for equity, positive for senior (long protection) |
+| **Tranche Loss Fraction** | $L_{[A,B]} = \frac{1}{B-A}(\max(L-A,0) - \max(L-B,0))$ | Translates portfolio loss to tranche-specific loss; highly nonlinear for equity |
+| **Gamma vs Carry Trade-off** | Convexity exposures can come with adverse carry/theta | Always evaluate carry and convexity together under scenarios; avoid “carry-only” thinking |
+| **Strategy Card Discipline** | Exposures + Hedges + Failure Modes | Every strategy must enumerate residual risks and scenarios where hedges break |
+| **Idiosyncratic Delta** | Tranche sensitivity to single-name spread move | Differs from systemic delta; reveals name-specific risk concentration |
+| **Delivery Option** | CDS protection buyer's right to choose cheapest deliverable bond | Widens CDS spreads relative to bonds; source of basis |
+| **Funding Risk** | Exposure to repo/financing rate changes on funded instruments | CDS is unfunded; bonds face funding risk that can dominate carry |
+| **Negative Basis** | CDS spread < bond asset swap spread; synthetic protection cheaper than cash | Exploitable if funding cost is low enough; destroyed by funding stress |
+| **Positive Basis** | CDS spread > bond spread; protection demand exceeds cash supply | Tends to emerge during distress; squeeze dynamics |
+| **Senior-Sub Spread Ratio** | `S_sub/S_sen = (1-R_sub)/(1-R_sen)` under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
+| **Merton Model (Credit)** | Equity = call on firm assets; debt = cash − put on assets | Links equity and credit markets; basis for equity-CDS RV trades |
+| **LCDS** | Loan CDS referencing loans and embedding a cancellation feature | Often trades tighter than vanilla CDS due to higher expected recovery; conventions and liquidity matter |
+| **CDS Curve Inversion** | Short-dated spreads exceed long-dated (common in HY distressed) | Signals near-term default risk; curve trades carry JTD mismatch |
+| **Corr01 Convexity** | Corr01 itself changes with correlation level (second-order) | Corr01-neutral is local; large moves require full revaluation and scenario testing |
+
+---
+
+## 52.14 Summary and Key Takeaways
+
+### 16-Bullet Executive Summary
+
+1. A credit "strategy" must be written as **exposures + hedges + failure modes** (not a slogan).
+2. **CS01 is linear spread risk**; specify exactly what spread is bumped.
+3. **JTD/VOD captures default discontinuity**; CS01 hedges do not neutralize default jumps.
+4. **Recovery/final price** is a key state variable; mismatches drive hedge surprises.
+5. **Bond–CDS basis has six fundamental drivers** (O'Kane): funding, delivery option, technical default, loss-on-default mismatch, premium accrued at default, and CDS non-negativity.
+6. **Bond–CDS basis has six market drivers** (O'Kane): relative liquidity, CDO issuance effects, new bond/loan issuance, convertible arbitrage flows, demand for protection, and funding risk.
+7. **Negative basis persistence** depends on funding costs; the "same" trade has different economics for bank desks vs hedge funds.
+8. **Indices have intrinsic vs quoted basis**; the portfolio swap adjustment reconciles them but is "somewhat arbitrary" (O'Kane).
+9. **Index rolls create P&L** from composition changes and maturity extension—these can offset or compound.
+10. **CDS curve strategies** require CS01-neutral sizing but carry inherent JTD mismatch from unequal notionals.
+11. **Capital structure arbitrage** exploits the senior-sub spread relationship (`S_sub/S_sen = (1-R_sub)/(1-R_sen)`), but recovery uncertainty is the dominant risk.
+12. **Tranche risk is multi-dimensional**: systemic delta, systemic gamma, idiosyncratic delta, idiosyncratic gamma, Corr01, carry, and theta all matter.
+13. **Equity and senior tranches have opposite correlation exposures**: Corr01 is negative for equity, positive for senior (for long protection).
+14. **Positive gamma positions typically have negative carry** (O'Kane)—there is a cost to owning convexity.
+15. **Crisis behavior differs by strategy**: funding stress destroys basis trades; correlation spikes destroy tranche RV; curve inversion signals imminent default.
+16. **Always run a scenario suite:** parallel, dispersion, default event, roll/series basis, correlation/tail shocks, and funding stress.
+
+### Cheat Sheet
+
+**Strategy card:** Objective → Instruments → Exposures table → Hedge ratios → Scenario suite → Failure modes → Checks.
+
+**Key formulas:**
+
+- CDS MTM: $V = (S - S_0) \cdot RPV01$.
+- CS01 hedge: $N_H = -CS01_T / CS01_H$.
+- VOD/JTD (CDS): $VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$.
+- Tranche loss: $L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)$.
+- Senior-sub spread ratio: `S_sub/S_sen = (1 - R_sub)/(1 - R_sen)`.
+- Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times RPV01_{\text{long}} / RPV01_{\text{short}}$.
 
 ---
 
