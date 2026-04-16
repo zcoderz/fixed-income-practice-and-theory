@@ -39,7 +39,7 @@ Chapter 12 established duration as the first-order risk measure. This chapter re
 
 ### 13.1.1 Why Curvature Matters
 
-Consider a simple zero-coupon bond maturing in 10 years. At a yield of 5%, its price is approximately $61.03 per $100 face. If we plot price against yield, the resulting curve slopes downward—higher yields mean lower prices—but crucially, it bends *upward*, like a smile. This geometric property is what we call **convexity**.
+Consider a simple zero-coupon bond maturing in 10 years. At a yield of 5%, its price is approximately $61.03$ per 100 face. If we plot price against yield, the resulting curve slopes downward—higher yields mean lower prices—but crucially, it bends *upward*, like a smile. This geometric property is what we call **convexity**.
 
 This curvature has immediate financial consequences. As yields **rise** and prices fall, the slope of the curve flattens. This means the bondholder loses money, but their sensitivity to further rate increases (DV01) decreases, essentially "cushioning" the loss. Conversely, as yields **fall** and prices rise, the slope steepens. The bondholder makes money, and their sensitivity increases, accelerating the gains.
 
@@ -60,7 +60,7 @@ $$P(y + \Delta y) \approx P(y) + \frac{dP}{dy}\Delta y + \frac{1}{2}\frac{d^2P}{
 
 Dividing by price $P$ gives us the standard percentage change decomposition used by practitioners:
 
-$$\boxed{\frac{\Delta P}{P} \approx -D\,\Delta y + \frac{1}{2}Cvx\,(\Delta y)^2}$$
+$$\boxed{\frac{\Delta P}{P} \approx -D\\,\Delta y + \frac{1}{2}Cvx\\,(\Delta y)^2}$$
 
 Here, $D = -\frac{1}{P}\frac{dP}{dy}$ is modified duration (linear risk), and $Cvx = \frac{1}{P}\frac{d^2P}{dy^2}$ is convexity (curvature risk).
 
@@ -86,7 +86,7 @@ $$\boxed{C_{USD }=P \times Cvx = \frac{d^2P}{dy^2}}$$
 
 **Why Dollar Convexity Matters:** Even when a system does not report it directly, dollar convexity is a natural object for P&L attribution because the second-order (convexity) contribution for a yield move $\Delta y$ can be written as:
 
-$$\boxed{\text{Convexity P\\&L} = \frac{1}{2}\,C_{USD }\,(\Delta y)^2}$$
+$$\boxed{\text{Convexity PnL} = \frac{1}{2}\\,C_{USD }\\,(\Delta y)^2}$$
 
 If you want to plug in a yield move in **basis points** (instead of decimal yield units), define:
 
@@ -95,7 +95,7 @@ If you want to plug in a yield move in **basis points** (instead of decimal yiel
 
 Then the convexity P&L can be written as:
 
-$$\boxed{\text{Convexity P\\&L}=\underbrace{\left[\frac{1}{2}\times C_{USD }\times (0.0001)^2\right]}_{\text{Convexity01 } (USD /\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
+$$\boxed{\text{Convexity PnL}=\underbrace{\left[\frac{1}{2}\times C_{USD }\times (0.0001)^2\right]}_{\text{Convexity01 } (USD /\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
 
 This is often the most desk-friendly way to compute convexity P&L because it takes the move in bps and makes the quadratic scaling explicit.
 
@@ -133,16 +133,28 @@ Second derivatives are numerically delicate because this is a “difference of d
 One common methodology is:
 
 **Step 1: Estimate the first derivative at 4.995%** (between 4.99% and 5.00%):
-$$\left.\frac{dP}{dy}\right|_{y=0.04995} = \frac{100.0000 - 100.0780}{0.05 - 0.0499} = -779.83$$
+
+$$
+\left.\frac{dP}{dy}\right|_{y=0.04995} = \frac{100.0000 - 100.0780}{0.05 - 0.0499} = -779.83
+$$
 
 **Step 2: Estimate the first derivative at 5.005%** (between 5.00% and 5.01%):
-$$\left.\frac{dP}{dy}\right|_{y=0.05005} = \frac{99.9221 - 100.0000}{0.0501 - 0.05} = -779.09$$
+
+$$
+\left.\frac{dP}{dy}\right|_{y=0.05005} = \frac{99.9221 - 100.0000}{0.0501 - 0.05} = -779.09
+$$
 
 **Step 3: Estimate the second derivative at 5.00%**:
-$$\frac{d^2P}{dy^2} = \frac{-779.09 - (-779.83)}{0.05005 - 0.04995} = \frac{0.7363}{0.0001} = 7{,}363$$
+
+$$
+\frac{d^2P}{dy^2} = \frac{-779.09 - (-779.83)}{0.05005 - 0.04995} = \frac{0.7363}{0.0001} = 7{,}363
+$$
 
 **Step 4: Compute convexity**:
-$$Cvx = \frac{7{,}363}{100} = \mathbf{73.63}$$
+
+$$
+Cvx = \frac{7{,}363}{100} = \mathbf{73.63}
+$$
 
 **Sanity Check:** The convexity is positive (as expected for a vanilla bond), and the magnitude (73.6) is plausible for a bond with roughly 8-year duration. ✓
 
@@ -189,10 +201,16 @@ Since a coupon bond is a portfolio of zeros (one for each cash flow), its convex
 We can verify the numerical approximation method against the analytic formula. Consider a 5-year zero-coupon bond at a 5% yield.
 
 **Analytic Result**: Using the formula:
-$$Cvx = \frac{5 \times 5.5}{(1.025)^2} = \frac{27.5}{1.050625} \approx \mathbf{26.17}$$
+
+$$
+Cvx = \frac{5 \times 5.5}{(1.025)^2} = \frac{27.5}{1.050625} \approx \mathbf{26.17}
+$$
 
 **Finite Difference**: Bumping yields by 1 bp ($P_-$ at 4.99%, $P_+$ at 5.01%):
-$$\frac{78.0818 - 2(78.1198) + 78.1579}{78.1198 \times (0.0001)^2} \approx \mathbf{26.17}$$
+
+$$
+\frac{78.0818 - 2(78.1198) + 78.1579}{78.1198 \times (0.0001)^2} \approx \mathbf{26.17}
+$$
 
 The results match perfectly, confirming that for standard instruments, the "bump and reprice" methodology is robust.
 
@@ -202,7 +220,9 @@ The results match perfectly, confirming that for standard instruments, the "bump
 
 When is duration "good enough," and when is it dangerous? The answer lies in the magnitude of the market move. The error of a duration-only model does not scale linearly; it scales with the *square* of the interest rate shock:
 
-$$\boxed{\text{Duration-only error (fractional)} \approx \frac{1}{2}\,Cvx\,(\Delta y)^2}$$
+$$
+\boxed{\text{Duration-only error (fractional)} \approx \frac{1}{2}\\,Cvx\\,(\Delta y)^2}
+$$
 
 Including the quadratic term makes the approximation dramatically more accurate for large moves.
 
@@ -221,7 +241,7 @@ Including the quadratic term makes the approximation dramatically more accurate 
 **Inputs**
 - Notional: $N=USD 100{,}000{,}000$
 - Coupon: 6% annual, paid semiannually (cashflow = $100\times 0.06/2 = 3.00$ per USD 100 each period)
-- Yield quote: $y=5\%$ (annual yield with semiannual compounding)
+- Yield quote: $y=5\\%$ (annual yield with semiannual compounding)
 - Shock: $\Delta y = +100\text{bp} = +0.01$
 
 **Outputs (What You Produce)**
@@ -250,7 +270,7 @@ Including the quadratic term makes the approximation dramatically more accurate 
 - **Duration-only price change:** $\Delta P_{dur}\approx -102.754\times 2.725\times 0.01 = -2.800$ (price points per USD 100).
 - **Convexity correction:** $\Delta P_{cvx}\approx \tfrac{1}{2}\times 102.754\times 9.08\times 0.01^2 = +0.0466$.
 - **Duration + convexity:** $\Delta P\approx -2.800 + 0.0466 = -2.753$.
-- **Actual repricing:** at $y=6\%$ this bond is at par, so $\Delta P_{actual}=100.000-102.754=-2.754$.
+- **Actual repricing:** at $y=6\\%$ this bond is at par, so $\Delta P_{actual}=100.000-102.754=-2.754$.
 
 Scaling to notional $N$:
 - $\Delta PV_{dur} \approx (-2.800/100)\times 100{,}000{,}000 = -USD 2.800\text{mm}$
@@ -284,12 +304,12 @@ For small daily moves, convexity P&L is often small relative to duration P&L. Fo
 
 When risk managers decompose daily P&L, the convexity term appears explicitly. A common second-order attribution uses the yield move in basis points:
 
-$$\boxed{\text{Daily P\\&L}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration P\\&L}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity P\\&L}}+\text{Carry}+\text{Unexplained}}$$
+$$\boxed{\text{Daily PnL}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration PnL}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity PnL}}+\text{Carry}+\text{Unexplained}}$$
 
 Where:
 - **DV01** is in dollars per bp (see Chapter 11 for conventions)
 - $\Delta y_{\text{bp}}$ is the signed yield change in bp
-- **Convexity01** is the $/bp² coefficient defined in Section 13.2.2
+- **Convexity01** is the USD/bp² coefficient defined in Section 13.2.2
 
 **Sign Convention:** For vanilla bonds with positive convexity, the convexity term is **always positive**—whether rates rise or fall. This is the mathematical signature of convexity's "cushion."
 
@@ -322,10 +342,16 @@ Imagine a portfolio that is DV01 neutral but "Long Convexity":
 - **Short**: 4.14 units of a 2-year par bond ($Cvx=4.5$, DV01=0.0188)
 
 The position is delta-neutral:
-$$\text{Net DV01} = 0.0779 - (4.144 \times 0.0188) \approx 0$$
+
+$$
+\text{Net DV01} = 0.0779 - (4.144 \times 0.0188) \approx 0
+$$
 
 However, the position is heavily gamma-positive:
-$$\text{Net }Cvx = 73.6 - (4.144 \times 4.5) = +54.9$$
+
+$$
+\text{Net }Cvx = 73.6 - (4.144 \times 4.5) = +54.9
+$$
 
 Because of this positive net convexity, the portfolio acts like a long straddle option. If rates move **100 bps** in *either* direction, the trader profits:
 
@@ -495,10 +521,16 @@ How much must rates move for the barbell to break even? We can calculate this ex
 **Breakeven Calculation:**
 
 The convexity gain must offset the yield loss:
-$$\frac{1}{2} \Delta Cvx \times (\Delta y)^2 = \text{Yield Give-up}$$
+
+$$
+\frac{1}{2} \Delta Cvx \times (\Delta y)^2 = \text{Yield Give-up}
+$$
 
 Solving for $\Delta y$:
-$$\Delta y = \sqrt{\frac{2 \times 0.0008}{139.92}} = \sqrt{0.0000114} \approx 0.0034 = 34 \text{ bp}$$
+
+$$
+\Delta y = \sqrt{\frac{2 \times 0.0008}{139.92}} = \sqrt{0.0000114} \approx 0.0034 = 34 \text{ bp}
+$$
 
 **Interpretation:** If rates move more than 34bp in either direction over the year, the barbell wins. If rates move less, the bullet wins.
 
@@ -543,19 +575,34 @@ Numerical illustration (from a stylized example): even if the one-year rate is 1
 Consider a two-state world where rates are 5\% today. In one year, rates will be either 3\% or 7\% with equal probability.
 
 **Step 1: Expected price of a 1-year zero at $t=1$:**
-$$E[P] = 0.5 \times \frac{100}{1.03} + 0.5 \times \frac{100}{1.07} = 0.5 \times 97.087 + 0.5 \times 93.458 = 95.272$$
+
+$$
+E[P] = 0.5 \times \frac{100}{1.03} + 0.5 \times \frac{100}{1.07} = 0.5 \times 97.087 + 0.5 \times 93.458 = 95.272
+$$
 
 **Step 2: Price at the expected rate:**
-$$P(E[r]) = \frac{100}{1.05} = 95.238$$
+
+$$
+P(E[r]) = \frac{100}{1.05} = 95.238
+$$
 
 **Step 3: Convexity value:**
-$$\text{Convexity Value} = 95.272 - 95.238 = 0.034 \text{ (3.4 cents per 100 face)}$$
+
+$$
+\text{Convexity Value} = 95.272 - 95.238 = 0.034 \text{ (3.4 cents per 100 face)}
+$$
 
 **Check (translate cents to dollars):** 3.4 cents per 100 is 0.034 price points. On $N=USD 100\text{mm}$ face, 1.00 price point is $USD 1{,}000{,}000$, so 0.034 points is about $USD 34{,}000$. The convexity value in this toy example is small, but it scales with both notional and rate volatility.
 
 **Volatility Scaling:** Now double the volatility—rates are either 2\% or 8\%:
-$$E[P] = 0.5 \times \frac{100}{1.02} + 0.5 \times \frac{100}{1.08} = 0.5 \times 98.039 + 0.5 \times 92.593 = 95.316$$
-$$\text{Convexity Value} = 95.316 - 95.238 = 0.078 \text{ (7.8 cents)}$$
+
+$$
+E[P] = 0.5 \times \frac{100}{1.02} + 0.5 \times \frac{100}{1.08} = 0.5 \times 98.039 + 0.5 \times 92.593 = 95.316
+$$
+
+$$
+\text{Convexity Value} = 95.316 - 95.238 = 0.078 \text{ (7.8 cents)}
+$$
 
 The convexity value increases when the dispersion of future rates increases.
 
@@ -563,7 +610,7 @@ The convexity value increases when the dispersion of future rates increases.
 
 For small yield volatility, a common rule-of-thumb approximation is:
 
-$$\boxed{\text{Convexity effect on yield} \approx -\frac{1}{2}\,Cvx\,\sigma^2}$$
+$$\boxed{\text{Convexity effect on yield} \approx -\frac{1}{2}\\,Cvx\\,\sigma^2}$$
 
 where $\sigma$ is the yield volatility. This formula has profound implications:
 

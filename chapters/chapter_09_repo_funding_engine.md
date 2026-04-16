@@ -194,7 +194,7 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 > **Pitfall — "per 100" vs "%" vs decimals:** Bond prices and accrued interest are usually quoted **per 100** of face (price "points"), while rates like repo are quoted in **% per year**, and $1\text{ bp}=10^{-4}$.
 > **Why it matters:** Mixing these units is a common way to be off by 100× or 10,000× in carry/financing P&L.
-> **Quick check:** If $I(0)=102.90$ per 100 and $N=USD 100\text{mm}$, invoice cash should be $(N/100)\,I(0)=USD 102.9\text{mm}$, not $USD 10.29\text{bn}$.
+> **Quick check:** If $I(0)=102.90$ per 100 and $N=USD 100\text{mm}$, invoice cash should be $(N/100)\\,I(0)=USD 102.9\text{mm}$, not $USD 10.29\text{bn}$.
 
 ### 9.4.2 Worked Example (Template): Funding a Long Bond for 7 Days
 
@@ -266,8 +266,8 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 Continuing the example of Section 9.2, suppose the desk sells the bond the next day at the ask price (one tick higher than bid). The desk earns USD 32,596 on the trade:
 
-- **Price change (bid-ask spread):** $USD 100{,}000{,}000 \times (1/32)\% = USD 31{,}250$
-- **Interest income (one day's accrual):** $USD 100{,}000{,}000 \times (1.509323 - 1.493094)\% = USD 16{,}229$
+- **Price change (bid-ask spread):** $USD 100{,}000{,}000 \times (1/32)\\% = USD 31{,}250$
+- **Interest income (one day's accrual):** $USD 100{,}000{,}000 \times (1.509323 - 1.493094)\\% = USD 16{,}229$
 - **Financing cost:** $USD 14{,}883$ (from Section 9.2)
 - **Carry:** $USD 16{,}229 - USD 14{,}883 = USD 1{,}346$
 - **Total P&L:** $USD 31{,}250 + USD 1{,}346 = USD 32{,}596$
@@ -617,7 +617,7 @@ For this chapter, the key operational distinction is:
 | **Special rate reasonableness** | Specials can be very low. If you see extreme specials, sanity-check against "borrow vs fail" economics and your sign conventions |
 | **Leverage check** | With haircut $h$, leverage should be near $1/h$ |
 | **Sensitivity sign** | Higher repo rate → higher financing cost → $\partial PL/\partial r \lt 0$ for funded longs |
-| **`Repo01` sign** | With `Repo01` defined as $PL(r-1\text{bp})-PL(r)$, a funded long should have `Repo01 \gt 0` |
+| **`Repo01` sign** | With `Repo01` defined as $PL(r-1\text{bp})-PL(r)$, a funded long should have `Repo01` > 0 |
 
 ---
 
@@ -719,7 +719,7 @@ For this chapter, the key operational distinction is:
 
 ## Mini Problem Set
 
-1. (Compute) A repo starts with $L_0=USD 25{,}000{,}000$, $r=3.75\%$, $d=3$ days (360-day basis). Compute $L_1$ and the interest.
+1. (Compute) A repo starts with $L_0=USD 25{,}000{,}000$, $r=3.75\\%$, $d=3$ days (360-day basis). Compute $L_1$ and the interest.
 2. (Compute) A bond has clean price 99.75 and accrued interest 1.10 (both per 100 notional). For $N=USD 50{,}000{,}000$ face, compute the invoice cash exchanged.
 3. (Concept) When is carry positive for a funded long? Name two convention effects that can make "coupon - repo" misleading.
 4. (Compute) For $N=USD 100{,}000{,}000$, invoice price 102% of face, and $d=7$, compute the P&L change for a +10bp move in the repo rate (hold everything else fixed).

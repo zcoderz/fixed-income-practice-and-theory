@@ -93,7 +93,7 @@ Dividing by the face value gives a conversion factor of **1.4623**.
 
 $$4 + \sum_{i=1}^{36} \frac{4}{1.03^{i}} + \frac{100}{1.03^{36}} = USD125.8323$$
 
-The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\%$. Hence, discounting back to the present gives the bond's value as USD125.8323 / 1.014889 = USD123.99. Subtracting the accrued interest of 2.0 gives USD121.99. The conversion factor is therefore **1.2199**.
+The interest rate for a 3-month period is $\sqrt{1.03} - 1 = 1.4889\\%$. Hence, discounting back to the present gives the bond's value as USD125.8323 / 1.014889 = USD123.99. Subtracting the accrued interest of 2.0 gives USD121.99. The conversion factor is therefore **1.2199**.
 
 > **Note:** Some older references (or non-U.S. contracts) may use a different notional yield or different rounding rules. For trading and operations, always use the exchange’s published conversion factors for the contract month.
 
@@ -159,7 +159,7 @@ $$\boxed{CostDel_i(t) = P_i(t) - cf_i \times F(t)}$$
 
 The **cheapest-to-deliver** bond is the one that minimizes the cost of delivery—or equivalently, maximizes the short's profit from delivering.
 
-$$\boxed{\text{CTD} = \arg\min_i \{P_i(t) - cf_i \times F(t)\}}$$
+$$\boxed{\text{CTD} = \arg\min_i \\{P_i(t) - cf_i \times F(t)\\}}$$
 
 > **Analogy: The Fixed Price Menu**
 >
@@ -304,7 +304,7 @@ For bonds that are close competitors for CTD, net basis behaves like an option-v
 
 At a high level, a long-basis trade is: buy the cash bond, finance it, and short futures with the correct “tailing” so the hedge ratio is consistent with the conversion factor. Under that construction, P&L is largely driven by changes in net basis:
 
-$$\text{PnL} \approx \frac{N_{\text{bond}}}{100}\,[NB^i(t')-NB^i(t)]$$
+$$\text{PnL} \approx \frac{N_{\text{bond}}}{100}\\,[NB^i(t')-NB^i(t)]$$
 
 where $N_{\text{bond}}$ is the bond face amount (in dollars) and $NB$ is quoted per USD100 face.
 
@@ -326,7 +326,7 @@ Solving:
 
 $$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F + AI_i(T)}{P_i(0) + AI_i(0)} - 1\right) \frac{360}{d}}$$
 
-**Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small delivery profit over 30–90 days annualizes into a non-trivial rate. For small profits, $r_{\text{imp}}\approx (\text{profit}/\text{dirty today})\times 360/d$. Toy: if $d=90$ days and the invoice is 0.10 per USD100 higher than the financed cost on a dirty price near 102, then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\%$ (about 39 bp).
+**Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small delivery profit over 30–90 days annualizes into a non-trivial rate. For small profits, $r_{\text{imp}}\approx (\text{profit}/\text{dirty today})\times 360/d$. Toy: if $d=90$ days and the invoice is 0.10 per USD100 higher than the financed cost on a dirty price near 102, then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\\%$ (about 39 bp).
 
 ### 23.7.2 Interpretation
 
@@ -409,7 +409,7 @@ Delivery timing is a trade-off between carry and optionality:
 
 In many contracts, the last trading day comes before the last delivery day. After trading stops, the final settlement price $\bar F$ is fixed while delivery choices remain. The short effectively holds an option to choose the minimum cost of delivery given $\bar F$:
 
-$$CostDel_i(T)=P_i(T)-cf_i\,\bar F.$$
+$$CostDel_i(T)=P_i(T)-cf_i\\,\bar F.$$
 
 If you were planning to deliver bond $i$ but bond $j$ later becomes cheaper to deliver, switching improves P&L by $CostDel_i-CostDel_j$. The window is short, so the value is usually smaller than the main quality option, but it can matter if relative values in the basket move sharply after the last trading day.
 
@@ -705,7 +705,7 @@ Over the next few months:
 - Bond clean price today: $P(0) = 101.20$ (per USD100)
 - Conversion factor: $cf = 0.9012$
 - Accrued interest: $AI(0) = 0.45$, $AI(T) = 1.35$ (per USD100)
-- Repo rate: $r = 5.00\%$, simple interest, ACT/360
+- Repo rate: $r = 5.00\\%$, simple interest, ACT/360
 - Contract face amount: $N = USD100{,}000$
 
 **Outputs (What You Produce)**
@@ -726,7 +726,7 @@ Over the next few months:
 3. Compute delivery profit:
    - $\Pi = \text{Invoice}(T) - \text{Repayment}(T) = 102.735 - 102.921 = -0.186$ per USD100.
 4. Compute implied repo:
-   - $r_{\text{imp}} = \left(\frac{\text{Invoice}(T)}{P(0) + AI(0)} - 1\right)\frac{360}{90} = 4.27\%$.
+   - $r_{\text{imp}} = \left(\frac{\text{Invoice}(T)}{P(0) + AI(0)} - 1\right)\frac{360}{90} = 4.27\\%$.
 5. Compute futures DV01 and hedge ratio (illustrative):
    - Assume CTD DV01 per USD100 is 0.085.
    - Futures DV01 per contract $\approx (N/100)\times 0.085/cf = 1000\times0.085/0.9012 = USD94.32$ per bp.
@@ -780,7 +780,7 @@ Buy bond today, finance in repo, deliver at $T$.
 **Inputs:**
 - Bond clean price: $P(0) = 101.20$
 - Accrued today: $AI(0) = 0.45$
-- Repo rate: $r = 5.00\%$
+- Repo rate: $r = 5.00\\%$
 - Days to delivery: $d = 90$
 - Invoice at delivery: $\text{Invoice}(T) = 102.735$ (from Example A)
 
@@ -836,6 +836,7 @@ CTD switches from **A to C**. The higher-duration bond becomes CTD when yields r
 - Repo rate: 5.00%, $d = 90$ days
 
 **Gross basis:**
+
 $$GB = 101.20 - 0.9012 \times 112.50 = 101.20 - 101.385 = -0.185$$
 
 **Carry:**
@@ -846,6 +847,7 @@ Financing cost: $101.65 \times 0.05 \times 90/360 = 1.271$ USD
 $$\text{Carry} = 0.90 - 1.271 = -0.371$$
 
 **Net basis:**
+
 $$NB = GB - \text{Carry} = -0.185 - (-0.371) = +0.186$$
 
 Positive net basis means cash-and-carry loses money at this financing rate (consistent with Example B).
@@ -858,9 +860,10 @@ Positive net basis means cash-and-carry loses money at this financing rate (cons
 - Days: $d = 90$
 
 **Break-even condition:**
+
 $$101.65(1 + r_{\text{imp}} \times 90/360) = 102.735$$
 
-$$r_{\text{imp}} = \left(\frac{102.735}{101.65} - 1\right) \times \frac{360}{90} = 0.01067 \times 4 = 4.27\%$$
+$$r_{\text{imp}} = \left(\frac{102.735}{101.65} - 1\right) \times \frac{360}{90} = 0.01067 \times 4 = 4.27\\%$$
 
 If you can finance below 4.27%, cash-and-carry is profitable. At 5% GC, it loses money.
 
@@ -871,12 +874,15 @@ If you can finance below 4.27%, cash-and-carry is profitable. At 5% GC, it loses
 - CTD: Bond A with DV01 = 0.085, cf = 0.9012
 
 **Cash DV01 in dollars:**
+
 $$0.085 \times \frac{50{,}000{,}000}{100} = USD42{,}500 \text{ per bp}$$
 
 **Futures DV01 per contract:**
+
 $$1000 \times \frac{0.085}{0.9012} = 1000 \times 0.0943 = USD94.32 \text{ per bp}$$
 
 **Hedge ratio:**
+
 $$n = \frac{42{,}500}{94.32} \approx 451 \text{ contracts}$$
 
 **If CTD switches to C** (DV01 = 0.095, cf = 0.8420):
@@ -895,6 +901,7 @@ The hedge ratio changes by **74 contracts** purely from CTD switching.
 - CTD same for both contracts
 
 **Roll:**
+
 $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 
 **Cost of rolling 100 contracts (short hedge):**
@@ -1028,7 +1035,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 1. (Compute) Compute invoice price given $F = 108.50$, $cf = 0.8750$, $AI = 2.10$.
 2. (Compute) Given three deliverables with $(P,cf)=[(98.50,0.92),(105.00,0.98),(91.20,0.85)]$ and $F = 106.00$, identify CTD using $P-cfF$.
 3. (Compute) Compute gross basis for Bond A: $P = 102.50$, $cf = 0.9500$, $F = 108.00$.
-4. (Compute) Compute carry for 60 days: $P + AI(0)=103.20$, $AI(T)-AI(0)=1.00$, $r=4.50\%$, ACT/360 simple.
+4. (Compute) Compute carry for 60 days: $P + AI(0)=103.20$, $AI(T)-AI(0)=1.00$, $r=4.50\\%$, ACT/360 simple.
 5. (Compute) Compute net basis from gross basis $-0.10$ and carry $0.226$.
 6. (Compute) Compute implied repo: dirty today $=103.20$, invoice at delivery $=103.85$, $d=60$ days.
 7. (Compute) Cash DV01 $=USD30{,}000/\text{bp}$. CTD DV01 $=0.072$ per USD100, $cf=0.8500$. Compute futures DV01 per contract and the hedge ratio.
@@ -1042,7 +1049,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 1. Invoice $=0.8750\times108.50+2.10=97.04$ per USD100. Per contract: $97.04\times1000=USD97{,}040$.
 2. Compute $P-cfF$: 0.98, 1.12, 1.10 → CTD is Bond 1 (minimum).
 3. $GB=102.50-0.95\times108.00=-0.10$ per USD100.
-6. $r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\%$.
+6. $r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\\%$.
 7. Futures DV01 per contract $=1000\times(0.072/0.85)=USD84.71/\text{bp}$. Hedge $\approx 30{,}000/84.71\approx 354$ contracts.
 
 ---

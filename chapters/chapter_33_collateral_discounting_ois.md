@@ -267,12 +267,15 @@ Projected floating rates (from a separate term rate curve):
 - $L_2 = 3.50\\%$
 
 Floating PV discounted on OIS:
+
 $$PV_{\text{float}}^{\text{OIS}} = 0.0320 \times 0.9750 + 0.0350 \times 0.9500 = 0.0312 + 0.0333 = 0.0645$$
 
 Fixed PV at $K = 3.141\\%$:
+
 $$PV_{\text{fixed}}^{\text{OIS}} = 0.03141 \times 1.9250 = 0.0605$$
 
 Swap PV (receive float, pay fixed):
+
 $$PV^{\text{OIS}} = 0.0645 - 0.0605 = 0.0040$$
 
 In dollars: $0.0040 \times \mathrm{USD}\\,100{,}000{,}000 = \mathrm{USD}\\,400{,}000$
@@ -334,7 +337,7 @@ $$
 r_{\text{eff}}^{x|y}=2.00\\%+(1.30\\%-1.00\\%)=2.30\\%.
 $$
 
-A domestic $x$-currency receive cashflow of $X_T^x=\mathrm{USD}\\,1{,}000{,}000$ at $T=1$ has PV $\approx e^{-0.023}\times 1{,}000{,}000=\mathrm{USD}\\,977{,}270$. If instead $c^y=r^y$, then $r_{\text{eff}}^{x|y}=2.00\%$ and PV $\approx e^{-0.020}\times 1{,}000{,}000=\mathrm{USD}\\,980{,}199$. The $\sim \mathrm{USD}\\,2.9\text{k}$ difference comes purely from the collateral spread $c^y-r^y$.
+A domestic $x$-currency receive cashflow of $X_T^x=\mathrm{USD}\\,1{,}000{,}000$ at $T=1$ has PV $\approx e^{-0.023}\times 1{,}000{,}000=\mathrm{USD}\\,977{,}270$. If instead $c^y=r^y$, then $r_{\text{eff}}^{x|y}=2.00\\%$ and PV $\approx e^{-0.020}\times 1{,}000{,}000=\mathrm{USD}\\,980{,}199$. The $\sim \mathrm{USD}\\,2.9\text{k}$ difference comes purely from the collateral spread $c^y-r^y$.
 
 ### 33.5.4 Cheapest-to-Deliver (CTD) and Standardization (SCSA)
 
@@ -482,11 +485,12 @@ PAI fundamentally changes how swap economics work compared to legacy bilateral t
 
 For traders, PAI shows up as a daily P&L line item:
 
-$$\text{Daily P\\&L} = \Delta\text{MTM} + \text{Coupon received} - \text{Coupon paid} + \text{PAI received} - \text{PAI paid}$$
+$$\text{Daily PnL} = \Delta\text{MTM} + \text{Coupon received} - \text{Coupon paid} + \text{PAI received} - \text{PAI paid}$$
 
 A common mistake is ignoring PAI when computing carry. On a large swap book, daily PAI can be substantial:
 
 **Example:** A desk with $\mathrm{USD}\\,500\text{mm}$ net positive VM at 5% overnight rate earns:
+
 $$\text{Annual PAI} \approx \mathrm{USD}\\,500{,}000{,}000 \times 0.05 = \mathrm{USD}\\,25{,}000{,}000$$
 
 This is real money that affects the economics of holding positions.
@@ -563,12 +567,15 @@ These effects must be captured in stress testing and risk limits.
 - Discount factors: $P^r(0,1) = 0.9700$, $P^c(0,1) = 0.9750$
 
 **PV under $r$:**
+
 $$PV^r = \mathrm{USD}\\,1{,}000{,}000 \times 0.9700 = \mathrm{USD}\\,970{,}000$$
 
 **PV under collateral rate $c$:**
+
 $$PV^c = \mathrm{USD}\\,1{,}000{,}000 \times 0.9750 = \mathrm{USD}\\,975{,}000$$
 
 **Difference:**
+
 $$\Delta PV = \mathrm{USD}\\,975{,}000 - \mathrm{USD}\\,970{,}000 = \mathrm{USD}\\,5{,}000$$
 
 **Sanity check:** Higher discount factor → higher PV for a positive cashflow. ✓
@@ -644,16 +651,18 @@ $$
 ### Example 33.3: Discount-Curve DV01 of a Fixed Leg (Toy)
 
 **Setup:**
-- Fixed-leg annuity, $\mathcal{N} = \mathrm{USD}\\,100{,}000{,}000$, $K = 3.50\%$
+- Fixed-leg annuity, $\mathcal{N} = \mathrm{USD}\\,100{,}000{,}000$, $K = 3.50\\%$
 - Annual payments at $t = 1, 2, 3, 4, 5$
 
 **Base OIS discount factors:**
 - $P_1 = 0.9750$, $P_2 = 0.9500$, $P_3 = 0.9250$, $P_4 = 0.9000$, $P_5 = 0.8750$
 
 **Base annuity:**
+
 $$A = 0.975 + 0.950 + 0.925 + 0.900 + 0.875 = 4.625$$
 
 **Base PV:**
+
 $$PV_{\text{fixed}} = \mathrm{USD}\\,100{,}000{,}000 \times 0.035 \times 4.625 = \mathrm{USD}\\,16{,}187{,}500$$
 
 **Discount-curve DV01 (rates down 1bp, fixed cashflows):**
@@ -663,9 +672,11 @@ Here the cashflows are deterministic and only the discount curve is bumped. Usin
 $$DV01 \approx 10^{-4}\sum_{i=1}^{5} t_i \cdot P_i \cdot (N K).$$
 
 Compute the time-weighted discount-factor sum:
+
 $$\sum_{i=1}^{5} t_i P_i = 1(0.975)+2(0.950)+3(0.925)+4(0.900)+5(0.875)=13.625.$$
 
 And $N K = \mathrm{USD}\\,100{,}000{,}000 \times 0.035 = \mathrm{USD}\\,3{,}500{,}000$, so:
+
 $$DV01 \approx 10^{-4}\times 13.625 \times \mathrm{USD}\\,3{,}500{,}000 = \mathrm{USD}\\,4{,}768.75 \text{ per bp}.$$
 
 **Sign check:** OIS rates down $\Rightarrow$ PV up for a receive-fixed leg, so $DV01\gt 0$.
@@ -717,11 +728,13 @@ $$E_d^{\text{weekly}} = \max(V_d, 0) = V_d^+$$
 - MTA: $\mathrm{USD}\\,0.5\text{m}$
 
 **Collateral required:**
+
 $$\text{Call} = \max(V - H, 0) = \max(5.0 - 2.0, 0) = \mathrm{USD}\\,3.0\text{m}$$
 
 Since $\mathrm{USD}\\,3.0\text{m} \gt \text{MTA}$, the transfer occurs.
 
 **Residual exposure:**
+
 $$E = \max(V - C, 0) = \max(5.0 - 3.0, 0) = \mathrm{USD}\\,2.0\text{m}$$
 
 The threshold amount ($2.0\text{m}$) remains unsecured—this is credit exposure.
@@ -766,15 +779,19 @@ This illustrates the settlement-lag / cure-period logic: collateral reflects sta
 - Default probabilities: $\Delta PD_1 = 1.0\\%$, $\Delta PD_2 = 1.2\\%$, $\Delta PD_3 = 1.5\\%$
 
 **Year 1:**
+
 $$0.6 \times 0.97 \times \mathrm{USD}\\,2{,}000{,}000 \times 0.01 = \mathrm{USD}\\,11{,}640$$
 
 **Year 2:**
+
 $$0.6 \times 0.94 \times \mathrm{USD}\\,1{,}500{,}000 \times 0.012 = \mathrm{USD}\\,10{,}152$$
 
 **Year 3:**
+
 $$0.6 \times 0.90 \times \mathrm{USD}\\,1{,}000{,}000 \times 0.015 = \mathrm{USD}\\,8{,}100$$
 
 **Total CVA:**
+
 $$\boxed{\text{CVA} = \mathrm{USD}\\,11{,}640 + \mathrm{USD}\\,10{,}152 + \mathrm{USD}\\,8{,}100 = \mathrm{USD}\\,29{,}892}$$
 
 ---
@@ -794,6 +811,7 @@ $$PV^{c_1} = \mathrm{USD}\\,1{,}000{,}000 \times 2.850 = \mathrm{USD}\\,2{,}850{
 $$PV^{c_2} = \mathrm{USD}\\,1{,}000{,}000 \times 2.820 = \mathrm{USD}\\,2{,}820{,}000$$
 
 **Impact:**
+
 $$\Delta PV = \mathrm{USD}\\,2{,}820{,}000 - \mathrm{USD}\\,2{,}850{,}000 = -\mathrm{USD}\\,30{,}000$$
 
 Higher collateral rate → lower PV for receiving cashflows.
@@ -811,16 +829,19 @@ Higher collateral rate → lower PV for receiving cashflows.
 - 1-year forward: $F = 1.0833$
 
 **Option A: USD Collateral**
+
 $$PV^{\text{USD}} = \mathrm{USD}\\,10{,}000{,}000 \times 0.9700 = \mathrm{USD}\\,9{,}700{,}000$$
 
 **Option B: EUR Collateral (with CIP holding)**
 
 Effective USD discount factor when posting EUR:
+
 $$P^{\text{EUR→USD}}(0,1) \approx P^{\text{EUR}}(0,1) \times \frac{F}{S_0} = 0.9850 \times \frac{1.0833}{1.10} = 0.9700$$
 
 With CIP holding, the two are approximately equal.
 
 **With cross-currency basis of -25bp (EUR cheaper):**
+
 $$P^{\text{EUR→USD, adj}}(0,1) \approx 0.9700 \times e^{0.0025} = 0.9724$$
 
 $$PV^{\text{EUR, adj}} = \mathrm{USD}\\,10{,}000{,}000 \times 0.9724 = \mathrm{USD}\\,9{,}724{,}000$$
@@ -837,6 +858,7 @@ $$PV^{\text{EUR, adj}} = \mathrm{USD}\\,10{,}000{,}000 \times 0.9724 = \mathrm{U
 - A hedges by buying a zero-coupon bond
 
 **Step 1: A's hedge cost**
+
 $$\text{Bond cost} = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025} = \mathrm{USD}\\,975{,}309.91$$
 
 **Step 2: Collateral flows**
@@ -859,6 +881,7 @@ If collateral rate = hedge funding rate = 2.50%, the funding is self-financing.
 - Net to A: zero
 
 **No-arbitrage price:**
+
 $$\boxed{V(0) = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025} = \mathrm{USD}\\,975{,}309.91}$$
 
 ---
@@ -876,18 +899,26 @@ This example illustrates the `r^x + c^y - r^y` discounting identity from Section
   2. EUR collateral: $y=\text{EUR}$, $r^{\text{EUR}}=1.00\\%$, $c^{\text{EUR}}=0.70\\%$
 
 **USD collateral (same-currency corollary):**
-$$PV^{\text{USD}|\text{USD}} = 1{,}000{,}000 \times e^{-c^{\text{USD}}T}
-= 1{,}000{,}000 \times e^{-0.03\times 5} = \mathrm{USD}\\,860{,}708.$$
+
+$$
+PV^{\text{USD}|\text{USD}} = 1{,}000{,}000 \times e^{-c^{\text{USD}}T}
+= 1{,}000{,}000 \times e^{-0.03\times 5} = \mathrm{USD}\\,860{,}708.
+$$
 
 **EUR collateral (foreign-currency collateral):**
 Effective USD discount rate:
-$$r_{\text{eff}}^{\text{USD}|\text{EUR}} = r^{\text{USD}} + c^{\text{EUR}} - r^{\text{EUR}}
-= 3.00\\% + 0.70\\% - 1.00\\% = 2.70\\%.$$
+
+$$
+r_{\text{eff}}^{\text{USD}|\text{EUR}} = r^{\text{USD}} + c^{\text{EUR}} - r^{\text{EUR}}
+= 3.00\\% + 0.70\\% - 1.00\\% = 2.70\\%.
+$$
 
 So:
+
 $$PV^{\text{USD}|\text{EUR}} = 1{,}000{,}000 \times e^{-0.027\times 5} = \mathrm{USD}\\,873{,}715.$$
 
 **PV difference:**
+
 $$\Delta PV = \mathrm{USD}\\,873{,}715 - \mathrm{USD}\\,860{,}708 = \mathrm{USD}\\,13{,}007.$$
 
 **Checks:**
@@ -936,12 +967,15 @@ The net CVA may increase even with lower threshold because default probability i
 - Day count: ACT/360
 
 **Daily PAI we owe:**
+
 $$\text{PAI} = \mathrm{USD}\\,25{,}000{,}000 \times 0.0530 \times \frac{1}{360} = \mathrm{USD}\\,3{,}680.56$$
 
 **Monthly PAI (30 days):**
+
 $$\text{PAI}_{\text{month}} \approx \mathrm{USD}\\,3{,}680.56 \times 30 = \mathrm{USD}\\,110{,}417$$
 
 **Annual PAI:**
+
 $$\text{PAI}_{\text{annual}} \approx \mathrm{USD}\\,25{,}000{,}000 \times 0.0530 = \mathrm{USD}\\,1{,}325{,}000$$
 
 **P&L implication:** If we're holding $\mathrm{USD}\\,25\text{mm}$ positive MTM on a receiver swap, we earn PAI. But this PAI is offset by the fact that we're implicitly “short” rates on our discount curve exposure. The economics balance out—which is exactly the point of PAI.

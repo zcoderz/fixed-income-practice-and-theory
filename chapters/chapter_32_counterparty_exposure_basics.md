@@ -733,6 +733,7 @@ The 95% quantile is 5, so $PFE_{0.95}(1y) = 5$.
 **Setup:** Today $t = 0$, MTM is $V(0) = +1$ (no collateral). At $t = 1y$, distribution is as in Example A.
 
 **Current exposure (today):**
+
 $$E(0) = \max(1, 0) = 1$$
 
 **Future PFE (1 year):** From Example A, $PFE_{0.95}(1y) = 5$.
@@ -942,13 +943,17 @@ Total $E = 6$
 **Setup:** Existing portfolio has $V_{\text{existing}} = +10$ with certainty. New trade has $V_{\text{new}} = -6$ with certainty (perfectly offsetting direction).
 
 **Before new trade:**
+
 $$E_{\text{before}} = \max(10, 0) = 10$$
 
 **After new trade (with netting):**
+
 $$V_{\text{combined}} = 10 - 6 = 4$$
+
 $$E_{\text{after}} = \max(4, 0) = 4$$
 
 **Incremental exposure:**
+
 $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 
 **Interpretation:** The new trade *reduces* exposure by 6 due to netting. The incremental CVA would be negative—the credit desk "pays" for the benefit.

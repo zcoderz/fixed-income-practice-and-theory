@@ -10,7 +10,7 @@ The adjustment exists because futures are **marked to market daily**. Gains and 
 
 **Sign and magnitude (rule of thumb).** Under standard assumptions, the convexity adjustment $c$ is typically **positive**, so
 
-$$\text{forward rate} \;=\; \text{futures-implied rate} \;-\; c.$$
+$$\text{forward rate} \\;=\\; \text{futures-implied rate} \\;-\\; c.$$
 
 In simple approximations, $c$ grows with rate volatility and (roughly) with the square of time-to-expiry. With annualized absolute volatility on the order of $100$ bp/year, $c$ is usually well below 1 bp for very short expiries but can reach $\sim 10$–15 bp around 5 years and $\sim 50$ bp around 10 years.
 
@@ -68,11 +68,11 @@ where $Q$ is the quoted futures price and $R^{\text{fut}}$ is the implied future
 
 **Example:** A quote of $Q = 95.25$ implies:
 
-$$R^{\text{fut}} = 100 - 95.25 = 4.75\%$$
+$$R^{\text{fut}} = 100 - 95.25 = 4.75\\%$$
 
 In decimal form: $r^{\text{fut}} = 0.0475$.
 
-**Check (percent vs decimal):** The quote convention uses **percent** ($R^{\text{fut}}=4.75\%$), while most curve and convexity formulas use **decimals** ($r^{\text{fut}}=0.0475$). Convert once and be consistent: a 100× mistake in rate units becomes a 10,000× mistake in any $\sigma^2$ convexity term.
+**Check (percent vs decimal):** The quote convention uses **percent** ($R^{\text{fut}}=4.75\\%$), while most curve and convexity formulas use **decimals** ($r^{\text{fut}}=0.0475$). Convert once and be consistent: a 100× mistake in rate units becomes a 10,000× mistake in any $\sigma^2$ convexity term.
 
 This convention means that a one-basis-point increase in the implied rate corresponds to a 0.01 decrease in price. The standardized relationship makes DV01 calculations straightforward (see Section 24.10).
 
@@ -126,7 +126,7 @@ Solving for $L$ gives the formula above.
 
 **Worked Example:** Given $P(0, T_1) = 0.9780$ and $P(0, T_2) = 0.9655$ with $\tau = 0.25$:
 
-$$L = \frac{0.9780 - 0.9655}{0.25 \times 0.9655} = \frac{0.0125}{0.2414} = 5.18\%$$
+$$L = \frac{0.9780 - 0.9655}{0.25 \times 0.9655} = \frac{0.0125}{0.2414} = 5.18\\%$$
 
 ### 24.2.2 Why Futures Rates Can Differ from Forward Rates
 
@@ -222,7 +222,7 @@ When precision matters, treat the approximation as an order-of-magnitude tool an
 - Payment date: 2007-03-20
 
 **Inputs**
-- Futures quote: $Q=95.00$ $\Rightarrow$ futures-implied rate $R^{\text{fut}}=5.00\%$ (so $r^{\text{fut}}=0.0500$)
+- Futures quote: $Q=95.00$ $\Rightarrow$ futures-implied rate $R^{\text{fut}}=5.00\\%$ (so $r^{\text{fut}}=0.0500$)
 - Volatility assumption: $\sigma=100$ bp/year $=0.01$ (absolute volatility, in decimal rate units)
 - Deposit period: $\beta\approx 0.25$ years; time-to-expiry $t=5.05$ years
 
@@ -237,8 +237,7 @@ When precision matters, treat the approximation as an order-of-magnitude tool an
    - Pure term: $\frac{\sigma^2 t^2}{2}=\frac{0.0001\times 5.05^2}{2}=0.001275$
    - Convexity term: $\frac{\sigma^2 \beta t}{2}=\frac{0.0001\times 0.25\times 5.05}{2}=0.000063$
    - Total: $c\approx 0.001338$, i.e. $13.4$ bp.
-4. Convert futures $\rightarrow$ forward:
-   $$r^{\text{fwd}} \approx 0.0500 - 0.001338 = 0.048662 \;\; (4.866\%).$$
+4. Convert futures $\rightarrow$ forward: $r^{\text{fwd}} \approx 0.0500 - 0.001338 = 0.048662 \\;\\; (4.866\\%)$.
 
 **Cashflows (what the adjustment “means” in dollars)**
 If you mistakenly use the futures-implied rate as a forward rate for a USD100,000,000 notional 3-month accrual, the rate error is about $13.4$ bp. The interest difference over $\tau\approx 0.25$ years is:
@@ -330,12 +329,15 @@ The intuition: because futures gains can be invested (or losses must be financed
 **Step 1: Compute the untailed hedge**
 
 Without tailing, the hedge would use:
+
 $$\text{Untailed DV01} = USD500{,}000{,}000 \times 0.25 \times 0.0001 = USD12{,}500$$
+
 $$\text{Untailed contracts} = \frac{USD12{,}500}{USD25} = 500 \text{ contracts}$$
 
 **Step 2: Apply the tail**
 
 With $r = 0.05$ and $d = 180$ days:
+
 $$\text{Tailing factor} = 1 + 0.05 \times \frac{180}{360} = 1.025$$
 
 $$\text{Tailed contracts} = \frac{500}{1.025} = 488 \text{ contracts}$$
@@ -403,19 +405,21 @@ Here rates are in **percent** (so 25 bp = 0.25). If you work in decimals, replac
 
 ### 24.5.3 Worked Example: FOMC Meeting Extraction
 
-**Problem (toy but internally consistent):** The April Fed Funds futures contract trades at 95.20, implying $\bar{r}=4.80\%$ for the month. An FOMC meeting occurs on April 16 in a 30-day month. Assume the effective rate equals the target and is $r_{\text{pre}}=4.75\%$ before the meeting. If the only two outcomes are “no change” (4.75%) or “+25 bp hike” (5.00%), what hike probability is implied?
+**Problem (toy but internally consistent):** The April Fed Funds futures contract trades at 95.20, implying $\bar{r}=4.80\\%$ for the month. An FOMC meeting occurs on April 16 in a 30-day month. Assume the effective rate equals the target and is $r_{\text{pre}}=4.75\\%$ before the meeting. If the only two outcomes are “no change” (4.75%) or “+25 bp hike” (5.00%), what hike probability is implied?
 
 **Step 1: Translate the quote**
-- Futures price $Q=95.20 \Rightarrow \bar{r}=100-Q=4.80\%$.
+- Futures price $Q=95.20 \Rightarrow \bar{r}=100-Q=4.80\\%$.
 
 **Step 2: Solve for the implied post-meeting rate**
 
 Assume 15 days at $r_{\text{pre}}$ and 15 days at $r_{\text{post}}$:
-$$4.80=\frac{15\times 4.75 + 15\times r_{\text{post}}}{30}\quad\Rightarrow\quad r_{\text{post}}=4.85\%.$$
+
+$$4.80=\frac{15\times 4.75 + 15\times r_{\text{post}}}{30}\quad\Rightarrow\quad r_{\text{post}}=4.85\\%.$$
 
 **Step 3: Map to a simple two-outcome probability**
 
 If $r_{\text{post}}=4.75+0.25\times p$, then
+
 $$p=\frac{4.85-4.75}{0.25}=0.40.$$
 
 **Answer:** about **40%** probability of a 25 bp hike under this simplified setup.
@@ -448,7 +452,7 @@ Historically, "TED" referred to the spread between Treasury bills and Eurodollar
 
 ### 24.6.2 Computation
 
-For a bond with price $P$ and cash flows $\{CF_i\}$ at times $\{t_i\}$:
+For a bond with price $P$ and cash flows $\\{CF_i\\}$ at times $\\{t_i\\}$:
 
 $$P = \sum_i CF_i \times d(t_i)$$
 
@@ -474,15 +478,27 @@ Traders use TED spreads to:
 
 ### 24.6.4 TED Spread Worked Example
 
-**Problem (one-period toy):** A 6-month zero-coupon note pays 100 at maturity and trades at 97.75. Assume the relevant 6-month simple rate from your STIR-implied curve is $r^{\text{fut}}=5.00\%$ (ACT/360, $\tau=0.5$), and assume convexity adjustment is negligible at this horizon (or already applied). What TED spread $s$ makes discounting at $r^{\text{fut}}-s$ match the price?
+**Problem (one-period toy):** A 6-month zero-coupon note pays 100 at maturity and trades at 97.75. Assume the relevant 6-month simple rate from your STIR-implied curve is $r^{\text{fut}}=5.00\\%$ (ACT/360, $\tau=0.5$), and assume convexity adjustment is negligible at this horizon (or already applied). What TED spread $s$ makes discounting at $r^{\text{fut}}-s$ match the price?
 
 **Step-by-step**
-1. Price with a spread-subtracted simple rate:
-   $$USD97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.$$
-2. Solve for the implied spread-subtracted rate:
-   $$r^{\text{fut}}-s = \frac{100/97.75 - 1}{0.5} \approx 4.60\%.$$
-3. Therefore,
-   $$s \approx 5.00\% - 4.60\% = 0.40\% = 40\text{ bp}.$$
+
+**Step 1:** Price with a spread-subtracted simple rate:
+
+$$
+USD97.75 = \frac{100}{1+(r^{\text{fut}}-s)\tau}.
+$$
+
+**Step 2:** Solve for the implied spread-subtracted rate:
+
+$$
+r^{\text{fut}}-s = \frac{100/97.75 - 1}{0.5} \approx 4.60\\%.
+$$
+
+**Step 3:** Therefore,
+
+$$
+s \approx 5.00\\% - 4.60\\% = 0.40\\% = 40\text{ bp}.
+$$
 
 **Interpretation:** A positive $s$ means the note trades **cheap** (higher yield) versus the STIR-implied reference curve.
 
@@ -509,6 +525,7 @@ Beyond 5 years, some venues extend the color scheme further (e.g., purple/orange
 A **pack** is a single trade that executes **four consecutive quarterly** STIR futures contracts (equal weight in each leg).
 
 **Pack DV01:** Since a pack contains 4 contracts:
+
 $$\text{Pack DV01} = 4 \times USD25 = USD100 \text{ per bp}$$
 
 **Pack pricing (high level):** packs are typically quoted as the arithmetic average of the four constituent contract prices. Economically, a pack position has the same rate exposure as holding the four legs outright in equal size; the “pack” is just the execution wrapper.
@@ -524,6 +541,7 @@ A **bundle** extends the same idea to a longer strip: it trades an **integer mul
 | 5-year bundle | Whites through Golds | 20 | 0-5 years |
 
 **Bundle DV01:**
+
 $$\text{5-year bundle DV01} = 20 \times USD25 = USD500 \text{ per bp}$$
 
 **Weighted average maturity:** Because bundles are equally weighted by contract, the duration contribution is approximately the midpoint of the coverage period.
@@ -547,7 +565,7 @@ SOFR (Secured Overnight Financing Rate) futures are widely used in USD STIR mark
 - **Settlement:** At the *end* of the reference period (unlike ED, which settled at the start)
 - **Notional:** USD1,000,000
 - **DV01:** USD25 per bp per contract
-- **Quote convention:** USD100 - R^{\text{SOFR}}$
+- **Quote convention:** $Q = 100 - R^{\text{SOFR}}$
 
 **1-Month SOFR Futures:**
 - **Reference rate:** Arithmetic average of daily SOFR over the contract month
@@ -670,7 +688,7 @@ Starting from $P(0, 4.00) = 0.8200$, the first adjusted forward gives:
 
 $$P(0, 4.25) = \frac{P(0, 4.00)}{1 + 0.25 \times 0.04915} = \frac{0.8200}{1.01229} = 0.8100$$
 
-Compare to the naive approach using $L = 5.00\%$:
+Compare to the naive approach using $L = 5.00\\%$:
 
 $$P^{\text{naive}}(0, 4.25) = \frac{0.8200}{1 + 0.25 \times 0.05} = \frac{0.8200}{1.0125} = 0.8099$$
 
@@ -692,7 +710,7 @@ For STIR futures, the natural bump object is the contract’s **implied futures 
 
 **Contract DV01 (units).** The standardized tick value makes hedge ratios straightforward. For a contract designed to hedge a money-market deposit with notional $N$ and accrual fraction $\tau$ (ACT/360),
 
-$$\boxed{DV01_{\text{contract}} \approx N\cdot \tau \cdot 10^{-4}\;\;(USD \text{ per 1bp, for a long futures position})}$$
+$$\boxed{DV01_{\text{contract}} \approx N\cdot \tau \cdot 10^{-4}\\;\\;(USD \text{ per 1bp, for a long futures position})}$$
 
 In USD STIR contracts this yields the familiar constants:
 
@@ -832,7 +850,7 @@ When building a curve from STIR futures:
 ## Summary
 
 1. STIR futures are quoted as $Q=100-R$ and are marked to market daily; daily settlement is the root cause of the futures-vs-forward wedge.
-2. Forward rates used for curve building come from discount factors: $L(t;T_1,T_2)=\frac{P(t,T_1)-P(t,T_2)}{\tau\,P(t,T_2)}$ with $\tau$ defined by day count.
+2. Forward rates used for curve building come from discount factors: $L(t;T_1,T_2)=\frac{P(t,T_1)-P(t,T_2)}{\tau\\,P(t,T_2)}$ with $\tau$ defined by day count.
 3. Define the convexity adjustment by $\text{forward}=\text{futures}-c$; typically $c\gt 0$, so forward rates are lower than futures-implied rates.
 4. A usable approximation for the wedge is $c \approx \frac{\sigma^2 t^2}{2} + \frac{\sigma^2 \beta t}{2}$ (with $\beta\approx 0.25$ for a 3M deposit).
 5. Order-of-magnitude: with $\sigma\sim 100$ bp/year, $c$ is sub-1bp at short expiries but can be $\sim 10$–15 bp around 5y and $\sim 50$ bp around 10y.
@@ -870,7 +888,7 @@ When building a curve from STIR futures:
 | $R^{\text{fut}}$ | Futures-implied rate | percent per year (convert to decimal by dividing by 100) |
 | $r^{\text{fut}}$ | Futures-implied rate | decimal per year; $r^{\text{fut}}=R^{\text{fut}}/100$ |
 | $L(t;T_1,T_2)$ | Simple forward rate for $[T_1,T_2]$ | per year; simple accrual $1+\tau L$; day count must be stated |
-| $c$ | Convexity adjustment | decimal rate units; $\text{forward}=\text{futures}-c$; bp $=10{,}000\,c$ |
+| $c$ | Convexity adjustment | decimal rate units; $\text{forward}=\text{futures}-c$; bp $=10{,}000\\,c$ |
 | $\sigma$ | Absolute volatility used in $c$ | per year in decimal rate units (e.g., 0.01 = 100 bp/year) |
 | $t$ | Time to futures expiry | years |
 | $\beta$ | Underlying deposit period | years; $\approx 0.25$ for 3M |
@@ -956,9 +974,9 @@ When building a curve from STIR futures:
 
 ### Solution Sketches (Selected)
 
-**1.** $R^{\text{fut}} = 100 - 96.40 = 3.60\%$; decimal: $r^{\text{fut}} = 0.0360$.
+**1.** $R^{\text{fut}} = 100 - 96.40 = 3.60\\%$; decimal: $r^{\text{fut}} = 0.0360$.
 
-**2.** $L = (0.9600 - 0.9480)/(0.25 \times 0.9480) = 0.0120/0.2370 = 5.06\%$.
+**2.** $L = (0.9600 - 0.9480)/(0.25 \times 0.9480) = 0.0120/0.2370 = 5.06\\%$.
 
 **3.** $\sigma^2 = 0.0001$. Pure F-F: $0.0001 \times 9/2 = 0.00045$. Convexity: $0.0001 \times 0.25 \times 3/2 = 0.0000375$. Sum = 0.0004875 = 4.88 bp.
 

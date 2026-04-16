@@ -228,7 +228,7 @@ Total future value of coupons = $8 \times \frac{(1.08^{10} - 1)}{0.08} = 115.89$
 
 Add principal: $100 + 115.89 = 215.89$
 
-Realized return: $(215.89/100)^{1/10} - 1 = 8.00\%$ ✓
+Realized return: $(215.89/100)^{1/10} - 1 = 8.00\\%$ ✓
 
 **Scenario A: Rates Drop to 6% Immediately After Purchase**
 
@@ -238,7 +238,7 @@ Total future value of coupons = $8 \times \frac{(1.06^{10} - 1)}{0.06} = 105.50$
 
 Add principal: $100 + 105.50 = 205.50$
 
-Realized return: $(205.50/100)^{1/10} - 1 = 7.48\%$
+Realized return: $(205.50/100)^{1/10} - 1 = 7.48\\%$
 
 **Scenario B: Rates Rise to 10% Immediately After Purchase**
 
@@ -246,7 +246,7 @@ Total future value of coupons = $8 \times \frac{(1.10^{10} - 1)}{0.10} = 127.50$
 
 Add principal: $100 + 127.50 = 227.50$
 
-Realized return: $(227.50/100)^{1/10} - 1 = 8.57\%$
+Realized return: $(227.50/100)^{1/10} - 1 = 8.57\\%$
 
 **Summary:**
 
@@ -693,7 +693,7 @@ This limitation motivates the multi-factor approaches in Chapter 14 (key-rate du
 **Outputs (What You Produce)**
 - Accrued interest: $AI = 2.4457$ (points per 100)
 - Dirty price: $P_{\text{dirty}} = 103.6957$ (points per 100)
-- YTM: $y \approx 5.709\%$ (annual, semiannual compounding)
+- YTM: $y \approx 5.709\\%$ (annual, semiannual compounding)
 - Yield DV01 (bump object $y$): $DV01_y \approx 0.0440$ (points per 100 per 1 bp; positive for a long bond when yields fall)
 - Dollar DV01 for $N=1{,}000{,}000$ USD: $DV01_{USD} \approx 440$ USD per 1 bp
 - Modified duration: $D_{\text{mod}} \approx 4.24$ (years)
@@ -703,7 +703,7 @@ This limitation motivates the multi-factor approaches in Chapter 14 (key-rate du
    Use $AI = 3.00\times \frac{150}{184} = 2.4457$ and $P_{\text{dirty}} = 101.25 + 2.4457 = 103.6957$.
 
 2. **Solve for YTM $y$ from the dirty price.** Write $r=1+y/2$ and discount each cashflow by $r^{a_i}$. For this example we use an approximation $a_i \approx \text{(days to payment)}/182.5$ to express time in semiannual periods:
-   Solve $\sum_i \frac{CF_i}{r^{a_i}} = 103.6957$, giving $y\approx 5.709\%$.
+   Solve $\sum_i \frac{CF_i}{r^{a_i}} = 103.6957$, giving $y\approx 5.709\\%$.
 
 3. **Compute yield DV01 with a central 1 bp bump.**
    Use $DV01_y \approx \frac{P(y-1\text{ bp})-P(y+1\text{ bp})}{2} = \frac{103.7397-103.6516}{2} \approx 0.0440$.
@@ -746,7 +746,7 @@ Starting from Example A, let's trace one Newton-Raphson step.
 
 **Setup:**
 - Target: $P_{\text{dirty}} = 103.6957$
-- Initial guess: $y_0 = 6.00\%$
+- Initial guess: $y_0 = 6.00\\%$
 - At $y_0$: $P(y_0) = 102.4232$
 - Error: $f(y_0) = 102.4232 - 103.6957 = -1.2725$
 
@@ -766,7 +766,7 @@ The next iterate is 5.707\%, very close to the solution.
 
 ### Example C: Price-Yield Curve and Convexity
 
-Using the Example A bond at $y^* = 5.709\%$:
+Using the Example A bond at $y^* = 5.709\\%$:
 
 | Yield | Price |
 |-------|-------|
@@ -811,7 +811,7 @@ $$DV01_{curve} = 101.186 - 101.166 = 0.0197$$
 
 **Yield DV01:**
 
-Solve for YTM: $y \approx 3.382\%$
+Solve for YTM: $y \approx 3.382\\%$
 
 $$DV01_y \approx 0.0193$$
 
@@ -836,7 +836,7 @@ Despite identical YTM, Bond B has higher duration and convexity because its cash
 
 ### Example G: Perpetuity Duration
 
-Consider a perpetuity with face value $F=100$ and coupon rate $c=5\%$ (so the annual coupon is $Fc=5$, paid as $2.50$ semiannually) at a yield of $y=6\%$.
+Consider a perpetuity with face value $F=100$ and coupon rate $c=5\\%$ (so the annual coupon is $Fc=5$, paid as $2.50$ semiannually) at a yield of $y=6\\%$.
 
 **Price (per 100):** $P = Fc/y = 100\times 0.05/0.06 = 83.33$
 
@@ -872,7 +872,7 @@ $$\text{Terminal Value} = 100 + 32.50 = 132.50$$
 
 **Step 3: Realized return**
 
-$$r = (132.50/100)^{1/5} - 1 = 5.79\%$$
+$$r = (132.50/100)^{1/5} - 1 = 5.79\\%$$
 
 **Shortfall:** The realized return of 5.79\% is 21 bps below the initial YTM of 6.00\%.
 
@@ -977,9 +977,9 @@ Money market quoting (simple interest with ACT/360) differs from bond quoting (s
 | $a_i$ | Time from settlement to cashflow $i$ | coupon periods (semiannual), can be fractional |
 | $DV01_y$ | Yield DV01 (bump object $y$) | points per 100 per 1 bp; $DV01_y := -\frac{1}{10{,}000}\frac{dP}{dy}$ |
 | $DV01_{USD}(N)$ | Dollar DV01 for notional $N$ | currency per 1 bp; $DV01_{USD}(N)=\frac{N}{100}DV01_y$ |
-| $D_{\text{mod}}$ | Modified duration | years; $D_{\text{mod}}=-(1/P)\,dP/dy$ |
+| $D_{\text{mod}}$ | Modified duration | years; $D_{\text{mod}}=-(1/P)\\,dP/dy$ |
 | $D_{\text{Mac}}$ | Macaulay duration | years; $D_{\text{Mac}}=(1+y/2)D_{\text{mod}}$ (semiannual) |
-| $C_y$ | Yield convexity | years squared; $C_y=(1/P)\,d^2P/dy^2$ |
+| $C_y$ | Yield convexity | years squared; $C_y=(1/P)\\,d^2P/dy^2$ |
 | $P(0,t)$ or $d(t)$ | Discount factor to maturity $t$ | unitless; curve PV: $P=\sum CF_i P(0,t_i)$ |
 | $YTC$ | Yield-to-call | YTM-style yield for a specified call scenario |
 | $YTW$ | Yield-to-worst | $\min(YTM, YTC_1,YTC_2,\ldots)$ |
@@ -1048,10 +1048,10 @@ Money market quoting (simple interest with ACT/360) differs from bond quoting (s
 2. $P_{\text{dirty}}=99.60+1.10=\mathbf{100.70}$.
 4. Total DV01 only hedges (near) parallel moves. A 5s/10s DV01-neutral position can lose on twists; check **key-rate DV01** (or bucketed DV01) rather than only the scalar total.
 5. $DV01_y \approx 102.00-101.95=\mathbf{0.05}$ points per 100 per 1 bp.
-6. $\Delta P \approx -P\,D_{\text{mod}}\,\Delta y = -105\times 6\times 0.0025 = \mathbf{-1.575}$.
+6. $\Delta P \approx -P\\,D_{\text{mod}}\\,\Delta y = -105\times 6\times 0.0025 = \mathbf{-1.575}$.
 7. Convexity term $\approx \tfrac12 P C_y (\Delta y)^2 = \tfrac12\times 105\times 50\times (0.0025)^2 \approx 0.0164$. Total $\approx -1.575+0.0164=\mathbf{-1.559}$.
 10. $D_{\text{Mac}}=(1+y/2)/y=(1+0.08/2)/0.08=1.04/0.08=\mathbf{13}$ years.
-11. Coupons reinvested at 4\%: $FV=6\times\frac{1.04^{10}-1}{0.04}=72.04$. Terminal value $=100+72.04=172.04$. Realized annualized return $=(172.04/100)^{0.1}-1\approx 5.58\%$.
+11. Coupons reinvested at 4\%: $FV=6\times\frac{1.04^{10}-1}{0.04}=72.04$. Terminal value $=100+72.04=172.04$. Realized annualized return $=(172.04/100)^{0.1}-1\approx 5.58\\%$.
 
 ---
 

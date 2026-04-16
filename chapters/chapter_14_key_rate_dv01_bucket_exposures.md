@@ -287,7 +287,7 @@ $$
 so that for small bucket moves $\Delta f_j$ in **bp**,
 
 $$
-\Delta PV \approx -\sum_{j=1}^J FD01_j\,\Delta f_j.
+\Delta PV \approx -\sum_{j=1}^J FD01_j\\,\Delta f_j.
 $$
 
 To formalize bucket shocks, it is useful to write (loosely) $V_0=V_0(f)$ to highlight the dependence of PV on a forward curve $f$, and compute a functional (Gâteaux) derivative under a shaped forward-curve shock $\mu_k(t)$:
@@ -346,7 +346,10 @@ Let's prove rigorously why "Parallel DV01 = 0" offers no protection against twis
   - KRDV01 entirely at 2y.
 
 **Parallel Risk:**
-$$8{,}500 - 8{,}500 = 0$$
+
+$$
+8{,}500 - 8{,}500 = 0
+$$
 
 The portfolio is immune to a parallel shift. The risk report says "Net DV01: 0."
 
@@ -355,17 +358,28 @@ The curve **steepens**: 2-year rates fall 10 bps, 10-year rates rise 10 bps. Thi
 
 **P&L Calculation:**
 Use the first-order approximation (Chapter 11): for key-rate shocks in bp,
-$$\Delta P \approx -\sum_k KR01_k \times \Delta r_k.$$
+
+$$
+\Delta P \approx -\sum_k KR01_k \times \Delta r_k.
+$$
+
 Here, the portfolio has:
 - $KR01_{2y} \approx -8{,}500$ USD/bp (short 2y)
 - $KR01_{10y} \approx +8{,}500$ USD/bp (long 10y)
 
-1. **2y Key:** $\Delta r_{2y} = -10$ bp  
-   $$\Delta P_{2y} \approx -(-8{,}500)\times(-10)= -85{,}000\ \text{USD}.$$
-   Intuition: the 2y bond price rises when yields fall; being short loses money.
+**2y Key:** $\Delta r_{2y} = -10$ bp
 
-2. **10y Key:** $\Delta r_{10y} = +10$ bp  
-   $$\Delta P_{10y} \approx -(+8{,}500)\times(+10)= -85{,}000\ \text{USD}.$$
+$$
+\Delta P_{2y} \approx -(-8{,}500)\times(-10)= -85{,}000\ \text{USD}.
+$$
+
+Intuition: the 2y bond price rises when yields fall; being short loses money.
+
+**10y Key:** $\Delta r_{10y} = +10$ bp
+
+$$
+\Delta P_{10y} \approx -(+8{,}500)\times(+10)= -85{,}000\ \text{USD}.
+$$
 
 **Net P&L:** -USD 170,000.
 
@@ -374,10 +388,15 @@ This is the key lesson: **DV01-neutrality does not mean “one leg wins when the
 **Twist Scenario 2: Asymmetric Flattening (Front-End Sell-Off)**
 The curve **flattens**: 2y rates rise 20 bps, 10y rates unchanged.
 
-- **2y P&L:** Short position *gains* when rates rise.  
-  $$\Delta P_{2y} \approx -(-8{,}500)\times(+20)= +170{,}000\ \text{USD}.$$
-- **10y P&L:** Rates unchanged $\Rightarrow \Delta P_{10y}\approx 0$.
-- **Net P&L:** **+USD 170,000.**
+**2y P&L:** Short position *gains* when rates rise.
+
+$$
+\Delta P_{2y} \approx -(-8{,}500)\times(+20)= +170{,}000\ \text{USD}.
+$$
+
+**10y P&L:** Rates unchanged $\Rightarrow \Delta P_{10y}\approx 0$.
+
+**Net P&L:** **+USD 170,000.**
 
 This DV01-neutral portfolio is therefore a **2s–10s flattener** (short the front end, long the back end). If you don't intend to take a slope view, net DV01 = 0 is not a hedge.
 

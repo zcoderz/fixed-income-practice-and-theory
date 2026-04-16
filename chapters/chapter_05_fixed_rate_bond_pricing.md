@@ -60,7 +60,7 @@ $$CF_i = \begin{cases}
 
 The final cashflow bundles the last coupon with the principal repayment.
 
-**Worked Example A:** If $F = 100$ and $c = 5.50\%$ with $m = 2$, then $\text{Cpn} = 100 \times 0.055 / 2 = 2.75$. This represents $2.75 payable on each coupon date for every $100 face value.
+**Worked Example A:** If $F = 100$ and $c = 5.50\\%$ with $m = 2$, then $\text{Cpn} = 100 \times 0.055 / 2 = 2.75$. This represents $2.75 payable on each coupon date for every $100 face value.
 
 ### 5.1.2 Zero-Coupon Bonds as a Limiting Case
 
@@ -117,11 +117,14 @@ Consider a 2-year bond with a 5% annual coupon (paid semiannually) and face valu
 | 2.0 yr | 4.75% | 0.9091 |
 
 **Curve-Based Pricing:**
+
 $$P_{\text{dirty}} = 2.5(0.9802) + 2.5(0.9583) + 2.5(0.9344) + 102.5(0.9091)$$
+
 $$P_{\text{dirty}} = 2.4505 + 2.3958 + 2.3360 + 93.1828 = 100.3651$$
 
 **Yield-Based Pricing:**
 The YTM that reprices this bond is approximately 4.70% (solved numerically). Using this single rate:
+
 $$P_{\text{yield}} = \frac{2.5}{1.0235} + \frac{2.5}{1.0235^2} + \frac{2.5}{1.0235^3} + \frac{102.5}{1.0235^4} = 100.3651$$
 
 In this case, the two methods agree because the YTM was solved to match the curve price. But if you *start* with the YTM and use it to price a different bond with the same maturity but different cashflow timing, you'll get a slightly different result than curve-based pricing.
@@ -295,7 +298,7 @@ This example uses a concrete Treasury-style schedule to make the day count and d
 
 **Scenario:**
 - **Bond:** 5 1/2s of January 31, 2003
-- **Coupon:** 5.50% ($2.75 semiannual payment per $100 face, or $275 per $10,000 face)
+- **Coupon:** 5.50% (USD 2.75 semiannual payment per USD 100 face, or USD 275 per USD 10,000 face)
 - **Settlement Date:** February 15, 2001
 - **Previous Coupon:** January 31, 2001
 - **Next Coupon:** July 31, 2001
@@ -304,11 +307,10 @@ This example uses a concrete Treasury-style schedule to make the day count and d
 1. **Days in period ($d_{\text{period}}$):** From January 31 to July 31 is 181 days.
 2. **Days elapsed ($d_{\text{elapsed}}$):** From January 31 to February 15 is 15 days.
 3. **Accrual Fraction:** $15 / 181 = 0.08287$.
-4. **Accrued Interest per \$100 face:**
-   $$\text{AI} = \frac{15}{181} \times 2.75 = 0.2279$$
-5. **Accrued Interest per \$10,000 face:** $0.2279 \times 100 = 22.79\ \text{USD}$
+4. **Accrued Interest per USD 100 face:** $\text{AI} = \frac{15}{181} \times 2.75 = 0.2279$
+5. **Accrued Interest per USD 10,000 face:** $0.2279 \times 100 = 22.79\ \text{USD}$
 
-Interpretation: the buyer pays \$22.79 of accrued interest at settlement, and then keeps the entire \$275 coupon payment when it is paid on July 31, 2001.
+Interpretation: the buyer pays USD 22.79 of accrued interest at settlement, and then keeps the entire USD 275 coupon payment when it is paid on July 31, 2001.
 
 ### 5.5.4 The 30/360 Day Count (U.S. Corporates)
 
@@ -404,20 +406,23 @@ For finer precision, markets use **half-ticks** (indicated by "+") representing 
 **Inputs:**
 - **Bond:** 5 1/2s of January 31, 2003
 - **Quote:** "101-04 5/8" (which is 101-4.625)
-- **Accrued Interest:** \$0.2279$ per $100 face (from previous example)
+- **Accrued Interest:** USD 0.2279 per USD 100 face (from previous example)
 - **Face Amount:** \$10,000
 
 **Step 1: Convert Quote to Decimal Clean Price**
+
 $$P_{\text{clean}} = 101 + \frac{4.625}{32} = 101 + 0.14453125 = 101.14453125$$
 
 **Step 2: Add Accrued Interest to Get Dirty Price**
+
 $$P_{\text{dirty}} = 101.14453125 + 0.2279 = 101.37243125$$
 
 **Step 3: Calculate Invoice Amount**
-For $10,000 face value (which is 100 "units" of $100 par):
+For USD 10,000 face value (which is 100 "units" of USD 100 par):
+
 $$\text{Invoice} = 100 \times 101.37243125 = 10{,}137.24\ \text{USD}$$
 
-In this example, the invoice cash amount is \$10,137.24.
+In this example, the invoice cash amount is USD 10,137.24.
 
 ### 5.6.3 Tick Value and P&L Calculation
 
@@ -426,6 +431,7 @@ Every trader needs to know how much money a tick move represents. The **tick val
 $$\boxed{\text{Tick Value} = \frac{\text{Notional}}{100} \times \frac{1}{32}}$$
 
 **For \$100 million notional:**
+
 $$\text{Tick Value} = \frac{100{,}000{,}000}{100} \times \frac{1}{32} = 1{,}000{,}000 \times 0.03125 = 31{,}250\ \text{USD}$$
 
 > **Desk Reality: The Handle Game**
@@ -451,6 +457,7 @@ $$\text{Tick Value} = \frac{100{,}000{,}000}{100} \times \frac{1}{32} = 1{,}000{
 - Change: +4 ticks
 
 **P&L Calculation:**
+
 $$TV_{50mm} = \frac{50{,}000{,}000}{100} \times \frac{1}{32} = 15{,}625\ \text{USD}$$
 
 $$\mathrm{PnL} = 4 \text{ ticks} \times 15{,}625 = 62{,}500\ \text{USD}$$
@@ -515,7 +522,7 @@ $$\boxed{DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})}$$
 
 For a curve-based PV computed from discount factors, that definition becomes a simple “bump-and-reprice” difference:
 
-$$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \\;-\\; \sum_{i=1}^{N} CF_i\,P(0,t_i)}$$
+$$\boxed{DV01 = \sum_{i=1}^{N} CF_i\\,P_{\downarrow 1\text{bp}}(0,t_i) \\;-\\; \sum_{i=1}^{N} CF_i\\,P(0,t_i)}$$
 
 **Scaling:** if PV is expressed per $100$ face, multiply by $N/100$ to convert to a notional-$N$ dollar DV01.
 
@@ -532,7 +539,7 @@ $$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \\;-\\; \s
 - Maturity date: 2027-01-15
 
 **Inputs**
-- Notional: $N = \\$50{,}000{,}000$
+- Notional: $N = 50{,}000{,}000$ USD
 - Coupon: $c = 4.00\\%$ per year, semiannual
 - Clean quote (Treasury 32nds): `101-12`
 - Accrued interest day count: Actual/Actual (in period)
@@ -547,21 +554,37 @@ $$\boxed{DV01 = \sum_{i=1}^{N} CF_i\,P_{\downarrow 1\text{bp}}(0,t_i) \\;-\\; \s
 - $DV01$ (USD per 1bp)
 
 **Step-by-step**
-1. **Quote → decimal clean price**
-   $$P_{\text{clean}} = 101 + \frac{12}{32} = 101.3750$$
-2. **Coupon per period (per $100$ face)**
-   $$\text{Cpn} = 100\times \frac{c}{2} = 2.00$$
-3. **Accrued interest to settlement (per $100$ face)**
-   $$AI = \frac{32}{181}\times 2.00 = 0.3536$$
-4. **Dirty price and invoice cash amount**
-   $$P_{\text{dirty}} = P_{\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
-   $$\text{Invoice} = \frac{N}{100}\times P_{\text{dirty}} = 500{,}000\times 101.7286 = \\$50{,}864{,}300$$
-5. **PV from discount factors (per $100$ face)**
-   - Cashflows: $CF_1=2.00$ (2026-07-15), $CF_2=102.00$ (2027-01-15)
-   $$PV = 2.00(0.9900) + 102.00(0.977927) \approx 101.7286$$
-6. **DV01 (per $100$ face, then scaled to notional)**
-   $$DV01_{\text{per }100} = \left[2.00(0.9900404)+102.00(0.9780162)\right]-\left[2.00(0.9900)+102.00(0.977927)\right]\approx 0.00918$$
-   $$DV01_{50mm} \approx 0.00918\times 500{,}000 = 4{,}591\ \text{USD per bp}$$
+**Step-by-step**
+
+**1. Quote → decimal clean price**
+
+$$P_{\text{clean}} = 101 + \frac{12}{32} = 101.3750$$
+
+**2. Coupon per period (per $100$ face)**
+
+$$\text{Cpn} = 100\times \frac{c}{2} = 2.00$$
+
+**3. Accrued interest to settlement (per $100$ face)**
+
+$$AI = \frac{32}{181}\times 2.00 = 0.3536$$
+
+**4. Dirty price and invoice cash amount**
+
+$$P_{\text{dirty}} = P_{\text{clean}} + AI = 101.3750 + 0.3536 = 101.7286$$
+
+$$\text{Invoice} = \frac{N}{100}\times P_{\text{dirty}} = 500{,}000\times 101.7286 = 50{,}864{,}300\ \mathrm{USD}$$
+
+**5. PV from discount factors (per $100$ face)**
+
+- Cashflows: $CF_1=2.00$ (2026-07-15), $CF_2=102.00$ (2027-01-15)
+
+$$PV = 2.00(0.9900) + 102.00(0.977927) \approx 101.7286$$
+
+**6. DV01 (per $100$ face, then scaled to notional)**
+
+$$DV01_{\text{per }100} = \left[2.00(0.9900404)+102.00(0.9780162)\right]-\left[2.00(0.9900)+102.00(0.977927)\right]\approx 0.00918$$
+
+$$DV01_{50mm} \approx 0.00918\times 500{,}000 = 4{,}591\ \mathrm{USD\ per\ bp}$$
 
 **Cashflows (per $100$ face)**
 | Date | Cashflow | Explanation |
@@ -613,6 +636,7 @@ The accrued interest calculation also uses the stub period length.
 - Stub fraction: $167/181 = 0.923$
 
 **First Coupon Amount:**
+
 $$\text{First Cpn} = 2.50 \times 0.923 = 2.3066$$
 
 **Accrued Interest (Settlement March 15):**
@@ -646,7 +670,7 @@ One important driver is *financing mechanics*: when a trader is short an on-the-
 
 A simple financing interpretation in the context of specials: if the bond cannot be borrowed, the trader fails to deliver and does not receive the proceeds from the sale. In effect, the trader loses (at least) a day of interest on those proceeds.
 
-If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\%$, earning $0\%$ on proceeds is economically similar to failing to deliver.
+If the bond *can* be borrowed, the trader can deliver, receive the proceeds, and lend them at the special repo rate. When the special repo rate is near $0\\%$, earning $0\\%$ on proceeds is economically similar to failing to deliver.
 
 > **Desk Reality:** Fails are not just an ops nuisance; they change the *cash timeline*.
 > **Common break:** P&L explain shows an unexpected funding/carry gap around settlement when deliveries slip.
@@ -733,7 +757,7 @@ Any pricing engine should pass these checks:
 | **Dirty (Invoice) Price** | PV of all future cashflows. | The actual money transferred at settlement. |
 | **Clean (Quoted) Price** | Dirty Price minus Accrued Interest. | Removes accrual drift for price comparison. |
 | **Accrued Interest (AI)** | Pro-rata share of the next coupon earned since the last payment. | Compensates seller for holding time. |
-| **Invoice Amount** | Cash settlement: $\text{Invoice}=(N/100)\,P_{\text{dirty}}$. | Prevents “quoted price = cash” mistakes. |
+| **Invoice Amount** | Cash settlement: $\text{Invoice}=(N/100)\\,P_{\text{dirty}}$. | Prevents “quoted price = cash” mistakes. |
 | **Actual/Actual** | Day count using actual calendar days. | Used for U.S. Treasuries. |
 | **30/360** | Day count assuming 30-day months, 360-day year. | Used for U.S. corporates. |
 | **Premium Bond** | Bond trading above par (coupon > yield). | Indicates above-market coupon payments. |

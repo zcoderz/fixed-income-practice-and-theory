@@ -163,7 +163,7 @@ where $r_i$ is the overnight rate on day $i$, $d_i$ is the number of calendar da
 
 > **Desk Reality: Operational Challenges of "In Arrears"**
 >
-> **The cash management problem:** Under LIBOR, a corporate treasurer knew on January 1 that the March 31 payment would be exactly $X. Under compounded SOFR, the rate for the accrual period is not known until the end of the period, after the relevant overnight rates have been observed.
+> **The cash management problem:** Under LIBOR, a corporate treasurer knew on January 1 that the March 31 payment would be exactly $X$. Under compounded SOFR, the rate for the accrual period is not known until the end of the period, after the relevant overnight rates have been observed.
 >
 > **What to check:** Treat the observation/payment convention as part of the trade specification, and reproduce the compounded factor from the exact daily fixings your system uses.
 
@@ -317,7 +317,7 @@ FRAs can be valued using the forward rate for the underlying period implied by t
 
 Setting $V_{\text{FRA}}(t) = 0$ and solving for the fixed rate $K$:
 
-$$\boxed{K^* = L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)}$$
+$$\boxed{K^{\ast} = L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\right)}$$
 
 The par FRA rate equals the implied forward rate—a fundamental result that makes FRAs direct constraints on the forward curve. When the fixed rate equals the relevant forward rate, the FRA has zero value at inception.
 
@@ -519,7 +519,7 @@ $$L(t;T_1,T_2) = \frac{1}{\tau(T_1,T_2)}\left(\frac{P(t,T_1)}{P(t,T_2)} - 1\righ
 
 Therefore:
 
-$$\boxed{K^* = L(t;T_1,T_2) = F(t;T_1,T_2)}$$
+$$\boxed{K^{\ast} = L(t;T_1,T_2) = F(t;T_1,T_2)}$$
 
 ### 4.5.4 FRA Time-0 Present Value
 
@@ -530,7 +530,7 @@ $$\boxed{V_{\text{FRA}}(0) = N \cdot \tau(T_1,T_2) \cdot P(0,T_2) \cdot (F - K)}
 where $F = L(0;T_1,T_2)$ is the forward rate.
 
 **Sanity checks:**
-- If $K = K^*$ (par), then $V_{\text{FRA}}(0) = 0$. ✓
+- If $K = K^{\ast}$ (par), then $V_{\text{FRA}}(0) = 0$. ✓
 - For the fixed-rate payer, value increases when the forward rate increases. ✓
 
 ---
@@ -586,8 +586,11 @@ $$\frac{\partial P}{\partial r} = -\frac{\tau}{(1 + r \cdot \tau)^2}$$
 **Interpretation:** The short-end discount factor is most sensitive to (i) larger accrual fractions and (ii) lower rate levels. Even small $\tau$ matters because front-end PVs are dominated by short-dated cashflows.
 
 **A concrete “01” (bump object + units + sign):** For a deterministic cashflow of notional $N$ paid at $T$, $PV = N\cdot P(0,T)$. Define the **local** DV01 to the simple quote $r$ used in $P(0,T)=1/(1+r\tau)$ (with `tau := tau(0,T)`) as:
+
 $$DV01 := PV(r-1\text{bp})-PV(r)$$
+
 Using $P(0,T)=1/(1+r\tau)$ and $1\text{bp}=10^{-4}$, a first-order approximation is:
+
 $$DV01 \approx N\cdot \frac{\tau}{(1+r\tau)^2}\cdot 10^{-4}\quad\text{(currency per 1bp; positive for long PV risk).}$$
 
 ### 4.7.2 Locality of Short-End Perturbations
@@ -626,12 +629,15 @@ This locality intuition underlies key-rate DV01 analysis, covered in Chapter 14.
 **Discount factors:**
 
 **Overnight:**
+
 $$P(0,\text{ON}) = \frac{1}{1 + 0.0475 \times 0.00277778} = \frac{1}{1.00013194} = 0.99986807$$
 
 **1M:**
+
 $$P(0,1M) = \frac{1}{1 + 0.0500 \times 0.08333333} = \frac{1}{1.00416667} = 0.99585062$$
 
 **3M:**
+
 $$P(0,3M) = \frac{1}{1 + 0.0520 \times 0.25} = \frac{1}{1.013} = 0.98716683$$
 
 **Sanity check:** Higher rate or longer accrual → lower discount factor. ✓
@@ -643,6 +649,7 @@ $$P(0,3M) = \frac{1}{1 + 0.0520 \times 0.25} = \frac{1}{1.013} = 0.98716683$$
 **Compute the 1M–3M forward rate.**
 
 Using:
+
 $$F(0;T_1,T_2) = \frac{\frac{P(0,T_1)}{P(0,T_2)} - 1}{\tau(T_1,T_2)}$$
 
 With:
@@ -651,9 +658,11 @@ With:
 - $\tau(1M,3M) = 60/360 = 0.16666667$
 
 **Step 1:** Compute the ratio:
+
 $$\frac{P(0,1M)}{P(0,3M)} = \frac{0.99585062}{0.98716683} = 1.00879668$$
 
 **Step 2:** Compute the forward:
+
 $$F(0;1M,3M) = \frac{1.00879668 - 1}{0.16666667} = \frac{0.00879668}{0.16666667} = 0.05278008$$
 
 $$\boxed{F(0;1M,3M) \approx 5.2780\ \text{percent}}$$
@@ -684,13 +693,21 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\ \text{percent}}$$
 - Risk metric: $DV01 := PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})$ (units: USD per 1bp; bump object = bank discount quote at this maturity)
 
 **Step-by-step**
-1. Translate quote to cash price (per \$100 face):  
-   `$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$`
-2. Convert price to discount factor:
-   $$P(0,T)=\frac{Y}{100}=0.9868556$$
-3. Compute DV01 (quote bump, rates down 1bp):
-   Since $q_{\text{disc}}$ is quoted in percent, $1\text{bp}=0.01$ in this quote unit. Therefore:
-   $$DV01=PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})=\frac{\\$100{,}000{,}000}{100}\cdot \frac{d}{360}\cdot 0.01=\\$2{,}527.78$$
+**Step-by-step**
+
+**1. Translate quote to cash price (per \$100 face)**
+
+$$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$$
+
+**2. Convert price to discount factor**
+
+$$P(0,T)=\frac{Y}{100}=0.9868556$$
+
+**3. Compute DV01 (quote bump, rates down 1bp)**
+
+Since $q_{\text{disc}}$ is quoted in percent, $1\text{bp}=0.01$ in this quote unit. Therefore:
+
+$$DV01=PV(q_{\text{disc}}-1\text{bp})-PV(q_{\text{disc}})=\frac{100{,}000{,}000}{100}\cdot \frac{d}{360}\cdot 0.01=2{,}527.78\ \mathrm{USD}$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -714,6 +731,7 @@ $$\boxed{F(0;1M,3M) \approx 5.2780\ \text{percent}}$$
 **Add a 6M deposit:** $r_{6M} = 5.30\\%$, $\tau(0,6M) = 0.5$
 
 **Step 1:** Compute $P(0,6M)$:
+
 $$P(0,6M) = \frac{1}{1 + 0.0530 \times 0.5} = \frac{1}{1.0265} = 0.97418400$$
 
 **Step 2:** Compute the 3M–6M par FRA rate:
@@ -722,7 +740,7 @@ $$P(0,6M) = \frac{1}{1 + 0.0530 \times 0.5} = \frac{1}{1.0265} = 0.97418400$$
 
 $$F(0;3M,6M) = \frac{\frac{0.98716683}{0.97418400} - 1}{0.25} = \frac{1.01332688 - 1}{0.25} = \frac{0.01332688}{0.25}$$
 
-$$\boxed{K^* = F(0;3M,6M) \approx 5.3308\ \text{percent}}$$
+$$\boxed{K^{\ast} = F(0;3M,6M) \approx 5.3308\ \text{percent}}$$
 
 ---
 
@@ -736,6 +754,7 @@ $$\boxed{K^* = F(0;3M,6M) \approx 5.3308\ \text{percent}}$$
 - Contract rate: $K = 5.4308\\%$ (10 bp above par)
 
 **PV formula:**
+
 $$V_{\text{FRA}}(0) = N \cdot \tau \cdot P(0,6M) \cdot (F - K)$$
 
 **Compute:**
@@ -744,7 +763,7 @@ $$V_{\text{FRA}}(0) = N \cdot \tau \cdot P(0,6M) \cdot (F - K)$$
 - $= 25{,}000{,}000 \times 0.97418400 \times (-0.0010)$
 - $= -24{,}354.60$
 
-$$\boxed{V_{\text{FRA}}(0) \approx -\\$24{,}355}$$
+$$\boxed{V_{\text{FRA}}(0) \approx -24{,}355\ \mathrm{USD}}$$
 
 The fixed-rate payer (receive floating, pay fixed) has negative value when paying above the market forward.
 
@@ -783,12 +802,14 @@ $$P(0,12M) = \frac{P(0,6M)}{1 + K \cdot \tau(6M,12M)} = \frac{0.97418400}{1 + 0.
 
 ### Example 7: Quote Bump Sensitivity
 
-**Bump the 1M deposit by +1 bp:** $r'_{1M} = 5.01\%$
+**Bump the 1M deposit by +1 bp:** $r'_{1M} = 5.01\\%$
 
 **Recompute $P(0,1M)$:**
+
 $$P'(0,1M) = \frac{1}{1 + 0.0501 \times 0.08333333} = \frac{1}{1.004175} = 0.99584236$$
 
 **Change in discount factor:**
+
 $$\Delta P(0,1M) = 0.99584236 - 0.99585062 = -0.00000826$$
 
 **Impact on 1M–3M forward (holding $P(0,3M)$ fixed):**
@@ -804,10 +825,11 @@ $$F'(0;1M,3M) = \frac{\frac{0.99584236}{0.98716683} - 1}{0.16666667} = \frac{0.0
 **Given:** Futures price $Q = 94.67$ for a 3M rate starting at 3M.
 
 **Step 1:** Implied futures rate:
+
 $$R^{\text{fut}} = 1 - \frac{Q}{100} = 1 - 0.9467 = 0.0533 = 5.33\\%$$
 
 **Step 2:** Compare to the forward rate:
-From Example 4: $F(0;3M,6M) \approx 5.3308\%$
+From Example 4: $F(0;3M,6M) \approx 5.3308\\%$
 
 **Observation:** In this toy setup, the futures and forward rates are essentially the same (the difference is tiny at this horizon). In general, because futures are marked-to-market daily, futures rates tend to be slightly **above** the corresponding forward rates (a convexity adjustment), and the gap typically becomes more visible as the contract maturity increases.
 
@@ -832,6 +854,7 @@ The December average of 5.15\% reflects:
 $$5.15\\% = \frac{13}{31} \times 5.25\\% + \frac{18}{31} \times r_{\text{post}}$$
 
 Solving for $r_{\text{post}}$:
+
 $$r_{\text{post}} = \frac{31 \times 5.15\\% - 13 \times 5.25\\%}{18} = \frac{159.65\\% - 68.25\\%}{18} = \frac{91.40\\%}{18} = 5.078\\%$$
 
 **Step 2:** Calculate probability of 25bp cut
@@ -876,6 +899,7 @@ Calculate each factor:
 **Step 2:** Multiply factors
 
 $$\text{Product} = 1.000147222 \times 1.000147500 \times 1.000147778 \times 1.000147500 \times 1.000441667$$
+
 $$= 1.001031890$$
 
 **Step 3:** Annualize
@@ -928,7 +952,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
 1. **Short-end curve construction** begins with instruments whose PV-to-par conditions map directly to discount factors.
 
-2. **A simple deposit** quoted at rate $r$ with year fraction $\tau(0,T)$ implies $P(0,T) = 1/(1 + r\,\tau(0,T))$.
+2. **A simple deposit** quoted at rate $r$ with year fraction $\tau(0,T)$ implies $P(0,T) = 1/(1 + r\\,\tau(0,T))$.
 
 3. **Day count is essential:** USD money markets typically use Actual/360, so year fractions are actual days divided by 360.
 
@@ -997,12 +1021,12 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 | 1 | Define the discount factor $P(0,T)$. | The time-0 price of receiving 1 unit at time $T$. |
 | 2 | Define the year fraction $\tau(T,S)$. | The day-count year fraction between dates $T$ and $S$ (units: years). |
 | 3 | State the deposit-implied discount factor formula. | $P(0,T) = 1/(1 + r \cdot \tau(0,T))$ (simple interest). |
-| 4 | State the simple-forward identity. | $1 + \tau(T_1,T_2)\,f(t;T_1,T_2) = P(t,T_1)/P(t,T_2)$. |
+| 4 | State the simple-forward identity. | $1 + \tau(T_1,T_2)\\,f(t;T_1,T_2) = P(t,T_1)/P(t,T_2)$. |
 | 5 | Express the forward rate $f$ explicitly. | $f(t;T_1,T_2) = (P(t,T_1)/P(t,T_2) - 1)/\tau(T_1,T_2)$. |
 | 6 | What does "par" mean for a deposit? | Discounted maturity payoff equals notional invested. |
 | 7 | What does "par" mean for an FRA? | The FRA has zero PV when $K$ equals the forward rate. |
-| 8 | Write the FRA value in discount factors. | $V(t)=P(t,T_1)-P(t,T_2)-K\,\tau(T_1,T_2)\,P(t,T_2)=\tau(T_1,T_2)\,P(t,T_2)\,(f(t;T_1,T_2)-K)$. |
-| 9 | Write the FRA settlement payoff. | $V(T_1)=\tau(T_1,T_2)\,(L_{T_1}-K)/(1+\tau(T_1,T_2)\,L_{T_1})$, where $L_{T_1}=L(T_1;T_1,T_2)$. |
+| 8 | Write the FRA value in discount factors. | $V(t)=P(t,T_1)-P(t,T_2)-K\\,\tau(T_1,T_2)\\,P(t,T_2)=\tau(T_1,T_2)\\,P(t,T_2)\\,(f(t;T_1,T_2)-K)$. |
+| 9 | Write the FRA settlement payoff. | $V(T_1)=\tau(T_1,T_2)\\,(L_{T_1}-K)/(1+\tau(T_1,T_2)\\,L_{T_1})$, where $L_{T_1}=L(T_1;T_1,T_2)$. |
 | 10 | Define the T-bill bank discount quote $q_{\text{disc}}$. | $q_{\text{disc}} = \frac{360}{d}(100-Y)$ where $Y$ is cash price per \$100 face (units: percent per year; ACT/360). |
 | 11 | Why isn't banker's discount yield an IRR? | It uses face (not price) in the denominator. |
 | 12 | What day count does U.S. money market use? | Actual/360. |
@@ -1035,7 +1059,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
 5. Given $P(0,3M) = 0.9900$ and $P(0,6M) = 0.9750$, compute the par 3x6 FRA rate.
 
-6. For $N = 50{,}000{,}000$, $\tau = 0.25$, $P(0,6M) = 0.9750$, and $F = 5.00\%$, compute FRA PV when $K = 4.85\%$.
+6. For $N = 50{,}000{,}000$, $\tau = 0.25$, $P(0,6M) = 0.9750$, and $F = 5.00\\%$, compute FRA PV when $K = 4.85\\%$.
 
 7. Build a discount factor table at 1M, 3M, 6M, 12M from three deposit quotes and one FRA quote.
 
@@ -1061,13 +1085,13 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
 1. $\tau = 31/360 = 0.08611$. $P = 1/(1 + 0.048 \times 0.08611) = 0.99588$.
 
-2. $F = (0.9960/0.9880 - 1)/(62/360) = 0.00810/0.1722 = 4.70\%$.
+2. $F = (0.9960/0.9880 - 1)/(62/360) = 0.00810/0.1722 = 4.70\\%$.
 
 3. Price $= 100(1 - 0.06 \times 90/360) = 100(1 - 0.015) = 98.50$. $P = 0.9850$.
 
 4. $P(0,9M) = 0.9750/(1 + 0.051 \times 0.25) = 0.9750/1.01275 = 0.9627$.
 
-5. $F = (0.9900/0.9750 - 1)/0.25 = 0.01538/0.25 = 6.15\%$.
+5. $F = (0.9900/0.9750 - 1)/0.25 = 0.01538/0.25 = 6.15\\%$.
 
 6. $V = 50M \times 0.25 \times 0.9750 \times (0.0500 - 0.0485) = 50M \times 0.25 \times 0.9750 \times 0.0015 = 18{,}281\ \text{USD}$.
 
@@ -1078,14 +1102,14 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 ### Solution Sketches (Questions 13–15)
 
 13. Implied average = 5.49\%. Days before meeting (1-28): 28 days at 5.50\%. Days after (29-31): 3 days at unknown rate.
-$5.49\% = (28/31) \times 5.50\% + (3/31) \times r_{post}$
-$r_{post} = (31 \times 5.49\% - 28 \times 5.50\%)/3 = (170.19\% - 154\%)/3 = 5.3967\%$
-$p_{cut} = (5.50\% - 5.3967\%)/(5.50\% - 5.25\%) = 0.1033\%/0.25\% = 41.3\%$
+$5.49\\% = (28/31) \times 5.50\\% + (3/31) \times r_{post}$
+$r_{post} = (31 \times 5.49\\% - 28 \times 5.50\\%)/3 = (170.19\\% - 154\\%)/3 = 5.3967\\%$
+$p_{cut} = (5.50\\% - 5.3967\\%)/(5.50\\% - 5.25\\%) = 0.1033\\%/0.25\\% = 41.3\\%$
 
 14. Day 1: $1 + 0.0500/360 = 1.000138889$; Day 2: $1 + 0.0502/360 = 1.000139444$; Day 3: $1 + 0.0501 \times 3/360 = 1.000417500$.
-Product: $1.000695903$. Rate = $(0.000695903) \times 360/5 = 5.01\%$.
+Product: $1.000695903$. Rate = $(0.000695903) \times 360/5 = 5.01\\%$.
 
-15. Forward factor: $0.99750/0.99690 = 1.000602$. Implied rate: $(1.000602 - 1) \times 360/4 = 5.42\%$. Turn premium: $5.42\% - 5.00\% = 42$ bp.
+15. Forward factor: $0.99750/0.99690 = 1.000602$. Implied rate: $(1.000602 - 1) \times 360/4 = 5.42\\%$. Turn premium: $5.42\\% - 5.00\\% = 42$ bp.
 
 ---
 

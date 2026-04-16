@@ -4,12 +4,12 @@
 
 ## Introduction
 
-A portfolio manager reports that her bond position has a "DV01 of $50,000." A swaps trader says his book is "flat on PV01." A risk officer asks for "key-rate exposures by bucket." Each statement sounds precise—a dollar measure of interest rate risk per basis point. But hidden in these simple phrases lurks a critical question that, if misunderstood, can render all these numbers meaningless: *what exactly is being bumped?*
+A portfolio manager reports that her bond position has a "DV01 of USD 50,000." A swaps trader says his book is "flat on PV01." A risk officer asks for "key-rate exposures by bucket." Each statement sounds precise—a dollar measure of interest rate risk per basis point. But hidden in these simple phrases lurks a critical question that, if misunderstood, can render all these numbers meaningless: *what exactly is being bumped?*
 
-Consider the portfolio manager's $50,000 DV01. Does that number assume the bond's yield moves by 1 basis point? Or does it assume every zero rate on the discount curve shifts by 1bp? Perhaps it reflects bumping *par instrument quotes* (like swap rates) and rebuilding a curve? These are different economic scenarios, and they can produce materially different dollar sensitivities for the same position. A DV01/PV01 quote is only meaningful after you specify:
+Consider the portfolio manager's USD 50,000 DV01. Does that number assume the bond's yield moves by 1 basis point? Or does it assume every zero rate on the discount curve shifts by 1bp? Perhaps it reflects bumping *par instrument quotes* (like swap rates) and rebuilding a curve? These are different economic scenarios, and they can produce materially different dollar sensitivities for the same position. A DV01/PV01 quote is only meaningful after you specify:
 - **Bump object:** yield, zero curve, par quotes, key rates, etc.
 - **Bump size:** typically $1\text{bp}=10^{-4}$ in decimal rate units.
-- **Units + sign:** “$ per 1bp” and for what notional (per 100 face, per $1mm, etc.), and whether DV01 is defined for rates **down** or **up**.
+- **Units + sign:** “USD per 1bp” and for what notional (per 100 face, per USD 1mm, etc.), and whether DV01 is defined for rates **down** or **up**.
 
 The consequences of ambiguity are real—and expensive. A trader who hedges using yield-based DV01 but marks-to-market against a curve-based pricing engine will experience unexplained P&L when the curve twists. A risk system that aggregates DV01s computed under inconsistent bump definitions will produce portfolio sensitivities that don't add up. And a hedger who matches total DV01 without understanding key-rate exposures may find the hedge worthless when the curve steepens instead of shifting in parallel.
 
@@ -115,13 +115,13 @@ $$DV01_{\text{portfolio}} = \sum_i DV01_i$$
 >
 > | Position | Face/Notional | DV01 per 100 | Position DV01 |
 > |----------|---------------|--------------|---------------|
-> | **Bond 1** (long 5y 5% coupon) | +$1,000,000 | 0.0458 | +$458 |
-> | **Bond 2** (short 2y 2% coupon) | −$1,000,000 | 0.0192 | −$192 |
-> | **Swap** (receive fixed 3y) | $1,000,000 | — | +$280 |
+> | **Bond 1** (long 5y 5% coupon) | +USD 1,000,000 | 0.0458 | +USD 458 |
+> | **Bond 2** (short 2y 2% coupon) | −USD 1,000,000 | 0.0192 | −USD 192 |
+> | **Swap** (receive fixed 3y) | USD 1,000,000 | — | +USD 280 |
 >
 > **Sum of individual DV01s:** $458 - 192 + 280 = USD 546$.
 >
-> **Verification:** If we reprice the entire portfolio under a −1bp curve shift (3.99%), the total portfolio value increases by approximately $546. This confirms that DV01 is additive under a consistent bump definition.
+> **Verification:** If we reprice the entire portfolio under a −1bp curve shift (3.99%), the total portfolio value increases by approximately USD 546. This confirms that DV01 is additive under a consistent bump definition.
 
 ### 11.1.4 The Dollar Scaling Imperative
 
@@ -129,20 +129,20 @@ Why is DV01 the standard normalization? Why not just use duration?
 
 Consider two traders with identical duration exposure:
 
-- **Retail Trader ($10,000 trade)**: 5-year bond, Duration = 4.5.
+- **Retail Trader (USD 10,000 trade)**: 5-year bond, Duration = 4.5.
   - 10bp move → 0.45% price change.
-  - P&L = $45. Manageable.
+  - P&L = USD 45. Manageable.
 
-- **Institutional Desk ($100,000,000 trade)**: Same bond, Duration = 4.5.
+- **Institutional Desk (USD 100,000,000 trade)**: Same bond, Duration = 4.5.
   - 10bp move → 0.45% price change.
-  - P&L = **$450,000**. Material.
+  - P&L = **USD 450,000**. Material.
 
 **Lesson**: Percentage change (Duration) hides the scale. DV01 converts everything into "Dollars per bp", which is the only currency that matters for the P&L statement.
 
 > **Superpower: Risk is Additive in Dollars**
 >
-> You cannot add yields (5% + 4% = ??). You cannot add prices ($100 + $98 = ??). But you **can** add DV01s:
-> - $50k DV01 + $20k DV01 = $70k DV01.
+> You cannot add yields (5% + 4% = ??). You cannot add prices (100 + 98 = ??). But you **can** add DV01s:
+> - USD 50k DV01 + USD 20k DV01 = USD 70k DV01.
 >
 > This forces a "Common Currency" of risk across the entire trading floor. Everyone from the rates desk to the credit desk speaks in dollars-per-basis-point.
 
@@ -174,8 +174,8 @@ Here $P$ is the bond’s price in the same units you want DV01 to be reported in
 >
 > **Inputs**
 > - Face $N=USD 25{,}000{,}000$
-> - Coupon $c=4.00\%$ per year, paid semiannually (2.00 per 100 every 6 months)
-> - Yield $y=4.50\%$ (bond-style YTM with semiannual compounding)
+> - Coupon $c=4.00\\%$ per year, paid semiannually (2.00 per 100 every 6 months)
+> - Yield $y=4.50\\%$ (bond-style YTM with semiannual compounding)
 >
 > **Outputs**
 > - Dirty price per 100 (here $AI=0$, so clean = dirty): $P_0 \approx 99.0538$
@@ -259,9 +259,9 @@ One transparent way to compute yield DV01 is to build a cashflow table, compute 
 >
 > $$DV01 = \frac{1}{10,000} \times \frac{454.8511}{1 + 0.050441/2} = \frac{1}{10,000} \times \frac{454.8511}{1.0252} = \mathbf{0.044366}$$
 >
-> **Interpretation:** A one-basis point decline in the bond's yield increases its price by about 4.44 cents per $100 face value.
+> **Interpretation:** A one-basis point decline in the bond's yield increases its price by about 4.44 cents per 100 face value.
 >
-> **Sanity Check:** For a $100 million position, DV01 = $0.044366 × 1,000,000 = $44,366 per bp. A 10bp rally gains approximately $443,660.
+> **Sanity Check:** For a USD 100 million position, DV01 $= 0.044366 \times 1{,}000{,}000 \approx USD 44{,}366$ per bp. A 10bp rally gains approximately USD 443,660.
 
 ### 11.2.4 The Limitation: Parallel Yield Shifts
 
@@ -299,7 +299,7 @@ and reprice the instrument.
 **Mechanics (discount-factor view):** A parallel +1bp shift in continuously compounded zero rates multiplies every discount factor by the same maturity-dependent factor:
 
 $$
-P_{\text{shifted}}(0,t)=P(0,t)\,e^{-0.0001\,t}.
+P_{\text{shifted}}(0,t)=P(0,t)\\,e^{-0.0001\\,t}.
 $$
 
 Longer-dated cashflows are hit more because the exponential factor depends on $t$.
@@ -307,7 +307,7 @@ Longer-dated cashflows are hit more because the exponential factor depends on $t
 **Check (duration-style scaling):** For small bumps, $e^{-0.0001 t}\approx 1-0.0001 t$, so the PV change is approximately
 
 $$
-\Delta V \approx -0.0001\sum_i t_i\,CF_i\,P(0,t_i),
+\Delta V \approx -0.0001\sum_i t_i\\,CF_i\\,P(0,t_i),
 $$
 
 which is why curve DV01 is closely related to a PV-weighted average maturity. As a rough desk check: if $V\approx 100$ (per 100 face) and the PV-weighted time is about 4 years, then a 1bp parallel shift should move value by roughly $100\times 4/10{,}000 \approx 0.04$ price points per 100.
@@ -316,17 +316,29 @@ which is why curve DV01 is closely related to a PV-weighted average maturity. As
 
 > **Example 11.4: Curve DV01 via a Parallel Zero-Curve Bump**
 >
-> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at $z=4.50\%$, so $P(0,t)=e^{-z t}$.
+> Consider a 5-year bond with 5% annual coupon (cashflows: 5 at years 1–4, and 105 at year 5). Price it off a flat **continuously compounded** zero curve at $z=4.50\\%$, so $P(0,t)=e^{-z t}$.
 >
 > **Base PV**
-> $$P_0=\sum_{t=1}^{4} 5e^{-0.045t}+105e^{-0.045\cdot 5}\approx 101.7388$$
+>
+> $$
+> P_0=\sum_{t=1}^{4} 5e^{-0.045t}+105e^{-0.045\cdot 5}\approx 101.7388
+> $$
 >
 > **Bump the curve up and down by 1bp**
-> $$P_{\uparrow}\approx 101.6925 \quad (z=4.51\%)$$
-> $$P_{\downarrow}\approx 101.7851 \quad (z=4.49\%)$$
+>
+> $$
+> P_{\uparrow}\approx 101.6925 \quad (z=4.51\\%)
+> $$
+>
+> $$
+> P_{\downarrow}\approx 101.7851 \quad (z=4.49\\%)
+> $$
 >
 > **Curve DV01 (rates down convention)**
-> $$DV01_{\text{curve}}=\frac{P_{\downarrow}-P_{\uparrow}}{2}\approx 0.0463\ \text{per 100 face}$$
+>
+> $$
+> DV01_{\text{curve}}=\frac{P_{\downarrow}-P_{\uparrow}}{2}\approx 0.0463\ \text{per 100 face}
+> $$
 
 ### 11.3.3 Why Yield DV01 and Curve DV01 Differ
 
@@ -391,7 +403,7 @@ $$\boxed{PVBP = N \times A \times 0.0001}$$
 
 > **Example 11.5: Swap PVBP Calculation**
 >
-> Consider a $100,000,000 notional 5-year receiver swap at fixed 4.50% vs floating. The discount curve is flat at 4%.
+> Consider a USD 100,000,000 notional 5-year receiver swap at fixed 4.50% vs floating. The discount curve is flat at 4%.
 >
 > **Step 1: Compute Annuity Factor** (annual payments for simplicity)
 >
@@ -401,7 +413,7 @@ $$\boxed{PVBP = N \times A \times 0.0001}$$
 >
 > $$PVBP = USD 100{,}000{,}000 \times 4.4518 \times 0.0001 = USD 44{,}518$$
 >
-> **Interpretation:** Holding the curve fixed, a 1bp increase in the fixed rate you receive (from 4.50% to 4.51%) adds $44,518 to the swap's value.
+> **Interpretation:** Holding the curve fixed, a 1bp increase in the fixed rate you receive (from 4.50% to 4.51%) adds USD 44,518 to the swap's value.
 >
 > **Note:** If we calculated a **Curve DV01** by bumping the discount rates, we would get a different number, because changing discount rates affects both the annuity and the implicit floating leg value. PVBP (fixed rate sensitivity) and Curve DV01 are conceptually distinct.
 
@@ -535,12 +547,12 @@ Yes. The relationship $DF = 1/(1+r)^T$ is nonlinear.
 
 > **Example 11.8: Rate Bump vs DF Approximation**
 >
-> Consider a single cashflow of 100 at $T=10$ years, $r=5\%$ (annual compounding).
+> Consider a single cashflow of 100 at $T=10$ years, $r=5\\%$ (annual compounding).
 >
 > **Base values:** $DF_0 = 1/(1.05)^{10} = 0.6139$, $V_0 = 61.39$.
 >
 > **Method 1: Exact Rate Bump (central difference)**
-> Bump $r$ to $5.01\%$ and $4.99\%$:
+> Bump $r$ to $5.01\\%$ and $4.99\\%$:
 > - $DF_{\uparrow} = 1/(1.0501)^{10} \approx 0.6133$, so $V_{\uparrow} \approx 61.33$
 > - $DF_{\downarrow} = 1/(1.0499)^{10} \approx 0.6145$, so $V_{\downarrow} \approx 61.45$
 >
@@ -592,7 +604,7 @@ The critical insight of this chapter is that **DV01 is a property of the bump de
 Risk engines often report sensitivity to the *input quotes* used to build the curve (e.g., deposit rates, futures prices, swap rates). This is called **Quote PV01**, **Par-Point Delta**, or **Instrument PV01**.
 
 The algorithm is:
-1. Take the set of market quotes $\{S_1, S_2, \ldots, S_N\}$ that define the curve
+1. Take the set of market quotes $\\{S_1, S_2, \ldots, S_N\\}$ that define the curve
 2. Bump quote $S_n$ by 1bp (holding all others fixed)
 3. Rebuild the entire curve from the perturbed quotes
 4. Reprice the instrument
@@ -702,7 +714,7 @@ If your report shows the opposite sign, first check whether the system is using 
 >
 > A trader says "The DV01 is −500."
 >
-> **Interpretation (rates-up convention):** The portfolio loses $500 for every 1bp increase in rates.
+> **Interpretation (rates-up convention):** The portfolio loses USD 500 for every 1bp increase in rates.
 >
 > **Ask:** "Is that for a 1bp up or 1bp down move?"
 
@@ -722,7 +734,7 @@ Accrued interest is time-dependent, so for yield/curve bumps it is usually treat
 > - Accrued interest: 0.00 (reset)
 > - Dirty price: 102.50
 >
-> Your "risk system" shows the position value dropped from 105.00 to 102.50—a loss of $2.50 per 100 face. Your P&L report screams RED.
+> Your "risk system" shows the position value dropped from 105.00 to 102.50—a loss of 2.50 per 100 face. Your P&L report screams RED.
 >
 > **Reality:** You received the 2.50 coupon in cash. Total value is unchanged.
 >
@@ -760,7 +772,7 @@ When building or validating a DV01 engine, run these tests:
 | Test | What to Check | Expected Result |
 |------|---------------|-----------------|
 | **Sign Check** | Long fixed-rate bond, rates-down DV01 convention | DV01 > 0 |
-| **Notional Scaling** | $100mm face vs $1mm face | Exactly 100× |
+| **Notional Scaling** | USD 100mm face vs USD 1mm face | Exactly 100× |
 | **Additivity** | Portfolio DV01 vs sum of parts | Equal (under consistent bumps) |
 | **Convergence** | 0.1bp bump vs 1bp bump | Very close for smooth functions |
 | **Symmetry** | $(V_\downarrow - V_0)$ vs $(V_0 - V_\uparrow)$ | Nearly equal for low convexity |
@@ -839,18 +851,27 @@ $$\boxed{F_{\text{hedge}} = \frac{DV01_{\text{position}}}{DV01_{\text{hedge}}} \
 
 > **Example 11.11: DV01 Hedge Calculation**
 >
-> You own $10 million face of Bond A with DV01 = 0.065 per 100 face. You want to hedge using Bond B with DV01 = 0.045 per 100 face.
+> You own USD 10 million face of Bond A with DV01 = 0.065 per 100 face. You want to hedge using Bond B with DV01 = 0.045 per 100 face.
 >
 > **Step 1: Calculate position DV01**
-> $$DV01_A = 0.065 \times \frac{10{,}000{,}000}{100} = USD 6{,}500$$
+>
+> $$
+> DV01_A = 0.065 \times \frac{10{,}000{,}000}{100} = USD 6{,}500
+> $$
 >
 > **Step 2: Calculate hedge ratio**
-> $$\text{Hedge Ratio} = \frac{0.065}{0.045} = 1.444$$
+>
+> $$
+> \text{Hedge Ratio} = \frac{0.065}{0.045} = 1.444
+> $$
 >
 > **Step 3: Calculate hedge amount**
-> $$F_B = 1.444 \times USD 10{,}000{,}000 = USD 14{,}440{,}000$$
 >
-> **You should short $14.44 million face of Bond B** to neutralize the DV01 of Bond A.
+> $$
+> F_B = 1.444 \times USD 10{,}000{,}000 = USD 14{,}440{,}000
+> $$
+>
+> **You should short USD 14.44 million face of Bond B** to neutralize the DV01 of Bond A.
 >
 > **Verification:** DV01 of hedge = $0.045 \times 144{,}400 = USD 6{,}500 = DV01$ of position. ✓
 
@@ -966,13 +987,13 @@ For active hedging, traders rebalance periodically—daily for large books, less
 A bond priced at 98.50 increases to 98.55 if yields fall 1bp. It falls to 98.45 if yields rise 1bp. Calculate the DV01 per 100 face using the rates-down DV01 convention.
 
 **2. Dollar Risk Scaling**
-You own $10 million face value of the bond in Q1. What is the total dollar DV01?
+You own USD 10 million face value of the bond in Q1. What is the total dollar DV01?
 
 **3. Hedge Ratio**
-You are long $5mm face of Bond A (DV01 = 0.072 per 100). You want to hedge with Bond B (DV01 = 0.048 per 100). What face amount of Bond B should you short?
+You are long USD 5mm face of Bond A (DV01 = 0.072 per 100). You want to hedge with Bond B (DV01 = 0.048 per 100). What face amount of Bond B should you short?
 
 **4. Par Swap PVBP**
-A 5-year par swap has rate 4.00%. The Annuity Factor is 4.50. What is the PVBP for $100mm notional?
+A 5-year par swap has rate 4.00%. The Annuity Factor is 4.50. What is the PVBP for USD 100mm notional?
 
 **5. DV01-Duration Conversion**
 A bond priced at 92.00 has modified duration 6.5. What is its DV01 per 100 face?
@@ -993,10 +1014,10 @@ A trader says "The DV01 is -500." They use a rates-up DV01 convention. Translate
 A 10-year bond has the following key-rate 01s: 2y = 0.005, 5y = 0.025, 10y = 0.035, 30y = 0.003. What is the total DV01 for a parallel shift? Which sector has the most risk?
 
 **11. Quote PV01 Hedge**
-A bond has Quote PV01 of $3,200 to the 5y swap rate. The 5y swap has DV01 of $480 per $1mm notional. How much 5y swap notional should you trade to hedge the 5y exposure?
+A bond has Quote PV01 of USD 3,200 to the 5y swap rate. The 5y swap has DV01 of USD 480 per USD 1mm notional. How much 5y swap notional should you trade to hedge the 5y exposure?
 
 **12. Immunization Setup**
-A pension fund has liabilities with DV01 of $125,000. Available bonds have DV01 of 0.065 per 100 face. What face amount of bonds is needed to immunize?
+A pension fund has liabilities with DV01 of USD 125,000. Available bonds have DV01 of 0.065 per 100 face. What face amount of bonds is needed to immunize?
 
 ---
 
@@ -1018,7 +1039,7 @@ A pension fund has liabilities with DV01 of $125,000. Available bonds have DV01 
 
 **8.** The swap starts with PV ≈ 0. The discount factor sensitivity scales with the net PV. If PV is small, the "discounting effect" is minor.
 
-**9.** Under a rates-up convention, DV01 = -500 means the portfolio loses $500 when rates rise 1bp. Under the rates-down convention, this is $DV01 \approx +500$. The position is long rates (benefits from rate declines).
+**9.** Under a rates-up convention, DV01 = -500 means the portfolio loses USD 500 when rates rise 1bp. Under the rates-down convention, this is $DV01 \approx +500$. The position is long rates (benefits from rate declines).
 
 **10.** Total DV01 = $0.005 + 0.025 + 0.035 + 0.003 = 0.068$. The 10-year sector has the most risk (51% of total).
 

@@ -134,19 +134,19 @@ The carry term has three components:
 2. **Accrual change**: $AI(d) - AI(0)$—the change in accrued interest (which you'll collect when you sell)
 3. **Financing cost**: $(P(0) + AI(0)) \cdot r \cdot d/360$—the cost of borrowing the full (dirty) price at the repo rate
 
-Note that the financing term is written as $r\,d/360$ in this formulation. In practice, repo accrual uses a stated money-market day-count convention; always document it, because carry can differ slightly across systems that make different day-count assumptions.
+Note that the financing term is written as $r\\,d/360$ in this formulation. In practice, repo accrual uses a stated money-market day-count convention; always document it, because carry can differ slightly across systems that make different day-count assumptions.
 
 **Intuition:** Carry tends to be positive when the bond's coupon rate exceeds its financing rate, but two nuances matter: (i) coupon income accrues on face value while repo interest is paid on the full (dirty) price, and (ii) the day count used for coupon accrual can differ from the day count used for repo interest.
 
 **Check (toy scaling; points vs dollars):** Suppose you own $N=100$ mm USD face of a 6% coupon bond priced at a dirty price of 103.30 (so you financed about 103.3 mm USD). Over a 30-day horizon with no coupon date, approximate coupon accrual (using a simple 30/360-style fraction for the toy calculation) is:
 
-Income $\approx 100\text{ mm}\times 6\% \times \frac{30}{360}=500{,}000$ USD,
+Income $\approx 100\text{ mm}\times 6\\% \times \frac{30}{360}=500{,}000$ USD,
 
-while repo interest at $r=4.50\%$ (Act/360 in this toy) is:
+while repo interest at $r=4.50\\%$ (Act/360 in this toy) is:
 
-Financing $\approx 103.3\text{ mm}\times 4.50\% \times \frac{30}{360}\approx 387{,}375$ USD.
+Financing $\approx 103.3\text{ mm}\times 4.50\\% \times \frac{30}{360}\approx 387{,}375$ USD.
 
-Net carry is about 112,625 USD. Converting that to **price points per 100**: one price point is $1\%$ of face, i.e., 1,000,000 USD per 100 mm USD notional, so 112,625 USD is about 0.1126 points.
+Net carry is about 112,625 USD. Converting that to **price points per 100**: one price point is $1\\%$ of face, i.e., 1,000,000 USD per 100 mm USD notional, so 112,625 USD is about 0.1126 points.
 
 ### 7.2.3 Breakeven Price Moves
 
@@ -165,13 +165,19 @@ Carry enables a critical calculation: how much can the bond's price fall before 
 >
 > **Result**: You can survive a 10bp adverse move in rates over the next month and still break even.
 
-**Worked example:** An investor purchases a $5\frac{7}{8}\%$ Treasury at invoice price 105.103073 and holds for 30 days at a 5.10% repo rate. The carry calculation proceeds:
+**Worked example:** An investor purchases a $5\frac{7}{8}\\%$ Treasury at invoice price 105.103073 and holds for 30 days at a 5.10% repo rate. The carry calculation proceeds:
 
 **Interest income** (30 days in a 181-day coupon period):
-$$100{,}000{,}000 \times \frac{1}{2} \times 5.875\% \times \frac{30}{181} = 486{,}878\ \text{USD}$$
+
+$$
+100{,}000{,}000 \times \frac{1}{2} \times 5.875\\% \times \frac{30}{181} = 486{,}878\ \text{USD}
+$$
 
 **Financing cost**:
-$$100{,}000{,}000 \times 105.103073\% \times 5.10\% \times \frac{30}{360} = 446{,}688\ \text{USD}$$
+
+$$
+100{,}000{,}000 \times 105.103073\\% \times 5.10\\% \times \frac{30}{360} = 446{,}688\ \text{USD}
+$$
 
 **Carry** = 486,878 - 446,688 = 40,190 USD
 
@@ -237,7 +243,7 @@ Important caveat: this “pull-to-par” intuition is a *holding-yields-constant
 
 For this chapter, we define rolldown as a counterfactual: what would the clean price be at the horizon if the yield curve and spread remained unchanged?
 
-$$P_h^{\text{uc}} := P_{\text{clean}}(h; \, z_0(\cdot), \, s_0)$$
+$$P_h^{\text{uc}} := P_{\text{clean}}(h; \\, z_0(\cdot), \\, s_0)$$
 
 where cashflow times are shortened by the passage of time, but the term structures $z_0(\cdot)$ (benchmark curve) and $s_0$ (spread) are held fixed.
 
@@ -278,10 +284,16 @@ A central question in fixed income is: should I buy a long-maturity bond and hol
 **The Derivation:**
 
 Strategy A terminal value:
-$$V_A = (1 + \hat{r}(1)/2)^2$$
+
+$$
+V_A = (1 + \hat{r}(1)/2)^2
+$$
 
 Strategy B terminal value:
-$$V_B = (1 + \hat{r}(0.5)/2) \times (1 + r_{0.5}/2)$$
+
+$$
+V_B = (1 + \hat{r}(0.5)/2) \times (1 + r_{0.5}/2)
+$$
 
 where $r_{0.5}$ is the 6-month spot rate realized 6 months from now.
 
@@ -306,12 +318,12 @@ $$\boxed{r_{0.5}^{\text{breakeven}} = f(0.5,1)}$$
 **Worked Example:**
 
 Suppose:
-- 6-month spot rate: $\hat{r}(0.5) = 5.00\%$
-- 1-year spot rate: $\hat{r}(1) = 5.50\%$
+- 6-month spot rate: $\hat{r}(0.5) = 5.00\\%$
+- 1-year spot rate: $\hat{r}(1) = 5.50\\%$
 
 The implied 6-month forward rate starting in 6 months:
 
-$$f(0.5,1) = 2 \left[ \frac{(1.0275)^2}{1.025} - 1 \right] = 2 \left[ \frac{1.055756}{1.025} - 1 \right] \approx 2 \times 0.030004 = 6.00\%$$
+$$f(0.5,1) = 2 \left[ \frac{(1.0275)^2}{1.025} - 1 \right] = 2 \left[ \frac{1.055756}{1.025} - 1 \right] \approx 2 \times 0.030004 = 6.00\\%$$
 
 **Interpretation:**
 - If the 6-month rate in 6 months is **above 6.00%**, Strategy B (roll) wins.
@@ -361,7 +373,7 @@ $$P_{0.5} = \frac{100}{(1 + 0.042/2)^3} = 93.956$$
 
 **Rolldown return** (6-month holding):
 
-$$\frac{93.956 - 91.484}{91.484} = 2.70\%$$
+$$\frac{93.956 - 91.484}{91.484} = 2.70\\%$$
 
 Annualized, this is roughly 5.4%—significantly more than the 4.50% yield would suggest from "holding to maturity" logic.
 
@@ -378,7 +390,7 @@ The risk is **curve flattening**. If the 1.5-year yield rises to 4.50% while you
 
 $$P_{0.5}^{\text{flat}} = \frac{100}{(1 + 0.045/2)^3} = 93.543$$
 
-Return: $\frac{93.543 - 91.484}{91.484} = 2.25\%$ (annualized ~4.5%)
+Return: $\frac{93.543 - 91.484}{91.484} = 2.25\\%$ (annualized ~4.5%)
 
 You've earned less than the initial yield—the curve flattening eroded your rolldown.
 
@@ -407,7 +419,7 @@ But this breakeven logic does *not* imply that forward rates are forecasts of fu
 
 A common framing of the wedge in expected-return terms: risk-neutral investors require an expected return equal to the short rate, while risk-averse investors demand a risk premium proportional to interest-rate risk (often proxied by duration). In a stylized formulation:
 
-$$E\\!\left[\frac{dP}{P}\right] + \frac{c\,dt}{P} = r\,dt + \lambda D\,dt$$
+$$E\\!\left[\frac{dP}{P}\right] + \frac{c\\,dt}{P} = r\\,dt + \lambda D\\,dt$$
 
 From a data perspective, there is an identification problem: increasing the risk premium by a fixed amount can be empirically indistinguishable from increasing the expected path of short rates by the same amount. So the term structure at a point in time does not, by itself, uniquely separate “expectations” from “risk premium.”
 
@@ -429,7 +441,7 @@ Once we have the rolldown (unchanged curve/spread), we can isolate the impact of
 
 The curve effect is the price change attributable to the benchmark curve moving while spread is held fixed:
 
-$$\boxed{\text{Curve effect} := P_{\text{clean}}(h; \, z_1(\cdot), \, s_0) - P_{\text{clean}}(h; \, z_0(\cdot), \, s_0)}$$
+$$\boxed{\text{Curve effect} := P_{\text{clean}}(h; \\, z_1(\cdot), \\, s_0) - P_{\text{clean}}(h; \\, z_0(\cdot), \\, s_0)}$$
 
 This is an exact calculation using full repricing.
 
@@ -443,7 +455,7 @@ $$\boxed{DV01 := P(y-1\text{bp})-P(y) \approx -\frac{\partial P}{\partial y}\cdo
 
 **Curve-bump DV01 for attribution (bump object):** in this chapter’s curve/spread decomposition, the object being “bumped” is the **benchmark curve** $z(\cdot)$ (parallel shift), holding the spread $s$ fixed. Define the curve DV01 at a valuation point (e.g., at horizon $h$) by:
 
-$$\boxed{DV01_z(h) := P_{\text{clean}}(h;\,z(\cdot)-1\text{bp},\,s)-P_{\text{clean}}(h;\,z(\cdot),\,s)}$$
+$$\boxed{DV01_z(h) := P_{\text{clean}}(h;\\,z(\cdot)-1\text{bp},\\,s)-P_{\text{clean}}(h;\\,z(\cdot),\\,s)}$$
 
 Units: **price points per 1bp per 100 notional** (multiply by $N/100$ to convert to currency DV01 for notional $N$).
 
@@ -471,7 +483,7 @@ The convexity term is always positive for option-free bonds: the price-yield rel
 
 After accounting for curve moves, any remaining price change comes from spread changes. Holding the benchmark curve fixed at its horizon value:
 
-$$\boxed{\text{Spread effect} := P_{\text{clean}}(h; \, z_1(\cdot), \, s_1) - P_{\text{clean}}(h; \, z_1(\cdot), \, s_0)}$$
+$$\boxed{\text{Spread effect} := P_{\text{clean}}(h; \\, z_1(\cdot), \\, s_1) - P_{\text{clean}}(h; \\, z_1(\cdot), \\, s_0)}$$
 
 where $s_0$ and $s_1$ are the spread at time 0 and horizon, respectively.
 
@@ -481,7 +493,7 @@ Just as curve effects can be approximated by a curve DV01, spread effects can be
 
 **Definition (bump object):** Define DVOAS as the sensitivity of model price to a 1bp **decrease** in OAS, computed analogously to DV01 (central difference). In this chapter we use the same “tightening bump” convention for any additive spread $s$ (Z-spread or OAS, as stated):
 
-$$\boxed{\text{DVOAS}(h) := P_{\text{clean}}(h;\,z(\cdot),\,s-1\text{bp})-P_{\text{clean}}(h;\,z(\cdot),\,s)}$$
+$$\boxed{\text{DVOAS}(h) := P_{\text{clean}}(h;\\,z(\cdot),\\,s-1\text{bp})-P_{\text{clean}}(h;\\,z(\cdot),\\,s)}$$
 
 Units: **price points per 1bp per 100 notional** (multiply by $N/100$ for currency DVOAS on notional $N$).
 
@@ -516,10 +528,10 @@ Z-spread definitions can vary by compounding convention (discrete vs continuous)
 The clean price change can be decomposed *exactly* into rolldown, curve effect, and spread effect using intermediate counterfactual prices. Define:
 
 $$\begin{aligned}
-P_0 &:= P_{\text{clean}}(0; \, z_0, s_0) \\
-P_h^{\text{uc}} &:= P_{\text{clean}}(h; \, z_0, s_0) \quad \text{(unchanged curve/spread)} \\
-P_h^{\text{curve}} &:= P_{\text{clean}}(h; \, z_1, s_0) \quad \text{(curve moved only)} \\
-P_h^{\text{actual}} &:= P_{\text{clean}}(h; \, z_1, s_1) \quad \text{(actual)}
+P_0 &:= P_{\text{clean}}(0; \\, z_0, s_0) \\
+P_h^{\text{uc}} &:= P_{\text{clean}}(h; \\, z_0, s_0) \quad \text{(unchanged curve/spread)} \\
+P_h^{\text{curve}} &:= P_{\text{clean}}(h; \\, z_1, s_0) \quad \text{(curve moved only)} \\
+P_h^{\text{actual}} &:= P_{\text{clean}}(h; \\, z_1, s_1) \quad \text{(actual)}
 \end{aligned}$$
 
 Then:
@@ -545,7 +557,7 @@ $$\text{Residual} = \Delta P_{\text{exact}} - \Delta P_{\text{DV01}}$$
 This residual captures:
 
 1. **Convexity**: The price-yield relationship is curved; linear approximations miss second-order effects
-2. **Cross-terms**: If both curve and spread move, a Taylor expansion includes a $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ interaction term
+2. **Cross-terms**: If both curve and spread move, a Taylor expansion includes a $\frac{\partial^2 P}{\partial z \\,\partial s} \cdot dz \cdot ds$ interaction term
 3. **Non-parallel moves**: DV01 assumes parallel shifts; actual curve changes may twist or butterfly
 
 A second-order expansion explains why the residual tends to shrink for smaller shocks and grow with longer duration, higher convexity, and larger rate/spread moves.
@@ -562,7 +574,7 @@ For a corporate bond, that can produce offsetting first-order components:
 
 Two additional effects then make attribution harder:
 1. **Big moves:** both first-order and second-order approximations work well for very small changes in rate; for larger changes the second-order (convexity-adjusted) approximation works better, but for very large changes it, too, can fail.
-2. **Joint moves:** when both the curve and the spread move, a second-order expansion includes an interaction term proportional to $dz\,ds$ (often called a “cross-gamma”).
+2. **Joint moves:** when both the curve and the spread move, a second-order expansion includes an interaction term proportional to $dz\\,ds$ (often called a “cross-gamma”).
 
 When the residual in your P&L explain becomes large, treat DV01/DVOAS × bp as a rough approximation and lean on **exact repricing** via counterfactual curves (curve-only, spread-only) to validate the explain.
 
@@ -674,7 +686,7 @@ $$PL = P_{\text{dirty}}(h) - P_{\text{dirty}}(0) = 104.00 - 103.30 = 0.70$$
 
 **Holding-period return (on dirty price):**
 
-$$R = \frac{0.70}{103.30} = 0.00678 \approx 0.678\%$$
+$$R = \frac{0.70}{103.30} = 0.00678 \approx 0.678\\%$$
 
 **Decompose into price vs income:**
 - Clean price change: $\Delta P_{\text{clean}} = 101.50 - 101.80 = -0.30$
@@ -699,7 +711,7 @@ $$PL = P_{\text{dirty}}(h) + C - P_{\text{dirty}}(0) = 101.70 + 3.00 - 103.30 = 
 
 **Holding-period return:**
 
-$$R = \frac{1.40}{103.30} = 0.0136 \approx 1.36\%$$
+$$R = \frac{1.40}{103.30} = 0.0136 \approx 1.36\\%$$
 
 **Decompose:**
 - Clean price change: $101.20 - 101.80 = -0.60$
@@ -714,7 +726,7 @@ Use the same bond and start point as Example A:
 - $P_{\text{clean}}(0) = 101.80$, $AI(0) = 1.50$, so $P_{\text{dirty}}(0) = 103.30$
 
 **Repo carry identity (with 360-day basis for repo interest):**
-- Assume repo rate $r = 4.50\% = 0.045$
+- Assume repo rate $r = 4.50\\% = 0.045$
 
 #### Horizon B1: Jan 30 → Mar 30 (60 days; no coupon)
 
@@ -737,8 +749,8 @@ $$\text{Fin} = 103.30 \cdot 0.045 \cdot \frac{1}{6} = 103.30 \cdot 0.0075 = 0.77
 $$\text{Carry}_{\text{repo}} = 1.00 - 0.77475 = 0.22525$$
 
 **Carry returns (on initial dirty price):**
-- Unfunded: $1.00 / 103.30 = 0.968\%$
-- Repo-funded: $0.22525 / 103.30 = 0.218\%$
+- Unfunded: $1.00 / 103.30 = 0.968\\%$
+- Repo-funded: $0.22525 / 103.30 = 0.218\\%$
 
 #### Horizon B2: Jan 30 → May 30 (120 days; one coupon)
 
@@ -757,8 +769,8 @@ $$103.30 \cdot 0.045 \cdot \frac{120}{360} = 103.30 \cdot 0.045 \cdot \frac{1}{3
 $$2.00 - 1.5495 = 0.4505$$
 
 **Carry returns:**
-- Unfunded: $2.00 / 103.30 = 1.936\%$
-- Repo-funded: $0.4505 / 103.30 = 0.436\%$
+- Unfunded: $2.00 / 103.30 = 1.936\\%$
+- Repo-funded: $0.4505 / 103.30 = 0.436\\%$
 
 ---
 
@@ -782,7 +794,7 @@ Here we compute rolldown = clean price change under unchanged curve/spread, excl
 | 1.5 | 4.35% |
 | 2.0 | 4.50% |
 
-**Spread measure:** Z-spread $s_0 = 1.00\%$ (100bp), additive to benchmark rates
+**Spread measure:** Z-spread $s_0 = 1.00\\%$ (100bp), additive to benchmark rates
 
 **Total discount rates:** $y(t) = z(t) + s_0$
 
@@ -804,9 +816,17 @@ Here we compute rolldown = clean price change under unchanged curve/spread, excl
 
 **Start clean price $P_0^{\text{clean}}$ (exact repricing):**
 
-$$P_0^{\text{clean}} = 2.5 \cdot df(0.5) + 2.5 \cdot df(1.0) + 2.5 \cdot df(1.5) + 102.5 \cdot df(2.0)$$
-$$= 2.43902439 + 2.37489978 + 2.30964841 + 91.95948770$$
-$$= 99.08306029$$
+$$
+P_0^{\text{clean}} = 2.5 \cdot df(0.5) + 2.5 \cdot df(1.0) + 2.5 \cdot df(1.5) + 102.5 \cdot df(2.0)
+$$
+
+$$
+= 2.43902439 + 2.37489978 + 2.30964841 + 91.95948770
+$$
+
+$$
+= 99.08306029
+$$
 
 **Horizon:** $h = 0.5$ years (Jan 30, 2027), coupon date ⇒ clean pricing, $AI(h) = 0$.
 
@@ -815,9 +835,17 @@ Under unchanged curve/spread, remaining cashflows from horizon are at 0.5, 1.0, 
 
 **Horizon clean price under unchanged curve/spread:**
 
-$$P_h^{\text{uc}} = 2.5 \cdot df(0.5) + 2.5 \cdot df(1.0) + 102.5 \cdot df(1.5)$$
-$$= 2.43902439 + 2.37489978 + 94.69558489$$
-$$= 99.50950906$$
+$$
+P_h^{\text{uc}} = 2.5 \cdot df(0.5) + 2.5 \cdot df(1.0) + 102.5 \cdot df(1.5)
+$$
+
+$$
+= 2.43902439 + 2.37489978 + 94.69558489
+$$
+
+$$
+= 99.50950906
+$$
 
 **Rolldown (clean price):**
 
@@ -825,7 +853,7 @@ $$\boxed{\text{Rolldown} = P_h^{\text{uc}} - P_0^{\text{clean}} = 99.50950906 - 
 
 **Rolldown return on initial price:**
 
-$$0.42644877 / 99.08306029 = 0.4304\%$$
+$$0.42644877 / 99.08306029 = 0.4304\\%$$
 
 ---
 
@@ -834,9 +862,9 @@ $$0.42644877 / 99.08306029 = 0.4304\%$$
 Use the start-date bond and curve from Example C.
 
 **Shock:**
-- Benchmark curve shifts up +10bp at all maturities: $z'(t) = z(t) + 0.10\%$
-- Spread stays $s_0 = 1.00\%$
-- Total discount rates become: $y'(0.5) = 5.10\%$, $y'(1.0) = 5.30\%$, $y'(1.5) = 5.45\%$, $y'(2.0) = 5.60\%$
+- Benchmark curve shifts up +10bp at all maturities: $z'(t) = z(t) + 0.10\\%$
+- Spread stays $s_0 = 1.00\\%$
+- Total discount rates become: $y'(0.5) = 5.10\\%$, $y'(1.0) = 5.30\\%$, $y'(1.5) = 5.45\\%$, $y'(2.0) = 5.60\\%$
 
 **Exact repricing:**
 
@@ -895,8 +923,8 @@ We use a Z-spread/ZVS-style definition: spread $s$ added to benchmark discount r
 
 **Shock:**
 - Benchmark curve $z(t)$ unchanged
-- Spread widens: $s_1 = s_0 + 25\text{bp} = 1.25\%$
-- New total rates: $y(0.5) = 5.25\%$, $y(1.0) = 5.45\%$, $y(1.5) = 5.60\%$, $y(2.0) = 5.75\%$
+- Spread widens: $s_1 = s_0 + 25\text{bp} = 1.25\\%$
+- New total rates: $y(0.5) = 5.25\\%$, $y(1.0) = 5.45\\%$, $y(1.5) = 5.60\\%$, $y(2.0) = 5.75\\%$
 
 **Exact repricing:**
 
@@ -964,7 +992,7 @@ Using the same second-difference logic, the convexity correction for $\Delta s =
 - Instrument: 5.00% annual coupon bond, semiannual coupons, face 100, maturity Jul 30, 2028 (2.0y from trade date)
 - Pricing conventions: prices per 100 notional; discounting uses semiannual-compounded rates
 - Curves/spreads: use the benchmark zero curve and additive Z-spread from Example C
-- Financing (repo-funded variant): repo rate $r=4.50\%$ with money-market style $d/360$ accrual
+- Financing (repo-funded variant): repo rate $r=4.50\\%$ with money-market style $d/360$ accrual
 
 **Outputs (What You Produce)**
 - Clean-price components (per 100): carry (unfunded and repo-funded), rolldown, curve effect, spread effect, residual
@@ -1010,7 +1038,7 @@ Use the bond and initial curve/spread from Example C.
 
 $$\text{Carry}_{\text{unfunded}} = 2.50 + AI(1) - AI(0) = 2.50$$
 
-**Repo-funded carry (if financed at repo $r = 4.50\%$, 30/360):**
+**Repo-funded carry (if financed at repo $r = 4.50\\%$, 30/360):**
 
 $$\text{Fin} = P_0^{\text{dirty}} \cdot r\frac{d}{360} = 99.08306029 \cdot 0.045 \cdot \frac{180}{360} = 99.08306029 \cdot 0.0225 = 2.22936886$$
 
@@ -1062,7 +1090,7 @@ $$PL_{\text{unfunded}} = (P_1^{\text{actual}} - P_0) + 2.50 = 0.10092367 + 2.50 
 
 Return on dirty price:
 
-$$R_{\text{unfunded}} = \frac{2.60092367}{99.08306029} = 2.6250\% \text{ over 6 months}$$
+$$R_{\text{unfunded}} = \frac{2.60092367}{99.08306029} = 2.6250\\% \text{ over 6 months}$$
 
 **Repo-funded P&L (on full price; ignoring haircut/leverage):**
 
@@ -1070,7 +1098,7 @@ $$PL_{\text{repo}} = (P_1^{\text{actual}} - P_0) + 0.27063114 = 0.37155481$$
 
 Return on full price:
 
-$$R_{\text{repo}} = \frac{0.37155481}{99.08306029} = 0.3750\% \text{ over 6 months}$$
+$$R_{\text{repo}} = \frac{0.37155481}{99.08306029} = 0.3750\\% \text{ over 6 months}$$
 
 (Return on equity depends on haircut/leverage; not specified here.)
 
@@ -1239,7 +1267,7 @@ This chapter developed a complete framework for decomposing bond returns:
 | DV01 | PV change for a 1bp **decline** in the stated rate/curve bump object (units: price points per bp per 100) | First-order approximation for rate moves and hedges |
 | DVOAS | PV change for a 1bp **tightening** in the stated spread/OAS bump object (units: price points per bp per 100) | First-order approximation for spread moves and hedges |
 | Residual | Exact minus approximate | Convexity + cross-terms + model error |
-| Cross-gamma | $\frac{\partial^2 P}{\partial z \,\partial s}$ (interaction between curve and spread) | Interaction term; can matter when curve and spreads move together |
+| Cross-gamma | $\frac{\partial^2 P}{\partial z \\,\partial s}$ (interaction between curve and spread) | Interaction term; can matter when curve and spreads move together |
 
 ---
 
@@ -1290,7 +1318,7 @@ This chapter developed a complete framework for decomposing bond returns:
 | 18 | Why can carry+rolldown be positive while realized P&L is negative? | Adverse curve and/or spread moves can overwhelm carry and rolldown |
 | 19 | What is the "riding the yield curve" trade? | Buy long-maturity bonds, hold as they age into lower-yield territory (on a steep curve), sell for capital gain |
 | 20 | When does riding the yield curve fail? | When the curve flattens or inverts; the aging bond rolls into higher yields, producing capital losses |
-| 21 | What is cross-gamma and when does it matter? | $\frac{\partial^2 P}{\partial z \,\partial s}$; matters when curve and spreads move together (often in stress regimes) |
+| 21 | What is cross-gamma and when does it matter? | $\frac{\partial^2 P}{\partial z \\,\partial s}$; matters when curve and spreads move together (often in stress regimes) |
 | 22 | When should you distrust your P&L decomposition? | When the residual is a meaningful fraction of total P&L; indicates non-parallel moves, convexity/cross-terms, or model mismatch |
 | 23 | Why does positive carry not imply superior expected return? | Premium bonds have positive carry but prices pulled down toward par; discount bonds have negative carry but prices pulled up |
 | 24 | What is a breakeven price change? | The price move that exactly offsets carry, resulting in zero P&L |
@@ -1337,7 +1365,7 @@ This chapter developed a complete framework for decomposing bond returns:
 
 **2.** Semiannual coupon $= 3.00$. AI $= 3.00 \cdot (120/180) = 2.00$
 
-**3.** Dirty start $= 103.30$. Dirty end $= 104.00$. P&L $= 0.70$. Return $= 0.70/103.30 \approx 0.678\%$
+**3.** Dirty start $= 103.30$. Dirty end $= 104.00$. P&L $= 0.70$. Return $= 0.70/103.30 \approx 0.678\\%$
 
 **4.** Financing cost $= 103.30 \cdot 0.045 \cdot (60/360) = 0.77475$. Repo-funded carry $= 1.00 - 0.77475 = 0.22525$
 
@@ -1347,15 +1375,15 @@ This chapter developed a complete framework for decomposing bond returns:
 
 **7.** Define $P_0 = P_{\text{clean}}(0; z_0, s_0)$, $P_h^{\text{uc}} = P_{\text{clean}}(h; z_0, s_0)$, $P_h^{\text{curve}} = P_{\text{clean}}(h; z_1, s_0)$, $P_h^{\text{actual}} = P_{\text{clean}}(h; z_1, s_1)$. Then rolldown $= P_h^{\text{uc}} - P_0$, curve effect $= P_h^{\text{curve}} - P_h^{\text{uc}}$, spread effect $= P_h^{\text{actual}} - P_h^{\text{curve}}$, and they sum to $P_h^{\text{actual}} - P_0$.
 
-**8.** Forward rate: $f = 2[(1.0275)^2/1.025 - 1] \approx 6.00\%$. Interpretation: If the 6-month rate in 6 months equals about 6.00%, buying the 1-year zero produces the same return as rolling 6-month zeros.
+**8.** Forward rate: $f = 2[(1.0275)^2/1.025 - 1] \approx 6.00\\%$. Interpretation: If the 6-month rate in 6 months equals about 6.00%, buying the 1-year zero produces the same return as rolling 6-month zeros.
 
 **9.** (1) Adverse curve moves can overwhelm positive carry; (2) Spread widening can dominate all other components. Carry+rolldown is conditional on "nothing happening," which is rarely the case.
 
 **10.** The skeptic would argue: "The upward-sloping curve reflects term premium—investors demand extra yield for duration risk. Your 'rolldown earnings' are compensation for that risk, not skill. When term premium inverts or compresses, you'll give it all back."
 
-**11.** Rates falling → positive curve effect (long bond gains). Spreads widening → negative spread effect (corporate loses credit value). Net effect depends on magnitudes. The residual may be large because the two moves are correlated (flight-to-quality), so the interaction term $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ becomes significant.
+**11.** Rates falling → positive curve effect (long bond gains). Spreads widening → negative spread effect (corporate loses credit value). Net effect depends on magnitudes. The residual may be large because the two moves are correlated (flight-to-quality), so the interaction term $\frac{\partial^2 P}{\partial z \\,\partial s} \cdot dz \cdot ds$ becomes significant.
 
-**12.** A cross-term $\frac{\partial^2 P}{\partial z \,\partial s} \cdot dz \cdot ds$ appears in the second-order expansion, representing the interaction between curve and spread moves.
+**12.** A cross-term $\frac{\partial^2 P}{\partial z \\,\partial s} \cdot dz \cdot ds$ appears in the second-order expansion, representing the interaction between curve and spread moves.
 
 **13.** Is that income-only carry or net carry? What repo rate assumption? What day count? Annualized how (simple or compounded)? Is it carry per 100 face or per dollar invested?
 

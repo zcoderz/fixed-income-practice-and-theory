@@ -302,7 +302,7 @@ This section provides the rigorous mathematical framework underlying multi-curve
 
 The OIS floating payment at maturity $T$ is derived from compounding daily overnight rates. The compounded growth factor is:
 
-$$\boxed{R_{01}(t,T) = \prod_{i=1}^{M}\bigl(1 + f_{i-1}\,\tau_i\bigr),}$$
+$$\boxed{R_{01}(t,T) = \prod_{i=1}^{M}\bigl(1 + f_{i-1}\\,\tau_i\bigr),}$$
 
 where $f_i$ are daily overnight rates and $\tau_i$ are day-count fractions. The floating payment is $\displaystyle\frac{R_{01}(0,T) - 1}{\tau(0,T)}$ (scaled by accrual).
 
@@ -314,13 +314,13 @@ When OIS rates are used for discounting, you must build a zero curve from OIS ra
 
 Generic swap PV is a sum of discounted net cashflows:
 
-$$V_{\text{swap}}(t) = \sum_n \tau_n\,P(t,T_{n+1})\,(L_n(t) - k_n),$$
+$$V_{\text{swap}}(t) = \sum_n \tau_n\\,P(t,T_{n+1})\\,(L_n(t) - k_n),$$
 
 where $P(t,T)$ is the discount factor and $L_n$ comes from the relevant projection curve.
 
 Under multi-curve, a clean "rates-only" PV (per notional) is:
 
-$$PV_{\text{swap}}(0) = \sum_{i=1}^{n} \tau_i\,P_d(0,T_i)\bigl(L_{\text{IBOR}}(0,T_{i-1},T_i) - K\bigr).$$
+$$PV_{\text{swap}}(0) = \sum_{i=1}^{n} \tau_i\\,P_d(0,T_i)\bigl(L_{\text{IBOR}}(0,T_{i-1},T_i) - K\bigr).$$
 
 Discount vs projection appears explicitly:
 - $P_d(0,T_i)$ — discount curve
@@ -330,7 +330,7 @@ Discount vs projection appears explicitly:
 
 Setting $PV_{\text{swap}}(0) = 0$ and solving:
 
-$$\boxed{K_{\text{par}}^{\text{(multi)}} = \frac{\sum_{i=1}^{n} \tau_i P_d(0,T_i)\,L_{\text{IBOR}}(0,T_{i-1},T_i)}{\sum_{i=1}^{n} \tau_i P_d(0,T_i)}.}$$
+$$\boxed{K_{\text{par}}^{\text{(multi)}} = \frac{\sum_{i=1}^{n} \tau_i P_d(0,T_i)\\,L_{\text{IBOR}}(0,T_{i-1},T_i)}{\sum_{i=1}^{n} \tau_i P_d(0,T_i)}.}$$
 
 This is the "discounted average" of projected forwards.
 
@@ -343,7 +343,7 @@ This is the "discounted average" of projected forwards.
 
 A floating–floating basis swap exchanges floating payments linked to two indices $L_1$ and $L_2$, typically plus a quoted spread $e$ on one leg. At par, PV of legs must match:
 
-$$\sum_i L_2(0,t_i^2,t_{i+1}^2)\,\tau_i^2\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{12}(T)\bigr)\,\tau_i^1\,P(t_{i+1}^1)$$
+$$\sum_i L_2(0,t_i^2,t_{i+1}^2)\\,\tau_i^2\\,P(t_{i+1}^2) = \sum_i \bigl(L_1(0,t_i^1,t_{i+1}^1) + e_{12}(T)\bigr)\\,\tau_i^1\\,P(t_{i+1}^1)$$
 
 with `e12(T)` quoted on the $L_1$ leg and possibly positive or negative.
 
@@ -367,7 +367,7 @@ $$\boxed{\text{Basis PV01} = -N\Bigl(\sum_i \tau_i P_d(0,T_i)\Bigr) \cdot 10^{-4
 
 **Discount PV01** (finite-difference definition):
 
-$$PV01_{\text{discount}} \equiv PV(P_{d,+1\text{bp}}, \{L_k\}) - PV(P_d, \{L_k\}),$$
+$$PV01_{\text{discount}} \equiv PV(P_{d,+1\text{bp}}, \\{L_k\\}) - PV(P_d, \\{L_k\\}),$$
 
 where only the discount curve is bumped.
 
@@ -403,7 +403,7 @@ At delivery, the forward price equals the spot price (carry equals zero), so gro
 
 > **Pitfall — Gross vs. net basis (carry double-counting):** Gross basis is a spot–futures gap; net basis adjusts gross basis for carry/financing to delivery.
 > **Why it matters:** If you forecast/mark P&L using net basis changes, and then separately add “carry”, you can overstate expected returns and mis-size leverage.
-> **Quick check:** If you compute P&L as $G^i\,[NB^i(t')-NB^i(t)]$ (or its short-basis analog), stop—do **not** add coupon minus repo carry again unless you are using *gross* basis consistently.
+> **Quick check:** If you compute P&L as $G^i\\,[NB^i(t')-NB^i(t)]$ (or its short-basis analog), stop—do **not** add coupon minus repo carry again unless you are using *gross* basis consistently.
 
 ### 28.4.2 The Long Basis Trade Construction
 
@@ -645,8 +645,8 @@ Even outside marquee crisis windows, funding liquidity can tighten abruptly. For
 - Force deleveraging if the financing horizon shortens or haircuts rise.
 
 **Toy sizing example (illustrative, not historical):** financing USD1 billion overnight, moving repo from 2% to 10% changes daily interest cost from
-- $USD1\text{bn} \times 2\% \times (1/360) = USD55{,}556$ per day to
-- $USD1\text{bn} \times 10\% \times (1/360) = USD277{,}778$ per day,
+- $USD1\text{bn} \times 2\\% \times (1/360) = USD55{,}556$ per day to
+- $USD1\text{bn} \times 10\\% \times (1/360) = USD277{,}778$ per day,
 an extra USD222{,}222 per day. On a trade targeting a few ticks/bp of convergence, that can dominate the economics.
 
 Lesson: term repo reduces funding cliff risk but usually costs more; sizing needs to reflect the worst plausible funding path, not just the expected convergence.
@@ -790,10 +790,12 @@ and quantify PV and par-rate differences.
 - Swap direction: pay fixed $K$, receive floating IBOR.
 
 **Legacy single-curve inputs (IBOR curve):** discount factors
+
 $$P_L(0,1) = 0.9650,\quad P_L(0,2) = 0.9250,\quad P_L(0,3) = 0.8850.$$
 
 **Multi-curve inputs:**
 - Discount factors (OIS):
+
 $$P_d(0,1) = 0.9700,\quad P_d(0,2) = 0.9400,\quad P_d(0,3) = 0.9100.$$
 
 - Projection forwards (IBOR) taken from the legacy curve via simple no-arb identities:
@@ -808,14 +810,15 @@ $$P_d(0,1) = 0.9700,\quad P_d(0,2) = 0.9400,\quad P_d(0,3) = 0.9100.$$
 Use the par swap-rate concept (floating leg at par implies fixed leg at par).
 
 **Annuity:**
+
 $$A_L = \sum_{i=1}^{3} \tau_i P_L(0,T_i) = 0.9650 + 0.9250 + 0.8850 = 2.7750.$$
 
 **Float PV (single-curve):** $1 - P_L(0,3) = 1 - 0.8850 = 0.1150$.
 
-**Par fixed rate:** $K_{\text{par}}^{\text{(single)}} = \frac{0.1150}{2.7750} = 0.04144 \approx 4.144\%$.
+**Par fixed rate:** $K_{\text{par}}^{\text{(single)}} = \frac{0.1150}{2.7750} = 0.04144 \approx 4.144\\%$.
 
 Define the "same swap" as the contractual fixed rate:
-$K \equiv 4.144\%$.
+$K \equiv 4.144\\%$.
 
 #### A.3 Step 2 — Price the Same Swap Under Legacy Single-Curve
 
@@ -824,6 +827,7 @@ Because $K$ is the single-curve par rate, $PV_{\text{single}} = 0$ (by construct
 #### A.4 Step 3 — Price Under Multi-Curve (OIS Discounting, IBOR Projection)
 
 PV per unit notional (toy linear PV):
+
 $$PV_{\text{multi}}(0) = \sum_{i=1}^{3} \tau_i P_d(0,T_i)\bigl(L(0,T_{i-1},T_i) - K\bigr).$$
 
 Compute each term:
@@ -846,7 +850,7 @@ So: $PV_{\text{multi}} \approx 0.000095 \times 1{,}000{,}000 = USD95$.
 
 **Multi-curve numerator:** $\sum P_d L = 0.9700(0.036269) + 0.9400(0.043243) + 0.9100(0.045197) = 0.116959$.
 
-**Multi-curve par rate:** $K_{\text{par}}^{\text{(multi)}} = \frac{0.116959}{2.8200} = 0.041475 \approx 4.1475\%$.
+**Multi-curve par rate:** $K_{\text{par}}^{\text{(multi)}} = \frac{0.116959}{2.8200} = 0.041475 \approx 4.1475\\%$.
 
 #### A.6 Interpretation ("Discount vs Projection Basis")
 
@@ -863,16 +867,19 @@ So: $PV_{\text{multi}} \approx 0.000095 \times 1{,}000{,}000 = USD95$.
 
 - Notional $N = USD1{,}000{,}000$.
 - Maturity $T = 2$ years.
-- Semiannual payments: $T = \{0.5, 1.0, 1.5, 2.0\}$, $\tau = 0.5$.
+- Semiannual payments: $T = \\{0.5, 1.0, 1.5, 2.0\\}$, $\tau = 0.5$.
 
 **Discounting curve:** OIS discount factors (toy):
-$$P_d(0,0.5) = 0.9850,\; P_d(0,1) = 0.9700,\; P_d(0,1.5) = 0.9550,\; P_d(0,2) = 0.9400.$$
+
+$$P_d(0,0.5) = 0.9850,\\; P_d(0,1) = 0.9700,\\; P_d(0,1.5) = 0.9550,\\; P_d(0,2) = 0.9400.$$
 
 **Projection curves:**
 - IBOR-6M forwards (toy inputs):
+
 $$L_{\text{IBOR}} = (0.0360, 0.0380, 0.0400, 0.0410) \text{ for the four periods}$$
 
 - OIS forwards (implied from discount factors; simple-comp, consistent with the curve):
+
 $$L_{\text{OIS}}(0,T_{i-1},T_i) = \frac{1}{\tau}\Bigl(\frac{P_d(0,T_{i-1})}{P_d(0,T_i)} - 1\Bigr).$$
 
 **Quoting convention (must be explicit):**
@@ -887,23 +894,28 @@ We define:
 Using $\tau = 0.5$:
 
 - $0 \to 0.5$:
-$$L_{\text{OIS}} = \frac{1}{0.5}\Bigl(\frac{1}{0.9850} - 1\Bigr) = 2(1.015228 - 1) = 0.030456 = 3.0456\%.$$
+
+$$L_{\text{OIS}} = \frac{1}{0.5}\Bigl(\frac{1}{0.9850} - 1\Bigr) = 2(1.015228 - 1) = 0.030456 = 3.0456\\%.$$
 
 - $0.5 \to 1.0$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9850}{0.9700} - 1\Bigr) = 2(1.015464 - 1) = 0.030928 = 3.0928\%.$$
+
+$$L_{\text{OIS}} = 2\Bigl(\frac{0.9850}{0.9700} - 1\Bigr) = 2(1.015464 - 1) = 0.030928 = 3.0928\\%.$$
 
 - $1.0 \to 1.5$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9700}{0.9550} - 1\Bigr) = 0.031416 = 3.1416\%.$$
+
+$$L_{\text{OIS}} = 2\Bigl(\frac{0.9700}{0.9550} - 1\Bigr) = 0.031416 = 3.1416\\%.$$
 
 - $1.5 \to 2.0$:
-$$L_{\text{OIS}} = 2\Bigl(\frac{0.9550}{0.9400} - 1\Bigr) = 0.031914 = 3.1914\%.$$
+
+$$L_{\text{OIS}} = 2\Bigl(\frac{0.9550}{0.9400} - 1\Bigr) = 0.031914 = 3.1914\\%.$$
 
 #### B.3 Step 2 — Write Par Condition and Solve for $e$
 
 From the par floating–floating basis swap condition, PV(IBOR leg) = PV(OIS+spread leg).
 
 Using common schedule:
-$$\sum_{i=1}^{4} \tau P_d(0,T_i)\,L_i^{\text{IBOR}} = \sum_{i=1}^{4} \tau P_d(0,T_i)\,(L_i^{\text{OIS}} + e).$$
+
+$$\sum_{i=1}^{4} \tau P_d(0,T_i)\\,L_i^{\text{IBOR}} = \sum_{i=1}^{4} \tau P_d(0,T_i)\\,(L_i^{\text{OIS}} + e).$$
 
 Rearrange:
 $e = \frac{\sum_{i=1}^{4} \tau P_d(0,T_i)(L_i^{\text{IBOR}} - L_i^{\text{OIS}})}{\sum_{i=1}^{4} \tau P_d(0,T_i)}$.
@@ -923,10 +935,12 @@ $e = \frac{\sum_{i=1}^{4} \tau P_d(0,T_i)(L_i^{\text{IBOR}} - L_i^{\text{OIS}})}
 - $1.5 \to 2.0$: $0.04100 - 0.031914 = 0.009086$
 
 **Compute numerator:**
+
 $$\sum w_i \Delta_i = 0.4925(0.005544) + 0.4850(0.007072) + 0.4775(0.008584) + 0.4700(0.009086) \approx 0.014530.$$
 
 **Therefore:**
-$$e \approx \frac{0.014530}{1.9250} = 0.007548 \approx 0.7548\% = 75.5\text{ bp}.$$
+
+$$e \approx \frac{0.014530}{1.9250} = 0.007548 \approx 0.7548\\% = 75.5\text{ bp}.$$
 
 #### B.4 Sanity Check
 
@@ -944,13 +958,13 @@ Because IBOR forwards are higher than OIS forwards in all periods, the spread $e
 
 - Use a 3Y annual-pay swap, same dates as Example A.
 - Notional $N = USD1{,}000{,}000$.
-- Pay fixed $K = 4.00\%$, receive IBOR forwards $L = (0.036269, 0.043243, 0.045197)$.
+- Pay fixed $K = 4.00\\%$, receive IBOR forwards $L = (0.036269, 0.043243, 0.045197)$.
 - Discount curve = OIS discount factors $P_d(0,1) = 0.97$, $P_d(0,2) = 0.94$, $P_d(0,3) = 0.91$.
 - Accruals $\tau = 1$.
 
 **Bump rules (must be explicit):**
 - **Discount-curve bump:** parallel zero-rate bump $+1$ bp approximated by
-$P_{d,+}(0,T) = P_d(0,T)\,e^{-0.0001\,T}$.
+$P_{d,+}(0,T) = P_d(0,T)\\,e^{-0.0001\\,T}$.
 
 - **Projection-curve bump:** add $+1$ bp to each forward:
 $L_i^{+} = L_i + 0.0001$.
@@ -960,7 +974,8 @@ In both cases, hold the other curve fixed.
 #### C.2 Step 1 — Base PV
 
 PV per unit notional:
-$$PV(0) = \sum_{i=1}^{3} P_d(0,T_i)\,(L_i - K).$$
+
+$$PV(0) = \sum_{i=1}^{3} P_d(0,T_i)\\,(L_i - K).$$
 
 Compute (L_i - K):
 - $T_1$: $0.036269 - 0.040000 = -0.003731$
@@ -979,19 +994,22 @@ So: $PV \approx 0.004159 \times 1{,}000{,}000 = USD4{,}159$.
 #### C.3 Step 2 — Discount PV01 (Bump Discount Only)
 
 **Compute bumped discount factors:**
-- $T = 1$: $0.97\,e^{-0.0001} \approx 0.97(0.9999) = 0.969903$
-- $T = 2$: $0.94\,e^{-0.0002} \approx 0.939812$
-- $T = 3$: $0.91\,e^{-0.0003} \approx 0.909727$
+- $T = 1$: $0.97\\,e^{-0.0001} \approx 0.97(0.9999) = 0.969903$
+- $T = 2$: $0.94\\,e^{-0.0002} \approx 0.939812$
+- $T = 3$: $0.91\\,e^{-0.0003} \approx 0.909727$
 
 Recompute PV with same $L_i$ and $K$:
+
 $$PV_{d,+}/N \approx 0.969903(-0.003731) + 0.939812(0.003243) + 0.909727(0.005197).$$
 
 Numerically:
+
 $$\approx -0.003619 + 0.003048 + 0.004728 = 0.004157.$$
 
 So $PV_{d,+} \approx USD4{,}157$.
 
 **Therefore:**
+
 $$\boxed{PV01_{\text{discount}} = PV_{d,+} - PV \approx 4{,}157 - 4{,}159 = -USD2 \text{ per USD1mm}.}$$
 
 #### C.4 Step 3 — Projection PV01 (Bump Projection Only)
@@ -999,9 +1017,11 @@ $$\boxed{PV01_{\text{discount}} = PV_{d,+} - PV \approx 4{,}157 - 4{,}159 = -USD
 Bump forwards by $+1$ bp: $L_i^{+} = L_i + 0.0001$.
 
 PV change per unit notional:
+
 $$\Delta PV / N = \sum_{i=1}^{3} P_d(0,T_i) \cdot 0.0001 = 0.0001(0.97 + 0.94 + 0.91) = 0.000282.$$
 
 So:
+
 $$\boxed{PV01_{\text{projection}} \approx 0.000282 \times 1{,}000{,}000 = USD282 \text{ per } USD1\text{mm}.}$$
 
 #### C.5 Interpretation ("Where the Risk Lives")
@@ -1028,10 +1048,12 @@ In this decomposition, the swap's PV is far more sensitive to projection +USD282
 #### D.2 Calculation
 
 PV of spread leg (per unit basis rate) is:
-$$PV_{\text{spread}} = -N \sum_i \tau P_d(0,T_i)\,e = -N\,W\,e.$$
+
+$$PV_{\text{spread}} = -N \sum_i \tau P_d(0,T_i)\\,e = -N\\,W\\,e.$$
 
 So per $+1$ bp ($\Delta e = 0.0001$):
-$$\Delta PV \approx -N\,W\,0.0001 = -(1{,}000{,}000)(1.9250)(0.0001) = -USD192.50.$$
+
+$$\Delta PV \approx -N\\,W\\,0.0001 = -(1{,}000{,}000)(1.9250)(0.0001) = -USD192.50.$$
 
 #### D.3 Output
 
@@ -1048,13 +1070,13 @@ $$\boxed{\text{Basis PV01 (for this position): } -USD192.50 \text{ per +1 bp of 
 - Use the same 2Y semiannual schedule as Example B.
 - Discount curve $P_d$ same as Example B.
 - Projection forwards:
-  - IBOR forwards: $\{0.036, 0.038, 0.040, 0.041\}$.
-  - OIS forwards: from Example B $\{0.030456, 0.030928, 0.031416, 0.031914\}$.
+  - IBOR forwards: $\\{0.036, 0.038, 0.040, 0.041\\}$.
+  - OIS forwards: from Example B $\\{0.030456, 0.030928, 0.031416, 0.031914\\}$.
 - Notional $N = USD1{,}000{,}000$.
 - Accrual $\tau = 0.5$.
-- Choose a common fixed rate for replication: $K_{\text{rep}} = 3.50\%$ (arbitrary).
+- Choose a common fixed rate for replication: $K_{\text{rep}} = 3.50\\%$ (arbitrary).
 - Define weights $w_i = \tau P_d(0,T_i)$ (from Example B):
-$w = \{0.4925, 0.4850, 0.4775, 0.4700\}$.
+$w = \\{0.4925, 0.4850, 0.4775, 0.4700\\}$.
 
 #### E.2 Step 1 — PV of the "IBOR Pay-Fixed Swap" at `K_rep`
 
@@ -1111,7 +1133,7 @@ $PV \approx 0.014530 \times 1{,}000{,}000 = USD14{,}530$.
 #### E.6 Adding the Quoted Spread $e$
 
 If the basis swap pays OIS + e, its PV becomes:
-$PV_{\text{basis}} = PV_{\text{basis,no-spread}} - N\,W\,e$.
+$PV_{\text{basis}} = PV_{\text{basis,no-spread}} - N\\,W\\,e$.
 
 At the par spread from Example B, this equals zero.
 
@@ -1124,17 +1146,17 @@ At the par spread from Example B, this equals zero.
 #### F.1 Conventions
 
 - Maturity: 5Y.
-- Swap rate: $S_{\text{swap}} = 4.25\%$.
+- Swap rate: $S_{\text{swap}} = 4.25\\%$.
 - Government yield benchmarks:
-  - On-the-run yield $y_{\text{OTR}} = 4.00\%$,
-  - Fitted curve yield $y_{\text{fit}} = 3.92\%$.
+  - On-the-run yield $y_{\text{OTR}} = 4.00\\%$,
+  - Fitted curve yield $y_{\text{fit}} = 3.92\\%$.
 - Swap spread defined as swap rate − government yield.
 
 #### F.2 Calculations
 
-**Using on-the-run:** $\text{SwapSpread}_{\text{OTR}} = 4.25\% - 4.00\% = 0.25\% = 25\text{ bp}$.
+**Using on-the-run:** $\text{SwapSpread}_{\text{OTR}} = 4.25\\% - 4.00\\% = 0.25\\% = 25\text{ bp}$.
 
-**Using fitted curve:** $\text{SwapSpread}_{\text{fit}} = 4.25\% - 3.92\% = 0.33\% = 33\text{ bp}$.
+**Using fitted curve:** $\text{SwapSpread}_{\text{fit}} = 4.25\\% - 3.92\\% = 0.33\\% = 33\text{ bp}$.
 
 **Difference:**
 $33\text{ bp} - 25\text{ bp} = 8\text{ bp}$.
@@ -1160,7 +1182,7 @@ Therefore, a swap-spread "signal" can move by several bp without economics chang
 - Swap fixed payment frequency: annual (toy), $\tau = 1$.
 
 **Discount factors used for swap annuity (toy OIS DFs):**
-$P_d(0,1..5) = \{0.97, 0.94, 0.91, 0.88, 0.85\}$.
+$P_d(0,1..5) = \\{0.97, 0.94, 0.91, 0.88, 0.85\\}$.
 
 **Treasury bond characteristics (toy):**
 - Clean price $P = 100$ per USD100 face.
@@ -1189,7 +1211,8 @@ Let Treasury face amount be $F$ dollars. Then:
 $\text{DV01}_{\text{bond}} = 0.00046 \times F$.
 
 DV01 neutrality requires (using the standard hedge-ratio idea):
-$$0.00046\,F \approx 45{,}500 \quad\Rightarrow\quad F = \frac{45{,}500}{0.00046} = 98{,}913{,}043 \approx USD98.9\text{ mm face}.$$
+
+$$0.00046\\,F \approx 45{,}500 \quad\Rightarrow\quad F = \frac{45{,}500}{0.00046} = 98{,}913{,}043 \approx USD98.9\text{ mm face}.$$
 
 **Hedge ratio:**
 $h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989$.
@@ -1216,8 +1239,8 @@ $h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989$.
   - Swap: USD45{,}500/bp (pay-fixed gains when rates rise).
   - Bond: USD45{,}500/bp (long bond loses when yields rise).
 - Horizon: $d = 30$ days.
-- Treasury bond coupon: $c = 4\%$ annual, paid semiannually (2% per 180 days).
-- Repo financing rate: initial $r = 3.50\%$ (Actual/360-like approximation consistent with Tuckman's $rd/360$ term).
+- Treasury bond coupon: $c = 4\\%$ annual, paid semiannually (2% per 180 days).
+- Repo financing rate: initial $r = 3.50\\%$ (Actual/360-like approximation consistent with Tuckman's $rd/360$ term).
 - Assume settle on coupon date so $AI(0)=0$ for simplicity.
 
 #### H.2 Scenario 1 — Parallel Shift: Swap Rate +10bp, Treasury Yield +10bp
@@ -1225,6 +1248,7 @@ $h = \frac{F}{N_{\text{swap}}} \approx \frac{98.9}{100} = 0.989$.
 **Swap P&L:** $\Delta PV_{\text{swap}} \approx +45{,}500 \times 10 = +USD455{,}000$.
 
 **Bond price P&L** (long bond loses when yields rise):
+
 $$\Delta PV_{\text{bond}} \approx -45{,}500 \times 10 = -USD455{,}000.$$
 
 **Net (ignoring carry):** $\approx 0$.
@@ -1234,38 +1258,46 @@ $$\Delta PV_{\text{bond}} \approx -45{,}500 \times 10 = -USD455{,}000.$$
 #### H.3 Scenario 2 — Swap Spread Widening: Swap Rate +5bp, Treasury Yield Unchanged
 
 **Swap P&L:**
+
 $$+45{,}500 \times 5 = +USD227{,}500.$$
 
 **Bond price P&L:** $\approx 0$.
 
 **Add carry on the Treasury over 30 days** using Tuckman's decomposition:
+
 $$\text{PnL} = \text{Price change} + \text{Interest income} - \text{Financing cost}.$$
 
 **Interest income over 30 days** (semiannual coupon accrual):
+
 $$\text{Interest} = F \times 0.02 \times \frac{30}{180} = 98.913\text{ mm} \times 0.0033333 \approx USD329{,}710.$$
 
 **Financing cost:**
+
 $$\text{FinCost} = (F)(rd/360) = 98.913\text{ mm} \times 0.035 \times \frac{30}{360} = 98.913\text{ mm} \times 0.0029167 \approx USD288{,}496.$$
 
 **Carry:**
+
 $$\text{Carry} \approx 329{,}710 - 288{,}496 = +USD41{,}214.$$
 
 **Total scenario-2 P&L (toy):**
+
 $$\boxed{227{,}500 + 41{,}214 = USD268{,}714.}$$
 
 #### H.4 Scenario 3 — Funding/Specialness Shock: Repo Rate +100bp (3.50% → 4.50%), No Price Move
 
 **Swap P&L:** $0$.
 
-**Bond carry under new repo** $r = 4.50\%$:
+**Bond carry under new repo** $r = 4.50\\%$:
 $\text{FinCost} = 98.913\text{ mm} \times 0.045 \times \frac{30}{360} = 98.913\text{ mm} \times 0.00375 \approx USD370{,}924$.
 
 Interest income unchanged (\approx USD329{,}710).
 
 **Carry:**
+
 $$\text{Carry} \approx 329{,}710 - 370{,}924 = -USD41{,}214.$$
 
 Relative to the base carry (+USD41{,}214), the funding shock changes P&L by:
+
 $$\boxed{-USD41{,}214 - (+USD41{,}214) = -USD82{,}428.}$$
 
 #### H.5 Interpretation
@@ -1284,7 +1316,7 @@ This is why "swap spread" is not a pure derivatives spread: the cash leg drags i
 
 - Instruments: par swaps on 2Y and 10Y points.
 - Use annual-pay toy annuities from OIS discount factors:
-$P_d(0,1..10) = \{0.97, 0.94, 0.91, 0.88, 0.85, 0.82, 0.79, 0.76, 0.73, 0.70\}$.
+$P_d(0,1..10) = \\{0.97, 0.94, 0.91, 0.88, 0.85, 0.82, 0.79, 0.76, 0.73, 0.70\\}$.
 
 - PV01 of a swap's fixed leg per \\USD1mm notional (magnitude):
 $\text{PV01} \approx 1{,}000{,}000 \Bigl(\sum_{i=1}^{n} P_d(0,i)\Bigr) \cdot 10^{-4}$.
@@ -1403,7 +1435,7 @@ DV01-neutral butterfly isolates relative movement of the belly vs wings, i.e., c
 
 - Use Example B 2Y semiannual basis swap.
 - Notional $N = USD1{,}000{,}000$.
-- Position: receive IBOR, pay $OIS + e$ where $e = 0.7548\%$ (par at $t = 0$).
+- Position: receive IBOR, pay $OIS + e$ where $e = 0.7548\\%$ (par at $t = 0$).
 - Horizon: first coupon date ($t = 0.5$ years).
 - **Assumption for carry/rolldown:**
   - realized fixings equal initial forwards (toy),
@@ -1451,13 +1483,15 @@ Using remaining diffs:
 - $1.5 \to 2$: $0.009086$
 
 **Numerator:**
+
 $$0.492640(0.007072) + 0.484772(0.008584) + 0.477157(0.009086) \approx 0.011981.$$
 
 Hence:
-$e_{\text{rem}} \approx \frac{0.011981}{1.454568} = 0.008237 = 0.8237\% = 82.4\text{ bp}$.
+$e_{\text{rem}} \approx \frac{0.011981}{1.454568} = 0.008237 = 0.8237\\% = 82.4\text{ bp}$.
 
 **Value of remaining swap** to the position (receive IBOR, pay OIS + `e_contract`) is:
-$$PV_{t=0.5} = N\,(e_{rem} - e_{contract})\,W' = 1{,}000{,}000(0.008237 - 0.007548)(1.454568)$$
+
+$$PV_{t=0.5} = N\\,(e_{rem} - e_{contract})\\,W' = 1{,}000{,}000(0.008237 - 0.007548)(1.454568)$$
 
 Difference (= 0.000689). Multiply:
 $PV_{t=0.5} \approx 1{,}000{,}000(0.000689)(1.454568) \approx USD1{,}002$.
@@ -1465,6 +1499,7 @@ $PV_{t=0.5} \approx 1{,}000{,}000(0.000689)(1.454568) \approx USD1{,}002$.
 #### K.4 Step 3 — Deterministic Carry/Rolldown P&L (Curves Unchanged)
 
 **Total P&L at (t = 0.5)** (realized coupon + MTM of remaining):
+
 $$\text{PnL} \approx CF_{0.5} + PV_{t=0.5} \approx -1{,}002 + 1{,}002 \approx 0.$$
 
 **Interpretation:** at-par basis swap has ~zero deterministic carry/rolldown in this toy setup.
@@ -1474,9 +1509,11 @@ $$\text{PnL} \approx CF_{0.5} + PV_{t=0.5} \approx -1{,}002 + 1{,}002 \approx 0.
 At (t = 0.5), suppose IBOR–OIS basis widens by +10 bp for remaining periods (projection change), discount curve unchanged.
 
 **Approximate PV impact on remaining swap:**
-$$\Delta PV_{t=0.5} \approx N\,W'\,(0.0010) = 1{,}000{,}000(1.454568)(0.0010) = +USD1{,}455.$$
+
+$$\Delta PV_{t=0.5} \approx N\\,W'\\,(0.0010) = 1{,}000{,}000(1.454568)(0.0010) = +USD1{,}455.$$
 
 **Total P&L becomes:**
+
 $$\boxed{\text{PnL} \approx 0 + 1{,}455 = +USD1{,}455.}$$
 
 **Message:** realized P&L departs from carry/rolldown when the basis moves.
@@ -1497,11 +1534,11 @@ and show the difference. This illustrates curve-model dependence (par-point meth
 
 **Instruments used to bootstrap:**
 - 1Y deposit discount factor $P(0,1) = 0.9700$.
-- 2Y par swap rate $S_2 = 3.50\%$.
-- 3Y par swap rate $S_3 = 3.80\%$.
+- 2Y par swap rate $S_2 = 3.50\\%$.
+- 3Y par swap rate $S_3 = 3.80\\%$.
 
 **Swap to measure PV01 on:**
-- 3Y pay-fixed swap with fixed rate $K = 4.00\%$,
+- 3Y pay-fixed swap with fixed rate $K = 4.00\\%$,
 - Notional $N = USD1{,}000{,}000$,
 - Annual $\tau = 1$.
 
@@ -1530,6 +1567,7 @@ $P_3 = \frac{1 - 0.038(1.90338)}{1.038} = \frac{1 - 0.072328}{1.038} = \frac{0.9
 $PV_{\text{float}} = 1 - P_3 = 1 - 0.89371 = 0.10629$.
 
 **Fixed PV:**
+
 $$PV_{\text{fixed}} = K(P_1 + P_2 + P_3) = 0.04(0.9700 + 0.93338 + 0.89371) = 0.04(2.79709) = 0.11188.$$
 
 **Swap PV (receive float − pay fixed):**
@@ -1538,12 +1576,12 @@ $PV/N = 0.10629 - 0.11188 = -0.00559 \quad\Rightarrow\quad PV \approx -USD5{,}59
 #### L.4 Method 1 — Parallel Zero-Rate Bump (+1bp), No Rebuild
 
 **Bump rule:**
-$P^{+}(0,T) = P(0,T)\,e^{-0.0001\,T}$.
+$P^{+}(0,T) = P(0,T)\\,e^{-0.0001\\,T}$.
 
 So:
-- $P_1^{+} = 0.9700\,e^{-0.0001} \approx 0.969903$
-- $P_2^{+} = 0.93338\,e^{-0.0002} \approx 0.933193$
-- $P_3^{+} = 0.89371\,e^{-0.0003} \approx 0.893442$
+- $P_1^{+} = 0.9700\\,e^{-0.0001} \approx 0.969903$
+- $P_2^{+} = 0.93338\\,e^{-0.0002} \approx 0.933193$
+- $P_3^{+} = 0.89371\\,e^{-0.0003} \approx 0.893442$
 
 **Recompute PV:**
 
@@ -1556,6 +1594,7 @@ $$PV_{\text{fixed}}^{+} = 0.04(2.796538) = 0.111862.$$
 $$PV^{+}/N = 0.106558 - 0.111862 = -0.005304 \Rightarrow PV^{+} \approx -USD5{,}304.$$
 
 **So PV01:**
+
 $$\boxed{PV01_{\text{zero-bump}} = PV^{+} - PV = (-5{,}304) - (-5{,}594) = +USD290 \text{ per USD1mm}.}$$
 
 #### L.5 Method 2 — Par-Quote Bump (+1bp) with Bootstrap Rebuild
@@ -1587,6 +1626,7 @@ $$PV_{\text{fixed}}^{\text{reb}} = 0.04(2.79655) = 0.11186.$$
 $$PV^{\text{reb}}/N \approx 0.10655 - 0.11186 = -0.00531 \Rightarrow PV^{\text{reb}} \approx -USD5{,}313.$$
 
 **So PV01:**
+
 $$\boxed{PV01_{\text{par-bump+rebuild}} = PV^{\text{reb}} - PV = (-5{,}313) - (-5{,}594) = +USD281 \text{ per USD1mm}.}$$
 
 #### L.6 Interpretation

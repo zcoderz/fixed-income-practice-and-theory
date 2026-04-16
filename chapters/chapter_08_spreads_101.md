@@ -140,10 +140,16 @@ The difficulties are analogous to G-spread: different benchmark curves produce d
 ### 8.4.1 When I-spread Can Exceed G-spread (Pure Algebra)
 
 Define the **swap spread** at maturity $T$ as:
-$$SS(T) := y_{\text{swap}}(T) - y_{\text{gov}}(T)$$
+
+$$
+SS(T) := y_{\text{swap}}(T) - y_{\text{gov}}(T)
+$$
 
 Then:
-$$s_G(T) - s_I(T) = \bigl(y_{\text{bond}} - y_{\text{gov}}(T)\bigr) - \bigl(y_{\text{bond}} - y_{\text{swap}}(T)\bigr) = SS(T)$$
+
+$$
+s_G(T) - s_I(T) = \bigl(y_{\text{bond}} - y_{\text{gov}}(T)\bigr) - \bigl(y_{\text{bond}} - y_{\text{swap}}(T)\bigr) = SS(T)
+$$
 
 So:
 - If $SS(T) \gt 0$, then $s_I(T) \lt s_G(T)$.
@@ -175,7 +181,7 @@ where:
 **Mechanics (a discount-factor view):** The spread enters multiplicatively on discount factors:
 
 $$
-DF^{(s_Z)}(0,t)=P_{\text{bench}}(0,t)\,e^{-s_Z t}.
+DF^{(s_Z)}(0,t)=P_{\text{bench}}(0,t)\\,e^{-s_Z t}.
 $$
 
 So a higher $s_Z$ scales down the PV of *every* cashflow, with a larger effect on longer-dated cashflows (because the factor depends on $t$).
@@ -290,7 +296,10 @@ where:
 - $PV01(t, T)$ is the remaining annuity (present value of 1 bp per period)
 
 To convert this into a **currency** amount for notional $N$ (and $A$ quoted in bp), use a unit-safe form:
-$$\boxed{MTM_{USD}(t)\approx (A(0)-A(t))_{\text{bp}}\times 10^{-4}\times PV01(t,T)\times N}$$
+
+$$
+\boxed{MTM_{USD}(t)\approx (A(0)-A(t))_{\text{bp}}\times 10^{-4}\times PV01(t,T)\times N}
+$$
 
 **Worked number (O’Kane’s example):**
 - Entered at $A(0)=323.9$ bp on $N=USD 10{,}000{,}000$.
@@ -400,7 +409,7 @@ $$\text{DVOAS} \approx \frac{P(OAS - 1\text{ bp}) - P(OAS + 1\text{ bp})}{2}$$
 
 A model-based P&L decomposition that makes OAS desk-usable is:
 
-$$\boxed{dP=(r+OAS)P\,dt+DV01_x\,(dx-E[dx])+DVOAS\,dOAS}$$
+$$\boxed{dP=(r+OAS)P\\,dt+DV01_x\\,(dx-E[dx])+DVOAS\\,dOAS}$$
 
 The three components are:
 - **Carry:** $(r + OAS) \cdot P \cdot dt$ — time value plus OAS
@@ -409,7 +418,7 @@ The three components are:
 
 For a hedged and financed position, this is often simplified to:
 
-$$dP=OAS\cdot P\,dt+DVOAS\cdot dOAS$$
+$$dP=OAS\cdot P\\,dt+DVOAS\cdot dOAS$$
 
 > **Desk Reality: OAS P&L Attribution Example**
 >
@@ -436,11 +445,14 @@ $$dP=OAS\cdot P\,dt+DVOAS\cdot dOAS$$
 Spread duration is the spread analogue of modified duration: it is the *first-order percentage* price sensitivity to changes in a chosen spread parameter $s$ (Z-spread, OAS, ASW spread, etc.), holding the benchmark curve/model fixed.
 
 A convenient first-order approximation is:
-$$\frac{\Delta P}{P} \approx -D_s\,\Delta s$$
+
+$$
+\frac{\Delta P}{P} \approx -D_s\\,\Delta s
+$$
 
 $$\boxed{D_s := -\frac{1}{P}\frac{\partial P}{\partial s}}$$
 
-This sign convention matches the common first-order risk form: the percentage price change includes a term of the form $-D_s\,ds$ (so $D_s$ is typically positive for a fixed-coupon bond when $s$ is a discount-rate spread).
+This sign convention matches the common first-order risk form: the percentage price change includes a term of the form $-D_s\\,ds$ (so $D_s$ is typically positive for a fixed-coupon bond when $s$ is a discount-rate spread).
 
 For Z-spread with continuous compounding, where $P(s) = \sum_k CF_k \cdot P_{\text{bench}}(0, t_k) \cdot e^{-s t_k}$:
 
@@ -457,12 +469,18 @@ This is a PV-weighted average time—similar in structure to Macaulay duration b
 Pick a spread parameter $s$ (e.g., Z-spread $z$, OAS, or an asset swap spread quote). Hold the benchmark curve/model fixed and hold contractual cashflows fixed.
 
 **Book convention (positive for long credit):**
-$$\boxed{CS01 := P(s) - P(s+1\text{ bp})}$$
+
+$$
+\boxed{CS01 := P(s) - P(s+1\text{ bp})}
+$$
 
 where $1\text{ bp} = 10^{-4}$ in the units of $s$ (a per-year spread parameter).
 
 **Approximation via spread duration:** Using $D_s := -\frac{1}{P}\frac{\partial P}{\partial s}$,
-$$CS01 \approx -\frac{\partial P}{\partial s}\cdot 10^{-4} = P \cdot D_s \cdot 10^{-4}$$
+
+$$
+CS01 \approx -\frac{\partial P}{\partial s}\cdot 10^{-4} = P \cdot D_s \cdot 10^{-4}
+$$
 
 This parallels the familiar yield relationship $DV01 \approx \frac{P\times D_{\text{Mod}}}{10{,}000}$: you get an absolute “01” by multiplying a percentage-duration by price and dividing by $10{,}000$.
 
@@ -513,10 +531,16 @@ The components are:
 - **Liquidity risk premium:** Compensation for the risk of not being able to sell when needed due to market illiquidity.
 
 Define:
-$$\text{Spread premium} = \text{Credit spread} - \text{Actuarial spread}$$
+
+$$
+\text{Spread premium} = \text{Credit spread} - \text{Actuarial spread}
+$$
 
 and:
-$$\text{Coverage ratio} = \frac{\text{Credit spread}}{\text{Actuarial spread}}$$
+
+$$
+\text{Coverage ratio} = \frac{\text{Credit spread}}{\text{Actuarial spread}}
+$$
 
 > **Visualization: The Risk Layer Cake**
 >
@@ -594,7 +618,7 @@ All examples use 100 notional. Spreads are in basis points unless stated otherwi
 **Given:**
 - Corporate bond: 5-year maturity, 6% coupon (semiannual), settlement on coupon date (AI = 0)
 - Clean price: $P_{\text{clean}} = 98.50$
-- Treasury benchmark yields: $y_{\text{gov}}(4y) = 4.20\%$, $y_{\text{gov}}(6y) = 4.60\%$
+- Treasury benchmark yields: $y_{\text{gov}}(4y) = 4.20\\%$, $y_{\text{gov}}(6y) = 4.60\\%$
 
 **Step 1 — Dirty price:** $P_{\text{dirty}} = 98.50 + 0 = 98.50$
 
@@ -602,25 +626,25 @@ All examples use 100 notional. Spreads are in basis points unless stated otherwi
 
 $$P(y) = \frac{6}{y}\left(1 - \frac{1}{(1 + y/2)^{10}}\right) + \frac{100}{(1 + y/2)^{10}}$$
 
-Trial: $y = 6.30\%$ gives $P = 98.74$; $y = 6.40\%$ gives $P = 98.28$. Interpolating to hit 98.50:
+Trial: $y = 6.30\\%$ gives $P = 98.74$; $y = 6.40\\%$ gives $P = 98.28$. Interpolating to hit 98.50:
 
-$$y_{\text{bond}} \approx 6.355\%$$
+$$y_{\text{bond}} \approx 6.355\\%$$
 
 **Step 3 — Interpolate Treasury yield at 5y:**
 
-$$y_{\text{gov}}(5) = 4.20\% + \frac{5-4}{6-4}(4.60\% - 4.20\%) = 4.40\%$$
+$$y_{\text{gov}}(5) = 4.20\\% + \frac{5-4}{6-4}(4.60\\% - 4.20\\%) = 4.40\\%$$
 
 **Step 4 — G-spread:**
 
-$$s_G = 6.355\% - 4.40\% = 1.955\% = \boxed{195.5 \text{ bp}}$$
+$$s_G = 6.355\\% - 4.40\\% = 1.955\\% = \boxed{195.5 \text{ bp}}$$
 
 ### Example B: I-spread (Same Bond)
 
-**Given:** Same bond with $y_{\text{bond}} = 6.355\%$; swap yields: $y_{\text{swap}}(4y) = 4.40\%$, $y_{\text{swap}}(6y) = 4.80\%$
+**Given:** Same bond with $y_{\text{bond}} = 6.355\\%$; swap yields: $y_{\text{swap}}(4y) = 4.40\\%$, $y_{\text{swap}}(6y) = 4.80\\%$
 
-**Interpolate:** $y_{\text{swap}}(5) = 4.40\% + \frac{1}{2}(0.40\%) = 4.60\%$
+**Interpolate:** $y_{\text{swap}}(5) = 4.40\\% + \frac{1}{2}(0.40\\%) = 4.60\\%$
 
-**I-spread:** $s_I = 6.355\% - 4.60\% = 1.755\% = \boxed{175.5 \text{ bp}}$
+**I-spread:** $s_I = 6.355\\% - 4.60\\% = 1.755\\% = \boxed{175.5 \text{ bp}}$
 
 **Compare:** G-spread is 195.5 bp; I-spread is 175.5 bp—a 20 bp difference solely from benchmark choice.
 
@@ -642,8 +666,7 @@ $$s_G = 6.355\% - 4.40\% = 1.955\% = \boxed{195.5 \text{ bp}}$$
 - Bond: 3-year maturity, annual coupon 5%, notional 100, bullet principal.
 - Dirty price: $P_{\text{dirty}} = 98.00$ (price points per 100 notional).
 - Benchmark discount factors: $P(0,1)=0.97$, $P(0,2)=0.93$, $P(0,3)=0.88$.
-- Z-spread convention: a continuously-compounded spread parameter $z$ applied to discounting:
-  $$DF^{(z)}(0,t)=P(0,t)e^{-zt}$$
+- Z-spread convention: a continuously-compounded spread parameter $z$ applied to discounting: $DF^{(z)}(0,t)=P(0,t)e^{-zt}$
 - Risk bump (for CS01): widen the spread parameter by $+1\text{ bp}$, i.e. $z \to z+10^{-4}$, holding the benchmark curve fixed.
 
 **Outputs (What You Produce)**
@@ -652,19 +675,37 @@ $$s_G = 6.355\% - 4.40\% = 1.955\% = \boxed{195.5 \text{ bp}}$$
 - CS01 (book convention): $CS01 = P(z)-P(z+1\text{ bp}) \approx 0.0280$ price points per 100 per 1bp (positive for long credit).
 
 **Step-by-step**
-1. **Translate the price quote to a PV equation (dirty price target):**
-   $$P_{\text{dirty}}=\sum_{k} CF_k\cdot P(0,t_k)e^{-zt_k}$$
-2. **Plug in cashflows and benchmark discount factors:**
-   $$PV(z)=5\cdot 0.97\cdot e^{-z}+5\cdot 0.93\cdot e^{-2z}+105\cdot 0.88\cdot e^{-3z}$$
-3. **Solve for $z$ by bracketing + bisection (repricing target = 98.00):**
-   - $z=1.00\%$: $PV\approx 99.03$ (too high)
-   - $z=2.00\%$: $PV\approx 96.24$ (too low)
-   - refine $\Rightarrow z\approx 1.366\%$ with $PV\approx 98.00$
-4. **Repricing check:** confirm $PV(z)\approx 98.00$ to tolerance.
-5. **Compute spread duration from PV weights:**
-   $$D_s=\frac{\sum_k t_k\cdot PV_k(z)}{\sum_k PV_k(z)}\approx 2.856$$
-6. **Compute CS01 (widening bump):**
-   $$CS01=P(z)-P(z+1\text{ bp})\approx P\cdot D_s\cdot 10^{-4}\approx 98.00\times 2.856\times 10^{-4}\approx 0.0280$$
+
+**Step 1 (Translate the price quote to a PV equation (dirty price target)):**
+
+$$
+P_{\text{dirty}}=\sum_{k} CF_k\cdot P(0,t_k)e^{-zt_k}
+$$
+
+**Step 2 (Plug in cashflows and benchmark discount factors):**
+
+$$
+PV(z)=5\cdot 0.97\cdot e^{-z}+5\cdot 0.93\cdot e^{-2z}+105\cdot 0.88\cdot e^{-3z}
+$$
+
+**Step 3 (Solve for $z$ by bracketing + bisection (repricing target = 98.00)):**
+- $z=1.00\\%$: $PV\approx 99.03$ (too high)
+- $z=2.00\\%$: $PV\approx 96.24$ (too low)
+- refine $\Rightarrow z\approx 1.366\\%$ with $PV\approx 98.00$
+
+**Step 4 (Repricing check):** confirm $PV(z)\approx 98.00$ to tolerance.
+
+**Step 5 (Compute spread duration from PV weights):**
+
+$$
+D_s=\frac{\sum_k t_k\cdot PV_k(z)}{\sum_k PV_k(z)}\approx 2.856
+$$
+
+**Step 6 (Compute CS01 (widening bump)):**
+
+$$
+CS01=P(z)-P(z+1\text{ bp})\approx P\cdot D_s\cdot 10^{-4}\approx 98.00\times 2.856\times 10^{-4}\approx 0.0280
+$$
 
 **Cashflows**
 
@@ -694,20 +735,20 @@ $$s_G = 6.355\% - 4.40\% = 1.955\% = \boxed{195.5 \text{ bp}}$$
 - $P(0,2) = 1/1.04^2 = 0.9246$
 - $P(0,3) = 1/1.06^3 = 0.8396$
 
-**Corporate YTM:** Solve $95 = \frac{10}{1+y} + \frac{10}{(1+y)^2} + \frac{110}{(1+y)^3}$. Result: $y_{\text{bond}} \approx 12.085\%$
+**Corporate YTM:** Solve $95 = \frac{10}{1+y} + \frac{10}{(1+y)^2} + \frac{110}{(1+y)^3}$. Result: $y_{\text{bond}} \approx 12.085\\%$
 
-**Government 3y par yield:** $y_{\text{gov}}(3) = \frac{1 - 0.8396}{0.9804 + 0.9246 + 0.8396} = 5.84\%$
+**Government 3y par yield:** $y_{\text{gov}}(3) = \frac{1 - 0.8396}{0.9804 + 0.9246 + 0.8396} = 5.84\\%$
 
-**G-spread:** $s_G = 12.085\% - 5.84\% = 6.24\% = \boxed{624 \text{ bp}}$
+**G-spread:** $s_G = 12.085\\% - 5.84\\% = 6.24\\% = \boxed{624 \text{ bp}}$
 
-**Z-spread:** Solve $95 = 10 \times 0.9804 \times e^{-s} + 10 \times 0.9246 \times e^{-2s} + 110 \times 0.8396 \times e^{-3s}$. Result: $s_Z \approx 5.84\% = \boxed{584 \text{ bp}}$
+**Z-spread:** Solve $95 = 10 \times 0.9804 \times e^{-s} + 10 \times 0.9246 \times e^{-2s} + 110 \times 0.8396 \times e^{-3s}$. Result: $s_Z \approx 5.84\\% = \boxed{584 \text{ bp}}$
 
 **Difference:** ~40 bp. In this example, the term-structure-consistent Z-spread is noticeably lower than the single-yield G-spread.
 
 ### Example E: Par Asset Swap Spread
 
 **Given:**
-- 5-year annual coupon bond, $c = 6\%$, dirty price $P = 98.50$
+- 5-year annual coupon bond, $c = 6\\%$, dirty price $P = 98.50$
 - Swap discount factors: $Z(0,1) = 0.97$, $Z(0,2) = 0.94$, $Z(0,3) = 0.90$, $Z(0,4) = 0.85$, $Z(0,5) = 0.80$
 
 **PV01 (annuity):** $\sum Z(0,m) \times 1 = 0.97 + 0.94 + 0.90 + 0.85 + 0.80 = 4.46$
@@ -722,7 +763,7 @@ $$A(0) = \frac{1.0676 - 0.9850}{4.46} = \frac{0.0826}{4.46} = 0.01852 = \boxed{1
 
 **Setup:**
 - 2-year callable bond, annual coupon 5%, call price 100 at t=1
-- Short rates: $r_0 = 4\%$; at t=1: up $r_u = 6\%$, down $r_d = 3\%$
+- Short rates: $r_0 = 4\\%$; at t=1: up $r_u = 6\\%$, down $r_d = 3\\%$
 - Risk-neutral probability: 0.5 up, 0.5 down
 - Market price: $P_{\text{mkt}} = 99.50$
 
@@ -909,7 +950,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | $P_{\text{bench}}(0,t)$ | benchmark discount factor | unitless |
 | $z$ (or $s_Z$) | Z-spread parameter | per year; this chapter uses $DF^{(z)}(0,t)=P_{\text{bench}}(0,t)e^{-zt}$ unless stated |
 | $s_{\text{OAS}}$ | option-adjusted spread | per year; defined inside a model/tree/Monte Carlo |
-| $D_s$ | spread duration | years; used as $\Delta P/P \approx -D_s\,\Delta s$ |
+| $D_s$ | spread duration | years; used as $\Delta P/P \approx -D_s\\,\Delta s$ |
 | $CS01$ | credit spread 01 | widening bump: $P(s)-P(s+1\text{bp})$; positive for long credit under this chapter’s convention |
 | $PV01(t,T)$ | annuity (asset swap) | years: $\sum_m Z(t,t_m)\Delta_m$; dollars per bp is $10^{-4}N\cdot PV01$ |
 | $A(0)$ | par asset swap spread | bp per year |
@@ -1002,11 +1043,11 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 
 **2.** Coupon per period $= 0.06/2 \times 100 = 3.00$. $AI = 0.40 \times 3.00 = 1.20$
 
-**3.** Solve $99 = 5/(1+y) + 105/(1+y)^2$. At $y = 6\%$: PV = 98.18 (low). At $y = 5\%$: PV = 100 (high). So $y \approx 5.5\%$.
+**3.** Solve $99 = 5/(1+y) + 105/(1+y)^2$. At $y = 6\\%$: PV = 98.18 (low). At $y = 5\\%$: PV = 100 (high). So $y \approx 5.5\\%$.
 
-**4.** $s_G = 7.10\% - 4.85\% = 2.25\% = 225$ bp
+**4.** $s_G = 7.10\\% - 4.85\\% = 2.25\\% = 225$ bp
 
-**5.** Bracket with $s = 1\%$ (PV ≈ 99), $s = 2\%$ (PV ≈ 96). Bisect to $s_Z \approx 1.37\% = 137$ bp. (Exact 136.6 bp).
+**5.** Bracket with $s = 1\\%$ (PV ≈ 99), $s = 2\\%$ (PV ≈ 96). Bisect to $s_Z \approx 1.37\\% = 137$ bp. (Exact 136.6 bp).
 
 **6.** Yield spread compares one yield to one yield, ignoring that different cash flows should be discounted at different maturities. Z-spread revalues each cash flow using the full curve. On a steep curve, spot and par curves differ, and coupon weighting matters—so the two measures can diverge (Example D shows one concrete case).
 
@@ -1026,7 +1067,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 
 **14.** MTM = (175 - 150) × 0.0001 × 4.2 × USD 5,000,000 = 25 × 0.0001 × 4.2 × USD 5mm = USD 52,500 gain
 
-**17.** $CS01 \approx P\cdot D_s\cdot 10^{-4} = 98.00\times 2.856\times 10^{-4} \approx 0.0280$ points per 100 per bp. On $10mm$ notional: $0.0280$ points $\approx 0.0280\%$ of par $\approx USD 2{,}800$ per bp.
+**17.** $CS01 \approx P\cdot D_s\cdot 10^{-4} = 98.00\times 2.856\times 10^{-4} \approx 0.0280$ points per 100 per bp. On $10mm$ notional: $0.0280$ points $\approx 0.0280\\%$ of par $\approx USD 2{,}800$ per bp.
 
 ---
 

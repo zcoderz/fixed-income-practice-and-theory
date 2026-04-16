@@ -90,8 +90,12 @@ This equation is the mathematical backbone of curve risk management. It says tha
 
 This separation is useful: the instrument/portfolio logic determines the node sensitivities $\nabla_x V_0$, while the curve-building methodology determines the Jacobian $J$. Changing the curve build changes $J$, and therefore changes the quote deltas $\frac{dV_0}{dq}$.
 
-**Check (dimensions + bp conversion):** The object $\frac{dV_0}{dq_i}$ has units “currency per 1 unit of the quote,” where “1 unit” means whatever units your system stores $q_i$ in. If quotes are stored as *decimal rates* (e.g., 5% = 0.05), then USD1\text{bp}=10^{-4}$ and the book’s down-bump definition is, to first order,
-$$DV01_{q_i}=PV(q_i-1\text{bp})-PV(q)\quad \approx\quad -\frac{dV_0}{dq_i}\times 10^{-4}.$$
+**Check (dimensions + bp conversion):** The object $\frac{dV_0}{dq_i}$ has units “currency per 1 unit of the quote,” where “1 unit” means whatever units your system stores $q_i$ in. If quotes are stored as *decimal rates* (e.g., 5% = 0.05), then $1\text{bp}=10^{-4}$ and the book’s down-bump definition is, to first order,
+
+$$
+DV01_{q_i}=PV(q_i-1\text{bp})-PV(q)\quad \approx\quad -\frac{dV_0}{dq_i}\times 10^{-4}.
+$$
+
 If quotes are stored in bp or percent points instead, the numeric bump size changes; many “10,000×” DV01 bugs are just unit mismatches between $q$, the bump, and the reported DV01 units.
 
 ### 22.1.4 Conventions: Bumps, Units, and Sign
@@ -177,7 +181,7 @@ The simplest way to compute quote risk is direct numerical differentiation: bump
 **Algorithm (Par-Point Delta for Quote $q_i$):**
 
 1. Record base portfolio value: $V_0^{\text{base}}$
-2. Bump quote $q_i$ by $\delta$ (typically 1 bp = USD10^{-4}$): $q_i \to q_i + \delta$
+2. Bump quote $q_i$ by $\delta$ (typically $1\text{bp} = 10^{-4}$): $q_i \to q_i + \delta$
 3. Rebuild the entire curve: $x^{\text{bumped}} = B(q_1, \ldots, q_i + \delta, \ldots, q_N)$
 4. Reprice the portfolio: $V_0^{\text{bumped}}$
 5. Compute the delta: $\frac{\partial V_0}{\partial q_i} \approx \frac{V_0^{\text{bumped}} - V_0^{\text{base}}}{\delta}$
@@ -324,7 +328,7 @@ The Jacobian captures all the complexity of the curve construction, while node s
 
 Consider a curve built from $N = 15$ benchmark instruments (deposits, futures, swaps) with $M = 100$ monthly forward rate nodes.
 
-The Jacobian $J$ is USD100 \times 15$. Each column shows how a 1 bp bump to one quote moves all 100 forward rates.
+The Jacobian $J$ is $100 \times 15$. Each column shows how a 1 bp bump to one quote moves all 100 forward rates.
 
 **Check (how to use $J$ consistently):** Once you fix a quote-space shock $\Delta q$ (e.g., a -1bp move means $\Delta q_i=-10^{-4}$ for a decimal rate quote), the implied node move is $\Delta x \approx J \cdot \Delta q$. Quote DV01s are then the dot product $\nabla_x V_0\cdot \Delta x$ expressed per bp. Writing the shock explicitly is a reliable way to keep signs and 1bp scaling straight.
 
@@ -368,7 +372,7 @@ A common design goal is **additivity**: the key-rate shocks sum to a parallel sh
 
 ### 22.3.8 Algorithmic Differentiation: Computing All Greeks in One Pass
 
-The methods above—bump-and-rebuild and Jacobian caching—share a fundamental limitation: their computational cost scales with the number of risk factors. For a curve with $N$ quote sensitivities, you need at least $N$ curve rebuilds (or USD2N$ for central differences). For a trading desk with hundreds of curve nodes across multiple curves, this becomes expensive.
+The methods above—bump-and-rebuild and Jacobian caching—share a fundamental limitation: their computational cost scales with the number of risk factors. For a curve with $N$ quote sensitivities, you need at least $N$ curve rebuilds (or $2N$ for central differences). For a trading desk with hundreds of curve nodes across multiple curves, this becomes expensive.
 
 **Algorithmic differentiation (AD)** computes derivatives of the valuation code by applying the chain rule to the program’s operations. In **reverse mode**, after the valuation is complete (the “forward sweep”), the partial derivatives are recovered by performing a **reverse sweep** over the computation graph. For a scalar output (a single PV), reverse mode produces the whole gradient in one reverse sweep. The cost is a constant-factor overhead relative to one valuation, with important memory/engineering trade-offs because the computation graph must be stored (or partially recomputed).
 
@@ -385,7 +389,7 @@ $$\boxed{\bar{x}_i = \sum_{j \text{ child of } i} \bar{x}_j \frac{\partial x_j}{
 Cost: one backward pass for all $N$ sensitivities to the chosen inputs. The big win is the **scaling**: for a scalar PV output, reverse mode gives the whole gradient in one sweep, rather than “one sweep per input.”
 
 **Back-of-the-envelope scaling (for a scalar PV output):**
-- Finite differences: $O(N)$ valuations (often USD2N$ for central differences), plus curve rebuild overhead.
+- Finite differences: $O(N)$ valuations (often $2N$ for central differences), plus curve rebuild overhead.
 - Cached Jacobian: $O(N)$ curve rebuilds to refresh $J$ occasionally, then cheap matrix multiplies between refreshes.
 - Reverse-mode AD: one reverse sweep per valuation graph to obtain sensitivities to many inputs (constant-factor overhead; memory-dependent). For scalar functions $f:\mathbb{R}^n\to\mathbb{R}$, the extra arithmetic associated with the gradient computation is often at most four or five times the arithmetic needed to evaluate the function alone (implementation-dependent).
 
@@ -583,8 +587,12 @@ $$\boxed{V(t+h) \approx V(t) + \frac{\partial V}{\partial t} \cdot h + \nabla^H(
 
 where $A^H(t)$ is the Hessian matrix of second derivatives.
 
-**Check (DV01 dot move sanity):** If you report quote DV01s in currency per bp using the down-bump definition $DV01_{q_i}=PV(q_i-1\text{bp})-PV(q)$, then for a realized quote move $\Delta q_i$ measured in bp,
-$$\Delta V_{\text{1st order}} \approx -\sum_i DV01_{q_i} \cdot \Delta q_i.$$
+**Check (DV01 dot move sanity):** If you report quote DV01s in currency per bp using the down-bump definition $DV01_{q_i}=PV(q_i-1\text{bp})-PV(q)$, then for a realized quote move $\Delta q_i$ measured in bp:
+
+$$
+\Delta V_{\text{1st order}} \approx -\sum_i DV01_{q_i} \cdot \Delta q_i.
+$$
+
 Example: if $DV01_{5Y}=+USD10{,}000/\text{bp}$ and the 5Y quote moves **down** 3 bp, the predicted contribution is $+USD30{,}000$. If your sign comes out opposite, you likely mixed “up-bump delta” and “down-bump DV01.”
 
 The right-hand side is the **P&L predict**: what yesterday’s sensitivities would have predicted for today’s value given the realized market moves. Persistent residuals (actual minus predicted) are a diagnostic: they often indicate missing risk factors, inconsistent curves, stale sensitivities, or nonlinear effects on large moves.
@@ -695,7 +703,7 @@ Several techniques improve the stability of computed sensitivities:
 
 **Fixed Random Seeds / Frozen Numerics:** When computing Greeks by Monte Carlo (or other noisy numerics), keep the random seed and other numerical choices fixed between the base and bumped runs. This reduces “Greek noise” so the finite-difference signal dominates.
 
-**Bump Size Selection:** Too large a bump introduces nonlinearity; too small causes numerical noise. Typical practice uses 1 bp (USD10^{-4}$) for rate bumps, though this may need adjustment for illiquid instruments or volatile periods.
+**Bump Size Selection:** Too large a bump introduces nonlinearity; too small causes numerical noise. Typical practice uses 1 bp ($10^{-4}$) for rate bumps, though this may need adjustment for illiquid instruments or volatile periods.
 
 ### 22.7.2 Curve Overlays
 
@@ -733,7 +741,7 @@ For large portfolios with frequent risk updates:
 - End-of-day “official” risk run (limits and controls)
 
 **Computational scaling snapshot (qualitative):**
-- Full bump-and-rebuild across $N$ quotes: $O(N)$ curve builds (often USD2N$ for central differences) plus repricing.
+- Full bump-and-rebuild across $N$ quotes: $O(N)$ curve builds (often $2N$ for central differences) plus repricing.
 - Jacobian refresh: similar cost to bumping $N$ quotes, but amortized across many intraday risk runs.
 - Cached Jacobian risk update: node sensitivities + matrix multiplies.
 - Reverse-mode AD: one backward sweep per valuation graph to obtain sensitivities to many inputs (constant-factor overhead).
@@ -796,7 +804,7 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | $J=\partial x/\partial q$ | builder Jacobian | node-units per quote-unit |
 | $\nabla_x V$ | node sensitivities | currency per node-unit |
 | $dV/dq$ | quote sensitivities | currency per quote-unit |
-| $\delta_q$ | bump size for rate-like quotes | USD1\text{bp}=10^{-4}$ in decimal rate units |
+| $\delta_q$ | bump size for rate-like quotes | $1\text{bp}=10^{-4}$ in decimal rate units |
 | $DV01_{q_i}$ | quote DV01 for quote $q_i$ | $PV(q_i-1\text{bp})-PV(\text{base})$; currency per 1bp (down-bump) |
 | $f(t)$ | instantaneous forward rate curve | per year; day count/compounding must be stated |
 | $\mu_k(t)$ | forward shock basis function | unitless shape; $f \to f+\varepsilon\mu_k$ shifts forwards by $\varepsilon$ |
@@ -903,7 +911,7 @@ The desk has limits: (i) $|\text{net DV01}| \le USD50{,}000$, where net DV01 is 
 
 **3.** Bootstrapping with piecewise-linear yields makes each zero rate depend only on quotes up to that maturity—bumping a short quote doesn't affect long rates. Cubic splines enforce global smoothness constraints, so every quote bump potentially affects every forward rate.
 
-**4.** $J$ is USD60 \times 20$ (rows = number of nodes, columns = number of quotes).
+**4.** $J$ is $60 \times 20$ (rows = number of nodes, columns = number of quotes).
 
 **5.** $\mu_3(t) = 1$ for $t \in [2Y, 3Y)$, 0 elsewhere. The sensitivity $-12{,}500$ means if all forwards between 2Y and 3Y rise by 1 bp, the portfolio loses USD12,500.
 
@@ -913,7 +921,7 @@ The desk has limits: (i) $|\text{net DV01}| \le USD50{,}000$, where net DV01 is 
 
 **8.** The deltas explain PV changes in the bootstrapped curve, but actual MTM uses the cubic spline. If quotes move and the two curves respond differently, predicted P&L won't match actual. Diagnose by computing P&L predict ratio over time; it should be close to 1 with small scatter.
 
-**9.** In the cumulative approach, when computing the delta to quote $i$, quotes USD1, \ldots, i-1$ have already been bumped. This means the forward curve has already shifted in a parallel-like fashion, so the marginal bump to quote $i$ produces a smaller incremental forward move. This is more realistic because in practice, if the 30Y rate moves, neighboring rates typically move too.
+**9.** In the cumulative approach, when computing the delta to quote $i$, quotes $1, \ldots, i-1$ have already been bumped. This means the forward curve has already shifted in a parallel-like fashion, so the marginal bump to quote $i$ produces a smaller incremental forward move. This is more realistic because in practice, if the 30Y rate moves, neighboring rates typically move too.
 
 **10.** Waterfall produces zero unexplained residual by construction (it's an identity). Bump-and-reset leaves a residual proportional to cross-gamma terms. However, waterfall's attribution depends on the arbitrary ordering of market variables.
 
@@ -923,8 +931,8 @@ The desk has limits: (i) $|\text{net DV01}| \le USD50{,}000$, where net DV01 is 
 (c) Reverse-mode AD: per run $\sim c \times 1000$ valuation-equivalents to get sensitivities to many inputs, where $c$ is a small constant (implementation- and memory-dependent).
 
 **12.**
-- Net DV01: USD40 - 80 + 60 - 20 = 0$ → $|0| \le USD50k$ ✓
-- Per-bucket: 5Y at $|{-}80k| \gt 50k$ ✗, 10Y at $|{+}60k| \gt 50k$ ✗
+- Net DV01 (USDk): $40 - 80 + 60 - 20 = 0$ → $|0| \le 50$ ✓
+- Per-bucket (USDk): 5Y at $|{-}80| \gt 50$ ✗, 10Y at $|{+}60| \gt 50$ ✗
 
 To comply (thinking in bucket-DV01 units): add $+USD30k$ of 5Y bucket DV01 and add $-USD10k$ of 10Y bucket DV01 (e.g., via swaps whose bucket DV01 is concentrated at those tenors). This would give:
 - 2Y: +USD40k, 5Y: −USD50k, 10Y: +USD50k, 30Y: −USD20k

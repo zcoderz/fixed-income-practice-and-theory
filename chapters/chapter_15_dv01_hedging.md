@@ -14,7 +14,7 @@ Prerequisites: [Chapter 11 — DV01/PV01 — Definitions, Computation, and “Wh
 Follow-on: [Chapter 16 — Curve Hedging Beyond DV01 — Twists, Butterflies, and PCA](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md), [Chapter 23 — Treasury Futures — CTD, Conversion Factors, Delivery Options, and the Link to Repo](chapters/chapter_23_treasury_futures.md), [Chapter 38 — CDS Contract Mechanics](chapters/chapter_38_cds_contract_mechanics.md)
 
 ## Learning Objectives
-- Translate “DV01” from a quote into a position-level $/bp risk number with correct units.
+- Translate “DV01” from a quote into a position-level USD/bp risk number with correct units.
 - Size a DV01 hedge across bonds, swaps (PV01), and futures (CTD + conversion factor), with explicit sign conventions.
 - Explain what “DV01-neutral” means (and does *not* mean), including twist, convexity, basis, and spread failure modes.
 - Use simple risk weights (regression/min-variance intuition) when a 1:1 DV01 match is not variance-minimizing.
@@ -82,7 +82,7 @@ Accrued interest $AI$ is (approximately) rate-insensitive, so DV01 is essentiall
 
 > **Desk Reality:** Rates risk is often communicated as “I’m long $X$ DV01”, meaning PV increases by about $X$ for a 1bp rally under the desk’s bump design.
 > **Common break:** Mixing “per 100 face”, “per USD 1mm notional”, and “per contract” without normalization.
-> **What to check:** Convert everything to **position-level** $/bp before sizing the hedge.
+> **What to check:** Convert everything to **position-level** USD/bp before sizing the hedge.
 
 ---
 
@@ -141,12 +141,18 @@ Assume the following per-100 DV01s at the current rate level:
 **Step 1: Compute Required Hedge**
 
 Applying the hedge ratio formula:
-$$F_B = 100{,}000{,}000 \times \frac{0.0369}{0.0779} = USD 47{,}370{,}000$$
+
+$$
+F_B = 100{,}000{,}000 \times \frac{0.0369}{0.0779} = USD 47{,}370{,}000
+$$
 
 **Step 2: Verify Hedge**
 
 The dollar DV01 of the bond hedge equals:
-$$USD 47{,}370{,}000 \times \frac{0.0779}{100} = USD 36{,}901 \text{ per bp}$$
+
+$$
+USD 47{,}370{,}000 \times \frac{0.0779}{100} = USD 36{,}901 \text{ per bp}
+$$
 
 This matches the option's dollar DV01 of $USD 100{,}000{,}000 \times 0.0369/100 = USD 36{,}900$ per bp. The market maker is now DV01-neutral for small rate changes.
 
@@ -332,7 +338,10 @@ $$N_{\text{tailed}} \approx N_{\text{raw}} \times \left(1-r\\,\frac{d}{360}\righ
 where $N_{\text{raw}}$ is the untailed hedge size, $r$ is a relevant short rate, and $d$ is the number of days to hedge maturity.
 
 **Example:** For a 6-month hedge at 5% rates:
-$$\text{Tailing factor} \approx 1-0.05\times \frac{180}{360}=0.975$$
+
+$$
+\text{Tailing factor} \approx 1-0.05\times \frac{180}{360}=0.975
+$$
 
 A 300-contract hedge becomes 293 contracts after tailing. For short horizons the difference is often small; for longer horizons it can be noticeable.
 
@@ -401,10 +410,16 @@ Suppose you estimate (per 100 face):
 - **Regression beta:** 1.057 (20-year yield moves about 1.057× 30-year yield, in-sample)
 
 **Simple DV01 Hedge:**
-$$F_{30} = -10{,}000{,}000 \times \frac{0.118428}{0.142940} = -USD 8{,}286{,}000$$
+
+$$
+F_{30} = -10{,}000{,}000 \times \frac{0.118428}{0.142940} = -USD 8{,}286{,}000
+$$
 
 **Regression-Adjusted Hedge:**
-$$F_{30} = -10{,}000{,}000 \times 1.057 \times \frac{0.118428}{0.142940} = -USD 8{,}758{,}000$$
+
+$$
+F_{30} = -10{,}000{,}000 \times 1.057 \times \frac{0.118428}{0.142940} = -USD 8{,}758{,}000
+$$
 
 The regression approach requires shorting an additional USD 472,000 face of 30-year bonds because historical data shows 20-year yields are slightly more volatile than 30-year yields.
 

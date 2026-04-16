@@ -172,9 +172,13 @@ Result: $P(2) = 0.938679 / 1.065 = \mathbf{0.881389}$
 
 Does this curve actually price the swap to par?
 
-$$\text{PV Fixed Leg} = 0.065 \times P(1) + 1.065 \times P(2)$$
-$$= 0.065 \times 0.943396 + 1.065 \times 0.881389$$
-$$= 0.061321 + 0.938679 = 1.0000 \\; \checkmark$$
+$$
+\begin{aligned}
+\text{PV Fixed Leg} &= 0.065 \times P(1) + 1.065 \times P(2)\\
+&= 0.065 \times 0.943396 + 1.065 \times 0.881389\\
+&= 0.061321 + 0.938679 = 1.0000 \\; \checkmark
+\end{aligned}
+$$
 
 The bootstrap is successful. We have solved for the nodes: $(0.25, 0.9877), (0.5, 0.9732), (1.0, 0.9434), (2.0, 0.8814)$.
 
@@ -264,23 +268,40 @@ First, convert discount factors to yields:
 - $y(2) = -\ln(0.8814)/2 = 6.31\\%$
 
 Linear interpolation:
-$$y(1.5) = 0.5 \times 5.83\\% + 0.5 \times 6.31\\% = 6.07\\%$$
+
+$$
+y(1.5) = 0.5 \times 5.83\\% + 0.5 \times 6.31\\% = 6.07\\%
+$$
 
 Discount factor:
-$$P(1.5) = e^{-0.0607 \times 1.5} = e^{-0.0911} = 0.9129$$
+
+$$
+P(1.5) = e^{-0.0607 \times 1.5} = e^{-0.0911} = 0.9129
+$$
 
 Forward rate (see Section 17.4):
-$$f(1.5) = y(1.5) + 1.5 \times y'(1.5) = 6.07\\% + 1.5 \times (6.31\\% - 5.83\\%) = 6.07\\% + 0.72\\% = 6.79\\%$$
+
+$$
+f(1.5) = y(1.5) + 1.5 \times y'(1.5) = 6.07\\% + 1.5 \times (6.31\\% - 5.83\\%) = 6.07\\% + 0.72\\% = 6.79\\%
+$$
 
 **Method B: Log-Linear on Discount Factors**
 
-$$P(1.5) = \sqrt{P(1) \times P(2)} = \sqrt{0.9434 \times 0.8814} = 0.9119$$
+$$
+P(1.5) = \sqrt{P(1) \times P(2)} = \sqrt{0.9434 \times 0.8814} = 0.9119
+$$
 
 Yield:
-$$y(1.5) = -\ln(0.9119)/1.5 = 6.14\\%$$
+
+$$
+y(1.5) = -\ln(0.9119)/1.5 = 6.14\\%
+$$
 
 Forward rate (constant on interval):
-$$f_{[1,1.5]} = f_{[1.5,2]} = \frac{-\ln(P(2)/P(1))}{1} = -\ln(0.8814/0.9434) = 6.79\\%$$
+
+$$
+f_{[1,1.5]} = f_{[1.5,2]} = \frac{-\ln(P(2)/P(1))}{1} = -\ln(0.8814/0.9434) = 6.79\\%
+$$
 
 **Comparison:**
 
@@ -404,20 +425,30 @@ Using $y(1) = 5.83\\%$ and $y(2) = 6.31\\%$:
 
 **At $T = 1.5$ (middle of interval):**
 
-$$y(1.5) = 6.07\\%$$
-$$y'(1.5) = \frac{6.31\\% - 5.83\\%}{1} = 0.48\\%$$
-$$f(1.5) = 6.07\\% + 1.5 \times 0.48\\% = 6.79\\%$$
+$$
+\begin{aligned}
+y(1.5) &= 6.07\\%\\
+y'(1.5) &= \frac{6.31\\% - 5.83\\%}{1} = 0.48\\%\\
+f(1.5) &= 6.07\\% + 1.5 \times 0.48\\% = 6.79\\%
+\end{aligned}
+$$
 
 **At $T = 2^-$ (just before node):**
 
-$$y(2^-) = 6.31\\%$$
-$$f(2^-) = 6.31\\% + 2.0 \times 0.48\\% = 7.27\\%$$
+$$
+\begin{aligned}
+y(2^-) &= 6.31\\%\\
+f(2^-) &= 6.31\\% + 2.0 \times 0.48\\% = 7.27\\%
+\end{aligned}
+$$
 
 **At $T = 2^+$ (just after node):**
 
 Suppose the next segment has $y(3) = 6.70\\%$, implying slope $= 0.39\\%$. Then:
 
-$$f(2^+) = 6.31\\% + 2.0 \times 0.39\\% = 7.09\\%$$
+$$
+f(2^+) = 6.31\\% + 2.0 \times 0.39\\% = 7.09\\%
+$$
 
 **The jump:** $f(2^-) = 7.27\\%$ but $f(2^+) = 7.09\\%$. The forward rate drops by 18 bps at the node—this is the "tooth" of the saw.
 
@@ -491,20 +522,36 @@ For instance, perturbing a short-dated FRA price should not cause noticeable mov
 - Forward-bucket $DV01_{[1Y,2Y)}$ in USD per 1bp (book sign convention)
 
 **Step-by-step**
-1. Year fractions (ACT/365):
-   - $\tau_{0\to 1Y} = 365/365 = 1.0000$
-   - $\tau_{1Y\to T} = 181/365 \approx 0.4959$ (2027-02-15 to 2027-08-15)
-2. Discount factor under piecewise-flat forwards:
-   $$P(0,T)=\exp\left(-0.0500\cdot 1.0000 -0.0550\cdot 0.4959\right) \approx 0.92564$$
-3. PV:
-   $$PV = CF\cdot P(0,T) \approx 1{,}000{,}000\times 0.92564 = 925{,}636$$
-4. Bucket DV01 for the $[1Y,2Y)$ forward segment:
-   - Bump object: $f(t)$ for $t\in[1Y,2Y)$
-   - Bump size: down 1bp = $-10^{-4}$
-   - Exact reprice (by bumping $f_1$ only):
-     $$DV01_{[1Y,2Y)} = PV(f_1-10^{-4}) - PV(f_1) \approx 45.9$$
-   - First-order check:
-     $$DV01_{[1Y,2Y)} \approx CF\cdot P(0,T)\cdot \tau_{1Y\to T}\cdot 10^{-4} \approx 45.9$$
+**Step 1 (Year fractions (ACT/365)):**
+- $\tau_{0\to 1Y} = 365/365 = 1.0000$
+- $\tau_{1Y\to T} = 181/365 \approx 0.4959$ (2027-02-15 to 2027-08-15)
+
+**Step 2 (Discount factor under piecewise-flat forwards):**
+
+$$
+P(0,T)=\exp\left(-0.0500\cdot 1.0000 -0.0550\cdot 0.4959\right) \approx 0.92564
+$$
+
+**Step 3 (PV):**
+
+$$
+PV = CF\cdot P(0,T) \approx 1{,}000{,}000\times 0.92564 = 925{,}636
+$$
+
+**Step 4 (Bucket DV01 for the $[1Y,2Y)$ forward segment):**
+- Bump object: $f(t)$ for $t\in[1Y,2Y)$
+- Bump size: down 1bp = $-10^{-4}$
+- Exact reprice (by bumping $f_1$ only):
+
+$$
+DV01_{[1Y,2Y)} = PV(f_1-10^{-4}) - PV(f_1) \approx 45.9
+$$
+
+- First-order check:
+
+$$
+DV01_{[1Y,2Y)} \approx CF\cdot P(0,T)\cdot \tau_{1Y\to T}\cdot 10^{-4} \approx 45.9
+$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |

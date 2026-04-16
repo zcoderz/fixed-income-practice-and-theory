@@ -176,6 +176,9 @@ If something is unclear or you can’t retrieve strong evidence from `books_rag`
 ## GitHub Math Rendering Guardrails (Mandatory)
 
 - Use inline math as `$...$`; use display math as `$$ ... $$` with blank lines around blocks.
+- For multi-line display math, put delimiters on their own lines:
+  - `$$` newline `...` newline `$$`
+- In Markdown→GitHub-math pipelines, single-escaped TeX punctuation/spaces can be consumed by the Markdown unescape stage; prefer double-escaped forms like `\\,`, `\\;`, `\\!`, `\\%` (or run `python3 refactor_plan/github_math_escape_fix.py --paths <file> --write`).
 - Avoid raw `<` and `>` in math; use `\lt`, `\gt`, `\le`, `\ge`.
 - Do not use `\operatorname{...}`; use `\mathrm{...}` or plain symbols.
 - Avoid risky macro+subscript forms like `\text{X}_{i}`; prefer `X_i` or plain identifiers.
@@ -183,13 +186,21 @@ If something is unclear or you can’t retrieve strong evidence from `books_rag`
 - Avoid math inside markdown emphasis like `*...$...$...*`.
 - Avoid fragile inline math in headings; prefer plain-text heading labels.
 - Prefer stable symbols in prose where possible (use backticks for identifiers when math is not necessary).
-- Be careful with math inside blockquotes, lists, and tables; if renderer is fragile, rewrite to inline/plain text.
+- Avoid TeX inside inline code spans (backticks); GitHub will not math-render `<code>`.
+- Avoid bare-star superscripts like `^*`; use `^\ast` or `^{\\star}`.
+- Avoid `](` inside math (can look like a markdown link); break the pattern or move the construct to display math.
+- Do not use fenced ```math blocks for GitHub math; use `$$ ... $$` instead.
+- Be careful with math inside blockquotes, lists, and tables:
+  - Avoid `$$ ... $$` inside blockquotes; GitHub may render it as inline math. Use inline `$...$` or move the display block outside the quote.
+  - Avoid indented `$$ ... $$` under list items; break the list or move the display block to a standalone paragraph.
+  - Avoid putting many inline-math spans inside a single bolded prompt line; keep the bold label, then put parameters/formulas on the following lines.
 - After every file edit, run:
   - `python3 refactor_plan/github_math_escape_validate.py --paths <file> --max-errors 300`
   - `.venv-github-render/bin/python refactor_plan/mathjax_render_check.py --paths <file> --max-errors 300`
-- After push, run:
-  - `python3 refactor_plan/github_api_render_validate.py --paths <file> --ref main --max-errors 300`
-- A file is only done when `github_api_render_validate.py` returns `OK`.
+- GitHub-render gate:
+  - If you can push: `python3 refactor_plan/github_api_render_validate.py --paths <file> --ref <ref> --max-errors 300 --check-unwrapped --check-tex-in-code --save-html-dir /tmp/<tag>`
+  - If you cannot push (default in this repo): `python3 refactor_plan/github_api_render_validate.py --render-local --paths <file> --max-errors 300 --check-unwrapped --check-tex-in-code --save-html-dir /tmp/<tag>`
+- A file is only done when the GitHub-render gate returns `OK`.
 
 ## Skills (session-level instructions)
 

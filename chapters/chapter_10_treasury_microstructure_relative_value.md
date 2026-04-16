@@ -31,7 +31,7 @@ Follow-on: [Chapter 23 — Treasury Futures](chapters/chapter_23_treasury_future
 
 The U.S. Treasury market operates as an over-the-counter (OTC) dealer market rather than a centralized exchange. Primary dealers make markets in Treasury securities, posting bid and ask prices to customers and trading among themselves through interdealer brokers. This structure has important implications for liquidity: different securities can have very different bid-ask spreads and market depth, even when their fundamental characteristics are similar.
 
-Treasury prices are commonly quoted in dollars and 32nds per $100 face value. A quote of `99-16` means $99 + 16/32 = 99.5$ per $100 par. A `+` conventionally denotes an extra $1/64$ (a half-tick). These are **clean prices**, excluding accrued interest. The cash exchanged at settlement is based on the **dirty (invoice) price**:
+Treasury prices are commonly quoted in dollars and 32nds per 100 face value. A quote of `99-16` means $99 + 16/32 = 99.5$ per 100 par. A `+` conventionally denotes an extra $1/64$ (a half-tick). These are **clean prices**, excluding accrued interest. The cash exchanged at settlement is based on the **dirty (invoice) price**:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + AI}$$
 
@@ -45,11 +45,11 @@ The U.S. Treasury market is intermediated by a network of **primary dealers**—
 
 ### 10.1.3 Bid-Ask Spreads and Transaction Costs
 
-Bid-ask spreads in Treasuries vary by issue and market conditions. To understand the economic impact of spreads, consider a bid-ask spread of $1/32$ on $100 million face value. The round-trip spread cost (crossing once) is:
+Bid-ask spreads in Treasuries vary by issue and market conditions. To understand the economic impact of spreads, consider a bid-ask spread of $1/32$ on USD 100 million face value. The round-trip spread cost (crossing once) is:
 
 $$USD 100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = USD 31{,}250$$
 
-This formula reflects that a 1/32 price difference (per $100 face) on $100 million notional translates to $31,250 in PL. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
+This formula reflects that a 1/32 price difference (per 100 face) on USD 100 million notional translates to USD 31,250 in PL. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
 
 ### 10.1.4 Measuring Liquidity Quantitatively
 
@@ -221,7 +221,7 @@ In the simplified setting (no explicit fails charge), borrowing at a very low sp
 
 $$\boxed{r_{sp} \geq 0 \quad \Rightarrow \quad s \leq r_{GC}}$$
 
-Intuition: if the special repo rate were $0\%$, earning $0\%$ on the short-sale proceeds is economically similar to having failed to deliver. A trader would prefer to fail rather than accept a special rate below $0\%$. Therefore, in this stylized setting, the special rate cannot fall below $0\%$, and equivalently the special spread cannot exceed the GC rate.
+Intuition: if the special repo rate were $0\\%$, earning $0\\%$ on the short-sale proceeds is economically similar to having failed to deliver. A trader would prefer to fail rather than accept a special rate below $0\\%$. Therefore, in this stylized setting, the special rate cannot fall below $0\\%$, and equivalently the special spread cannot exceed the GC rate.
 
 This is not a law of nature: it is an economic comparison that changes when settlement conventions (including explicit fails charges) change.
 
@@ -229,7 +229,7 @@ This is not a law of nature: it is an economic comparison that changes when sett
 
 Modern Treasury settlement practice includes an explicit daily fails charge under the Treasury Market Practices Group (TMPG) recommended “fails charge trading practice.” For delivery-versus-payment (DVP) Treasury trades, TMPG specifies a **daily dollar charge** that depends on trade proceeds and a reference rate:
 
-$$\boxed{C_{\text{daily}} \;=\; \frac{1}{360}\times 0.01 \times \max(3 - R,\;F)\times P_{\text{proceeds}}}$$
+$$\boxed{C_{\text{daily}} \\;=\\; \frac{1}{360}\times 0.01 \times \max(3 - R,\\;F)\times P_{\text{proceeds}}}$$
 
 where:
 - $C_{\text{daily}}$ is the fails charge amount in dollars per day,
@@ -521,7 +521,7 @@ $$\boxed{P_{fwd} = P(0) - \text{Carry}}$$
 
 The forward price equals the spot price minus carry. If carry is positive (income exceeds financing), the forward clean price is below spot. If carry is negative, the forward price is above spot.
 
-**Check (toy numbers; clean vs invoice):** Take $P(0)=102.50$, $AI(0)=0.40$ so $I(0)=102.90$. With $r=5.00\%$ and $d=30$ days (and ignoring intermediate coupons), the invoice amount grows to $102.90\times(1+0.05\times 30/360)\approx 103.33$. If accrued interest at the horizon is $AI(d)=1.20$, then the implied forward clean price is $P_{fwd}\approx 103.33-1.20=102.13$, which is below the spot clean price because part of the horizon return is earned mechanically through accrued interest and financing.
+**Check (toy numbers; clean vs invoice):** Take $P(0)=102.50$, $AI(0)=0.40$ so $I(0)=102.90$. With $r=5.00\\%$ and $d=30$ days (and ignoring intermediate coupons), the invoice amount grows to $102.90\times(1+0.05\times 30/360)\approx 103.33$. If accrued interest at the horizon is $AI(d)=1.20$, then the implied forward clean price is $P_{fwd}\approx 103.33-1.20=102.13$, which is below the spot clean price because part of the horizon return is earned mechanically through accrued interest and financing.
 
 ### 10.15.2 The Repo Rate in Forward Pricing
 
@@ -634,15 +634,18 @@ Two practical cautions:
 **Inputs**
 - Old 5-year (long leg):
   - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
-  - Repo rate $r_{GC} = 4.80\%USD  (ACT/360)
+- Repo rate $r_{GC} = 4.80\\%$ (ACT/360)
   - $DV01_{y,\text{old}} = 0.044$ price points per 100 per 1bp
 - On-the-run 5-year (short leg):
   - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
-  - Special repo rate $r_{sp} = 3.30\%$ (ACT/360)
+  - Special repo rate $r_{sp} = 3.30\\%$ (ACT/360)
   - $DV01_{y,\text{OTR}} = 0.045$ price points per 100 per 1bp
-- Special spread: $s = r_{GC} - r_{sp} = 1.50\%$
+- Special spread: $s = r_{GC} - r_{sp} = 1.50\\%$
 - Notional: long $N_{\text{old}} = USD 100\text{mm}$ face. Choose short notional to be DV01-neutral:
-  $$N_{\text{OTR}} = N_{\text{old}}\cdot \frac{DV01_{y,\text{old}}}{DV01_{y,\text{OTR}}} \approx 100\text{mm}\cdot \frac{0.044}{0.045} \approx USD 97.8\text{mm}$$
+
+$$
+N_{\text{OTR}} = N_{\text{old}}\cdot \frac{DV01_{y,\text{old}}}{DV01_{y,\text{OTR}}} \approx 100\text{mm}\cdot \frac{0.044}{0.045} \approx USD 97.8\text{mm}
+$$
 
 **Outputs (What You Produce)**
 - Trade DV01 to parallel yield shifts $\approx 0$ by construction.
@@ -650,24 +653,47 @@ Two practical cautions:
 - Breakeven convergence (in bp) needed to pay for financing drag.
 
 **Step-by-step**
-1. **Compute trade DV01 (dollars per bp).**  
-   Long-leg DV01:
-   $$DV01_{USD ,\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = USD 44{,}000\; \text{per bp}$$
-   Short-leg DV01:
-   $$DV01_{USD ,\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx USD 44{,}010\; \text{per bp}$$
-   so the net DV01 is approximately zero.
 
-2. **Compute financing drag (short OTR).**  
-   The short position must source the on-the-run security in the specials market. A rough financing-drag estimate over $d$ days is:
-   $$\text{Drag} \approx \left(\frac{N_{\text{OTR}}}{100}\cdot P_{\text{dirty}}\right)\cdot s\cdot \frac{d}{360}$$
-   Plugging in $N_{\text{OTR}}\approx 97.8\text{mm}$, $P_{\text{dirty}}\approx 100.50$, $s=1.50\%$, $d=60$:
-   $$\text{Drag} \approx \left(97.8\text{mm}\times \frac{100.50}{100}\right)\times 0.015\times \frac{60}{360} \approx USD 246{,}000$$
+**Step 1 (Compute trade DV01 (dollars per bp)).**  
+Long-leg DV01:
 
-3. **Breakeven convergence.**  
-   If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., $y_{OTR}-y_{old}$ increases toward 0), the convergence PL is on the order of:
-   $$PL_{\text{conv}} \approx DV01_{USD ,\text{OTR}}\cdot \Delta y$$
-   Breakeven $\Delta y$ is therefore:
-   $$\Delta y_{\text{breakeven}} \approx \frac{USD 246{,}000}{USD 44{,}000} \approx 5.6\text{ bp}$$
+$$
+DV01_{USD ,\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = USD 44{,}000\\; \text{per bp}
+$$
+
+Short-leg DV01:
+
+$$
+DV01_{USD ,\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx USD 44{,}010\\; \text{per bp}
+$$
+
+so the net DV01 is approximately zero.
+
+**Step 2 (Compute financing drag (short OTR)).**  
+The short position must source the on-the-run security in the specials market. A rough financing-drag estimate over $d$ days is:
+
+$$
+\text{Drag} \approx \left(\frac{N_{\text{OTR}}}{100}\cdot P_{\text{dirty}}\right)\cdot s\cdot \frac{d}{360}
+$$
+
+Plugging in $N_{\text{OTR}}\approx 97.8\text{mm}$, $P_{\text{dirty}}\approx 100.50$, $s=1.50\\%$, $d=60$:
+
+$$
+\text{Drag} \approx \left(97.8\text{mm}\times \frac{100.50}{100}\right)\times 0.015\times \frac{60}{360} \approx USD 246{,}000
+$$
+
+**Step 3 (Breakeven convergence).**  
+If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., $y_{OTR}-y_{old}$ increases toward 0), the convergence PL is on the order of:
+
+$$
+PL_{\text{conv}} \approx DV01_{USD ,\text{OTR}}\cdot \Delta y
+$$
+
+Breakeven $\Delta y$ is therefore:
+
+$$
+\Delta y_{\text{breakeven}} \approx \frac{USD 246{,}000}{USD 44{,}000} \approx 5.6\text{ bp}
+$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -681,7 +707,7 @@ Two practical cautions:
 - A DV01-neutral construction does **not** neutralize liquidity premium risk, specialness risk, or funding/margin dynamics.
 
 **Sanity Checks**
-- Units check: $(USD \\times \%)\\times (\\text{days}/360)USD  produces dollars.
+- Units check: (USD × rate) × (days/360) produces dollars.
 - Sign check: larger $s$ (more special) increases drag for the short; convergence must be larger/faster to compensate.
 - Limit check: if $s=0$, financing drag vanishes and the trade reduces to a pure relative-yield bet.
 
@@ -726,10 +752,10 @@ Two practical cautions:
 | GC repo | Repo where collateral is a broad Treasury set | Baseline funding rate for Treasury collateral |
 | Special repo | Repo requiring a specific security | Collateral scarcity shows up as below-GC rates |
 | Special spread | $s := r_{GC}-r_{sp}$ (annualized, ACT/360) | Converts financing wedges into dollars/bp; $s \gt 0$ means “special” |
-| Financing advantage / drag | $\approx (N/100)\,P_{\text{dirty}}\,s\,d/360$ dollars over $d$ days (advantage if long collateral; drag if short) | Often first-order in RV PL over short horizons |
+| Financing advantage / drag | $\approx (N/100)\\,P_{\text{dirty}}\\,s\\,d/360$ dollars over $d$ days (advantage if long collateral; drag if short) | Often first-order in RV PL over short horizons |
 | $DV01_y$ (price DV01) | $DV01_y := P(y-1\text{bp})-P(y)$ (price points per 100 per bp) | Locks bump object/sign for yield-equivalent comparisons |
 | $DV01_{USD}$ (dollar DV01) | $DV01_{USD} := DV01_y\times N/100$ (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
-| TMPG fails charge | $C_{\text{daily}}=(1/360)\,0.01\,\max(3-R,F)\,P_{\text{proceeds}}$ (dollars/day) | Makes failing explicitly costly; affects the “negative special” bound |
+| TMPG fails charge | $C_{\text{daily}}=(1/360)\\,0.01\\,\max(3-R,F)\\,P_{\text{proceeds}}$ (dollars/day) | Makes failing explicitly costly; affects the “negative special” bound |
 | Liquidity premium decomposition | OTR richness = financing component + pure liquidity component | Prevents double-counting when fitting curves / valuing benchmarks |
 | Implied bid-ask spread | $S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}$ | Infers a rough effective spread from bid-ask bounce |
 | Butterfly (2-5-10) | 3-leg trade (short wings, long body), sized to net DV01 $\approx 0$ | Isolates curvature from level; common RV building block |
@@ -778,7 +804,7 @@ Two practical cautions:
 | 10 | How do you convert financing advantage to bp? | Divide a dollar financing advantage/drag by $DV01_{USD }$ (or per-100 financing advantage by $DV01_y$). |
 | 11 | What historically bounded the special spread? | The GC rate (since special could not go below 0% before 2009). |
 | 12 | Why couldn't special rates go negative historically? | Failing to deliver was equivalent to 0% financing, so no one would lend at negative rates. |
-| 13 | What is the TMPG fails charge formula (DVP Treasuries)? | $C_{\text{daily}}=(1/360)\,0.01\,\max(3-R,F)\,P_{\text{proceeds}}$ dollars/day. |
+| 13 | What is the TMPG fails charge formula (DVP Treasuries)? | $C_{\text{daily}}=(1/360)\\,0.01\\,\max(3-R,F)\\,P_{\text{proceeds}}$ dollars/day. |
 | 14 | How do fails charges allow negative repo rates? | They create a penalty for failing that exceeds the cost of negative repo. |
 | 15 | What is the auction-cycle pattern for specials? | Small after auctions, rising toward next auction. |
 | 16 | How do reopenings affect specials? | They add supply, so specials don't get as wide as with new issues. |
@@ -841,7 +867,7 @@ Two practical cautions:
 
 **Solution:**
 - $(P_{fwd} + AI(d)) / (P(0) + AI(0)) = 100.90 / 100.50 = 1.00398$
-- $r = (360/30) \times 0.00398 = 4.78\%$
+- $r = (360/30) \times 0.00398 = 4.78\\%$
 
 ---
 
@@ -878,8 +904,12 @@ Two practical cautions:
 **13.** Using the autocovariance-based implied spread model, you compute $\mathrm{Cov}(X_t, X_{t-1}) = -0.0001$, where $X_t=P_t-P_{t-1}$ and prices are in dollars per 100. Estimate the bid-ask spread.
 
 **Solution:**
-$$S = 2\sqrt{-(-0.0001)} = 2\sqrt{0.0001} = 2 \times 0.01 = 0.02$$
-The implied spread is 2 cents per $100 face, or about 0.6/32nds.
+
+$$
+S = 2\sqrt{-(-0.0001)} = 2\sqrt{0.0001} = 2 \times 0.01 = 0.02
+$$
+
+The implied spread is 2 cents per 100 face, or about 0.6/32nds.
 
 ---
 
@@ -903,28 +933,28 @@ The implied spread is 2 cents per $100 face, or about 0.6/32nds.
 - 2-year notional: $21{,}000 / 0.00018 = USD 116.7mm$
 - 10-year notional: $21{,}000 / 0.00078 = USD 26.9mm$
 
-The fly is: short $116.7mm 2-year, long $100mm 5-year, short $26.9mm 10-year.
+The fly is: short USD 116.7mm 2-year, long USD 100mm 5-year, short USD 26.9mm 10-year.
 
 ---
 
-**17.** A DVP Treasury trade has proceeds $P_{\text{proceeds}}=USD 50{,}000{,}000$. The TMPG reference rate is $R=0.25\%$. Assume $F=0$. Compute the TMPG daily fails charge $C_{\text{daily}}$.
+**17.** A DVP Treasury trade has proceeds $P_{\text{proceeds}}=USD 50{,}000{,}000$. The TMPG reference rate is $R=0.25\\%$. Assume $F=0$. Compute the TMPG daily fails charge $C_{\text{daily}}$.
 
 **Solution:** With $\max(3-R,F)=3-0.25=2.75$ (percent points):
 
 $$
-C_{\text{daily}}=\frac{1}{360}\times 0.01\times 2.75\times 50{,}000{,}000 \approx USD 3{,}819\;\text{per day.}
+C_{\text{daily}}=\frac{1}{360}\times 0.01\times 2.75\times 50{,}000{,}000 \approx USD 3{,}819\\;\text{per day.}
 $$
 
 Qualitatively: an explicit fails charge makes failing costly, so borrowing at a negative special rate can be cheaper than failing in some scenarios.
 
 ---
 
-**18.** You're analyzing a rich/cheap trade: OTR 5y trades 7 bp rich to curve; old 5y trades 1 bp cheap. You are short $USD 100$mm face of the OTR and long $USD 100$mm face of the old (assume prices near par), so the package has $DV01_{USD }\approx USD 45{,}000$ per bp. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the spread halves (to 4 bp), calculate PL including financing.
+**18.** You're analyzing a rich/cheap trade: OTR 5y trades 7 bp rich to curve; old 5y trades 1 bp cheap. You are short USD 100mm face of the OTR and long USD 100mm face of the old (assume prices near par), so the package has $DV01_{USD }\approx USD 45{,}000$ per bp. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the spread halves (to 4 bp), calculate PL including financing.
 
 **Solution Sketch:**
-- **Spread convergence PL**: 4 bp × $45,000 = $180,000 gain
+- **Spread convergence PL**: 4 bp × USD 45,000 = USD 180,000 gain
 - **Financing drag of short OTR** (150 bp special): $0.015\times 100{,}000{,}000\times 90/360 \approx USD 375{,}000$
-- **Net PL**: $180,000 - $375,000 = **-$195,000 loss**
+- **Net PL**: USD 180,000 - USD 375,000 = **USD -195,000 loss**
 
 The financing drag exceeds the spread convergence gain. This illustrates why financing costs matter.
 

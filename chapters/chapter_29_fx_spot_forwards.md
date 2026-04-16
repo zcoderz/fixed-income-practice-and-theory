@@ -266,7 +266,9 @@ where:
 This is the basic no-arbitrage constraint that ties FX forwards to the two discount curves (and, at longer maturities, to the instruments used to build those curves).
 
 **Equivalent notation (common in term-structure texts):** If $X(t)$ is the spot FX rate in domestic per foreign, and $P_d(t,T), P_f(t,T)$ are domestic and foreign discount factors, then the forward FX rate for delivery at $T$ is
+
 $$X_T(t)=X(t)\frac{P_f(t,T)}{P_d(t,T)}.$$
+
 With $X(t)=S_t$, $P_d=P_D$, and $P_f=P_F$, this is the same formula as above.
 
 **Why prefer discount factors?** The discount factor form is convention-robust: it works regardless of whether rates are quoted as simple, semiannual, or continuous. The formula $F = S \cdot P_F / P_D$ simply says: the forward equals spot scaled by the ratio of "present value of 1 unit of foreign" to "present value of 1 unit of domestic."
@@ -296,8 +298,10 @@ $$F(t,T) - S_t = S_t \left( \frac{P_F(t,T)}{P_D(t,T)} - 1 \right)$$
 This shows that forward points are driven entirely by the ratio of discount factors—which reflects the interest rate differential between the two currencies.
 
 **Check (small-tenor approximation):** For short tenors, you can linearize the discount-factor ratio. Under continuous compounding with year fraction $\tau$,
+
 $$P_D(t,T)\approx e^{-r\tau},\quad P_F(t,T)\approx e^{-r_f\tau}\quad\Rightarrow\quad F-S \approx S\\,(r-r_f)\\,\tau.$$
-Example: if $S=1.10$, $r-r_f=2\%$, and $\tau=0.25$, then forward points are $\approx 1.10\times 0.02\times 0.25=0.0055$, i.e. about 55 pips when 1 pip $=0.0001$.
+
+Example: if $S=1.10$, $r-r_f=2\\%$, and $\tau=0.25$, then forward points are $\approx 1.10\times 0.02\times 0.25=0.0055$, i.e. about 55 pips when 1 pip $=0.0001$.
 
 ### 29.5.2 Premium vs Discount
 
@@ -421,9 +425,11 @@ Each leg is valued in domestic currency, then netted.
 In discount factor notation:
 
 **PV of receiving $N_F$ foreign at $T$:**
+
 $$PV_{\text{receive}} = N_F \cdot S_t \cdot P_F(t,T)$$
 
 **PV of paying $K \cdot N_F$ domestic at $T$:**
+
 $$PV_{\text{pay}} = -K \cdot N_F \cdot P_D(t,T)$$
 
 **Total domestic PV:**
@@ -529,7 +535,7 @@ Under the standard “foreign currency earns the foreign risk-free rate” inter
 
 **Units:** $V^{(D)}$ is in domestic currency and $S$ is in domestic-per-foreign, so $\partial V/\partial S$ has units of **foreign currency** (e.g., EUR). Some risk systems report a “domestic delta” by multiplying by spot; always check your report’s units.
 
-**Check (spot hedge sizing):** If you are long the forward (buy foreign), your spot delta is $+N_F P_F(t,T)$ in foreign units. A first-order spot hedge is therefore to **sell** $N_F P_F(t,T)$ units of foreign in spot (so the combined $dV\approx (N_F P_F - N_{\text{spot}})\,dS$ is near zero). The remaining risk is then mainly curve/basis risk and any mismatch in bump/mark conventions.
+**Check (spot hedge sizing):** If you are long the forward (buy foreign), your spot delta is $+N_F P_F(t,T)$ in foreign units. A first-order spot hedge is therefore to **sell** $N_F P_F(t,T)$ units of foreign in spot (so the combined $dV\approx (N_F P_F - N_{\text{spot}})\\,dS$ is near zero). The remaining risk is then mainly curve/basis risk and any mismatch in bump/mark conventions.
 
 > **Desk Reality:** Many risk reports show FX delta in *foreign units* as $N_F P_F(t,T)$, not the contractual notional $N_F$.
 > **Common break:** Spot hedges are sized off notional and ignore $P_F$, creating a tenor-dependent residual delta.
@@ -548,15 +554,17 @@ From the PV formula $V = N_F(S_t P_F - K P_D)$, you can read the forward as a **
 - **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp}) - PV(\text{base})$ for the stated bump object.
 Let $\tau(t,T)$ be the year fraction implied by the curve’s day count between dates $t$ and $T$.
 
-- **Foreign curve DV01 (toy single-maturity approximation):** if you bump the foreign continuously-compounded zero rate down by 1bp so that $P_F$ increases by $\Delta P_F \approx \tau(t,T)P_F \cdot 10^{-4}$, then
-  $$DV01_F \approx +N_F \cdot S_t \cdot \tau(t,T) \cdot P_F(t,T)\cdot 10^{-4}.$$
+**Foreign curve DV01 (toy single-maturity approximation):** if you bump the foreign continuously-compounded zero rate down by 1bp so that $P_F$ increases by $\Delta P_F \approx \tau(t,T)P_F \cdot 10^{-4}$, then
 
-- **Domestic curve DV01 (toy single-maturity approximation):** if you bump the domestic continuously-compounded zero rate down by 1bp so that $P_D$ increases by $\Delta P_D \approx \tau(t,T)P_D \cdot 10^{-4}$, then
-  $$DV01_D \approx -N_F \cdot K \cdot \tau(t,T) \cdot P_D(t,T)\cdot 10^{-4}.$$
+$$DV01_F \approx +N_F \cdot S_t \cdot \tau(t,T) \cdot P_F(t,T)\cdot 10^{-4}.$$
+
+**Domestic curve DV01 (toy single-maturity approximation):** if you bump the domestic continuously-compounded zero rate down by 1bp so that $P_D$ increases by $\Delta P_D \approx \tau(t,T)P_D \cdot 10^{-4}$, then
+
+$$DV01_D \approx -N_F \cdot K \cdot \tau(t,T) \cdot P_D(t,T)\cdot 10^{-4}.$$
 
 These two curve risks can partially offset, but the sign and magnitude depend on $S_t$, $K$, and the relative curve levels.
 
-**Check (at-market forward, DV01 magnitudes match):** For a forward struck at the fair rate $K=F^{\star}(t,T)$, no-arbitrage implies $K\,P_D(t,T)=S_t\,P_F(t,T)$. Plugging this into the toy single-maturity DV01 expressions shows $|DV01_F|\approx |DV01_D|$ (opposite signs). In that toy setting, a simultaneous 1bp down shift to **both** curves has a much smaller net PV impact than bumping one curve alone—the forward is primarily exposed to **relative** moves between the curves (a cross-currency “basis” move), not just level.
+**Check (at-market forward, DV01 magnitudes match):** For a forward struck at the fair rate $K=F^{\star}(t,T)$, no-arbitrage implies $K\\,P_D(t,T)=S_t\\,P_F(t,T)$. Plugging this into the toy single-maturity DV01 expressions shows $|DV01_F|\approx |DV01_D|$ (opposite signs). In that toy setting, a simultaneous 1bp down shift to **both** curves has a much smaller net PV impact than bumping one curve alone—the forward is primarily exposed to **relative** moves between the curves (a cross-currency “basis” move), not just level.
 
 ### 29.9.3 Delta of Forward vs Delta of Spot Position
 
@@ -578,19 +586,23 @@ Economically, an NDF settles the payoff of the corresponding deliverable forward
 
 Two common parameterizations:
 
-1. **Chapter convention (domestic per foreign, notional in foreign):**
-   - Quotes $S^{D/F}$ and $K^{D/F}$ are **domestic currency per 1 foreign**.
-   - Notional is $N_F$ in the foreign currency.
-   - A long forward to *buy foreign* (receive $N_F$, pay $K N_F$ domestic) has domestic cash payoff at fixing
-     $$\boxed{\text{Payoff in }D = N_F\left(S_{\text{fix}}^{D/F} - K^{D/F}\right)}$$
-     and the short position flips the sign.
+**(1) Chapter convention (domestic per foreign, notional in foreign):**
+- Quotes $S^{D/F}$ and $K^{D/F}$ are **domestic currency per 1 foreign**.
+- Notional is $N_F$ in the foreign currency.
+- A long forward to *buy foreign* (receive $N_F$, pay $K N_F$ domestic) has domestic cash payoff at fixing:
 
-2. **Common NDF quote direction (foreign per USD, notional in foreign):**
-   - Quotes $S_{\text{fix}}$ and $K$ are **foreign currency per 1 USD** (e.g., KRW per USD).
-   - Notional is $N_F$ in the foreign (restricted) currency.
-   - If you are *selling foreign / buying USD forward*, the USD cash payoff is
-     $$\boxed{\text{Payoff in USD} = N_F\left(\frac{1}{K}-\frac{1}{S_{\text{fix}}}\right)}$$
-     (again, the opposite position flips the sign).
+$$\boxed{\text{Payoff in }D = N_F\left(S_{\text{fix}}^{D/F} - K^{D/F}\right)}$$
+
+and the short position flips the sign.
+
+**(2) Common NDF quote direction (foreign per USD, notional in foreign):**
+- Quotes $S_{\text{fix}}$ and $K$ are **foreign currency per 1 USD** (e.g., KRW per USD).
+- Notional is $N_F$ in the foreign (restricted) currency.
+- If you are *selling foreign / buying USD forward*, the USD cash payoff is:
+
+$$\boxed{\text{Payoff in USD} = N_F\left(\frac{1}{K}-\frac{1}{S_{\text{fix}}}\right)}$$
+
+(again, the opposite position flips the sign).
 
 Both formulas are the same economics written under different quote directions. A good unit check is that the payoff currency is the settlement currency and the payoff has “notional × price difference” structure.
 
@@ -606,6 +618,7 @@ Both formulas are the same economics written under different quote directions. A
 **Fixing:** $S_{\text{fix}}=1350$ KRW/USD (KRW weakened).
 
 Using the “foreign per USD” formula above,
+
 $$\text{Payoff in USD}=N_F\left(\frac{1}{K}-\frac{1}{S_{\text{fix}}}\right)=1{,}000{,}000{,}000\left(\frac{1}{1320}-\frac{1}{1350}\right)\approx +16{,}835.$$
 
 Interpretation: you locked in **more USD per KRW** than the fixing implies, so you receive a positive USD settlement.
@@ -682,11 +695,11 @@ $$\text{Daily Carry} \approx N_F \times S \times (r - r_f) \times \frac{1}{365}$
 
 1. **Spot P&L:** $\Delta S \times N_F \times P_F \approx 0.01 \times 10{,}000{,}000 \times 0.99 = +99{,}000$ USD
 
-2. **Rates P&L:** The rate differential widened (USD up, EUR down), making EUR at a larger forward premium. This partially offsets or adds to spot P&L depending on the position. Estimate: additional ~$5,000.
+2. **Rates P&L:** The rate differential widened (USD up, EUR down), making EUR at a larger forward premium. This partially offsets or adds to spot P&L depending on the position. Estimate: additional ~USD 5,000.
 
-3. **Carry P&L:** 30 days of carry at ~1.5% annualized differential = ~$12,000.
+3. **Carry P&L:** 30 days of carry at ~1.5% annualized differential = ~USD 12,000.
 
-4. **Total P&L:** ~$116,000
+4. **Total P&L:** ~USD 116,000
 
 (Exact attribution requires full revaluation at intermediate points.)
 
@@ -765,7 +778,7 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 - Discount factors from spot date to forward date (toy numbers):
   - USD: $P_D=0.9901$
   - EUR: $P_F=0.9975$
-  These are consistent with simple money-market rates $R_D=4\%$, $R_F=1\%$ over $\tau=0.25$ via $P=1/(1+R\tau)$.
+  These are consistent with simple money-market rates $R_D=4\\%$, $R_F=1\\%$ over $\tau=0.25$ via $P=1/(1+R\tau)$.
 - Notional: $N_F = 10{,}000{,}000$ EUR.
 - Contract delivery price: $K=1.2100$ USD/EUR (slightly above fair).
 
@@ -776,21 +789,30 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 - Curve DV01s (USD per 1bp; bump object and sign as defined in Section 29.9)
 
 **Step-by-step**
-1. **Fair forward (CIP, DF form):**
-   $$F^{\star} = S_0 \frac{P_F}{P_D} = 1.2000 \times \frac{0.9975}{0.9901} = 1.2090.$$
-2. **PV of the off-market forward (long = buy EUR):**
-   $$V_0^{(\text{USD})}=N_F\left(S_0P_F-KP_D\right)=10{,}000{,}000\left(1.2000\times0.9975-1.2100\times0.9901\right)\approx-10{,}200.$$
-3. **FX delta (foreign units):**
-   $$\frac{\partial V}{\partial S}=N_F P_F=10{,}000{,}000\times0.9975=9{,}975{,}000\ \text{EUR}.$$
-4. **Curve DV01s (toy parallel bump, $1\text{bp}=10^{-4}$, $\tau=0.25$):**
-   $$DV01_F \approx +N_F\\,S_0\\,\tau\\,P_F\\,10^{-4}=+10{,}000{,}000\times1.2000\times0.25\times0.9975\times10^{-4}\approx +299.$$
-   $$DV01_D \approx -N_F\\,K\\,\tau\\,P_D\\,10^{-4}=-10{,}000{,}000\times1.2100\times0.25\times0.9901\times10^{-4}\approx -300.$$
+
+**Step 1 (Fair forward (CIP, DF form)):**
+
+$$F^{\star} = S_0 \frac{P_F}{P_D} = 1.2000 \times \frac{0.9975}{0.9901} = 1.2090.$$
+
+**Step 2 (PV of the off-market forward (long = buy EUR)):**
+
+$$V_0^{(\text{USD})}=N_F\left(S_0P_F-KP_D\right)=10{,}000{,}000\left(1.2000\times0.9975-1.2100\times0.9901\right)\approx-10{,}200.$$
+
+**Step 3 (FX delta (foreign units)):**
+
+$$\frac{\partial V}{\partial S}=N_F P_F=10{,}000{,}000\times0.9975=9{,}975{,}000\ \text{EUR}.$$
+
+**Step 4 (Curve DV01s (toy parallel bump, $1\text{bp}=10^{-4}$, $\tau=0.25$)):**
+
+$$DV01_F \approx +N_F\\,S_0\\,\tau\\,P_F\\,10^{-4}=+10{,}000{,}000\times1.2000\times0.25\times0.9975\times10^{-4}\approx +299.$$
+
+$$DV01_D \approx -N_F\\,K\\,\tau\\,P_D\\,10^{-4}=-10{,}000{,}000\times1.2100\times0.25\times0.9901\times10^{-4}\approx -300.$$
 
 **Cashflows**
 | Date | Cashflow | Explanation |
 |---|---:|---|
 | 2026-05-19 | +€10,000,000 | Receive foreign notional |
-| 2026-05-19 | -$12,100,000 | Pay domestic notional $K\times N_F$ |
+| 2026-05-19 | -USD 12,100,000 | Pay domestic notional $K\times N_F$ |
 
 **P&L / Risk Interpretation**
 - **Spot move:** if EUR/USD rises by $+0.01$, PV increases by about $\Delta V \approx (N_F P_F)\Delta S \approx 9.975\times 10^6 \times 0.01 \approx +99{,}750$ USD.
@@ -837,7 +859,7 @@ $$F^{F/D} = S^{F/D} \times \frac{P_D}{P_F}$$
 
 Note the ratio flips when the quote direction flips. Systems that store currency pairs inconsistently will produce wrong hedge ratios.
 
-> **Pitfall — Quote inversion in CIP:** Inverting $S^{D/F}$ to $S^{F/D}$ but forgetting to invert the discount-factor ratio in $F = S\,P_F/P_D$.
+> **Pitfall — Quote inversion in CIP:** Inverting $S^{D/F}$ to $S^{F/D}$ but forgetting to invert the discount-factor ratio in $F = S\\,P_F/P_D$.
 > **Why it matters:** You can flip the sign of forward points and the direction of hedges/P&L.
 > **Quick check:** Compute $F$ in the stored quote direction and verify units; then invert both sides and check the inverted-quote formula uses $P_D/P_F$.
 
@@ -1007,17 +1029,22 @@ The FX forward market is not a forecasting market—it's an interest rate market
 ### Solution Sketches
 
 **Problem 1:**
+
 $$S^{\text{EUR/USD}} = 1/1.2500 = 0.8000$$
 
 **Problem 2:**
 Start with $F^{D/F} = S^{D/F} \cdot P_F/P_D$. Taking inverse:
+
 $$F^{F/D} = \frac{1}{F^{D/F}} = \frac{1}{S^{D/F}} \cdot \frac{P_D}{P_F} = S^{F/D} \cdot \frac{P_D}{P_F}$$
 
 **Problem 3:**
+
 $$F(0, 0.5) = 1.10 \times \frac{0.995}{0.98} = 1.10 \times 1.0153 = 1.1168$$
 
 **Problem 4:**
+
 $$V = 5{,}000{,}000 \times (1.10 \times 0.995 - 1.12 \times 0.99)$$
+
 $$= 5{,}000{,}000 \times (1.0945 - 1.1088) = 5{,}000{,}000 \times (-0.0143) = -71{,}500 \text{ USD}$$
 
 **Problem 5:**
@@ -1036,8 +1063,11 @@ The forward reflects the interest differential via CIP, not market expectations.
 
 **Problem 12:**
 If selling KRW (buying USD) at K=1300, and fixing is 1280 (KRW stronger):
+
 $$\text{Settlement} = 500{,}000{,}000 \times \left(\frac{1}{1300} - \frac{1}{1280}\right)$$
+
 $$= 500{,}000{,}000 \times (0.0007692 - 0.0007813) = -\text{USD } 6{,}010$$
+
 You pay USD 6,010 (you locked in a weaker KRW rate; actual KRW is stronger).
 
 ---

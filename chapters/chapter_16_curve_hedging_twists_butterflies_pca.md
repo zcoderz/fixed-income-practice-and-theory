@@ -161,7 +161,7 @@ $$ \mathrm{KR01}_k := PV(\text{key }k\text{ down }1\text{ bp})-PV(\text{base}). 
 
 ### 16.3.2 Interpreting a KR01 Vector
 
-Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vector (in $USD \!/\text{bp}$):
+Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vector (in $USD \\!/\text{bp}$):
 
 | Tenor $T_k$ | 2y | 5y | 10y | 30y | Total |
 |---|---:|---:|---:|---:|---:|
@@ -191,14 +191,14 @@ Let $\mathbf{k}=(\mathrm{KR01}_1,\dots,\mathrm{KR01}_m)^\top$ be the KR01 vector
 $$ \boxed{\Delta PV \approx -\mathbf{k}^\top \boldsymbol{\delta} = -\sum_{k=1}^m \mathrm{KR01}_k\\,\delta_k.} $$
 
 **Check:**
-- **Units:** $(USD \!/\text{bp})\times(\text{bp})=USD $.
+- **Units:** $(USD \\!/\text{bp})\times(\text{bp})=USD $.
 - **Sign:** for a long rates position, $\mathrm{KR01}_k\gt 0$. If rates sell off ($\delta_k\gt 0$), the contribution $-\mathrm{KR01}_k\delta_k$ is negative (a loss).
 
 ### 16.4.2 Hedging as a System of Equations
 
 Let $\mathbf{h}^{(j)}\in\mathbb{R}^m$ be the KR01 vector of hedge instrument $j$ per “one hedge unit” (e.g., per USD 1mm face, per contract, per USD 100 notional — state the unit). Stack these as columns to form the hedge matrix:
 
-$$ \mathbf{H} := [\mathbf{h}^{(1)}\;\mathbf{h}^{(2)}\;\cdots\;\mathbf{h}^{(n)}]. $$
+$$ \mathbf{H} := [\mathbf{h}^{(1)}\\;\mathbf{h}^{(2)}\\;\cdots\\;\mathbf{h}^{(n)}]. $$
 
 If $\mathbf{n}\in\mathbb{R}^n$ is the vector of hedge notionals/weights (signed; positive = long), the post-hedge exposure is:
 
@@ -330,11 +330,11 @@ Often we cannot hedge a specific maturity with an instrument of identical maturi
 
 Pick a target change $\Delta S$ and a hedge change $\Delta F$ measured over the same horizon (these could be PV changes, price changes, or yield changes — but pick variables consistent with how you measure P&L). Assume the relationship is approximately linear:
 
-$$ \Delta S = a + b\,\Delta F + \epsilon. $$
+$$ \Delta S = a + b\\,\Delta F + \epsilon. $$
 
 If you hedge by taking hedge ratio $h$, the “hedged change” is
 
-$$ \Delta S - h\,\Delta F = a + (b-h)\,\Delta F + \epsilon. $$
+$$ \Delta S - h\\,\Delta F = a + (b-h)\\,\Delta F + \epsilon. $$
 
 The standard deviation of the hedged change is minimized by setting $h=b$. This minimum-variance hedge ratio is the regression slope:
 
@@ -352,7 +352,7 @@ In a one-factor regression, the **hedge effectiveness** (fraction of variance el
 
 Often desks regress **yield changes** (in bp) between a target maturity and a hedge maturity:
 
-$$ \Delta y^{\text{tgt}}_t = \alpha + \beta\,\Delta y^{\text{hedge}}_t + \varepsilon_t. $$
+$$ \Delta y^{\text{tgt}}_t = \alpha + \beta\\,\Delta y^{\text{hedge}}_t + \varepsilon_t. $$
 
 Using the first-order PV approximation (this book’s sign convention)
 
@@ -360,7 +360,7 @@ $$ \Delta PV \approx -DV01\cdot \Delta y_{\text{bp}}, $$
 
 a hedged position with signed hedge units $N$ (positive = long the hedge instrument) has:
 
-$$ \Delta PV_{\text{hedged}} \approx -DV01_{\text{tgt}}\,\Delta y^{\text{tgt}}_{\text{bp}} - \bigl(N\,DV01_{\text{hedge}}\bigr)\,\Delta y^{\text{hedge}}_{\text{bp}}. $$
+$$ \Delta PV_{\text{hedged}} \approx -DV01_{\text{tgt}}\\,\Delta y^{\text{tgt}}_{\text{bp}} - \bigl(N\\,DV01_{\text{hedge}}\bigr)\\,\Delta y^{\text{hedge}}_{\text{bp}}. $$
 
 Substituting the regression model and choosing $N$ so the coefficient of $\Delta y^{\text{hedge}}_{\text{bp}}$ vanishes gives the DV01-scaled hedge ratio:
 
@@ -374,7 +374,7 @@ What remains is residual P&L driven by $\varepsilon_t$.
 
 If the regression residual has standard deviation $\sigma_\varepsilon$ in bp over your horizon, the residual P&L volatility is approximately:
 
-$$ \boxed{\sigma_{\Delta PV}\approx DV01_{\text{tgt}}\;\sigma_\varepsilon.} $$
+$$ \boxed{\sigma_{\Delta PV}\approx DV01_{\text{tgt}}\\;\sigma_\varepsilon.} $$
 
 > **Desk Reality:** Regression/PCA hedges are only as good as your mapping. Make the independent variable match how your desk reports risk (yield, PV, or par-quote changes), and validate the hedge with explicit level/twist/fly scenarios (not only “beta-neutral” labels).
 
@@ -487,7 +487,7 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 
 ## Mini Problem Set
 
-1. (Compute) A position has $\mathbf{k}=(+200,\\,+1500,\\,+800)$ $USD /\text{bp}$ at (2y, 5y, 10y). Compute $\Delta PV$ for an upward shock $\boldsymbol{\delta}=(+3,\,+0,\,-2)$ bp.
+1. (Compute) A position has $\mathbf{k}=(+200,\\,+1500,\\,+800)$ $USD /\text{bp}$ at (2y, 5y, 10y). Compute $\Delta PV$ for an upward shock $\boldsymbol{\delta}=(+3,\\,+0,\\,-2)$ bp.
 2. (Compute) You want a 50/50 DV01-weighted 2s–5s–10s butterfly. DV01 per USD 1mm is: 2y = USD 210/bp, 5y = USD 470/bp, 10y = USD 860/bp. If you receive USD 80mm 5y, what 2y and 10y notionals (pay fixed) match the 50/50 DV01 split?
 3. (Compute) Regression of yield changes gives $\beta=0.75$ for target vs hedge. Your target DV01 is $+USD 60{,}000/\text{bp}$. The hedge instrument DV01 is $+USD 25{,}000/\text{bp}$ per unit. What hedge units $N^*$ do you take (sign matters)?
 4. (Concept) Give an example of a KR01 vector that has net DV01 $\approx 0$ but large curvature risk. Explain the P&L intuition under a fly shock.

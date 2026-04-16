@@ -45,7 +45,11 @@ $$
 Using the OIS curve at 2.00% gives $P(0,0.25)\approx e^{-0.02\cdot 0.25}$ and $P(0,0.50)\approx e^{-0.02\cdot 0.50}$, implying an OIS-implied 3M forward close to 2.00%. If the FRA quote says 3.40%, a single curve cannot fit both sets of instruments without “breaking” the identity above.
 
 **Check (toy numbers):** Under a flat 2.00% continuously-compounded discount curve, $P(0,0.25)=e^{-0.005}\approx 0.9950$ and $P(0,0.50)=e^{-0.01}\approx 0.9900$. The implied 3M forward is
-$$F_d(0;0.25,0.50) \approx \frac{1}{0.25}\left(\frac{0.9950}{0.9900}-1\right)\approx 0.0201,$$
+
+$$
+F_d(0;0.25,0.50) \approx \frac{1}{0.25}\left(\frac{0.9950}{0.9900}-1\right)\approx 0.0201,
+$$
+
 i.e., about 2.01% (annualized), not 3.40%. Turning that around: a 3.40% FRA over a 0.25-year accrual implies a growth factor $1+F\tau = 1+0.034\times 0.25=1.0085$, i.e., it demands a materially different “projection” curve object than the OIS discount curve.
 
 ### 19.1.3 The Multi-Curve Resolution
@@ -111,12 +115,20 @@ PV \approx \sum_{i=1}^n P_d(0,T_i) N \tau_i F_k(0;T_{i-1},T_i) + P_d(0,T_n) N
 $$
 
 **Expand (where the “par” identity went):** Define the *discount-implied* forward on the same accrual period,
-$$F_d(0;T_{i-1},T_i)=\frac{1}{\tau_i}\left(\frac{P_d(0,T_{i-1})}{P_d(0,T_i)}-1\right).$$
+
+$$
+F_d(0;T_{i-1},T_i)=\frac{1}{\tau_i}\left(\frac{P_d(0,T_{i-1})}{P_d(0,T_i)}-1\right).
+$$
+
 In a single-curve world $F_k=F_d$ and the identity $\tau_i F_d(0;T_{i-1},T_i)P_d(0,T_i)=P_d(0,T_{i-1})-P_d(0,T_i)$ makes the floating PV telescope to par. In a multi-curve world, $F_k$ comes from $P^{(k)}$ while PV uses $P_d$, so you can think of the floater as:
-$$PV \approx N + N\sum_{i=1}^n P_d(0,T_i)\,\tau_i\,\bigl(F_k(0;T_{i-1},T_i)-F_d(0;T_{i-1},T_i)\bigr).$$
+
+$$
+PV \approx N + N\sum_{i=1}^n P_d(0,T_i)\\,\tau_i\\,\bigl(F_k(0;T_{i-1},T_i)-F_d(0;T_{i-1},T_i)\bigr).
+$$
+
 The second term is a discounted sum of “basis spreads” between the projection forwards and the discount-implied forwards.
 
-**Check (sanity on Example A):** In the toy setup, the discount-implied forwards are about 2.00% while the 3M projection forwards average around 3.4%, so the spread is about 1.4% per year. With total accrual $\sum\tau_i=1$ and discount factors near 1, the par premium is on the order of $100\times 1.4\%\approx 1.4$ price points - consistent with the computed $PV\approx 101.40$.
+**Check (sanity on Example A):** In the toy setup, the discount-implied forwards are about 2.00% while the 3M projection forwards average around 3.4%, so the spread is about 1.4% per year. With total accrual $\sum\tau_i=1$ and discount factors near 1, the par premium is on the order of $100\times 1.4\\%\approx 1.4$ price points - consistent with the computed $PV\approx 101.40$.
 
 **Example Title**: Pricing a 1Y quarterly 3M-index FRN under OIS discounting
 
@@ -134,7 +146,7 @@ The second term is a discounted sum of “basis spreads” between the projectio
 - Instrument details: FRN pays a 3M term index set in advance and paid in arrears (toy).
 - Notional: $N=USD 100$
 - Market quotes (toy):
-- Discount curve (OIS): flat zero rate $r_d=2.00\%$ with continuous compounding.
+- Discount curve (OIS): flat zero rate $r_d=2.00\\%$ with continuous compounding.
   - Projection forwards (3M): 3.20%, 3.40%, 3.50%, 3.60% for the four quarters.
 - Day count / compounding: ACT/360 approximated as $\tau_i=0.25$ each quarter.
 - Settlement conventions: ignore accrued interest (treat PV as “dirty” per USD 100 at valuation).
@@ -155,10 +167,10 @@ The second term is a discounted sum of “basis spreads” between the projectio
 
 | Date | Cashflow | Explanation |
 |---|---|---|
-| 2026-04-07 | USD 0.800 | $100 \times 0.25 \times 3.20\%$ |
-| 2026-07-07 | USD 0.850 | $100 \times 0.25 \times 3.40\%$ |
-| 2026-10-07 | USD 0.875 | $100 \times 0.25 \times 3.50\%$ |
-| 2027-01-07 | USD 0.900 | $100 \times 0.25 \times 3.60\%$ |
+| 2026-04-07 | USD 0.800 | $100 \times 0.25 \times 3.20\\%$ |
+| 2026-07-07 | USD 0.850 | $100 \times 0.25 \times 3.40\\%$ |
+| 2026-10-07 | USD 0.875 | $100 \times 0.25 \times 3.50\\%$ |
+| 2027-01-07 | USD 0.900 | $100 \times 0.25 \times 3.60\\%$ |
 | 2027-01-07 | USD 100.000 | principal |
 
 **PV (toy numbers)**
@@ -171,7 +183,11 @@ The second term is a discounted sum of “basis spreads” between the projectio
 - Projection DV01 (3M forwards down 1bp): $\approx -0.0099$ dollars per USD 100 notional per 1bp.
 
 **Check (why the projection DV01 is about $-0.0099$):** Bumping each quarterly forward down 1 bp reduces each coupon by $N\tau\times 10^{-4}$. The PV impact is approximately
-$$\Delta PV \approx -N\,10^{-4}\sum_{i=1}^n P_d(0,T_i)\,\tau_i.$$
+
+$$
+\Delta PV \approx -N\\,10^{-4}\sum_{i=1}^n P_d(0,T_i)\\,\tau_i.
+$$
+
 In Example B the “discount annuity” is about $0.9876$, so with $N=100$ this gives $-100\times 10^{-4}\times 0.9876\approx -0.0099$, matching the toy number and making the units/sign explicit.
 
 **P&L / Risk Interpretation**
@@ -198,7 +214,7 @@ Using our numbers above, the "Projection PV" of the floating leg was $USD 3.38$.
 
 $$\text{Annuity} = 0.25 \times (0.9950 + 0.9901 + 0.9851 + 0.9802) = 0.25 \times 3.9504 = 0.9876$$
 
-$$K_{par} \approx \frac{3.38}{100 \times 0.9876} \approx 3.42\%$$
+$$K_{par} \approx \frac{3.38}{100 \times 0.9876} \approx 3.42\\%$$
 
 This par rate of **3.42%** is effectively a weighted average of the high projection forwards (3.2%–3.6%), not the low OIS rates.
 
@@ -211,7 +227,7 @@ Projection curves are usually built in a *curve group* rather than independently
 A convenient representation is multiplicative:
 
 $$
-P^{(2)}(t)=P^{(1)}(t)\exp\left(-\int_0^t \eta^{1,2}(s)\,ds\right)
+P^{(2)}(t)=P^{(1)}(t)\exp\left(-\int_0^t \eta^{1,2}(s)\\,ds\right)
 $$
 
 where $\eta^{1,2}$ is a (typically piecewise-constant) spread function calibrated to basis instruments.
@@ -225,16 +241,23 @@ Suppose we have:
 * 3M LIBOR projection pseudo-factor: $P^{3M}(0, 1) = 0.9450$
 
 The implied spread:
-$$e^{-\eta \times 1} = \frac{P^{3M}(1)}{P_d(1)} = \frac{0.9450}{0.9500} = 0.9947$$
 
-$$\eta = -\ln(0.9947) = 0.53\% = 53 \text{ bps}$$
+$$
+e^{-\eta \times 1} = \frac{P^{3M}(1)}{P_d(1)} = \frac{0.9450}{0.9500} = 0.9947
+$$
+
+$$\eta = -\ln(0.9947) = 0.53\\% = 53 \text{ bps}$$
 
 This 53bp spread represents the average OIS-LIBOR basis over the 1-year tenor.
 
 **Expand (what $\eta$ means operationally):** In a spread-based construction, $\eta\gt 0$ corresponds to “projection rates above OIS,” which shows up as $P^{(k)}(0,t)\lt P_d(0,t)$. For small spreads and short accruals, a roughly constant $\eta$ acts like an approximate forward-rate add-on: the projection forward over $[T,T+\tau]$ is about the discount-implied forward plus $\eta$ (to first order).
 
 **Check (order-of-magnitude PV impact):** If $\eta\approx 53$ bp is roughly “extra coupon per year” on a 1Y floater, then a back-of-the-envelope PV premium is
-$$N\,\eta\sum_i \tau_i P_d(0,T_i).$$
+
+$$
+N\\,\eta\sum_i \tau_i P_d(0,T_i).
+$$
+
 With $N=100$ and $\sum \tau_i P_d$ around 0.95–1.00, this is about $100\times 0.0053\times 0.97\approx 0.5$ price points: small per USD 100, but large on real notionals.
 
 > **Desk Reality:** Traders often talk in “spreads to OIS” or “basis” (e.g., “3M over OIS”, “6M vs 3M”).
@@ -349,10 +372,16 @@ Calculate the compounded SOFR rate for a 7-day period (Monday through Sunday):
 | Fri | 5.30% | 3 | $1 + 0.0530 \times \frac{3}{360} = 1.0004417$ |
 
 **Step 1:** Compound the daily factors:
-$$\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 = 1.001031$$
+
+$$
+\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 = 1.001031
+$$
 
 **Step 2:** Annualize:
-$$\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\%$$
+
+$$
+\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\\%
+$$
 
 **Sanity check:** The compounded rate (5.303%) is slightly higher than the arithmetic average of daily rates (~5.30%) because compounding adds a small convexity pickup. ✓
 
@@ -626,7 +655,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
    - Discount DV01 (OIS zero rates down 1bp): +USD 8,500 per 1bp
    - Projection DV01 (3M forwards down 1bp): +USD 9,200 per 1bp
    
-   Estimate P&L if OIS rates rise 5bp and 3M forwards rise 8bp using $\Delta PV\approx- DV01_d\,\Delta bp_d- DV01_{3M}\,\Delta bp_{3M}$.
+   Estimate P&L if OIS rates rise 5bp and 3M forwards rise 8bp using $\Delta PV\approx- DV01_d\\,\Delta bp_d- DV01_{3M}\\,\Delta bp_{3M}$.
 
 5. (Compute) Calculate the compounded-in-arrears rate for a 7-day period (ACT/360) with daily overnight rates:
 
@@ -647,11 +676,11 @@ The multi-curve framework is more complex than the single-curve world. But it is
 8. (Desk/Concept) You hedge a compounded-in-arrears exposure with a hedge that has a different observation window/payment timing convention. What risk remains and how would you detect it in P&L?
 
 ### Solution Sketches (Selected)
-1. $F=\frac{1}{0.25}\left(\frac{0.9940}{0.9870}-1\right)=2.84\%$ (annualized).
+1. $F=\frac{1}{0.25}\left(\frac{0.9940}{0.9870}-1\right)=2.84\\%$ (annualized).
 2. $PV\approx 100.63$ per USD 100 notional (coupons $\approx 3.10$ and principal $100e^{-0.025}\approx 97.53$).
-3. $\eta=-\ln\left(\frac{0.9430}{0.9500}\right)\approx 0.7396\%\approx 74\text{ bp}$.
+3. $\eta=-\ln\left(\frac{0.9430}{0.9500}\right)\approx 0.7396\\%\approx 74\text{ bp}$.
 4. $\Delta PV\approx-(8{,}500)(5)-(9{,}200)(8)=-USD 116{,}100$.
-5. $\prod_i (1+r_i d_i/360)\approx 1.0009342$, so the annualized rate is $(1.0009342-1)\times 360/7\approx 4.805\%$.
+5. $\prod_i (1+r_i d_i/360)\approx 1.0009342$, so the annualized rate is $(1.0009342-1)\times 360/7\approx 4.805\\%$.
 6. In a single curve, $F=\frac{1}{\tau}\left(\frac{P(T_{i-1})}{P(T_i)}-1\right)$ implies $\tau F P(T_i)=P(T_{i-1})-P(T_i)$, so the float PV telescopes. In multi-curve, $F_k$ comes from $P^{(k)}$ but PV uses $P_d$, so $\tau F_k P_d(T_i)$ no longer equals $P_d(T_{i-1})-P_d(T_i)$.
 7. Example breaks: (i) you are hedged to discounting moves but not to projection/basis moves; (ii) curve rebuild choices leak basis moves into “rates DV01.” A concrete check: run two bumps (discount curve vs projection curve) and confirm the PV changes match the reported buckets.
 

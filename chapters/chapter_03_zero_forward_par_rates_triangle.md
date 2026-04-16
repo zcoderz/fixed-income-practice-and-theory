@@ -131,7 +131,7 @@ All three represent the **exact same economic value**. If you plug a 5.13% simpl
 
 > **Desk Reality:** Two systems rarely agree on a “rate” unless you specify the *basis* (day count + compounding).
 > **Common break:** Reconciling a continuous-zero curve vs a semiannual-zero curve vs a simple money-market curve and calling the difference “model risk.”
-> **What to check:** Convert both systems to discount factors \(P(0,T)\) at shared maturities, reprice a simple cashflow, then convert back into the desk’s quoting convention.
+> **What to check:** Convert both systems to discount factors $P(0,T)$ at shared maturities, reprice a simple cashflow, then convert back into the desk’s quoting convention.
 
 ### 3.2.6 Conversion Between Compounding Conventions
 
@@ -152,15 +152,19 @@ $$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 **Objective:** Express this as zero rates under all major conventions.
 
 **Step 1: Continuous Rate**
+
 $$y_c = -\frac{\ln(0.9070)}{2} = -\frac{-0.0976}{2} = 4.879\\%$$
 
 **Step 2: Semiannual Rate**
+
 $$y_{sa} = 2\left[(1/0.9070)^{1/4} - 1\right] = 2\left[1.02470 - 1\right] = 4.939\\%$$
 
 **Step 3: Annual Rate**
+
 $$y_1 = (1/0.9070)^{1/2} - 1 = 1.05001 - 1 = 5.001\\%$$
 
 **Step 4: Quarterly Rate**
+
 $$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\\%$$
 
 **Verification:** All four rates produce the same discount factor when applied with their respective compounding formulas. The ordering follows the mathematical property: for positive rates, more frequent compounding implies a lower quoted rate. Continuous < Quarterly < Semiannual < Annual.
@@ -277,9 +281,10 @@ In practice, FRAs are commonly **cash-settled at (or near) $T_1$** rather than a
 $$\boxed{V_{\text{pay fixed}}(T_1) \\;=\\; \frac{N \\, (R - K)\\, \tau}{1 + R\\,\tau}}$$
 
 The receive-fixed payoff is the negative:
+
 $$\boxed{V_{\text{receive fixed}}(T_1) \\;=\\; \frac{N \\, (K - R)\\, \tau}{1 + R\\,\tau}}$$
 
-**Worked example (mechanics):** Notional $N=100$ million USD, $\tau=0.25$, $K=3.5\%$, realized reference rate $R=3.0\%$.
+**Worked example (mechanics):** Notional $N=100$ million USD, $\tau=0.25$, $K=3.5\\%$, realized reference rate $R=3.0\\%$.
 
 - End-of-period interest difference: $100{,}000{,}000\times(0.035-0.030)\times 0.25 = 125{,}000$ USD.
 - Cash settlement at $T_1$ (PV at the start of the period): $125{,}000/(1+0.030\times 0.25) \approx 124{,}070$ USD.
@@ -287,29 +292,40 @@ $$\boxed{V_{\text{receive fixed}}(T_1) \\;=\\; \frac{N \\, (K - R)\\, \tau}{1 + 
 ### 3.4.2 FRA Valuation
 
 Using discount factors, one convenient time-0 PV expression for notional $N$ **to the fixed-rate payer** can be written as:
+
 $$\boxed{PV_{\text{pay fixed}}(0) = N\left(P(0,T_1) - P(0,T_2) - K\\,\tau\\,P(0,T_2)\right).}$$
 
 Rearranging:
+
 $$\boxed{PV_{\text{pay fixed}}(0) = N\\,\tau\\,P(0,T_2)\\,(F-K),\quad F=\frac{P(0,T_1)-P(0,T_2)}{\tau\\,P(0,T_2)}.}$$
 
 So $K=F$ is the **breakeven** (at-market) FRA rate: it makes the initial PV zero.
 
 For the **receive-fixed** side (receive fixed, pay floating), just flip the sign:
+
 $$\boxed{PV_{\text{receive fixed}}(0) = N\\,\tau\\,P(0,T_2)\\,(K-F).}$$
 
 **Risk (chapter-local, explicit bump object):** define a *forward DV01* as
+
 $$DV01_{F}:=PV(F-1\text{bp})-PV(F),\quad \text{bump object: }F\text{ for }[T_1,T_2],\ \text{units: currency per 1bp}.$$
+
 For an **at-market** FRA ($K=F$), a simple first-order approximation is:
+
 $$\boxed{DV01_{F}\approx P(0,T_1)\\,\frac{N\\,\tau}{1+F\tau}\times 10^{-4}}$$
+
 With the book-wide sign convention $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, $DV01_F$ is **positive** for “receive fixed, pay floating.”
 Using the same forward identity, this first-order approximation can be written as $DV01_F\approx N\\,\tau\\,P(0,T_2)\times 10^{-4}$.
 
 **Expand (what $DV01_F$ is measuring):** an at-market FRA has $PV(0)=0$, but it still has rate risk because you are effectively “long” a fixed spread over the accrual period. The approximation
+
 $$DV01_F\approx N\\,\tau\\,P(0,T_2)\times 10^{-4}$$
+
 is exactly the PV today of receiving **1bp** on notional $N$ over year fraction $\tau$, discounted to today.
 
 **Check (toy magnitude):** if $N=100\text{mm USD}$, $\tau=0.25$, and $P(0,T_2)=0.95$, then
-$$DV01_F\approx 100{,}000{,}000\times 0.25\times 0.95\times 10^{-4}\approx \\$2{,}375\text{/bp}.$$
+
+$$DV01_F\approx 100{,}000{,}000\times 0.25\times 0.95\times 10^{-4}\approx 2{,}375\ \text{USD/bp}.$$
+
 So a 10bp move in the forward is on the order of $24\text{k USD}$ PV for this notional/tenor (before convexity and curve-shape effects).
 
 ### 3.4.3 Trading the Forward: A Worked Example
@@ -326,14 +342,14 @@ So a 10bp move in the forward is on the order of $24\text{k USD}$ PV for this no
 **If the trader is correct:**
 When the swap starts, the 1-year rate is 4.20%. The trader receives 4.80% and pays 4.20%, a gain of 60bp on \$50 million for 1 year:
 
-$$\text{P\\&L} \approx \\$50{,}000{,}000 \times 0.0060 \times 1 = \\$300{,}000$$
+$$\mathrm{PnL} \approx 50{,}000{,}000 \times 0.0060 \times 1 = 300{,}000\ \mathrm{USD}$$
 
 (Exact P&L depends on discounting and day counts, but this gives the magnitude.)
 
 **If the trader is wrong:**
 If rates rise to 5.50%, the trader receives 4.80% but pays 5.50%, losing 70bp:
 
-$$\text{P\\&L} \approx -\\$50{,}000{,}000 \times 0.0070 \times 1 = -\\$350{,}000$$
+$$\mathrm{PnL} \approx -50{,}000{,}000 \times 0.0070 \times 1 = -350{,}000\ \mathrm{USD}$$
 
 The forward rate is the breakeven. Beat it, you profit. Miss it, you lose.
 
@@ -351,6 +367,7 @@ $$\boxed{f(T) = y_c(T) + T \cdot \frac{\partial y_c(T)}{\partial T}}$$
 Starting from $P(0,T) = e^{-y_c(T) \cdot T}$, we have $\ln P(0,T) = -y_c(T) \cdot T$.
 
 Taking the derivative with respect to $T$:
+
 $$f(T) = -\frac{\partial}{\partial T} \ln P(0,T) = -\frac{\partial}{\partial T}[-y_c(T) \cdot T] = y_c(T) + T \cdot y_c'(T)$$
 
 ### 3.5.2 Interpreting Curve Shape: The Marginal vs. Average Intuition
@@ -374,6 +391,7 @@ This equation gives us the **"Marginal vs. Average"** intuition, similar to marg
 
 **Numerical Example:**
 If the 5-year continuously compounded zero rate is 4% and rising at 0.20% per year (i.e., $y_c'(5) = 0.002$), then:
+
 $$f(5) = 0.04 + 5 \times 0.002 = 0.04 + 0.01 = 5\\%$$
 
 The forward rate at 5 years is 100bp higher than the spot rate because the curve is upward sloping.
@@ -423,7 +441,9 @@ Solving for $C$:
 $$\boxed{C_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}}$$
 
 An equivalent form (per 100 face) is:
+
 $$c = \frac{(100 - 100d)m}{A}$$
+
 where $d$ is the final discount factor, $m$ is the payment frequency, and $A$ is the annuity factor.
 
 ### 3.6.3 The Annuity
@@ -437,7 +457,9 @@ It has units of **years** (year-fractions). To turn it into an actual dollar sen
 - **Per-bp scaling:** multiply by $10^{-4}$ (because $1\text{ bp}=10^{-4}$).
 
 So the PV of a **+1bp coupon bump** on notional $N$ is:
+
 $$\Delta PV_{\text{coupon }+1bp} = N \cdot A(0) \cdot 10^{-4}.$$
+
 
 Some systems call $N\cdot A(0)\cdot 10^{-4}$ “PV01” or “PVBP.” Because naming and sign conventions vary across systems, we will state (i) the bump object and (ii) the currency-per-bp scaling explicitly whenever we quote an “01.”
 
@@ -485,15 +507,21 @@ Consider a 2-year par bond with semiannual coupons. Suppose:
 - 2-year zero rate: 4.0%
 
 The discount factors are:
+
 $$P(0.5) = e^{-0.03 \times 0.5} = 0.9851$$
+
 $$P(1.0) = e^{-0.035 \times 1.0} = 0.9656$$
+
 $$P(1.5) = e^{-0.038 \times 1.5} = 0.9446$$
+
 $$P(2.0) = e^{-0.04 \times 2.0} = 0.9231$$
 
 The annuity is:
+
 $$A = 0.5 \times (0.9851 + 0.9656 + 0.9446 + 0.9231) = 1.9092$$
 
 The par coupon is:
+
 $$C = \frac{1 - 0.9231}{1.9092} = \frac{0.0769}{1.9092} = 4.03\\%$$
 
 The par yield (4.03%) is **below** the 2-year zero rate (4.00% continuous, or about 4.08% semiannually equivalent). The coupon effect pulled the par yield down because the early coupons were discounted at lower rates.
@@ -528,6 +556,7 @@ The expectations hypothesis is a theory that connects the *shape* of the yield c
 One common statement of the hypothesis is: the forward rate for a future period equals the market’s expected future short (spot) rate for that period.
 
 In symbols (pure expectations, no term premium):
+
 $$\text{Forward rate} \\;\approx\\; \mathbb{E}_t[\text{future short (spot) rate}].$$
 
 ### 3.8.2 Why the Expectations Hypothesis Fails
@@ -535,6 +564,7 @@ $$\text{Forward rate} \\;\approx\\; \mathbb{E}_t[\text{future short (spot) rate}
 One immediate problem is empirical: forward rates do not behave like unbiased forecasts of future spot rates across cycles.
 
 One way to reconcile this is to add **risk premia** (term premia). A compact way to express the idea is:
+
 $$\text{Forward Rate} = \text{Expected Future Spot Rate} + \text{Term Premium}$$
 
 Even in arbitrage-free models, forward rates generally do **not** equal expected future short rates. The gap is commonly attributed to term premia (and, depending on the setup, convexity effects and risk adjustments).
@@ -623,58 +653,73 @@ Forward rates can be derived from either discount factors or zero rates:
 - Payment date(s): cash-settled on 2026-05-19 (no notional exchange)
 
 **Inputs**
-- Instrument: 3x6 FRA on notional \(N=\$100{,}000{,}000\), receive fixed \(K\), pay floating \(R\) set at 2026-05-19 for the period 2026-05-19 to 2026-08-17.
-- Day count / accrual: ACT/360 with \(\tau=90/360=0.25\) (ignore business-day adjustments; focus on the algebra).
-- Curve inputs (today, as discount factors): \(P(0,T_1)=0.9850\) for 2026-05-19 and \(P(0,T_2)=0.9752475\) for 2026-08-17.
+- Instrument: 3x6 FRA on notional $N=100{,}000{,}000$ USD, receive fixed $K$, pay floating $R$ set at 2026-05-19 for the period 2026-05-19 to 2026-08-17.
+- Day count / accrual: ACT/360 with $\tau=90/360=0.25$ (ignore business-day adjustments; focus on the algebra).
+- Curve inputs (today, as discount factors): $P(0,T_1)=0.9850$ for 2026-05-19 and $P(0,T_2)=0.9752475$ for 2026-08-17.
 
 **Outputs (What You Produce)**
-- Forward rate \(F(0;T_1,T_2)\) for the accrual period.
-- PV today \(PV_0\).
+- Forward rate $F(0;T_1,T_2)$ for the accrual period.
+- PV today $PV_0$.
 - Risk metric: **forward DV01** with explicit bump object + units:
-  - bump object: the simple forward \(F(0;T_1,T_2)\)
-  - bump size: \(-1\)bp
+  - bump object: the simple forward $F(0;T_1,T_2)$
+  - bump size: $-1$ bp
   - units: USD per 1bp
 - sign convention: $DV01:=PV(\text{rates down }1\text{bp})-PV(\text{base})$
 
 **Step-by-step**
-1. **Discount factors → forward rate**
-   $$1+F\tau=\frac{P(0,T_1)}{P(0,T_2)} \quad\Rightarrow\quad F=\frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)}-1\right).$$
-   With the numbers above, \(P(0,T_1)/P(0,T_2)=1.01\), so \(F=0.01/0.25=4.00\%\).
-2. **Choose the FRA fixed rate**
-   - Take the at-market case \(K=F=4.00\%\) so the PV today should be ~0.
-3. **PV today (standard cash-settlement convention)**
-   $$PV_0=P(0,T_1)\\,\frac{N\\,(K-F)\\,\tau}{1+F\tau}=0.$$
-4. **Forward DV01**
-   For an at-market FRA, bumping the forward down by 1bp gives (first-order):
-   $$DV01_F\approx P(0,T_1)\\,\frac{N\\,\tau}{1+F\tau}\times 10^{-4}.$$
-   Numerically: \(DV01_F\approx 0.9850\times \frac{100{,}000{,}000\times 0.25}{1.01}\times 10^{-4}\approx \$2{,}438\) per bp.
+**1. Discount factors → forward rate**
+
+$$1+F\tau=\frac{P(0,T_1)}{P(0,T_2)} \quad\Rightarrow\quad F=\frac{1}{\tau}\left(\frac{P(0,T_1)}{P(0,T_2)}-1\right).$$
+
+With the numbers above, $P(0,T_1)/P(0,T_2)=1.01$, so $F=0.01/0.25=4.00\\%$.
+
+**2. Choose the FRA fixed rate**
+
+- Take the at-market case $K=F=4.00\\%$ so the PV today should be ~0.
+
+**3. PV today (standard cash-settlement convention)**
+
+$$PV_0=P(0,T_1)\\,\frac{N\\,(K-F)\\,\tau}{1+F\tau}=0.$$
+
+**4. Forward DV01**
+
+For an at-market FRA, bumping the forward down by 1bp gives (first-order):
+
+$$DV01_F\approx P(0,T_1)\\,\frac{N\\,\tau}{1+F\tau}\times 10^{-4}.$$
+
+Numerically: $DV01_F\approx 0.9850\times \frac{100{,}000{,}000\times 0.25}{1.01}\times 10^{-4}\approx 2{,}438$ USD per bp.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---|---|
 | 2026-02-18 | 0 | Enter the at-market FRA |
-| 2026-05-19 | \(\frac{N\,(K-R)\,\tau}{1+R\tau}\) | Cash settlement using the realized reference rate \(R\) |
+| 2026-05-19 | $\frac{N (K-R) \tau}{1+R\tau}$ | Cash settlement using the realized reference rate $R$ |
 | 2026-08-17 | 0 | No cashflow (cash-settled at start) |
 
 **P&L / Risk Interpretation**
-- If the realized reference rate \(R\) at 2026-05-19 prints **below** \(K\), the receiver’s cash settlement is positive.
-- \(DV01_F\approx \$2.4k/bp\) means: if the market’s forward for this specific 3‑month period drops by 1bp, the FRA’s PV increases by about \$2.4k.
+- If the realized reference rate $R$ at 2026-05-19 prints **below** $K$, the receiver’s cash settlement is positive.
+- $DV01_F \approx 2.4\text{k}$ USD/bp means: if the market’s forward for this specific 3‑month period drops by 1bp, the FRA’s PV increases by about 2.4k USD.
 
 **Sanity Checks**
 - Units check: $N\times \tau\times \text{rate}$ has units of currency; the $10^{-4}$ converts “per bp.”
-- Sign check: for “receive fixed,” rates down (forward down) increases PV ⇒ positive \(DV01\).
-- Reproduction check: compute \(F\) from the ratio \(P(0,T_1)/P(0,T_2)=1+F\tau\) and verify \(F=4\%\).
+- Sign check: for “receive fixed,” rates down (forward down) increases PV ⇒ positive $DV01$.
+- Reproduction check: compute $F$ from the ratio $P(0,T_1)/P(0,T_2)=1+F\tau$ and verify $F=4\\%$.
 
 ### Example A: Discount Factor to Zero Rates (Multiple Conventions)
 
 **Given:** $P(0, 1y) = 0.9700$.
 
-1. **Simple Zero:**
-   $$y_{\text{simple}} = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\\%$$
-2. **Continuous Zero:**
-   $$y_c = -\frac{\ln(0.9700)}{1} = 3.046\\%$$
-3. **Semiannual Zero:**
-   $$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\\%$$
+**1. Simple Zero**
+
+$$y_{\text{simple}} = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\\%$$
+
+**2. Continuous Zero**
+
+$$y_c = -\frac{\ln(0.9700)}{1} = 3.046\\%$$
+
+**3. Semiannual Zero**
+
+$$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\\%$$
 
 **Sanity Check:** Continuous < Semiannual < Simple. This ordering always holds for positive rates.
 
@@ -685,9 +730,11 @@ Forward rates can be derived from either discount factors or zero rates:
 **Objective:** Find the 1-year forward rate starting in 1 year ($1y \times 1y$). $\tau = 1$.
 
 **Simple forward rate:**
+
 $$F = \frac{1}{1} \left( \frac{0.9615}{0.9157} - 1 \right) = 1.0500 - 1 = 5.00\\%$$
 
 **Continuous forward rate:**
+
 $$f_c = \frac{\ln(0.9615) - \ln(0.9157)}{1} = \frac{-0.0393 - (-0.0881)}{1} = 4.88\\%$$
 
 **Verification:** Check that rolling over gives the same result as investing for 2 years:
@@ -712,12 +759,17 @@ $$F = \frac{0.999003 - 1}{0.5} \approx -0.199\\%$$
 **Given:** Discount Factors: $P(0.5) = 0.99$, $P(1.0) = 0.97$.
 **Objective:** Calculate the 1-year semiannual par rate $C$.
 
-1. **Calculate Annuity ($A$):**
-   $$A = 0.5 \times 0.99 + 0.5 \times 0.97 = 0.495 + 0.485 = 0.980$$
-2. **Calculate Par Numerator:**
-   $$1 - P(0, 1y) = 1 - 0.97 = 0.03$$
-3. **Solve:**
-   $$C = \frac{0.03}{0.980} \approx 0.03061 \implies 3.061\\%$$
+**1. Calculate Annuity ($A$)**
+
+$$A = 0.5 \times 0.99 + 0.5 \times 0.97 = 0.495 + 0.485 = 0.980$$
+
+**2. Calculate Par Numerator**
+
+$$1 - P(0, 1y) = 1 - 0.97 = 0.03$$
+
+**3. Solve**
+
+$$C = \frac{0.03}{0.980} \approx 0.03061 \implies 3.061\\%$$
 
 **Sanity Check:** The par rate should be between the 6-month and 1-year zero rates. Check: 6-month zero ≈ 2.02%, 1-year zero ≈ 3.09%. Par rate 3.061% is in range. ✓
 
@@ -738,15 +790,20 @@ Using $f(T) = y_c(T) + T \cdot y_c'(T)$:
 **Given:** 1-year zero = 3.5%, 2-year zero = 4.0%, 3-year zero = 4.3% (all semiannual compounding).
 
 **Step 1: Convert to Discount Factors**
+
 $$P(1) = \frac{1}{(1 + 0.035/2)^2} = \frac{1}{1.0175^2} = 0.9659$$
+
 $$P(2) = \frac{1}{(1 + 0.040/2)^4} = \frac{1}{1.02^4} = 0.9238$$
+
 $$P(3) = \frac{1}{(1 + 0.043/2)^6} = \frac{1}{1.0215^6} = 0.8802$$
 
 **Step 2: Calculate Forward Rates**
 1y1y forward (semiannual compounding over the year 1→2):
+
 $$f_{1,2} = 2\left[\left(\frac{0.9659}{0.9238}\right)^{1/2} - 1\right] = 2\left[1.0225 - 1\right] = 4.50\\%$$
 
 2y1y forward (semiannual compounding over the year 2→3):
+
 $$f_{2,3} = 2\left[\left(\frac{0.9238}{0.8802}\right)^{1/2} - 1\right] = 2\left[1.0245 - 1\right] = 4.90\\%$$
 
 **Step 3: Calculate Par Coupons (Annual-Pay)**
@@ -756,9 +813,11 @@ If we define a **par bond** here as paying an **annual** coupon $C$ at $T=1,2,3$
 $$1 = C\\,[P(1)+P(2)+P(3)] + P(3)$$
 
 So the 3-year annual-pay par coupon is:
+
 $$C_3 = \frac{1 - P(3)}{P(1)+P(2)+P(3)} = \frac{1-0.8802}{0.9659+0.9238+0.8802} = 4.33\\%$$
 
 Similarly, the 2-year annual-pay par coupon is:
+
 $$C_2 = \frac{1 - P(2)}{P(1)+P(2)} = \frac{1-0.9238}{0.9659+0.9238} = 4.03\\%$$
 
 **Note:** If you want a **semiannual-pay** par coupon (Treasury-style) you need discount factors at $0.5$-year intervals. That is exactly why curve construction (Chapter 17) is not optional in real pricing work: instruments don’t line up neatly on annual dates.
@@ -766,19 +825,25 @@ $$C_2 = \frac{1 - P(2)}{P(1)+P(2)} = \frac{1-0.9238}{0.9659+0.9238} = 4.03\\%$$
 ### Example G: Steep vs Flat Curve Comparison
 
 **Steep Curve:** 1y = 2%, 2y = 4% (semiannual)
+
 $$P(1) = 1/1.01^2 = 0.9803$$
+
 $$P(2) = 1/1.02^4 = 0.9238$$
 
 Forward rate 1y1y:
+
 $$f = 2\left[(0.9803/0.9238)^{0.5} - 1\right] = 2\left[1.0301 - 1\right] = 6.02\\%$$
 
 This forward (6.02%) is significantly higher than both spot rates—a steep curve implies high forward rates.
 
 **Flat Curve:** 1y = 3%, 2y = 3% (semiannual)
+
 $$P(1) = 1/1.015^2 = 0.9707$$
+
 $$P(2) = 1/1.015^4 = 0.9422$$
 
 Forward rate 1y1y:
+
 $$f = 2\left[(0.9707/0.9422)^{0.5} - 1\right] = 2\left[1.0150 - 1\right] = 3.00\\%$$
 
 On a flat curve, the forward equals the spot. ✓
@@ -790,6 +855,7 @@ On a flat curve, the forward equals the spot. ✓
 ### 3.11.1 Monotonicity Check for Discount Factors
 
 With non-negative rates, discount factors should be **non-increasing** in maturity (and strictly decreasing when rates are strictly positive):
+
 $$P(T_1) \ge P(T_2) \text{ for } T_1 \lt T_2$$
 
 If this fails, either:
@@ -980,7 +1046,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 13. **Coupon Effect:** Given a steep curve (1y = 2%, 2y = 4%, 3y = 5% semiannual), calculate the 1y1y and 1y2y forward rates. Explain why they exceed the 2y and 3y spot rates.
 
-14. **Trading Forwards:** A trader believes the 1-year rate one year from now will be 3.8%, but the 1y1y forward is 4.5%. Describe a trade to profit from this view and calculate the approximate P&L on $100mm notional if the trader is correct.
+14. **Trading Forwards:** A trader believes the 1-year rate one year from now will be 3.8%, but the 1y1y forward is 4.5%. Describe a trade to profit from this view and calculate the approximate P&L on USD 100mm notional if the trader is correct.
 
 15. **Inverted Curve:** On an inverted curve, is par yield above or below zero yield? Explain intuitively.
 
@@ -1012,7 +1078,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 13. **Coupon Effect**: Convert to DFs: $P(1) = 1/1.01^2 = 0.9803$, $P(2) = 1/1.02^4 = 0.9238$, $P(3) = 1/1.025^6 = 0.8623$. 1y1y forward = $2[(P(1)/P(2))^{1/2} - 1] = 6.02\\%$. 1y2y forward (the 2-year forward from 1→3) solves $(1+f/2)^4=P(1)/P(3)$, so $f=2[(P(1)/P(3))^{1/4}-1]\approx 6.52\\%$. Forwards exceed spots because on steep curves, the marginal rate must exceed the average to pull it up.
 
-14. **Trading Forwards**: Receive fixed at 4.5% on a 1y1y forward swap, $100mm notional. If realized rate is 3.8%, gain 70bp for 1 year: $100mm \times 0.007 \times 1 = \$700,000$ approximate P&L.
+14. **Trading Forwards**: Receive fixed at 4.5% on a 1y1y forward swap, USD 100mm notional. If realized rate is 3.8%, gain 70bp for 1 year: $100{,}000{,}000 \times 0.007 \times 1 \approx 700{,}000$ USD approximate P&L.
 
 15. **Inverted Curve**: Par yield is **above** zero yield. On an inverted curve, early coupons are discounted at higher (short-term) rates, requiring a higher coupon to achieve par pricing.
 

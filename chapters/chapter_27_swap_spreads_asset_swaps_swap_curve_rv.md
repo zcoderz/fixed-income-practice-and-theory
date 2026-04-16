@@ -105,7 +105,9 @@ $$SS_T^{OTR} = (S_T - y_T^{fit}) - (y_T^{OTR} - y_T^{fit})$$
 so the quoted spread depends on both (i) the swap curve versus a smooth government curve and (ii) the benchmark issue’s idiosyncratic rich/cheap.
 
 **Check (toy decomposition):** Suppose the swap curve is still above a fitted government curve by 5 bp, so $(S_T-y_T^{fit})=+5$ bp. If the on-the-run benchmark is 20 bp cheap to the fitted curve, so $(y_T^{OTR}-y_T^{fit})=+20$ bp, then
+
 $$SS_T^{OTR}=+5-20=-15\text{ bp}.$$
+
 The swap spread looks negative even though swaps are not below a smooth government curve—the benchmark bond is simply cheap.
 
 ### 27.2.1 Mechanism 1: The Benchmark Treasury Can Cheapen (Supply/Financing)
@@ -187,7 +189,7 @@ $$P_{\text{Libor}}(0,T) = \frac{c}{f} \sum_{n=1}^{N} Z(0,t_n) + Z(0,T)$$
 
 This is the present value of the bond's fixed cashflows (coupons plus principal) discounted on the Libor/swap curve. Also define the PV01:
 
-$$\text{PV01}(0,T) = \sum_{n=1}^{N} Z(0,t_n) \, \Delta(t_{n-1}, t_n)$$
+$$\text{PV01}(0,T) = \sum_{n=1}^{N} Z(0,t_n) \\, \Delta(t_{n-1}, t_n)$$
 
 which represents the present value of receiving 1 unit of spread per year on the floating leg. Note that $Z$ is dimensionless and $\Delta$ is in years, so PV01 has units of "discounted years."
 
@@ -220,10 +222,10 @@ $$\boxed{A(0) = \frac{P_{\text{Libor}}(0,T) - P}{\text{PV01}(0,T)}}$$
 - Maturity/payment date: 2031-02-15
 
 **Inputs**
-- Bond: 5Y maturity, 7.25% annual coupon, semiannual payments ($f=2$); face scaled to $1 (convert back to “per 100” at the end).
-- Full (dirty) price: $94.38$ per $100$ face, i.e. $P=0.9438$ per $1 face.
+- Bond: 5Y maturity, 7.25% annual coupon, semiannual payments ($f=2$); face scaled to 1 (convert back to “per 100” at the end).
+- Full (dirty) price: $94.38$ per $100$ face, i.e. $P=0.9438$ per unit of face.
 - Swap/LIBOR-curve analytics (computed from discount factors using the definitions in Section 27.3.3):
-  - $P_{\text{Libor}}(0,T)=1.0876$ per $1 face.
+  - $P_{\text{Libor}}(0,T)=1.0876$ per unit of face.
   - $\text{PV01}(0,T)=4.4396$ (units: discounted years).
 
 **Outputs (What You Produce)**
@@ -231,16 +233,20 @@ $$\boxed{A(0) = \frac{P_{\text{Libor}}(0,T) - P}{\text{PV01}(0,T)}}$$
 - Spread PV sensitivity magnitude: $\text{PV01}\times 1\text{bp}$ per unit notional.
 
 **Step-by-step**
-1. Normalize price to per $1 face: $P=94.38/100=0.9438$.
-2. Compute $P_{\text{Libor}}(0,T)$ (PV of fixed bond cashflows discounted on the swap curve) and $\text{PV01}(0,T)$ (the floating-leg annuity, i.e., discounted accrual factors). For illustration, we use the inputs below.
-3. Apply the par ASW formula:
-   $$A(0)=\frac{P_{\text{Libor}}(0,T)-P}{\text{PV01}(0,T)}.$$
-4. Convert to basis points by multiplying the decimal by $10{,}000$.
+**Step 1:** Normalize price to per unit of face: $P=94.38/100=0.9438$.
+
+**Step 2:** Compute $P_{\text{Libor}}(0,T)$ (PV of fixed bond cashflows discounted on the swap curve) and $\text{PV01}(0,T)$ (the floating-leg annuity, i.e., discounted accrual factors). For illustration, we use the inputs below.
+
+**Step 3:** Apply the par ASW formula:
+
+$$A(0)=\frac{P_{\text{Libor}}(0,T)-P}{\text{PV01}(0,T)}.$$
+
+**Step 4:** Convert to basis points by multiplying the decimal by $10{,}000$.
 
 | Parameter | Value |
 |-----------|-------|
 | Coupon | 7.25% annual, semiannual payments |
-| Full price | $94.38 per $100 face |
+| Full price | 94.38 per 100 face |
 
 Suppose curve analytics give $P_{\text{Libor}} = 1.0876$ per dollar of face value, and $\text{PV01} = 4.4396$ discounted years.
 
@@ -258,11 +264,11 @@ $$A(0) = \frac{1.0876 - 0.9438}{4.4396} = \frac{0.1438}{4.4396} = 0.0324 = 324 \
 
 **P&L / Risk Interpretation**
 - The number “ASW = 324 bp” means: in the par asset-swap package, you are effectively receiving floating $+$ 324 bp (before funding), so the bond is *cheap* versus the swap curve.
-- Sensitivity magnitude: $1$ bp $=10^{-4}$. Per $1 notional, a 1bp change in the contractual spread changes PV by about $\text{PV01}\\times 10^{-4}$. With $\text{PV01}=4.4396$, that is $4.4396\\times 10^{-4}=0.00044396$ per $1 notional (and USD4{,}440 per USD10\text{mm}).
+- Sensitivity magnitude: $1$ bp $=10^{-4}$. Per unit notional, a 1bp change in the contractual spread changes PV by about $\text{PV01}\\times 10^{-4}$. With $\text{PV01}=4.4396$, that is $4.4396\\times 10^{-4}=0.00044396$ per unit notional (and USD4{,}440 per USD10\text{mm}).
 - For an *existing* asset swap, the relevant move is usually the *market* ASW $A(t)$. Using $\text{MTM}(t)=(A(0)-A(t))\cdot\text{PV01}(t,T)$, a widening in market ASW (higher $A(t)$) is a mark-to-market loss for the original buyer.
 
 **Sanity Checks**
-- Units check: $\text{PV01}$ has units of discounted years; multiplying by a spread in 1/year gives a dimensionless PV per $1 notional.
+- Units check: $\text{PV01}$ has units of discounted years; multiplying by a spread in 1/year gives a dimensionless PV per unit notional.
 - Sign check: widening ASW corresponds to bond cheapening (higher required spread); an existing asset-swap buyer loses when ASW widens.
 - Repricing check: verify $V(0)+P\approx 1$ (below).
 
@@ -281,7 +287,9 @@ $$\boxed{A^{\ast}(0) = \frac{A(0)}{P}}$$
 For discount bonds ($P \lt 1$), the market asset swap spread is higher than the par spread because the floating leg notional is smaller. For premium bonds ($P \gt 1$), it is lower.
 
 **Check (why the scaling makes sense):** In the market structure, the spread is paid on notional $P$. The relation $A^{\ast}=A/P$ ensures that “spread $\times$ notional” is comparable across structures:
+
 $$A^{\ast} \times P = A.$$
+
 For example, if $P=0.95$ and the par ASW is $A=100$ bp, then $A^{\ast}=105.3$ bp and $A^{\ast}\times P \approx 100$ bp. With $\text{PV01}=4$ discounted years, both structures imply a similar spread-stream PV per unit face: $0.01\times 4=0.04$.
 
 The mechanics are:
@@ -299,7 +307,7 @@ $$\text{MTM}(t) = (A(0) - A(t)) \cdot \text{PV01}(t,T)$$
 
 where $A(t)$ is the current asset swap spread for the bond. This formula follows from the fact that unwinding an asset swap involves entering an offsetting position at the current spread. The fixed legs and Libor payments cancel, leaving only the difference in spreads times the remaining PV01.
 
-**Worked example.** If the asset swap was entered at $A(0) = 323.9$ bp on $10 million notional, and one year later the spread has tightened to $A(t) = 284$ bp with remaining PV01 of 3.622, the mark-to-market is:
+**Worked example.** If the asset swap was entered at $A(0) = 323.9$ bp on USD10 million notional, and one year later the spread has tightened to $A(t) = 284$ bp with remaining PV01 of 3.622, the mark-to-market is:
 
 $$\text{MTM} = (323.9 - 284.0) \text{ bp} \times 3.622 \times USD10\text{mm} = 39.9 \times 0.0001 \times 3.622 \times 10{,}000{,}000 = USD144{,}518$$
 
@@ -364,6 +372,7 @@ A naive analyst looking only at par ASW would conclude that the 7% bond is "chea
 **The fix:** Use market ASW or Z-spread to compare:
 
 $$A^{\ast}_{3pct} = \frac{80 \text{ bp}}{0.955} = 83.8 \text{ bp}$$
+
 $$A^{\ast}_{7pct} = \frac{120 \text{ bp}}{1.12} = 107.1 \text{ bp}$$
 
 Market ASW ($A^{\ast} = A/P$) reduces the mechanical par-notional effect, but ASW remains convention-dependent. For cross-bond comparisons, desks typically cross-check with Z-spread and/or CDS.
@@ -404,10 +413,12 @@ $$P = \frac{c}{f} \sum_{n=1}^{N} Z(0,t_n) e^{-\theta t_n} + Z(0,T) e^{-\theta T}
 
 where $\theta$ is the ZVS to be solved for numerically.
 
-**Expand (what is held fixed):** Treat the base discount factors $Z(0,t)$ as given market inputs. ZVS solves for a *single constant* $\theta$ that shifts discounting uniformly across maturities. In continuous-compounding DF form this is equivalent to replacing each discount factor by $Z(0,t)\,e^{-\theta t}$.
+**Expand (what is held fixed):** Treat the base discount factors $Z(0,t)$ as given market inputs. ZVS solves for a *single constant* $\theta$ that shifts discounting uniformly across maturities. In continuous-compounding DF form this is equivalent to replacing each discount factor by $Z(0,t)\\,e^{-\theta t}$.
 
 **Check (units and limiting case):** $\theta$ has units of 1/year. If the bond were a zero-coupon with a single cashflow at maturity $T$, then the ZVS equation reduces to one discount factor:
-$$P = Z(0,T)e^{-\theta T}\quad\Rightarrow\quad \theta = -\frac{1}{T}\ln\!\left(\frac{P}{Z(0,T)}\right).$$
+
+$$P = Z(0,T)e^{-\theta T}\quad\Rightarrow\quad \theta = -\frac{1}{T}\ln\\!\left(\frac{P}{Z(0,T)}\right).$$
+
 So ZVS generalizes a “single-maturity spread” to a multi-cashflow bond by forcing one constant $\theta$ to fit the whole schedule.
 
 For option-free bonds, ZVS is the natural curve-based spread measure (as opposed to OAS, which is typically used when cashflows are option-dependent). Practitioners often prefer ZVS to yield-based measures because it respects the term structure of discount rates.
@@ -444,18 +455,22 @@ Consider a 3-year bond with semiannual coupons:
 |-----------|-------|
 | Coupon | 5% annual |
 | Full price | $P = 1.0500$ |
-| Discount factors | $Z = \{0.985, 0.970, 0.954, 0.938, 0.922, 0.905\}$ |
+| Discount factors | $Z = \\{0.985, 0.970, 0.954, 0.938, 0.922, 0.905\\}$ |
 
 **Step 1: ASW calculation.**
 
 First compute the Libor-discounted bond value:
+
 $$P_{\text{Libor}} = 0.025 \times (0.985 + 0.970 + 0.954 + 0.938 + 0.922 + 0.905) + 0.905$$
+
 $$P_{\text{Libor}} = 0.025 \times 5.674 + 0.905 = 0.14185 + 0.905 = 1.04685$$
 
 Then compute PV01:
+
 $$\text{PV01} = 0.5 \times 5.674 = 2.837$$
 
 Apply the ASW formula:
+
 $$A = \frac{1.04685 - 1.0500}{2.837} = \frac{-0.00315}{2.837} = -11.1 \text{ bp}$$
 
 **Step 2: ZVS calculation.**
@@ -609,6 +624,7 @@ An asset swap position's P&L can be decomposed into five main components:
 **2. Spread P&L.** From changes in the asset swap spread, proportional to PV01. This is typically the intended exposure in an asset swap trade.
 
 **3. Carry P&L.** The accrual of coupon income net of swap fixed payments and financing costs. For a DV01-matched position:
+
 $$\text{Daily Carry} = \frac{\text{Bond Coupon} - \text{Swap Fixed Rate} + \text{ASW Spread} - \text{Repo Rate}}{360} \times \text{Notional}$$
 
 **4. Rolldown P&L.** From the passage of time with an unchanged curve, as the bond "rolls down" the curve and the swap amortizes.
@@ -640,7 +656,7 @@ Consider a position that is long USD100 million of a bond asset-swapped at $A_0 
 **Scenario 1: Parallel rate shift +10 bp, no ASW move**
 - Bond P&L: $-10 \times USD26,300 = -USD263,000$
 - Swap hedge P&L: $+10 \times USD26,300 = +USD263,000$
-- Net P&L: $\approx $0$ (rates hedged)
+- Net P&L: $\approx 0$ (rates hedged)
 
 **Scenario 2: ASW tightens 20 bp, rates unchanged**
 - Spread P&L: $+20 \times USD27,000 = +USD540,000$
@@ -651,7 +667,7 @@ Consider a position that is long USD100 million of a bond asset-swapped at $A_0 
 - The trade loses from idiosyncratic widening
 
 **Scenario 4: Repo rate spikes 50 bp**
-- Funding cost increase: $+50 \times $100\text{mm} / 10{,}000 = +USD500{,}000$ annually
+- Funding cost increase: $+50 \times USD100\text{mm} / 10{,}000 = +USD500{,}000$ annually
 - Over a quarter, this is ~USD125,000 of additional cost
 - The carry advantage erodes significantly
 
@@ -764,13 +780,15 @@ The following examples consolidate and extend the calculations developed through
 ### Example A: Swap Spread Computation with Benchmark Sensitivity
 
 **Given:**
-- 5Y par swap rate: $S_5 = 3.20\%$
-- On-the-run 5Y yield: $y_5^{\text{OTR}} = 2.95\%$
-- Fitted off-the-run yield: $y_5^{\text{fit}} = 3.05\%$
+- 5Y par swap rate: $S_5 = 3.20\\%$
+- On-the-run 5Y yield: $y_5^{\text{OTR}} = 2.95\\%$
+- Fitted off-the-run yield: $y_5^{\text{fit}} = 3.05\\%$
 
 **Compute:**
-$$SS_5^{\text{OTR}} = 3.20\% - 2.95\% = 25 \text{ bp}$$
-$$SS_5^{\text{fit}} = 3.20\% - 3.05\% = 15 \text{ bp}$$
+
+$$SS_5^{\text{OTR}} = 3.20\\% - 2.95\\% = 25 \text{ bp}$$
+
+$$SS_5^{\text{fit}} = 3.20\\% - 3.05\\% = 15 \text{ bp}$$
 
 The same swap rate produces swap spreads differing by 10 bp purely from benchmark choice.
 
@@ -780,7 +798,7 @@ The same swap rate produces swap spreads differing by 10 bp purely from benchmar
 - Bond coupon: 5% annual, semiannual payments
 - ASW spread: $A = 20$ bp
 - LIBOR resets: $L = (0.0300, 0.0320, 0.0310)$ (semiannual)
-- Repo rate: $r_{\text{repo}} = 2.70\%$
+- Repo rate: $r_{\text{repo}} = 2.70\\%$
 
 | Date | Bond coupon | Swap fixed paid | Swap float received | Repo paid | Net |
 |------|-------------|-----------------|---------------------|-----------|-----|
@@ -795,7 +813,7 @@ The net cashflow is approximately $(\text{LIBOR} + \text{ASW} - r_{\text{repo}})
 **Given:**
 - 3Y bond, semiannual 5% coupon
 - Full price $P = 1.0500$
-- Discount factors $Z = \{0.985, 0.970, 0.954, 0.938, 0.922, 0.905\}$
+- Discount factors $Z = \\{0.985, 0.970, 0.954, 0.938, 0.922, 0.905\\}$
 
 **Step 1:** $P_{\text{Libor}} = 0.025 \times 5.674 + 0.905 = 1.04685$
 
@@ -820,6 +838,7 @@ The market asset swap spread is slightly lower in magnitude because the floating
 - Swap fixed leg DV01: 0.0350 per 100 notional
 
 **Hedge ratio:**
+
 $$\text{Swap notional} = USD100\text{mm} \times \frac{0.0263}{0.0350} = USD75.1\text{mm}$$
 
 ### Example F: Premium Bond Trap Illustration
@@ -978,11 +997,11 @@ This chapter has developed the framework for understanding swap spreads, asset s
 
 ## Mini Problem Set
 
-1. (Compute) Swap spread: $S_7=3.55\%$, $y_7^{\text{OTR}}=3.40\%$. Compute $SS_7$ in bp.
-2. (Compute) Using Q1, the fitted/off-the-run government yield is $3.46\%$. Recompute $SS_7$ and the difference vs OTR.
+1. (Compute) Swap spread: $S_7=3.55\\%$, $y_7^{\text{OTR}}=3.40\\%$. Compute $SS_7$ in bp.
+2. (Compute) Using Q1, the fitted/off-the-run government yield is $3.46\\%$. Recompute $SS_7$ and the difference vs OTR.
 3. (Compute) ASW input hygiene: clean price $P_{\text{clean}}=101.20$, accrued interest $AI=0.30$ (per 100). What full price do you use in ASW formulas?
-4. (Compute) Compute PV01 (annuity): semiannual schedule with $Z=\{0.99,0.975,0.96,0.945\}$ and $\Delta=0.5$.
-5. (Compute) Compute $P_{\text{Libor}}$: coupon $c=4\%$, $f=2$, same $Z$, maturity DF $Z(T)=0.945$.
+4. (Compute) Compute PV01 (annuity): semiannual schedule with $Z=\\{0.99,0.975,0.96,0.945\\}$ and $\Delta=0.5$.
+5. (Compute) Compute $P_{\text{Libor}}$: coupon $c=4\\%$, $f=2$, same $Z$, maturity DF $Z(T)=0.945$.
 6. (Compute) Solve par ASW $A$: use Q3–Q5 with $P=1.0150$. Compute $A$ in bp.
 7. (Compute) Market ASW: use Q6 and $P=1.0150$ to compute $A^{\ast}=A/P$ in bp.
 8. (Concept) A high-coupon bond (8%) trades at 115 with par ASW 180 bp. A low-coupon bond (3%) from the same issuer trades at 92 with par ASW 90 bp. Which looks “cheaper” on par ASW, and why is that comparison suspect?
@@ -992,8 +1011,8 @@ This chapter has developed the framework for understanding swap spreads, asset s
 12. (Desk) Describe how a repo rate spike (e.g., quarter-end) affects asset-swap carry.
 
 ### Solution Sketches (Selected)
-1. $SS_7=(3.55-3.40)\% = 0.15\% = 15\text{ bp}$.
-2. $SS_7^{\text{fit}}=(3.55-3.46)\% = 9\text{ bp}$. Difference vs OTR: $15-9=6\text{ bp}$.
+1. $SS_7=(3.55-3.40)\\% = 0.15\\% = 15\text{ bp}$.
+2. $SS_7^{\text{fit}}=(3.55-3.46)\\% = 9\text{ bp}$. Difference vs OTR: $15-9=6\text{ bp}$.
 3. Full/dirty price: $P_{\text{dirty}}=101.20+0.30=101.50$ per 100, i.e. $P=1.0150$ per 1.
 6. $A=(1.0224-1.0150)/1.935=0.00382\approx 38.2\text{ bp}$. ($1\text{ bp} = 10^{-4}$.)
 9. Examples: bond price away from par; CDS counterparty risk; cheapest-to-deliver option; liquidity/funding frictions that prevent arbitrage in stress.

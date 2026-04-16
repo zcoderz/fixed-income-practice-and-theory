@@ -56,7 +56,7 @@ Two related (but different) sensitivities are often called “duration”:
 
 Macaulay duration (introduced by Frederick Macaulay, 1938) is the present-value-weighted average time to receipt of cashflows. If a bond pays cashflows $c_i$ at times $t_i$ with present values $v_i$, and the **full/dirty price** is $P_{\text{dirty}}=\sum_i v_i$, then:
 
-$$\boxed{D_{\text{Mac}} = \frac{\sum_{i=1}^{n} t_i\,v_i}{P_{\text{dirty}}} = \sum_{i=1}^{n} t_i\left(\frac{v_i}{P_{\text{dirty}}}\right)}$$
+$$\boxed{D_{\text{Mac}} = \frac{\sum_{i=1}^{n} t_i\\,v_i}{P_{\text{dirty}}} = \sum_{i=1}^{n} t_i\left(\frac{v_i}{P_{\text{dirty}}}\right)}$$
 
 For a level-coupon bond priced off a semiannually-compounded yield $y$ (coupon rate $c$ per 100 notional, maturity $T$ years), an explicit form is:
 
@@ -92,7 +92,7 @@ The bond pays USD 5 every 6 months plus USD 105 at maturity. We discount each us
 
 **Step 2: Calculate present values and weights**
 
-| Time (years) | Cash Flow ($) | Present Value | Weight (PV/B) | Time × Weight |
+| Time (years) | Cash Flow (USD) | Present Value | Weight (PV/B) | Time × Weight |
 |:-------------|:--------------|:--------------|:--------------|:--------------|
 | 0.5 | 5 | 4.709 | 0.050 | 0.025 |
 | 1.0 | 5 | 4.435 | 0.047 | 0.047 |
@@ -126,7 +126,7 @@ $$\boxed{D_{\text{Mod}}\big|_{c=0} = \frac{T}{1+y/2}}$$
 
 $$\text{DV01}\big|_{c=0} = \frac{T}{100(1+y/2)^{2T+1}}$$
 
-**Example:** A 10-year zero at 5% yield has modified duration of USD 10/(1.025) = 9.76$ years.
+**Example:** A 10-year zero at 5% yield has modified duration of USD 10/(1.025) = 9.76 years.
 
 ### 12.3.2 Par Bonds: The Closed-Form Formula
 
@@ -194,7 +194,7 @@ $$\frac{\Delta P}{P} \approx -D_{\text{Mod}} \times \Delta y$$
 
 Interpretation: $D_{\text{Mod}}$ is the approximate percentage change in price for a **100bp (1.00%)** change in yield (holding cashflows fixed and using the stated yield/compounding convention).
 
-**Check (bp-to-decimal and dollars):** $25\text{bp}=0.0025$. If a bond has $D_{\text{Mod}}=7.8$ and is priced at 100 (per 100 face), the first-order estimate is $\Delta P/P\approx -7.8\times 0.0025=-1.95\%$, i.e. $\Delta P\approx -1.95$ price points. On $N=USD 10\text{mm}$ face, 1 price point is $USD 100{,}000$, so this is about $-USD 195{,}000$.
+**Check (bp-to-decimal and dollars):** $25\text{bp}=0.0025$. If a bond has $D_{\text{Mod}}=7.8$ and is priced at 100 (per 100 face), the first-order estimate is $\Delta P/P\approx -7.8\times 0.0025=-1.95\\%$, i.e. $\Delta P\approx -1.95$ price points. On $N=USD 10\text{mm}$ face, 1 price point is $USD 100{,}000$, so this is about $-USD 195{,}000$.
 
 ### 12.4.2 The Derivation
 
@@ -236,7 +236,7 @@ Using the duration relationship:
 
 $$\Delta B \approx -94.213 \times 2.499 \times 0.001 = -0.236$$
 
-The predicted new price is USD 94.213 - 0.236 = 93.977$.
+The predicted new price is USD 94.213 - 0.236 = 93.977.
 
 An exact repricing at the bumped yield gives a price of about $93.963$, very close to the duration estimate.
 
@@ -325,15 +325,15 @@ $$
 Throughout this chapter, prices are per 100 notional. For a position with notional $N$, define the (dirty) market value / PV as:
 
 $$
-V := \frac{N}{100}\,P_{\text{dirty}}.
+V := \frac{N}{100}\\,P_{\text{dirty}}.
 $$
 
-**Check (points $\leftrightarrow$ dollars):** If prices are quoted “per 100,” then 1.00 price point is $1\%$ of face value. So a 0.01-point move is $0.01\%$ of face. Example: if $N=USD 100\text{mm}$, then 1.00 point is $USD 1{,}000{,}000$ and 0.01 point is $USD 10{,}000$. This is the quickest way to sanity-check whether a reported DV01 magnitude is plausible.
+**Check (points $\leftrightarrow$ dollars):** If prices are quoted “per 100,” then 1.00 price point is $1\\%$ of face value. So a 0.01-point move is $0.01\\%$ of face. Example: if $N=USD 100\text{mm}$, then 1.00 point is $USD 1{,}000{,}000$ and 0.01 point is $USD 10{,}000$. This is the quickest way to sanity-check whether a reported DV01 magnitude is plausible.
 
-Using the duration approximation $\Delta P/P \approx -D_{\text{Mod}}\,\Delta y$ and scaling by the position size gives:
+Using the duration approximation $\Delta P/P \approx -D_{\text{Mod}}\\,\Delta y$ and scaling by the position size gives:
 
 $$
-\Delta V \approx -(D_{\text{Mod}}V)\,\Delta y.
+\Delta V \approx -(D_{\text{Mod}}V)\\,\Delta y.
 $$
 
 One definition of **dollar duration** is the PV slope with respect to a small yield change:
@@ -345,10 +345,10 @@ $$
 Under the duration approximation above, $D_{USD } \approx D_{\text{Mod}}V$. In this chapter we write:
 
 $$
-DD := D_{\text{Mod}}\,V,
+DD := D_{\text{Mod}}\\,V,
 $$
 
-so $\Delta V \approx -DD\,\Delta y$. For a 100bp move ($\Delta y=0.01$), the magnitude of the price change is roughly $|DD|\times 0.01$.
+so $\Delta V \approx -DD\\,\Delta y$. For a 100bp move ($\Delta y=0.01$), the magnitude of the price change is roughly $|DD|\times 0.01$.
 
 ### 12.6.2 DV01 Conventions (Bump Object, Size, Units, Sign)
 
@@ -363,13 +363,13 @@ DV01 is the change in PV for a **1 basis point** move. In this chapter, DV01 is 
 With a small-bump approximation, DV01 is duration times market value times $0.0001$:
 
 $$
-DV01 \approx DD \times 0.0001 = \frac{D_{\text{Mod}}\,V}{10{,}000}.
+DV01 \approx DD \times 0.0001 = \frac{D_{\text{Mod}}\\,V}{10{,}000}.
 $$
 
 If you work in **price points per 100 notional**, the corresponding DV01 is:
 
 $$
-DV01_{\text{pts}} \approx \frac{P_{\text{dirty}}\,D_{\text{Mod}}}{10{,}000},
+DV01_{\text{pts}} \approx \frac{P_{\text{dirty}}\\,D_{\text{Mod}}}{10{,}000},
 $$
 
 and you convert to dollars for notional $N$ by multiplying by $N/100$.
@@ -393,8 +393,8 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
 - Payment dates: 2026-10-15, 2027-04-15, …, 2036-04-15
 
 **Inputs**
-- Instrument: fixed-rate bond, notional $N=USD 10{,}000{,}000$, maturity 2036-04-15, coupon $c=5\%$ paid semiannually
-- Market quote: yield $y=5\%$ with semiannual compounding ($m=2$)
+- Instrument: fixed-rate bond, notional $N=USD 10{,}000{,}000$, maturity 2036-04-15, coupon $c=5\\%$ paid semiannually
+- Market quote: yield $y=5\\%$ with semiannual compounding ($m=2$)
 - Day count / compounding: treat coupon periods as $0.5$ years (duration math); $AI=0$ at the coupon date
 
 **Outputs (What You Produce)**
@@ -411,7 +411,7 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
    $DV01 \approx \frac{7.79\times 10{,}000{,}000}{10{,}000}=USD 7{,}790$ per bp.
 
 3. **Translate a rate move into P&L.** For a +25bp yield increase ($\Delta y=+0.0025$):
-   $\Delta V \approx -DD\,\Delta y = -(D_{\text{Mod}}V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025)=-USD 194{,}750$.
+   $\Delta V \approx -DD\\,\Delta y = -(D_{\text{Mod}}V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025)=-USD 194{,}750$.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -437,7 +437,7 @@ If you have two positions:
 - Bond A: $DD^A = 800{,}000$
 - Bond B: $DD^B = 1{,}200{,}000$
 
-Portfolio dollar duration = USD 800{,}000 + 1{,}200{,}000 = 2{,}000{,}000$
+Portfolio dollar duration = USD 800{,}000 + 1{,}200{,}000 = USD 2{,}000{,}000
 
 You cannot simply add percentage durations. A portfolio with 50% in a 5-year duration bond and 50% in a 10-year duration bond does *not* have 15-year duration—it has weighted average duration of 7.5 years.
 
@@ -474,13 +474,13 @@ The yield-based DV01 relationship is a unit conversion: duration is a *percentag
 Per **100 notional** (DV01 in price points per 1bp):
 
 $$
-\boxed{DV01_{\text{pts}} \approx \frac{P_{\text{dirty}}\,D_{\text{Mod}}}{10{,}000}}
+\boxed{DV01_{\text{pts}} \approx \frac{P_{\text{dirty}}\\,D_{\text{Mod}}}{10{,}000}}
 $$
 
 For a **position** with notional $N$ and market value $V=(N/100)P_{\text{dirty}}$ (DV01 in dollars per 1bp):
 
 $$
-\boxed{DV01_{USD} \approx \frac{D_{\text{Mod}}\,V}{10{,}000}}.
+\boxed{DV01_{USD} \approx \frac{D_{\text{Mod}}\\,V}{10{,}000}}.
 $$
 
 Or using Macaulay duration:
@@ -566,7 +566,7 @@ $$PortfolioDV01 = \sum_{i} DV01_i^{\text{Position}}$$
 
 **Bond B (Short):** USD 3mm face, Price = 108, Duration = 7.2
 - Market Value = USD 3.24mm
-- Position DV01 $\approx -\,7.2 \times 3.24\text{mm}/10{,}000 = \mathbf{−USD 2{,}333}$
+- Position DV01 $\approx -\\,7.2 \times 3.24\text{mm}/10{,}000 = \mathbf{−USD 2{,}333}$
 
 **Portfolio DV01** = USD 2,295 − USD 2,333 = **−USD 38**
 
@@ -657,14 +657,14 @@ For portfolios with long and short positions, immunization is usually implemente
 
 If you approximate portfolio P&L under **parallel yield shifts** with the linear duration model,
 
-$$\Delta V \approx -DD\,\Delta y,$$
+$$\Delta V \approx -DD\\,\Delta y,$$
 
 then under a normal-yield-change approximation a horizon-$T$ VaR can be written as:
 
-$$\boxed{\text{VaR} \approx |DD|\,\sigma_y\,z_\alpha\,\sqrt{T}}$$
+$$\boxed{\text{VaR} \approx |DD|\\,\sigma_y\\,z_\alpha\\,\sqrt{T}}$$
 
 where:
-- $DD=D_{\text{Mod}}\,V$ is dollar duration (currency per 100% yield move),
+- $DD=D_{\text{Mod}}\\,V$ is dollar duration (currency per 100% yield move),
 - $\sigma_y$ is the standard deviation of daily yield changes (in yield decimals),
 - $z_\alpha$ is the normal quantile (e.g., 1.65 for 95%, 2.33 for 99%),
 - $T$ is the holding period in days.
@@ -675,7 +675,7 @@ $$\text{VaR} \approx |\text{DV01}| \times \sigma_y(\text{in bp}) \times z_\alpha
 
 ### 12.10.2 Worked Example H: Computing Duration-Based VaR
 
-Assume a bond portfolio has value $V=USD 6{,}000{,}000$ and modified duration $D_{\text{Mod}}=5.2$. Assume daily parallel yield changes have standard deviation $0.09\%$ (so $\sigma_y=0.0009$ in yield decimals).
+Assume a bond portfolio has value $V=USD 6{,}000{,}000$ and modified duration $D_{\text{Mod}}=5.2$. Assume daily parallel yield changes have standard deviation $0.09\\%$ (so $\sigma_y=0.0009$ in yield decimals).
 
 **Calculate 20-day 90% VaR:**
 
@@ -758,7 +758,7 @@ This "bump and reprice" approach captures how the full price function responds t
 ## Summary
 1. **Macaulay duration** $D_{\text{Mac}}$ is a PV-weighted average cashflow time (in years) computed using the full/dirty price.
 2. **Modified duration** $D_{\text{Mod}}$ is the first-order price sensitivity to the bond’s yield: $-\frac{1}{P}\frac{dP}{dy}=D_{\text{Mod}}$. In yield-based settings, $D_{\text{Mod}} = D_{\text{Mac}}/(1+y/m)$ for compounding frequency $m$.
-3. For small yield moves (in decimals), $\Delta V \approx -D_{\text{Mod}}\,V\,\Delta y$. Always state what $y$ means (compounding/day count) and what is being bumped.
+3. For small yield moves (in decimals), $\Delta V \approx -D_{\text{Mod}}\\,V\\,\Delta y$. Always state what $y$ means (compounding/day count) and what is being bumped.
 4. **Dollar duration** $DD := D_{\text{Mod}}V$ converts “years” into currency exposure. It is currency per 1.00 (100%) yield change.
 5. **DV01** is a 1bp version of dollar duration. With this book’s convention, $DV01 := V(y-1\text{bp})-V(y) \approx DD/10{,}000$ and is typically positive for a long fixed-rate bond.
 6. Duration is a *percentage* sensitivity; DV01 is an *absolute* sensitivity. DV01 depends on both duration and the price/market value level (the “price effect”).
@@ -853,7 +853,7 @@ This "bump and reprice" approach captures how the full price function responds t
 
 **Q3. [Medium — Portfolio]** You hold a portfolio of three bonds:
 
-| Bond | Face ($mm) | Price | Duration |
+| Bond | Face (USD mm) | Price | Duration |
 |:-----|:-----------|:------|:---------|
 | A | 10 | 102 | 3.5 |
 | B | 15 | 98 | 6.2 |
@@ -929,8 +929,12 @@ Which has higher duration? Which has higher DV01? Explain the relationship.
 (c) DV01 = $(30.4mm × 5.82)/10,000 = USD 17,693$
 
 **Q4.** Assuming semiannual compounding, the perpetuity Macaulay duration (in years) is:
-$$D_{\text{Mac}} = \frac{1+y/2}{y}$$
-At $y=6\%$, $D_{\text{Mac}} = 1.03/0.06 = 17.17$ years. The 50-year deep discount (1% coupon) has duration approximately 21 years—exceeding the perpetuity due to the heavy weighting on the distant principal.
+
+$$
+D_{\text{Mac}} = \frac{1+y/2}{y}
+$$
+
+At $y=6\\%$, $D_{\text{Mac}} = 1.03/0.06 = 17.17$ years. The 50-year deep discount (1% coupon) has duration approximately 21 years—exceeding the perpetuity due to the heavy weighting on the distant principal.
 
 **Q5.** Let $V_X$ in Bond X, $V_Y$ in Bond Y.
 - PV matching: $V_X + V_Y = 500,000/(1.025)^{16} = 335,602$
