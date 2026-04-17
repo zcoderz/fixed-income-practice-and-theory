@@ -1,287 +1,158 @@
-# Fixed Income: Practice and Theory
+# Learning Paths
 
-## Table of Contents
+*Fixed Income: Practice and Theory* spans 52 chapters plus 6 quant appendices. Reading linearly from Chapter 1 through Chapter 52 is the canonical order, but most readers don't need the entire book — or don't need it in that order.
 
----
+This document offers **seven curated paths**, each a short sequence of chapters assembled around a specific goal: a first pass, a rates-desk onboarding, a risk-management refresher, a credit track, and so on. Paths overlap intentionally — concepts like DV01, curves, and discounting appear in several — so you can switch paths whenever your questions change.
 
-## Part I — Foundations: Time Value, Rates, and Curve Primitives
-
-### [Chapter 1 — Market Quoting, Calendars, and Cashflow Plumbing](chapters/chapter_01_market_quoting_calendars_cashflow_plumbing.md)
-- Clean vs dirty, accrual intuition (preview)
-- Day count / compounding as "unit system" of rates
-- Settlement lags, payment timing, stubs (preview)
-
-### [Chapter 2 — Time Value of Money, Discount Factors, and Replication](chapters/chapter_02_time_value_discount_factors_replication.md)
-- PV of deterministic cashflows
-- Discount factor curve as the primitive object
-- Simple vs compounded vs continuous rates (conceptual)
-
-### [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle](chapters/chapter_03_zero_forward_par_rates_triangle.md)
-- Conversions among discount factors / zero rates / forwards
-- Par coupon/par swap rate intuition
-- Sanity checks: monotonicity, negative rates (conceptual)
-
-### [Chapter 4 — Money-Market Building Blocks (The Shortest Curve Points)](chapters/chapter_04_money_market_building_blocks.md)
-- Deposits/bills: how they pin short discount factors
-- FRAs and short-dated forwards
-- Link to futures as forward-rate instruments (preview)
+For the complete chapter-by-chapter table of contents, see the [README](README.md#table-of-contents).
 
 ---
 
-## Part II — Bonds: Pricing, Yields, Spreads, and Relative Value
+## How to Choose a Path
 
-### [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md)
-- Cashflow schedule → PV with a curve
-- Accrued interest mechanics
-- Price quotation conventions (conceptual)
+| If you are… | Start with |
+|---|---|
+| New to fixed income and want one coherent foundation | [Path 1 — Core Fixed Income](#path-1--core-fixed-income-recommended-start) |
+| Joining a rates desk (curves, swaps, futures) | [Path 2 — Rates Desk](#path-2--rates-desk-curves-and-swaps) |
+| In risk / middle office / product control | [Path 3 — Risk Management and Hedging](#path-3--risk-management-and-hedging) |
+| Learning credit (CDS, indices, tranches) | [Path 4 — Credit and Structured Credit](#path-4--credit-and-structured-credit) |
+| Focused on counterparty risk, XVA, collateral | [Path 5 — Counterparty Risk and XVA](#path-5--counterparty-risk-and-xva) |
+| Building quant / modeling depth | [Path 6 — Quant Modeling Depth](#path-6--quant-modeling-depth) |
+| Working across FX and rates | [Path 7 — FX and Cross-Currency](#path-7--fx-and-cross-currency) |
 
-### [Chapter 6 — Yield-to-Maturity and Yield-Based Risk](chapters/chapter_06_ytm_yield_based_risk.md)
-- What YTM "means" and what it hides
-- Yield-based DV01 vs curve-based DV01 (preview of the distinction)
-
-### [Chapter 7 — Bond Return Decomposition — Carry, Rolldown, Curve Moves, and Spread Changes](chapters/chapter_07_bond_return_decomposition.md)
-- Carry and rolldown intuition and measurement
-- "Curve shift vs spread change" decomposition concept
-
-### [Chapter 8 — Spreads 101 — G-spread, I-spread, Z-spread, OAS, and “What Spread Are We Talking About?”](chapters/chapter_08_spreads_101.md)
-- Why we need multiple spread definitions (G/I/Z/OAS/ASW—definitions later, but taxonomy now)
-- Relative value logic: bond vs curve vs swap
-
-### [Chapter 9 — Repo — The Bond Market’s Funding Engine](chapters/chapter_09_repo_funding_engine.md)
-- GC vs specials, repo rate intuition
-- Specialness bounds and fails logic (why specials can't go "infinitely special")
-- Haircuts, funding liquidity (conceptual)
-
-### [Chapter 10 — Treasury Market Microstructure and Relative Value](chapters/chapter_10_treasury_microstructure_relative_value.md)
-- Auction cycle, on-the-run/off-the-run intuition
-- Liquidity premia and financing advantage (conceptual)
+Each path below lists prerequisites, a recommended sequence, and what you should be able to do after finishing it.
 
 ---
 
-## Part III — Risk Measures: Duration, DV01/PV01, Convexity, Key Rates, Hedging
+## Path 1 — Core Fixed Income (Recommended Start)
 
-### [Chapter 11 — DV01/PV01 — Definitions, Computation, and “What’s Being Bumped”](chapters/chapter_11_dv01_pv01_definitions_computation.md)
-- DV01 as price sensitivity per 1bp move (explicitly define the rate measure)
-- Practical bump design: parallel vs localized bumps (preview)
+The broadest foundation. If you are new to the subject, read this first; every other path builds on the conventions and risk language introduced here.
 
-### [Chapter 12 — Duration — Macaulay, Modified, and the Connection to DV01](chapters/chapter_12_duration_macaulay_modified_dv01.md)
-- Duration as scaled DV01
-- Units checks and "per 100 notional" conventions
+**Prerequisites:** basic finance familiarity (present value, bonds as cashflow streams).
 
-### [Chapter 13 — Convexity — Second-Order P&L and When DV01 Breaks](chapters/chapter_13_convexity.md)
-- Convexity intuition and sign
-- Why convexity matters for big moves / option-like bonds
+**Reading order:**
 
-### [Chapter 14 — Key-Rate DV01 and Bucket Exposures](chapters/chapter_14_key_rate_dv01_bucket_exposures.md)
-- Why "parallel DV01 = 0" ≠ "no risk"
-- Bucket exposures and hedging bucket-by-bucket (Eurodollar futures example in the sources)
+1. Quoting, conventions, and time value — [Ch. 1](chapters/chapter_01_market_quoting_calendars_cashflow_plumbing.md) → [Ch. 4](chapters/chapter_04_money_market_building_blocks.md)
+2. Bond pricing, yields, returns, and spreads — [Ch. 5](chapters/chapter_05_fixed_rate_bond_pricing.md) → [Ch. 8](chapters/chapter_08_spreads_101.md)
+3. Repo and Treasury microstructure — [Ch. 9](chapters/chapter_09_repo_funding_engine.md), [Ch. 10](chapters/chapter_10_treasury_microstructure_relative_value.md)
+4. First-order risk measures — [Ch. 11](chapters/chapter_11_dv01_pv01_definitions_computation.md) → [Ch. 13](chapters/chapter_13_convexity.md)
 
-### [Chapter 15 — DV01 Hedging — Hedge Ratios, Risk Weights, and Practical Caveats](chapters/chapter_15_dv01_hedging.md)
-- DV01 hedge ratio formula and its interpretation
-- When DV01 hedges fail: curve twist, basis, convexity
-
-### [Chapter 16 — Curve Hedging Beyond DV01 — Twists, Butterflies, and PCA](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
-- Curve-shape risk taxonomy (level/slope/curvature)
-- Regression/PCA hedge concepts (high-level)
+**You should be able to:** decode quote formats, build a cashflow schedule with correct settlement and accruals, price a bond from a discount curve, name which spread answers which question, and read a DV01 report critically.
 
 ---
 
-## Part IV — Yield Curve Construction: Single-Curve to Multi-Curve (OIS + Basis + Cross-Currency)
+## Path 2 — Rates Desk (Curves and Swaps)
 
-### [Chapter 17 — Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md)
-- Why interpolation is unavoidable with finite instruments
-- Bootstrapping logic (instruments → discount factors)
-- "Locality" intuition: how a quote change perturbs the curve (preview)
+For anyone joining or supporting a rates, swaps, or macro desk. Emphasis is on the multi-curve stack and the instruments built on it.
 
-### [Chapter 18 — OIS Discounting Curve — Building the “Risk-Free-ish” Curve](chapters/chapter_18_ois_discounting_curve.md)
-- OIS as a par instrument; extracting zero rates (conceptual)
-- OIS rates can define a zero curve (explicitly noted in sources)
+**Prerequisites:** Path 1 or equivalent fluency with discount factors, par rates, and DV01.
 
-### [Chapter 19 — Projection Curves — LIBOR, SOFR, and the Multi-Curve Framework](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md)
-- Projection vs discounting separation
-- Multi-curve motivation post-crisis (explicitly noted)
+**Reading order:**
 
-### [Chapter 20 — Tenor Basis — 1M vs 3M vs 6M and Basis Swap Logic](chapters/chapter_20_tenor_basis.md)
-- What "tenor basis" means and why it exists
-- Practical consequences for pricing and hedging
+1. Single-curve bootstrapping and interpolation — [Ch. 17](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md)
+2. The modern multi-curve stack — [Ch. 18](chapters/chapter_18_ois_discounting_curve.md) → [Ch. 22](chapters/chapter_22_multi_curve_risk_jacobians.md)
+3. Futures as rate instruments — [Ch. 23](chapters/chapter_23_treasury_futures.md), [Ch. 24](chapters/chapter_24_stir_futures_convexity_adjustments.md)
+4. Swaps, swap risk, swap-curve RV, and basis trades — [Ch. 25](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md) → [Ch. 28](chapters/chapter_28_basis_trades.md)
 
-### [Chapter 21 — Cross-Currency Curves — CIP, FX Forwards, and Cross-Currency Basis as Curve Constraints](chapters/chapter_21_cross_currency_curves.md)
-- Covered interest parity logic (conceptual)
-- FX forwards vs cross-currency basis swaps as curve constraints (sources discuss CRX basis swaps and arbitrage consistency)
-
-### [Chapter 22 — Curve Risk Management in a Multi-Curve World — Par-Point Deltas, Jacobians, and Controlled Perturbations](chapters/chapter_22_multi_curve_risk_jacobians.md)
-- Par-point deltas / Jacobian mapping (conceptual)
-- Controlling perturbation behavior (why curve construction choices matter)
+**You should be able to:** build and interrogate a multi-curve stack, value a vanilla swap and explain why discounting and projection curves differ, compute and interpret swap PV01, read swap-spread and asset-swap trades, and navigate STIR convexity adjustments.
 
 ---
 
-## Part V — Futures and Swaps: Valuation, Hedging, and Basis
+## Path 3 — Risk Management and Hedging
 
-### [Chapter 23 — Treasury Futures — CTD, Conversion Factors, Delivery Options, and the Link to Repo](chapters/chapter_23_treasury_futures.md)
-- Futures pricing link to repo/funding
-- CTD intuition and why delivery options matter (conceptual)
+For risk, product control, and middle office — or anyone who will have to explain P&L to a skeptical manager.
 
-### [Chapter 24 — STIR Futures and Convexity Adjustments](chapters/chapter_24_stir_futures_convexity_adjustments.md)
-- Futures vs forward differences
-- Convexity adjustment intuition (what it corrects)
+**Prerequisites:** Path 1. Familiarity with swaps ([Ch. 25](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md)) helps but is not required up front.
 
-### [Chapter 25 — Interest Rate Swaps — Mechanics and Valuation](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md)
-- Swap as exchange of fixed vs floating legs
-- Discounting curve vs projection curve roles
+**Reading order:**
 
-### [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapters/chapter_26_swap_pv01_dv01_hedging.md)
-- PV01 computation concept
-- Swap DV01 vs bond DV01 mapping (conceptual)
+1. Risk measures from first principles — [Ch. 11](chapters/chapter_11_dv01_pv01_definitions_computation.md) → [Ch. 13](chapters/chapter_13_convexity.md)
+2. Curve-shape risk: key rates, hedging, PCA — [Ch. 14](chapters/chapter_14_key_rate_dv01_bucket_exposures.md) → [Ch. 16](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
+3. Multi-curve deltas and Jacobian mapping — [Ch. 22](chapters/chapter_22_multi_curve_risk_jacobians.md)
+4. Swap hedge ratios in practice — [Ch. 26](chapters/chapter_26_swap_pv01_dv01_hedging.md)
 
-### [Chapter 27 — Swap Spreads, Asset Swaps, and Swap-Curve Relative Value](chapters/chapter_27_swap_spreads_asset_swaps_swap_curve_rv.md)
-- What swap spreads measure (conceptual)
-- Asset swap spread as bond-vs-swap relative value anchor
-
-### [Chapter 28 — Basis Trades in Rates — OIS-IBOR Basis, Treasury Futures Basis, Swap Spread RV, Curve RV](chapters/chapter_28_basis_trades.md)
-- "What you're long/short" decomposition:
-  - Discounting basis
-  - Projection basis
-  - Liquidity/funding components
+**You should be able to:** interrogate any DV01 / PV01 number (what was bumped, by how much, in which units and sign), choose a hedge set that addresses level / slope / curvature, and reason about when a DV01 hedge will quietly fail.
 
 ---
 
-## Part VI — FX Markets and Cross-Currency Derivatives (Rates + FX Integration)
+## Path 4 — Credit and Structured Credit
 
-### [Chapter 29 — FX Spot and Forwards — Pricing via Interest Differentials](chapters/chapter_29_fx_spot_forwards.md)
-- Forward points, carry, hedging implications
-- Link to CIP and curve construction (connect to Ch. 21)
+From default / recovery fundamentals through CDS mechanics to tranches. This is the longest single-domain track in the book.
 
-### [Chapter 30 — FX Swaps and Cross-Currency Swaps — Structure and Valuation Dependencies](chapters/chapter_30_fx_swaps_cross_currency_swaps.md)
-- FX swap as funding instrument
-- Cross-currency swap as exchange of floating legs + basis
+**Prerequisites:** Path 1. The discount-factor and PV01 language from Part III is used throughout.
 
-### [Chapter 31 — Multi-Currency Risk — FX Delta, Rates Delta, Cross-Gamma, and Risk Aggregation](chapters/chapter_31_multi_currency_risk.md)
-- Practical risk decomposition (what to hedge with what)
-- Why curve choice matters for hedges (ties back to Part IV)
+**Reading order:**
 
----
+1. Credit fundamentals — [Ch. 35](chapters/chapter_35_default_recovery_credit_events.md) → [Ch. 37](chapters/chapter_37_cash_credit_risky_bonds_spreads_cs01.md)
+2. CDS mechanics, events, auctions — [Ch. 38](chapters/chapter_38_cds_contract_mechanics.md) → [Ch. 40](chapters/chapter_40_cds_auction_process.md)
+3. CDS curves, risk, and single-name RV — [Ch. 41](chapters/chapter_41_cds_indices_mechanics_coupons_rolls.md) → [Ch. 44](chapters/chapter_44_cds_relative_value_trading_frameworks.md)
+4. Indices in depth — [Ch. 45](chapters/chapter_45_cds_indices_structure_quoting_lifecycle.md) → [Ch. 47](chapters/chapter_47_hedging_relative_value_cds_indices.md)
+5. Tranches and correlation — [Ch. 48](chapters/chapter_48_cdo_tranche_products_product_map.md) → [Ch. 52](chapters/chapter_52_credit_trading_strategies.md)
 
-## Part VII — Counterparty/Credit Risk for Derivatives and Collateral Discounting
-
-### [Chapter 32 — Counterparty Exposure Basics — Netting, Collateral, and Margin Timing](chapters/chapter_32_counterparty_exposure_basics.md)
-- Potential future exposure intuition
-- Netting sets and collateral mechanics (conceptual)
-
-### [Chapter 33 — Collateral Discounting and OIS](chapters/chapter_33_collateral_discounting_ois.md)
-- Linking CSA collateral rates to discounting practice (ties to OIS curve)
-- Why uncollateralized trades need adjustments (CVA noted in sources)
-
-### [Chapter 34 — XVA Overview — CVA, DVA, FVA, and the New Derivatives Valuation Landscape](chapters/chapter_34_xva_overview.md)
-- What each adjustment "prices"
-- Inputs and practical pitfalls (conceptual)
+**You should be able to:** bootstrap a survival curve from spreads, map spread moves into hazard-rate intuition, read a CDS trade confirmation, separate index trading from intrinsic / basis value, and reason about tranche risk in terms of portfolio loss distributions.
 
 ---
 
-## Part VIII — Credit Fundamentals: Default, Recovery, Survival, and Cash-Credit Analytics
+## Path 5 — Counterparty Risk and XVA
 
-### [Chapter 35 — Default, Recovery, and Credit Events — Economic vs Contractual Reality](chapters/chapter_35_default_recovery_credit_events.md)
-- Recovery as a market-implied object
-- "Credit event" definitions (preview of CDS)
+A short, focused track on the valuation adjustments and collateral mechanics that shape every non-cleared derivative trade.
 
-### [Chapter 36 — Survival Probabilities and Hazard Rates](chapters/chapter_36_survival_probabilities_hazard_rates.md)
-- Survival curve Q(t) and hazard h(t) as modeling primitives
-- Intuition: spread ↔ default intensity (conceptual bridge)
+**Prerequisites:** some familiarity with discounting and swaps ([Ch. 17](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md), [Ch. 25](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md)).
 
-### [Chapter 37 — Cash Credit — Risky Bonds, Credit Spreads, and CS01](chapters/chapter_37_cash_credit_risky_bonds_spreads_cs01.md)
-- Pricing risky cashflows (conceptual)
-- CS01 / credit DV01 (spread duration) intuition (ties to hedging mindset)
+**Reading order:**
 
----
+1. Exposure, netting, and collateral primitives — [Ch. 32](chapters/chapter_32_counterparty_exposure_basics.md)
+2. Collateral discounting and its link to OIS — [Ch. 33](chapters/chapter_33_collateral_discounting_ois.md)
+3. XVA taxonomy — [Ch. 34](chapters/chapter_34_xva_overview.md)
 
-## Part IX — Credit Derivatives: Single-Name CDS and Indices
-
-### [Chapter 38 — CDS Contract Mechanics](chapters/chapter_38_cds_contract_mechanics.md)
-- Premium leg vs protection leg
-- Accrued premium on default (explicitly described)
-- Risky PV01 (RPV01) and the upfront-plus-coupon trading regime
-
-### [Chapter 39 — CDS Credit Events and Settlement](chapters/chapter_39_cds_credit_events_settlement.md)
-- Physical vs cash settlement
-- Why "cheapest-to-deliver" matters (conceptual)
-
-### [Chapter 40 — The CDS Auction Process — What It Does and Why It Exists](chapters/chapter_40_cds_auction_process.md)
-- Two-stage auction mechanism (explicit example in sources)
-- Determining recovery / final price for settlement (conceptual)
-
-### [Chapter 41 — CDS Indices — Mechanics, Coupons, Rolls](chapters/chapter_41_cds_indices_mechanics_coupons_rolls.md)
-- Index families, naming, and lifecycle (on-the-run vs off-the-run)
-- Fixed coupon + upfront mechanics (spread vs price intuition for indices)
-- Defaults, roll dynamics, and the link to intrinsic value / basis (preview)
-
-### [Chapter 42 — Bootstrapping a CDS Survival Curve from Market Quotes](chapters/chapter_42_bootstrapping_cds_survival_curve.md)
-- Piecewise hazard/survival construction steps (conceptual workflow)
-- Consistency checks (monotonicity, positivity)
-
-### [Chapter 43 — Risks in CDS and Hedging Strategies](chapters/chapter_43_cds_risks_hedging.md)
-- Spread risk (CS01), jump-to-default risk, recovery risk
-- Hedging with bonds vs CDS; basis intuition
-
-### [Chapter 44 — CDS Relative Value Trading Frameworks](chapters/chapter_44_cds_relative_value_trading_frameworks.md)
-- Curve trades (steepener/flattener in credit curve)
-- Capital structure / recovery trades (conceptual)
-
-### [Chapter 45 — CDS Indices — Structure, Quoting, and Lifecycle](chapters/chapter_45_cds_indices_structure_quoting_lifecycle.md)
-- Index naming conventions and identifier decoding
-- Quoting conventions (spread vs price) and lifecycle mechanics
-- Default handling and intrinsic spread / basis (preview; developed in Chapter 46)
-
-### [Chapter 46 — Intrinsic Index Spread and Index Basis](chapters/chapter_46_intrinsic_index_spread_and_index_basis.md)
-- Intrinsic spread as "bottom-up" single-name implied level
-- Drivers of index basis (restructuring clause + liquidity/supply/demand explicitly noted)
-
-### [Chapter 47 — Hedging and Relative Value in CDS Indices](chapters/chapter_47_hedging_relative_value_cds_indices.md)
-- Index vs single-name hedge logic
-- Default events and how index risk evolves (conceptual)
+**You should be able to:** explain why "fully collateralized" is not the same as "zero exposure," describe MPOR and gap risk, and name what each XVA adjustment is actually pricing.
 
 ---
 
-## Part X — Structured Credit: CDO / Tranches, Correlation, and Strategies
+## Path 6 — Quant Modeling Depth
 
-### [Chapter 48 — CDO / Tranche Products — What They Are (Product Map)](chapters/chapter_48_cdo_tranche_products_product_map.md)
-- Standard tranches defined by attachment/detachment (explicit)
-- Waterfall intuition: who absorbs first loss, who is protected
+The quant appendices. Take these **after** you are comfortable with curve-based PV and swap valuation — the motivation for every model below is a pricing or hedging question raised earlier in the book.
 
-### [Chapter 49 — Tranche Core Concepts — Expected Tranche Loss and Present Value](chapters/chapter_49_tranche_core_concepts_etl_pv.md)
-- Portfolio loss as the state variable
-- Equity vs mezz vs senior intuition
+**Prerequisites:** Paths 1 and 2. Comfort with stochastic calculus helps for A1 and A3.
 
-### [Chapter 50 — Correlation and Tranche Pricing Frameworks](chapters/chapter_50_correlation_tranche_pricing_frameworks.md)
-- Why tranche valuation is "correlation-sensitive"
-- Gaussian copula / base correlation as market language (high-level)
+**Reading order:**
 
-### [Chapter 51 — Tranche Risk — Tranche PV01, Correlation Risk, and Jump-to-Default Clustering](chapters/chapter_51_tranche_risk.md)
-- Risk decompositions for tranche books
-- Common hedging instruments: index, single-names (conceptual)
+1. No-arbitrage pricing, numeraires, and measure changes — [Appendix A1](chapters/appendix_a1_no_arbitrage_numeraires_measure_changes.md)
+2. Short-rate models (Vasicek / CIR / Hull–White) — [Appendix A2](chapters/appendix_a2_short_rate_models.md)
+3. HJM framework essentials — [Appendix A3](chapters/appendix_a3_hjm_framework_essentials.md)
+4. Market models (LMM, swap market model) — [Appendix A4](chapters/appendix_a4_market_models_lmm_swap_calibration.md)
+5. Numerical methods (trees, PDE, Monte Carlo, Fourier) — [Appendix A5](chapters/appendix_a5_numerical_methods_trees_pde_monte_carlo.md)
+6. Credit portfolio modeling beyond base correlation — [Appendix A6](chapters/appendix_a6_credit_portfolio_modeling.md)
 
-### [Chapter 52 — Credit Trading Strategies (Risk + Instrument + Hedge)](chapters/chapter_52_credit_trading_strategies.md)
-- Basis strategies: bond–CDS, single-name–index
-- Roll/down and carry in CDS indices
-- Correlation/RV framing for tranches
+**You should be able to:** read a term-structure model spec and identify its drift restriction, build calibration intuition for a Hull–White or LMM setup, and choose a numerical scheme appropriate to the payoff.
 
 ---
 
-## Optional Quant Appendices
-*Take after Part X, only if you want modeling depth*
+## Path 7 — FX and Cross-Currency
 
-### [Appendix A1 — No-Arbitrage Pricing, Numeraires, and Measure Changes](chapters/appendix_a1_no_arbitrage_numeraires_measure_changes.md)
-- Why "drift restrictions" appear in term-structure models (bridge to HJM)
+For readers who work across currencies — FX desks, emerging-markets rates, or anyone hedging foreign-currency bond portfolios.
 
-### [Appendix A2 — Short-Rate Models (Vasicek / CIR / Hull–White)](chapters/appendix_a2_short_rate_models.md)
-- Fitting the initial term structure (exogenous term structure idea)
+**Prerequisites:** Path 1, plus the cross-currency curves chapter ([Ch. 21](chapters/chapter_21_cross_currency_curves.md)).
 
-### [Appendix A3 — HJM Framework Essentials](chapters/appendix_a3_hjm_framework_essentials.md)
-- Drift determined by volatility (explicit point)
+**Reading order:**
 
-### [Appendix A4 — Market Models — LMM and Swap Market Model; Calibration Logic](chapters/appendix_a4_market_models_lmm_swap_calibration.md)
-- Compatibility with Black cap/swaption formulas is a key motivation (explicit)
+1. FX spot and forwards via interest differentials — [Ch. 29](chapters/chapter_29_fx_spot_forwards.md)
+2. Cross-currency curves as curve constraints — [Ch. 21](chapters/chapter_21_cross_currency_curves.md)
+3. FX swaps and cross-currency swaps — [Ch. 30](chapters/chapter_30_fx_swaps_cross_currency_swaps.md)
+4. Multi-currency risk aggregation — [Ch. 31](chapters/chapter_31_multi_currency_risk.md)
 
-### [Appendix A5 — Numerical Methods — Trees, PDE / Finite Differences, Monte Carlo, and Fourier Methods](chapters/appendix_a5_numerical_methods_trees_pde_monte_carlo.md)
-- When each method is used; stability/accuracy intuition (conceptual)
+**You should be able to:** price an FX forward from two curves and a spot, read a cross-currency basis quote, describe how an FX swap funds a foreign-currency position, and aggregate delta across currencies without double-counting.
 
-### [Appendix A6 — Credit Portfolio Modeling Beyond Base Correlation](chapters/appendix_a6_credit_portfolio_modeling.md)
-- Factor models / copulas / dynamic intensity sketches (high-level)
+---
+
+## Combining Paths
+
+The paths are not exclusive. Common combinations:
+
+- **Rates generalist:** Path 1 → Path 2 → Path 3
+- **Credit generalist:** Path 1 → Path 4
+- **Derivatives quant:** Path 1 → Path 2 → Path 6
+- **Risk or middle office with credit coverage:** Path 1 → Path 3 → Path 4
+- **Cross-asset desk analyst:** Path 1 → Path 2 → Path 7 → Path 4
+
+When in doubt, read linearly. The chapter order was designed to support it.
