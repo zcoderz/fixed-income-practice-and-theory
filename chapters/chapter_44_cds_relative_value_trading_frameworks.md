@@ -49,7 +49,7 @@ In what follows, when we write dollar PVs and CS01s, we explicitly include $N$.
 
 If premium is paid on dates $t_1,\dots,t_N=T$ with accrual fractions $\Delta_n$ (year fractions) and discount factors $Z(t,t_n)$, a common payment-date approximation that also captures premium accrued at default is:
 
-$$\boxed{\text{RPV01}(t,T) = \frac{1}{2} \sum_{n=1}^{N} \Delta_n \, Z(t, t_n)\, \bigl(Q(t, t_{n-1}) + Q(t, t_n)\bigr)}$$
+$$\boxed{\text{RPV01}(t,T) = \frac{1}{2} \sum_{n=1}^{N} \Delta_n \\, Z(t, t_n)\\, \bigl(Q(t, t_{n-1}) + Q(t, t_n)\bigr)}$$
 
 **Expand (intuition):** `RPV01` is an *annuity multiplier*. Once you know it, spread *differences* translate into PV: if $\Delta S$ is in decimal per year, then $\Delta V \approx \Delta S \cdot \text{RPV01}$ per unit notional (multiply by $N$ for dollars).
 
@@ -68,7 +68,7 @@ A CS01 number is meaningless unless you specify the bump design. In this chapter
 - **Units:** currency per 1bp.
 - **Sign convention:** report CS01 positive for a protection seller (short protection).
 
-$$\boxed{\text{CS01} := -\bigl(V(S+1\text{bp}) - V(S)\bigr)\;\;\approx\;\; -\frac{\partial V}{\partial S}\times 1\text{bp}}$$
+$$\boxed{\text{CS01} := -\bigl(V(S+1\text{bp}) - V(S)\bigr)\\;\\;\approx\\;\\; -\frac{\partial V}{\partial S}\times 1\text{bp}}$$
 
 For a near-par contract, combining the MTM identity with a first-order approximation gives the magnitude:
 
@@ -183,8 +183,8 @@ Think of the bond as a funded position with coupon cashflows and the CDS as a st
 
 4. **Loss-on-default scaling:** a CDS protection payment is typically $N(1-R)$. A bond purchased at dirty price $P_{\text{dirty}}$ has a default loss tied to $P_{\text{dirty}}-R$ per 100 face (and the choice of spread measure matters).
 
-**Check (default-hedge sizing vs. CS01 sizing):** if you want a CDS leg to hedge a bond’s *default* loss in a stylized cash-settlement picture, match $\left(\frac{P_{\text{dirty}}}{100}-R\right)N_{\text{bond}} \;\approx\; (1-R)N_{\text{CDS}}$,
-so $N_{\text{CDS}} \approx \frac{\frac{P_{\text{dirty}}}{100}-R}{1-R}\,N_{\text{bond}}$. For example, if $P_{\text{dirty}}=85$ and $R=40\%$, then $N_{\text{CDS}}\approx 0.75\,N_{\text{bond}}$. Sizing instead to make a package “CS01-neutral” can produce a very different notional and leave a large jump at default.
+**Check (default-hedge sizing vs. CS01 sizing):** if you want a CDS leg to hedge a bond’s *default* loss in a stylized cash-settlement picture, match $\left(\frac{P_{\text{dirty}}}{100}-R\right)N_{\text{bond}} \\;\approx\\; (1-R)N_{\text{CDS}}$,
+so $N_{\text{CDS}} \approx \frac{\frac{P_{\text{dirty}}}{100}-R}{1-R}\\,N_{\text{bond}}$. For example, if $P_{\text{dirty}}=85$ and $R=40\%$, then $N_{\text{CDS}}\approx 0.75\\,N_{\text{bond}}$. Sizing instead to make a package “CS01-neutral” can produce a very different notional and leave a large jump at default.
 
 5. **Accrued cashflows around default:** standard CDS settlement includes premium accrued to the default date; bond coupon accrual treatment differs and can create default-scenario P&L mismatches.
 
@@ -367,7 +367,7 @@ $$\frac{N_{\text{senior}}}{N_{\text{sub}}} = -\frac{\text{CS01}_{\text{sub}}}{\t
 
 Even with CS01 neutrality, the different recoveries create JTD imbalance.
 
-**Check (toy capital-structure JTD mismatch):** suppose you put on a compression trade that is CS01-neutral by construction: buy $N_{\text{senior}}=USD 10\text{mm}$ of senior protection with $RPV01_{\text{senior}}=4.5$, and sell subordinated protection with $RPV01_{\text{sub}}=4.0$ so that $N_{\text{sub}}\approx 10\times 4.5/4.0= USD 11.25\text{mm}$. If you assume $R_{\text{senior}}=40\%$ and $R_{\text{sub}}=20\%$, then the net jump at default is approximately $JTD_{\text{net}} \approx +10\times 0.60 \;-\; 11.25\times 0.80 \;=\; -USD 3.0\text{mm}$,
+**Check (toy capital-structure JTD mismatch):** suppose you put on a compression trade that is CS01-neutral by construction: buy $N_{\text{senior}}=USD 10\text{mm}$ of senior protection with $RPV01_{\text{senior}}=4.5$, and sell subordinated protection with $RPV01_{\text{sub}}=4.0$ so that $N_{\text{sub}}\approx 10\times 4.5/4.0= USD 11.25\text{mm}$. If you assume $R_{\text{senior}}=40\%$ and $R_{\text{sub}}=20\%$, then the net jump at default is approximately $JTD_{\text{net}} \approx +10\times 0.60 \\;-\\; 11.25\times 0.80 \\;=\\; -3.0$ USD mm,
 so the “CS01-neutral” trade is still meaningfully short default.
 
 ### 44.4.4 When Capital Structure Trades Widen or Tighten
@@ -682,10 +682,10 @@ Run the following scenarios before and during the trade:
   - 5Y: 2031-03-20
 
 **Inputs**
-- Par CDS spreads (running, per annum): `S_1Y = 80 bp`, `S_5Y = 160 bp`
+- Par CDS spreads (running, per annum): $S_{1Y} = 80$ bp, $S_{5Y} = 160$ bp
 - Recovery assumption for analytics: $R=40\%$
 - Premium day count: ACT/360
-- Notional: buy 5Y protection `N_5 = 10 mm`; sell 1Y protection `N_1` unknown
+- Notional: buy 5Y protection $N_5 = 10$ mm; sell 1Y protection $N_1$ unknown
 
 **Outputs (What You Produce)**
 - CS01-neutral hedge ratio $N_1$ (bump: +1bp parallel par-spread curve; curve rebuilt; units: USD per bp; sign: protection seller positive)
