@@ -378,13 +378,13 @@ O'Kane discusses interpolation between grid points in detail. The choice of inte
 | Linear in $\ln Q$ | Log survival | **Piecewise constant** hazard | ensures $Q\in(0,1]$ and $h\ge 0$ if endpoints are consistent |
 | Linear in $H$ | Cumulative hazard | Piecewise linear hazard | Smooth, but requires care |
 
-Linear interpolation of $\ln Q(t)$ between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for $t_{n-1}\lt t^*\lt t_n$:
+Linear interpolation of $\ln Q(t)$ between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for $t_{n-1}\lt t^\ast\lt t_n$:
 
 - Survival probabilities remain between 0 and 1
 - Hazard rates remain positive (no-arbitrage)
 - The curve is continuous in $Q(t)$ but jumps in $h(t)$ at knots
 
-$$h_{n-1}=\frac{1}{t_n-t_{n-1}}\ln\left(\frac{Q(t_{n-1})}{Q(t_n)}\right), \qquad Q(t^*) = Q(t_{n-1}) \cdot e^{-(t^* - t_{n-1}) \cdot h_{n-1}}.$$
+$$h_{n-1}=\frac{1}{t_n-t_{n-1}}\ln\left(\frac{Q(t_{n-1})}{Q(t_n)}\right), \qquad Q(t^\ast) = Q(t_{n-1}) \cdot e^{-(t^\ast - t_{n-1}) \cdot h_{n-1}}.$$
 
 > **Implementation Note: What Happens When Bootstrapping Fails**
 >
@@ -1187,7 +1187,7 @@ Before trusting any survival curve, run these checks:
 10. The **credit triangle** $S = h(1-R)$ provides intuition but requires simplifying assumptions
 11. **Curve shapes** signal credit quality: upward-sloping (safe now), inverted (distressed), flat (transitional)
 12. **Arbitrage bounds** constrain how inverted curves can get
-13. **Threshold simulation** (`\tau = H^{-1}(E)` where `E ~ Exp(1)`) enables Monte Carlo for credit
+13. **Threshold simulation** ($\tau = H^{-1}(E)$ where $E \sim \mathrm{Exp}(1)$) enables Monte Carlo for credit
 
 ---
 
@@ -1204,7 +1204,7 @@ Before trusting any survival curve, run these checks:
 | Real-world hazard | From historical defaults | Used for risk management and capital |
 | Piecewise-constant hazard | $h(t) = h_i$ on $[t_{i-1}, t_i)$ | Industry standard for curve construction |
 | Inverted curve | Short spreads > long spreads | Signals distressed credit; near-term survival uncertain |
-| Threshold simulation | `\tau = H^{-1}(E)`, `E ~ Exp(1)` | Monte Carlo method for default times |
+| Threshold simulation | $\tau = H^{-1}(E)$, $E \sim \mathrm{Exp}(1)$ | Monte Carlo method for default times |
 
 ---
 
@@ -1261,7 +1261,7 @@ Before trusting any survival curve, run these checks:
 | 30 | Why does recovery assumption matter for implied hazard? | $h = S/(1-R)$; higher $R$ means higher implied $h$ |
 | 31 | What does an inverted credit curve signal? | Distressed credit; high near-term default risk, lower long-term if survives |
 | 32 | What does an upward-sloping credit curve signal? | Investment grade; safe today, uncertain in long term |
-| 33 | How to simulate a default time from survival curve? | Draw `E ~ Exp(1)`, set `\tau = H^{-1}(E)` |
+| 33 | How to simulate a default time from survival curve? | Draw $E \sim \mathrm{Exp}(1)$, set $\tau = H^{-1}(E)$ |
 | 34 | What constrains how inverted a curve can be? | No-arbitrage: $h(t) \geq 0$; implies bounds on spread decline rate |
 | 35 | Spread 500bp, R=40% → hazard? | $h = 0.05/0.60 = 8.33\%$/year |
 | 36 | Hazard 2%, 5 years → survival probability? | $Q(5) = e^{-0.10} = 90.5\%$ |
