@@ -4,7 +4,7 @@
 
 ## Introduction
 
-A portfolio manager calls with a simple question: "I'm down \mathrm{USD}\\,2 million on my corporate bond book today—is it rates or credit?" On the surface, this seems straightforward, but the answer requires separating two distinct sources of risk: the general level of interest rates (which affects all bonds) and the credit spread specific to the issuer (which reflects default risk, liquidity, and risk premia). Getting this decomposition wrong means misattributing P&L, mishedging positions, and misunderstanding the portfolio's true exposures.
+A portfolio manager calls with a simple question: "I'm down USD 2 million on my corporate bond book today—is it rates or credit?" On the surface, this seems straightforward, but the answer requires separating two distinct sources of risk: the general level of interest rates (which affects all bonds) and the credit spread specific to the issuer (which reflects default risk, liquidity, and risk premia). Getting this decomposition wrong means misattributing P&L, mishedging positions, and misunderstanding the portfolio's true exposures.
 
 **Why this matters for desk practice:** Middle-office professionals often see spread numbers in risk reports—Z-spread, asset swap spread, CS01—without fully understanding how these measures are constructed, what assumptions they embed, and why they sometimes diverge from CDS spreads on the same issuer. When spreads "blow out" during a credit event or market stress, understanding the mechanics becomes critical: a rates-hedged position can still hemorrhage money through credit spread widening.
 
@@ -289,7 +289,7 @@ $$P_{\text{FRN}} \approx 100 - (F(t) - F(0)) \times RPV01$$
 
 **Credit DV01 for FRN:**
 
-O'Kane calculates that a 5-year FRN has credit DV01 of approximately $430 per $10 million notional per bp—comparable to a fixed-rate bond of the same maturity, despite the FRN having near-zero interest rate duration.
+O'Kane calculates that a 5-year FRN has credit DV01 of approximately USD 430 per USD 10 million notional per bp—comparable to a fixed-rate bond of the same maturity, despite the FRN having near-zero interest rate duration.
 
 **Practice:**
 
@@ -377,7 +377,7 @@ In some joint Gaussian specifications, this shows up as a multiplicative correct
 
 ### 2.3 Default-Contingent Recovery Cashflow as "Payment at Default"
 
-Define $D(0,T)$ as the PV of **\mathrm{USD}\\,1 paid at the time of default** if default occurs by $T$ (a “payment-at-default” claim). Under the same independence assumption as above, this PV can be written as:
+Define $D(0,T)$ as the PV of **USD 1 paid at the time of default** if default occurs by $T$ (a “payment-at-default” claim). Under the same independence assumption as above, this PV can be written as:
 
 $$\boxed{D(0,T) = E\\!\left[e^{-\int_0^\tau r(s)\\,ds} \\, \mathbf{1}_{\\{\tau \leq T\\}}\right] = -\int_0^T Z(0,s) \\, dQ(0,s)}$$
 
@@ -459,7 +459,7 @@ $$CS01\text{ (per 100)} \approx \frac{P \\, D_s}{10{,}000}$$
 
 This mirrors the DV01 relation in Tuckman: $DV01 = \frac{PD}{10{,}000}$.
 
-**Check (toy magnitude):** If a bond is priced at $P=90$ (per 100) with spread duration $D_s=5$, then $CS01 \approx 90\times 5/10{,}000 = 0.045$ points per 100 per bp. On $N=\mathrm{USD}\\,100\text{mm}$ notional, that is about $\mathrm{USD}\\,45{,}000$ per 1bp spread move.
+**Check (toy magnitude):** If a bond is priced at $P=90$ (per 100) with spread duration $D_s=5$, then $CS01 \approx 90\times 5/10{,}000 = 0.045$ points per 100 per bp. On $N=100$mm USD notional, that is about USD 45,000 per 1bp spread move.
 
 ---
 
@@ -616,7 +616,7 @@ So “more time” can mean “more time to recover,” which can push longer sp
 
 Distressed bonds exhibit **positive convexity** in a way that resembles equity:
 - If the issuer defaults, bondholders lose (but are capped at losing face minus recovery)
-- If the issuer recovers, the bond can rally dramatically—potentially from \mathrm{USD}\\,30 back toward par
+- If the issuer recovers, the bond can rally dramatically—potentially from USD 30 back toward par
 
 This asymmetric payoff makes distressed bond analysis resemble equity analysis more than investment-grade credit analysis.
 
@@ -626,7 +626,7 @@ This asymmetric payoff makes distressed bond analysis resemble equity analysis m
 >
 > Distressed bonds "pull toward recovery"—if the market expects default, the bond price gravitates toward the expected recovery value (often 30-50 cents on the dollar), not par.
 >
-> This creates a very different carry dynamic. A distressed bond trading at $40 with expected recovery of $35 may have **negative carry**—it drifts down toward recovery even as coupons are paid.
+> This creates a very different carry dynamic. A distressed bond trading at USD 40 with expected recovery of USD 35 may have **negative carry**—it drifts down toward recovery even as coupons are paid.
 
 ---
 
@@ -759,8 +759,8 @@ This makes CDS protection more comprehensive, pushing CDS spreads higher (positi
 **4. Loss on Default (Par vs. Off-Par Bonds)**
 
 CDS protection pays $(1 - R) \times \text{Notional}$, assuming you bought protection on par notional. But:
-- A bond trading at \mathrm{USD}\\,80 loses $(1-R) \times 80$ at default
-- A bond trading at \mathrm{USD}\\,120 loses $(1-R) \times 120$ at default
+- A bond trading at USD 80 loses $(1-R) \times 80$ at default
+- A bond trading at USD 120 loses $(1-R) \times 120$ at default
 
 For discount bonds (price < 100), CDS provides **more** protection than needed—positive basis contribution.
 For premium bonds (price > 100), CDS provides **less** protection than needed—negative basis contribution.
@@ -868,7 +868,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 - Instrument: USD corporate bond, 6.00% annual coupon, semiannual coupons, maturity 2028-06-15, face 100.
 - Day count for coupons (assumption for this example): 30/360.
 - Market quote (trade): clean price $P_{\text{clean}} = 100.25$ per 100.
-- Notional: $N = \mathrm{USD}\\,10{,}000{,}000$.
+- Notional: $N = 10{,}000{,}000$ USD.
 - Toy discounting setup for the PV/risk demo (to keep arithmetic transparent):
   - Flat base curve: continuously-compounded zero rate $r = 4.00\\%$.
   - Z-spread quote: $z = 180\text{ bp} = 0.0180$ (continuous-compounding interpretation).
@@ -883,14 +883,14 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 
 **Step-by-step**
 1. **Clean → dirty:** With 30/360, the accrual fraction from 2025-12-15 to 2026-02-19 is $\tau = 64/360 \approx 0.1778$. Accrued interest per 100 is $AI = 100 \cdot 0.06 \cdot \tau \approx 1.07$. So $P_{\text{dirty}} \approx 100.25 + 1.07 = 101.32$.
-2. **Settlement cash:** Cash paid on settlement is $\frac{N}{100} P_{\text{dirty}} \approx 100{,}000 \times 101.32 = \mathrm{USD}\\,10.132\text{ mm}$.
+2. **Settlement cash:** Cash paid on settlement is $\frac{N}{100} P_{\text{dirty}} \approx 100{,}000 \times 101.32 \approx 10.132$ mm USD.
 3. **PV with Z-spread (toy setup):** Approximate ACT/365 year-fractions from settlement to cashflow dates: $t \approx \\{0.318,\\,0.819,\\,1.318,\\,1.819,\\,2.318\\}$. Price per 100 using
-   \[
-   PV(r,z) = \sum_i CF_i \exp\bigl(-(r+z)t_i\bigr).
-   \]
+
+   $$PV(r,z) = \sum_i CF_i \exp\bigl(-(r+z)t_i\bigr).$$
+
    With $r+z = 5.80\\%$, this gives $PV \approx 101.33$ per 100, consistent with the dirty price.
 4. **DV01 and CS01 (bump-and-reprice):** With continuous discounting, a 1bp down-bump changes PV by approximately $DV01 \approx CS01 \approx \left(\sum_i CF_i t_i e^{-(r+z)t_i}\right)\times 10^{-4} \approx 0.022$ per 100 per bp.
-   For $N=\mathrm{USD}\\,10\text{ mm}$, $DV01 \approx CS01 \approx 0.022 \times 100{,}000 \approx \mathrm{USD}\\,2{,}200$ per bp.
+   For $N=10$ mm USD, $DV01 \approx CS01 \approx 0.022 \times 100{,}000 \approx 2{,}200$ USD per bp.
 
 **Cashflows (table)**
 | Date | Cashflow (per 100) | Explanation |
@@ -907,9 +907,8 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
   $\Delta PV \approx -DV01 \cdot \Delta r_{\text{bp}} - CS01 \cdot \Delta z_{\text{bp}}$.
   where $\Delta r_{\text{bp}}$ is the base-curve move (in bp) and $\Delta z_{\text{bp}}$ is the Z-spread move (in bp), both defined consistently with the bump objects above.
 - Example scenario: if rates rise by $+6$bp and Z-spread widens by $+15$bp, then
-  \[
-  \Delta PV \approx -2{,}200 \times 6 \;-\; 2{,}200 \times 15 \approx -\mathrm{USD}\\,46\text{k}.
-  \]
+
+  $$\Delta PV \approx -2{,}200 \times 6 \;-\; 2{,}200 \times 15 \approx -46\text{k USD}.$$
 - What breaks this explain: curve-shape changes (key-rate vs parallel), optionality (OAS vs Z-spread), and “spread” definition changes (Z-spread vs hazard vs asset-swap).
 
 **Sanity Checks**
@@ -921,7 +920,7 @@ In practice, cash-bond spreads and CDS spreads can diverge (funding, liquidity, 
 - Did you compute accrued interest using the correct day count and the correct settlement date (not trade date)?
 - Did you reprice to the same convention you solved on (clean vs dirty, and the same cashflow schedule)?
 - Are you mixing “Z-spread bump” CS01 with a “hazard bump” CS01 (different objects, different answers)?
-- Are you reporting DV01/CS01 per 100, per \mathrm{USD}\\,1mm, or for the full position?
+- Are you reporting DV01/CS01 per 100, per USD 1mm, or for the full position?
 
 ---
 
@@ -1138,9 +1137,9 @@ Equivalently (to first order), $CS01 \approx P(z) - P(z+1\text{ bp})$.
 
 **Unit check:** price points per 100 per 1 bp.
 
-**Per \mathrm{USD}\\,1mm Notional:**
+**Per USD 1mm Notional:**
 
-$$CS01_{\mathrm{USD}} \approx \frac{1{,}000{,}000}{100} \cdot 0.029403 \approx \mathrm{USD}\\,294.03\text{ per bp}$$
+$$CS01_{\mathrm{USD}} \approx \frac{1{,}000{,}000}{100} \cdot 0.029403 \approx 294.03 \text{ USD per bp}$$
 
 **Spread Duration (Central Difference):**
 
@@ -1181,14 +1180,14 @@ Using DV01 sign convention (positive for a long bond):
 
 $$DV01 := PV(r-1\text{ bp}) - PV(r) \approx P - P_{\text{rates}+} \approx 0.0294$$
 
-**Per \mathrm{USD}\\,1mm:** $\approx \mathrm{USD}\\,294.03$/bp.
+**Per USD 1mm:** $\approx 294.03$ USD/bp.
 
 **Compare to CS01 (Example E):**
 
 | Risk Measure | Value |
 |--------------|-------|
-| DV01 | $\approx \mathrm{USD}\\,294$/bp |
-| CS01 | $\approx \mathrm{USD}\\,294$/bp |
+| DV01 | $\approx 294$ USD/bp |
+| CS01 | $\approx 294$ USD/bp |
 
 **Interpretation (Important Even When Magnitudes Match):**
 
@@ -1243,9 +1242,9 @@ Take market spread $S = z = 84.5$ bp $= 0.00845$.
 
 | Parameter | Value |
 |-----------|-------|
-| Notional $N_C$ | \mathrm{USD}\\,1.0mm |
-| $DV01_C$ | $\approx \mathrm{USD}\\,294.03$/bp |
-| $CS01_C$ | $\approx \mathrm{USD}\\,294.03$/bp |
+| Notional $N_C$ | USD 1.0mm |
+| $DV01_C$ | $\approx 294.03$ USD/bp |
+| $CS01_C$ | $\approx 294.03$ USD/bp |
 
 **Bond 2: Treasury Hedge Bond T (Risk-Free; CS01 = 0 by Definition)**
 
@@ -1260,7 +1259,7 @@ Take market spread $S = z = 84.5$ bp $= 0.00845$.
 
 **Thus:**
 
-$$DV01_T \approx P_T - P_{T,\text{rates}+} = 0.045770\text{ per 100} \Rightarrow DV01_{T,\mathrm{USD}\\,1\text{mm}} \approx \mathrm{USD}\\,457.70/\text{bp}$$
+$$DV01_T \approx P_T - P_{T,\text{rates}+} = 0.045770 \text{ per 100} \Rightarrow DV01_{T,\,1\text{mm}} \approx 457.70\text{ USD/bp}$$
 
 $$CS01_T \approx 0$$
 
@@ -1285,15 +1284,15 @@ $$DV01_{\text{port}} = DV01_C - N_T \cdot DV01_T = 0 \Rightarrow N_T = \frac{294
 
 **Task:** Two bonds of same issuer different maturities and spreads. Build a tiny "spread curve" and compute P&L for a "credit steepener" scenario (cash-credit, simple).
 
-**Bond A (3y):** $z_A = 84.5$ bp, $CS01_A \approx \mathrm{USD}\\,294$/bp per \mathrm{USD}\\,1mm.
+**Bond A (3y):** $z_A = 84.5$ bp, $CS01_A \approx 294$ USD/bp per USD 1mm.
 
 **Bond B (5y, Same Issuer, Higher Spread):** Take a 5y corporate bond (coupon 4%) priced at $z_B = 120$ bp:
 - Price $P_B \approx 98.6032$
-- $CS01_B \approx \mathrm{USD}\\,441.33$/bp per \mathrm{USD}\\,1mm (computed by $z \pm 1$ bp finite difference).
+- $CS01_B \approx 441.33$ USD/bp per USD 1mm (computed by $z \pm 1$ bp finite difference).
 
 **Tiny Spread Curve:** $(3y, 84.5\text{ bp}),\\, (5y, 120\text{ bp})$
 
-**Trade ("Steepener"):** Long \mathrm{USD}\\,1mm of 3y bond A, short \mathrm{USD}\\,1mm of 5y bond B.
+**Trade ("Steepener"):** Long USD 1mm of 3y bond A, short USD 1mm of 5y bond B.
 
 **Scenario:** Short spread tightens by 10 bp, long spread widens by 20 bp:
 - $\Delta z_A = -10$ bp
@@ -1307,16 +1306,16 @@ For a short position, flip the sign.
 
 **P&L on Long A:**
 
-$$\Delta PV_A \approx -294 \cdot (-10) = +\mathrm{USD}\\,2{,}940$$
+$$\Delta PV_A \approx -294 \cdot (-10) = +2{,}940 \text{ (USD)}$$
 
 **P&L on Short B:**
 
-- Long B would have $\Delta PV_{B,\text{long}} \approx -441.33 \cdot (+20) = -\mathrm{USD}\\,8{,}826.6$
-- Short B $\Rightarrow \Delta PV_B \approx +\mathrm{USD}\\,8{,}826.6$
+- Long B would have $\Delta PV_{B,\text{long}} \approx -441.33 \cdot (+20) = -8{,}826.6$ USD
+- Short B $\Rightarrow \Delta PV_B \approx +8{,}826.6$ USD
 
 **Total P&L:**
 
-$$\Delta PV_{\text{total}} \approx 2{,}940 + 8{,}826.6 = \mathrm{USD}\\,11{,}766.6$$
+$$\Delta PV_{\text{total}} \approx 2{,}940 + 8{,}826.6 = 11{,}766.6 \text{ (USD)}$$
 
 **Preview Note:** This ignores rates changes and any bond–CDS basis behavior.
 
@@ -1391,7 +1390,7 @@ $$P_{\text{FRN}} \approx 100 - (200 - 150) \times 0.045 = 100 - 2.25 = 97.75$$
 
 $$CS01 \approx RPV01 = 4.5 \times 100 / 10{,}000 = 0.045 \text{ per 100 per bp}$$
 
-Per \mathrm{USD}\\,10mm notional: $CS01 \approx \mathrm{USD}\\,4{,}500$ per bp.
+Per USD 10mm notional: $CS01 \approx 4{,}500$ USD per bp.
 
 **Comparison to Fixed-Rate Bond:**
 
@@ -1460,22 +1459,22 @@ If the bond traded at par, the asset swap spread would be closer to the yield sp
 
 **Trade Construction:**
 
-1. **Buy bond:** $10mm face, price 95, cash outlay = $9.5mm
-2. **Buy CDS protection:** \mathrm{USD}\\,10mm notional, pay 150 bp annually
+1. **Buy bond:** USD 10mm face, price 95, cash outlay = USD 9.5mm
+2. **Buy CDS protection:** USD 10mm notional, pay 150 bp annually
 3. **Finance bond in repo:** Assume repo rate = Libor + 50 bp
 
 **Annual Cashflows (Assuming No Default):**
 
 | Component | Annual Cashflow |
 |-----------|----------------|
-| Bond coupon (6%) | +\mathrm{USD}\\,600,000 |
-| Swap payment (receive Libor + 200 bp, pay fixed) | ~ +\mathrm{USD}\\,200,000 net spread |
-| CDS premium | -\mathrm{USD}\\,150,000 |
-| Repo financing ($9.5mm × Libor + 50bp) | ~ -$500,000 (at 5.5% total) |
+| Bond coupon (6%) | +USD 600,000 |
+| Swap payment (receive Libor + 200 bp, pay fixed) | ~ +USD 200,000 net spread |
+| CDS premium | −USD 150,000 |
+| Repo financing (USD 9.5mm × Libor + 50bp) | ~ −USD 500,000 (at 5.5% total) |
 
 **Net Expected Profit:**
 
-Theoretical basis capture: $50 \text{ bp} \times 10\text{mm} \times 5 \text{ yr duration} \approx \mathrm{USD}\\,250{,}000$ over life.
+Theoretical basis capture: $50 \text{ bp} \times 10\text{mm} \times 5 \text{ yr duration} \approx 250{,}000$ USD over life.
 
 **But Wait—Risks:**
 
@@ -1517,8 +1516,8 @@ $$U = (S - S_{\text{std}}) \times RPV01 = (1500 - 500) \times 2.18 / 100 = 21.8\
 **Interpretation:**
 
 The protection buyer pays 21.8% upfront plus 500 bp running. Equivalently:
-- Pay $2.18mm now on $10mm notional
-- Pay \mathrm{USD}\\,500,000 annually until default or maturity
+- Pay USD 2.18mm now on USD 10mm notional
+- Pay USD 500,000 annually until default or maturity
 
 **Why Protection Sellers Prefer Upfront:**
 
@@ -1610,7 +1609,7 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
    - If $z$ widens $\Rightarrow P$ should fall $\Rightarrow$ with our convention $CS01 \gt  0$ and $\Delta P \approx -CS01 \cdot \Delta z_{\text{bp}}$.
 
 3. **Scaling:**
-   - CS01 scales linearly with notional (per-100 → per-\mathrm{USD}\\,1mm multiply by 10,000).
+   - CS01 scales linearly with notional (per-100 → per-USD-1mm multiply by 10,000).
 
 4. **Limiting cases:**
    - **Zero-coupon bond:** spread duration near maturity (approx equals maturity in years under simple discounting).
@@ -1696,7 +1695,7 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 | 17 | What is cash–CDS basis? | $S_{\text{CDS}}-S_{\text{bond on Libor}}$. |
 | 18 | Give two drivers of basis risk. | Funding/financing; delivery/settlement options; liquidity; counterparty/margin. |
 | 19 | What is the minimal repricing check for a solved Z-spread? | Reproduce the same dirty price (same schedule/conventions) within tolerance. |
-| 20 | Quick unit check: per-100 CS01 → dollars per \mathrm{USD}\\,1mm? | Multiply by $10{,}000$ (since $\mathrm{USD}\\,1\text{mm}/100=10{,}000$). |
+| 20 | Quick unit check: per-100 CS01 → dollars per USD 1mm? | Multiply by $10{,}000$ (since $1\text{mm}/100=10{,}000$). |
 
 
 ## Mini Problem Set
@@ -1709,7 +1708,7 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 6. (Compute) **CS01:** If $P(z)=102.00$ and $P(z-1\text{ bp})=102.03$, compute CS01 under this chapter’s convention (per 100).
 7. (Compute) **Spread duration from CS01:** If $P=100$ and $CS01$ (per 100) is $0.04$, estimate spread duration.
 8. (Compute) **DV01 scaling:** A bond has price $P=98$ and modified duration $D_{\text{mod}}=5.2$. Compute DV01 (per 100) using $DV01\approx P D_{\text{mod}}/10{,}000$.
-9. (Desk, compute) **1-day P&L explain:** You are long \mathrm{USD}\\,10mm of a bond with $DV01=\mathrm{USD}\\,2{,}200/\text{bp}$ and $CS01=\mathrm{USD}\\,2{,}400/\text{bp}$. Rates rise by $+4$bp and Z-spread widens by $+12$bp. Approximate $\Delta PV$ ignoring convexity.
+9. (Desk, compute) **1-day P&L explain:** You are long USD 10mm of a bond with $DV01=2{,}200$ USD/bp and $CS01=2{,}400$ USD/bp. Rates rise by $+4$bp and Z-spread widens by $+12$bp. Approximate $\Delta PV$ ignoring convexity.
 10. (Concept) In 2–3 sentences, explain why Z-spread is not the same thing as “default probability”.
 11. (Concept) Give two reasons why a hazard-bump CS01 can differ from a Z-spread-bump CS01.
 12. (Desk) A negative basis trade looks attractive. List three practical breaks that can prevent “arbitrage” P&L (funding, term mismatch, counterparty/margin, liquidity, delivery/settlement options, etc.).
@@ -1720,7 +1719,7 @@ O'Kane explicitly notes OAS vs ZVS distinction for bonds with embedded options.
 3. $PV = 100 \cdot 0.90 \cdot 0.95 = 85.50$.
 5. $\lambda \approx 0.015/0.60 = 0.025 = 2.5\\%$/year.
 6. $CS01 = P(z-1\text{bp})-P(z) = 102.03-102.00 = 0.03$ (per 100 per bp).
-9. $\Delta PV \approx -(2{,}200)(4) - (2{,}400)(12) = -8{,}800 - 28{,}800 = -\mathrm{USD}\\,37{,}600$.
+9. $\Delta PV \approx -(2{,}200)(4) - (2{,}400)(12) = -8{,}800 - 28{,}800 = -37{,}600$ (USD).
 11. Different bumped objects (hazard vs Z-spread) imply different repricing mechanics; hazard-bump CS01 depends on the recovery convention and how the survival curve is parametrized/recalibrated.
 12. Example breaks: funding/repo terms change; margin calls arrive before convergence; term mismatch (short repo vs long CDS); liquidity/borrow constraints; counterparty and settlement frictions.
 
