@@ -190,13 +190,13 @@ This is equivalent to assuming a **piecewise-constant forward default rate** $h(
 
 Since $Q(t) = \exp(-\int_0^t h(s) ds)$, we have $f(t) = \int_0^t h(s) ds$. Linear interpolation of $f(t)$ on the interval $[t_{n-1}, t_n]$ gives:
 
-$$f(t^{*}) = \frac{(t_n - t^{*}) f(t_{n-1}) + (t^{*} - t_{n-1}) f(t_n)}{t_n - t_{n-1}}$$
+$$f(t^{\ast}) = \frac{(t_n - t^{\ast}) f(t_{n-1}) + (t^{\ast} - t_{n-1}) f(t_n)}{t_n - t_{n-1}}$$
 
-Differentiating with respect to $t^{*}$:
+Differentiating with respect to $t^{\ast}$:
 
-$$h(t^{*}) = \frac{\partial f(t^{*})}{\partial t^{*}} = \frac{f(t_n) - f(t_{n-1})}{t_n - t_{n-1}}$$
+$$h(t^{\ast}) = \frac{\partial f(t^{\ast})}{\partial t^{\ast}} = \frac{f(t_n) - f(t_{n-1})}{t_n - t_{n-1}}$$
 
-Since this does not depend on $t^{*}$, the forward default rate is constant within each interval:
+Since this does not depend on $t^{\ast}$, the forward default rate is constant within each interval:
 
 $$\boxed{h(t) = \frac{1}{T_n - T_{n-1}} \ln\left(\frac{Q(T_{n-1})}{Q(T_n)}\right), \quad t \in (T_{n-1}, T_n]}$$
 
