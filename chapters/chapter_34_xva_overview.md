@@ -337,7 +337,9 @@ The debit (or debt) value adjustment (DVA) is the mirror image of CVA: it accoun
 
 The formula is symmetric to CVA:
 
-$$\boxed{\text{DVA} = \sum_{i=1}^{n} (1-R^*) \\, q_i^* \\, v_i^*}$$
+$$
+\boxed{\text{DVA} = \sum_{i=1}^{n} (1 - R^*) \, q_i^* \, v_i^*}
+$$
 
 where:
 - $q_i^*$: (risk-neutral) probability of default by the **bank** during interval $i$
@@ -609,14 +611,14 @@ All XVAs are "computationally time-consuming to calculate. Monte Carlo simulatio
 
 **Example 34.6 — Comprehensive XVA Decomposition**
 
-A derivatives desk is quoting a 7-year \mathrm{USD}\\,50 million notional receiver swap (bank receives fixed, pays floating) to a BBB-rated corporate client. The swap will be uncollateralized.
+A derivatives desk is quoting a 7-year USD 50 million notional receiver swap (bank receives fixed, pays floating) to a BBB-rated corporate client. The swap will be uncollateralized.
 
 **Given:**
-- Mid-market NPV: +\mathrm{USD}\\,1,200,000 (to bank)
-- Counterparty CDS spread: 150bp (5-year), recovery = 40%
-- Bank funding cost: SOFR + 45bp
-- Expected peak exposure: \mathrm{USD}\\,4.5M (occurs around year 4)
-- Incremental capital requirement (per the bank’s capital model): \mathrm{USD}\\,2.2M
+- Mid-market NPV: USD 1,200,000 (to bank)
+- Counterparty CDS spread: 150 bp (5-year), recovery = 40%
+- Bank funding cost: SOFR + 45 bp
+- Expected peak exposure: USD 4.5M (occurs around year 4)
+- Incremental capital requirement (per the bank’s capital model): USD 2.2M
 - Bank's cost of capital: 12% (target ROE)
 - Risk-free rate (for discounting KVA): 4%
 
@@ -624,63 +626,77 @@ A derivatives desk is quoting a 7-year \mathrm{USD}\\,50 million notional receiv
 
 Using the simplified CVA formula with average expected exposure:
 
-5-year survival probability: $e^{-0.015 \times 5/0.6} = 0.8825$
+5-year survival probability:
 
-Approximate 7-year cumulative default probability ≈ 15%
+$$
+e^{-0.015 \times 5 / 0.6} = 0.8825
+$$
 
-Average expected exposure (discounted) ≈ \mathrm{USD}\\,2.5M
+Approximate 7-year cumulative default probability: about 15%
 
-$$\text{CVA} \approx (1-0.40) \times 0.15 \times \mathrm{USD}\\,2.5M = \mathrm{USD}\\,225,000$$
+Average expected exposure (discounted): about USD 2.5M
+
+$$
+\text{CVA} \approx (1 - 0.40) \times 0.15 \times 2{,}500{,}000 = 225{,}000
+$$
 
 **Step 2: DVA Calculation**
 
-Assume bank CDS spread: 60bp, bank's negative exposure (when swap is in-the-money to counterparty) averages \mathrm{USD}\\,1.5M.
+Assume bank CDS spread: 60 bp, and the bank's negative exposure (when the swap is in-the-money to the counterparty) averages USD 1.5M.
 
-Bank's 7-year default probability ≈ 6%
+Bank's 7-year default probability: about 6%
 
-$$\text{DVA} \approx (1-0.40) \times 0.06 \times \mathrm{USD}\\,1.5M = \mathrm{USD}\\,54,000$$
+$$
+\text{DVA} \approx (1 - 0.40) \times 0.06 \times 1{,}500{,}000 = 54{,}000
+$$
 
 **Step 3: FVA Calculation**
 
-The swap has positive value, so the bank has a funding cost. Average positive MTM over the life ≈ \mathrm{USD}\\,800K.
+The swap has positive value, so the bank has a funding cost. Average positive MTM over the life: about USD 800K.
 
-Funding spread = 45bp
+Funding spread = 45 bp
 
-$$\text{FVA} \approx 0.0045 \times \mathrm{USD}\\,800K \times 5 \text{ (effective duration)} = \mathrm{USD}\\,18,000$$
+$$
+\text{FVA} \approx 0.0045 \times 800{,}000 \times 5 = 18{,}000
+$$
 
 **Step 4: MVA Calculation**
 
-Initial margin estimate (per the bank’s IM model) ≈ \mathrm{USD}\\,1.8M
+Initial margin estimate (per the bank’s IM model): about USD 1.8M
 
-Funding cost of IM = 45bp
+Funding cost of IM = 45 bp
 
-$$\text{MVA} \approx 0.0045 \times \mathrm{USD}\\,1.8M \times 6 \text{ (years)} = \mathrm{USD}\\,48,600$$
+$$
+\text{MVA} \approx 0.0045 \times 1{,}800{,}000 \times 6 = 48{,}600
+$$
 
 **Step 5: KVA Calculation**
 
-Capital requirement: \mathrm{USD}\\,2.2M
+Capital requirement: USD 2.2M
 
-Cost of capital above risk-free: 12% - 4% = 8%
+Cost of capital above risk-free: $12\% - 4\% = 8\%$
 
-$$\text{KVA} \approx 0.08 \times \mathrm{USD}\\,2.2M \times 5 \text{ (effective duration)} = \mathrm{USD}\\,880,000$$
+$$
+\text{KVA} \approx 0.08 \times 2{,}200{,}000 \times 5 = 880{,}000
+$$
 
 **Step 6: Deal Ticket Summary**
 
 | Component | Amount | Sign |
 |-----------|--------|------|
-| Mid-Market NPV | \mathrm{USD}\\,1,200,000 | + |
-| CVA | \mathrm{USD}\\,(225,000) | − |
-| DVA | \mathrm{USD}\\,54,000 | + |
-| FVA | \mathrm{USD}\\,(18,000) | − |
-| MVA | \mathrm{USD}\\,(48,600) | − |
-| KVA | \mathrm{USD}\\,(880,000) | − |
-| **Net Desk Economics** | **\mathrm{USD}\\,82,400** | |
+| Mid-Market NPV | USD 1,200,000 | + |
+| CVA | USD (225,000) | − |
+| DVA | USD 54,000 | + |
+| FVA | USD (18,000) | − |
+| MVA | USD (48,600) | − |
+| KVA | USD (880,000) | − |
+| **Net Desk Economics** | **USD 82,400** | |
 
-**Interpretation:** The "profitable" \mathrm{USD}\\,1.2M trade actually nets only $82K for the desk after XVA charges. The KVA alone consumes $880K—over 70% of the gross NPV.
+**Interpretation:** The "profitable" USD 1.2M trade actually nets only USD 82K for the desk after XVA charges. The KVA alone consumes USD 880K, which is over 70% of the gross NPV.
 
 > **Desk Reality: The Deal/No-Deal Decision**
 >
-> At \mathrm{USD}\\,82K net, should the desk do this trade?
+> At USD 82K net, should the desk do this trade?
 >
 > **Arguments for:**
 > - Client relationship value
@@ -688,11 +704,16 @@ $$\text{KVA} \approx 0.08 \times \mathrm{USD}\\,2.2M \times 5 \text{ (effective 
 > - Flow that improves hedging efficiency elsewhere
 >
 > **Arguments against:**
-> - ROE on \mathrm{USD}\\,2.2M capital = $82K / $2.2M / 7 years = 0.5% per year
-> - Bank's hurdle rate is 12%—this trade destroys value
-> - Capital better deployed elsewhere
+> - ROE on USD 2.2M capital:
 >
-> **The XVA desk's role:** Provide these numbers so the decision is informed. Don't let sales book a trade as "$1.2M profit" when desk economics say $82K.
+> $$
+> \frac{82{,}000}{2{,}200{,}000 \times 7} \approx 0.5\% \text{ per year}
+> $$
+>
+> - Bank's hurdle rate is 12%, so this trade destroys value
+> - Capital may be better deployed elsewhere
+>
+> **The XVA desk's role:** Provide these numbers so the decision is informed. Do not let sales book a trade as "USD 1.2M profit" when desk economics say only USD 82K.
 
 ---
 
