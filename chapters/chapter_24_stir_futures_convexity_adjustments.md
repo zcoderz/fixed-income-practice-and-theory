@@ -10,7 +10,9 @@ The adjustment exists because futures are **marked to market daily**. Gains and 
 
 **Sign and magnitude (rule of thumb).** Under standard assumptions, the convexity adjustment $c$ is typically **positive**, so
 
-$$\text{forward rate} \\;=\\; \text{futures-implied rate} \\;-\\; c.$$
+$$
+\text{forward rate} = \text{futures-implied rate} - c
+$$
 
 In simple approximations, $c$ grows with rate volatility and (roughly) with the square of time-to-expiry. With annualized absolute volatility on the order of $100$ bp/year, $c$ is usually well below 1 bp for very short expiries but can reach $\sim 10$–15 bp around 5 years and $\sim 50$ bp around 10 years.
 
