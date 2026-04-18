@@ -4,40 +4,58 @@
 
 ## Introduction
 
-A credit portfolio manager looks at her screen one morning and sees an unfamiliar P&L: her "fully hedged" bond-CDS basis position has just lost $2 million overnight. The CDS leg is up, the bond leg is flat, and she cannot explain the discrepancy. Her CS01 was matched—she ran the numbers twice—yet somehow the position moved against her. What went wrong?
+A credit portfolio manager looks at her screen one morning and sees an unfamiliar P&L: her "fully hedged" bond-CDS basis position has just lost USD 2 million overnight. The CDS leg is up, the bond leg is flat, and she cannot explain the discrepancy. Her CS01 was matched—she ran the numbers twice—yet the position moved against her. What went wrong?
 
-The answer lies in a truth that separates credit traders from mere speculators: **a "hedged" position is not a risk-free position**. Every credit strategy carries residual exposures that survive any hedge you construct. The question is not whether residuals exist, but whether you *know* what they are and have tested them against scenarios that matter.
+The answer is a truth that separates credit traders from speculators: **a "hedged" position is not a risk-free position**. Every credit strategy carries residual exposures that survive any hedge you construct. The professional question is not whether residuals exist, but whether you *know* what they are and have tested them against scenarios that matter.
 
-This chapter provides a rigorous framework for credit strategy construction. We adopt a simple but powerful discipline: every strategy must be expressed as a **Strategy Card** that decomposes the position into explicit exposures, specifies the hedges and their ratios, and enumerates the failure modes—the scenarios where the hedge breaks down and residual risks dominate. This is not optional documentation; it is the foundation of professional risk management.
+### The Strategy Card Discipline
 
-The framework applies across the credit universe:
-- **Basis strategies** (Section 52.4): bond-CDS packages, single-name vs index hedges, CDS curve steepeners/flatteners
-- **Carry and rolldown** (Section 52.5): index holding-period P&L decomposition, series roll mechanics
-- **Correlation and tranche RV** (Section 52.6): tranche PV01, correlation exposure, and tail/clustering scenarios
-- **Capital structure arbitrage** (Section 52.7): senior vs sub CDS, equity-CDS relative value, LBO trades
-- **Crisis behavior and execution** (Sections 52.9-52.10): how strategies behave under stress, position sizing, and unwind discipline
+This chapter teaches one core discipline: write every strategy as a **Strategy Card** with three parts.
 
-The concepts build on foundations from earlier chapters: CDS mechanics (Chapter 38), index structures (Chapters 45-47), tranche pricing (Chapters 48-50), and CDS risk measures (Chapter 43). While Chapter 44 developed analytical frameworks for CDS relative value, this chapter focuses on *implementation*—how to structure positions, size hedges, and stress-test against failure scenarios. Where those chapters focused on individual instruments, this chapter focuses on *combinations*—how exposures interact, offset, and fail to offset under stress.
+1. **Exposure decomposition** — what you actually own (CS01 by bucket, JTD, recovery sensitivity, basis sensitivity, rates DV01).
+2. **Hedge set + ratios** — what you neutralize, with the hedge math shown.
+3. **Failure modes + scenario suite** — where the hedge breaks (parallel moves, dispersion, default events, roll/series basis, correlation/tail, funding stress).
 
-O'Kane emphasizes throughout his treatment of credit derivatives that stress testing and scenario analysis are not optional add-ons but core components of risk management. The "perfect storm"—multiple adverse moves coinciding—is precisely when hedges are most likely to fail and when understanding residual risk becomes most valuable. Our Strategy Card framework operationalizes this insight.
+If you cannot fill in all three parts, you do not have a strategy — you have a slogan.
 
-### How to Use This Chapter (Especially if You're New)
+### What This Chapter Covers
 
-This chapter is intentionally "desk-like": it mixes instruments, risk measures, and execution realities. If you are not yet fluent in fixed income jargon, use this roadmap rather than trying to read Chapter 52 straight through.
+The framework applies across five strategy families:
 
-- **If CDS is new:** read Chapter 38 (CDS mechanics) and Chapters 39–40 (credit events + auctions) first.
-- **If Greeks / risk reports are new:** read Chapter 43 (CS01/RPV01, VOD/JTD, recovery risk, theta) before Section 52.2.
-- **If indices are new:** skim Chapters 45–47, then return to Sections 52.5 and Examples 5–10.
-- **If tranches/correlation are new:** read Chapters 49–51 first. On a first pass, you can skip Section 52.6 and still get a lot of value from the basis/roll/capital-structure sections.
+| Section | Family | Key trades |
+|---------|--------|------------|
+| 52.4 | Basis | Bond-CDS packages; single-name vs index; CDS curve steepeners/flatteners |
+| 52.5 | Carry / rolldown | Index holding-period P&L decomposition; series roll mechanics |
+| 52.6 | Correlation / tranche RV | Tranche PV01; correlation exposure; tail/clustering scenarios |
+| 52.7 | Capital structure | Senior vs sub CDS; equity-CDS RV; LBO trades |
+| 52.9–52.10 | Crisis / execution | Stress behavior; position sizing; unwind discipline |
 
-A good first-pass route through Chapter 52:
+This chapter focuses on *implementation*: how to structure positions, size hedges, and stress-test against failure scenarios. Earlier chapters cover the underlying instruments — CDS mechanics (Chapter 38), index structures (Chapters 45–47), tranche pricing (Chapters 48–50), and CDS risk measures (Chapter 43). Chapter 44 developed analytical frameworks for CDS relative value; this chapter is about how *combinations* of those instruments interact, offset, and fail to offset under stress.
 
-1. **Section 52.2** (risk-measure vocabulary) and **Section 52.3** (Strategy Card discipline)
-2. **Examples 1–4** (basis packages, proxy hedges, curve trades)
-3. **Examples 6–10** (index carry/rolldown/roll + a desk-style P&L explain)
-4. Return to **Section 52.6** (tranches) once the earlier pieces feel natural
+The recurring theme is the **"perfect storm"** — multiple adverse moves coinciding. That is precisely when hedges are most likely to fail and when understanding residual risk pays off. The Strategy Card framework is built to make those failure modes visible *before* they show up in your P&L.
 
-As you read, keep one goal in mind: when P&L surprises you, you want a short, checkable list of residual risks to investigate (funding, liquidity, recovery/final price, basis, correlation/tail).
+### How to Use This Chapter
+
+This chapter mixes instruments, risk measures, and execution realities. If you are new to credit, use the roadmap below rather than reading straight through.
+
+**Prerequisites by topic:**
+
+| If this is new | Read first |
+|----------------|------------|
+| CDS basics | Chapter 38 (mechanics); Chapters 39–40 (credit events, auctions) |
+| Risk measures (CS01, RPV01, JTD, theta) | Chapter 43 |
+| CDS indices | Chapters 45–47 |
+| Tranches and correlation | Chapters 49–51 |
+
+**Recommended first-pass route:**
+
+1. **Section 52.2** — risk-measure vocabulary
+2. **Section 52.3** — the Strategy Card discipline
+3. **Examples 1–4** — basis packages, proxy hedges, curve trades
+4. **Examples 6–10** — index carry, rolldown, roll, and a desk-style P&L explain
+5. **Section 52.6** — tranches (return here once the earlier pieces feel natural)
+
+The single goal to keep in mind: when P&L surprises you, you want a short, checkable list of residual risks to investigate — funding, liquidity, recovery/final price, basis, correlation/tail. The Strategy Card gives you that list before the surprise happens.
 
 ---
 
@@ -45,76 +63,80 @@ As you read, keep one goal in mind: when P&L surprises you, you want a short, ch
 
 All numbers are educational toy examples (no real market data; no trade recommendations).
 
-### Currency / Scaling
+### Units and Scaling
 
-- PV, P&L, sensitivities are reported in USD.
-- Unless stated otherwise, sensitivities are scaled per $1mm notional for single-name CDS and cash bonds, and per $10mm index notional in the index examples (explicit in each example).
+| Item | Convention |
+|------|------------|
+| Currency | USD throughout |
+| Single-name CDS / cash bond sensitivities | Per USD 1mm notional (unless stated) |
+| Index sensitivities | Per USD 10mm index notional (unless stated) |
+| Basis points | $1 \text{ bp} = 10^{-4}$ per annum |
+| Spread move example | $\Delta S = +10 \text{ bp}$ means $+0.0010$ in decimal |
 
-### Basis Points vs Decimals
-
-- $1 \text{ bp} = 10^{-4}$ per annum.
-- A spread move written as $\Delta S = +10 \text{ bp}$ means $\Delta S = +0.0010$ in decimal.
-
-### CDS / Index Coupon and Day Count
+### Coupon and Day Count
 
 - $C$ denotes the contractual running coupon (bp/yr).
-- For index examples, coupons are assumed paid quarterly using an Actual/360 year fraction $\Delta$, consistent with the cited index mechanics.
+- Index coupons are paid quarterly using an Actual/360 year fraction $\Delta$, consistent with the cited index mechanics.
 
 ### Clean vs Full (Dirty) MTM for CDS
 
 $$\text{Clean MTM} = \text{Full MTM} - \text{Accrued}$$
 
-Accrued premium sign convention (between coupon dates): positive for short protection, negative for long protection (because short receives, long pays).
+**Accrued premium sign convention** (between coupon dates):
+- Short protection: accrued is **positive** (short receives premium).
+- Long protection: accrued is **negative** (long pays premium).
 
-**Desk note:** clean MTM will often show jumps around coupon dates; the cash coupon/accrual flows offset this in the “full” P&L. When a hedge looks “right” in risk but “wrong” in P&L, this clean-vs-full distinction is one of the first checks.
+**Desk note:** clean MTM jumps around coupon dates; the cash coupon/accrual flows offset this in the "full" P&L. When a hedge looks right in risk but wrong in P&L, the clean-vs-full distinction is one of the first checks.
 
-### CS01 Sign Convention (Explicit)
-
-Definition used here:
+### CS01 Sign Convention
 
 $$CS01 = \frac{\partial PV}{\partial S} \times (1 \text{ bp})$$
 
-where $S$ is the quoted/par spread being bumped (single-name CDS spread, index spread, tranche spread—explicitly stated each time).
+where $S$ is the quoted/par spread being bumped — single-name CDS spread, index spread, or tranche spread (always stated explicitly).
 
-- **Long protection CDS:** $PV$ increases when $S$ widens $\Rightarrow$ CS01 $\gt 0$.
-- **Short protection CDS:** CS01 $\lt 0$.
-- **Long cash bond:** $PV$ decreases when credit spread widens $\Rightarrow$ bond "credit CS01" $\lt 0$ (if you measure it as $\Delta PV$ for $+1$ bp spread).
+| Position | Sign of CS01 | Reason |
+|----------|--------------|--------|
+| Long protection CDS | CS01 $\gt 0$ | PV rises when $S$ widens |
+| Short protection CDS | CS01 $\lt 0$ | mirror of above |
+| Long cash bond | CS01 $\lt 0$ | PV falls when credit spread widens |
 
-### Jump-to-Default (JTD) Sign Convention
+### JTD Sign Convention
 
-We measure JTD as the instantaneous PV jump at default (a scenario jump, not an infinitesimal derivative):
+JTD is the instantaneous PV jump at default — a scenario jump, not an infinitesimal derivative:
 
 $$JTD \equiv PV_{\text{post-default}} - PV_{\text{pre-default}}$$
 
-For long protection CDS, JTD is typically positive (you receive protection payment net of accrued premium). This is the value-on-default (VOD) framework in the sources.
+For long protection CDS, JTD is typically positive (you receive protection payment net of accrued premium). This is the **value-on-default (VOD)** framework used in the sources.
 
 ---
 
 ## 52.1 Conventions and Setup
 
-### Conventions Used in This Chapter
+### Single-Name CDS Valuation Identity (The Anchor)
 
-(Quoting regime assumptions; clean/dirty; bp vs decimals; per-$1mm scaling)
-
-- Spreads are quoted in bp/year; valuation uses decimals with $1 \text{ bp} = 10^{-4}$.
-- **Single-name CDS valuation identity (risk measure anchor):** the mark-to-market of a standard running-spread CDS can be written as
+Throughout this chapter, the mark-to-market of a standard running-spread CDS is written (per unit notional) as:
 
 $$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T)$$
 
-(per unit notional), where $RPV01$ is the risky PV01 of the premium leg.
+where $RPV01$ is the risky PV01 of the premium leg. This identity is the anchor for nearly every risk measure that follows — CS01, hedge ratios, and JTD all derive from it.
 
-### Index Contracts (Mechanics Assumed)
+### Index Contract Mechanics
 
-- Index coupon $C$ is set near fair value (multiple of 5 bp), paid quarterly on an Actual/360 basis; an upfront payment $U_I$ is exchanged at settlement; index rolls every six months.
-- **Default handling for index:** on a constituent credit event, the protection seller pays loss on the defaulted name and the index notional is reduced proportionally (simplified as $1/M$ per default in these notes, consistent with the cited mechanics).
-- **Scaling:** when we report CS01/JTD/RecSens, we always state "per $1mm" or "per $10mm".
+- Index coupon $C$ is set near fair value (multiple of 5 bp), paid quarterly Actual/360.
+- An upfront payment $U_I$ is exchanged at settlement.
+- Index rolls every six months.
+- **Default handling:** on a constituent credit event, the protection seller pays loss on the defaulted name and the index notional is reduced proportionally (simplified as $1/M$ per default in these notes).
 
-**Mental model (important):** CDS indices trade with a *fixed coupon* and an *upfront* (similar to a bond trading with a fixed coupon and a price). The market still quotes a spread (analogous to a bond’s yield). At trade time, the present value of the difference between paying the **quoted spread** and paying the **fixed coupon** is exchanged as an upfront so the trade is fair on day one:
+### Mental Model: Index = Fixed Coupon + Upfront
 
-- If the quoted spread is **above** the fixed coupon, a **protection buyer** (long protection) typically pays an upfront to the protection seller.
-- If the quoted spread is **below** the fixed coupon, the protection buyer typically receives an upfront.
+CDS indices trade with a *fixed coupon* and an *upfront* — much like a bond trading with a fixed coupon and a price. The market still quotes a spread (analogous to a bond's yield). At trade time, the present value of the difference between the **quoted spread** and the **fixed coupon** is exchanged as upfront so the trade is fair on day one:
 
-If that sign convention feels confusing, re-check the CDS MTM identity in Chapter 43 and the index quoting mechanics in Chapters 45–46.
+| Quoted spread vs coupon | Long-protection buyer's upfront |
+|--------------------------|---------------------------------|
+| Quoted spread $\gt$ coupon | Pays upfront to protection seller |
+| Quoted spread $\lt$ coupon | Receives upfront from protection seller |
+
+If this sign convention feels confusing, re-check the CDS MTM identity in Chapter 43 and the index quoting mechanics in Chapters 45–46.
 
 ### Notation Glossary
 
@@ -142,151 +164,129 @@ If that sign convention feels confusing, re-check the CDS MTM identity in Chapte
 
 ## 52.2 Core Risk Measures
 
-Before we go strategy-by-strategy, align on the risk measures that show up in nearly every desk conversation. They answer different "what if" questions:
+Every strategy in this chapter reuses the same vocabulary. Before going strategy-by-strategy, align on the risk measures that show up in nearly every desk conversation. They answer three different categories of "what if":
 
-- **Small moves (linear):** CS01 (credit spreads), DV01 (rates)
-- **Jump events:** JTD/VOD (default today), recovery/final price
-- **Model/regime knobs:** index basis (quoted vs intrinsic), correlation (tranches)
+| Category | Measures | Question answered |
+|----------|----------|-------------------|
+| Small linear moves | CS01 (credit), DV01 (rates) | "What if the spread/rate moves +1 bp?" |
+| Jump events | JTD/VOD, Rec01 | "What if the name defaults today?" |
+| Model / regime | Index basis, Corr01 | "What if the *quoting framework* shifts (basis, correlation)?" |
 
-If you already know these, skim this section and jump to Section 52.3.
+If these are already familiar, skim this section and jump to 52.3.
 
-#### Quick Desk Translation (What Each Number Really Means)
+#### Quick Desk Translation
 
-| Measure | Plain-English question it answers | Units | What it captures (and what it misses) | Deep dive |
-|---------|-----------------------------------|-------|----------------------------------------|-----------|
-| CS01 | “If the quoted spread moves +1 bp, how much does my PV move?” | USD/bp | Great for small spread moves; does **not** capture default jumps or nonlinearities | Chapter 43 |
-| Rates DV01 | “If the risk-free curve moves +1 bp, how much does my PV move?” | USD/bp | Matters for cash bonds and swaps; does **not** hedge credit spread moves | Chapters 12 and 14 |
-| JTD (VOD) | “If the name defaults right now, what is my instantaneous PV jump?” | USD | Captures the discontinuity at default; cannot be hedged by a small CS01 match | Chapters 39–40 and 43 |
-| Rec01 | “If recovery/final price is 1% higher, what happens to PV (especially in default scenarios)?” | USD per 1% | Recovery assumptions dominate default P&L; often needs scenario sweeps | Chapter 43 |
-| Index basis (quoted vs intrinsic) | “If the index moves but my constituents don’t (or vice versa), what breaks?” | bp or USD | Key for proxy hedges and index-vs-single-name P&L explains | Chapters 46–47 |
-| Tranche PV01 / systemic DV01 / Corr01 | “If tranche spreads / all-name spreads / correlation move, how does tranche PV change?” | USD/bp or USD per 1% | Useful but model-dependent; must be stress-tested for clustering and convexity | Chapters 50–51 |
+| Measure | Plain-English question | Units | What it captures (and misses) | Deep dive |
+|---------|------------------------|-------|-------------------------------|-----------|
+| CS01 | "Quoted spread +1 bp — how much PV?" | USD/bp | Small spread moves; **not** default jumps or nonlinearities | Chapter 43 |
+| Rates DV01 | "Risk-free curve +1 bp — how much PV?" | USD/bp | Rate exposure on bonds/swaps; **not** credit spread moves | Chapters 12, 14 |
+| JTD (VOD) | "Name defaults right now — instantaneous PV jump?" | USD | Default discontinuity; cannot be hedged by CS01 match | Chapters 39–40, 43 |
+| Rec01 | "Recovery / final price +1% — PV impact?" | USD per 1% | Recovery dominates default P&L; needs scenario sweeps | Chapter 43 |
+| Index basis | "Index moves but constituents don't (or vice versa)?" | bp or USD | Proxy hedges and index-vs-single-name P&L | Chapters 46–47 |
+| Tranche PV01 / Systemic DV01 / Corr01 | "Tranche / all-name / correlation move — tranche PV?" | USD/bp or USD/1% | Model-dependent; stress-test for clustering and convexity | Chapters 50–51 |
 
-### 1.1 CS01 / Spread DV01 (and What "Spread" Is Being Bumped)
+### 1.1 CS01 / Spread DV01
 
-#### Formal Definition (Units and Sign)
+CS01 is the linear spread-risk measure: how much PV changes for a 1 bp move in the *quoted* spread.
 
-For any instrument valued as $PV(S, \cdot)$, define
+#### Definition
+
+For any instrument valued as $PV(S, \cdot)$:
 
 $$\boxed{CS01 \equiv \frac{\partial PV}{\partial S} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
 
-What spread is bumped must be specified:
+**Always specify which spread is bumped** — they are not interchangeable:
 
-- **Single-name CDS:** bump the market par spread $S(t,T)$.
-- **Index CDS:** bump the quoted index spread $S_I(t,T)$ or (alternatively) bump constituents and re-imply an "intrinsic" index spread (two different risk views; mixing them is a pitfall).
-- **Tranche:** bump the tranche market spread (or tranche coupon/price quote, depending on convention).
+| Instrument | Spread that is bumped |
+|------------|------------------------|
+| Single-name CDS | Market par spread $S(t,T)$ |
+| Index CDS | Quoted index spread $S_I(t,T)$ — or, alternatively, the constituents (a different risk view) |
+| Tranche | Tranche market spread (or tranche coupon/price quote, per convention) |
 
-#### Source-Backed Anchor (Single-Name CDS)
+Mixing the index *quoted* CS01 with an *intrinsic* CS01 built from constituents is a common pitfall.
 
-Using the CDS MTM identity
+#### Anchor for Single-Name CDS
 
-$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T),$$
+Differentiating the CDS MTM identity $V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T)$ with respect to $S$:
 
-a small spread move gives
+$$dV \approx RPV01(t,T) \\, dS$$
 
-$$dV \approx RPV01(t,T) \\, dS,$$
-
-so per unit notional:
+So, per unit notional:
 
 $$\boxed{CS01_{\text{CDS}} \approx RPV01(t,T) \times 10^{-4}}$$
 
-#### Intuition
+#### Common Mistakes (Watch For These in P&L Explains)
 
-CS01 is the "linear spread risk": how much PV changes for small spread moves.
-
-#### How It Appears in Practice
-
-Risk systems compute $RPV01$ and CS01 by maturity; traders/risk managers size hedges to neutralize CS01 (or bucketed CS01).
-
-**Common beginner mistakes (worth watching for in P&L explains):**
-
-- Treating “CS01” as a universal object without specifying what was bumped (single-name par spread vs index quoted spread vs tranche quote).
-- Matching *total* CS01 but leaving big *curve-shape* exposure (bucketed CS01 mismatch).
-- Declaring a position “hedged” because CS01 is matched while ignoring JTD/recovery/funding/basis (the usual sources of overnight surprises).
+1. **No spread specified** — calling something "CS01" without saying *which* spread was bumped (par vs index vs tranche).
+2. **Total CS01 matched, buckets mismatched** — net-zero overall, but big curve-shape exposure across maturity buckets.
+3. **"CS01-hedged = risk-hedged" fallacy** — ignoring JTD, recovery, funding, and basis. These are the usual sources of overnight P&L surprises.
 
 If these distinctions feel unfamiliar, Chapter 43 is the prerequisite for the rest of this chapter.
 
 ---
 
-### 1.2 Rates DV01 (Only as Needed for Cash Bond Legs)
+### 1.2 Rates DV01
 
-#### Formal Definition
-
-Let $r$ represent the relevant risk-free curve level (or yield). Define
+Rates DV01 isolates interest-rate exposure on funded instruments (cash bonds, some swap legs). It only enters this chapter when a strategy has a bond leg.
 
 $$\boxed{DV01_r \equiv \frac{\partial PV}{\partial r} \times 10^{-4} \quad \text{(USD per 1 bp)}}$$
 
-#### Intuition
-
-Rates DV01 isolates the interest-rate exposure of funded cash instruments (bonds) and some swap legs.
-
-#### Practice
-
-Duration/DV01 hedging is standard; it immunizes against small parallel shifts but not non-parallel curve changes (key-rate risk).
+where $r$ is the relevant risk-free curve level (or yield). Standard duration/DV01 hedging immunizes against small parallel shifts; non-parallel curve changes leave key-rate residuals.
 
 ---
 
 ### 1.3 Jump-to-Default (JTD) Exposure
 
-#### Formal Definition
+JTD is the discontinuous PV jump if the name defaults today. Where CS01 captures small spread moves, JTD captures the cliff.
 
-For a position with pre-default PV $PV$ and post-default PV $PV'$:
+#### Definition
 
-$$\boxed{JTD \equiv PV' - PV \quad \text{(USD)}}$$
+$$\boxed{JTD \equiv PV_{\text{post-default}} - PV_{\text{pre-default}} \quad \text{(USD)}}$$
 
-#### Source-Backed CDS Expression (Value-on-Default / VOD)
+#### CDS Expression (Value-on-Default)
 
-For a CDS, the value-on-default is expressed (per unit notional) as:
+For a CDS, the value-on-default (per unit notional) is:
 
 $$VOD = (1 - R - \text{Accrued Premium}) - (S(t,T) - S_0) \cdot RPV01(t,T)$$
 
-(long protection sign).
+(long protection sign). In these notes, $JTD = VOD \times \text{Notional}$.
 
-**Mapping:** in these notes, JTD = VOD × Notional.
+#### Why It Matters
 
-#### Intuition
+A CS01-matched hedge can look "tight" for daily spread noise while leaving an enormous one-day default jump.
 
-CS01 is "small move"; JTD is the discontinuity when default happens.
-
-**Concrete intuition:** If you are long protection on USD 5mm and recovery is 40%, the protection payment is about $(1-R)N = 0.60 \times 5{,}000{,}000 = 3{,}000{,}000$ USD (before accrued premium and any pre-default MTM). A CS01-matched hedge can look “tight” for day-to-day spread noise while still leaving a very large one-day default jump risk.
-
-#### Practice
-
-Hedging CS01 does not hedge JTD (especially single-name default vs index hedge).
+**Concrete numbers:** Long protection on USD 5mm, recovery 40%. The protection payment at default is roughly
+$$(1-R) \cdot N = 0.60 \times 5{,}000{,}000 = 3{,}000{,}000 \text{ USD}$$
+(before accrued premium and any pre-default MTM). **CS01 matching does not hedge JTD** — this matters most when single-name default is hedged with an index.
 
 ---
 
 ### 1.4 Recovery / Final-Price Sensitivity
 
-#### Formal Definition
+Recovery is the second key state variable in default scenarios. Many "basis" and "hedge" surprises trace back to mismatched recovery assumptions.
 
-Recovery sensitivity (per unit notional) can be measured as
+#### Definition
 
 $$Rec01 \equiv \frac{\partial PV}{\partial R} \times 0.01 \quad \text{(USD per 1\\% recovery)}$$
 
-#### Source-Backed CDS Recovery Sensitivity
+The CDS recovery sensitivity is naturally expressed in terms of the CDS value and $(1 - R)$ (the book's recovery-DV01 formulation).
 
-A recovery rate sensitivity can be expressed in terms of the CDS value and $(1 - R)$ (book's recovery DV01 expression).
+#### Final Price (Auction Settlement)
 
-#### Final Price
-
-CDS protection leg can be cash-settled with payment based on final price of the reference obligation, determined by dealer poll/auction; payoff is based on face value minus recovery price.
-
-If the auction/final-price process is unfamiliar, Chapter 40 is the practical reference.
-
-#### Intuition
-
-Recovery is a second key state variable in default scenarios; many "basis" and "hedge" surprises come from mismatched recovery assumptions.
+The CDS protection leg can be cash-settled at a final price determined by dealer poll/auction. The payoff is **face value minus recovery price**. If the auction process is unfamiliar, Chapter 40 is the practical reference.
 
 ---
 
-### 1.5 (For Indices) Series/Roll Basis and "Intrinsic vs Quoted" Basis
+### 1.5 Index Basis (Quoted vs Intrinsic) and Series/Roll Basis
 
-If you only remember one thing about CDS indices: there are two consistent ways to talk about “the index level,” and mixing them creates P&L confusion.
+If you remember one thing about CDS indices: there are **two consistent ways** to talk about "the index level," and mixing them creates P&L confusion.
 
-- **Quoted (top-down) view:** treat the index like a single CDS and quote a flat “index spread” (a market convention).
-- **Intrinsic (bottom-up) view:** price the index as the sum/average of its constituents’ CDS values.
+| View | What it means |
+|------|---------------|
+| **Quoted (top-down)** | Treat the index like a single CDS and quote a flat "index spread" (market convention) |
+| **Intrinsic (bottom-up)** | Price the index as the sum/average of constituents' CDS values |
 
-The gap between these is the **index basis** (Chapters 46–47 cover this in depth). It matters because many desks hedge single-name or portfolio risk with an index. If the index basis moves, a hedge that was “CS01 matched” can still produce P&L breaks.
+The gap is the **index basis** (Chapters 46–47 cover this in depth). It matters because many desks hedge single-name or portfolio risk with an index. If the index basis moves, a "CS01-matched" hedge can still produce P&L breaks.
 
 #### Intrinsic Value vs Market Value
 
@@ -300,156 +300,171 @@ $$\boxed{U_I(t) = (S_I(t,T) - C(T)) \cdot RPV01_I(t,T)}$$
 
 O’Kane calls this the **intrinsic** view because it prices the index as the sum (average) of its constituent CDS values.
 
-#### Index Basis
+#### Index Basis Drivers
 
-The **index basis** is the gap between what the market quotes for the index (via a flat index curve) and what you would infer if you valued the index as the sum of its constituents (the **intrinsic** view). In the literature, this basis can be positive or negative and can vary by maturity and index.
+The **index basis** is the gap between the market-quoted index level and the bottom-up intrinsic value. It can be positive or negative and varies by maturity and index. Three structural drivers (per the sources):
 
-Key source-backed drivers to keep in mind:
+1. **Contract differences (restructuring clause).** For example, the North American CDX index protection leg historically excluded restructuring ("No-Re"), while many US single-name CDS contracts used Modified Restructuring ("Mod-Re"). Different credit-event terms create a mechanical basis component. (See Chapter 39 for restructuring clauses.)
 
-1. **Contract differences (e.g., restructuring clause):** for example, the North American CDX index protection leg historically excluded restructuring (a “No‑Re” style trigger), while many US single‑name CDS contracts used Modified Restructuring (“Mod‑Re”). If the index and single‑name contracts do not have identical credit‑event terms, you should expect a mechanical basis component.
-   If restructuring clauses are new, see Chapter 39.
+2. **Liquidity and price discovery.** The index market is often more liquid than many single names. The index can embed a different liquidity premium and can "lead" single-name spreads — especially in widening markets when investors hedge illiquid cash credit via the index.
 
-2. **Liquidity and price discovery:** the index market is often more liquid than many single names. The literature notes that the index can embed a different liquidity premium and can “lead” single‑name spreads, especially in widening markets when investors hedge illiquid cash credit.
-
-3. **Replication vs quoting conventions:** the intrinsic view requires all constituent curves; the quoted index view uses a flat index curve. Even if you model everything perfectly, you can still get a basis because the quoting object (index curve) is not the same object as the set of single‑name curves.
+3. **Replication vs quoting conventions.** The intrinsic view requires all constituent curves; the quoted view uses a flat index curve. Even with perfect modeling, the *quoting object* (single index curve) is not the same as the *set* of single-name curves, so a basis remains.
 
 #### The Portfolio Swap Adjustment
 
-To reconcile intrinsic and quoted index views, O’Kane describes a **portfolio swap adjustment**: adjust the individual issuer curves so that the portfolio‑implied index matches the market‑quoted index. The book emphasizes that the exact adjustment is somewhat arbitrary, but highlights practical desiderata like preserving each issuer’s term‑structure shape and relative ranking and avoiding arbitrage artifacts.
+To reconcile intrinsic and quoted views, O'Kane describes a **portfolio swap adjustment**: tweak the individual issuer curves so the portfolio-implied index matches the market-quoted index. The exact adjustment is somewhat arbitrary; practical desiderata are preserving each issuer's term-structure shape and relative ranking, and avoiding arbitrage artifacts.
 
-**How to think about this (beginner-friendly):**
+**Mental model (four steps):**
 
-1. Start with your best estimate of each constituent’s CDS curve.
-2. Price the index bottom-up to get an intrinsic upfront (or intrinsic spread).
-3. Compare that to the market-quoted index level (top-down).
+1. Start with your best estimate of each constituent's CDS curve.
+2. Price the index bottom-up to get an intrinsic upfront/spread.
+3. Compare to the market-quoted index level.
 4. Apply an adjustment rule to the constituent curves so the bottom-up price matches the top-down quote.
 
-This is primarily a **model consistency** step (important for tranche pricing and some risk decompositions). From a trading/risk perspective, the takeaway is simpler: *index vs constituent hedges contain an extra moving part*, and you should monitor it explicitly (see Chapters 46–47).
+This is primarily a **model-consistency** step (important for tranche pricing and some risk decompositions). The trading/risk takeaway is simpler: **index vs constituent hedges contain an extra moving part — monitor it explicitly** (see Chapters 46–47).
 
-Portfolio swap adjustment is implemented differently across systems (e.g., spread multipliers vs hazard‑rate scaling; global vs tenor‑by‑tenor; and varying constraints). Confirm your system’s method before using intrinsic/quoted decompositions or hedge weights operationally.
+> **Caveat:** portfolio swap adjustment is implemented differently across systems (spread multipliers vs hazard-rate scaling; global vs tenor-by-tenor; varying constraints). Confirm your system's method before using intrinsic/quoted decompositions or hedge weights operationally.
 
 #### Series/Roll Basis
 
-Indices roll every six months; on-the-run liquidity and maturity reset can create price/spread differences between old and new series.
+Indices roll every six months. On-the-run liquidity and maturity reset can create price/spread differences between old and new series.
 
-#### Intuition
+#### Quick Summary
 
-- "Quoted vs intrinsic" is a model/replication gap driven by restructuring clauses, liquidity, and market dynamics.
-- "Series basis" is a liquidity + contract cohort gap.
-- The portfolio swap adjustment is required for any tranche or structured product pricing built on the index.
+| Basis type | What it is | Driver |
+|------------|-----------|--------|
+| Quoted vs intrinsic | Model/replication gap | Restructuring clauses, liquidity, quoting conventions |
+| Series basis | Liquidity + contract-cohort gap | On-the-run premium, maturity reset, composition |
+| Portfolio swap adjustment | Required for tranche/structured pricing built on the index | Reconciles bottom-up with top-down |
 
 ---
 
-### 1.6 (For Tranches) Tranche PV01, Correlation Sensitivity, and Tail/Default Clustering Scenario Risk
+### 1.6 Tranche Risk Measures (PV01, Correlation, Tail)
 
-If tranches are new, pause here and read Chapters 49–51 first. The rest of this chapter assumes you are comfortable with:
+> **Prerequisite:** if tranches are new, pause and read Chapters 49–51. The rest of this chapter assumes comfort with attachment/detachment and the tranche loss function (Ch. 49), correlation in tranche pricing (Ch. 50), and systemic vs idiosyncratic deltas/gammas (Ch. 51).
 
-- attachment/detachment and the tranche loss function (Chapter 49),
-- what “correlation” means in tranche pricing (Chapter 50),
-- systemic vs idiosyncratic deltas/gammas, Corr01, and VOD/JTD thinking for tranches (Chapter 51).
+**Why tranches are harder than single-name CDS.** In single-name CDS, "delta" almost always means CS01. In tranches, there are *multiple* deltas depending on what you bump:
+- the tranche quote,
+- all-name spreads (systemic),
+- one name (idiosyncratic),
+- correlation.
 
-**Why this is hard (and why it matters):** in single-name CDS, “delta” usually means CS01. In tranches, there are multiple deltas depending on *what you bump* (tranche quote vs all-name spreads vs one name vs correlation). Many strategy mistakes start with mixing these objects.
+Many strategy mistakes start with mixing these objects.
 
 #### Tranche PV01
 
-The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using expected discounted outstanding tranche notional; the source gives a tranche $RPV01$ expression and defines tranche PV01 as the sensitivity to 1 bp spread change.
+The tranche risky PV01 is defined analogously to CDS premium-leg PV01, using expected discounted outstanding tranche notional. **Tranche PV01** is then the sensitivity to a 1 bp change in the tranche spread.
 
-#### Correlation Sensitivity
+#### Correlation Sensitivity (Corr01)
 
-"Correlation 01" is defined as PV change for a 1% increase in correlation parameter, with sign depending on tranche (equity vs senior behave differently).
+$$\text{Corr01} \equiv \Delta PV \text{ for a +1\\% increase in correlation parameter}$$
 
-**Intuition (words, not math):** correlation changes *how losses arrive* (scattered defaults vs clustered waves). In the extreme of very high correlation, outcomes look more “all-or-nothing,” which tends to make senior riskier (more tail exposure) and equity less risky (less “death by a thousand cuts”). That is why equity and senior tranches can have opposite Corr01 signs.
+The sign depends on the tranche — equity and senior tranches behave differently.
 
-#### Tail/Clustering Risk
+**Intuition (no math):** correlation changes *how losses arrive*: scattered defaults vs clustered waves. In the limit of very high correlation, outcomes look more "all-or-nothing" (from the protection seller's perspective):
+- **Senior tranches** become *riskier* — more tail/clustering exposure → expected loss on senior rises.
+- **Equity tranches** become *less risky* — fewer scattered "death by a thousand cuts" outcomes → expected loss on equity falls.
 
-Tranche risk is nonlinear in portfolio loss. Tranche loss fraction:
+For a long-protection holder the signs flip: long senior protection **gains** as correlation rises (Corr01 > 0); long equity protection **loses** (Corr01 < 0). That is why equity and senior tranches typically have opposite Corr01 signs.
+
+#### Tail / Clustering Risk
+
+Tranche payoff is nonlinear in portfolio loss. The tranche loss fraction is:
 
 $$\boxed{L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)}$$
 
-**Interpretation:** tranche loss is 0 until portfolio loss reaches $A$; it ramps linearly between $A$ and $B$; and it is fully written down (loss fraction 1) once portfolio loss exceeds $B$.
+Reading this piece by piece:
+- $L \le A$ — tranche loss is **0** (no losses yet reach the tranche).
+- $A \lt L \lt B$ — tranche loss **ramps linearly** from 0 to 1.
+- $L \ge B$ — tranche is **fully written down** (loss fraction = 1).
 
-Clustering scenarios can swamp small-spread hedges (PV01 hedges fail because payoff is driven by realized losses).
+Clustering scenarios swamp small-spread hedges: PV01 hedges fail because the payoff is driven by *realized losses*, not by spread bumps.
 
 ---
 
-### 1.7 Carry and Rolldown Definitions (Cash Bonds; CDS Indices)
+### 1.7 Carry, Rolldown, and Theta
 
-#### Cash Bond Carry/Rolldown (Brief)
+#### Cash Bond (Brief)
 
-For a bond portfolio, carry is the coupon accrual minus financing cost; rolldown is price change from moving "down" a sloped curve as time passes.
+| Component | Definition |
+|-----------|------------|
+| Carry | Coupon accrual − financing cost |
+| Rolldown | Price change from aging "down" a sloped curve |
 
-#### CDS / Index / Tranche Carry and Theta
+#### CDS / Index / Tranche (O'Kane definitions)
 
-O’Kane defines (for tranches, and the idea carries over to indices):
+| Component | Definition |
+|-----------|------------|
+| Carry | Daily accrual of the contractual coupon/premium (even though paid quarterly) |
+| Theta | Daily change in **full price** holding spreads/curves fixed and assuming no default |
 
-- **Carry:** the daily accrual of the contractual coupon/premium (even though it is paid quarterly). A key intuition is that premium accrued since the last payment date is still owed if a default occurs before the next payment date, so it is sensible to think in “daily accrual” terms.
-- **Theta:** the daily change in the **full price** holding spreads/curves fixed and assuming no default over the day. For a long protection position, theta is the change in the protection leg minus the change in the premium leg.
+**Long-protection intuition.** Theta = $\Delta$(protection leg) − $\Delta$(premium leg). Both effects typically push it negative: one day less of protection remains, and premium-leg cashflows are one day closer (higher PV).
 
-Qualitative risk-report pattern from the source: for a **protection buyer**, carry is typically **negative** (you pay premium), and the absolute carry tends to be largest for the most junior tranche because it has the highest contractual spread. Theta for long protection is often negative because (i) there is one day less of protection remaining and (ii) the premium leg cashflows are one day closer (higher PV).
+**Risk-report pattern (per source).** For a protection buyer, carry is typically **negative** (you pay premium). Absolute carry is largest for the most junior tranche (highest contractual spread).
 
-If “theta” still feels abstract, read the CDS theta discussion in Chapter 43; for tranche carry/theta intuition in a risk-report format, Chapter 51 is the best companion chapter.
+If theta still feels abstract, see Chapter 43 (CDS theta); for tranche carry/theta in risk-report form, Chapter 51 is the companion chapter.
 
-#### Rolldown Component
-
-Theta includes a **rolldown** component: if the spread curve is upward sloping, as time passes you effectively move to a shorter maturity point on the curve, which (all else equal) tends to reduce the implied par spread.
+#### Rolldown vs Theta
 
 For a position with unchanged spreads and curve shape:
-- **Carry** = coupon accrual component (deterministic)
-- **Rolldown** = change in PV from aging along the curve (part of theta)
-- **Theta** = total time decay = rolldown + other time effects (maturity shortening, etc.)
+
+| Component | Meaning |
+|-----------|---------|
+| Carry | Coupon accrual (deterministic) |
+| Rolldown | PV change from aging along a sloped curve (a piece of theta) |
+| Theta | Total time decay = rolldown + other time effects (maturity shortening, etc.) |
+
+If the spread curve is upward sloping, aging moves you to a shorter-maturity point on the curve, which (all else equal) reduces the implied par spread.
 
 #### What We Do in This Chapter
 
-We use carry + rolldown + spread move as a P&L explain framework for index positions, treating "rolldown" as the component of theta due to curve slope (derived from the theta definition).
+We use **carry + rolldown + spread move + events** as the P&L-explain framework for index positions, treating rolldown as the component of theta due to curve slope.
 
 ---
 
-### 1.8 Liquidity/Funding/Financing Risk (Conceptual, Only as Supported)
-
-#### Bond–CDS Basis Drivers (Source-Backed)
+### 1.8 Liquidity / Funding / Financing Risk
 
 The CDS–cash basis is defined as:
 
 $$\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread}$$
 
-with discussion that the bond spread choice is typically asset swap spread for fixed-rate bonds near par.
-See Chapter 27 for asset swap spread mechanics and why "premium bonds" create basis traps.
+The "bond Libor spread" is typically the asset swap spread for fixed-rate bonds near par. See Chapter 27 for asset-swap-spread mechanics and why premium bonds create basis traps.
 
-**Drivers for persistence include:** funding differences (unfunded CDS vs funded bonds), delivery option, technical default, loss-on-default mismatch, premium accrued at default, and market liquidity/supply-demand factors.
+**Why the basis persists:**
+- Unfunded CDS vs funded bonds (financing asymmetry)
+- Delivery option in physical settlement
+- Technical default differences
+- Loss-on-default mismatch ($1-R$ vs $P-R$)
+- Premium accrued at default differs across CDS and cash
+- Market liquidity and supply/demand technicals
 
-#### Intuition
-
-"Cheap" vs "rich" often reflects funding/liquidity optionality rather than pure expected default loss.
+**Big picture:** "cheap" vs "rich" basis often reflects funding/liquidity optionality, not pure expected default loss.
 
 ---
 
 ## 52.3 The Governing Principle: Strategy = Exposures + Hedges + Failure Modes
 
-**Principle:** A "credit strategy" is not a slogan. It is a risk blueprint:
+A credit strategy is a **risk blueprint**, not a slogan:
 
 $$\text{Strategy} = \underbrace{\text{exposure decomposition}}_{\text{what you truly own}} + \underbrace{\text{hedge set + ratios}}_{\text{what you try to neutralize}} + \underbrace{\text{scenario suite + failure modes}}_{\text{what can still break}}$$
 
-This is consistent with the risk management emphasis on stress/scenario thinking and "perfect storm" risk (multiple adverse moves at once).
+This aligns with the risk-management emphasis on stress/scenario thinking and "perfect storm" risk (multiple adverse moves at once).
 
-### Strategy Card Template (Repeat for Each Strategy)
+### Strategy Card Template
 
-1. **Objective** / what mispricing or risk premium the strategy is targeting (conceptual, no forecasts)
-2. **Instruments and position construction** (legs, notionals, maturities)
-3. **Exposure decomposition** (a table with units), including at least:
-   - CS01 by maturity bucket (or clearly stated alternative)
-   - JTD
-   - recovery sensitivity
-   - basis sensitivity (when relevant)
-   - (if relevant) rates DV01 / funding carry
-4. **Hedge set and hedge ratios** (show math)
-5. **Scenario test suite:**
-   - parallel spread move
-   - dispersion / idiosyncratic move
-   - default event (final price/recovery shock)
-   - for indices: roll/series basis change
-   - for tranches: correlation/tail/clustering shock
-6. **Failure modes** (what breaks and why)
-7. **Implementation checklist + verification tests** (repricing checks, unit checks, bump stability)
+Every Strategy Card in this chapter follows the same seven-section template:
+
+| # | Section | What goes here |
+|---|---------|----------------|
+| 1 | **Objective** | Mispricing or risk premium targeted (conceptual; no forecasts) |
+| 2 | **Instruments and position construction** | Legs, notionals, maturities |
+| 3 | **Exposure decomposition** | Table with units: CS01 by bucket, JTD, recovery sensitivity, basis sensitivity, rates DV01 / funding carry (where relevant) |
+| 4 | **Hedge set and hedge ratios** | Hedge instruments and the math for sizing |
+| 5 | **Scenario test suite** | Parallel move; dispersion; default event; roll/series basis (indices); correlation/tail/clustering (tranches) |
+| 6 | **Failure modes** | What breaks and why |
+| 7 | **Implementation checklist** | Repricing checks, unit checks, bump stability |
+
+The discipline is *the same* across all strategies — only the contents change.
 
 ---
 
@@ -459,47 +474,42 @@ If you want the longer “cash vs swap vs CDS” foundations behind these trades
 
 ### A1) Bond–CDS Basis Framework (Cash vs Synthetic)
 
-The bond-CDS basis—the spread difference between a CDS and the equivalent cash bond—is one of the most studied phenomena in credit markets. O'Kane defines the CDS basis as:
+The bond–CDS basis is the spread difference between a CDS and the equivalent cash bond. It is one of the most-studied phenomena in credit markets:
 
 $$\boxed{\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread}}$$
 
-where the "bond Libor spread" is typically measured using the bond's asset swap spread when the bond is close to par (for fixed-rate bonds). A positive basis means CDS protection is more expensive than the bond spread suggests; a negative basis means protection is cheap relative to cash.
+The "bond Libor spread" is typically the asset swap spread for fixed-rate bonds near par. The sign of the basis tells you which market is pricing protection more expensively:
 
-The basis can persist for extended periods because CDS and bonds are fundamentally different contracts. O'Kane divides the drivers into **fundamental factors** (contractual differences) and **market factors** (trading dynamics). Treat this list as a checklist when a "fully hedged" basis position surprises you.
+| Sign | Meaning |
+|------|---------|
+| Positive basis | CDS protection more expensive than the bond spread suggests |
+| Negative basis | Protection cheap relative to cash bond |
 
-#### 3.1.1 Fundamental Factors Driving the Basis
+The basis persists because CDS and bonds are fundamentally different contracts. O'Kane organizes the drivers into **fundamental factors** (contractual differences) and **market factors** (trading dynamics). Treat both lists as a checklist when a "fully hedged" basis position surprises you.
 
-O'Kane identifies six fundamental factors that create structural differences between CDS and bond spreads:
+#### 3.1.1 Fundamental (Contract-Driven) Factors
 
-1. **Funding**: CDS is economically unfunded (no bond principal to finance), while holding a bond requires financing/balance sheet. Investors with different funding costs (relative to Libor) naturally prefer one market over the other, and the basis reflects the marginal funding level.
+| # | Factor | What it does |
+|---|--------|--------------|
+| 1 | **Funding asymmetry** | CDS is economically unfunded; bonds require financing. Marginal funding level shows up in the basis. |
+| 2 | **Delivery option** (physical settlement) | Protection buyer can deliver the cheapest deliverable bond after a credit event — captures price differences across deliverables (e.g., delivering a 37 bond instead of a 43 bond captures 6 points). |
+| 3 | **Technical default / credit-event definition** | CDS triggers can be broader than bond payment default (e.g., restructuring per documentation). Extra trigger risk affects CDS pricing. |
+| 4 | **Loss-on-default mismatch** | CDS pays $(1-R)$; cash-bond loss is $(P-R)$. If $P \neq 100$, CS01 matching leaves a JTD residual. |
+| 5 | **Accrued premium at default** | CDS settles accrued at default; bond coupons stop and accrued can be lost. Small but matters in tight basis carry. |
+| 6 | **CDS spreads non-negative** | Asset-swap spreads can go negative (high-quality Treasuries); CDS cannot. Asymmetric floor. |
 
-2. **The delivery option (physical settlement)**: With physically settled CDS, the protection buyer can choose which deliverable obligation to deliver after a credit event. This cheapest-to-deliver option makes protection more valuable. O'Kane gives a concrete intuition: if one deliverable trades at 43 and another at 37, the buyer can capture the 6-point difference by delivering the cheaper bond.
+#### 3.1.2 Market (Flow-Driven) Factors
 
-3. **Technical default / credit-event definition**: CDS credit events can be broader than plain bond payment default (for example, restructuring depending on documentation). That extra trigger risk affects CDS pricing relative to cash.
+| # | Factor | What it does |
+|---|--------|--------------|
+| 1 | **Relative liquidity** | CDS clusters at standard tenors (3/5/7/10Y, IMM dates); bonds are liquid in specific issues. Mismatches move basis. |
+| 2 | **Synthetic CDO technical** | Dealer hedging of synthetic CDO issuance moves CDS spreads via constituent flows. |
+| 3 | **New issuance / loans** | Corporate bond and bank loan origination drive CDS hedging flows that decouple from cash. |
+| 4 | **Convertible arbitrage** | Hedging convertibles creates protection-buying pressure in CDS. |
+| 5 | **Shorting asymmetry** | Easier to short credit via CDS (buy protection) than via cash bonds. CDS can move first on negative news. |
+| 6 | **Funding / liquidity regimes** | Even though CDS is unfunded, bond-leg financing and balance-sheet costs can shift; basis can gap. |
 
-4. **Loss-on-default mismatch**: CDS protection pays $(1-R)$ of notional (per 100), while the loss on a cash bond purchased at full price $P$ is $P-R$. If $P \neq 100$, notional matching by CS01 can leave a JTD mismatch; JTD matching is a separate sizing problem.
-
-5. **Accrued premium/coupon around default**: In CDS, accrued premium is typically settled at default; in cash bonds, coupon cashflows stop and accrued can be lost. This small difference matters in tight "basis carry" calculations and in default P&L explain.
-
-6. **CDS spreads cannot be negative**: Unlike asset swap spreads (which can go negative for very high-quality credits like Treasuries), CDS spreads must be positive to compensate for default risk and transaction costs.
-
-#### 3.1.2 Market Factors Driving the Basis
-
-O'Kane lists six market factors that create basis dynamics:
-
-1. **Relative liquidity**: CDS liquidity clusters at standard tenors (3/5/7/10Y, often quoted on IMM dates) while bonds are liquid in specific issues. Liquidity and maturity mismatches can move basis.
-
-2. **Synthetic CDO technical**: When dealers issue synthetic CDO risk, they can hedge by trading CDS on many constituents, creating mechanical spread pressure.
-
-3. **New issuance/loans**: Corporate bond issuance and bank loan origination can lead to CDS hedging flows that move CDS spreads and cash spreads differently.
-
-4. **Convertible issuance**: Convertible arbitrage and hedging can create protection-buying pressure in CDS.
-
-5. **Demand for protection / shorting asymmetry**: It is operationally easier to get short credit via CDS (buy protection) than short a cash bond, so CDS can move "first" on negative news.
-
-6. **Funding and liquidity regimes**: Even if CDS is economically unfunded, the cash-bond leg is exposed to financing and balance-sheet constraints; when that regime shifts, basis can gap.
-
-O'Kane's practical point is that these interacting effects can make CDS and cash spreads diverge, and it is hard to assign a single dominant cause in real time.
+These effects interact, so it is hard to pin a single dominant cause in real time.
 
 #### Strategy Card: A1 — Bond–CDS Basis Package (Risk-First Framing)
 
@@ -508,102 +518,114 @@ O'Kane's practical point is that these interacting effects can make CDS and cash
 > - If the package “mysteriously” loses money, first ask: did **funding/repo** move (Example 1B), did the **basis** move, or did a **default/auction/recovery** assumption change?
 > - A CS01 match is not enough: the default payoff depends on bond price vs recovery ($P-R$) versus CDS payoff ($1-R$).
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Isolate and measure the CDS–cash basis while understanding which factors are driving any observed divergence. In O’Kane’s framing, the basis can be actively traded as a relative‑value position once you are explicit about the residual risks.
+Isolate and measure the CDS–cash basis as a relative-value position, with explicit accounting for the residual risks that a CS01 match leaves behind.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-A generic basis package uses:
+| Leg | Role |
+|-----|------|
+| Cash bond (or asset-swap representation) | Funded credit exposure |
+| Single-name CDS on same reference entity | Unfunded credit exposure (synthetic) |
+| Rates hedge (swap or UST) | Removes bond's rates DV01 |
 
-- **Cash bond** (funded instrument) or asset swap representation of the bond credit spread.
-- **Single-name CDS** on the same reference entity (unfunded).
-- Often an **interest-rate hedge** (swap/UST) to reduce rates DV01 of the bond leg.
+Direction is not prescribed; the educational focus is *what risks remain* after hedging.
 
-Position direction is not prescribed; the educational focus is what risks remain after hedging.
+##### 3. Exposure Decomposition
 
-##### Exposure Decomposition (Illustrative Buckets; Units Explicit)
+Buckets: 0–3Y / 3–7Y / 7–10Y (coarse).
 
-Buckets used in this chapter: 0–3Y, 3–7Y, 7–10Y (coarse).
+| Exposure | Bond leg | CDS leg | Net comment |
+|----------|----------|---------|-------------|
+| $CS01_{3\text{–}7}$ (USD/bp) | $\lt 0$ (long bond) | $\gt 0$ (long prot) | Can offset if sized |
+| Other CS01 buckets | usually 0 | usually 0 | Maturity placement |
+| Rates DV01 (USD/bp) | $\neq 0$ | $\approx 0$ | Residual unless hedged |
+| JTD (USD) | $-(P - R) \cdot N$ | $+VOD \cdot N$ (long prot) | Match is *not* automatic |
+| Rec01 (USD/1%) | depends on bond view | CDS recovery sens | Mismatches matter |
+| Basis sensitivity | yes | yes | **This is the residual you keep** |
 
-| Exposure (units) | Definition | Bond leg | CDS leg | Net intuition |
-|------------------|------------|----------|---------|---------------|
-| $CS01_{0\text{–}3}$ (USD/bp) | $\partial PV / \partial S \times 1\text{bp}$ | usually 0 | usually 0 | maturity placement |
-| $CS01_{3\text{–}7}$ (USD/bp) | 5Y risk mostly here | $\lt 0$ (long bond) | $\gt 0$ (long prot) | can offset if sized |
-| $CS01_{7\text{–}10}$ (USD/bp) | long-end bucket | 0 | 0 | — |
-| Rates DV01 (USD/bp) | $\partial PV / \partial r \times 1\text{bp}$ | typically $\neq 0$ | ~0 | residual rates unless hedged |
-| JTD (USD) | PV jump at default | $-(P - R) \times N$ | $+VOD \times N$ for long prot | can be matched, but not automatic |
-| Rec01 (USD per 1%) | $\partial PV / \partial R \times 1\\%$ | depends on bond recovery view | CDS recovery sensitivity | mismatches matter |
-| Basis sensitivity | PV change when CDS and bond spreads move differently | yes | yes | this is the residual you keep |
-
-##### Hedge Set and Hedge Ratios (Show Math)
+##### 4. Hedge Set and Hedge Ratios
 
 **Rates hedge (DV01 neutralization):**
 
-$$N_{\text{rates hedge}} = -\frac{DV01_r^{\text{bond}}}{DV01_r^{\text{hedge instr}}}$$
+$$\boxed{N_{\text{rates hedge}} = -\frac{DV01_r^{\text{bond}}}{DV01_r^{\text{hedge instr}}}}$$
 
 **Credit hedge (CS01 match):**
 
-$$N_{\text{CDS}} = -\frac{CS01_{\text{bond}}}{CS01_{\text{CDS per USD  notional}}}$$
+$$\boxed{N_{\text{CDS}} = -\frac{CS01_{\text{bond}}}{CS01_{\text{CDS per USD notional}}}}$$
 
-**Event hedge (JTD match):** motivated by the loss-on-default mismatch discussion (bond loss $P - R$ vs CDS loss $1 - R$).
+**Event hedge (JTD match):** size to match $-(P-R) \cdot N_B$ on the bond leg with $+(1-R) \cdot N_{\text{CDS}}$ on the CDS leg (loss-on-default mismatch — see Example 1).
 
-##### Scenario Test Suite
+##### 5. Scenario Test Suite
 
-- Parallel spread move (bond and CDS widen together).
-- Dispersion (CDS widens, bond unchanged; or vice versa).
-- Default event: vary recovery/final price; include accrued premium at default.
-- Rates move: bond yield curve shift with and without DV01 hedge.
-- (Optional) Delivery option/restructuring clause differences (qualitative).
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Parallel spread move (bond + CDS widen together) | CS01 match quality |
+| 2 | Dispersion (CDS widens, bond flat — or vice versa) | Pure basis exposure |
+| 3 | Default event with recovery/final-price sweep | JTD match and Rec01 |
+| 4 | Rates move | Rates DV01 hedge effectiveness |
+| 5 | Delivery option / restructuring clause variation | Qualitative — see failure modes |
 
-##### Failure Modes
+##### 6. Failure Modes
 
-The basis trade can fail in multiple ways, corresponding to the fundamental and market factors O'Kane identifies:
+**Funding-related:**
+- **Funding/repo shock** — bond leg is funded, CDS is not. A repo spike raises bond carry without affecting the CDS leg, breaking carry assumptions (Example 1B).
+- **Repo specials** — if the bond goes "special," carry becomes punitive. CDS has no equivalent.
 
-**Funding-Related Failures:**
-- **Funding/repo shocks**: The bond leg is funded; CDS is (economically) unfunded. In the source’s framing, a CDS position does not require financing the cash bond, so a bond‑CDS package carries an embedded **funding asymmetry**. If your funding costs spike, the bond leg becomes expensive to carry while the CDS leg does not “feel” the same repo stress in the same way. That asymmetry can overwhelm a small positive carry.
-- **Repo fails or specials**: If the specific bond becomes hard to finance (goes "special"), carrying the cash leg becomes punitive. This is a funding risk that CDS does not face.
+**Contract-related:**
+- **Delivery option / CTD** — after certain credit events, the protection buyer chooses the cheapest deliverable. The delivered asset may not match the bond you hedged.
+- **Restructuring clause mismatch** — CDS spreads depend on the restructuring clause; mixing Mod-Re single names with No-Re indices creates basis to restructuring events.
+- **Loss-on-default mismatch** — CDS pays $1-R$; bond loss is $P-R$. *Examples:* bond at 105 defaults at 40% recovery → bond loses 65 points, CDS pays 60 → under-hedged. Bond at 95 → loses 55, CDS pays 60 → over-hedged.
 
-**Contract-Related Failures:**
-- **Delivery option / cheapest-to-deliver**: after certain credit events (especially restructuring), the protection buyer can choose which deliverable obligation to settle with. If you are hedging a specific bond, this creates a mismatch: the delivered asset may not be the one you expected, so the CDS leg can realize a different loss than the cash bond you are hedging.
-- **Restructuring clause mismatch**: CDS spreads depend on the restructuring clause because it changes the trigger set and the deliverable set. Trading a Mod‑Re single‑name CDS against a No‑Re index (or vice versa) creates basis risk to restructuring‑related events.
-- **Loss-on-default mismatch**: CDS pays $(1-R)$ on notional; a cash bond bought at a full price $P$ has loss $P-R$. If your bond is at 105 and defaults at 40% recovery, you lose 65 points but CDS only pays 60 per 100 notional. If your bond is at 95, you lose 55 but CDS pays 60—now you are over‑hedged in default.
+**Market-related:**
+- **Synthetic CDO technicals** — dealer hedging of CDO issuance can tighten single-name CDS, compressing basis.
+- **New issuance and hedging flows** — bond and loan issuance push CDS and cash differently.
+- **Convertible flows** — drive protection buying that widens CDS without matching cash move.
+- **Liquidity divergence** — CDS is the easier short. In stress, CDS spreads gap wider than bonds.
 
-**Market-Related Failures:**
-- **Synthetic CDO technicals**: dealer hedging of synthetic CDO issuance can involve selling protection on many names, mechanically tightening CDS spreads and compressing the basis.
-- **New issuance and hedging flows**: new bond issuance and loan hedging flows can push CDS and cash markets in different directions over short horizons.
-- **Convertible issuance**: convertible hedging flows can drive protection buying and widen CDS spreads without an immediate, matching move in cash bonds.
-- **Liquidity divergence**: CDS is often the easier instrument to go short credit quickly. In stress, that can make CDS spreads gap wider than bond spreads, producing large basis moves.
+**Monitoring checks** (thresholds are desk-specific):
 
-**Monitoring checks (thresholds are desk-specific):**
-- CS01 drift after execution and after spread moves (hedge staleness).
-- JTD mismatch driven by bond price ≠ par and recovery/final-price assumptions.
-- Funding and liquidity regime shifts (repo terms changing, bid/offer widening).
+| Signal | What it indicates |
+|--------|-------------------|
+| CS01 drift post-trade or after spread moves | Hedge staleness |
+| JTD mismatch | Bond price ≠ par or recovery assumption changed |
+| Funding / liquidity regime shift | Repo terms tightening, bid/offer widening |
 
-##### Implementation Checklist + Verification Tests
+##### 7. Implementation Checklist
 
-- Reprice each leg under the same discounting assumptions where applicable (and document differences).
-- Verify signs: long protection CS01 $\gt 0$; long bond credit CS01 $\lt 0$.
-- Bump stability: CS01 should be stable for $\pm 1$ bp bumps; if not, you are in nonlinear regime.
-- Event test: run default today with recovery sweep.
+- [ ] Reprice each leg under the same discounting assumptions; document any differences.
+- [ ] Verify signs: long protection CS01 $\gt 0$; long bond credit CS01 $\lt 0$.
+- [ ] Bump stability: CS01 stable for $\pm 1$ bp bumps (otherwise you are in a nonlinear regime).
+- [ ] Event test: run "default today" with a recovery sweep.
 
 #### Negative Basis: Why It Persists
 
-A "negative basis" means the CDS spread trades *inside* (below) the bond asset-swap spread: the synthetic market prices credit risk cheaper than the cash market. This seemingly arbitrageable condition can persist for extended periods because of structural demand dynamics.
+A **negative basis** means CDS spread trades *inside* (below) the bond asset-swap spread — synthetic protection prices cheaper than cash credit risk. The condition looks arbitrageable but persists due to **funding-driven clientele effects**:
 
-**Desk intuition (source-aligned):** CDS is unfunded while a bond position must be financed. That creates a clientele effect: participants with cheaper funding can prefer cash bonds, while those with more expensive funding can prefer CDS. In addition, technical flows like synthetic CDO issuance can tighten single‑name CDS spreads via dealer hedging, which can contribute to a more negative basis.
+| Participant type | Preference |
+|------------------|------------|
+| Cheap-funding (e.g., bank balance sheets) | Often prefer **cash bonds** |
+| Expensive-funding (e.g., hedge funds) | Often prefer **CDS** |
+
+Technical flows compound the effect: synthetic CDO issuance leads dealers to hedge by selling protection across many names, mechanically tightening single-name CDS and pushing the basis more negative.
 
 #### Positive Basis: The Squeeze
 
-A "positive basis" means CDS spreads trade *outside* (above) bond spreads. O'Kane's market factors explain why: demand for protection (shorting credit is easier via CDS), CDO dealer hedging, convertible arbitrage flows, and new issuance effects all tend to push CDS spreads wider relative to bonds.
+A **positive basis** means CDS trades *outside* (above) bond spreads. The market factors that produce this:
 
-The dangerous scenario is the **positive basis squeeze**: a trader who is short the basis (short CDS, long bond) faces losses when the basis widens further. In stress:
+- Demand for protection (shorting credit is easier via CDS).
+- CDO dealer hedging in the opposite direction.
+- Convertible-arb hedging flows.
+- New-issuance effects that widen CDS faster than bonds.
 
-1. **Protection demand surges**: if negative news hits a credit, it is often operationally easier to express a bearish view via **buying CDS protection** than by shorting cash bonds. That flow can push CDS wider faster than cash bonds, widening the basis.
-2. **Repo funding spikes**: The bond leg becomes expensive to carry as repo rates rise (Example 1B illustrates this).
-3. **Forced unwinds**: Margin calls on the CDS leg force liquidation at the worst time, crystallizing losses.
+The dangerous scenario is the **positive basis squeeze** — a trader short the basis (short CDS, long bond) sees the basis widen *further*. The stress mechanics:
 
-**Stress-test mindset:** basis trades are funding- and liquidity-contingent. When funding terms or market liquidity shift, the P&L distribution changes qualitatively; a “CS01‑matched” package can still experience large adverse moves.
+1. **Protection demand surges.** Negative news → expressing the bearish view via CDS is operationally easier than shorting cash bonds. CDS widens faster than cash, widening the basis.
+2. **Repo funding spikes.** The bond leg becomes expensive to carry (Example 1B).
+3. **Forced unwinds.** Margin calls on the CDS leg force liquidation at the worst time, crystallizing losses.
+
+**Stress-test mindset.** Basis trades are funding- and liquidity-contingent. When funding terms or market liquidity shift, the P&L distribution changes *qualitatively*. A CS01-matched package can still take large adverse moves.
 
 ---
 
@@ -616,85 +638,95 @@ The dangerous scenario is the **positive basis squeeze**: a trader who is short 
 > - What remains is usually **idiosyncratic/default jump risk** (a single default is huge for the name and small for the index), plus **index-vs-name basis** and **roll/series** effects.
 > - If you want an intuition check, read Example 3 before you worry about any math: it shows how a clean CS01 match can still leave a big default scenario.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Reduce broad-market credit spread exposure of a single-name position using an index, leaving mainly idiosyncratic risk (and default jump risk).
+Reduce broad-market credit-spread exposure of a single-name position using an index hedge, leaving mainly idiosyncratic risk (and default jump risk).
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- **One leg:** single-name CDS (maturity $T$).
-- **Hedge leg:** CDS index (similar maturity $T$ or nearest liquid point).
-- If "beta" is used to scale the index hedge, treat beta as an input (estimation is not standardized in these sources).
+| Leg | Role |
+|-----|------|
+| Single-name CDS (maturity $T$) | Position to be hedged |
+| Index CDS (similar maturity $T$, or nearest liquid point) | Hedge instrument |
+| Optional beta $\beta$ | Scaling factor (treated as an input; estimation not standardized) |
 
-##### Exposure Decomposition (Units Explicit; Bucketed CS01)
+##### 3. Exposure Decomposition
 
-We bucket both single-name and index CS01 into 0–3Y / 3–7Y / 7–10Y (coarse).
+CS01 bucketed into 0–3Y / 3–7Y / 7–10Y (coarse).
 
-| Exposure (units) | Single-name leg | Index hedge leg | Net risk comment |
-|------------------|-----------------|-----------------|------------------|
-| $CS01_{3\text{–}7}$ (USD/bp) | dominant | dominant | can be matched |
-| JTD (USD) | large (single default) | small per-name (diversified) | not hedged by CS01 match |
-| Rec01 (USD/1%) | meaningful | meaningful | can mismatch |
-| Basis sensitivity | single vs index composition | yes | residual "proxy basis" |
-| Roll/series basis | none | yes | index-specific residual |
+| Exposure | Single-name leg | Index hedge leg | Net comment |
+|----------|-----------------|-----------------|-------------|
+| $CS01_{3\text{–}7}$ (USD/bp) | dominant | dominant | Can be matched |
+| JTD (USD) | large (single default) | small per-name (diversified) | **Not hedged** by CS01 match |
+| Rec01 (USD/1%) | meaningful | meaningful | Can mismatch |
+| Basis sensitivity | single vs index composition | yes | Residual "proxy basis" |
+| Roll/series basis | none | yes | Index-specific residual |
 
-##### Hedge Set and Hedge Ratios (Show Math)
+##### 4. Hedge Set and Hedge Ratios
 
 **CS01 match:**
 
-$$N_{\text{index}} = -\frac{CS01_{\text{single}}}{CS01_{\text{index per USD  notional}}}$$
+$$\boxed{N_{\text{index}} = -\frac{CS01_{\text{single}}}{CS01_{\text{index per USD notional}}}}$$
 
-**If a beta $\beta$ is imposed:**
+**With beta scaling $\beta$:**
 
-$$N_{\text{index}} = -\frac{\beta \cdot CS01_{\text{single}}}{CS01_{\text{index per USD  notional}}}$$
+$$N_{\text{index}} = -\frac{\beta \cdot CS01_{\text{single}}}{CS01_{\text{index per USD notional}}}$$
 
-(Beta treatment is a desk convention input in these notes.)
+##### 5. Scenario Test Suite
 
-##### Scenario Test Suite
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Parallel market move (single + index together) | CS01 match quality |
+| 2 | Idiosyncratic move (single only) | Residual idiosyncratic exposure (the *intended* exposure) |
+| 3 | Single-name default with recovery sweep | JTD residual — the central failure mode |
+| 4 | Index roll / series basis change | Index-specific residual |
 
-- Parallel market spread move (both single and index move similarly).
-- Idiosyncratic widening/tightening of the single name with small index move.
-- Single-name default (final price/recovery shock).
-- Index roll/series basis change (index leg reprices).
+##### 6. Failure Modes
 
-##### Failure Modes
+| Failure | Why it happens |
+|---------|----------------|
+| Composition mismatch | Index may not contain the name; weights differ; sector tilts |
+| Index basis (quoted vs intrinsic) | Hedging on-the-run vs off-the-run creates constituent mismatch |
+| **Default jump dominates** | Single-name default vs index hedge — the diversified index absorbs only the per-name slice |
 
-- **Composition mismatch:** index may not contain the name; weights differ; sector tilts.
-- **Index basis:** quoted vs intrinsic; hedging off-the-run with on-the-run creates mismatch in constituents.
-- **Default jump dominates.**
+##### 7. Implementation Checklist
 
-##### Implementation Checklist + Verification Tests
-
-- Confirm maturity alignment and coupon conventions.
-- Recompute CS01 after trade; ensure hedged bucket(s) are near zero.
-- Run event stress: single-name default today; verify residual.
+- [ ] Confirm maturity alignment and coupon conventions.
+- [ ] Recompute CS01 after the trade; hedged bucket(s) should be near zero.
+- [ ] Run event stress: single-name default today; quantify the residual.
 
 ---
 
 ### A3) CDS Curve Steepener / Flattener
 
-Credit curve trades express a view on the *shape* of a single name's CDS spread term structure rather than its level. They are a natural extension of the relative value framework from Chapter 44.
+Credit curve trades express a view on the *shape* of a single name's CDS spread term structure rather than its level. They extend the relative-value framework from Chapter 44.
 
 #### 3.3.1 Curve Shapes and What They Signal
 
-The source discusses three representative CDS curve shapes: flat, upward‑sloping, and steeply inverted. The inverted curve case is especially relevant for stressed/high‑yield names:
+| Shape | Typical context | Hazard-rate implication |
+|-------|-----------------|--------------------------|
+| **Upward-sloping** | Investment grade | Hazard rate increases with tenor — long-term default risk exceeds near-term |
+| **Flat** | Stable, mixed signal | Roughly constant hazard rate |
+| **Inverted** | Distressed high-yield | Market prices near-term default as dominant; longer-dated hazard perceived as lower *conditional on survival* |
 
-- **Upward-sloping (typical IG):** Long-term default probability exceeds short-term. The hazard rate increases with tenor. This is normal for investment-grade credits where the risk of eventual deterioration exceeds near-term default risk.
-- **Inverted (distressed HY):** The market prices near‑term default as the dominant risk. Conditional on surviving the near term, the longer‑dated hazard can be perceived as lower, which can pull longer‑dated spreads below the front end.
-
-**Desk intuition:** an inverted curve is often interpreted as a “survival bet.” For example (toy numbers), a name trading 800bp in 1Y and 500bp in 5Y is saying the market is heavily focused on near‑term default risk. A curve steepener (long short‑dated protection, short longer‑dated protection) can monetize normalization *if the name survives*, but if the name defaults, both legs trigger and the net depends on notional sizing, premium accrual, and recovery assumptions.
+**Desk intuition for inversion.** An inverted curve is a "survival bet" by the market. *Toy example:* a name trading 800 bp at 1Y and 500 bp at 5Y is saying the market is overwhelmingly focused on near-term default risk. A **curve flattener** (short the short-dated protection, long the longer-dated protection — the structure used in Example 17) monetizes normalization *if the name survives*: as the short-end spread tightens, the short-protection leg gains, dominating the smaller long-protection leg. If the name *defaults* instead, both legs trigger; CS01-neutral sizing requires a *larger* short-protection notional on the short tenor, so the flattener typically realizes a meaningful net loss on default (the larger short leg pays out more than the smaller long leg receives).
 
 #### 3.3.2 Forward CDS Curves
 
-O'Kane shows how spot CDS curves map to forward curves (Table 9.1). For an upward-sloping curve, the forward curve is higher than the spot curve—forward-starting protection is more expensive, reflecting the market's expectation of higher future default risk. For an inverted curve, the forward curve is lower than spot, reflecting declining expected hazard rates.
+Spot CDS curves map to forward curves (O'Kane, Table 9.1):
+
+| Spot shape | Forward curve vs spot |
+|-----------|------------------------|
+| Upward-sloping | Forward $\gt$ spot — forward-starting protection more expensive |
+| Inverted | Forward $\lt$ spot — declining expected hazard rates |
 
 #### 3.3.3 Curve Arbitrage Bounds
 
-O'Kane derives an arbitrage lower bound for inverted curves. For a curve starting at 800 bp at 6 months, the approximate lower bound is:
+O'Kane derives an arbitrage lower bound for inverted curves. Approximately:
 
 $$S_m \gtrsim S_{m-1} \left(\frac{T_{m-1}}{T_m}\right)$$
 
-O'Kane works out the exact bounds in his examples; the takeaway is that a severely inverted curve can violate no-arbitrage constraints implied by the CDS payoff structure and the non-negativity of survival probabilities. If you see “impossible” forward/default-implied behavior in a curve build, treat it as a red-flag for curve construction inputs (quotes, recovery, interpolation) before you treat it as tradable edge.
+A severely inverted curve can violate no-arbitrage constraints implied by the CDS payoff structure and non-negative survival probabilities. **Red-flag rule:** if you see "impossible" forward or default-implied behavior in a curve build, suspect the curve-construction inputs (quotes, recovery, interpolation) *before* treating the violation as tradable edge.
 
 #### Strategy Card: A3 — CDS Curve Steepener/Flattener
 
@@ -703,57 +735,69 @@ O'Kane works out the exact bounds in his examples; the takeaway is that a severe
 > - The most common surprise is **default/JTD mismatch**: CS01-neutral sizing usually requires unequal notionals, so a default can create a large residual jump even when day-to-day spread P&L is near zero.
 > - If you’re new to credit curves and hazard rates, Chapter 42 is the prerequisite; if you’re new to CDS risk measures, Chapter 43 is.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Express a view on the shape of a single name's credit curve: steepening (short end widens relative to long end) or flattening (long end widens relative to short end). Alternatively, express a "survival bet"—the steepener profits if the name survives and the curve normalizes.
+Express a view on the *shape* of a single name's credit curve:
+- **Steepening** — short end widens relative to long end (slope $S_{\text{short}} - S_{\text{long}}$ increases — e.g., an upward-sloping curve flattens toward the short end, or an inverted curve becomes more inverted).
+- **Flattening** — long end widens relative to short end (slope $S_{\text{short}} - S_{\text{long}}$ decreases — e.g., an upward curve steepens, or an inverted curve normalizes).
+- **Survival bet** — for a name with an inverted curve, "the name survives" implies the short end will **tighten** relative to the long end, i.e., the inverted curve **normalizes**. Per the definitions above, normalization is **flattening**, so the **flattener** profits (matches Example 17). The steepener is the opposite trade and *loses* on this scenario.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- **Steepener:** Buy protection at short tenor (e.g., 3Y), sell protection at long tenor (e.g., 5Y or 10Y).
-- **Flattener:** The reverse.
-- Size the trade CS01-neutral to isolate the curve shape view from parallel spread moves.
+| Trade | Short tenor (e.g., 3Y) | Long tenor (e.g., 5Y) |
+|-------|------------------------|------------------------|
+| **Steepener** | Buy protection | Sell protection |
+| **Flattener** | Sell protection | Buy protection |
 
-##### Exposure Decomposition (Units Explicit)
+Size CS01-neutral to isolate the curve-shape view from parallel spread moves.
 
-| Exposure (units) | Short leg | Long leg | Net |
-|------------------|-----------|----------|-----|
+##### 3. Exposure Decomposition
+
+| Exposure | Short leg | Long leg | Net |
+|----------|-----------|----------|-----|
 | $CS01_{3Y}$ (USD/bp) | $\gt 0$ (long prot) | 0 | positive |
 | $CS01_{5Y}$ (USD/bp) | 0 | $\lt 0$ (short prot) | negative |
-| $CS01_{\text{net}}$ (USD/bp) | — | — | ~0 by construction |
-| JTD (USD) | positive (receive prot pmt) | negative (pay prot pmt) | net depends on accrual |
-| Rec01 (USD/1%) | meaningful | meaningful | partial offset |
+| $CS01_{\text{net}}$ | — | — | $\approx 0$ by construction |
+| JTD (USD) | positive (receive payment) | negative (pay) | Net depends on accrual + sizing |
+| Rec01 (USD/1%) | meaningful | meaningful | Partial offset |
 
-##### Hedge Set and Hedge Ratios (Show Math)
+##### 4. Hedge Set and Hedge Ratios
 
-**CS01-neutral sizing:**
+CS01-neutral sizing:
 
 $$\boxed{N_{\text{long}} = N_{\text{short}} \times \frac{RPV01_{\text{short}}}{RPV01_{\text{long}}}}$$
 
-For a 3Y/5Y steepener with $RPV01_{3Y} = 2.8$ and $RPV01_{5Y} = 4.5$:
+*Worked example* (3Y/5Y steepener, $RPV01_{3Y} = 2.8$, $RPV01_{5Y} = 4.5$):
 
 $$N_{5Y} = N_{3Y} \times \frac{2.8}{4.5} = 0.622 \times N_{3Y}$$
 
-##### Scenario Test Suite
+The notionals are **unequal** — this is what creates the JTD residual.
 
-- **Parallel widening:** CS01-neutral construction should produce ~0 P&L.
-- **Curve steepening:** 3Y widens more than 5Y → steepener profits.
-- **Curve flattening:** 5Y widens more than 3Y → steepener loses.
-- **Default event:** Both legs trigger; net JTD depends on notional sizing, accrual at default, and any RPV01 change.
-- **Curve slope reversal:** Inverted curve normalizes → steepener profits (this is the "survival bet").
+##### 5. Scenario Test Suite
 
-##### Failure Modes
+| # | Scenario | Expected behavior |
+|---|----------|-------------------|
+| 1 | Parallel widening | $\approx 0$ P&L (validates CS01 neutrality) |
+| 2 | Curve steepening (3Y widens more than 5Y) | Steepener profits; flattener loses |
+| 3 | Curve flattening (5Y widens more than 3Y) | Steepener loses; flattener profits |
+| 4 | Default event | Both legs trigger; net JTD depends on sizing, accrual, RPV01 |
+| 5 | Inverted curve normalizes (3Y tightens more than 5Y) | **Flattener profits** (the "survival bet"); steepener loses |
 
-- **Default jump:** If the name defaults, both legs trigger and the JTD residual (due to notional mismatch for CS01-neutrality) can dominate all spread P&L.
-- **Curve parallel shift dominates:** Even with CS01-neutral sizing, convexity differences between tenors create residual P&L on large parallel moves.
-- **Liquidity at short end:** Short-dated CDS can be less liquid; bid-offer may consume expected curve P&L.
-- **Roll and coupon convention mismatch:** Different coupon conventions at different tenors create small but real basis effects.
+##### 6. Failure Modes
 
-##### Implementation Checklist + Verification Tests
+| Failure | Why it happens |
+|---------|----------------|
+| **Default JTD residual** | CS01 neutrality requires *unequal* notionals → default produces a net jump |
+| Convexity on large parallel moves | RPV01 differs across tenors; CS01 neutrality is only first-order |
+| Short-end liquidity | Short-dated CDS less liquid → bid/offer can consume curve P&L |
+| Coupon convention mismatch | Different conventions across tenors create small basis effects |
 
-- Verify CS01-neutral by bumping all spreads $\pm 1$ bp parallel; net P&L should be near zero.
-- Bump curve slope: bump short end $+1$ bp, long end $-1$ bp (and vice versa); verify correct sign.
-- Run default scenario with recovery sweep; verify JTD residual.
-- Check bid-offer at both tenors; ensure expected curve P&L exceeds round-trip costs.
+##### 7. Implementation Checklist
+
+- [ ] Verify CS01-neutral by parallel $\pm 1$ bp bump (net P&L $\approx 0$).
+- [ ] Bump curve slope: short $+1$ bp, long $-1$ bp (and reverse); verify correct sign.
+- [ ] Default scenario with recovery sweep; quantify JTD residual.
+- [ ] Confirm bid/offer at both tenors; expected curve P&L should exceed round-trip costs.
 
 ---
 
@@ -763,19 +807,20 @@ If CDS indices are new, Chapters 45–47 (index structure, intrinsic vs quoted, 
 
 ### Definitions (Index-Specific, Risk-First)
 
-#### Index Upfront Mechanics (Source-Backed)
+#### Index Upfront Mechanics
 
-Index trades with a fixed coupon $C$ and an upfront payment at settlement; coupon is paid quarterly on Actual/360; index rolls every six months.
+Indices trade with a **fixed coupon $C$** and an **upfront** at settlement. Coupon is paid quarterly Actual/360. Indices roll every six months.
 
-**Beginner intuition:** the coupon is standardized (like a bond coupon), while the market quotes a “spread” that moves every day (like a yield). The upfront is the one-time cash amount that reconciles the fixed coupon with the current market spread so the trade is fair on day one. This is why you will often hear traders talk about an index “price” as well as an index “spread.”
+**Beginner intuition.** The coupon is standardized (like a bond coupon). The market quotes a "spread" that moves daily (like a yield). The upfront is the one-time cash amount that reconciles the fixed coupon with today's quoted spread so the trade is fair on day one. That is why traders speak of both an index "price" and an index "spread."
 
-#### Carry (Index)
+#### Carry and Rolldown (Index)
 
-In this chapter, "carry" means the deterministic premium accrual/coupon cashflow component over a horizon (plus any deterministic accrual conventions), consistent with the sources' carry definition as coupon accrual (for tranche) and general swap cashflow logic.
+| Term | Definition (this chapter) |
+|------|---------------------------|
+| **Carry** | Deterministic premium accrual / coupon cashflow over the horizon (plus deterministic accrual conventions) |
+| **Rolldown** | The piece of P&L from aging along a sloped spread curve, holding the curve fixed (a component of theta) |
 
-#### Rolldown (Index)
-
-"Rolldown" means the component of P&L from aging along a sloped spread curve holding the curve fixed (a component of theta). This is directly aligned with the theta definition that includes roll down/up effects for upward/downward sloped spread curves.
+Rolldown follows directly from the theta definition: an upward-sloped spread curve produces a "roll-down" effect, while a downward-sloped curve produces a "roll-up."
 
 ---
 
@@ -787,81 +832,92 @@ In this chapter, "carry" means the deterministic premium accrual/coupon cashflow
 >
 > If you’re new, start with Examples 6–10. They are less about “trading” and more about learning to read a credit P&L like a desk.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Build a disciplined P&L explain for an index position:
+Build a disciplined P&L explain for an index position, splitting it into:
 
-- cashflows (carry),
-- curve aging (rolldown/theta),
-- spread moves,
-- default events and index mechanics.
+- **Carry** (deterministic cashflows),
+- **Rolldown / theta** (curve aging),
+- **Spread moves** (the random piece),
+- **Events** (defaults and index mechanics).
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- Single index CDS position (long or short protection).
-- Optional hedges: another index series (to manage roll exposure) or constituents (to manage default/event risk—imperfect).
+| Component | Role |
+|-----------|------|
+| Index CDS (long or short protection) | Core position |
+| Optional: another series | Manage roll exposure |
+| Optional: constituents | Manage default/event risk (imperfect — see A2) |
 
-##### Exposure Decomposition (Units Explicit)
+##### 3. Exposure Decomposition
 
 | Exposure | Units | Notes |
 |----------|-------|-------|
-| CS01 buckets | USD/bp | linear spread risk |
-| JTD (per index default) | USD | depends on $M$ and recovery/final price |
-| Rec01 | USD/1% | recovery dependence |
-| Roll/series basis | USD per bp of basis | difference old vs new series quotes/liquidity |
-| Carry | USD/day or USD/horizon | coupon accrual (sign depends on long/short protection) |
-| Rolldown | USD/horizon | theta due to curve slope |
+| CS01 buckets | USD/bp | Linear spread risk |
+| JTD (per index default) | USD | Depends on $M$ and recovery / final price |
+| Rec01 | USD/1% | Recovery dependence |
+| Roll / series basis | USD per bp of basis | Old vs new series quotes / liquidity |
+| Carry | USD/day or USD/horizon | Coupon accrual (sign depends on long/short prot) |
+| Rolldown | USD/horizon | Theta due to curve slope |
 
-##### Hedge Set and Hedge Ratios
+##### 4. Hedge Set and Hedge Ratios
 
-If hedging spread risk with another index:
+Spread hedge with another index:
 
-$$N_{\text{hedge}} = -\frac{CS01_{\text{target}}}{CS01_{\text{hedge}}}$$
+$$\boxed{N_{\text{hedge}} = -\frac{CS01_{\text{target}}}{CS01_{\text{hedge}}}}$$
 
-If hedging with constituents, see strategy A2/Example 4 and note basis complications.
+For constituent hedges, see Strategy A2 and Example 4 — note the basis complications.
 
-##### Scenario Test Suite
+##### 5. Scenario Test Suite
 
-- Parallel spread move.
-- Dispersion: constituents move differently from index ("intrinsic vs quoted" basis move).
-- Default event inside index (final price shock; notional reduction).
-- Roll/series basis change (on-the-run vs off-the-run repricing).
-- Liquidity/execution-cost stress (widen bid/offer assumption).
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Parallel spread move | CS01 sensitivity |
+| 2 | Dispersion (constituents diverge from index) | Quoted-vs-intrinsic basis |
+| 3 | Default event inside index | JTD + notional reduction logic |
+| 4 | Roll / series basis change | On-the-run vs off-the-run repricing |
+| 5 | Liquidity / execution-cost stress | Bid/offer widening assumption |
 
-##### Failure Modes
+##### 6. Failure Modes
 
-- Default cluster events invalidate linear approximations.
-- Index basis and portfolio swap adjustment issues if hedging vs constituents.
-- Execution costs dominate short-horizon carry/rolldown.
+| Failure | Why it happens |
+|---------|----------------|
+| Default cluster | Invalidates linear approximations |
+| Index basis / portfolio swap adjustment | Hedging vs constituents introduces extra moving parts |
+| Execution-cost drag | Short-horizon carry/rolldown can be eaten by costs |
 
-##### Implementation Checklist + Verification Tests
+##### 7. Implementation Checklist
 
-- Separate clean vs accrued P&L (coupon date jumps should net out with cash account).
-- Verify CS01 with symmetric $\pm 1$ bp bumps.
-- Event check: apply one-name default; verify notional reduction logic.
+- [ ] Separate clean vs accrued P&L (coupon-date jumps should net with cash account).
+- [ ] Verify CS01 with symmetric $\pm 1$ bp bumps.
+- [ ] Event check: one-name default — verify notional reduction logic.
 
 ---
 
 ### B2) Roll / Series Switch Mechanics (On-the-Run vs Off-the-Run)
 
-The index roll is a critical event in CDS index markets: indices roll every six months, and investors who want to stay “on‑the‑run” typically sell the old series and buy the new one.
+The index roll is a critical event: indices roll every six months, and investors who want to stay on-the-run typically sell the old series and buy the new one.
 
 #### 3.4.1 What Drives Roll P&L
 
-O'Kane identifies two primary sources of P&L impact during the roll:
+Two primary sources of roll P&L:
 
-1. **Composition changes**: the new series can differ because names are removed and replaced based on credit-quality and liquidity criteria. This can improve or worsen perceived credit quality; liquidity-driven replacements are not guaranteed to tighten spreads.
+| # | Effect | Mechanism |
+|---|--------|-----------|
+| 1 | **Composition change** | Names removed/replaced based on credit-quality and liquidity criteria. Can improve or worsen perceived credit quality. Liquidity-driven replacements are not guaranteed to tighten spreads. |
+| 2 | **Maturity extension** | New series is ~6 months longer than the previous one. On an upward-sloping curve, longer maturity → wider fair spread, all else equal. |
 
-2. **Maturity extension**: the new series is about six months longer maturity than the previous series. With upward-sloping credit curves, longer maturity tends to imply a wider fair spread, all else equal.
-
-These two effects can work in opposite directions. A credit-upgraded new index with a longer maturity may trade at the same spread as the old index if the composition improvement offsets the curve steepness.
+The two effects can offset. A credit-upgraded new index with longer maturity may trade at the *same* spread as the old index if composition improvement offsets the curve steepness. (See Examples 8 and 8B.)
 
 #### 3.4.2 The Series Basis
 
-The difference between the old (off-the-run) and new (on-the-run) series creates a **series basis** that can persist due to:
-- **Liquidity premium**: On-the-run indices typically have tighter bid-offer spreads
-- **Maturity mismatch**: Different remaining maturities mean different RPV01 values
-- **Composition differences**: Credits may enter or exit the index
+The price/spread gap between old (off-the-run) and new (on-the-run) series. It persists due to:
+
+| Driver | Effect |
+|--------|--------|
+| **Liquidity premium** | On-the-run typically has tighter bid/offer |
+| **Maturity mismatch** | Different remaining maturities → different RPV01 |
+| **Composition differences** | Credits may enter or exit the index |
 
 #### Strategy Card: B2 — Index Roll/Series Switch (Mechanics + Risk)
 
@@ -870,47 +926,52 @@ The difference between the old (off-the-run) and new (on-the-run) series creates
 > - Two sources of confusion: (i) **notional scaling** (CS01 changes because maturity changes) and (ii) **series/composition basis** (the contract you’re switching into is not identical).
 > - If you want intuition, read Examples 8 and 8B before worrying about hedge ratios.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Understand P&L drivers when switching between series, focusing on the three key elements O'Kane identifies: composition changes, maturity reset, and liquidity/on-the-run premium.
+Understand the P&L drivers of switching between series — composition change, maturity reset, and on-the-run liquidity premium.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- Two index series (old vs new) with possibly different quoted spreads and remaining maturity.
-- Switch involves: closing old + opening new (cash exchange equals MTM difference plus execution costs).
+| Component | Description |
+|-----------|-------------|
+| Old series | About to go off-the-run; lower liquidity |
+| New series | On-the-run; tighter bid/offer; longer maturity by ~6 months |
+| Switch transaction | Close old + open new → cash exchange = MTM difference + execution costs |
 
-##### Exposure Decomposition
+##### 3. Exposure Decomposition
 
 | Exposure | Units | Typical effect |
 |----------|-------|----------------|
-| Series basis | USD/bp | key driver |
-| CS01 mismatch | USD/bp | residual spread risk if maturities differ |
-| Default/event | USD | both series exposed, but composition differs |
-| Liquidity | qualitative | on-the-run often tighter bid/offer |
+| Series basis | USD/bp | **Key driver** |
+| CS01 mismatch | USD/bp | Residual if maturities differ |
+| Default / event | USD | Both series exposed; composition differs |
+| Liquidity | qualitative | On-the-run usually tighter bid/offer |
 
-##### Hedge Set and Hedge Ratios
+##### 4. Hedge Set and Hedge Ratios
 
-If goal is spread-neutral switch:
+For a spread-neutral switch:
 
-$$N_{\text{new}} = N_{\text{old}} \cdot \frac{CS01_{\text{old}}}{CS01_{\text{new}}}$$
+$$\boxed{N_{\text{new}} = N_{\text{old}} \cdot \frac{CS01_{\text{old}}}{CS01_{\text{new}}}}$$
 
-(sign consistent with long/short protection).
+(sign consistent with long/short protection). Because the new series has higher CS01 per dollar (longer maturity), this typically requires a *smaller* notional — see Example 8.
 
-##### Scenario Test Suite
+##### 5. Scenario Test Suite
 
-- Roll basis widens/tightens.
-- Old series constituents differ from new (idiosyncratic composition change).
-- Default just before/after roll (mechanical cashflow and notional effects).
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Roll basis widens / tightens | Series basis exposure |
+| 2 | Composition change (idiosyncratic) | Replacement names differ |
+| 3 | Default just before / after roll | Mechanical cashflow and notional effects |
 
-##### Failure Modes
+##### 6. Failure Modes
 
 - Composition mismatch and basis shocks dominate.
 - Liquidity dries up in off-the-run; switching costs spike.
 
-##### Implementation Checklist + Verification Tests
+##### 7. Implementation Checklist
 
-- Confirm coupon and upfront conventions for each series; do not assume.
-- Ensure consistent curve used to compute RPV01 in both series.
+- [ ] Confirm coupon and upfront conventions for each series — do not assume.
+- [ ] Ensure consistent curve used to compute RPV01 in both series.
 
 ---
 
@@ -922,46 +983,71 @@ Tranches are fundamentally different from single-name CDS and indices. Their val
 
 ### 52.6.1 Tranche PV Decomposition and Why Correlation Matters
 
-#### PV Decomposition (Conceptual)
+#### Conceptual PV Decomposition
 
-A tranche behaves like a credit derivative on the portfolio loss distribution: PV depends on expected discounted protection leg (driven by losses) and premium leg (driven by outstanding tranche notional).
+A tranche behaves like a credit derivative on the **portfolio loss distribution**:
+
+| Leg | Driven by |
+|-----|-----------|
+| Protection | Expected discounted losses inside the tranche |
+| Premium | Outstanding tranche notional over time |
 
 #### Systemic vs Idiosyncratic Risk
 
-O’Kane distinguishes two types of spread moves for tranche risk:
+There are *two* kinds of spread move for tranches — and they have *different* deltas, gammas, and hedge notions:
 
-1. **Systemic (portfolio‑wide) move:** bump *all* issuer curves together (parallel shift).
-2. **Idiosyncratic (single‑name) move:** bump one issuer’s curve holding others fixed.
+| Type | What you bump | Hedge concept |
+|------|---------------|---------------|
+| **Systemic** (portfolio-wide) | All issuer curves together (parallel) | Index-based hedge |
+| **Idiosyncratic** (single name) | One issuer's curve, others fixed | Name-specific hedge |
 
-These lead to different deltas/gammas and, therefore, different hedge notions (systemic vs name‑specific hedges).
+#### Robust Qualitative Patterns
 
-Rather than relying on any single numeric “risk report snapshot,” focus on the robust qualitative patterns (see Chapter 51 for definitions):
+Rather than memorizing any single risk-report snapshot, focus on three patterns (see Chapter 51 for definitions):
 
-- **Leverage tends to be highest for equity and falls with seniority.** A small notional slice can embed large exposure to portfolio-wide spread moves.
-- **Systemic gamma often flips sign across the stack.** Published examples show equity can have negative systemic gamma (unfavorable convexity in parallel spread moves), while more senior tranches can have positive systemic gamma.
-- **Correlation sensitivity (Corr01) can flip sign.** In a one-factor setting, increasing correlation reallocates probability mass between “few scattered defaults” and “large clusters,” which can benefit one part of the capital structure and hurt another.
+1. **Leverage is highest at equity and falls with seniority.** A small notional slice in equity embeds large exposure to portfolio-wide spread moves.
+2. **Systemic gamma flips sign across the stack.** Equity can have *negative* systemic gamma (unfavorable convexity); senior can have *positive* systemic gamma.
+3. **Corr01 flips sign.** Increasing correlation reallocates probability mass between "scattered defaults" and "clusters" — benefits one part of the stack and hurts another.
 
-**Plain-English picture:** equity protection (0–3%) is like insuring the *first* slice of portfolio loss. It is sensitive to “lots of small/medium bad outcomes.” Senior protection (e.g., 15–30%) is closer to catastrophe insurance: it only starts paying in severe clustered-default outcomes. When correlation rises, the world becomes more “all-or-nothing,” which can reduce the frequency of small scattered losses while increasing the probability of big clustered loss scenarios. That is the core reason equity and senior tranches can react in opposite directions to correlation changes.
+#### Plain-English Picture
 
-#### Correlation/Dependence Affects Tail
+| Tranche | What it insures | Reacts most to |
+|---------|-----------------|----------------|
+| **Equity (0–3%)** | The *first* slice of portfolio loss | Lots of small/medium bad outcomes ("death by a thousand cuts") |
+| **Senior (e.g., 15–30%)** | Catastrophe — only pays under clustered-default outcomes | Tail / clustering scenarios |
 
-Higher correlation increases the probability of clustered defaults (tail events), which redistributes expected losses across attachment points. In the source’s example risk report, Corr01 is negative for the equity tranche (long protection loses as correlation rises) while a senior tranche can have Corr01 of the opposite sign.
+When correlation rises, the world becomes more "all-or-nothing":
+- Fewer scattered losses → equity-protection sellers benefit (long-protection equity gets *worse*).
+- More clustered loss scenarios → senior-protection sellers suffer (long-protection senior gets *better*).
 
-This creates a natural tension: equity and senior tranches have *opposite* correlation exposures. A correlation trader can exploit this by combining tranches to isolate or neutralize correlation risk.
+That is the core reason equity and senior tranches react in *opposite* directions to correlation changes.
+
+#### Correlation / Dependence Affects the Tail
+
+Higher correlation increases the probability of **clustered defaults** (tail events), redistributing expected losses across attachment points:
+
+| Tranche (long protection) | Sign of Corr01 |
+|---------------------------|-----------------|
+| Equity | Negative (loses as correlation rises) |
+| Senior | Positive (gains as correlation rises) |
+
+This natural tension — equity and senior have *opposite* Corr01 — is the building block of correlation trading. A trader can combine tranches to isolate or neutralize correlation exposure (see 52.6.2 and Examples 12 and 20).
 
 #### Gamma Trading
 
-In the source’s discussion, traders can use a tranche’s systemic vs idiosyncratic gamma profile to express a view on “market‑wide” vs “name‑specific/dispersion” scenarios, while attempting to reduce first‑order spread exposure.
+A tranche's **systemic vs idiosyncratic gamma profile** can be used to express a view on "market-wide" vs "name-specific / dispersion" scenarios, while reducing first-order spread exposure.
 
-Published examples emphasize a useful sign intuition: **idiosyncratic gamma often has the opposite sign to systemic gamma** for a given tranche, reflecting the difference between “one-name deteriorates” vs “everything widens.” The source also highlights a common trade-off: positions that are “long convexity” (positive gamma) can come with an adverse carry/theta profile, so you must evaluate **carry vs convexity** together, not in isolation.
+**Sign intuition:** for a given tranche, **idiosyncratic gamma often has the opposite sign to systemic gamma** — reflecting the difference between "one name deteriorates" vs "everything widens."
+
+**Trade-off to evaluate explicitly:** "long convexity" (positive gamma) positions typically come with **adverse carry/theta**. Always evaluate **carry vs convexity** together — never in isolation.
 
 #### Base Correlation Framework
 
-Base correlation is a widely discussed market convention for quoting “implied correlation” across strikes and for building a surface used in tranche pricing/risk.
+Base correlation is a market convention for quoting "implied correlation" across strikes, used to build a surface for tranche pricing and risk.
 
-Key structural identity: a $[K_1, K_2]$ tranche can be represented as a linear combination (difference) of two equity tranches $[0,K_2]$ and $[0,K_1]$ (see Chapter 50 for the construction and Chapter 51 for the risk implications).
+**Key structural identity:** a $[K_1, K_2]$ tranche = $[0, K_2]$ equity tranche minus $[0, K_1]$ equity tranche (linear combination). See Chapter 50 for the construction and Chapter 51 for the risk implications.
 
-**Interpolation warning:** linear interpolation of base correlation is not guaranteed to be arbitrage‑free for non‑standard strikes. The interpolation scheme is part of the model.
+> **Interpolation warning.** Linear interpolation of base correlation is **not guaranteed arbitrage-free** for non-standard strikes. The interpolation scheme is part of the model — not a neutral choice.
 
 ---
 
@@ -973,159 +1059,178 @@ Key structural identity: a $[K_1, K_2]$ tranche can be represented as a linear c
 > - When you hedge a tranche with an index, make sure you know whether you are matching **tranche PV01** (tranche quote) or **systemic DV01** (all-name spread bump). Mixing them is a common beginner error.
 > - Chapters 50–51 are the deep dive on what these risk measures mean in practice.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Compare tranches by which risk dominates:
+Compare tranches by which risk dominates the position:
 
-- spread level (PV01),
-- dependence/correlation (corr01),
-- tail/default clustering scenarios,
-- recovery uncertainty.
+- Spread level (PV01),
+- Dependence / correlation (Corr01),
+- Tail / default-clustering scenarios,
+- Recovery uncertainty.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- One tranche $[A, B]$ (e.g., equity 0–3%, mezz 3–7%, etc.).
-- Potential hedges (conceptual map, only as supported):
-  - index CDS to hedge broad spread level,
-  - systemic delta hedging approach in the source (hedge tranche spread sensitivity to systemic spread moves).
-  - adjacent tranches as spread hedges (PV01-neutralization).
+| Component | Role |
+|-----------|------|
+| One tranche $[A, B]$ (e.g., equity 0–3%, mezz 3–7%) | Core position |
+| Index CDS | Hedge broad spread level |
+| Systemic-delta hedge (sized for systemic DV01) | Hedge tranche sensitivity to systemic spread moves |
+| Adjacent tranche | PV01-neutral spread hedge |
 
-##### Exposure Decomposition
+##### 3. Exposure Decomposition
 
 | Exposure | Units | Meaning |
 |----------|-------|---------|
-| Tranche PV01 | USD/bp | linear tranche spread risk |
-| Systemic DV01 | USD/bp | PV change under a 1bp parallel bump to all issuer curves (portfolio‑wide spread move) |
-| Systemic delta | $ notional | CDS hedge notional implied by the source’s systemic‑hedge definition |
-| Corr01 | USD per 1% corr | dependence sensitivity |
-| Tail/clustering | scenario USD | nonlinear loss jump risk |
-| Recovery sensitivity | USD/1% | recovery impacts losses and settlement |
+| Tranche PV01 | USD/bp | Linear sensitivity to *tranche's own quoted spread* |
+| Systemic DV01 | USD/bp | PV change under a 1 bp parallel bump to *all* issuer curves |
+| Systemic delta | USD notional | Index CDS notional implied by the systemic-hedge definition |
+| Corr01 | USD per 1% corr | Dependence sensitivity |
+| Tail / clustering | Scenario USD | Nonlinear loss jump risk |
+| Recovery sensitivity | USD/1% | Recovery affects losses and settlement |
 
-**Beginner check (common confusion):**
+> **Beginner check (common confusion):**
+> - **Tranche PV01** = sensitivity to the *tranche's own quoted spread* (a market quote).
+> - **Systemic DV01** = sensitivity to a *parallel bump to all underlying issuer curves* (a portfolio-wide credit move).
+> - **Systemic delta** = a *derived hedge notional* ("how much index CDS hedges the systemic DV01"). Units: USD notional, not USD/bp.
+>
+> If these objects feel interchangeable, review Chapter 51 — this is where tranche Greek language diverges from single-name CDS.
 
-- **Tranche PV01** here means sensitivity to the *tranche’s own quoted spread* (a market quote).
-- **Systemic DV01** means sensitivity to a *parallel bump to all underlying issuer curves* (a portfolio-wide credit move).
-- **Systemic delta** is often a *derived hedge notional* (e.g., “how much index CDS would hedge the systemic DV01”), so it is a number with **$ notional** units, not USD/bp.
+##### 4. Hedge Set and Hedge Ratios
 
-If these objects feel interchangeable, pause and review Chapter 51 — this is where tranche “Greek” language diverges from single-name CDS.
+**Systemic spread hedge** (size index to offset tranche's *systemic* DV01, not its quoted PV01):
 
-##### Hedge Set and Hedge Ratios (Show Math)
-
-**Systemic spread hedge (conceptual DV01 match):**
-
-If you hedge portfolio‑wide spread risk with an index CDS, size the index notional to offset the tranche’s **systemic DV01** (not the tranche’s contractual spread PV01):
-
-$$N_{\text{index}} \approx -\frac{SystemicDV01_{\text{tranche}}}{CS01_{\text{index per USD  notional}}}$$
+$$\boxed{N_{\text{index}} \approx -\frac{SystemicDV01_{\text{tranche}}}{CS01_{\text{index per USD notional}}}}$$
 
 **Adjacent tranche PV01 hedge:**
 
-$$N_{\text{hedge tranche}} = -\frac{PV01_{\text{target tranche}}}{PV01_{\text{hedge tranche}}}$$
+$$\boxed{N_{\text{hedge tranche}} = -\frac{PV01_{\text{target tranche}}}{PV01_{\text{hedge tranche}}}}$$
 
-##### Scenario Test Suite
+##### 5. Scenario Test Suite
 
-- Parallel spread move (small).
-- Dispersion (single-name basket shocks).
-- Default event / jump (one default).
-- Correlation shock (dependence up/down).
-- Tail/clustering shock (multiple defaults clustered; tranche loss nonlinear).
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Parallel spread move (small) | PV01 hedge linear |
+| 2 | Dispersion (single-name basket shocks) | Idiosyncratic exposure |
+| 3 | Default event / jump (1 default) | JTD residual |
+| 4 | Correlation shock ($\pm$10% or larger) | Corr01 + convexity |
+| 5 | Tail / clustering (5–10 clustered defaults) | Nonlinear tranche loss |
 
-##### Failure Modes
+##### 6. Failure Modes
 
-- PV01 hedges fail under default clustering (loss-driven jump).
-- Model risk: base correlation interpolation and mapping choices.
-- Liquidity and unwind risk in tranches.
+| Failure | Why it happens |
+|---------|----------------|
+| PV01 hedge fails under clustering | Linear hedge vs jump payoff (Examples 13, 14) |
+| Model risk | Base-correlation interpolation and mapping choices |
+| Liquidity / unwind risk | Tranche markets can be thin |
 
-##### Implementation Checklist + Verification Tests
+##### 7. Implementation Checklist
 
-- Bump PV01 with $\pm 1$ bp; check symmetry.
-- Corr01: revalue with $\rho \pm 1\\%$; confirm stable sign/magnitude.
-- Run discrete default scenarios: 1 default, 5 defaults, 10 defaults; compare hedge performance.
+- [ ] Bump PV01 with $\pm 1$ bp; check symmetry.
+- [ ] Corr01: revalue with $\rho \pm 1\\%$; confirm stable sign/magnitude (then run a *large* shock — see Example 20).
+- [ ] Run discrete default scenarios: 1, 5, 10 defaults; compare hedge performance.
 
 ---
 
 ### 52.6.2 Tranche Example: Equity vs Senior Correlation Trade
 
-This is a **toy** illustration of how you might combine two tranches to reduce (not eliminate) correlation exposure.
+A **toy** illustration of combining two tranches to *reduce* (not eliminate) correlation exposure.
 
 #### Setup (Toy Numbers)
 
-- Reference portfolio: $N=125$ names (equal-weight), total notional USD 1,250mm.
-- Equity tranche: 0–3% (long protection).
-- Senior tranche: 15–30% (long protection).
-- Current implied correlation parameter: $\rho_0$ (exact model details omitted).
+| Item | Value |
+|------|-------|
+| Reference portfolio | 125 equal-weight names, total notional USD 1,250mm |
+| Equity tranche | 0–3%, long protection |
+| Senior tranche | 15–30%, long protection |
+| Current implied correlation | $\rho_0$ (model details omitted) |
 
-Assume your risk system reports (per $USD 10$mm tranche notional):
-- Equity Corr01 (long protection): $-USD 80{,}000$ per +1% correlation bump
-- Senior Corr01 (long protection): $+USD 150{,}000$ per +1% correlation bump
+Risk-system Corr01 (per USD 10mm tranche notional, long protection):
 
-These signs encode the intuition: higher correlation can make equity safer (hurting long‑protection equity) while making senior tail riskier (helping long‑protection senior).
+| Tranche | Corr01 per $+1\\%$ |
+|---------|--------------------|
+| Equity (0–3%) | $-USD 80{,}000$ |
+| Senior (15–30%) | $+USD 150{,}000$ |
+
+These signs encode the intuition: higher correlation makes equity safer (hurts long-protection equity) and senior tail riskier (helps long-protection senior).
 
 #### Correlation-Neutral Sizing (Local)
 
-To target Corr01 neutrality at the current point:
+For local Corr01 neutrality:
 
-$$N_{\text{equity}} \approx N_{\text{senior}}\times \frac{|\text{Corr01}_{\text{senior}}|}{|\text{Corr01}_{\text{equity}}|} = N_{\text{senior}}\times \frac{150}{80} = 1.875\\,N_{\text{senior}}.$$
+$$N_{\text{equity}} \approx N_{\text{senior}}\times \frac{|\text{Corr01}_{\text{senior}}|}{|\text{Corr01}_{\text{equity}}|} = N_{\text{senior}}\times \frac{150}{80} = 1.875\\,N_{\text{senior}}$$
 
-#### Residual Exposures (Why “Corr01-Neutral” ≠ “Risk-Neutral”)
+#### Residual Exposures — Why "Corr01-Neutral" ≠ "Risk-Neutral"
 
-Even if Corr01 is near zero locally, you still retain:
-- **Systemic spread risk** (systemic DV01 / systemic delta): the two tranches generally do not offset the same way for parallel spread moves.
-- **Gamma/convexity**: systemic and idiosyncratic gamma profiles differ across the stack; hedge ratios drift in large moves.
-- **Jump / clustering risk**: realized defaults and clustered-default scenarios can dominate small-move hedges.
-- **Model risk**: Corr01 depends on parameterization and calibration (compound vs base correlation, interpolation rules).
+Even if Corr01 is near zero locally, the position still carries:
 
-Practical takeaway: treat “Corr01‑neutral” as a *local* risk reduction, then validate the trade under stress scenarios (spread shocks, correlation shocks, clustered defaults, recovery/final price).
+| Residual | Why it remains |
+|----------|----------------|
+| Systemic spread risk (DV01 / systemic delta) | Two tranches don't offset for parallel spread moves |
+| Gamma / convexity | Systemic and idiosyncratic gamma profiles differ across the stack; hedge ratios drift in large moves |
+| Jump / clustering | Realized defaults and clustered scenarios dominate small-move hedges |
+| Model risk | Corr01 depends on parameterization and calibration (compound vs base correlation, interpolation) |
+
+**Practical takeaway:** treat Corr01-neutrality as a **local** risk reduction. Validate the trade under stress scenarios — spread shocks, correlation shocks, clustered defaults, recovery/final price (see Example 20).
 
 ---
 
 ## 52.6.3 Strategy Selection: When to Use Which Approach
 
-The four strategy families address different risk views and market opportunities:
+The strategy families address different risk views. The tables below match each view to a strategy and flag the dominant residual.
 
 ### Basis Strategies (A1, A2, A3)
 
-**Use when**: You have a view on the relationship between cash and synthetic markets, between single-name and index exposures, or on CDS curve shape.
+**Use when:** you have a view on cash vs synthetic, single-name vs index, or CDS curve shape.
 
-| Strategy | Best For | Key Residual |
+| Strategy | Best for | Key residual |
 |----------|----------|--------------|
-| Bond-CDS basis (A1) | Funding arbitrage, delivery option value, loss-on-default mismatch | Basis widening/tightening; funding shock |
-| Single-name vs index (A2) | Isolating idiosyncratic risk with market hedge | Single-name default jump; composition mismatch |
-| CDS curve steepener/flattener (A3) | View on term structure of default risk | JTD mismatch from unequal notionals; parallel moves |
+| **A1** Bond-CDS basis | Funding arbitrage; delivery option value; loss-on-default mismatch | Basis widening/tightening; funding shock |
+| **A2** Single-name vs index | Isolating idiosyncratic risk with market hedge | Single-name JTD; composition mismatch |
+| **A3** CDS curve steepener/flattener | Term-structure view | JTD mismatch from unequal notionals; parallel moves |
 
-**Decision criteria**:
-- If you believe funding conditions favor CDS over bonds → basis package with long CDS
-- If you want to isolate a single name's idiosyncratic risk → proxy hedge with index
-- If you expect the name to outperform/underperform vs market → single vs index trade
-- If you believe an inverted HY curve will normalize → curve flattener (but manage JTD)
+**Decision criteria:**
+
+| If you believe... | Use |
+|-------------------|-----|
+| Funding conditions favor CDS over bonds | Basis package with long CDS (A1) |
+| Single name has idiosyncratic risk to isolate | Proxy hedge with index (A2) |
+| Name will outperform / underperform market | Single vs index (A2) |
+| Inverted HY curve will normalize | Curve flattener (A3) — manage JTD |
 
 ### Carry and Rolldown Strategies (B1, B2)
 
-**Use when**: You want to understand or capture the time-value components of an index position.
+**Use when:** you want to capture or explain time-value components of an index position.
 
-| Strategy | Best For | Key Residual |
+| Strategy | Best for | Key residual |
 |----------|----------|--------------|
-| Index carry/rolldown (B1) | Systematic carry harvesting; P&L attribution | Spread moves dominate carry; default events |
-| Series roll (B2) | Managing roll costs; on-the-run liquidity | Series basis shock; composition changes |
+| **B1** Index carry/rolldown | Systematic carry; P&L attribution | Spread moves; default events |
+| **B2** Series roll | Manage roll cost; on-the-run liquidity | Series basis shock; composition changes |
 
-**Decision criteria**:
-- If index curves are upward-sloping and you expect stability → rolldown capture
-- If new series has favorable composition → roll early
-- If basis trade vs constituents → watch portfolio swap adjustment effects
+**Decision criteria:**
 
-### Correlation/Tranche Strategies (C1)
+| If... | Use |
+|-------|-----|
+| Index curves upward-sloping, you expect stability | Rolldown capture (B1) |
+| New series has favorable composition | Roll early (B2) |
+| Basis trade vs constituents | Watch portfolio-swap-adjustment effects |
 
-**Use when**: You have a view on correlation, dispersion, or tail risk.
+### Correlation / Tranche Strategies (C1)
 
-| Strategy | Best For | Key Residual |
+**Use when:** you have a view on correlation, dispersion, or tail risk.
+
+| Position | Best for | Key residual |
 |----------|----------|--------------|
-| Long equity protection | Tail risk hedge; negative carry | Spread tightening; correlation decrease |
+| Long equity protection | Tail-risk hedge | Spread tightening; correlation decrease; negative carry |
 | Short senior protection | Carry collection; bullish credit | Correlation increase; default clustering |
-| Equity-senior combo | Correlation view without full spread exposure | Systemic delta; gamma profile changes |
+| Equity-senior combo | Correlation view without full spread exposure | Systemic delta; gamma profile drift |
 
-**Decision criteria**:
-- If you expect increased dispersion (idiosyncratic moves) → long equity protection (positive I.gamma)
-- If you expect systemic widening → short equity protection (positive S.gamma)
-- If you want correlation exposure without full spread risk → combine equity and senior
+**Decision criteria:**
+
+| If you expect... | Position |
+|------------------|----------|
+| Increased dispersion (idiosyncratic moves) | Long equity protection (positive idiosyncratic gamma) |
+| Systemic widening | Short equity protection (positive systemic gamma) |
+| Correlation view without full spread risk | Combine equity and senior |
 
 ### The Master Decision Tree
 
@@ -1171,73 +1276,85 @@ Capital structure arbitrage exploits mispricings between different levels of a f
 
 ### 52.7.1 Recovery Rates by Seniority
 
-Empirical studies summarized by O’Kane (sourced to Altman et al.) emphasize three desk‑relevant facts:
+Empirical studies summarized by O'Kane (sourced to Altman et al.) emphasize three desk-relevant facts:
 
-1. **Seniority matters:** senior claims tend to recover more on average than subordinated claims.
-2. **Recoveries are noisy:** the dispersion of recoveries is wide; “one number” recoveries are dangerous in stress tests.
-3. **Absolute priority is not guaranteed:** realized recoveries do not always obey a strict absolute‑priority ordering.
+| # | Fact | Why it matters |
+|---|------|----------------|
+| 1 | **Seniority matters** | Senior claims recover more on average than subordinated claims |
+| 2 | **Recoveries are noisy** | Dispersion of recoveries is wide — "one number" recoveries are dangerous in stress tests |
+| 3 | **Absolute priority is not guaranteed** | Realized recoveries do not always obey strict absolute-priority ordering |
 
-For intuition, the dataset summarized in the book shows materially higher mean recovery for senior secured loans (around the high‑60%s) than for senior unsecured bonds (around the mid‑30%s).
+**Indicative mean recoveries** (per the dataset summarized in the book):
 
-> **Desk Reality: Why Recovery Matters More Than You Think**
->
-> Differences in expected recovery across the capital structure can translate into large spread differences in distressed regimes. If you assume the same recovery for senior and subordinated debt, you can mis-size hedges and understate jump and scenario P&L.
+| Claim type | Mean recovery |
+|------------|---------------|
+| Senior secured loans | ~high 60%s |
+| Senior unsecured bonds | ~mid 30%s |
+
+> **Desk Reality.** Differences in expected recovery across the capital structure translate into large spread differences in distressed regimes. Assuming the same recovery for senior and sub debt → mis-sized hedges and understated jump/scenario P&L.
 
 ### 52.7.2 The Senior-Subordinated Spread Relationship
 
-O'Kane derives the theoretical relationship between senior and subordinated CDS spreads. For a single hazard rate $\lambda$ shared across the capital structure:
+For a single hazard rate $\lambda$ shared across the capital structure (different LGDs):
 
 $$S_{\text{sub}} = \lambda(1 - R_{\text{sub}}) \quad \text{and} \quad S_{\text{sen}} = \lambda(1 - R_{\text{sen}})$$
 
-Dividing:
+Dividing eliminates $\lambda$:
 
 $$\boxed{\frac{S_{\text{sub}}}{S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
 
-O’Kane emphasizes that this ratio is only a rough guide: market technicals and contract specifics can push observed spreads away from the simple relationship. The main use is as a consistency check: spreads across seniority should be broadly aligned with expected recovery differences.
+This ratio is a **consistency check**, not a guarantee. Market technicals and contract specifics push observed spreads away from the simple relationship. The main use is sanity-checking: spreads across seniority should be broadly aligned with expected recovery differences.
 
-**Worked Example:** If senior unsecured recovery is 40% and subordinated recovery is 20%:
+**Worked example.** Senior unsecured recovery 40%, sub recovery 20%:
 
-$$\frac{S_{\text{sub}}}{S_{\text{sen}}} = \frac{1 - 0.20}{1 - 0.40} = \frac{0.80}{0.60} = 1.333$$
+$$\frac{S_{\text{sub}}}{S_{\text{sen}}} = \frac{1 - 0.20}{1 - 0.40} = \frac{0.80}{0.60} \approx 1.333$$
 
-So subordinated CDS should trade at approximately 1.33× the senior spread. If senior CDS is 100 bp, sub CDS should be ~133 bp. Deviations from this ratio signal relative value opportunities—or reflect market technicals that the simple model doesn't capture.
+If senior CDS is 100 bp, sub CDS should be ~133 bp. Material deviations signal RV opportunities — or hidden market technicals.
 
 ### 52.7.3 The Merton Model: Equity-Credit Connection
 
-O'Kane presents the Merton model (Section 3.4) as the foundational structural model linking equity and debt values. The model assumes a simplified capital structure:
-- Face value $F$ of $T$-maturity zero coupon bonds with total value $D$
-- Shares with total value $E$ paying no dividends
-- Asset value $A(t) = D(t) + E(t)$
+The Merton model is the foundational structural model linking equity and debt. Setup:
 
-At maturity, the payoffs are:
+| Item | Definition |
+|------|------------|
+| Face value $F$ | $T$-maturity zero-coupon bonds with total value $D$ |
+| Equity $E$ | Shares paying no dividends |
+| Asset value | $A(t) = D(t) + E(t)$ |
+
+#### Maturity Payoffs
 
 $$E(T) = \max[A(T) - F, 0] \quad \text{(equity = call option on firm assets)}$$
-$$D(T) = F - \max[F - A(T), 0] \quad \text{(debt = cash minus put option)}$$
 
-In the Merton model, equity has the same payoff as a call option on firm assets with strike equal to the face value of debt due at $T$.
+$$D(T) = F - \max[F - A(T), 0] \quad \text{(debt = cash minus put on assets)}$$
 
-Using the Black-Scholes framework with asset volatility $\sigma_A$:
+Equity has the same payoff as a **call option** on firm assets with strike equal to the face value of debt due at $T$.
+
+#### Black-Scholes Form
+
+With asset volatility $\sigma_A$:
 
 $$E(t) = A(t)\Phi(d_1) - Fe^{-r(T-t)}\Phi(d_2)$$
 
-where $d_1, d_2$ follow the standard Black-Scholes definitions.
+(Standard Black-Scholes $d_1, d_2$.)
 
-O'Kane derives the relationship between equity and asset volatility:
+#### Equity vs Asset Volatility
 
-$$\sigma_E = \sigma_A \Phi(d_1) \frac{A(t)}{E(t)}$$
+$$\boxed{\sigma_E = \sigma_A \\, \Phi(d_1) \\, \frac{A(t)}{E(t)}}$$
 
-This relationship can be inverted to back out an implied asset volatility from observed equity volatility and leverage (one of the model's practical uses).
+This identity can be **inverted** to back out an implied asset volatility from observed equity volatility and leverage — one of the model's main practical uses.
 
-#### Limitations (O'Kane Section 3.4.1)
+#### Limitations
 
-O'Kane lists key limitations that matter for desk intuition:
-- The simplified capital structure is unrealistic.
-- Default is only allowed at a single time $T$ in the basic setup.
-- There is limited transparency regarding the value of a company's assets.
-- Short-dated credit spreads can be understated when assets are well above debt (the model pushes spreads toward zero as $T-t \to 0$ in that region).
+| Limitation | Why it matters |
+|------------|----------------|
+| Capital structure simplified | Unrealistic for real firms |
+| Default at single time $T$ | Real defaults can occur any time |
+| Asset values opaque | Hard to estimate $A(t)$ in practice |
+| Short-dated spreads understated | Model pushes spreads → 0 as $T - t \to 0$ when assets $\gg$ debt |
 
-Despite these limitations, O’Kane connects the intuition to correlation models: in one‑factor copula models, defaults are often driven by a latent “asset” variable in the same broad spirit as structural models.
+Despite these limits, the Merton intuition connects to correlation modeling: in one-factor copula models, defaults are driven by a latent "asset" variable in the same spirit.
 
-**Desk note (intuition, not a pricing formula):** the Merton linkage $\sigma_E = \sigma_A\\,\Phi(d_1)\\,A/E$ implies that as equity value $E$ falls (leverage rises), equity volatility can rise even if asset volatility is unchanged. In the same structural framing, higher leverage increases default risk and can push credit spreads wider. In practice, mapping equity vol to CDS levels is noisy and model‑dependent, but equity–credit divergences are a common starting point for capital‑structure RV discussions.
+> **Desk note (intuition, not a pricing formula).** The Merton linkage $\sigma_E = \sigma_A \\, \Phi(d_1) \\, A/E$ implies that as $E$ falls (leverage rises), equity vol can rise even with $\sigma_A$ unchanged. In the same framing, higher leverage → wider credit spreads. In practice, mapping equity vol to CDS levels is noisy and model-dependent — but equity-credit divergences are a common starting point for capital-structure RV.
 
 ### Strategy Card: D1 — Senior vs Subordinated CDS
 
@@ -1246,55 +1363,62 @@ Despite these limitations, O’Kane connects the intuition to correlation models
 > - The simple spread-ratio formula is a *consistency check*, not a guarantee. Real trades live and die on documentation, deliverables, liquidity, and the recovery distribution.
 > - If you want background: Chapter 39 (documentation and restructuring) and Chapter 40 (auction/final price) are the operational prerequisites.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
 Exploit deviations of the senior-sub spread ratio from its theoretical value, or express a view on relative recovery rates across the capital structure.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- **Long sub protection, short senior protection** (betting sub widens relative to senior → the ratio increases toward theoretical fair value)
-- **Or the reverse** (betting ratio compresses)
-- Size for CS01-neutrality or for a specific spread-ratio view.
+| Direction | Position | Bet |
+|-----------|----------|-----|
+| **Sub widens vs senior** | Long sub protection + short senior protection | Ratio rises toward theoretical fair value |
+| **Sub tightens vs senior** | Short sub protection + long senior protection | Ratio compresses |
 
-##### Exposure Decomposition
+Size for CS01-neutrality *or* for a specific spread-ratio view.
 
-| Exposure (units) | Senior leg | Sub leg | Net |
-|------------------|-----------|---------|-----|
-| $CS01$ (USD/bp) | $\lt 0$ (short prot) | $\gt 0$ (long prot) | can match or intentional residual |
-| JTD (USD) | negative | positive | recovery-dependent residual |
-| Rec01 (USD/1%) | senior recovery sens | sub recovery sens | **key residual**: different recovery drives P&L |
-| Default event | pays $(1 - R_{\text{sen}})$ | receives $(1 - R_{\text{sub}})$ | net gain if $R_{\text{sub}} \lt R_{\text{sen}}$ (typical) |
+##### 3. Exposure Decomposition
 
-##### Hedge Set and Hedge Ratios
+| Exposure | Senior leg | Sub leg | Net |
+|----------|-----------|---------|-----|
+| $CS01$ (USD/bp) | $\lt 0$ (short prot) | $\gt 0$ (long prot) | Can match or carry intentional residual |
+| JTD (USD) | negative | positive | Recovery-dependent residual |
+| Rec01 (USD/1%) | senior recovery | sub recovery | **Key residual** — different recovery drives P&L |
+| Default payoff | pays $(1 - R_{\text{sen}})$ | receives $(1 - R_{\text{sub}})$ | Net gain if $R_{\text{sub}} \lt R_{\text{sen}}$ (typical) |
+
+##### 4. Hedge Set and Hedge Ratios
 
 **CS01-neutral sizing:**
 
-$$N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}$$
+$$\boxed{N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}}$$
 
-**Ratio-neutral sizing (maintaining spread ratio):**
+**Ratio-neutral sizing** (maintain the theoretical spread ratio):
 
-$$\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}$$
+$$\boxed{\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
 
-##### Scenario Test Suite
+##### 5. Scenario Test Suite
 
-- Parallel spread move (both senior and sub widen together).
-- Ratio compression: sub tightens relative to senior.
-- Ratio expansion: sub widens relative to senior.
-- Default event: both trigger; compute net JTD using different recovery rates.
-- Recovery surprise: actual recovery differs from assumed values.
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Parallel spread move (both widen together) | CS01 match |
+| 2 | Ratio compression (sub tightens vs senior) | Direction of view |
+| 3 | Ratio expansion (sub widens vs senior) | Direction of view |
+| 4 | Default event with different recovery rates | JTD residual |
+| 5 | Recovery surprise (realized $\neq$ assumed) | Rec01 dominance |
 
-##### Failure Modes
+##### 6. Failure Modes
 
-- **Recovery uncertainty dominates:** The trade's JTD depends critically on the difference $R_{\text{sen}} - R_{\text{sub}}$. If recovery turns out to be 20% for both (APR violation), the trade loses its structural advantage.
-- **Liquidity asymmetry:** Sub CDS may be significantly less liquid than senior; execution costs can exceed the theoretical edge.
-- **Market technicals:** supply/demand and positioning can push the ratio far from the simple recovery-implied relationship for extended periods.
+| Failure | Why it happens |
+|---------|----------------|
+| **Recovery uncertainty dominates** | JTD depends on $R_{\text{sen}} - R_{\text{sub}}$. If APR is violated and recoveries equalize at 20%, the structural edge disappears. |
+| Liquidity asymmetry | Sub CDS often much less liquid than senior; execution costs can exceed theoretical edge |
+| Market technicals | Supply/demand can hold the ratio away from the recovery-implied level for long periods |
 
-##### Implementation Checklist
+##### 7. Implementation Checklist
 
-- Verify both CDS reference the same entity with aligned maturities.
-- Use appropriate recovery assumptions for each seniority level.
-- Check that the spread ratio is historically wide or tight relative to the theoretical level before trading.
-- Run default scenario with recovery sweep ($R$ from 10% to 60%) on both legs.
+- [ ] Verify both CDS reference the same entity with aligned maturities.
+- [ ] Use appropriate recovery assumptions for each seniority level.
+- [ ] Check the spread ratio against history — is it wide or tight relative to the theoretical level?
+- [ ] Default scenario with recovery sweep ($R$ from 10% to 60%) on both legs.
 
 ---
 
@@ -1305,226 +1429,256 @@ $$\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}
 > - The hard part is that the hedge is imperfect: equity brings delta/vega and discrete corporate actions; CDS brings default/settlement mechanics.
 > - If you are new to this, read Section 52.7.3 for the structural intuition and then go straight to Example 19 (LBO toy) to see why sizing is nontrivial.
 
-##### Objective (Conceptual; No Forecasts)
+##### 1. Objective
 
-Exploit divergences between equity-implied credit risk and CDS-priced credit risk, using the Merton model's insight that both are functions of the same underlying asset value and volatility.
+Exploit divergences between **equity-implied** credit risk and **CDS-priced** credit risk, using the Merton-model insight that both are functions of the same underlying asset value and volatility.
 
-##### Instruments and Position Construction
+##### 2. Instruments and Position Construction
 
-- **CDS leg:** single-name CDS (long or short protection).
-- **Equity leg:** equity options or equity shares used to hedge the equity-implied credit component.
-- The trade exploits the link: when equity volatility implies a default probability different from what CDS spreads imply, one of them may be mispriced.
+| Leg | Role |
+|-----|------|
+| **CDS leg** | Single-name CDS (long or short protection) |
+| **Equity leg** | Equity options or shares used to hedge the equity-implied credit component |
 
-**Desk note (LBO/leverage events):** an LBO is a discrete capital‑structure shock. It can change leverage, covenant package, and expected recoveries, so both senior and subordinated CDS can reprice sharply. Some desks express an LBO view as an outright **credit‑widening** position (buying protection), while others express a **relative** senior vs sub view. The direction and sizing depend on the specific deal structure and which obligations are effectively being referenced by each CDS contract.
+The trade exploits a logical inconsistency: when equity volatility implies one default probability and CDS spreads imply another, one market may be mispriced.
 
-Senior vs sub recovery and settlement mechanics in LBO situations are documentation-dependent (guarantees, obligation characteristics, and the post‑deal capital structure). Before sizing a senior-vs-sub expression, confirm the relevant contract terms, deliverables/obligations, and the recovery/settlement assumptions used in your risk system.
+> **Desk note — LBO / leverage events.** An LBO is a discrete capital-structure shock. It can change leverage, covenant package, and expected recoveries — both senior and subordinated CDS can reprice sharply. Common expressions:
+> - **Outright credit-widening** (buy protection).
+> - **Relative senior vs sub** view.
+>
+> Direction and sizing depend on deal structure and which obligations each CDS contract references. Senior vs sub recovery in LBOs is documentation-dependent (guarantees, obligation characteristics, post-deal capital structure). Confirm contract terms, deliverables, and recovery assumptions in your risk system before sizing.
 
-##### Exposure Decomposition
+##### 3. Exposure Decomposition
 
-| Exposure (units) | CDS leg | Equity leg | Net |
-|------------------|---------|------------|-----|
-| Credit spread sensitivity | CS01 | equity-implied CS01 | residual |
-| Equity delta | ~0 | dominant | equity exposure |
-| Equity vega | indirect (via Merton link) | dominant | vol exposure |
-| JTD | CDS default payoff | equity goes to ~0 | significant residual |
+| Exposure | CDS leg | Equity leg | Net |
+|----------|---------|------------|-----|
+| Credit spread sensitivity | CS01 | equity-implied CS01 | Residual |
+| Equity delta | $\approx 0$ | dominant | Equity exposure |
+| Equity vega | indirect (Merton link) | dominant | Vol exposure |
+| JTD | CDS default payoff | equity goes to ~0 | **Significant residual** |
 
-##### Failure Modes
+##### 4. Failure Modes
 
-- **Model risk:** The Merton model is highly simplified. O'Kane lists limitations including unrealistic capital structure, single default time, and opaque asset values. Any trade based on Merton-implied fair value inherits these model risks.
-- **Equity-credit decorrelation:** In practice, equity and CDS can diverge for reasons the model doesn't capture (e.g., equity buybacks, dividend changes, sector rotation).
-- **Execution complexity:** Running a CDS-equity hedge requires managing two different asset classes with different settlement, margin, and liquidity characteristics.
+| Failure | Why it happens |
+|---------|----------------|
+| **Model risk** | Merton is highly simplified — unrealistic capital structure, single default time, opaque asset values. Any Merton-implied fair value inherits these limitations. |
+| Equity-credit decorrelation | Equity and CDS can diverge for reasons the model doesn't capture (buybacks, dividend changes, sector rotation) |
+| Execution complexity | Running a CDS-equity hedge spans two asset classes with different settlement, margin, and liquidity profiles |
 
 ---
 
 ## 52.8 Loan CDS vs Standard CDS
 
-O'Kane discusses Loan CDS (LCDS) in Section 5.7 as a variant that references loans rather than bonds. A key intuition is recovery: secured loans have historically recovered more than senior unsecured bonds, so the same default intensity can imply a tighter spread for loan CDS.
+**Loan CDS (LCDS)** references loans rather than bonds. The key economic difference is **recovery**: secured loans have historically recovered more than senior unsecured bonds, so the same default intensity implies a *tighter* fair spread for LCDS.
 
-From the recovery dataset summarized in the book (Altman et al.), mean recoveries are roughly 68.5% for senior secured loans and 34.89% for senior unsecured bonds. In a toy "equal hazard rate" world where spread scales like $(1-R)$:
+#### Recovery-Driven Spread Ratio
 
-$$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\text{loan}}} = \frac{1 - 0.35}{1 - 0.685} = \frac{0.65}{0.315} = 2.06$$
+Indicative mean recoveries (Altman et al. dataset):
 
-**Interpretation:** higher expected recovery on loans implies lower loss-given-default and therefore a lower fair spread, all else equal. **Caveat:** LCDS contracts can embed additional features (deliverable definitions, and in some forms a cancellation/refinancing feature), so you should not treat the ratio as a universal rule.
+| Claim | Recovery $R$ |
+|-------|--------------|
+| Senior secured loan | ~68.5% |
+| Senior unsecured bond | ~34.89% |
 
-O'Kane also highlights that LCDS trigger definitions can differ across products/regions and that cancellable LCDS introduces a cancellation feature. In O’Kane’s treatment, valuing cancellable LCDS introduces both a default survival curve $Q_D$ and a cancellation curve $Q_C$.
+Under an equal-hazard-rate assumption (spread scales like $1-R$):
 
-LCDS conventions and liquidity are contract- and time-dependent. Before trading or marking LCDS, confirm the relevant trigger definitions, any cancellation/refinancing feature, the quoting regime (spread vs coupon+upfront), and execution liquidity for the specific name/index you care about.
+$$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\text{loan}}} = \frac{0.65}{0.315} \approx 2.06$$
+
+**Interpretation:** higher expected recovery on loans → lower LGD → lower fair spread, all else equal.
+
+#### Caveats and Contract Features
+
+| Feature | Implication |
+|---------|-------------|
+| Deliverable definitions | Loan-specific deliverability rules differ from bond CDS |
+| Cancellation / refinancing (in some LCDS forms) | The contract can be cancelled if the underlying loan is refinanced |
+| Trigger definitions | Vary across products and regions |
+
+For **cancellable LCDS**, valuation requires both:
+- a default survival curve $Q_D$, and
+- a cancellation curve $Q_C$.
+
+> **Operational note.** LCDS conventions and liquidity are contract- and time-dependent. Before trading or marking LCDS, confirm:
+> - Trigger definitions
+> - Any cancellation/refinancing feature
+> - Quoting regime (spread vs coupon + upfront)
+> - Execution liquidity for the specific name/index
 
 ---
 
 ## 52.9 Crisis Behavior of Credit Strategies
 
-The strategies described in this chapter are designed for normal market conditions. In systemic stress, the assumptions underlying hedging relationships break down. O'Kane's emphasis on "perfect storm" risk—multiple adverse moves coinciding—is especially relevant here.
+Strategies in this chapter are designed for normal market conditions. In systemic stress, the assumptions underlying hedging relationships break down. The "perfect storm" — multiple adverse moves coinciding — is especially relevant here.
 
 ### 52.9.1 Basis Strategies in Crisis
 
-In O’Kane’s framing, basis trades are vulnerable in stress because multiple basis drivers can move in the same adverse direction:
+Basis trades are vulnerable because multiple drivers can move adversely *together*:
 
-1. **Funding asymmetry dominates:** the cash bond leg must be financed, while CDS is economically unfunded. When repo/funding terms tighten, the cash leg can become very expensive to carry.
+| # | Stress mechanism | Effect |
+|---|-------------------|--------|
+| 1 | **Funding asymmetry dominates** | Bond leg must be financed; CDS is unfunded. Tightening repo makes the cash leg expensive to carry. |
+| 2 | **CDS becomes the "fast" short** | Easier to short credit via CDS than via cash bonds → protection-buying flows push CDS wider faster than cash spreads. |
+| 3 | **Technical flows can reverse** | Dealer hedging of structured-credit flows (e.g., synthetic CDO issuance and unwind) can mechanically tighten or widen CDS spreads vs cash. |
 
-2. **CDS becomes the “fast” short:** it is often operationally easier to go short credit via CDS than via cash bonds, so protection‑buying flows can push CDS wider faster than cash spreads.
-
-3. **Technical flows can reverse:** dealer hedging of structured‑credit flows (e.g., synthetic CDO issuance and unwind) can mechanically tighten or widen CDS spreads relative to cash.
-
-Stress‑test takeaway: a basis package that looks low‑risk under “small moves” can suffer large, discontinuous losses when funding and liquidity regimes shift.
+**Stress-test takeaway:** a basis package that looks low-risk under small moves can suffer large, *discontinuous* losses when funding and liquidity regimes shift.
 
 ### 52.9.2 Correlation and Tranche Trades in Crisis
 
-Published tranche risk examples highlight that equity tranches can be highly leveraged and can carry negative systemic gamma. In stress regimes:
+Published tranche-risk examples highlight that equity tranches are highly leveraged and often carry **negative systemic gamma**. In stress:
 
-- **Correlation spikes:** Defaults cluster, losses concentrate in equity and mezzanine tranches.
-- **Equity tranche losses accelerate:** The negative systemic gamma means large spread moves *amplify* equity tranche losses beyond the linear (delta) approximation.
-- **Senior tranches initially benefit, then face tail risk:** Senior tranches have positive systemic gamma (they gain on large moves initially), but if defaults actually cluster and breach attachment points, losses can be sudden and severe.
+| Trigger | Tranche behavior |
+|---------|------------------|
+| Correlation spike | Defaults cluster → losses concentrate in equity and mezzanine |
+| Large parallel widening | Negative systemic gamma *amplifies* equity tranche losses beyond the linear delta |
+| Realized clustered defaults | Senior tranches gain initially (positive systemic gamma) but suffer **sudden, severe losses** if attachment points are breached |
 
-Correlation hedges are inherently model‑dependent and tend to be least reliable precisely in the states where tail risk dominates. Treat correlation and clustering as scenario‑driven risks, not just a single Corr01 number.
+Correlation hedges are inherently model-dependent and least reliable precisely when tail risk dominates. **Treat correlation and clustering as scenario-driven risks**, not a single Corr01 number.
 
 ### 52.9.3 Early Warning Indicators
 
-Useful monitoring signals (exact thresholds are desk policy):
+Useful monitoring signals (thresholds are desk-specific):
 
-- CDS–bond basis and its rate of change.
-- Index “quoted vs intrinsic” basis (and any portfolio‑swap adjustment changes).
-- Implied correlation / tranche marks (and Corr01 P&L vs carry/theta).
-- Funding terms for the cash leg (repo availability/terms) and margin requirements.
-- Bid/offer and market depth (liquidity regime).
+| Signal | What to watch |
+|--------|---------------|
+| CDS–bond basis | Level + rate of change |
+| Index quoted vs intrinsic basis | Including any portfolio-swap-adjustment changes |
+| Implied correlation / tranche marks | Plus Corr01 P&L vs carry/theta |
+| Funding terms (cash leg) | Repo availability/terms; margin requirements |
+| Bid/offer + market depth | Liquidity regime |
 
-Thresholds and escalation playbooks are set by each desk (risk appetite, governance, and market regime). Use the signal list above as generic categories, then plug in your desk’s specific thresholds and escalation actions.
+Thresholds and escalation playbooks are desk policy (risk appetite, governance, market regime). Use the signal list as generic *categories* — plug in desk-specific thresholds and escalation actions.
 
 ---
 
 ## 52.10 Execution and Position Management
 
-Execution and position management are where “model hedges” meet market microstructure. The details are desk‑specific, but the general risk‑first discipline is consistent with the book’s stress‑testing emphasis.
+Execution and position management are where model hedges meet market microstructure. Details are desk-specific; the general risk-first discipline is consistent with the book's stress-testing emphasis.
 
 ### 52.10.1 Position Sizing Considerations
 
-For any strategy in this chapter, position size should reflect:
+For any strategy in this chapter, position size should reflect three checks:
 
-1. **Risk budget allocation:** Express maximum loss tolerance in JTD and CS01 terms, not just notional.
-2. **Carry-to-risk trade-off:** Carry only matters if you can survive the stress scenario. Size so that plausible stress losses and funding/liquidity shocks fit within the desk’s risk limits.
-3. **Liquidity-adjusted sizing:** Expected edge should dominate round‑trip costs and expected slippage, especially for instruments that gap in stress.
+| # | Check | Question |
+|---|-------|----------|
+| 1 | **Risk-budget allocation** | Is max loss tolerance expressed in JTD and CS01 — not just notional? |
+| 2 | **Carry-to-risk trade-off** | Will plausible stress losses + funding/liquidity shocks fit within desk risk limits? |
+| 3 | **Liquidity-adjusted sizing** | Does expected edge dominate round-trip costs + expected slippage (especially for instruments that gap in stress)? |
 
 ### 52.10.2 Monitoring Triggers
 
-Possible trigger categories (thresholds are desk‑specific):
+Possible trigger categories (thresholds are desk-specific):
 
-- **Hedge drift:** CS01 / bucketed CS01 no longer near target.
-- **Funding regime change:** cash-leg financing terms change materially versus the strategy’s carry.
-- **Recovery / settlement assumptions:** recovery/final‑price inputs move materially; re-run JTD/VOD.
-- **Correlation/tail regime:** tranche marks move in a way inconsistent with the hedge map; re-run clustered default scenarios.
+| Trigger | What it indicates | Action |
+|---------|-------------------|--------|
+| **Hedge drift** | CS01 / bucketed CS01 no longer near target | Re-hedge or accept the residual |
+| **Funding regime change** | Cash-leg financing materially different from strategy's carry assumption | Re-cost the position |
+| **Recovery / settlement assumption change** | Recovery / final-price inputs moved materially | Re-run JTD/VOD scenarios |
+| **Correlation / tail regime change** | Tranche marks inconsistent with hedge map | Re-run clustered-default scenarios |
 
-Exact numeric trigger thresholds and escalation actions are set by desk playbooks; treat them as an input to this framework rather than a universal rule.
+Exact numeric thresholds and escalation actions are set by desk playbooks — this framework provides the *categories*, not the numbers.
 
 ### 52.10.3 Unwind Playbook
 
 When conditions warrant reducing or exiting a position:
 
-1. **Unwind the most liquid leg first** — typically CDS over bonds, index over single-name.
-2. **Don't unwind CS01-hedged positions one leg at a time** — this creates naked exposure. Unwind in matched pairs where possible.
+1. **Unwind the most liquid leg first** — typically CDS over bonds; index over single-name.
+2. **Do not unwind CS01-hedged positions one leg at a time** — that creates naked exposure. Unwind in **matched pairs** where possible.
 3. **In illiquid markets, consider partial unwinds** — reducing by 50% captures some value while maintaining optionality.
-4. **Document unwind rationale** — was it risk limit breach, P&L stop, or fundamental view change? This matters for post-trade analysis.
+4. **Document the unwind rationale** — risk-limit breach, P&L stop, or fundamental view change? This matters for post-trade analysis.
 
 ---
 
 ## 52.11 Mathematical Foundations
 
-This section is here so you can sanity-check what a risk system is doing under the hood. If you do not like calculus, skip to Section 52.12 — the worked examples are the real learning tool. For a full CDS risk-measure derivation (CS01/RPV01, VOD/JTD, recovery risk, theta), Chapter 43 is the canonical reference in this book.
+This section is here so you can sanity-check what a risk system is doing under the hood. If you do not like calculus, skip to Section 52.12 — the worked examples are the real learning tool. For full CDS risk-measure derivations (CS01/RPV01, VOD/JTD, recovery risk, theta), Chapter 43 is the canonical reference.
 
-### 52.11.1 CS01 for a Standard CDS from the MTM Identity
+### 52.11.1 CS01 from the CDS MTM Identity
 
-**Source-backed starting point:**
+**Starting point** (per unit notional):
 
-$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T) \quad \text{(per unit notional)}.$$
+$$V(t,T) = (S(t,T) - S_0) \cdot RPV01(t,T)$$
 
 **Differentiate w.r.t. market spread $S$:**
 
-$$\frac{\partial V}{\partial S} = RPV01(t,T).$$
+$$\frac{\partial V}{\partial S} = RPV01(t,T)$$
 
-**Therefore,**
+**Result:**
 
 $$\boxed{CS01 = \frac{\partial PV}{\partial S} \times 10^{-4} = N \cdot RPV01(t,T) \cdot 10^{-4}}$$
 
-**Unit check:**
-
-$RPV01$ has units "years" (PV of 1 bp/yr premium). Multiply by $10^{-4}$ (per bp) and notional $N$ (USD) $\Rightarrow$ USD/bp.
+**Unit check:** $RPV01$ has units "years" (PV of 1 bp/yr premium). Multiply by $10^{-4}$ (per bp) and notional $N$ (USD) $\Rightarrow$ USD/bp. ✓
 
 ---
 
 ### 52.11.2 CS01-Based Hedge Ratio Derivation
 
-Let target position have $CS01_T$ and hedge instrument have $CS01_H$, both sign-inclusive (USD/bp).
+Let the target position have $CS01_T$ and the hedge instrument have $CS01_H$, both sign-inclusive (USD/bp).
 
-We want:
+**Setup the neutrality condition:**
 
-$$CS01_{\text{net}} = CS01_T + N_H \cdot CS01_H^{(USD 1)} = 0.$$
+$$CS01_{\text{net}} = CS01_T + N_H \cdot CS01_H^{(USD 1)} = 0$$
 
-Solve:
+**Solve for hedge notional:**
 
 $$\boxed{N_H = -\frac{CS01_T}{CS01_H^{(USD 1)}}}$$
 
-If CS01s are already in USD/bp for stated notionals:
+**Variant** — if both CS01s are already quoted in USD/bp at *stated* notionals:
 
-$$N_H = -\frac{CS01_T}{CS01_H} \times N_H^{\text{current}}.$$
+$$N_H = -\frac{CS01_T}{CS01_H} \times N_H^{\text{current}}$$
 
 ---
 
 ### 52.11.3 JTD (VOD) Mapping for CDS
 
-**Source-backed VOD expression:**
+**Source-backed VOD expression** (per unit notional):
 
-$$VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01.$$
+$$VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$$
 
-**Interpretation:**
+**At par** ($S = S_0$):
 
-If position is at par ($S = S_0$), then
-
-$$VOD \approx 1 - R - \text{Accrued}.$$
+$$VOD \approx 1 - R - \text{Accrued}$$
 
 **Dollar JTD:**
 
 $$\boxed{JTD = N \cdot VOD}$$
 
-**Unit check:**
-
-$1 - R$ is unitless fraction of notional; accrued is fraction; multiply by $N$ gives USD.
+**Unit check:** $1 - R$ and accrued are unitless fractions of notional; multiplying by $N$ (USD) gives USD. ✓
 
 ---
 
 ### 52.11.4 P&L Explain Template (First-Order + Event Terms)
 
-For a portfolio, approximate P&L over horizon as:
+For a portfolio, approximate horizon P&L as:
 
 $$\boxed{\Delta PV \approx \sum_i (CS01_i \cdot \Delta S_i) + (Rec01 \cdot \Delta R) + JTD_{\text{events}} + BasisTerm + Residual}$$
 
-- **CS01 term:** linear spread moves (bucketed by maturity or instrument).
-- **Rec01 term:** recovery assumption change.
-- **JTD events:** discrete defaults and settlement mechanics.
-- **BasisTerm:** quoted–intrinsic or CDS–cash basis change.
-- **Residual:** convexity, model error, liquidity/execution slippage.
+| Term | Meaning |
+|------|---------|
+| $\sum_i CS01_i \cdot \Delta S_i$ | Linear spread moves (bucketed by maturity or instrument) |
+| $Rec01 \cdot \Delta R$ | Recovery-assumption change |
+| $JTD_{\text{events}}$ | Discrete defaults and settlement mechanics |
+| $BasisTerm$ | Quoted–intrinsic or CDS–cash basis change |
+| $Residual$ | Convexity, model error, liquidity/execution slippage |
 
 ---
 
 ### 52.11.5 Carry/Rolldown Decomposition
 
-We want to separate:
+The goal is to separate three sources of P&L over $[t, t + \Delta t]$:
 
-- Accrual / coupon / premium flows (carry cashflows),
-- Curve aging (rolldown) holding the spread curve fixed,
-- Spread move component.
+1. **Carry** — accrual / coupon / premium cashflows.
+2. **Rolldown** — curve aging holding the spread curve fixed.
+3. **Spread move** — what the curve actually did.
 
-**A practical decomposition:**
+**Construction.** Let $PV(t; S_t)$ be PV at time $t$ using today's spread curve $S_t(\cdot)$. Define a *rolled* PV at $t + \Delta t$ holding the curve fixed but shortening maturity:
 
-Let $PV(t; S_t)$ be PV at time $t$ using today's spread curve $S_t(\cdot)$.
+$$PV_{\text{roll}}(t + \Delta t; S_t)$$
 
-Define a "rolled" PV at $t + \Delta t$ holding the curve fixed but shortening maturity:
+**Decomposition:**
 
-$$PV_{\text{roll}}(t + \Delta t; S_t).$$
+$$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry}} + \underbrace{(PV_{\text{roll}}(t + \Delta t; S_t) - PV(t; S_t))}_{\text{rolldown / theta}} + \underbrace{(PV(t + \Delta t; S_{t + \Delta t}) - PV_{\text{roll}}(t + \Delta t; S_t))}_{\text{spread move}} + \text{events}$$
 
-Then:
-
-$$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry}} + \underbrace{(PV_{\text{roll}}(t + \Delta t; S_t) - PV(t; S_t))}_{\text{rolldown/theta}} + \underbrace{(PV(t + \Delta t; S_{t + \Delta t}) - PV_{\text{roll}}(t + \Delta t; S_t))}_{\text{spread move}} + \text{events}.$$
-
-**Implementation note:** an exact closed‑form “carry” formula depends on the quoting regime (par spread vs fixed coupon + upfront), day count, clean vs full price, and your desk’s carry definition. To make this section fully operational, use the index rulebook conventions and your desk’s P&L attribution definition.
+> **Implementation note.** An exact closed-form carry formula depends on quoting regime (par spread vs fixed coupon + upfront), day count, clean vs full price, and the desk's carry definition. Use the relevant index rulebook conventions and your desk's P&L attribution definition.
 
 ---
 
@@ -1543,881 +1697,1044 @@ $$\Delta PV = \underbrace{\text{Cashflows over } [t, t + \Delta t]}_{\text{carry
 
 ### Example 1: Bond–CDS Basis Toy
 
-**Bond DV01 + CS01 vs CDS CS01 + JTD; choose CDS notional to hedge JTD; show residual under basis move.**
+**Goal:** size the CDS leg to hedge JTD on a long-bond position, then show that basis risk still produces P&L when the legs move differently.
 
 #### Setup
 
-- Bond face: $N_B = USD 1{,}000{,}000$
-- Bond full price: $P = 101$ (per 100) $\Rightarrow$ market value $= 1.01 \times 1{,}000{,}000 = USD 1{,}010{,}000$
-- Recovery assumption: $R = 40\\% \Rightarrow$ recovery value $USD 400{,}000$
-- Bond default loss (JTD for long bond):
+| Item | Value |
+|------|-------|
+| Bond face $N_B$ | USD 1,000,000 |
+| Bond full price $P$ | 101 (per 100) → market value USD 1,010,000 |
+| Recovery $R$ | 40% → recovery value USD 400,000 |
 
-$$JTD_{\text{bond}} = -(P - R) \times N_B = -(1.01 - 0.40) \times 1{,}000{,}000 = -USD 610{,}000.$$
+**Bond JTD** (loss to a long bond on default):
 
-(Loss-on-default mismatch is a key basis driver in the sources.)
+$$JTD_{\text{bond}} = -(P - R) \times N_B = -(1.01 - 0.40) \times 1{,}000{,}000 = -USD 610{,}000$$
 
-#### CDS Leg: Choose Notional to Hedge JTD
+This loss-on-default mismatch ($P-R$ for the bond vs $1-R$ for CDS) is a key basis driver in the sources.
 
-Assume we buy protection at par: $S = S_0 = 150$ bp $\Rightarrow$ pre-default MTM $\approx 0$.
+#### Step 1 — Size CDS Notional to Match Bond JTD
 
-Accrued premium at default (assume halfway through quarter): $\Delta = 0.125$
+Buy protection at par: $S = S_0 = 150$ bp, so pre-default MTM $\approx 0$.
 
-$$\text{Accrued} = N_{\text{CDS}} \times (0.015) \times 0.125 = 0.001875 \\, N_{\text{CDS}}.$$
+Accrued at default (assume halfway through the quarter, $\Delta = 0.125$):
 
-JTD for long protection at par (using VOD logic):
+$$\text{Accrued} = N_{\text{CDS}} \times 0.015 \times 0.125 = 0.001875 \\, N_{\text{CDS}}$$
 
-$$JTD_{\text{CDS}} \approx N_{\text{CDS}} \times (1 - R) - \text{Accrued} = 0.60 N_{\text{CDS}} - 0.001875 N_{\text{CDS}} = 0.598125 \\, N_{\text{CDS}}.$$
+CDS JTD at par (VOD):
 
-Solve $0.598125 N_{\text{CDS}} = USD 610{,}000$:
+$$JTD_{\text{CDS}} \approx N_{\text{CDS}} \times (1 - R) - \text{Accrued} = 0.598125 \\, N_{\text{CDS}}$$
 
-$$N_{\text{CDS}} = \frac{610{,}000}{0.598125} = USD 1{,}019{,}853.71 \approx USD 1.02\text{mm}.$$
+Solve $0.598125 \\, N_{\text{CDS}} = USD 610{,}000$:
 
-#### Spread Sensitivities
+$$\boxed{N_{\text{CDS}} = \frac{610{,}000}{0.598125} \approx USD 1{,}019{,}854 \approx USD 1.02\text{mm}}$$
 
-Assume CDS $RPV01 = 4.5$. Then:
+#### Step 2 — Compute Spread Sensitivities
 
-$$CS01_{\text{CDS}} = N_{\text{CDS}} \cdot RPV01 \cdot 10^{-4} = 1{,}019{,}853.71 \times 4.5 \times 10^{-4} = USD 458.93/\text{bp}.$$
+Assume $RPV01_{\text{CDS}} = 4.5$ and (toy) bond credit $CS01_{\text{bond}} = -USD 420/\text{bp}$.
 
-Assume bond credit CS01 (toy): $CS01_{\text{bond}} = -USD 420/\text{bp}$.
+$$CS01_{\text{CDS}} = 1{,}019{,}854 \times 4.5 \times 10^{-4} = USD 458.93/\text{bp}$$
 
-#### Basis-Move Scenario
+#### Step 3 — Stress: Basis Widens
 
-CDS spread widens $+20$ bp; bond spread widens $+5$ bp (basis widens).
+CDS spread $+20$ bp; bond spread $+5$ bp (basis widens by 15 bp).
 
-**P&L (linear):**
-
-- Bond: $\Delta PV_B = -420 \times 5 = -USD 2{,}100$.
-- CDS: $\Delta PV_{\text{CDS}} = +458.93 \times 20 = +USD 9{,}178.68$.
-- **Net:** $+7{,}078.68$.
+| Leg | Move | P&L |
+|-----|------|-----|
+| Bond | $+5$ bp | $-420 \times 5 = -USD 2{,}100$ |
+| CDS (long protection) | $+20$ bp | $+458.93 \times 20 = +USD 9{,}179$ |
+| **Net** | | **$+USD 7{,}079$** |
 
 #### Interpretation
 
-JTD was hedged by construction, but basis risk remains: differing spread moves generate residual P&L.
+JTD is hedged *by construction*, but the package still has basis risk: when CDS and bond spreads move by different amounts, residual P&L is generated. **CS01 was not matched** in this example — only JTD was — so the residual is primarily basis exposure.
 
 ---
 
 ### Example 1B: Basis Package Under Funding Stress
 
-This example extends Example 1 to show how funding shocks can dominate a "hedged" basis position.
+**Goal:** show that funding shocks can dominate a "hedged" basis package, even when spread legs are well-matched.
 
-#### Continuing Setup
+#### Continuing Setup (from Example 1)
 
-Same bond-CDS package from Example 1:
-- Bond face: $1mm at clean price 101
-- CDS notional: ~$1.02mm (JTD-matched)
-- CS01 net: +$38.93/bp (unhedged basis exposure)
+| Item | Value |
+|------|-------|
+| Bond face | USD 1mm at clean price 101 |
+| CDS notional | ~USD 1.02mm (JTD-matched) |
+| CS01 net | +USD 38.93/bp (unhedged basis exposure) |
 
-#### Funding Shock Scenario
+#### Funding Shock
 
-Suppose the bond is financed via repo at Libor + 25bp initially. During a credit crisis:
-- Repo rate on this name spikes to Libor + 150bp (125bp increase)
-- Repo term: 3 months (0.25 years)
+The bond is financed via repo at Libor + 25 bp. During a crisis, repo on this name spikes to Libor + 150 bp (a 125 bp increase). Term: 3 months ($0.25$y).
 
-**Additional funding cost over 3 months:**
+$$\text{Additional funding cost} = 1{,}010{,}000 \times 0.0125 \times 0.25 = USD 3{,}156.25$$
 
-$$\text{Funding cost} = 1{,}010{,}000 \times 0.0125 \times 0.25 = USD 3{,}156.25$$
+#### Two Scenarios
 
-#### Combined Scenario: Basis Widens + Funding Shock
+**Scenario 1 — Basis widens (Example 1 stress) plus funding shock:**
 
-From Example 1: CDS spread widens +20bp, bond spread widens +5bp (basis widens 15bp).
+| Component | P&L |
+|-----------|-----|
+| CS01 P&L (from Example 1) | $+USD 7{,}079$ |
+| Funding shock | $-USD 3{,}156$ |
+| **Net** | **$+USD 3{,}923$** |
 
-**P&L components:**
-- CS01 P&L: $+7{,}078.68$ (from Example 1)
-- Funding shock: $-3{,}156.25$
-- **Net P&L**: $+3{,}922.43$
+The funding shock consumed about 45% of the basis profit.
 
-The funding shock consumed 45% of the basis profit.
+**Scenario 2 — Basis flat, funding spikes** (small parallel spread move; CS01 net of $+USD 38.93$/bp produces only minor spread P&L compared to the funding shock):
 
-#### Extreme Case: Basis Flat but Funding Spikes
+| Component | P&L |
+|-----------|-----|
+| Spread P&L (small parallel move) | $\approx 0$ |
+| Funding shock | $-USD 3{,}156$ |
+| **Net** | **$-USD 3{,}156$ loss** |
 
-If CDS and bond spreads move together (basis unchanged, no spread P&L):
-- Spread P&L: ~$0$
-- Funding shock: $-3{,}156.25$
-- **Net P&L**: $-3{,}156.25$ loss
+#### Lesson
 
-**Lesson:** The bond leg's financing is a first-class risk. Even if your CS01/JTD look hedged, a change in repo/funding can dominate short-horizon P&L; CDS does not require financing the bond principal.
+The bond leg's financing is a **first-class risk**, not a footnote. CDS does not require financing the bond principal, so even a well-hedged CS01/JTD package leaves a one-sided exposure to repo/funding regime shifts.
 
 ---
 
 ### Example 2: DV01-Neutral but Not Credit-Neutral
 
-**Bond DV01 hedged with rates instrument, then credit spread widens; compute residual P&L.**
+**Goal:** show that hedging a corporate bond's rates DV01 with Treasuries leaves the credit-spread risk wide open.
 
 #### Setup
 
-- Corporate bond notional: $N_C = USD 10\text{mm}$
-- Rates DV01 (sign-inclusive for +1bp rates move): $DV01_{r,C} = -USD 7{,}500/\text{bp}$
-- Treasury hedge instrument DV01 per USD 1mm (long): $-850$ USD/bp.
-- If we short Treasuries, DV01 becomes $+850$ USD/bp per USD 1mm.
+| Item | Value |
+|------|-------|
+| Corporate bond notional $N_C$ | USD 10mm |
+| Bond rates DV01 ($+1$ bp rates move) | $-USD 7{,}500$/bp |
+| Treasury DV01 per USD 1mm (long) | $-USD 850$/bp |
+| Treasury DV01 per USD 1mm (short) | $+USD 850$/bp |
 
-#### DV01 Hedge Ratio
+#### Step 1 — Compute the DV01 Hedge
 
-Need $-7{,}500 + 850 \times N_T\text{ (USD 1mm units)} = 0$
+Need $-7{,}500 + 850 \times N_T = 0$ (with $N_T$ in USD-1mm units):
 
-$$N_T = \frac{7{,}500}{850} = 8.8235 \text{ mm}.$$
+$$N_T = \frac{7{,}500}{850} \approx 8.8235\text{mm}$$
 
-So: **short $8.8235mm Treasuries.**
+**Hedge: short USD 8.8235mm Treasuries.**
 
-#### Scenario
+#### Step 2 — Stress: Rates and Credit Both Move
 
-- Rates +10 bp (parallel)
-- Credit spread on corporate widens +50 bp
-- Treasury credit spread unchanged (assume risk-free)
+| Move | Magnitude |
+|------|-----------|
+| Parallel rates | $+10$ bp |
+| Corporate credit spread | $+50$ bp |
+| Treasury credit spread | unchanged |
 
-#### P&L
+#### Step 3 — Compute P&L
 
-**Rates move:**
-- Corporate: $-7{,}500 \times 10 = -USD 75{,}000$
-- Short Treasury: $+(850 \times 8.8235) \times 10 = +7{,}500 \times 10 = +USD 75{,}000$
-- **Net rates P&L $\approx 0$.**
+**Rates leg:**
 
-**Credit move:**
-- Assume corporate credit CS01 (toy): $CS01_{\text{corp}} = -6{,}500$ USD/bp (for USD 10mm).
-- $\Delta PV_{\text{credit}} = -6{,}500 \times 50 = -USD 325{,}000$
+| Position | P&L |
+|----------|-----|
+| Corporate bond | $-7{,}500 \times 10 = -USD 75{,}000$ |
+| Short Treasury | $+(850 \times 8.8235) \times 10 = +USD 75{,}000$ |
+| **Net rates** | **$\approx 0$** |
+
+**Credit leg:** with corporate CS01 (toy) $= -6{,}500$ USD/bp on USD 10mm:
+
+$$\Delta PV_{\text{credit}} = -6{,}500 \times 50 = -USD 325{,}000$$
 
 #### Conclusion
 
-**DV01-neutral does not mean risk-neutral: credit spread risk dominates.**
+**DV01-neutral does not mean risk-neutral.** The credit-spread leg dominates: $-USD 325{,}000$ loss despite a perfect rates hedge. Hedging rates is necessary but not sufficient for a credit position.
 
 ---
 
 ### Example 3: Single-Name Hedged with Index by CS01 Matching
 
-**Scenario: broad move vs idiosyncratic move; compute residual.**
+**Goal:** show what a CS01-matched proxy hedge does and does not protect against.
 
 #### Setup
 
-- Single-name CDS: long protection, $N_s = USD 10\text{mm}$, $RPV01_s = 4.5$
+| Leg | Notional | RPV01 | CS01 |
+|-----|----------|-------|------|
+| Single-name (long protection) | $N_s = USD 10$mm | 4.5 | $+USD 4{,}500$/bp |
+| Index (per USD 10mm, long protection) | base unit USD 10mm | 4.2 | $+USD 4{,}200$/bp |
 
-$$CS01_s = 10{,}000{,}000 \times 4.5 \times 10^{-4} = USD 4{,}500/\text{bp}.$$
+Hedge: **short protection on the index.**
 
-- Index CDS: use $RPV01_I = 4.2$ (toy). CS01 per USD 10mm long protection:
+#### Step 1 — Compute Hedge Notional
 
-$$CS01_{I, USD 10mm} = 10{,}000{,}000 \times 4.2 \times 10^{-4} = USD 4{,}200/\text{bp}.$$
+Solve $CS01_s + CS01_I^{(\text{short})} = 0$:
 
-Hedge by short protection on index.
+$$4{,}500 - 4{,}200 \times \frac{N_I}{10\text{mm}} = 0 \\;\Rightarrow\\; \boxed{N_I = 10\text{mm} \times \frac{4{,}500}{4{,}200} \approx USD 10.7143\text{mm}}$$
 
-#### Hedge Notional
+#### Step 2 — Stress: Broad vs Idiosyncratic Moves
 
-Solve $CS01_s + CS01_I^{\text{(short)}} = 0$:
+**Scenario A — Broad market move (+10 bp on both):**
 
-$$4{,}500 - 4{,}200 \times \frac{N_I}{10\text{mm}} = 0 \Rightarrow N_I = 10\text{mm} \times \frac{4{,}500}{4{,}200} = USD 10.7143\text{mm}.$$
+| Leg | P&L |
+|-----|-----|
+| Single-name long | $+4{,}500 \times 10 = +USD 45{,}000$ |
+| Index short | $-4{,}200 \times 1.07143 \times 10 = -USD 45{,}000$ |
+| **Net** | **$\approx 0$** ✅ |
 
-#### Scenario A: Broad +10 bp Move (Both)
+**Scenario B — Idiosyncratic widening (single-name +50 bp, index +10 bp):**
 
-- Single-name: $+4{,}500 \times 10 = +USD 45{,}000$
-- Index short: $-4{,}200 \times 1.07143 \times 10 = -USD 45{,}000$
-- **Net $\approx 0$.**
+| Leg | P&L |
+|-----|-----|
+| Single-name long | $+4{,}500 \times 50 = +USD 225{,}000$ |
+| Index short | $-USD 45{,}000$ |
+| **Net** | **$+USD 180{,}000$** (residual idiosyncratic risk) |
 
-#### Scenario B: Idiosyncratic Single-Name +50 bp, Index +10 bp
+#### JTD Warning
 
-- Single-name: $+4{,}500 \times 50 = +USD 225{,}000$
-- Index short: $-45{,}000$
-- **Net: $+USD 180{,}000$** (residual idiosyncratic spread risk).
-
-#### Event Note (JTD)
-
-If the single name defaults, single-name JTD is large; index hedge only absorbs the small loss on that one name inside the index (diversification). **CS01 matching does not hedge JTD.**
+If the single name **defaults**, the single-name JTD is large (the full $1-R$ payout). The index hedge only absorbs the small loss on that one name inside the diversified index. **CS01 matching does not hedge JTD** — this is the central limitation of proxy hedging.
 
 ---
 
 ### Example 4: Index Hedged with Constituents (Bottom-Up) Using RPV01/CS01 Weights
 
-**Important:** The sources show intrinsic index valuation as a sum/average of constituent CDS values and discuss portfolio swap adjustment. A full "bottom-up hedge" method depends on how you allocate index basis and curve adjustments; details are desk-convention dependent.
+**Goal:** show how a CS01-matched bottom-up hedge of an index using its constituents works for parallel moves but breaks under dispersion.
 
-**Important:** there is no single canonical hedge-weight formula without specifying the portfolio swap adjustment rule (and the risk system’s definition of “intrinsic” vs “quoted” objects). The example below is a clearly labeled approximation and is best treated as a diagnostic (CS01 matching) rather than a production hedge recipe.
+> **Caveat:** there is no single canonical bottom-up hedge formula without specifying the portfolio swap adjustment rule and the risk system's definition of "intrinsic" vs "quoted" objects. Treat this example as a CS01-matching *diagnostic*, not a production hedge recipe.
 
-#### Approximation Used
+#### Setup (Toy Index, $M = 3$ Names)
 
-- Small index with $M = 3$ names.
-- Index notional $N_I = USD 30\text{mm} \Rightarrow USD 10\text{mm}$ per name.
-- Assume all maturities aligned at 5Y.
+| Item | Value |
+|------|-------|
+| Index notional $N_I$ | USD 30mm → USD 10mm per name |
+| Maturity | 5Y (all aligned) |
+| Index RPV01 (≈ average) | 4.6 |
 
-#### Constituent RPV01s (Toy)
+| Constituent | RPV01 |
+|-------------|-------|
+| Name A | 4.5 |
+| Name B | 4.7 |
+| Name C | 4.6 |
 
-- Name A: 4.5
-- Name B: 4.7
-- Name C: 4.6
+#### Step 1 — Compute Index CS01
 
-#### Index CS01 (Approx)
+$$CS01_I = 30{,}000{,}000 \times 4.6 \times 10^{-4} = USD 13{,}800/\text{bp}$$
 
-Index RPV01 $\approx$ average $= 4.6$
+#### Step 2 — Build Constituent Hedge (Short Protection per Name, USD 10mm Each)
 
-$$CS01_I = 30{,}000{,}000 \times 4.6 \times 10^{-4} = USD 13{,}800/\text{bp}.$$
+| Name | Calc | CS01 contribution |
+|------|------|-------------------|
+| A | $-10{,}000{,}000 \times 4.5 \times 10^{-4}$ | $-USD 4{,}500$/bp |
+| B | $-10{,}000{,}000 \times 4.7 \times 10^{-4}$ | $-USD 4{,}700$/bp |
+| C | $-10{,}000{,}000 \times 4.6 \times 10^{-4}$ | $-USD 4{,}600$/bp |
+| **Total** | | $-USD 13{,}800$/bp ✅ offsets index |
 
-#### Constituent Hedge (Short Protection on Names to Hedge Long Protection Index)
+#### Step 3 — Stress
 
-Short each name $10mm:
+**Parallel +10 bp move (all names + index together):**
 
-- A: $-10{,}000{,}000 \times 4.5 \times 10^{-4} = -USD 4{,}500/\text{bp}$
-- B: $-USD 4{,}700/\text{bp}$
-- C: $-USD 4{,}600/\text{bp}$
-- **Total:** $-USD 13{,}800/\text{bp}$, which offsets index $+USD 13{,}800/\text{bp}$.
+| Leg | P&L |
+|-----|-----|
+| Index long | $+13{,}800 \times 10 = +USD 138{,}000$ |
+| Constituent shorts | $-USD 138{,}000$ |
+| **Net** | **$\approx 0$** ✅ |
 
-#### Parallel +10 bp Scenario
-
-- Index: $+13{,}800 \times 10 = +138{,}000$
-- Hedge: $-138{,}000$
-- **Net $\approx 0$.**
-
-#### Dispersion Scenario
-
-If one name widens much more than index (or index basis shifts), hedge breaks—this is exactly why index basis matters.
+**Dispersion:** if one constituent widens much more than the index — or the quoted-vs-intrinsic basis shifts — the hedge breaks. This is exactly *why* index basis matters operationally.
 
 ---
 
 ### Example 5: Index Intrinsic vs Quoted Basis
 
-**Compute intrinsic from constituents, basis = quoted − intrinsic; show a basis P&L scenario.**
+**Goal:** compute the intrinsic spread from constituents, derive the index basis, and show how a basis-only move generates P&L.
 
 #### Setup
 
-- $M = 3$, index notional $N_I = USD 10\text{mm}$, coupon $C = 100$ bp.
-- Constituent 5Y spreads (bp): $S_1 = 120$, $S_2 = 90$, $S_3 = 110$.
-- Constituent RPV01s: $4.5, 4.7, 4.6$.
-- Quoted index spread: $S_I = 110$ bp.
-- Index RPV01: $RPV01_I = 4.6$.
+| Item | Value |
+|------|-------|
+| Number of names $M$ | 3 |
+| Index notional $N_I$ | USD 10mm |
+| Coupon $C$ | 100 bp |
+| Quoted index spread $S_I$ | 110 bp |
+| Index RPV01 | 4.6 |
 
-#### Compute Intrinsic Spread (RPV01-Weighted Average)
+| Constituent | 5Y spread (bp) | RPV01 |
+|-------------|----------------|-------|
+| Name 1 | 120 | 4.5 |
+| Name 2 | 90 | 4.7 |
+| Name 3 | 110 | 4.6 |
 
-$$S_{\text{intr}} = \frac{\sum_m RPV01_m S_m}{\sum_m RPV01_m} = \frac{4.5(120) + 4.7(90) + 4.6(110)}{4.5 + 4.7 + 4.6} = 106.4493 \text{ bp}.$$
+#### Step 1 — Intrinsic Spread (RPV01-Weighted Average)
 
-#### Index Basis (Spread)
+$$S_{\text{intr}} = \frac{\sum_m RPV01_m \\, S_m}{\sum_m RPV01_m} = \frac{4.5(120) + 4.7(90) + 4.6(110)}{4.5 + 4.7 + 4.6} \approx 106.4493 \text{ bp}$$
 
-$$\text{Basis} = S_I - S_{\text{intr}} = 110 - 106.4493 = 3.5507 \text{ bp}.$$
+#### Step 2 — Index Basis (Spread)
 
-#### PV View (Upfront Difference)
+$$\text{Basis} = S_I - S_{\text{intr}} = 110 - 106.4493 \approx 3.5507 \text{ bp}$$
 
-**Market upfront value at coupon $C$:**
+#### Step 3 — PV View (Upfront Difference)
 
-$$U_{\text{mkt}} = N_I \cdot RPV01_I \cdot (S_I - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot (10) \cdot 10^{-4} = USD 46{,}000.$$
+**Market upfront** at coupon $C$:
 
-**Intrinsic upfront using constituents** (equal-weight notional $N_I/M = 3.3333\text{mm}$):
+$$U_{\text{mkt}} = N_I \cdot RPV01_I \cdot (S_I - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 10 \cdot 10^{-4} = USD 46{,}000$$
 
-- Name 1: $(120 - 100) = 20$ bp
-  - $PV_1 = 3.3333\text{mm} \cdot 4.5 \cdot 20 \cdot 10^{-4} = USD 30{,}000$
-- Name 2: $(90 - 100) = -10$ bp
-  - $PV_2 = 3.3333\text{mm} \cdot 4.7 \cdot (-10) \cdot 10^{-4} = -USD 15{,}666.67$
-- Name 3: $(110 - 100) = 10$ bp
-  - $PV_3 = 3.3333\text{mm} \cdot 4.6 \cdot 10 \cdot 10^{-4} = USD 15{,}333.33$
-- **Sum** $V_{\text{intr}} = USD 29{,}666.67$
+**Intrinsic upfront** (equal-weight notional $N_I / M = USD 3.3333$mm per name):
 
-#### Basis PV
+| Name | $S_m - C$ | PV calc | PV |
+|------|-----------|---------|-----|
+| 1 | $+20$ bp | $3.3333\text{mm} \cdot 4.5 \cdot 20 \cdot 10^{-4}$ | $+USD 30{,}000$ |
+| 2 | $-10$ bp | $3.3333\text{mm} \cdot 4.7 \cdot (-10) \cdot 10^{-4}$ | $-USD 15{,}667$ |
+| 3 | $+10$ bp | $3.3333\text{mm} \cdot 4.6 \cdot 10 \cdot 10^{-4}$ | $+USD 15{,}333$ |
+| **Sum $V_{\text{intr}}$** | | | $USD 29{,}667$ |
 
-$$U_{\text{mkt}} - V_{\text{intr}} = 46{,}000 - 29{,}666.67 = USD 16{,}333.33,$$
+**Basis PV:**
 
-which also equals:
+$$U_{\text{mkt}} - V_{\text{intr}} = 46{,}000 - 29{,}667 = USD 16{,}333$$
 
-$$N_I \cdot RPV01_I \cdot \text{Basis} \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 3.5507 \cdot 10^{-4} = USD 16{,}333.33.$$
+which equals (cross-check):
 
-#### Basis P&L Scenario
+$$N_I \cdot RPV01_I \cdot \text{Basis} \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 3.5507 \cdot 10^{-4} = USD 16{,}333 \\;\checkmark$$
 
-Suppose basis decreases by 2 bp due to index tightening (constituents unchanged):
+#### Step 4 — Basis-Only P&L Scenario
 
-- Index $\Delta S_I = -2$ bp.
-- Index CS01: $10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$.
-- A position long index protection has P&L $\Delta PV = 4{,}600 \times (-2) = -USD 9{,}200$.
-- The constituent legs (unchanged) contribute $\approx 0$.
+Suppose the basis decreases by 2 bp because the *quoted* index tightens (constituents unchanged):
 
-**Interpretation:** basis moves can dominate short-horizon hedges.
+| Leg | P&L |
+|-----|-----|
+| Long index protection ($CS01_I = USD 4{,}600$/bp) | $4{,}600 \times (-2) = -USD 9{,}200$ |
+| Constituent legs (unchanged) | $\approx 0$ |
+| **Net** | $-USD 9{,}200$ |
+
+**Interpretation:** basis moves alone (no change in fundamental constituent spreads) can dominate short-horizon hedges. This is why basis monitoring is non-optional for index-vs-constituent strategies.
 
 ---
 
 ### Example 6: Index Carry
 
-**Compute one quarter's premium/coupon cashflow and upfront amortization effect (if applicable) and show carry under unchanged spreads.**
+**Goal:** show that even with unchanged spreads, a long-protection index position has negative carry — it bleeds the coupon plus the upfront's RPV01-driven decay.
 
 #### Setup (Long Protection on Index)
 
-- Notional $N = USD 10\text{mm}$
-- Coupon $C = 100$ bp
-- Market spread at inception $S = 120$ bp
-- $RPV01(t_0) = 4.6$, $RPV01(t_1) = 4.4$ after one quarter
-- Quarter fraction $\Delta = 0.25$
+| Item | Value |
+|------|-------|
+| Notional $N$ | USD 10mm |
+| Coupon $C$ | 100 bp |
+| Market spread at inception $S$ | 120 bp |
+| RPV01 at $t_0$ | 4.6 |
+| RPV01 at $t_1$ (one quarter later) | 4.4 |
+| Quarter fraction $\Delta$ | 0.25 |
 
-#### Upfront at Inception (Paid by Protection Buyer Because $S \gt C$)
+Since $S \gt C$, the protection buyer pays upfront at inception.
 
-$$U_0 = N \cdot RPV01(t_0) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 20 \cdot 10^{-4} = USD 92{,}000.$$
+#### Step 1 — Upfront Paid at Inception
 
-#### Coupon Paid over the Quarter (Carry Cashflow)
+$$U_0 = N \cdot RPV01(t_0) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.6 \cdot 20 \cdot 10^{-4} = USD 92{,}000$$
 
-$$\text{Coupon CF} = -N \cdot C \cdot 10^{-4} \cdot \Delta = -10{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.25 = -USD 25{,}000.$$
+#### Step 2 — Coupon Cashflow over the Quarter
 
-#### Unchanged Spreads: MTM "Amortization" Effect
+$$\text{Coupon CF} = -N \cdot C \cdot 10^{-4} \cdot \Delta = -10{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.25 = -USD 25{,}000$$
 
-At $t_1$, with spreads unchanged at $S = 120$ bp, the contract value at coupon $C$ is:
+(Negative because the long-protection buyer *pays* the coupon.)
 
-$$V(t_1) = N \cdot RPV01(t_1) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.4 \cdot 20 \cdot 10^{-4} = USD 88{,}000.$$
+#### Step 3 — MTM at $t_1$ (Spreads Unchanged)
 
-Since we paid $U_0 = 92{,}000$ upfront at inception, the clean value relative to inception is:
+$$V(t_1) = N \cdot RPV01(t_1) \cdot (S - C) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.4 \cdot 20 \cdot 10^{-4} = USD 88{,}000$$
 
-$$\Delta V_{\text{clean}} = 88{,}000 - 92{,}000 = -USD 4{,}000.$$
+Clean value relative to inception (we paid $USD 92{,}000$ upfront):
 
-#### Carry under Unchanged Spreads (Quarter)
+$$\Delta V_{\text{clean}} = 88{,}000 - 92{,}000 = -USD 4{,}000$$
 
-$$\text{Carry P\\&L} \approx \text{Coupon CF} + \Delta V_{\text{clean}} = -25{,}000 - 4{,}000 = -USD 29{,}000.$$
+#### Step 4 — Quarter Carry P&L (Unchanged Spreads)
 
-**Interpretation:** even with unchanged spreads, the upfront-related value decays as maturity shortens (RPV01 falls).
+| Component | P&L |
+|-----------|-----|
+| Coupon CF | $-USD 25{,}000$ |
+| Upfront amortization ($\Delta V_{\text{clean}}$) | $-USD 4{,}000$ |
+| **Total carry P&L** | **$-USD 29{,}000$** |
+
+#### Interpretation
+
+Even with spreads frozen, long protection bleeds:
+- The **coupon** drains cash quarterly.
+- The **upfront amortizes** as RPV01 falls with shortening maturity.
+
+This is the "negative carry" that any long-protection holder pays for default insurance.
 
 ---
 
 ### Example 7: Index Rolldown
 
-**Hold curve fixed, move forward one month, revalue (toy) and compute rolldown P&L.**
+**Goal:** with the curve held fixed, age the position one month and compute the carry + rolldown P&L. This is the deterministic time-decay piece of P&L.
 
-#### Setup (Continue Long Protection Example Style)
+#### Setup (Continues Example 6 — Long Protection)
 
-- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp
-- Upfront paid at inception (from Example 6): $U_0 = 92{,}000$
-- Assume spread curve is upward sloping:
-  - 5Y par spread at $t_0$: 120 bp
-  - After 1 month, remaining maturity is about 4.92Y with par spread 118 bp (curve held fixed, you "roll down")
-- $RPV01(t_1) = 4.57$ (toy, slightly lower due to shorter maturity)
-- Monthly coupon accrual (approx): $\Delta = 1/12$
+| Item | Value |
+|------|-------|
+| Notional $N$ | USD 10mm |
+| Coupon $C$ | 100 bp |
+| Upfront paid at inception (Example 6) | $U_0 = USD 92{,}000$ |
+| 5Y par spread at $t_0$ | 120 bp |
+| Spread curve | Upward sloping |
+| Remaining maturity at $t_1$ (1 month later) | ~4.92Y |
+| Par spread at $t_1$ (curve fixed → "roll down") | 118 bp |
+| $RPV01(t_1)$ | 4.57 (slightly lower as maturity shortens) |
+| Monthly fraction $\Delta$ | $1/12$ |
 
-#### MTM at $t_1$ Holding Curve Fixed
+#### Step 1 — MTM at $t_1$ (Curve Held Fixed)
 
-$$V(t_1) = N \cdot 4.57 \cdot (118 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.57 \cdot 18 \cdot 10^{-4} = USD 82{,}260.$$
+$$V(t_1) = N \cdot 4.57 \cdot (118 - 100) \cdot 10^{-4} = USD 82{,}260$$
 
-#### Clean Value Relative to Inception
+#### Step 2 — Clean Value Change vs Inception
 
-$$\Delta V_{\text{clean}} = 82{,}260 - 92{,}000 = -USD 9{,}740.$$
+$$\Delta V_{\text{clean}} = 82{,}260 - 92{,}000 = -USD 9{,}740$$
 
-#### Coupon Accrual over 1 Month
+#### Step 3 — Coupon Accrual over the Month
 
-$$\text{Coupon accrual} = -N \cdot 100 \cdot 10^{-4} \cdot \frac{1}{12} = -10{,}000{,}000 \cdot 0.01 \cdot 0.083333 = -USD 8{,}333.33.$$
+$$\text{Coupon accrual} = -N \cdot 100 \cdot 10^{-4} \cdot \frac{1}{12} = -USD 8{,}333$$
 
-#### Rolldown + Carry over Month (No Curve Change Beyond Aging)
+#### Step 4 — Total Carry + Rolldown P&L
 
-$$\text{P\\&L} \approx -8{,}333.33 - 9{,}740 = -USD 18{,}073.33.$$
+| Component | P&L |
+|-----------|-----|
+| Coupon accrual | $-USD 8{,}333$ |
+| MTM change (rolldown + RPV01 decay) | $-USD 9{,}740$ |
+| **Total** | **$-USD 18{,}073$** |
+
+#### Interpretation
+
+Even with no spread changes, the long-protection holder bled USD 18k in one month — purely from time passing on a fixed curve. This is exactly the carry+rolldown figure carried into Example 10.
 
 ---
 
 ### Example 8: Roll Trade Mechanics
 
-**Old series vs new series upfront difference; compute cash exchanged and execution-cost effect (toy).**
+**Goal:** decompose the cost of switching from off-the-run to on-the-run series, and show why "flat notional" rolls inadvertently increase spread exposure.
 
-O'Kane identifies two primary sources of P&L impact during the roll: (1) composition changes affecting perceived credit quality, and (2) maturity extension on an upward-sloping curve. This example illustrates both effects.
+Per O'Kane, two effects drive roll P&L: **(1) composition changes** (perceived credit quality), and **(2) maturity extension** on an upward-sloping curve.
 
 #### Setup
 
-- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp.
-- Old series: $S_{\text{old}} = 115$ bp, $RPV01_{\text{old}} = 4.1$ (remaining maturity ~4.5Y)
-- New series: $S_{\text{new}} = 120$ bp, $RPV01_{\text{new}} = 4.6$ (full 5Y maturity)
-- Position: long protection.
+| | Old series | New series |
+|---|------------|------------|
+| Notional $N$ | USD 10mm | USD 10mm |
+| Coupon $C$ | 100 bp | 100 bp |
+| Quoted spread $S$ | 115 bp | 120 bp |
+| RPV01 | 4.1 (~4.5Y maturity) | 4.6 (full 5Y) |
 
-#### Understanding the Spread Difference
+Position: **long protection**.
 
-The new series trades 5 bp wider than the old series. Per O'Kane's framework, we can decompose this:
+#### Step 1 — Decompose the 5 bp Spread Difference
 
-**Maturity extension effect**: The new index has 6 months longer maturity. With an upward-sloping credit curve (typical), this adds spread. Suppose the curve slope is ~10 bp per year at the 5Y point:
-$$\Delta S_{\text{maturity}} \approx 10 \times 0.5 = +5 \text{ bp}$$
+| Effect | Calculation | Contribution |
+|--------|-------------|--------------|
+| Maturity extension | Curve slope $\approx 10$ bp/yr × 0.5 yr | $+5$ bp |
+| Composition | Downgraded names removed offset by wider-spread liquidity replacements | $\approx 0$ bp |
+| **Total** | | **$+5$ bp** ✅ matches observed |
 
-**Composition effect**: In this example, composition changes are neutral—the downgraded names removed are offset by wider-spread liquidity replacements:
-$$\Delta S_{\text{composition}} \approx 0 \text{ bp}$$
+#### Step 2 — MTM Values (Pre-Upfront)
 
-**Total**: $\Delta S = 5 + 0 = 5$ bp (matches observed difference).
+$$V_{\text{old}} = N \cdot 4.1 \cdot (115 - 100) \cdot 10^{-4} = USD 61{,}500$$
+$$V_{\text{new}} = N \cdot 4.6 \cdot (120 - 100) \cdot 10^{-4} = USD 92{,}000$$
 
-#### MTM Values (Pre-Upfront)
+#### Step 3 — Cash to Switch (Close Old, Open New)
 
-$$V_{\text{old}} = N \cdot 4.1 \cdot (115 - 100) \cdot 10^{-4} = 10{,}000{,}000 \cdot 4.1 \cdot 15 \cdot 10^{-4} = USD 61{,}500.$$
+| Action | Cash flow |
+|--------|-----------|
+| Close old position | $+USD 61{,}500$ (received) |
+| Open new position | $-USD 92{,}000$ (paid) |
+| **Net cash outflow** | **$USD 30{,}500$** |
 
-$$V_{\text{new}} = N \cdot 4.6 \cdot (120 - 100) \cdot 10^{-4} = USD 92{,}000.$$
+#### Step 4 — CS01-Adjusted Notional for Spread-Neutral Switch
 
-#### Cash to Switch (Close Old, Open New)
+| | Value |
+|---|-------|
+| $CS01_{\text{old}}$ on USD 10mm | $USD 4{,}100$/bp |
+| $CS01_{\text{new}}$ per USD 10mm | $USD 4{,}600$/bp |
 
-- Close old (sell your long protection): receive $61,500.
-- Open new: pay $92,000.
-- **Net cash outflow:**
+To hold CS01 constant at $USD 4{,}100$/bp on the new series:
 
-$$92{,}000 - 61{,}500 = USD 30{,}500.$$
+$$N_{\text{new}} = USD 10\text{mm} \times \frac{4{,}100}{4{,}600} \approx USD 8.913\text{mm}$$
 
-#### CS01-Adjusted Notional for Spread-Neutral Switch
+**Implication: reduce notional by ~11%** when rolling to keep spread-neutral exposure. Rolling "flat notional" *increases* spread exposure because the longer-maturity new series has higher CS01 per dollar.
 
-If the goal is to maintain the same CS01 exposure after rolling:
+#### Step 5 — Execution Cost (Toy)
 
-$$CS01_{\text{old}} = 10{,}000{,}000 \times 4.1 \times 10^{-4} = USD 4{,}100/\text{bp}$$
-$$CS01_{\text{new per USD 10mm}} = 10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$$
+Bid/offer equivalent to 0.5 bp on each leg:
 
-To maintain 4,100 USD/bp CS01 on the new series:
+| | Calc | Cost |
+|---|------|------|
+| Per-leg cost | $\approx CS01 \times 0.5$ bp $\approx 4{,}600 \times 0.5$ | $USD 2{,}300$ |
+| Two legs | $2 \times 2{,}300$ | $USD 4{,}600$ |
 
-`N_new = 10,000,000 * (4,100 / 4,600) = USD 8,913,043`
+#### All-In Roll Cost
 
-This means **reducing notional by ~11%** when rolling to maintain spread-neutral exposure.
+$$30{,}500 + 4{,}600 = USD 35{,}100$$
 
-#### Execution Cost (Toy)
-
-Suppose bid/offer equivalent to 0.5 bp spread on each leg.
-
-- Approx PV cost per leg $\approx CS01 \times 0.5$.
-- Use $CS01_{\text{new}} \approx 4{,}600$ USD/bp
-- Cost per leg $\approx 4{,}600 \times 0.5 = USD 2{,}300$
-- Two legs $\Rightarrow$ total $\approx USD 4{,}600$
-
-#### Total "All-In" Cash Impact
-
-$$30{,}500 + 4{,}600 = USD 35{,}100.$$
-
-#### Interpretation
-
-The roll cost ($30,500) is substantial relative to quarterly carry. A trader must weigh the liquidity benefits of being on-the-run against the roll cost. The CS01-adjusted notional calculation shows that maintaining risk-neutral exposure requires reducing size—rolling "flat notional" actually *increases* spread exposure by 12%.
+This is substantial relative to quarterly carry, so the liquidity benefits of being on-the-run must justify the roll cost.
 
 ---
 
 ### Example 8B: Roll with Favorable Composition
 
-**What happens when composition improvement dominates maturity extension?**
+**Goal:** show what happens when a composition improvement dominates the maturity-extension effect — the new series can trade tighter than the old.
 
 #### Setup
 
-Same as Example 8, but now suppose 3 distressed names (average spread 400 bp) are removed and replaced with 3 IG names (average spread 50 bp) in a 125-name index.
+Same as Example 8, with one change: 3 distressed names (avg 400 bp) are removed and replaced with 3 IG names (avg 50 bp) in a 125-name index.
 
-#### Composition Effect
+#### Step 1 — Composition Effect
 
-Spread reduction from composition change:
 $$\Delta S_{\text{composition}} = \frac{3}{125} \times (50 - 400) = -8.4 \text{ bp}$$
 
-#### Net Spread Change
+#### Step 2 — Net Spread Change
 
-$$\Delta S = \Delta S_{\text{maturity}} + \Delta S_{\text{composition}} = 5 + (-8.4) = -3.4 \text{ bp}$$
+| Effect | Contribution |
+|--------|--------------|
+| Maturity extension (Example 8) | $+5$ bp |
+| Composition | $-8.4$ bp |
+| **Net** | **$-3.4$ bp** |
 
-The new series trades **tighter** than the old series despite the longer maturity.
+The new series trades **tighter** despite the longer maturity.
 
-#### Roll P&L Impact
+#### Step 3 — Roll P&L
 
-- Old series: $S_{\text{old}} = 115$ bp, $V_{\text{old}} = USD 61{,}500$
-- New series: $S_{\text{new}} = 111.6$ bp
+| Series | Spread | Calc | MTM |
+|--------|--------|------|-----|
+| Old | 115 bp | (from Example 8) | $USD 61{,}500$ |
+| New | 111.6 bp | $10\text{mm} \cdot 4.6 \cdot (111.6 - 100) \cdot 10^{-4}$ | $USD 53{,}360$ |
 
-$$V_{\text{new}} = 10{,}000{,}000 \cdot 4.6 \cdot (111.6 - 100) \cdot 10^{-4} = USD 53{,}360$$
+**Net cash inflow** (favorable roll for the long-protection holder):
 
-**Net cash inflow** (favorable roll):
 $$61{,}500 - 53{,}360 = USD 8{,}140 \text{ received}$$
 
 #### Key Lesson
 
-O’Kane emphasizes that roll composition cuts both ways: the new series may drop downgraded/less‑liquid names, but liquidity requirements can also lead to replacement by wider names. In practice, roll P&L decomposes into (i) maturity/curve effects and (ii) composition effects, and you need both to explain the move.
+Roll composition cuts both ways. The new series may drop downgraded names *or* may pull in wider replacements driven by liquidity criteria. To explain any roll P&L, decompose it into:
+1. Maturity / curve effects (deterministic from curve slope).
+2. Composition effects (depends on which names enter and exit).
 
 ---
 
 ### Example 9: Default in Index
 
-**Given final price FP, compute default settlement impact on index cashflows.**
+**Goal:** trace what happens to a long-protection index position when one constituent defaults — both the immediate cash settlement and the ongoing coupon adjustment.
 
-#### Source-Backed Mechanics
+**Mechanics recap (per source):** the default payout is based on face value minus the auction-determined final price. The defaulted name is removed from the index and the future premium is reduced by the proportional notional ($1/M$ in these notes).
 
-Default payoff based on face value minus final price; settlement can be physical or cash with auction determining final price.
+#### Setup
 
-For index: a default causes a payout on that name and reduces future premium by a proportional notional reduction (illustrated as $1/M$ type reduction in the sources).
+| Item | Value |
+|------|-------|
+| Total index notional $N$ | USD 10mm |
+| Number of names $M$ | 5 → per-name notional $N_m = USD 2$mm |
+| Coupon $C$ | 100 bp |
+| Final price $FP$ | 35% → $R = 0.35$ |
+| Days since last coupon (Actual/360) | 50 → $\Delta = 50/360 \approx 0.1389$ |
 
-#### Toy Setup
+#### Step 1 — Immediate Default Cash (Long Protection)
 
-- Total index notional: $N = USD 10\text{mm}$
-- $M = 5 \Rightarrow$ notional per name $N_m = 2\text{mm}$
-- Coupon $C = 100$ bp
-- Final price $FP = 35\\% \Rightarrow R = 0.35$
-- Accrual since last coupon: 50 days on Actual/360:
+| Item | Calc | Value |
+|------|------|-------|
+| Protection payment | $(1-R) \cdot N_m = 0.65 \times 2{,}000{,}000$ | $+USD 1{,}300{,}000$ |
+| Accrued premium owed | $N_m \cdot C \cdot 10^{-4} \cdot \Delta = 2{,}000{,}000 \cdot 0.01 \cdot 0.1389$ | $-USD 2{,}778$ |
+| **Net immediate cash** | | **$+USD 1{,}297{,}222$** |
 
-$$\Delta = \frac{50}{360} = 0.1388889.$$
+#### Step 2 — Future Coupon Impact
 
-#### Default Settlement (Long Protection)
+| | Notional | Quarterly coupon |
+|---|----------|------------------|
+| Before default | $USD 10$mm | $10\text{mm} \cdot 0.01 \cdot 0.25 = USD 25{,}000$ |
+| After default (notional $-1/M = -20\\%$) | $USD 8$mm | $8\text{mm} \cdot 0.01 \cdot 0.25 = USD 20{,}000$ |
+| **Reduction** | | $-USD 5{,}000$ per quarter |
 
-**Protection payment:**
-
-$$(1 - R) N_m = (1 - 0.35) \times 2{,}000{,}000 = 0.65 \times 2{,}000{,}000 = USD 1{,}300{,}000.$$
-
-**Accrued premium owed by protection buyer on that name:**
-
-$$N_m \cdot C \cdot 10^{-4} \cdot \Delta = 2{,}000{,}000 \cdot 100 \cdot 10^{-4} \cdot 0.1388889 = 2{,}000{,}000 \cdot 0.01 \cdot 0.1388889 = USD 2{,}777.78.$$
-
-**Net immediate cash:**
-
-$$1{,}300{,}000 - 2{,}777.78 = USD 1{,}297{,}222.22.$$
-
-#### Future Coupon Impact
-
-**Before default:** quarterly coupon on $10mm:
-
-$$10{,}000{,}000 \cdot 0.01 \cdot 0.25 = USD 25{,}000.$$
-
-**After default,** notional reduced by $1/M = 20\\% \Rightarrow$ remaining $= 8\text{mm}$:
-
-$$8{,}000{,}000 \cdot 0.01 \cdot 0.25 = USD 20{,}000.$$
-
-Coupon reduces by $5,000 per quarter from then on (toy).
+The protection buyer pays USD 5,000 less coupon each quarter going forward — a permanent cashflow change tied to the smaller surviving notional.
 
 ---
 
 ### Example 10: Full P&L Explain for an Index Position over a Horizon
 
-**Carry + rolldown + spread move + default event.**
+**Goal:** decompose one-month P&L into carry + rolldown + spread move + default event, the canonical desk explain.
 
 #### Setup
 
-- Long protection on index
-- Notional $N = USD 10\text{mm}$, coupon $C = 100$ bp
-- $RPV01 = 4.6 \Rightarrow CS01 = 10{,}000{,}000 \times 4.6 \times 10^{-4} = USD 4{,}600/\text{bp}$
-- One-month horizon; use Example 7's carry+rolldown under fixed curve: $-USD 18{,}073.33$
+| Item | Value |
+|------|-------|
+| Position | Long protection on index |
+| Notional $N$ | USD 10mm |
+| Coupon $C$ | 100 bp |
+| RPV01 | 4.6 → CS01 = $USD 4{,}600$/bp |
+| Horizon | One month |
+| Carry + rolldown (from Example 7) | $-USD 18{,}073$ |
 
-#### Observed Changes (Toy)
+#### Step 1 — Spread Move (+10 bp)
 
-**Index spread widens $+10$ bp** $\Rightarrow$ spread P&L:
+$$\Delta PV_{\text{spread}} = 4{,}600 \times 10 = +USD 46{,}000$$
 
-$$\Delta PV_{\text{spread}} = 4{,}600 \times 10 = +USD 46{,}000.$$
+#### Step 2 — One Constituent Defaults (large index, $M = 125$)
 
-**One constituent defaults** in a large index $M = 125$ (so per-name notional small):
+| Item | Value |
+|------|-------|
+| Per-name notional $N_m$ | $10{,}000{,}000 / 125 = USD 80{,}000$ |
+| Final price $FP$ | 35% → $1-R = 0.65$ |
+| Accrual fraction | $50/360 \approx 0.1389$ |
 
-- $N_m = 10{,}000{,}000 / 125 = USD 80{,}000$
-- $FP = 35\\% \Rightarrow 1 - R = 0.65$
-- Accrual: 50/360
-- Default cash:
+Default cash:
 
-$$0.65 \cdot 80{,}000 - 80{,}000 \cdot 0.01 \cdot 0.1388889 = 52{,}000 - 111.11 = USD 51{,}888.89.$$
+$$0.65 \times 80{,}000 - 80{,}000 \times 0.01 \times 0.1389 = 52{,}000 - 111.11 \approx USD 51{,}889$$
 
 #### P&L Explain
 
-$$\Delta PV \approx \underbrace{(-18{,}073.33)}_{\text{carry+rolldown}} + \underbrace{46{,}000}_{\text{spread move}} + \underbrace{51{,}888.89}_{\text{default event}} = USD 79{,}815.56.$$
+| Component | P&L |
+|-----------|-----|
+| Carry + rolldown | $-USD 18{,}073$ |
+| Spread move (+10 bp) | $+USD 46{,}000$ |
+| Default event | $+USD 51{,}889$ |
+| **Total** | **$+USD 79{,}816$** |
 
 #### Interpretation
 
-Linear spread risk and discrete event risk both matter; carry/rolldown is smaller but non-negligible over time.
+All three components matter:
+- **Linear spread risk** drove the largest piece (after the default).
+- **The discrete default event** was the biggest single contribution.
+- **Carry/rolldown** was smaller but non-negligible — and *deterministic*, so it is the easiest piece to forecast and budget against.
 
 ---
 
 ### Example 11: Tranche PV01
 
-**Bump tranche spread ±1bp and compute PV01 by finite difference.**
+**Goal:** compute tranche PV01 by symmetric finite difference (the standard production method).
 
 #### Setup
 
-- Tranche position notional $N_T = USD 10\text{mm}$
-- Tranche $RPV01_T = 3.2$ (toy)
-- At-par tranche: contractual spread = market spread, so PV $\approx 0$.
+| Item | Value |
+|------|-------|
+| Tranche notional $N_T$ | USD 10mm |
+| Tranche $RPV01_T$ | 3.2 (toy) |
+| At-par tranche | Contractual spread = market spread → PV $\approx 0$ |
 
-#### Revalue for ±1 bp
+#### Step 1 — Revalue at ±1 bp
 
-**If spread widens by +1 bp:**
+| Bump | Calc | $PV$ |
+|------|------|------|
+| $+1$ bp | $N_T \cdot 3.2 \cdot 1 \cdot 10^{-4}$ | $+USD 3{,}200$ |
+| $-1$ bp | $-N_T \cdot 3.2 \cdot 1 \cdot 10^{-4}$ | $-USD 3{,}200$ |
 
-$$PV(+1) = N_T \cdot 3.2 \cdot 1 \cdot 10^{-4} = 10{,}000{,}000 \cdot 3.2 \cdot 10^{-4} = USD 3{,}200.$$
+#### Step 2 — Symmetric Finite Difference
 
-**If spread tightens by −1 bp:**
+$$PV01 = \frac{PV(+1) - PV(-1)}{2} = \frac{3{,}200 - (-3{,}200)}{2} = USD 3{,}200/\text{bp}$$
 
-$$PV(-1) = -USD 3{,}200.$$
-
-#### Finite Difference PV01
-
-$$PV01 = \frac{PV(+1) - PV(-1)}{2} = \frac{3{,}200 - (-3{,}200)}{2} = USD 3{,}200/\text{bp}.$$
+Symmetric bumps are preferred in practice because they remove the linear bias of one-sided differences.
 
 ---
 
 ### Example 12: Correlation Shock Toy
 
-**PV(tranche) under low vs high dependence; compute PV change and interpret "correlation risk."**
+**Goal:** revalue a tranche at two correlation levels and back out Corr01 — the standard way correlation risk is reported.
 
 #### Setup
 
-- Same tranche notional $N_T = USD 10\text{mm}$
-- Model-reported PVs (toy) for a given tranche:
-  - $PV(\rho = 20\%) = -USD 400{,}000$
-  - $PV(\rho = 30\%) = -USD 350{,}000$
+| Item | Value |
+|------|-------|
+| Tranche notional $N_T$ | USD 10mm |
+| $PV(\rho = 20\\%)$ | $-USD 400{,}000$ |
+| $PV(\rho = 30\\%)$ | $-USD 350{,}000$ |
 
-#### Correlation P&L for +10% Correlation
+#### Step 1 — P&L from a +10% Correlation Shock
 
-$$\Delta PV = -350{,}000 - (-400{,}000) = +USD 50{,}000.$$
+$$\Delta PV = PV(\rho = 30\\%) - PV(\rho = 20\\%) = -350{,}000 - (-400{,}000) = +USD 50{,}000$$
 
-#### Correlation 01 (Per 1% Correlation)
+#### Step 2 — Corr01 (per 1% correlation)
 
-$$\text{Corr01} \approx \frac{50{,}000}{10} = USD 5{,}000 \text{ per } 1\\%.$$
+$$\text{Corr01} \approx \frac{\Delta PV}{\Delta \rho \\, (\\%)} = \frac{50{,}000}{10} = USD 5{,}000 \text{ per } 1\\%$$
 
 #### Interpretation
 
-This tranche benefits (PV increases) when dependence increases. The source emphasizes that corr sensitivity varies by tranche and is measured by Corr01.
+This tranche **benefits** as correlation rises (positive Corr01). The sign reveals where on the capital structure this tranche sits — a typical pattern is:
+- Long-protection equity → negative Corr01 (loses when correlation rises).
+- Long-protection senior → positive Corr01 (gains when correlation rises).
+
+A positive Corr01 here is consistent with a senior-style tranche.
+
+> **Caveat:** Corr01 is *local*. It assumes Corr01 itself is constant over the bumped range — a poor assumption for large correlation moves. See Example 20 for a stressed scenario.
 
 ---
 
-### Example 13: Tail/Clustering Scenario
+### Example 13: Tail / Clustering Scenario
 
-**1 default vs 5 clustered defaults; compute tranche loss and PV impact; show why PV01 hedges fail.**
+**Goal:** show that PV01 (linear) hedges fail when defaults cluster, because tranche loss is nonlinear in realized portfolio loss.
 
 #### Setup
 
-- Portfolio has $M = 100$ equal names; each default has recovery $R = 40\\% \Rightarrow$ loss per default on portfolio notional:
+| Item | Value |
+|------|-------|
+| Portfolio names $M$ | 100 (equal weight) |
+| Recovery $R$ | 40% |
+| Loss per default (% of portfolio) | $\ell = (1-R)/M = 0.6\\%$ |
+| Equity tranche $[A, B]$ | $[0\\%, 3\\%]$ → width $B-A = 3\\%$ |
+| Tranche notional $N_T$ | USD 10mm |
 
-$$\ell = \frac{1 - R}{M} = \frac{0.60}{100} = 0.006 = 0.6\\%.$$
+#### Scenario Comparison
 
-- Consider equity tranche $[A, B] = [0\\%, 3\\%] \Rightarrow B - A = 3\\%$.
-- Tranche notional (toy) $N_T = USD 10\text{mm}$.
+| | 1 default | 5 defaults (cluster) |
+|---|-----------|----------------------|
+| Portfolio loss $L$ | $0.6\\%$ | $5 \times 0.6\\% = 3.0\\%$ |
+| Tranche loss fraction $L_{[0,3]}$ | $0.6 / 3 = 0.20$ | $3.0 / 3 = 1.00$ (fully written down) |
+| Dollar loss (protection seller) | $0.20 \times 10\text{mm} = USD 2\text{mm}$ | $1.00 \times 10\text{mm} = USD 10\text{mm}$ |
 
-#### Scenario 1: 1 Default
-
-Portfolio loss $L = 0.6\\%$.
-
-Tranche loss fraction:
-
-$$L_{[0,3]} = \frac{\min(L, 3\\%)}{3\\%} = \frac{0.6\\%}{3\\%} = 0.20.$$
-
-Dollar loss on tranche (for protection seller):
-
-$$0.20 \times 10{,}000{,}000 = USD 2{,}000{,}000.$$
-
-#### Scenario 2: 5 Defaults (Cluster)
-
-Portfolio loss $L = 5 \times 0.6\\% = 3.0\\%$.
-
-Tranche loss fraction:
-
-$$L_{[0,3]} = \frac{3.0\\%}{3\\%} = 1.00.$$
-
-Dollar loss:
-
-$$1.00 \times 10{,}000{,}000 = USD 10{,}000{,}000.$$
+5× the defaults → 5× the tranche loss in this range, but the equity tranche is **completely consumed** at 5 defaults. Beyond that, additional losses skip equity entirely and hit the next tranche.
 
 #### Why PV01 Hedges Fail
 
-A PV01 hedge is calibrated to small spread moves (linear).
-
-A clustered default scenario creates a jump in realized loss that is not proportional to a 1–5 bp spread bump.
+A PV01 hedge is calibrated to **small linear spread moves**. A clustered default scenario creates a *jump* in realized loss that has no linear relationship to a 1–5 bp spread bump. The hedge ratio that worked yesterday gives no protection against tomorrow's cluster.
 
 ---
 
 ### Example 14: Adjacent Tranche Hedge
 
-**Hedge tranche spread PV01 with another tranche; validate under small spread move; show failure under clustering.**
+**Goal:** PV01-neutral hedge of an equity tranche with a mezz tranche works for small spread moves but fails badly under default clustering.
 
 #### Setup
 
-- **Target tranche:** equity $[0, 3]$, notional $N_E = USD 10\text{mm}$, $PV01_E = USD 3{,}200/\text{bp}$ (from Example 11).
-- **Hedge tranche:** mezz `[3, 7]`, assume $PV01_M = 1{,}800$ USD/bp per USD 10mm notional (toy).
-- **Goal:** PV01-neutral hedge of spread moves.
+| Tranche | Range | Notional | PV01 (per USD 10mm) |
+|---------|-------|----------|---------------------|
+| **Target** — equity | $[0, 3]$ | $N_E = USD 10$mm | $USD 3{,}200$/bp (from Ex. 11) |
+| **Hedge** — mezz | $[3, 7]$ | $N_M$ (TBD) | $USD 1{,}800$/bp |
 
-#### Hedge Ratio
+#### Step 1 — PV01-Neutral Sizing
 
-Need $PV01_E + PV01_M \times (N_M / 10\text{mm}) \times \text{sign} = 0$.
+Take opposite spread exposure on mezz so the legs offset:
 
-If we take opposite spread exposure using mezz, the notional ratio is:
+$$\frac{N_M}{10\text{mm}} = \frac{PV01_E}{PV01_M} = \frac{3{,}200}{1{,}800} \approx 1.7778 \\;\Rightarrow\\; \boxed{N_M = USD 17.778\text{mm}}$$
 
-$$\frac{N_M}{10\text{mm}} = \frac{PV01_E}{PV01_M} = \frac{3{,}200}{1{,}800} = 1.7778 \Rightarrow N_M = USD 17.778\text{mm}.$$
+#### Step 2 — Check Under +1 bp Spread Move
 
-#### Check under Small +1 bp Spread Move
+| Leg | P&L magnitude |
+|-----|---------------|
+| Equity | $USD 3{,}200$ |
+| Mezz (opposite sign) | $1{,}800 \times 1.7778 = USD 3{,}200$ |
+| **Net** | **$\approx 0$** ✅ |
 
-- Equity spread P&L: $+3{,}200$ (long protection) or $-3{,}200$ (short protection); choose opposite sign for hedge so it offsets.
-- Mezz spread P&L magnitude: $1{,}800 \times 1.7778 = 3{,}200$.
-- **Net $\approx 0$. ✅**
+#### Step 3 — Failure Under Clustering (10 defaults)
 
-#### Failure under Clustering
+Use Example 13's portfolio assumptions ($M=100$, $R=40\\%$, loss per default $= 0.6\\%$).
 
-Use the same portfolio assumptions as Example 13.
+10 defaults → portfolio loss $L = 6\\%$.
 
-**Clustered defaults: 10 defaults** $\Rightarrow L = 10 \times 0.6\\% = 6\\%$.
-
-**Equity tranche `[0, 3]` loss fraction** $= 1.00 \Rightarrow$ USD 10mm loss.
-
-**Mezz tranche $[3, 7]$ loss fraction:**
-
-$$L_{[3,7]} = \frac{\min(\max(6\\% - 3\\%, 0), 4\\%)}{4\\%} = \frac{3\\%}{4\\%} = 0.75.$$
-
-Dollar loss on mezz notional $N_M = 17.778\text{mm}$ is $0.75 \times 17.778\text{mm} = USD 13.333\text{mm}$.
+| Tranche | Loss fraction | Dollar loss |
+|---------|---------------|-------------|
+| Equity $[0, 3]$ | $1.00$ (fully consumed) | $1.00 \times USD 10$mm $= USD 10$mm |
+| Mezz $[3, 7]$ | $\frac{\min(\max(6-3, 0), 4)}{4} = \frac{3}{4} = 0.75$ | $0.75 \times USD 17.778$mm $= USD 13.333$mm |
 
 #### Interpretation
 
-The PV01-neutral hedge can become over-hedged or under-hedged in default clusters because losses are nonlinear and tranche-dependent.
+A PV01-neutral hedge can become **over-hedged** or **under-hedged** in default clusters because losses are nonlinear and tranche-dependent. The hedge that costs nothing on small spread moves can produce massive net losses under clustering.
 
 ---
 
 ### Example 15: Strategy Comparison Table
 
-**For 3 strategies (bond–CDS basis, single-name–index, tranche RV), present exposures side-by-side and map hedges.**
+**Goal:** put three of the chapter's core strategies side by side so the *shape* of their exposures is easy to compare.
 
 #### Toy Exposure Snapshot (Illustrative)
 
-| Strategy | Primary instrument(s) | CS01 (USD/bp) | JTD (USD) | Rec01 (USD/1%) | Basis sensitivity | Typical hedge map |
-|----------|----------------------|---------------|-----------|----------------|-------------------|-------------------|
-| Bond–CDS basis (A1) | bond + CDS | bond: $-420$; CDS: $+459$ | bond: $-610k$; CDS: $+610k$ | meaningful | CDS–cash basis | DV01 hedge (rates), CS01 or JTD hedge (CDS notional) |
-| Single-name vs index (A2) | single CDS + index CDS | single: $+4{,}500$; index short: $-4{,}500$ | single default dominates | meaningful | proxy/index basis + roll | CS01 match; event stress for residual JTD |
-| Tranche RV (C1) | tranche + hedge(s) | tranche PV01: $3{,}200$ | jump via losses | recovery + corr | dependence/tail | PV01 hedge (index/adjacent), Corr01 monitoring, cluster stress |
+| Strategy | Instruments | CS01 (USD/bp) | JTD (USD) | Rec01 | Dominant basis risk | Typical hedge map |
+|----------|-------------|---------------|-----------|-------|---------------------|-------------------|
+| **Bond–CDS basis (A1)** | bond + CDS | bond $-420$; CDS $+459$ | bond $-610$k; CDS $+610$k | meaningful | CDS–cash basis | DV01 hedge (rates) + CS01 or JTD hedge (CDS notional) |
+| **Single-name vs index (A2)** | single CDS + index CDS | single $+4{,}500$; index short $-4{,}500$ | single default dominates | meaningful | proxy/index basis + roll | CS01 match; event stress for residual JTD |
+| **Tranche RV (C1)** | tranche + hedge(s) | tranche PV01 $3{,}200$ | jump via losses | recovery + correlation | dependence / tail | PV01 hedge (index or adjacent tranche); Corr01 monitoring; cluster stress |
+
+**Reading the table:** notice that CS01 numbers do not tell the whole story — basis sensitivity and JTD/cluster behavior differ qualitatively across strategies. The Strategy Card discipline forces you to map each of these dimensions explicitly.
 
 ---
 
 ## 52.13 Practical Notes
 
-### No Trade Tips Disclaimer (Educational Only)
+### Educational Only — No Trade Tips
 
-This chapter is an educational risk framework. It does not provide recommendations, forecasts, or "what to trade now."
+This chapter is an educational risk framework. It does **not** provide recommendations, forecasts, or "what to trade now."
 
-### Common Pitfalls
+### Conceptual Pitfalls
 
-- **Mixing CS01 definitions:**
-  - quote bump vs hazard-rate bump; index spread bump vs constituent bump.
-  - Mixing quoting regimes (running spread vs fixed coupon + upfront) inconsistently.
-- **Ignoring recovery/final-price risk** in event scenarios (default payoff depends on recovery/final price).
-- **Assuming roll calendars/coupons** without sourcing (index conventions are product- and rulebook-specific).
-- **Confusing hedging** (risk reduction) **with RV exposure** (basis risk intentionally retained).
+| Pitfall | Specifics |
+|---------|-----------|
+| **Mixing CS01 definitions** | Quote bump vs hazard-rate bump; index-spread bump vs constituent bump |
+| **Mixing quoting regimes** | Running spread vs fixed coupon + upfront — inconsistent treatment |
+| **Ignoring recovery / final-price risk** | Default payoff depends on recovery / final price (Examples 1, 9, 16) |
+| **Assuming roll calendars / coupons** | Index conventions are product- and rulebook-specific — confirm, don't assume |
+| **Confusing hedging with RV exposure** | Hedging = risk reduction; RV = basis risk *intentionally* retained |
 
 ### Implementation Pitfalls
 
-- **Unit mistakes:** bp vs decimals; per-100 price vs per-$ notional; inconsistent scaling.
-- **Inconsistent curves and recovery assumptions** between legs.
-- **Execution costs** dominate small basis edges.
+| Pitfall | What goes wrong |
+|---------|-----------------|
+| **Unit mistakes** | bp vs decimals; per-100 price vs per-USD notional; inconsistent scaling |
+| **Inconsistent curves / recovery** | Different assumptions across legs lead to phantom P&L |
+| **Execution costs dominate** | Especially on small basis edges |
 
 ### Verification Tests
 
-- **Scaling with notional:** CS01 and PV should scale linearly for small bumps.
-- **Repricing checks** for all legs under base scenario.
-- **Scenario suite passes:**
-  - parallel / dispersion / event / roll / tail.
+| Test | What to check |
+|------|---------------|
+| **Linear scaling with notional** | CS01 and PV should scale linearly for small bumps |
+| **Repricing** | Each leg should reprice consistently under the base scenario |
+| **Scenario suite passes** | Parallel / dispersion / event / roll / tail scenarios all behave as expected |
 
 ---
 
 ### Example 16: Senior vs Subordinated CDS — Recovery-Driven Spread Relationship
 
-**Setup:** Consider a BBB-rated issuer with both senior unsecured and subordinated CDS traded. Market recovery assumptions: $R_{\text{sen}} = 40\\%$, $R_{\text{sub}} = 20\\%$. Senior 5Y CDS trades at $S_{\text{sen}} = 120$ bp.
+**Goal:** apply the O'Kane senior-sub spread relationship to spot relative-value mispricings driven by recovery assumptions.
 
-**Question:** What should the subordinated CDS spread be under the equal-default-probability assumption? If sub CDS actually trades at 170 bp, is the trade attractive?
+#### Setup
 
-**Solution:**
+| Item | Value |
+|------|-------|
+| Senior 5Y CDS spread $S_{\text{sen}}$ | 120 bp |
+| Senior recovery $R_{\text{sen}}$ | 40% |
+| Sub recovery $R_{\text{sub}}$ | 20% |
+| Market sub spread (observed) | 170 bp |
 
-Using O'Kane's senior-sub relationship (derived from equal hazard rates, different LGDs):
+#### Step 1 — Theoretical Sub Spread
+
+Under equal hazard rates:
 
 $$\boxed{\frac{S_{\text{sub}}}{S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
 
-$$S_{\text{sub}}^{\text{fair}} = 120 \times \frac{1 - 0.20}{1 - 0.40} = 120 \times \frac{0.80}{0.60} = 160 \text{ bp}$$
+$$S_{\text{sub}}^{\text{fair}} = 120 \times \frac{0.80}{0.60} = 160 \text{ bp}$$
 
-The theoretical ratio is $0.80/0.60 = 1.333$. Actual market sub spread is 170 bp, giving a ratio of $170/120 = 1.417$.
+#### Step 2 — Compare to Market
 
-**Interpretation:** Sub CDS is *wider* than the model predicts by 10 bp. This could indicate:
-- Sub recovery is lower than 20% (market pricing ~15% recovery), or
-- Sub CDS has excess liquidity premium, or
-- A genuine mispricing
+| | Ratio |
+|---|-------|
+| Theoretical | $0.80 / 0.60 = 1.333$ |
+| Observed | $170 / 120 = 1.417$ |
 
-**Trade construction (if you believe in the model):** Buy protection on senior, sell protection on sub (harvesting the excess sub spread). Size CS01-neutral:
+Sub CDS is **10 bp wider than the model predicts**. Possible explanations:
+- Market is pricing lower sub recovery than 20% (perhaps ~15%).
+- Sub CDS has an extra liquidity premium.
+- Genuine mispricing.
+
+#### Step 3 — Trade Construction (If You Trust the Model)
+
+Buy senior protection + sell sub protection — harvesting the excess sub spread. Size CS01-neutral:
 
 $$N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}$$
 
-If $RPV01_{\text{sen}} = 4.1$ and $RPV01_{\text{sub}} = 3.8$ (lower survival probability compresses RPV01), then for USD 5mm sub notional:
+With $RPV01_{\text{sen}} = 4.1$ and $RPV01_{\text{sub}} = 3.8$ (lower survival probability compresses RPV01), for $N_{\text{sub}} = USD 5$mm:
 
-$$N_{\text{sen}} = 5 \times \frac{3.8}{4.1} = 4.63\text{mm}$$
+$$N_{\text{sen}} = 5 \times \frac{3.8}{4.1} \approx USD 4.63\text{mm}$$
 
-**Failure mode:** If actual sub recovery at default is 5% (not 20%), your "cheap sub protection" was actually fair and you lose on the senior leg. Recovery uncertainty is the dominant risk.
+#### Failure Mode
+
+If realized sub recovery at default is 5% (not 20%), then the "cheap sub protection" was actually fair-priced and you lose on the senior leg. **Recovery uncertainty dominates** — this is the single biggest risk in capital-structure RV.
 
 ---
 
 ### Example 17: HY Curve Steepener — CS01-Neutral Sizing
 
-**Setup:** A high-yield issuer trades with an inverted CDS curve: 3Y at 450 bp, 5Y at 380 bp. You believe the inversion is excessive (the issuer will survive the near-term liquidity crunch) and want to trade the curve flattening.
+**Goal:** size a CS01-neutral 3Y/5Y curve trade on an inverted HY name, then show the JTD mismatch baked into CS01 neutrality.
 
-**Trade:** Buy 5Y protection (long) + Sell 3Y protection (short). This is a "bull flattener" — you profit if the curve flattens (3Y tightens more than 5Y, or 5Y widens less than 3Y).
+#### Setup
 
-**CS01-neutral sizing:** Per O'Kane's framework, match the CS01 so parallel moves cancel:
+| Item | Value |
+|------|-------|
+| 3Y CDS spread | 450 bp |
+| 5Y CDS spread | 380 bp |
+| Curve shape | Inverted (you believe inversion is excessive) |
+| $RPV01_{3Y}$ | 2.5 (per USD 1mm) |
+| $RPV01_{5Y}$ | 3.6 (per USD 1mm) |
 
-Given: $RPV01_{3Y} = 2.5$, $RPV01_{5Y} = 3.6$ (both per USD 1mm notional).
+**Trade — "bull flattener":**
+- **Long 5Y protection** ($N_{5Y} = USD 10$mm).
+- **Short 3Y protection** ($N_{3Y}$ to be sized).
 
-$$N_{3Y} = N_{5Y} \times \frac{RPV01_{5Y}}{RPV01_{3Y}} = 10\text{mm} \times \frac{3.6}{2.5} = 14.4\text{mm}$$
+You profit if the curve flattens (3Y tightens more than 5Y, or 5Y widens more than 3Y).
 
-**P&L scenarios (per USD 10mm 5Y notional, USD 14.4mm 3Y notional):**
+#### Step 1 — CS01-Neutral Sizing
 
-| Scenario | 3Y move | 5Y move | 3Y P&L | 5Y P&L | Net P&L |
-|----------|---------|---------|--------|--------|---------|
-| Parallel +50bp | +50 | +50 | $+50 \times 14.4 \times 2.5 \times 10^{-4} = +18{,}000$ USD | $-50 \times 10 \times 3.6 \times 10^{-4} = -18{,}000$ USD | **USD 0** |
-| Curve flattens | -100 | -30 | $-100 \times 14.4 \times 2.5 \times 10^{-4} = -36{,}000$ USD | $+30 \times 10 \times 3.6 \times 10^{-4} = +10{,}800$ USD | **-USD 25,200** |
-| Curve normalizes (3Y tightens) | -150 | +20 | $-54{,}000$ USD | $-7{,}200$ USD | **-USD 61,200** |
-| Default | — | — | Lose on 3Y (short prot) | Gain on 5Y (long prot) | Net depends on timing |
+Match CS01 so a parallel move cancels:
 
-Wait — check the signs. Short protection on 3Y means CS01 $\lt 0$; when 3Y spreads *tighten* (move negative), short protection *gains*:
+$$N_{3Y} = N_{5Y} \times \frac{RPV01_{5Y}}{RPV01_{3Y}} = 10\text{mm} \times \frac{3.6}{2.5} = USD 14.4\text{mm}$$
 
-| Scenario | 3Y move | 5Y move | 3Y P&L (short prot) | 5Y P&L (long prot) | Net P&L |
-|----------|---------|---------|---------------------|---------------------|---------|
-| Curve flattens (3Y tightens -100, 5Y flat) | -100 | 0 | $+36{,}000$ USD | USD 0 | **+USD 36,000** |
-| Curve normalizes (3Y -150, 5Y -30) | -150 | -30 | $+54{,}000$ USD | $-10{,}800$ USD | **+USD 43,200** |
-| Default | — | — | `~-(1-R) * 14.4mm` | `~+(1-R) * 10mm` | **-USD 2.6mm** net loss |
+**Sign reminder.** Long protection has CS01 $\gt 0$; short protection has CS01 $\lt 0$. So when the 3Y leg (short protection) sees spreads *tighten*, it *gains*.
 
-**Key risk:** JTD is *not* hedged. The 3Y short protection notional exceeds 5Y long protection notional, so default produces a net loss of approximately $(1-R)(14.4 - 10) = 0.65 \times 4.4 = USD 2.86\text{mm}$.
+#### Step 2 — Spread Move Scenarios
 
-> **Desk Reality:** This is why HY curve trades are dangerous — the CS01-neutral sizing creates a JTD mismatch. Some desks cap the notional ratio or add a JTD overlay.
+Per-leg CS01 (in USD/bp): $CS01 = N \cdot RPV01 \cdot 10^{-4}$ (signed by long/short prot).
+
+- 3Y short prot: $-(14{,}400{,}000 \times 2.5 \times 10^{-4}) = -USD 3{,}600/\text{bp}$
+- 5Y long prot: $+(10{,}000{,}000 \times 3.6 \times 10^{-4}) = +USD 3{,}600/\text{bp}$
+
+| Scenario | 3Y move | 5Y move | 3Y P&L (short prot) | 5Y P&L (long prot) | Net |
+|----------|---------|---------|---------------------|---------------------|-----|
+| Parallel $+50$ bp | $+50$ | $+50$ | $-180{,}000$ | $+180{,}000$ | **0** ✅ CS01 neutral |
+| Curve flattens (3Y $-100$, 5Y flat) | $-100$ | $0$ | $+360{,}000$ | $0$ | **$+USD 360{,}000$** |
+| Curve normalizes (3Y $-150$, 5Y $-30$) | $-150$ | $-30$ | $+540{,}000$ | $-108{,}000$ | **$+USD 432{,}000$** |
+
+(Each P&L = CS01 × spread move.)
+
+#### Step 3 — Default Scenario (Critical Failure Mode)
+
+If the name *defaults*:
+
+| Leg | Payoff direction | Approx magnitude |
+|-----|------------------|------------------|
+| Short 3Y protection ($USD 14.4$mm) | **Pays** $(1-R) \cdot N_{3Y}$ | $\sim -USD 9.36$mm |
+| Long 5Y protection ($USD 10$mm) | **Receives** $(1-R) \cdot N_{5Y}$ | $\sim +USD 6.5$mm |
+| **Net JTD** (with $R = 35\\%$) | $-(1-R)(N_{3Y} - N_{5Y}) = -0.65 \times 4.4$ | **$\sim -USD 2.86$mm** |
+
+#### Lesson
+
+CS01 neutrality requires *unequal* notionals. The larger short-protection leg means default produces a substantial net loss. **CS01-neutral sizing creates a JTD mismatch — by construction.**
+
+> **Desk Reality:** HY curve trades are dangerous for exactly this reason. Some desks cap the notional ratio; others add a JTD overlay (extra long protection) at the cost of breaking CS01 neutrality. There is no free lunch.
 
 ---
 
 ### Example 18: Negative Basis P&L Under Funding Stress
 
-**Setup:** You hold a negative basis package: long a corporate bond at Z-spread of 180 bp, long protection via 5Y CDS at 150 bp. The basis is $-30$ bp (CDS tighter than bond spread). You fund the bond position at LIBOR + 50 bp.
+**Goal:** show that a "negative basis" package can have *negative* carry once funding cost is included, and that a funding shock can wipe out the position.
 
-**Carry calculation (annualized, per $10mm notional):**
+#### Setup
 
-- Bond coupon received (spread component): $+180$ bp $= +USD 180{,}000$/yr
-- CDS premium paid: $-150$ bp $= -USD 150{,}000$/yr
-- Funding cost (spread over LIBOR): $-50$ bp $= -USD 50{,}000$/yr
-- **Net carry: $-20$ bp $= -USD 20{,}000$/yr**
+| Item | Value |
+|------|-------|
+| Position | Long corporate bond + long 5Y CDS protection |
+| Bond Z-spread | 180 bp |
+| CDS spread | 150 bp |
+| Bond–CDS basis | $-30$ bp (CDS tighter than bond) |
+| Funding cost | LIBOR + 50 bp |
+| Notional | USD 10mm |
 
-The "free lunch" of $-30$ bp basis is consumed by $-50$ bp funding cost, leaving negative net carry.
+#### Step 1 — Initial Annual Carry
 
-**Funding stress scenario:** Suppose your funding cost widens to LIBOR + 120 bp (credit crunch):
+| Component | bp | USD/yr |
+|-----------|----|--------|
+| Bond coupon (spread component) | $+180$ | $+USD 180{,}000$ |
+| CDS premium paid | $-150$ | $-USD 150{,}000$ |
+| Funding cost over LIBOR | $-50$ | $-USD 50{,}000$ |
+| **Net carry** | **$-20$** | **$-USD 20{,}000$** |
 
-- New net carry: $180 - 150 - 120 = -90$ bp $= -USD 90{,}000$/yr
-- The position now *bleeds* $USD 90{,}000$/yr while waiting for convergence
+The "free lunch" of $-30$ bp basis is *more than consumed* by $-50$ bp funding cost — net carry is negative.
 
-**MTM impact:** If market expects elevated funding for 2 years, the MTM loss is approximately:
+#### Step 2 — Funding Stress (LIBOR + 120 bp)
 
-$$\Delta PV \approx -90 \text{ bp} \times RPV01_{\text{bond}} \times \text{Notional} \approx -90 \times 4.0 \times 10^{-4} \times 10{,}000{,}000 = -USD 360{,}000$$
+| Component | bp | USD/yr |
+|-----------|----|--------|
+| Bond coupon | $+180$ | $+USD 180{,}000$ |
+| CDS premium paid | $-150$ | $-USD 150{,}000$ |
+| Funding cost (stressed) | $-120$ | $-USD 120{,}000$ |
+| **Net carry (stressed)** | **$-90$** | **$-USD 90{,}000$/yr** |
 
-**Desk note:** funding and balance-sheet costs are institution-specific. The same “basis” package can be positive carry for one participant and negative carry for another, and funding terms can change rapidly in stress—so always stress the financing leg, not just the spread leg.
+The position now bleeds USD 90k per year while waiting for basis convergence.
+
+#### Step 3 — MTM Impact (Elevated Funding Persists Across the Bond's Remaining Life)
+
+If the market prices the elevated funding as persistent across the bond's remaining ~5Y maturity, MTM moves by approximately the present value of the carry deterioration over that horizon ($RPV01_{\text{bond}} \approx 4.0$):
+
+$$\Delta PV \approx -90 \text{ bp} \times RPV01_{\text{bond}} \times N \approx -90 \times 4.0 \times 10^{-4} \times 10{,}000{,}000 = -USD 360{,}000$$
+
+(For a shorter assumed funding-stress horizon $\tau$, replace $RPV01_{\text{bond}}$ with the matching annuity factor — e.g., a 2-year assumption uses ~2.0 instead of 4.0.)
+
+#### Desk Note
+
+Funding and balance-sheet costs are *institution-specific*. The same "basis" package can be:
+- **Positive carry** for a bank with cheap repo,
+- **Negative carry** for a hedge fund paying a wide spread.
+
+Always stress the **financing leg**, not just the spread leg. A basis position is a funding position whether you frame it that way or not.
 
 ---
 
 ### Example 19: Equity-CDS Relative Value — LBO Scenario
 
-**Setup:** Company XYZ trades at equity market cap $8bn, with CDS at 90 bp (5Y). You observe that the equity is pricing minimal distress while CDS is relatively cheap. You believe an LBO is possible, which would load leverage onto the firm.
+**Goal:** show why naive equal-notional sizing of an "equity short / CDS long" Merton trade *underweights the CDS leg* — and loses money if an LBO actually happens.
 
-**Pre-LBO position:** Sell equity (short stock) + Buy CDS protection (long protection). This is the classic "short equity, long credit protection" Merton trade.
+#### Setup
 
-**LBO announcement:** Private equity acquires XYZ with 4× leverage. What happens?
+| Item | Value |
+|------|-------|
+| Equity market cap | USD 8bn |
+| 5Y CDS spread | 90 bp |
+| View | Equity prices minimal distress; CDS relatively cheap; LBO possible |
+
+**Pre-LBO position:** short equity + long CDS protection (the classic Merton trade — both legs profit if leverage rises).
+
+**Trade size (naive, equal notional):**
+- Short equity: USD 5mm
+- Long CDS protection: USD 5mm, RPV01 = 4.3
+
+#### Step 1 — LBO Announcement (4× Leverage)
 
 | Instrument | Pre-LBO | Post-LBO | P&L direction |
 |------------|---------|----------|---------------|
-| Equity | $40/share | $55/share (premium) | **Loss** on short equity |
+| Equity | USD 40/share | USD 55/share (tender premium) | **Loss** on short equity |
 | Senior CDS | 90 bp | 350 bp (leverage spike) | **Gain** on long protection |
-| Sub CDS | 200 bp | 800 bp | Even larger gain (if traded) |
+| Sub CDS | 200 bp | 800 bp | Even larger gain (not in this position) |
 
-**Sizing matters:** If you sized the trade so that:
-- Short equity: $5mm notional
-- Long CDS protection: $5mm notional, RPV01 = 4.3
+#### Step 2 — Compute P&L
 
-Equity loss: $5\text{mm} \times 37.5\% = -USD 1.875\text{mm}$ (stock jumps from $40 to $55)
+| Leg | Calc | P&L |
+|-----|------|-----|
+| Short equity | $-5\text{mm} \times (55-40)/40 = -5\text{mm} \times 37.5\\%$ | $-USD 1{,}875{,}000$ |
+| Long CDS (5mm × RPV01 × $\Delta S$) | $(350 - 90) \times 4.3 \times 10^{-4} \times 5{,}000{,}000$ | $+USD 559{,}000$ |
+| **Net** | | **$-USD 1{,}316{,}000$** |
 
-CDS gain: $(350 - 90) \times 4.3 \times 10^{-4} \times 5{,}000{,}000 = +USD 559{,}000$
+The trade *loses* money even though both legs moved "the right way" — the equity tender premium is much larger (in dollar terms) than the CDS spread move.
 
-**Net: $-USD 1.316\text{mm}$** — the CDS gain doesn't cover the equity loss because CDS leverage is lower than equity sensitivity.
+#### Lesson
 
-> **Desk Reality:** LBO trades are notoriously difficult to size correctly. The equity move is discontinuous (tender premium), while CDS moves are large but capped. Professional desks often use options on equity (puts) rather than short stock to limit downside, and overweight the CDS leg. The key insight from the Merton model is that equity is effectively a call option—its sensitivity to leverage events can dwarf CDS sensitivity.
+Equity-CDS sizing is hard:
+- Equity moves are **discontinuous** (tender premium, gap risk).
+- CDS spread moves are large but **bounded** (capped by LGD).
 
-These post‑event levels are **toy numbers** for sizing intuition only. Actual moves depend on the deal structure, leverage, sector, and market regime.
+Professional desks typically:
+1. Use **equity puts** rather than short stock to limit downside.
+2. **Overweight the CDS leg** because equity is more leverage-sensitive (Merton: equity = call on assets).
+
+The Merton intuition — equity has higher delta to leverage events than CDS — implies the dollar weights should *not* be equal.
+
+> **Caveat:** post-event levels here are **toy numbers** for sizing intuition only. Actual moves depend on deal structure, sector, leverage, and market regime.
 
 ---
 
 ### Example 20: Correlation Shock on Equity-Senior Combo
 
-**Setup (toy):** you build a Corr01‑neutral package at $\rho=25\\%$ using two tranches with opposite Corr01 signs.
+**Goal:** show that a Corr01-neutral combo at one correlation level is *not* Corr01-neutral after a large correlation shock — there is "correlation convexity."
 
-Assume (per $USD 10$mm tranche notional):
-- Equity tranche (0–3%, **long protection**): Corr01 $= -USD 8{,}000$ per +1% corr
-- Senior tranche (7–10% or 15–30%, **long protection**): Corr01 $= +USD 15{,}000$ per +1% corr
+#### Setup
 
-To Corr01‑neutralize locally, take $USD 10$mm senior long protection and $USD 18.75$mm equity long protection:
+Build a combo at $\rho = 25\\%$ using two long-protection tranches with opposite Corr01 signs (per USD 10mm notional):
 
-$$+15{,}000 \\; + \\; 1.875\times(-8{,}000) \approx 0.$$
+| Tranche | Corr01 at $\rho = 25\\%$ |
+|---------|---------------------------|
+| Equity (0–3%), long protection | $-USD 8{,}000$ per $+1\\%$ corr |
+| Senior (7–10% or 15–30%), long protection | $+USD 15{,}000$ per $+1\\%$ corr |
 
-**Scenario:** correlation jumps from 25% to 40% (a +15% shock).
+#### Step 1 — Corr01-Neutral Sizing (at $\rho = 25\\%$)
 
-Corr01 itself is not constant; suppose at $\rho=40\\%$ the sensitivities become:
-- Equity Corr01 $= -USD 5{,}000$ per +1%
-- Senior Corr01 $= +USD 18{,}000$ per +1%
+Take USD 10mm senior plus USD 18.75mm equity (ratio $15{,}000 / 8{,}000 = 1.875$):
 
-Then the package is no longer Corr01‑neutral at the new level:
+$$+15{,}000 + 1.875 \times (-8{,}000) \approx 0$$
 
-$$NetCorr01_{40\\%} \approx 18{,}000 + 1.875\times(-5{,}000) = 8{,}625 \text{ USD per 1\\%}.$$
+#### Step 2 — Correlation Shock: $\rho$ Jumps to 40% ($+15\\%$)
 
-A crude convexity estimate uses the average net Corr01 over the move:
+Corr01 itself drifts with $\rho$. Suppose at $\rho = 40\\%$:
 
-$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700.$$
+| Tranche | Corr01 at $\rho = 40\\%$ |
+|---------|---------------------------|
+| Equity | $-USD 5{,}000$ per $+1\\%$ |
+| Senior | $+USD 18{,}000$ per $+1\\%$ |
 
-**Takeaway:** Corr01‑neutralization is a *local* hedge; large correlation moves introduce convexity/hedge‑ratio drift. Validate correlation packages with stressed moves, not just +/‑1% bumps.
+#### Step 3 — Net Corr01 at New Level
+
+$$\text{NetCorr01}_{40\\%} \approx 18{,}000 + 1.875 \times (-5{,}000) = 8{,}625 \text{ USD per } 1\\%$$
+
+The package is **no longer Corr01-neutral** at $\rho = 40\\%$.
+
+#### Step 4 — Convexity Estimate of Total P&L
+
+Crude trapezoidal estimate (average net Corr01 over the move):
+
+$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700$$
+
+#### Lesson
+
+Corr01 neutrality is a **local first-order hedge**. Large correlation moves introduce:
+- **Convexity** (the Greek itself drifts).
+- **Hedge-ratio drift** (yesterday's neutral ratio is today's stale ratio).
+
+Validate any correlation package with **stressed** correlation moves, not just $\pm 1\\%$ bumps.
 
 ---
 
@@ -2748,9 +3065,9 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700
 
 ---
 
-**22.** You want to construct a CS01-neutral 3Y-5Y HY curve steepener. 5Y notional is USD 10mm with $RPV01_{5Y} = 3.4$. 3Y has $RPV01_{3Y} = 2.2$. (a) Compute 3Y notional. (b) Compute the JTD mismatch at recovery $R = 30\%$. (c) Should you add a JTD overlay? How?
+**22.** You want to construct a CS01-neutral 3Y-5Y HY curve **flattener** (long 5Y protection, short 3Y protection — the "survival bet" structure from Example 17). 5Y notional is USD 10mm with $RPV01_{5Y} = 3.4$. 3Y has $RPV01_{3Y} = 2.2$. (a) Compute 3Y notional. (b) Compute the JTD mismatch at recovery $R = 30\%$. (c) Should you add a JTD overlay? How?
 
-> **Sketch:** (a) $N_{3Y} = 10 \times 3.4/2.2 = 15.45\text{mm}$. (b) JTD mismatch: $(1-R)(N_{3Y} - N_{5Y}) = 0.70 \times 5.45 = USD 3.82\text{mm}$ net loss on default. (c) Yes — buy additional 5Y protection for the JTD gap: $\Delta N_{5Y} = 5.45/(1) = 5.45\text{mm}$ (adjusting for the fact that both legs pay $(1-R)$ at default, so you need $N_{3Y} - N_{5Y} = 5.45\text{mm}$ of additional 5Y protection). This breaks CS01 neutrality — trade-off between curve and default risk.
+> **Sketch:** (a) $N_{3Y} = N_{5Y} \times RPV01_{5Y}/RPV01_{3Y} = 10 \times 3.4/2.2 = 15.45\text{mm}$. (b) For a flattener (short 3Y prot, long 5Y prot), default produces a net JTD of $-(1-R)(N_{3Y} - N_{5Y}) = -0.70 \times 5.45 = -USD 3.82\text{mm}$ (net loss). (c) Yes — buy additional 5Y protection of $\Delta N_{5Y} = 5.45\text{mm}$ so the long-protection notional matches the short-protection notional ($N_{3Y} = N_{5Y} = 15.45\text{mm}$ in total long, neutralizing JTD). This breaks CS01 neutrality — trade-off between curve and default risk.
 
 ---
 
@@ -2760,7 +3077,7 @@ $$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700
 
 ---
 
-**24.** An LBO increases a firm's leverage from 2× to 5× EBITDA. Pre-LBO: senior CDS = 80 bp, equity price = $45. Post-LBO: senior CDS = 280 bp, equity tender at $60. You are short $3mm equity and long $8mm CDS protection with $RPV01 = 4.0$. (a) Compute equity leg P&L. (b) Compute CDS leg P&L. (c) Was the trade profitable? (d) What sizing change would improve the outcome?
+**24.** An LBO increases a firm's leverage from 2× to 5× EBITDA. Pre-LBO: senior CDS = 80 bp, equity price = USD 45. Post-LBO: senior CDS = 280 bp, equity tender at USD 60. You are short USD 3mm equity and long USD 8mm CDS protection with $RPV01 = 4.0$. (a) Compute equity leg P&L. (b) Compute CDS leg P&L. (c) Was the trade profitable? (d) What sizing change would improve the outcome?
 
 > **Sketch:** (a) Equity loss: $3\text{mm} \times (60-45)/45 = 3\text{mm} \times 33.3\% = -USD 1{,}000{,}000$. (b) CDS gain: $(280-80) \times 4.0 \times 10^{-4} \times 8{,}000{,}000 = +USD 640{,}000$. (c) Net: $-USD 360{,}000$ — unprofitable. (d) Increase CDS notional relative to equity — the CDS leg needs more weight because equity jumps are larger (percentage) than CDS spread moves. Alternatively, use equity puts to cap equity loss.
 
