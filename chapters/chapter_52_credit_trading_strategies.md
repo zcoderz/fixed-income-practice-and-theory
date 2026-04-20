@@ -2571,7 +2571,7 @@ If the name *defaults*:
 |-----|------------------|------------------|
 | Short 3Y protection ($USD 14.4$mm) | **Pays** $(1-R) \cdot N_{3Y}$ | $\sim -USD 9.36$mm |
 | Long 5Y protection ($USD 10$mm) | **Receives** $(1-R) \cdot N_{5Y}$ | $\sim +USD 6.5$mm |
-| **Net JTD** (with $R = 35\\%$) | $-(1-R)(N_{3Y} - N_{5Y}) = -0.65 \times 4.4$ | **$\sim -USD 2.86$mm** |
+| **Net JTD** (with $R = 35\\%$) | $-(1-R)(N_{3Y} - N_{5Y}) = -0.65 \times 4.4$ | $\sim -USD 2.86$mm |
 
 #### Lesson
 
