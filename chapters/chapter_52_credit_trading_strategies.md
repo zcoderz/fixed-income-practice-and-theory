@@ -2565,13 +2565,13 @@ Per-leg CS01 (in USD/bp): $CS01 = N \cdot RPV01 \cdot 10^{-4}$ (signed by long/s
 
 #### Step 3 — Default Scenario (Critical Failure Mode)
 
-If the name *defaults*:
+If the name *defaults* (recovery $R = 0.35$; all figures in USD mm):
 
 | Leg | Payoff direction | Approx magnitude |
 |-----|------------------|------------------|
-| Short 3Y protection ($USD 14.4$mm) | **Pays** $(1-R) \cdot N_{3Y}$ | $\sim -USD 9.36$mm |
-| Long 5Y protection ($USD 10$mm) | **Receives** $(1-R) \cdot N_{5Y}$ | $\sim +USD 6.5$mm |
-| **Net JTD** (with $R = 35\\%$) | $-(1-R)(N_{3Y} - N_{5Y}) = -0.65 \times 4.4$ | $\sim -USD 2.86$mm |
+| Short 3Y protection (14.4mm notional) | **Pays** $(1-R)\,N_{3Y}$ | $-9.36$ |
+| Long 5Y protection (10mm notional) | **Receives** $(1-R)\,N_{5Y}$ | $+6.5$ |
+| **Net JTD** | $-(1-R)(N_{3Y} - N_{5Y}) = -0.65 \times 4.4$ | $-2.86$ |
 
 #### Lesson
 
