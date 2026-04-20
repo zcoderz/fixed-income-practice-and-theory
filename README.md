@@ -222,4 +222,4 @@ Market conventions differ across products, jurisdictions, venues, and time. Alwa
 
 ## License
 
-The content of this repository is provided for educational use. See the repository settings for the governing license.
+Licensed under [CC BY-SA 4.0](LICENSE). You are free to share and adapt the material, including commercially, provided you give appropriate credit and license derivatives under the same terms.
