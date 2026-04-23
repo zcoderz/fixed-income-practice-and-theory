@@ -2437,40 +2437,6 @@ A PV01-neutral hedge can become **over-hedged** or **under-hedged** in default c
 
 ---
 
-## 52.13 Practical Notes
-
-### Educational Only — No Trade Tips
-
-This chapter is an educational risk framework. It does **not** provide recommendations, forecasts, or "what to trade now."
-
-### Conceptual Pitfalls
-
-| Pitfall | Specifics |
-|---------|-----------|
-| **Mixing CS01 definitions** | Quote bump vs hazard-rate bump; index-spread bump vs constituent bump |
-| **Mixing quoting regimes** | Running spread vs fixed coupon + upfront — inconsistent treatment |
-| **Ignoring recovery / final-price risk** | Default payoff depends on recovery / final price (Examples 1, 9, 16) |
-| **Assuming roll calendars / coupons** | Index conventions are product- and rulebook-specific — confirm, don't assume |
-| **Confusing hedging with RV exposure** | Hedging = risk reduction; RV = basis risk *intentionally* retained |
-
-### Implementation Pitfalls
-
-| Pitfall | What goes wrong |
-|---------|-----------------|
-| **Unit mistakes** | bp vs decimals; per-100 price vs per-USD notional; inconsistent scaling |
-| **Inconsistent curves / recovery** | Different assumptions across legs lead to phantom P&L |
-| **Execution costs dominate** | Especially on small basis edges |
-
-### Verification Tests
-
-| Test | What to check |
-|------|---------------|
-| **Linear scaling with notional** | CS01 and PV should scale linearly for small bumps |
-| **Repricing** | Each leg should reprice consistently under the base scenario |
-| **Scenario suite passes** | Parallel / dispersion / event / roll / tail scenarios all behave as expected |
-
----
-
 ### Example 16: Senior vs Subordinated CDS — Recovery-Driven Spread Relationship
 
 **Goal:** apply the O'Kane senior-sub spread relationship to spot relative-value mispricings driven by recovery assumptions.
@@ -2764,6 +2730,40 @@ Validate any correlation package with **stressed** correlation moves, not just $
 | 18 | Negative Basis Funding Stress | Carry decomposition, funding risk |
 | 19 | Equity-CDS Relative Value (LBO) | Merton model application, sizing |
 | 20 | Correlation Shock on Combo | Corr01 convexity, local vs global hedging |
+
+---
+
+## 52.13 Practical Notes
+
+### Educational Only — No Trade Tips
+
+This chapter is an educational risk framework. It does **not** provide recommendations, forecasts, or "what to trade now."
+
+### Conceptual Pitfalls
+
+| Pitfall | Specifics |
+|---------|-----------|
+| **Mixing CS01 definitions** | Quote bump vs hazard-rate bump; index-spread bump vs constituent bump |
+| **Mixing quoting regimes** | Running spread vs fixed coupon + upfront — inconsistent treatment |
+| **Ignoring recovery / final-price risk** | Default payoff depends on recovery / final price (Examples 1, 9, 16) |
+| **Assuming roll calendars / coupons** | Index conventions are product- and rulebook-specific — confirm, don't assume |
+| **Confusing hedging with RV exposure** | Hedging = risk reduction; RV = basis risk *intentionally* retained |
+
+### Implementation Pitfalls
+
+| Pitfall | What goes wrong |
+|---------|-----------------|
+| **Unit mistakes** | bp vs decimals; per-100 price vs per-USD notional; inconsistent scaling |
+| **Inconsistent curves / recovery** | Different assumptions across legs lead to phantom P&L |
+| **Execution costs dominate** | Especially on small basis edges |
+
+### Verification Tests
+
+| Test | What to check |
+|------|---------------|
+| **Linear scaling with notional** | CS01 and PV should scale linearly for small bumps |
+| **Repricing** | Each leg should reprice consistently under the base scenario |
+| **Scenario suite passes** | Parallel / dispersion / event / roll / tail scenarios all behave as expected |
 
 ---
 
