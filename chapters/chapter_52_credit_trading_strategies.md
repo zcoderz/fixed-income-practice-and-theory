@@ -1130,9 +1130,15 @@ Compare tranches by which risk dominates the position:
 
 $$\boxed{N_{\text{index}} \approx -\frac{SystemicDV01_{\text{tranche}}}{CS01_{\text{index per USD notional}}}}$$
 
-**Adjacent tranche PV01 hedge:**
+**Adjacent tranche PV01 hedge** (per-unit-notional PV01 form):
 
-$$\boxed{N_{\text{hedge tranche}} = -\frac{PV01_{\text{target tranche}}}{PV01_{\text{hedge tranche}}}}$$
+$$\boxed{N_{\text{hedge}} = -\frac{PV01_{\text{target, total}}}{PV01_{\text{hedge per USD notional}}}}$$
+
+Equivalently, when both PV01s are quoted at the same reference notional (e.g., per USD 10mm):
+
+$$N_{\text{hedge}} = N_{\text{ref}} \times \frac{PV01_{\text{target at ref}}}{PV01_{\text{hedge at ref}}}$$
+
+(See Example 14 for a worked numerical case using the second form.)
 
 ##### 5. Scenario Test Suite
 
@@ -1255,11 +1261,14 @@ The strategy families address different risk views. The tables below match each 
 
 **Decision criteria:**
 
-| If you expect... | Position |
-|------------------|----------|
-| Increased dispersion (idiosyncratic moves) | Long equity protection (positive idiosyncratic gamma) |
-| Systemic widening | Short equity protection (positive systemic gamma) |
-| Correlation view without full spread risk | Combine equity and senior |
+| If you expect... | Position | Why |
+|------------------|----------|-----|
+| Increased *dispersion* (idiosyncratic moves; some names underperform peers) | Long equity protection | Equity has positive idiosyncratic gamma — gains from realized cross-name dispersion |
+| Large *systemic spread volatility* (big two-sided moves, no directional view) | Short equity protection *or* long senior protection | Both have positive systemic gamma — the cap on equity losses and the convex senior payoff offset systemic vol |
+| Directional *systemic widening* view | Long senior protection | Positive systemic delta plus positive systemic gamma — convex profit on a large widening |
+| Correlation view without full spread risk | Combine equity and senior | Opposite Corr01 signs allow correlation-only exposure |
+
+**Caveat.** "Positive gamma" rarely comes for free — these positions typically pay negative carry, and the gamma signs themselves are model-dependent and can drift with regime (see 52.6.2 and Example 20).
 
 ### The Master Decision Tree
 
@@ -1582,13 +1591,15 @@ Basis trades are vulnerable because multiple drivers can move adversely *togethe
 
 ### 52.9.2 Correlation and Tranche Trades in Crisis
 
-Published tranche-risk examples highlight that equity tranches are highly leveraged and often carry **negative systemic gamma**. In stress:
+Published tranche-risk examples highlight that **equity-tranche owners** (i.e., short-protection sellers absorbing first losses) are highly leveraged and the gamma profile across the stack is asymmetric. The table below uses the **tranche owner's** perspective (P&L from absorbing losses), to match how desks usually think about stress on a structured-credit book:
 
-| Trigger | Tranche behavior |
-|---------|------------------|
-| Correlation spike | Defaults cluster → losses concentrate in equity and mezzanine |
-| Large parallel widening | Negative systemic gamma *amplifies* equity tranche losses beyond the linear delta |
-| Realized clustered defaults | Senior tranches gain initially (positive systemic gamma) but suffer **sudden, severe losses** if attachment points are breached |
+| Trigger | Tranche-owner P&L behavior |
+|---------|----------------------------|
+| Correlation spike | Defaults cluster → losses concentrate in equity and mezzanine (tranche owner takes the hit) |
+| Large parallel widening | Equity-tranche owner's loss profile is concave near the cap — losses grow rapidly, then plateau once the tranche is fully written down |
+| Realized clustered defaults | Senior-tranche owner collects premium and absorbs no losses *initially*, but suffers **sudden, severe losses** once attachment is breached (concave, convex-near-cap loss profile) |
+
+For the matching **long-protection** perspective, just flip signs and replace "loss" with "gain": long-protection equity has negative systemic gamma (gains decelerate then cap on widening); long-protection senior has positive systemic gamma in the run-up to attachment (gains accelerate as the loss distribution moves into the senior range), then decelerates after the cap.
 
 Correlation hedges are inherently model-dependent and least reliable precisely when tail risk dominates. **Treat correlation and clustering as scenario-driven risks**, not a single Corr01 number.
 
@@ -2718,31 +2729,31 @@ The Merton intuition — equity has higher delta to leverage events than CDS —
 
 #### Setup
 
-Build a combo at $\rho = 25\\%$ using two long-protection tranches with opposite Corr01 signs (per USD 10mm notional):
+Build a combo at $\rho = 25\\%$ using two long-protection tranches with opposite Corr01 signs (using the same 125-name reference portfolio and per-USD-10mm scaling as Section 52.6.2):
 
-| Tranche | Corr01 at $\rho = 25\\%$ |
-|---------|---------------------------|
-| Equity (0–3%), long protection | $-USD 8{,}000$ per $+1\\%$ corr |
-| Senior (7–10% or 15–30%), long protection | $+USD 15{,}000$ per $+1\\%$ corr |
+| Tranche | Corr01 at $\rho = 25\\%$ (per USD 10mm) |
+|---------|------------------------------------------|
+| Equity (0–3%), long protection | $-USD 80{,}000$ per $+1\\%$ corr |
+| Senior (15–30%), long protection | $+USD 150{,}000$ per $+1\\%$ corr |
 
 #### Step 1 — Corr01-Neutral Sizing (at $\rho = 25\\%$)
 
-Take USD 10mm senior plus USD 18.75mm equity (ratio $15{,}000 / 8{,}000 = 1.875$):
+Take USD 10mm senior plus USD 18.75mm equity (ratio $150{,}000 / 80{,}000 = 1.875$):
 
-$$+15{,}000 + 1.875 \times (-8{,}000) \approx 0$$
+$$+150{,}000 + 1.875 \times (-80{,}000) \approx 0$$
 
 #### Step 2 — Correlation Shock: $\rho$ Jumps to 40% ($+15\\%$)
 
-Corr01 itself drifts with $\rho$. Suppose at $\rho = 40\\%$:
+Corr01 itself drifts with $\rho$. Suppose at $\rho = 40\\%$ (toy numbers — magnitudes shrink/grow at different rates across the stack):
 
-| Tranche | Corr01 at $\rho = 40\\%$ |
-|---------|---------------------------|
-| Equity | $-USD 5{,}000$ per $+1\\%$ |
-| Senior | $+USD 18{,}000$ per $+1\\%$ |
+| Tranche | Corr01 at $\rho = 40\\%$ (per USD 10mm) |
+|---------|------------------------------------------|
+| Equity | $-USD 50{,}000$ per $+1\\%$ |
+| Senior | $+USD 180{,}000$ per $+1\\%$ |
 
 #### Step 3 — Net Corr01 at New Level
 
-$$\text{NetCorr01}_{40\\%} \approx 18{,}000 + 1.875 \times (-5{,}000) = 8{,}625 \text{ USD per } 1\\%$$
+$$\text{NetCorr01}_{40\\%} \approx 180{,}000 + 1.875 \times (-50{,}000) = 86{,}250 \text{ USD per } 1\\%$$
 
 The package is **no longer Corr01-neutral** at $\rho = 40\\%$.
 
@@ -2750,7 +2761,7 @@ The package is **no longer Corr01-neutral** at $\rho = 40\\%$.
 
 Crude trapezoidal estimate (average net Corr01 over the move):
 
-$$\Delta PV_{\rho} \approx \frac{0 + 8{,}625}{2} \times 15 \approx +USD 64{,}700$$
+$$\Delta PV_{\rho} \approx \frac{0 + 86{,}250}{2} \times 15 \approx +USD 647{,}000$$
 
 #### Lesson
 
@@ -2961,9 +2972,9 @@ This chapter is an educational risk framework. It does **not** provide recommend
 
 34. **Q:** What does O'Kane mean by "the index leads the market"? **A:** The CDS index is more liquid and is the preferred instrument for expressing market-wide credit views, especially for hedging.
 
-35. **Q:** What is systemic gamma for an equity tranche? **A:** Large and negative (for long protection)—large parallel spread moves decrease PV.
+35. **Q:** What is systemic gamma for an equity tranche (long protection)? **A:** Negative — the PV-spread profile is concave: gains in widening underperform the linear delta, and losses in tightening exceed it. Equivalent to "short gamma" in option terms.
 
-36. **Q:** What is systemic gamma for a senior tranche? **A:** Positive (for long protection)—large parallel spread moves increase PV.
+36. **Q:** What is systemic gamma for a senior tranche (long protection)? **A:** Positive in the run-up to attachment — gains accelerate as expected portfolio loss approaches the senior attachment point ("long gamma"). The sign can flip near the cap once the tranche is fully consumed.
 
 37. **Q:** What carry profile is typical for a positive gamma position? **A:** Often negative carry: you tend to “bleed” in calm markets and earn when volatility/large moves arrive.
 
