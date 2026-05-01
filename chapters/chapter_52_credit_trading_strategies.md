@@ -413,9 +413,9 @@ Clustering scenarios swamp small-spread hedges: PV01 hedges fail because the pay
 | Carry | Daily accrual of the contractual coupon/premium (even though paid quarterly) |
 | Theta | Daily change in **full price** holding spreads/curves fixed and assuming no default |
 
-**Long-protection intuition.** Theta = $\Delta$(protection leg) − $\Delta$(premium leg). Both effects typically push it negative: one day less of protection remains, and premium-leg cashflows are one day closer (higher PV).
+**Long-protection intuition.** For a long-protection position, $V = (S - S_0) \cdot RPV01$. With one day passing and spreads frozen, $S$ moves toward today's par spread implied by curve aging, and $RPV01$ shortens. For an at-par CDS ($S = S_0$, MTM $\approx 0$), theta is approximately zero. For an *off-par* long-protection position with positive MTM (paid upfront because $S > S_0$ at trade), $RPV01$ decay drags MTM down — theta is negative (the position bleeds). Symmetrically, an off-par long-protection position with negative MTM ($S < S_0$, received upfront) has theta that drags MTM toward zero from below.
 
-**Risk-report pattern (per source).** For a protection buyer, carry is typically **negative** (you pay premium). Absolute carry is largest for the most junior tranche (highest contractual spread).
+**Risk-report pattern (per source).** For a protection buyer, *carry* (the deterministic premium-accrual leg) is typically **negative** — you pay premium. Absolute carry is largest for the most junior tranche (highest contractual spread).
 
 If theta still feels abstract, see Chapter 43 (CDS theta); for tranche carry/theta in risk-report form, Chapter 51 is the companion chapter.
 
@@ -1681,19 +1681,19 @@ $$\boxed{CS01 = \frac{\partial PV}{\partial S} \times 10^{-4} = N \cdot RPV01(t,
 
 ### 52.11.2 CS01-Based Hedge Ratio Derivation
 
-Let the target position have $CS01_T$ and the hedge instrument have $CS01_H$, both sign-inclusive (USD/bp).
+Let the target position have total CS01 $CS01_T$ (sign-inclusive, in USD/bp at the position's stated notional). Let the hedge instrument's CS01 *per USD 1 of notional* be $cs01_H$ (also USD/bp per USD of notional, sign-inclusive).
 
-**Setup the neutrality condition:**
+**Setup the neutrality condition:** the hedge notional $N_H$ (in USD) is chosen so the combined CS01 is zero:
 
-$$CS01_{\text{net}} = CS01_T + N_H \cdot CS01_H^{(USD 1)} = 0$$
+$$CS01_{\text{net}} = CS01_T + N_H \cdot cs01_H = 0$$
 
 **Solve for hedge notional:**
 
-$$\boxed{N_H = -\frac{CS01_T}{CS01_H^{(USD 1)}}}$$
+$$\boxed{N_H = -\frac{CS01_T}{cs01_H}}$$
 
-**Variant** — if both CS01s are already quoted in USD/bp at *stated* notionals:
+**Variant** — if both CS01s are already quoted in USD/bp at the *same* reference notional $N_{\text{ref}}$ (e.g., per USD 10mm), then:
 
-$$N_H = -\frac{CS01_T}{CS01_H} \times N_H^{\text{current}}$$
+$$N_H = -\frac{CS01_T^{(\text{ref})}}{CS01_H^{(\text{ref})}} \times N_{\text{ref}}$$
 
 ---
 
@@ -2884,7 +2884,7 @@ This chapter is an educational risk framework. It does **not** provide recommend
 12. **Tranche risk is multi-dimensional**: systemic delta, systemic gamma, idiosyncratic delta, idiosyncratic gamma, Corr01, carry, and theta all matter.
 13. **Equity and senior tranches have opposite correlation exposures**: Corr01 is negative for equity, positive for senior (for long protection).
 14. **Positive gamma positions typically have negative carry** (O'Kane)—there is a cost to owning convexity.
-15. **Crisis behavior differs by strategy**: funding stress destroys basis trades; correlation spikes destroy tranche RV; curve inversion signals imminent default.
+15. **Crisis behavior differs by strategy**: funding stress destroys basis trades; correlation spikes destroy tranche RV; an inverted CDS curve indicates the market is pricing dominant near-term default risk (not necessarily that default is imminent).
 16. **Always run a scenario suite:** parallel, dispersion, default event, roll/series basis, correlation/tail shocks, and funding stress.
 
 ### Cheat Sheet
@@ -3160,7 +3160,9 @@ This chapter is an educational risk framework. It does **not** provide recommend
 
 ## References
 
-- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bond-CDS basis drivers; CDS indices and index basis; roll mechanics; tranche risk measures/correlation; capital structure and recovery; LCDS)
-- John C. Hull, *Risk Management and Financial Institutions* (fixed-coupon CDS/index quoting; CDS-bond basis; tranche correlation intuition)
+- Dominic O'Kane, *Modelling Single-name and Multi-name Credit Derivatives* (bond-CDS basis drivers; CDS indices and index basis; roll mechanics; tranche risk measures/correlation; capital structure and recovery; LCDS — primary source for Sections 52.4–52.10).
+- John C. Hull, *Risk Management and Financial Institutions* (fixed-coupon CDS/index quoting; CDS-bond basis intuition; tranche correlation discussion).
+- Edward Altman et al., empirical recovery-rate datasets summarized in O'Kane (Section 52.7.1 and Section 52.8 indicative recoveries by seniority; the original Altman work appears across several published papers and industry studies — O'Kane is used here as the secondary citation).
+- Internal cross-references — Chapter 27 (asset swaps and the CDS–cash basis), Chapter 38 (CDS mechanics), Chapters 39–40 (credit events and auctions), Chapter 43 (CDS risk measures), Chapters 45–47 (CDS indices), and Chapters 49–51 (tranches and correlation) — are used throughout this chapter as the prerequisite material.
 
 *Chapter 52 of Fixed Income: Practice and Theory*
