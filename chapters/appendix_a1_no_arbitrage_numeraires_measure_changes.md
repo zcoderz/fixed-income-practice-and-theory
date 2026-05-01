@@ -36,15 +36,29 @@ This appendix covers the essential toolkit:
 - **Quant / implementer path (debug-friendly):** Add Section 3.2 (Radon–Nikodym derivation) and Section 7 (derivations) when you need to chase down a drift, a measure change, or a martingale failure.
 - **Term-structure path (HJM + market models):** Read Section 5 in parallel with Appendix A3 (HJM essentials) and Appendix A4 (market models / LMM).
 
-**Prerequisites:** Familiarity with stochastic calculus (Ito's lemma, Brownian motion), basic bond mathematics (Chapter 2–3), and swap mechanics (Chapter 25). We reference Duffie's *Dynamic Asset Pricing Theory*, Brigo-Mercurio's *Interest Rate Models*, and Glasserman's *Monte Carlo Methods* throughout.
+**Prerequisites:** Familiarity with stochastic calculus (Ito's lemma, Brownian motion), basic bond mathematics (Chapter 2–3), and swap mechanics (Chapter 25). The standard references for the framework used here are listed in `## References` at the end of the appendix.
+
+---
+
+## Learning Objectives
+
+By the end of this appendix you should be able to:
+
+1. **State the no-arbitrage / SDF / EMM correspondence:** explain why no-arbitrage is equivalent (under standard conditions) to the existence of a strictly positive state-price deflator, and to the existence of an equivalent martingale measure for any chosen numeraire.
+2. **Use the numeraire-pricing identity** $V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}[H_T/N(T)]$ to switch between bank-account, $T$-forward, and swap measures, and pick the numeraire that makes the relevant rate or price a martingale.
+3. **Derive and apply the change-of-numeraire Radon-Nikodym derivative** $d\mathbb{Q}^U/d\mathbb{Q}^N|_{\mathcal{F}_T} = U(T)\\,N(0)/(U(0)\\,N(T))$, including verifying that price is invariant across numeraires.
+4. **Apply Girsanov's theorem** to translate drifts between measures while keeping diffusion coefficients fixed, and identify the market price of risk that links physical and risk-neutral dynamics.
+5. **Reproduce the HJM drift restriction** $\alpha(t,T) = \sigma(t,T)^\top \int_t^T \sigma(t,s)\\, ds$ from the requirement that discounted bonds are $\mathbb{Q}^B$-martingales, and explain why specifying volatility "pins down" drift.
+6. **Diagnose common practitioner mistakes** (mixing measures, treating $\mathbb{Q}$ as a forecast, using the wrong measure for simulation) and run cross-numeraire and discounted-martingale consistency checks on an implementation.
+7. **Price caplets under the forward measure and swaptions under the swap measure** using Black-style closed forms, and compute the convexity adjustment that arises when LIBOR is simulated under the wrong numeraire.
 
 ---
 
 ## Conventions & Notation
 
-**Time:** Continuous time $t \in [0, T^*]$ (calendar time measured in years).
+**Time:** Continuous time $t \in [0, T^{\ast}]$ (calendar time measured in years).
 
-**Information:** the market filtration is denoted `(F_t)_{t >= 0}` (what is known up to time $t$).
+**Information:** the market filtration is denoted $(\mathcal{F}_t)_{t \ge 0}$ (what is known up to time $t$).
 
 **Measures (probability laws):**
 
@@ -122,13 +136,13 @@ Consider an option paying $(S_1 - 105)^+ = \max(S_1 - 105, 0)$:
 **Using $\mathbb{Q}$:**
 $$V_0 = \frac{1}{1.05}\left(0.50 \times 15 + 0.50 \times 0\right) = \frac{7.50}{1.05} = 7.14$$
 
-**Using replication:** To replicate this payoff, hold $\Delta$ shares of stock and $B$ dollars in bonds, solving:
+**Using replication:** To replicate this payoff, hold $\Delta$ shares of stock and invest $B$ dollars in the risk-free bond at $t=0$, solving:
 
-`120*Delta + 1.05*B = 15` and `90*Delta + 1.05*B = 0`.
+$$120\Delta + 1.05\\, B = 15, \qquad 90\Delta + 1.05\\, B = 0.$$
 
-Solving: $30\Delta = 15 \Rightarrow \Delta = 0.5$, and $B = -42.86$.
+Subtract to get $30\Delta = 15$, so $\Delta = 0.5$; then $1.05\\, B = -45$, so $B = -42.857$ (i.e., borrow \$42.857 at the risk-free rate).
 
-Replication cost: $0.5 \times 100 - 42.86 = 7.14$. ✓
+Replication cost at $t = 0$: $\Delta \cdot S_0 + B = 0.5 \times 100 + (-42.857) = 7.143$. ✓
 
 **The $\mathbb{Q}$-pricing formula gives the same answer as replication.** This is no coincidence—it's the Fundamental Theorem of Asset Pricing.
 
@@ -147,7 +161,7 @@ Replication cost: $0.5 \times 100 - 42.86 = 7.14$. ✓
 | $H_T$ | Payoff at time $T$ | currency |
 | $N(t)$ | Numeraire | currency, strictly positive |
 | $B(t)$ | Money-market account numeraire | currency |
-| $P(t,T)$ | Zero-coupon bond price | currency per unit payoff |
+| $P(t,T)$ | Zero-coupon bond price (per unit face) | currency |
 | $D(t,T) = B(t)/B(T)$ | Discount factor | dimensionless |
 | $\pi(t)$ | State-price deflator / SDF | $1/\text{currency}$ |
 | $\mathbb{Q}^N$ | Measure associated with numeraire $N$ | — |
@@ -161,7 +175,7 @@ Replication cost: $0.5 \times 100 - 42.86 = 7.14$. ✓
 
 ### 1.1 Arbitrage and No-Arbitrage
 
-**A clean one-period definition (Cochrane):** If a payoff $x$ satisfies $x \\ge 0$ (almost surely) and $x \gt 0$ with positive probability, then its price must satisfy $p(x) \gt 0$. Equivalently, an *arbitrage* is a portfolio/strategy with **nonpositive cost** and a payoff that is **never negative**, with some chance of being strictly positive.
+**A clean one-period definition:** If a payoff $x$ satisfies $x \ge 0$ almost surely and $x \gt 0$ with positive probability, then its price must satisfy $p(x) \gt 0$. Equivalently, an *arbitrage* is a portfolio or trading strategy with **nonpositive cost** and a payoff that is **never negative**, with some chance of being strictly positive.
 
 **Desk definition (operational):** Traders tend to use “arbitrage” as shorthand for *a riskless win*, or a violation of the law of one price. In day-to-day rates work, you usually *detect* arbitrage (or “near-arbitrage”) by checking **internal consistency** between instruments that should be linked by replication or parity (bond stripping, swap replication, cap/floor parity, curve monotonicity constraints, etc.).
 
@@ -190,13 +204,13 @@ This $\psi$ assigns a positive “present value” to \$1 delivered in each stat
 
 $$\boxed{V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]}$$
 
-This is Duffie’s fundamental pricing equation. It says: one positive process $\pi(\cdot)$ can be used to price all traded payoffs. In other words, you can keep the real-world measure $\mathbb{P}$ and push all “risk adjustments” into the state-dependent factor $\pi(T)$ inside the expectation.
+This is the fundamental pricing equation in the SDF formulation. It says: one positive process $\pi(\cdot)$ can be used to price all traded payoffs. In other words, you can keep the real-world measure $\mathbb{P}$ and push all "risk adjustments" into the state-dependent factor $\pi(T)$ inside the expectation.
 
-**Connection to Arrow-Debreu securities:** Cochrane's *Asset Pricing* emphasizes that the SDF can be understood through contingent claims. An Arrow-Debreu security pays \$1 in exactly one state $\omega$ and zero otherwise. If $\psi(\omega)$ is the price today of this security, then for any payoff $H$:
+**Connection to Arrow-Debreu securities:** The SDF can be understood through contingent claims. An Arrow-Debreu security pays \$1 in exactly one state $\omega$ and zero otherwise. If $\psi(\omega)$ is the price today of this security, then for any payoff $H$:
 
-$$V(0) = \sum_{\omega} \psi(\omega) H(\omega) = \mathbb{E}^{\mathbb{P}}[m \cdot H]$$
+$$V(0) = \sum_{\omega} \psi(\omega)\\, H(\omega) = \mathbb{E}^{\mathbb{P}}[m \cdot H]$$
 
-where $m(\omega) \equiv \psi(\omega)/p(\omega)$ is the pricing kernel (and $p(\omega)$ is the physical probability of state $\omega$). Cochrane writes: "The state-price density $m$ gives the value of a dollar in each state of nature, adjusted for probability." In continuous time, this is exactly what $\pi(t)$ is doing: it rescales payoffs by “how expensive a dollar is in that state.”
+where $m(\omega) \equiv \psi(\omega)/p(\omega)$ is the pricing kernel (and $p(\omega)$ is the physical probability of state $\omega$). The state-price density $m$ gives the value of a dollar in each state of nature, divided by the physical probability of that state. In continuous time, this is exactly what $\pi(t)$ is doing: it rescales payoffs by how expensive a dollar is in that state.
 
 **Connection to marginal utility (optional):** In consumption-based models, a common discrete-time form is that the pricing kernel is proportional to discounted marginal utility (marginal rate of substitution). This is useful intuition, but you do *not* need this equilibrium story to use no-arbitrage pricing on a desk.
 
@@ -210,7 +224,7 @@ $$\mathbb{E}[R] - R_f = -R_f\\,\mathrm{Cov}(m, R)$$
 
 Assets that tend to pay off when $m$ is high (“bad states”) are valuable hedges and can have lower expected returns; assets that pay mainly in good states must offer a premium.
 
-**CAPM as a special case:** Duffie and Cochrane both show that when the SDF is linear in the market return ($m = a - b R_M$), the SDF framework reduces to CAPM. The beta of an asset measures its covariance with $m$, rescaled. See Example 14 for a worked numerical example.
+**CAPM as a special case:** When the SDF is linear in the market return ($m = a - b R_M$), the SDF framework reduces to CAPM: each asset's risk premium becomes proportional to its covariance with the market return, which is the standard beta-pricing relation. See Example 14 for a worked numerical example.
 
 **Practice:** On a desk we rarely write everything in $\mathbb{P}$ with an explicit $\pi(t)$. Instead we usually move to a pricing measure $\mathbb{Q}$ (and often further to a forward or swap measure) because it makes many payoffs “look like” simple martingale expectations. But conceptually, these are two ways of saying the same thing: **no-arbitrage forces a common state-dependent discounting rule** for all traded assets.
 
@@ -218,13 +232,13 @@ Assets that tend to pay off when $m$ is high (“bad states”) are valuable hed
 
 ### 1.3 Numeraire
 
-**Formal definition:** Following Geman et al. (1995), Brigo-Mercurio define: "A numeraire is any positive non-dividend-paying asset." More generally, a numeraire $Z$ can be identified with a self-financing trading strategy $\phi$ such that $Z_t = V_t(\phi)$ for all $t$—the numeraire's value equals the portfolio value.
+**Formal definition:** A numeraire is any strictly positive, non-dividend-paying traded asset. More generally, a numeraire $Z$ can be identified with a self-financing trading strategy $\phi$ such that $Z_t = V_t(\phi)$ for all $t$—the numeraire's value equals the portfolio value.
 
-**The reference-asset interpretation:** Brigo-Mercurio emphasize: "Intuitively, a numeraire is a reference asset that is chosen so as to normalize all other asset prices with respect to it." Choosing numeraire $Z$ means working with *relative prices* $S^k/Z$ rather than absolute prices $S^k$. This is not merely notational—it induces a genuine change in probability measure.
+**The reference-asset interpretation:** A numeraire is a reference asset chosen to normalize all other asset prices. Choosing numeraire $Z$ means working with *relative prices* $S^k/Z$ rather than absolute prices $S^k$. This is not merely notational—it induces a genuine change in probability measure.
 
 **Analogy: Metric vs. Imperial units.** Think of numeraire change like switching from dollars to euros, or from miles to kilometers. The underlying reality (distances, wealth) doesn't change, but the numbers you write down do. Similarly, changing numeraire changes the "units" in which you measure prices, which changes the probabilities you assign to scenarios—but the final price in any fixed currency remains the same.
 
-**Self-financing invariance:** A key technical result (Geman et al., 1995) is that self-financing strategies remain self-financing after a numeraire change. The self-financing condition $dV_t(\phi) = \sum_k \phi_t^k\\, dS_t^k$ transforms consistently under the change of unit.
+**Self-financing invariance:** A key technical result is that self-financing strategies remain self-financing after a numeraire change. The self-financing condition $dV_t(\phi) = \sum_k \phi_t^k\\, dS_t^k$ transforms consistently under the change of unit.
 
 **Common numeraire choices:**
 
@@ -234,7 +248,7 @@ Assets that tend to pay off when $m$ is high (“bad states”) are valuable hed
 | Zero-coupon bond | $P(t,T)$ | $\mathbb{Q}^T$ (T-forward) | Forward prices for delivery at $T$ are martingales |
 | Swap annuity | $A(t) = \sum_i \tau_i P(t,T_i)$ | $\mathbb{Q}^A$ (swap) | Forward swap rates are martingales |
 
-**Why numeraire choice matters:** Brigo-Mercurio's "Fact One" is the operational rule: under the measure associated with a chosen numeraire, any traded price expressed in units of that numeraire is a martingale (has zero drift). This is the core insight: choosing your numeraire strategically can make the key underlying rate or price a martingale, enabling tractable pricing formulas.
+**Why numeraire choice matters:** Under the measure associated with a chosen numeraire, any traded price expressed in units of that numeraire is a martingale (has zero drift). This is the operational rule: choosing your numeraire strategically can make the key underlying rate or price a martingale, enabling tractable pricing formulas.
 
 **Practice:** Pick the numeraire that makes your payoff's underlying "simple" (i.e., a martingale). For a caplet paying $(L_T - K)^+$ at $T$, using $P(t,T)$ as numeraire makes $L_T$ a martingale—hence Black's formula. For a swaption, using the annuity makes the swap rate a martingale—hence the swaption Black formula.
 
@@ -242,17 +256,17 @@ Assets that tend to pay off when $m$ is high (“bad states”) are valuable hed
 
 ### 1.4 Equivalent Martingale Measure (Risk-Neutral Measure)
 
-**Formal definition:** An *equivalent martingale measure* $\mathbb{Q}$ is a probability measure equivalent to $\mathbb{P}$ under which discounted asset prices are martingales.
+**Formal definition:** An *equivalent martingale measure* $\mathbb{Q}$ is a probability measure equivalent to $\mathbb{P}$ (same null sets) under which discounted asset prices are martingales.
 
-Brigo-Mercurio state the key theorem: under the measure $\mathbb{Q}^N$ associated with numeraire $N$, any traded price divided by $N$ is a martingale:
+The numeraire-martingale theorem: under the measure $\mathbb{Q}^N$ associated with numeraire $N$, any traded price divided by $N$ is a martingale:
 
 $$\frac{Z(t)}{N(t)} \text{ is a } \mathbb{Q}^N\text{-martingale.}$$
 
-**"Discounted prices are martingales" means:** Under $\mathbb{Q}^B$ (bank-account numeraire), for a traded asset price $S(t)$:
+**"Discounted prices are martingales" means:** Under $\mathbb{Q}^B$ (bank-account numeraire), for a traded, non-dividend-paying asset price $S(t)$:
 
 $$\frac{S(t)}{B(t)} \text{ is a martingale under } \mathbb{Q}^B.$$
 
-A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its drift must be $r(t)$ (the short rate).
+A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$ and pays no intermediate cashflows, its drift must equal $r(t)\\, S(t)$ (so $dS/S$ has drift $r(t)$, the short rate).
 
 **Practice:** "Risk-neutral probability" is not a belief about the real world; it's a computational device. The measure $\mathbb{Q}$ depends on which numeraire you choose.
 
@@ -279,8 +293,8 @@ A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its dr
 >
 > > **Desk Reality: Why This Matters for Traders**
 > >
-> > When a trader runs a delta-hedged book, the P&L attribution often looks like:
-> > `PnL = Theta + 0.5*Gamma*(Delta S)^2 + higher-order terms`
+> > When a trader runs a delta-hedged book, the P&L attribution over a small time step takes the form
+> > $\Delta\mathrm{PnL} \approx \Theta\\, \Delta t + \tfrac{1}{2}\\, \Gamma\\, (\Delta S)^2 + \text{higher-order terms}$.
 > >
 > > The expected P&L of a perfectly hedged position is zero (after funding costs). This is *exactly* what $\mathbb{Q}$-pricing captures: the no-drift property of hedged positions.
 > >
@@ -290,9 +304,9 @@ A key implication: if $S(t)$ has diffusion dynamics under $\mathbb{Q}^B$, its dr
 
 ### 1.4.1 Market Completeness and the Uniqueness of EMM
 
-Duffie states a fundamental result connecting market structure to the pricing measure:
+A fundamental result connects market structure to the pricing measure:
 
-**Theorem (Duffie):** "Markets are complete if and only if there is a unique equivalent martingale measure."
+**Theorem (second fundamental theorem of asset pricing):** Under standard regularity conditions, markets are complete if and only if there exists a unique equivalent martingale measure (for a given numeraire).
 
 **What does this mean in practice?**
 
@@ -318,15 +332,15 @@ Duffie states a fundamental result connecting market structure to the pricing me
 
 ### 1.5 Radon-Nikodym Derivative and Change of Measure
 
-**Formal definition:** For two equivalent measures $\mathbb{Q}^* \sim \mathbb{Q}$, the Radon-Nikodym derivative:
+**Formal definition:** For two equivalent measures $\mathbb{Q}^{\ast} \sim \mathbb{Q}$, the Radon-Nikodym derivative:
 
-$$\left.\frac{d\mathbb{Q}^*}{d\mathbb{Q}}\right|_{\mathcal{F}_t} = \rho_t$$
+$$\left.\frac{d\mathbb{Q}^{\ast}}{d\mathbb{Q}}\right|_{\mathcal{F}_t} = \rho_t$$
 
 is a positive $\mathcal{F}_t$-measurable density process linking expectations:
 
-$$\mathbb{E}^{\mathbb{Q}^*}[X] = \mathbb{E}^{\mathbb{Q}}[\rho_T \cdot X]$$
+$$\mathbb{E}^{\mathbb{Q}^{\ast}}[X] = \mathbb{E}^{\mathbb{Q}}[\rho_T \cdot X]$$
 
-**Intuition:** Think of the Radon-Nikodym derivative as an "exchange rate between probability worlds." Just as \$1 buys €0.90, $\mathbb{Q}$-probability 1 of an event might equal $\mathbb{Q}^*$-probability 0.8 of the same event. The Radon-Nikodym derivative tells you the exchange rate for each scenario.
+**Intuition:** Think of the Radon-Nikodym derivative $\rho_T$ as a state-by-state "exchange rate between probability worlds." If $\rho_T(\omega) = 1.2$, then state $\omega$ is given 20% more weight under $\mathbb{Q}^{\ast}$ than under $\mathbb{Q}$; if $\rho_T(\omega) = 0.5$, it gets half the weight. Equivalence ($\mathbb{Q}^{\ast} \sim \mathbb{Q}$) means $\rho_T \gt 0$ almost surely, so the two measures agree on which events have probability zero (and which have probability one); only intermediate weights are reshuffled. The Radon-Nikodym derivative tells you the exchange rate for each scenario.
 
 In diffusion settings, Girsanov's theorem says drifts change while volatility coefficients remain the same in Ito form.
 
@@ -352,15 +366,15 @@ for payoffs paid at $T$.
 
 **Formal definition:** The swap annuity:
 
-$$A(t) = \sum_{i=1}^{n} \tau_i P(t, T_i)$$
+$$A(t) = \sum_{i=1}^{n} \tau_i\\, P(t, T_i)$$
 
 where $\tau_i$ are accrual fractions and $T_i$ are payment dates, can serve as a numeraire. The induced measure $\mathbb{Q}^A$ is the *swap measure*.
 
-Under $\mathbb{Q}^A$, the forward swap rate $S(t)$ is a martingale by construction. Swaption payoffs become:
+Under $\mathbb{Q}^A$, the forward swap rate $S(t)$ is a martingale by construction. For a payer swaption with expiry $T_e$ (so the underlying swap fixes its rate at $T_e$ and starts at $T_0 \ge T_e$), the time-$t$ value is:
 
-$$V(t) = A(t)\\, \mathbb{E}_t^A\\!\left[(S(T) - K)^+\right]$$
+$$V(t) = A(t)\\, \mathbb{E}_t^A\\!\left[(S(T_e) - K)^+\right].$$
 
-**Practice:** Standard swaption desk modeling uses this measure for tractability—if $S(t)$ is a martingale, you can model it as lognormal (or shifted lognormal) and get closed-form Black formulas.
+**Practice:** Standard swaption desk modeling uses this measure for tractability—if $S(t)$ is a martingale, you can model it as lognormal (or shifted lognormal) and get closed-form Black-style formulas.
 
 ---
 
@@ -402,28 +416,28 @@ $$f(t,T) = -\partial_T \ln P(t,T), \qquad P(t,T) = \exp\left(-\int_t^T f(t,u)\\,
 
 ### 2.1 The SDF Pricing Equation
 
-For a payoff $H_T$ at time $T$, Duffie's state-price deflator pricing relation gives:
+For a payoff $H_T$ at time $T$, the state-price deflator pricing relation gives:
 
 $$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]$$
 
 **Unit check:**
 - $H_T$ has units currency.
-- $\pi(T)$ has units $1/\text{currency}$ so $\pi(T) H_T$ is dimensionless.
+- $\pi(T)$ has units $1/\text{currency}$ so $\pi(T)\\, H_T$ is dimensionless.
 - $\frac{1}{\pi(t)}$ returns currency. ✓
 
-**Arrow-Debreu interpretation (Cochrane):** Think of $\pi(T)/\pi(t)$ as a *state-dependent discount factor* between $t$ and $T$. States where $\pi$ is high (bad times, high marginal utility) are expensive—payoffs there are valued more.
+**Arrow-Debreu interpretation:** Think of $\pi(T)/\pi(t)$ as a *state-dependent discount factor* between $t$ and $T$. States where $\pi$ is high (bad times, high marginal utility) are expensive—payoffs there are valued more.
 
 ---
 
 ### 2.2 Choosing the Money-Market Account as Numeraire
 
-Brigo-Mercurio's numeraire theorem: if $N$ is a numeraire and $\mathbb{Q}^N$ the associated measure, then:
+The numeraire-pricing theorem: if $N$ is a numeraire and $\mathbb{Q}^N$ the associated measure, then for any payoff $H_T$ at time $T$,
 
-$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{H_T}{N(T)}\right)$$
+$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{H_T}{N(T)}\right].$$
 
 Setting $N = B$ (money-market account):
 
-$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\\!\left[D(t,T)\\, H_T\right]$$
+$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left[\frac{H_T}{B(T)}\right] = \mathbb{E}_t^{\mathbb{Q}^B}\\!\left[D(t,T)\\, H_T\right]$$
 
 where $D(t,T) = B(t)/B(T)$ is the money-market discount factor.
 
@@ -447,8 +461,8 @@ for any two numeraires $N, U$, provided the measures are linked by the correct R
 |--------------|------------------|
 | Drift of asset processes | Volatility (diffusion coefficient) |
 | Probability weights on scenarios | Contractual payoffs |
-| Expected values of random variables | Prices (when properly adjusted) |
-| Brownian motion (via Girsanov) | Quadratic variation |
+| Expected values of random variables | Prices (when properly numeraire-adjusted) |
+| Which process is a Brownian motion (the same path adds/loses a drift) | Quadratic variation, sample paths, $\sigma$-algebras |
 
 ---
 
@@ -464,56 +478,52 @@ For a claim paying $Z(T)$ at time $T$:
 
 $$\boxed{Z(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{Z(T)}{N(T)}\right)} \tag{CON}$$
 
-> **Brigo-Mercurio's "Three Facts" for Numeraire Changes**
+> **Three Operational Facts for Numeraire Changes**
 >
-> Brigo-Mercurio distill the change-of-numeraire toolkit into three operational facts:
+> The change-of-numeraire toolkit reduces to three operational facts:
 >
-> **Fact One (Martingale property):** The price of any asset divided by a numeraire is a martingale under the measure associated with that numeraire.
+> **Fact 1 (Martingale property).** The price of any traded asset divided by a numeraire is a martingale under the measure associated with that numeraire.
 >
-> **Fact Two (Price invariance):** The time-$t$ risk-neutral price is invariant by change of numeraire: if $B$ and $S$ are any two numeraires,
-> $$\mathbb{E}_t^{\mathbb{Q}^B}\\!\left[\frac{B(t)}{B(T)} \cdot \text{Payoff}(T)\right] = \mathbb{E}_t^{\mathbb{Q}^S}\\!\left[\frac{S(t)}{S(T)} \cdot \text{Payoff}(T)\right]$$
+> **Fact 2 (Price invariance).** The time-$t$ price of a payoff is invariant under change of numeraire: if $N$ and $U$ are any two numeraires,
+> $$N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{H(T)}{N(T)}\right] = U(t)\\, \mathbb{E}_t^{\mathbb{Q}^U}\\!\left[\frac{H(T)}{U(T)}\right].$$
 >
-> **Fact Three (Drift adjustment):** When moving from numeraire $N_1$ to $N_2$, the drift of any asset changes by:
-> $$\boxed{\mu^{N_2} = \mu^{N_1} - \sigma_{\text{asset}}^\top \left(\sigma_{N_1} - \sigma_{N_2}\right)}$$
-> where $\sigma$ denotes volatility vectors. The diffusion coefficient is unchanged (diffusion invariance).
+> **Fact 3 (Drift adjustment).** When moving from numeraire $N_1$ to $N_2$, the drift of any asset changes by:
+> $$\boxed{\mu^{N_2} = \mu^{N_1} + \sigma_{\text{asset}}^\top \left(\sigma_{\log N_2} - \sigma_{\log N_1}\right)}$$
+> where $\sigma_{\log N_i}$ is the (vector) diffusion coefficient of $\log N_i$ and $\sigma_{\text{asset}}$ is the diffusion coefficient of the asset (or of $\log$-asset, if the dynamics are written in proportional form). The diffusion coefficients themselves are unchanged (diffusion invariance).
 >
-> These three facts, together with Girsanov's theorem, form the complete operational toolkit for switching between measures in interest rate modeling.
+> These three facts, together with Girsanov's theorem, form the operational toolkit for switching between measures in interest rate modeling.
 
 ---
 
 ### 3.2 Step-by-Step Radon-Nikodym Derivation
 
-Brigo-Mercurio provide the explicit derivation. Here we spell out each step.
+We now spell out the derivation explicitly.
 
-**Step 1: Start with two numeraires.** Let $N(t)$ and $U(t)$ be two valid numeraires with associated measures $\mathbb{Q}^N$ and $\mathbb{Q}^U$.
+**Step 1: Start with two numeraires.** Let $N(t)$ and $U(t)$ be two valid (strictly positive, traded) numeraires with associated pricing measures $\mathbb{Q}^N$ and $\mathbb{Q}^U$.
 
-**Step 2: Write the pricing identity under each.** For any traded asset $Z$:
+**Step 2: Write the pricing identity under each.** For any traded asset $Z$ and any payoff $Z(T)$ at time $T$:
 
-$$Z(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{Z(T)}{N(T)}\right) = U(t)\\, \mathbb{E}_t^{\mathbb{Q}^U}\\!\left(\frac{Z(T)}{U(T)}\right)$$
+$$Z(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{Z(T)}{N(T)}\right] = U(t)\\, \mathbb{E}_t^{\mathbb{Q}^U}\\!\left[\frac{Z(T)}{U(T)}\right].$$
 
 **Step 3: Define what we seek.** We want the density $\rho_T$ such that for any $\mathcal{F}_T$-measurable $X$:
 
-$$\mathbb{E}^{\mathbb{Q}^U}[X] = \mathbb{E}^{\mathbb{Q}^N}[\rho_T \cdot X]$$
+$$\mathbb{E}^{\mathbb{Q}^U}[X] = \mathbb{E}^{\mathbb{Q}^N}[\rho_T \cdot X].$$
 
-**Step 4: Apply the pricing identity to a specific claim.** Consider the claim that pays $Z(T) = U(T)$ at time $T$. Under numeraire $N$:
+**Step 4: Equate the two pricing identities.** Apply Step 2 with a generic payoff $H(T)$ and rearrange:
 
-$$U(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right)$$
+$$\mathbb{E}_t^{\mathbb{Q}^U}\\!\left[\frac{H(T)}{U(T)}\right] = \frac{N(t)}{U(t)} \cdot \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{H(T)}{N(T)}\right] = \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{H(T)}{U(T)} \cdot \frac{U(T)\\, N(t)}{U(t)\\, N(T)}\right].$$
 
-At $t=0$:
+**Step 5: Read off the Radon-Nikodym derivative.** Comparing this with the defining property in Step 3 (with $X = H(T)/U(T)$, which is arbitrary because $H(T)$ is) shows that the conditional density at time $t$ is:
 
-$$U(0) = N(0)\\, \mathbb{E}^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right)$$
+$$\rho_T^{(t)} = \frac{U(T)\\, N(t)}{U(t)\\, N(T)}.$$
 
-So:
-
-$$\mathbb{E}^{\mathbb{Q}^N}\\!\left(\frac{U(T)}{N(T)}\right) = \frac{U(0)}{N(0)}$$
-
-**Step 5: Identify the Radon-Nikodym derivative.** For the change-of-measure identity to hold for all payoffs, we need:
+In particular, taking $t = 0$ gives the unconditional density on $\mathcal{F}_T$:
 
 $$\boxed{\left.\frac{d\mathbb{Q}^U}{d\mathbb{Q}^N}\right|_{\mathcal{F}_T} = \frac{U(T)\\, N(0)}{U(0)\\, N(T)}} \tag{RN-CON}$$
 
-**Step 6: Verify consistency.** Check that $\mathbb{E}^{\mathbb{Q}^N}[\frac{d\mathbb{Q}^U}{d\mathbb{Q}^N}] = 1$:
+**Step 6: Verify consistency.** A density must integrate to 1 under the base measure. Using the pricing identity in Step 2 with $Z = U$:
 
-$$\mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T) N(0)}{U(0) N(T)}\right] = \frac{N(0)}{U(0)} \cdot \mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T)}{N(T)}\right] = \frac{N(0)}{U(0)} \cdot \frac{U(0)}{N(0)} = 1 \quad \checkmark$$
+$$\mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T)\\, N(0)}{U(0)\\, N(T)}\right] = \frac{N(0)}{U(0)} \cdot \mathbb{E}^{\mathbb{Q}^N}\\!\left[\frac{U(T)}{N(T)}\right] = \frac{N(0)}{U(0)} \cdot \frac{U(0)}{N(0)} = 1. \quad \checkmark$$
 
 ---
 
@@ -532,17 +542,17 @@ When switching from $\mathbb{Q}^N$ to $\mathbb{Q}^U$, Girsanov tells us:
 - **Volatility unchanged:** The diffusion coefficient $\sigma$ in $dX = \mu\\, dt + \sigma\\, dW$ stays the same.
 - **Drift changes:** The new drift under $\mathbb{Q}^U$ differs from the old drift under $\mathbb{Q}^N$ by a term involving the volatility of the Radon-Nikodym derivative.
 
-Andersen-Piterbarg call this the **diffusion invariance principle**: "While a change of probability measure affects the drift $\mu$ of an Ito process, it does not change the diffusion coefficient $\sigma$." This principle is fundamental to interest rate modeling—it means that when you switch between forward measures or from risk-neutral to physical measure, your volatility calibration remains valid. Only the drift adjustment changes.
+This is the **diffusion invariance principle**: a change of equivalent probability measure affects the drift $\mu$ of an Ito process but does not change the diffusion coefficient $\sigma$. The principle is fundamental to interest rate modeling—it means that when you switch between forward measures or from risk-neutral to physical measure, your volatility calibration remains valid. Only the drift adjustment changes.
 
 Specifically, if $W^N$ is a Brownian motion under $\mathbb{Q}^N$, then under $\mathbb{Q}^U$:
 
 $$\boxed{dW^U = dW^N - \gamma(t)\\, dt}$$
 
-where $\gamma(t)$ is the "market price of risk" associated with the numeraire change. For an Ito process $dX = \mu^N dt + \sigma\\, dW^N$ under $\mathbb{Q}^N$, the same process under $\mathbb{Q}^U$ becomes:
+where $\gamma(t)$ is the "market price of risk" associated with the numeraire change—it is the diffusion coefficient of $\log(d\mathbb{Q}^U/d\mathbb{Q}^N)$. For an Ito process $dX = \mu^N\\, dt + \sigma\\, dW^N$ under $\mathbb{Q}^N$, the same process under $\mathbb{Q}^U$ becomes:
 
-$$dX = (\mu^N + \sigma \gamma)\\, dt + \sigma\\, dW^U$$
+$$dX = (\mu^N + \sigma\\, \gamma)\\, dt + \sigma\\, dW^U.$$
 
-The drift changes by $\sigma \gamma$; the diffusion coefficient $\sigma$ is invariant.
+The drift changes by $\sigma\\, \gamma$; the diffusion coefficient $\sigma$ is invariant.
 
 ---
 
@@ -597,7 +607,7 @@ Define the simple-compounded forward rate for the period $[S,T]$ with accrual $\
 
 $$\boxed{F(t;S,T) = \frac{1}{\tau(S,T)}\left(\frac{P(t,S)}{P(t,T)} - 1\right)} \tag{SimpleFwd}$$
 
-Brigo-Mercurio state that $F(t;S,T)$ is a martingale under the $T$-forward measure $\mathbb{Q}^T$.
+The numerator $P(t,S) - P(t,T)$ is a difference of traded prices, hence itself a traded price; dividing by the bond numeraire $P(t,T)$ shows that $F(t;S,T)$ is a martingale under the $T$-forward measure $\mathbb{Q}^T$.
 
 **Practice:** This is the backbone of caplet pricing. If the forward rate is a martingale under a forward measure, modeling it as lognormal yields closed-form Black formulas.
 
@@ -623,16 +633,17 @@ The term $\theta = (\mu - r)/\sigma$ is the **market price of risk** (Sharpe rat
 
 **Numerical Example (Extend Example 6):**
 
-- Stock: $S_0 = 100$, $\mu = 8\\%$ (physical), $r = 3\\%$, $\sigma = 20\\%$
-- Market price of risk: $\theta = (0.08 - 0.03)/0.20 = 0.25$
+- Stock: $S_0 = 100$, $\mu = 8\\%$ (physical), $r = 3\\%$, $\sigma = 20\\%$, $T = 1$
+- Market price of risk: $\theta = (\mu - r)/\sigma = (0.08 - 0.03)/0.20 = 0.25$
+- Lognormal: $\ln S_1 \sim N\!\big(\ln S_0 + (\mathrm{drift} - \sigma^2/2),\\, \sigma^2\big)$ with drift $= \mu$ under $\mathbb{P}$, drift $= r$ under $\mathbb{Q}$
 
 | Quantity | Under $\mathbb{P}$ | Under $\mathbb{Q}$ |
 |----------|-------------------|-------------------|
-| $\mathbb{E}[S_1]$ | $100 \cdot e^{0.08} = 108.33$ | $100 \cdot e^{0.03} = 103.05$ |
-| Probability $S_1 \gt 100$ | 69.1% | 57.9% |
-| Probability $S_1 \gt 120$ | 36.9% | 26.4% |
+| $\mathbb{E}[S_1]$ | $100\\, e^{0.08} = 108.33$ | $100\\, e^{0.03} = 103.05$ |
+| $\Pr(S_1 \gt 100)$ | $N(0.30) = 61.8\\%$ | $N(0.05) = 52.0\\%$ |
+| $\Pr(S_1 \gt 120)$ | $1 - N(0.612) = 27.1\\%$ | $1 - N(0.862) = 19.4\\%$ |
 
-The risk-neutral measure shifts probability mass toward worse outcomes (lower $S$), which is how it "prices in" risk.
+The risk-neutral measure shifts probability mass toward worse outcomes (lower $S$), which is how it "prices in" risk: under $\mathbb{Q}$ the stock's expected log-growth is only $r - \sigma^2/2 = 1\\%$, versus $\mu - \sigma^2/2 = 6\\%$ under $\mathbb{P}$.
 
 ---
 
@@ -668,7 +679,7 @@ where $W$ is a $d$-dimensional Brownian motion under $\mathbb{Q}^B$.
 
 ### 5.2 Why Volatility is "Free" but Drift is "Pinned Down"
 
-Brigo-Mercurio emphasize: in HJM, you can choose the volatility structure $\sigma(t,T)$ (within regularity constraints), but then no-arbitrage determines the drift $\alpha(t,T)$.
+In HJM, the volatility structure $\sigma(t,T)$ can be chosen freely (within regularity constraints), but no-arbitrage then determines the drift $\alpha(t,T)$ uniquely.
 
 **The mechanism:**
 
@@ -729,13 +740,13 @@ Differentiating with respect to $T$ gives the HJM drift restriction.
 
 ### 5.5 Drift Under Forward Measures
 
-Glasserman gives the drift of $f(t,T)$ under the forward measure $\mathbb{Q}^{T_F}$ associated with maturity $T_F$:
+Under the forward measure $\mathbb{Q}^{T_F}$ associated with maturity $T_F$, applying Girsanov to (HJM-f) using the volatility of $\log P(t,T_F)$ gives the drift of $f(t,T)$:
 
 $$\boxed{df(t,T) = -\\,\sigma(t,T)^\top\\!\left(\int_T^{T_F} \sigma(t,u)\\, du\right) dt + \sigma(t,T)\\, dW^{T_F}(t)} \tag{HJM-fwd}$$
 
-The drift changes from $+\int_t^T$ under $\mathbb{Q}^B$ to $-\int_T^{T_F}$ under $\mathbb{Q}^{T_F}$.
+The drift changes sign: from $+\sigma(t,T)^\top \int_t^T \sigma(t,u)\\,du$ under $\mathbb{Q}^B$ to $-\sigma(t,T)^\top \int_T^{T_F} \sigma(t,u)\\,du$ under $\mathbb{Q}^{T_F}$.
 
-**Special case:** Under $\mathbb{Q}^T$ (i.e., $T_F = T$), the drift of $f(t,T)$ is zero—the forward rate for the numeraire maturity is a martingale (consistent with $F(t;T-\epsilon,T)$ being a martingale under $\mathbb{Q}^T$).
+**Special case:** When $T_F = T$, the integral $\int_T^T \sigma\\, du$ is zero, so $f(t, T)$ has zero drift under $\mathbb{Q}^T$—the instantaneous forward rate for the numeraire maturity is a $\mathbb{Q}^T$-martingale. This is consistent with the simple-compounded forward $F(t; S, T)$ being a $\mathbb{Q}^T$-martingale (Section 4.3): both objects are forward rates whose payment date matches the numeraire maturity.
 
 ---
 
@@ -840,17 +851,21 @@ The measure you use affects how risk appears in reports:
 
 ### 7.1 SDF Pricing → Risk-Neutral Pricing
 
-**Start from Duffie's SDF pricing:**
+**Start from the SDF pricing equation:**
 
-$$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right]$$
+$$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right].$$
 
-**Under numeraire $N$, Brigo-Mercurio give:**
+**Equivalent numeraire-pricing form.** For any strictly positive numeraire $N$, define the measure $\mathbb{Q}^N$ on $\mathcal{F}_T$ via the density
 
-$$V(t) = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left(\frac{H_T}{N(T)}\right)$$
+$$\left.\frac{d\mathbb{Q}^N}{d\mathbb{P}}\right|_{\mathcal{F}_T} = \frac{\pi(T)\\, N(T)}{\pi(0)\\, N(0)}.$$
 
-**Take $N = B$.** Then:
+This is a strictly positive $\mathbb{P}$-martingale (because $\pi\\, N$ is, by no-arbitrage), so $\mathbb{Q}^N$ is a well-defined equivalent measure. Using Bayes' rule for conditional expectations:
 
-$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left(\frac{H_T}{B(T)}\right) = \mathbb{E}_t^{\mathbb{Q}^B}\left[D(t,T)\\, H_T\right]$$
+$$V(t) = \frac{1}{\pi(t)}\\, \mathbb{E}_t^{\mathbb{P}}\\!\left[\pi(T)\\, H_T\right] = N(t)\\, \mathbb{E}_t^{\mathbb{Q}^N}\\!\left[\frac{H_T}{N(T)}\right].$$
+
+**Take $N = B$.** With $B(0) = 1$, the density becomes $\pi(T)\\, B(T)/\pi(0)$, and:
+
+$$V(t) = B(t)\\, \mathbb{E}_t^{\mathbb{Q}^B}\\!\left[\frac{H_T}{B(T)}\right] = \mathbb{E}_t^{\mathbb{Q}^B}\!\left[D(t,T)\\, H_T\right].$$
 
 This is the risk-neutral valuation formula.
 
@@ -952,15 +967,15 @@ Two states $\omega_1, \omega_2$ with $\mathbb{P}(\omega_i) = 0.5$. Payoff at $T 
 - $H(\omega_1) = 120$
 - $H(\omega_2) = 80$
 
-Risk-free rate 5%, so $P(0,1) = 1/1.05 = 0.952381$.
+Risk-free rate 5%, so $P(0,1) = 1/1.05 = 0.952381$. Pricing the risk-free bond (payoff = 1 in every state) via the SDF gives the constraint $\mathbb{E}^{\mathbb{P}}[m] = P(0,1) = 0.952381$.
 
-Pick SDF with $m(\omega_1) = 0.90$. Then:
-$$0.5 \cdot 0.90 + 0.5 \cdot m(\omega_2) = 0.952381 \implies m(\omega_2) = 1.004762$$
+Pick the good-state SDF value $m(\omega_1) = 0.90$. The constraint then determines the bad-state value:
+$$0.5 \cdot 0.90 + 0.5 \cdot m(\omega_2) = 0.952381 \\;\Longrightarrow\\; m(\omega_2) = 1.004762.$$
 
-**Price:**
-$$V_0 = 0.5(0.90 \cdot 120) + 0.5(1.004762 \cdot 80) = 0.5(108 + 80.38) = 94.19$$
+**Price the risky payoff:**
+$$V_0 = \mathbb{E}^{\mathbb{P}}[m\\, H] = 0.5\\,(0.90 \cdot 120) + 0.5\\,(1.004762 \cdot 80) = 0.5\\,(108 + 80.381) = 94.19.$$
 
-**Intuition:** The SDF is lower (0.90) in the good state ($H = 120$) and higher (1.00) in the bad state ($H = 80$). This is risk adjustment—good states are "cheap," bad states are "expensive."
+**Intuition:** The SDF is lower (0.90) in the good state ($H = 120$) and higher (≈1.005) in the bad state ($H = 80$). This is risk adjustment—good states are "cheap," bad states are "expensive."
 
 ---
 
@@ -1062,11 +1077,11 @@ Under $\mathbb{Q}$: $dS/S = r\\, dt + \sigma\\, dW^{\mathbb{Q}}$.
 
 | Quantity | Formula | Under $\mathbb{P}$ | Under $\mathbb{Q}$ |
 |----------|---------|-------------------|-------------------|
-| Expected value at $T=1$ | $S_0 e^{\mu T}$ or $S_0 e^{r T}$ | $100 e^{0.08} = 108.33$ | $100 e^{0.03} = 103.05$ |
-| Median at $T=1$ | $S_0 e^{(\mu - \sigma^2/2)T}$ | $100 e^{0.06} = 106.18$ | $100 e^{0.01} = 101.01$ |
-| $\Pr(S_1 \gt 110)$ | $N(-d_2)$ | 43.6% | 32.2% |
+| Expected value at $T=1$ | $S_0\\, e^{\text{drift}\cdot T}$ | $100\\, e^{0.08} = 108.33$ | $100\\, e^{0.03} = 103.05$ |
+| Median at $T=1$ | $S_0\\, e^{(\text{drift} - \sigma^2/2)T}$ | $100\\, e^{0.06} = 106.18$ | $100\\, e^{0.01} = 101.01$ |
+| $\Pr(S_1 \gt 110)$ | $N(d_2)$ with drift = $\mu$ or $r$ | 43.0% | 33.5% |
 
-The risk-neutral measure shifts the distribution left—outcomes that were considered likely under $\mathbb{P}$ become less likely under $\mathbb{Q}$.
+(Here $d_2 = (\ln(S_0/K) + (\text{drift} - \sigma^2/2)T)/(\sigma\sqrt{T})$, so $d_2 = -0.177$ under $\mathbb{P}$ and $d_2 = -0.427$ under $\mathbb{Q}$.) The risk-neutral measure shifts the distribution left—outcomes that were considered likely under $\mathbb{P}$ become less likely under $\mathbb{Q}$.
 
 ---
 
@@ -1091,25 +1106,21 @@ $$P(0,2) = e^{-0.06} = 0.9418, \quad P(1,2) = e^{-0.03} = 0.9704$$
 
 ### Example 9: Wrong Drift Creates Arbitrage (Extended)
 
-With $\sigma = 0.02$, $T = 2$: $\Sigma(0,2) = \int_0^2 0.02\\, ds = 0.04$.
+Take a constant-volatility one-factor HJM with $\sigma(t,T) \equiv 0.02$ and consider the 5-year bond ($T = 5$). Then $\Sigma(t, 5) = \int_t^5 0.02\\, ds = 0.02\\, (5-t)$, and at $t = 0$, $\Sigma(0,5) = 0.10$.
 
-**Correct drift:** $\alpha(t,2) = 0.02 \times 0.04 = 0.0008$ (at $t=0$).
+**Correct drift (HJM-drift) at $t=0$:** $\alpha(0,T) = \sigma(0,T) \cdot \Sigma(0,T)$, so for $T=5$, $\alpha(0,5) = 0.02 \times 0.10 = 0.002$.
 
-**If we incorrectly set $\alpha \equiv 0$**, the discounted bond has drift:
-$$\frac{1}{2}(0.04)^2 = 0.0008 \text{ per year}$$
+**If we incorrectly set $\alpha \equiv 0$**, repeating Steps 3–4 of the HJM derivation shows the discounted bond $P(t, 5)/B(t)$ no longer has zero drift; instead, its drift at time $t$ is
 
-**Quantifying the error over 5 years:**
+$$\tfrac{1}{2}\\, \Sigma(t, 5)^2 = \tfrac{1}{2}\\, \big(0.02\\,(5-t)\big)^2.$$
 
-Simulate 10,000 paths of the discounted bond $P(t,2)/B(t)$ with wrong drift:
+**Quantifying the cumulative error over $[0, 4]$:**
 
-- True (correct drift): Mean at $t=1$ should equal initial value (martingale)
-- Wrong drift: Mean grows by factor $e^{0.0008 \times 5} = 1.004$ over 5 years
+Integrate this drift from $t = 0$ to $t = 4$ (one year before maturity, where the bond is still alive):
 
-For a \$100mm bond position, this creates a "free" gain of:
+$$\int_0^4 \tfrac{1}{2}\\, (0.02)^2\\, (5-t)^2\\, dt = 0.0002 \int_0^4 (5-t)^2\\, dt = 0.0002 \cdot \frac{125 - 1}{3} \approx 0.00827.$$
 
-`100,000,000 * 0.004 = 400,000` USD.
-
-over 5 years—pure arbitrage from model error.
+So the simulated mean of $P(t, 5)/B(t)$ drifts away from its initial value $P(0,5)$ by roughly $e^{0.00827} - 1 \approx 0.83\\%$ over four years. For a \$100mm long bond position, this is a phantom "free gain" of roughly $0.0083 \times 100{,}000{,}000 \approx 830{,}000$ USD—pure arbitrage created entirely by the wrong drift.
 
 **Diagnostic:** If your simulation shows discounted bonds trending up or down, your drift is wrong.
 
@@ -1117,11 +1128,11 @@ over 5 years—pure arbitrage from model error.
 
 ### Example 10: Martingale Check
 
-Verify forward rate is martingale under $\mathbb{Q}^T$:
+Verify the simple-compounded forward rate is a martingale under $\mathbb{Q}^T$:
 
-$$F(t;S,T) = \frac{P(t,S) - P(t,T)}{\tau \cdot P(t,T)}$$
+$$F(t; S, T) = \frac{P(t,S) - P(t,T)}{\tau\\, P(t,T)} = \frac{1}{\tau}\left(\frac{P(t,S)}{P(t,T)} - 1\right).$$
 
-The numerator/denominator ratio has $P(t,T)$ as numeraire, hence martingale under $\mathbb{Q}^T$.
+The numerator $P(t,S) - P(t,T)$ is a difference of traded zero-coupon bond prices (so itself the price of a traded portfolio). Dividing this traded price by the bond numeraire $P(t,T)$ yields a $\mathbb{Q}^T$-martingale; subtracting the constant $1/\tau$ preserves the martingale property.
 
 ---
 
@@ -1189,41 +1200,50 @@ $$= 1.85 \cdot [0.01501 - 0.01352] = 1.85 \cdot 0.00149 = 0.00276$$
 
 **Setup:** USD investor wants to price a EUR-denominated cashflow of €1 at $T = 1$.
 
-**Key insight:** Under the USD risk-neutral measure $\mathbb{Q}^{\text{USD}}$, EUR assets must be converted via FX.
+**Key insight:** Under the USD risk-neutral measure $\mathbb{Q}^{\text{USD}}$ (numeraire $B^{\text{USD}}$), every USD-denominated traded price is a $\mathbb{Q}^{\text{USD}}$-martingale once divided by $B^{\text{USD}}$. EUR assets become USD-denominated by multiplying by the spot FX rate.
 
-Let $X(t)$ = USD per EUR. Under $\mathbb{Q}^{\text{USD}}$, the drift of $X$ is:
-$$\frac{dX}{X} = (r^{\text{USD}} - r^{\text{EUR}})\\, dt + \sigma_X\\, dW^{\text{USD}}$$
+Let $X(t)$ = USD per EUR, and let $P^{\text{EUR}}(t,T)$ be the EUR-discount bond. The EUR-bond's value in USD is the traded asset $X(t)\\, P^{\text{EUR}}(t,T)$, so
 
-**USD price of €1 at $T$:**
-$$V^{\text{USD}}(0) = \mathbb{E}^{\mathbb{Q}^{\text{USD}}}\left[\frac{X(T)}{B^{\text{USD}}(T)}\right] = X(0) \cdot P^{\text{EUR}}(0,T)$$
+$$\frac{X(t)\\, P^{\text{EUR}}(t,T)}{B^{\text{USD}}(t)} \quad \text{is a } \mathbb{Q}^{\text{USD}}\text{-martingale.}$$
 
-by covered interest parity (the FX forward adjusts for rate differentials).
+Evaluating at $t = T$ gives $X(T)\\, P^{\text{EUR}}(T,T) = X(T)$, so the martingale property at $t=0$ (with $B^{\text{USD}}(0) = 1$) yields:
+
+$$X(0)\\, P^{\text{EUR}}(0,T) = \mathbb{E}^{\mathbb{Q}^{\text{USD}}}\!\left[\frac{X(T)}{B^{\text{USD}}(T)}\right].$$
+
+The right-hand side is the USD price today of receiving €1 at $T$, so
+
+$$V^{\text{USD}}(0) = X(0) \cdot P^{\text{EUR}}(0,T).$$
+
+This is covered interest parity in pricing form. The same martingale condition implies the standard FX-forward drift under $\mathbb{Q}^{\text{USD}}$:
+
+$$\frac{dX}{X} = (r^{\text{USD}} - r^{\text{EUR}})\\, dt + \sigma_X\\, dW^{\text{USD}}.$$
 
 ---
 
 ### Example 14: CAPM from SDF (Numerical)
 
-**Setup:** Market return $R_M \sim \text{Normal}(8\\%, 16\\%)$, risk-free rate $r = 3\\%$.
+**Setup:** Let $R_M$ denote the gross simple return on the market portfolio over one period, with $\mathbb{E}[R_M] = 1.08$ and $\mathrm{Var}(R_M) = 0.0256$ (standard deviation 16%). Risk-free gross return $R_f = 1.03$.
 
-**Linear SDF:** $m = a - b R_M$ where parameters are chosen so $\mathbb{E}[m] = 1/(1+r)$.
+**Linear SDF ansatz:** $m = a - b\\, R_M$, with $a, b$ to be determined from the two pricing constraints
+$$\mathbb{E}[m\\, R_f] = 1, \qquad \mathbb{E}[m\\, R_M] = 1.$$
 
-For CAPM: $\mathbb{E}[m] = 1/1.03 = 0.971$ and $\text{Cov}(m, R_M) = -b \cdot \text{Var}(R_M)$.
+The first gives $\mathbb{E}[m] = 1/R_f = 1/1.03 = 0.97087$, hence
+$$a - b\\, \mathbb{E}[R_M] = 0.97087 \quad\Longrightarrow\quad a - 1.08\\, b = 0.97087. \tag{i}$$
 
-**Finding $a$ and $b$:** From $\mathbb{E}[m R_M] = 0$ (market is fairly priced):
-$$a \cdot \mathbb{E}[R_M] - b \cdot \mathbb{E}[R_M^2] = 0$$
+The second gives $a\\, \mathbb{E}[R_M] - b\\, \mathbb{E}[R_M^2] = 1$. Using $\mathbb{E}[R_M^2] = \mathrm{Var}(R_M) + \mathbb{E}[R_M]^2 = 0.0256 + 1.1664 = 1.192$:
+$$1.08\\, a - 1.192\\, b = 1. \tag{ii}$$
 
-With $\mathbb{E}[R_M] = 0.08$ and $\text{Var}(R_M) = 0.0256$:
-$$\mathbb{E}[R_M^2] = 0.0256 + 0.08^2 = 0.032$$
+**Solving (i) and (ii):** From (i), $a = 0.97087 + 1.08\\, b$. Substitute into (ii):
+$$1.08\\,(0.97087 + 1.08\\, b) - 1.192\\, b = 1 \\;\Longrightarrow\\; 1.04854 - 0.0256\\, b = 1 \\;\Longrightarrow\\; b = 1.8961, \\; a = 3.0187.$$
 
-So $a = b \times 0.032/0.08 = 0.4b$.
+**Pricing a risky asset.** For asset $i$ with gross return $R_i$ and $\mathrm{Cov}(R_i, R_M) = 0.02$ (so beta = $0.02/0.0256 = 0.781$), the SDF pricing equation $1 = \mathbb{E}[m\\, R_i]$ rearranges into the CAPM:
 
-From $\mathbb{E}[m] = 0.971$: $a - b \times 0.08 = 0.971$, so $0.4b - 0.08b = 0.32b = 0.971$, giving $b = 3.03$ and $a = 1.21$.
+$$\mathbb{E}[R_i] - R_f = \beta_i\\, (\mathbb{E}[R_M] - R_f),$$
 
-**Pricing a risky asset:** For asset $i$ with $\text{Cov}(R_i, R_M) = 0.02$ (beta = 0.02/0.0256 = 0.78):
+which here gives $\mathbb{E}[R_i] - 1.03 = 0.781 \times (1.08 - 1.03) = 0.0391$, i.e. an expected gross return of $1.069$ (a simple expected return of $6.9\\%$). The same number drops out of the SDF setup: with $b = 1.8961$,
+$$\mathbb{E}[R_i] = R_f + b\\, R_f\\, \mathrm{Cov}(R_i, R_M) = 1.03 + 1.8961 \times 1.03 \times 0.02 = 1.069. \quad \checkmark$$
 
-$$\mathbb{E}[R_i] = r + \beta_i (\mathbb{E}[R_M] - r) = 0.03 + 0.78 \times 0.05 = 6.9\\%$$
-
-This is the CAPM prediction, derived from the SDF framework.
+This is the CAPM prediction, derived directly from the SDF framework.
 
 ---
 
@@ -1255,22 +1275,19 @@ $$B_T = \exp(rT)$$
 
 ### Example 16: Wrong-Measure Caplet Error
 
-**Setup:** Same as Example 11, but we incorrectly simulate under $\mathbb{Q}^B$ instead of $\mathbb{Q}^{T_2}$.
+**Setup:** Same as Example 11, but we incorrectly simulate the forward LIBOR $L(t; T_1, T_2)$ under $\mathbb{Q}^B$ instead of $\mathbb{Q}^{T_2}$, while using the same lognormal volatility $\sigma_L = 20\\%$.
 
-**Under $\mathbb{Q}^{T_2}$:** $L(t)$ is a martingale, so $\mathbb{E}^{T_2}[L(T_1)] = L(0) = 4.124\\%$.
+**Under $\mathbb{Q}^{T_2}$:** $L(t)$ is a martingale, so $\mathbb{E}^{T_2}[L(T_1)] = L(0) = 4.124\\%$. Black's formula in Example 11 applies and gives 1.94 bps.
 
-**Under $\mathbb{Q}^B$:** $L(t)$ is NOT a martingale. The drift involves the covariance with the bond:
+**Under $\mathbb{Q}^B$:** $L(t)$ is *not* a martingale; the change of numeraire from $P(t, T_2)$ to $B(t)$ adds a drift proportional to the covariation between $\log L(t)$ and $\log P(t, T_2)$. For a one-factor lognormal-LIBOR model the standard convexity adjustment is
 
-$$\mathbb{E}^B[L(T_1)] \neq L(0)$$
+$$\mathbb{E}^B\\!\left[L(T_1)\right] - L(0) \\;\approx\\; \frac{\tau\\, L(0)^2\\, \sigma_L^2\\, T_1}{1 + \tau\\, L(0)},$$
 
-The difference (convexity adjustment) can be approximated:
-$$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0) = 4.124\\% + 0.04 \times 1 \times 0.25 \times 0.04124 = 4.165\\%$$
+which numerically gives $\frac{0.25 \times 0.04124^2 \times 0.04 \times 1}{1.01031} \approx 1.68 \times 10^{-5}$ — about $0.17$ bps. So the *expected* forward LIBOR under $\mathbb{Q}^B$ is $\sim 4.126\\%$, only marginally above $L(0)$.
 
-**Impact on caplet price:** Using the wrong expected forward rate leads to mispricing:
-- Correct price (Example 11): 1.94 bps
-- Wrong-measure price: ~2.2 bps (13% error)
+**Impact on caplet price:** The convexity correction enters the at-the-money-ish caplet price almost linearly through the in-the-money probability $N(d_1)$. With $L(0) \approx 4.124\\%$ replaced by $4.126\\%$ in Black's formula, the caplet price moves by less than $0.05$ bps — small in absolute terms but a clear bias if applied repeatedly across a strip of caplets, and the bias grows with maturity, vol, and strike sensitivity.
 
-**Lesson:** Always match your measure to your numeraire. If paying at $T_2$, simulate under $\mathbb{Q}^{T_2}$.
+**Lesson:** Always match your measure to your numeraire. If paying at $T_2$, simulate $L$ under $\mathbb{Q}^{T_2}$ (where $L$ is a driftless martingale); if you must work under $\mathbb{Q}^B$, you owe a convexity adjustment whose magnitude scales with $\tau\\, L\\, \sigma_L^2\\, T_1/(1 + \tau\\, L)$.
 
 ---
 
@@ -1278,7 +1295,7 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 ### Key Takeaways
 
-1. **No-arbitrage ⟺ SDF existence:** Duffie's framework ties internally consistent prices to a strictly positive state-price deflator.
+1. **No-arbitrage ⟺ SDF existence:** Internally consistent prices are equivalent to the existence of a strictly positive state-price deflator.
 
 2. **SDF interpretation:** The SDF discounts payoffs more in bad states (high marginal utility). Risk premia arise from SDF covariance.
 
@@ -1324,7 +1341,7 @@ $$\mathbb{E}^B[L(T_1)] \approx L(0) + \sigma_L^2 \cdot T_1 \cdot \tau \cdot L(0)
 
 | # | Question | Answer |
 |---|----------|--------|
-| 1 | What does no-arbitrage imply in Duffie's framework? | Existence of a state-price deflator (SDF). |
+| 1 | What does no-arbitrage imply in the SDF framework? | Existence of a strictly positive state-price deflator (SDF). |
 | 2 | What is a state-price deflator? | Positive process $\pi(t)$ pricing via $V = \frac{1}{\pi_t}\mathbb{E}[\pi_T H_T]$. |
 | 3 | How does the SDF relate to marginal utility? | SDF equals intertemporal marginal rate of substitution in equilibrium. |
 | 4 | What is an Arrow-Debreu security? | Pays \$1 in one state, \$0 otherwise; prices reveal state-price density. |
