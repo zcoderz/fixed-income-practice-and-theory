@@ -1134,9 +1134,9 @@ $$\boxed{N_{\text{index}} \approx -\frac{SystemicDV01_{\text{tranche}}}{CS01_{\t
 
 $$\boxed{N_{\text{hedge}} = -\frac{PV01_{\text{target, total}}}{PV01_{\text{hedge per USD notional}}}}$$
 
-Equivalently, when both PV01s are quoted at the same reference notional (e.g., per USD 10mm):
+Equivalently, when both PV01s are quoted at the *same* reference notional $N_{\text{ref}}$ (e.g., per USD 10mm):
 
-$$N_{\text{hedge}} = N_{\text{ref}} \times \frac{PV01_{\text{target at ref}}}{PV01_{\text{hedge at ref}}}$$
+$$N_{\text{hedge}} = N_{\text{target}} \times \frac{PV01_{\text{target at ref}}}{PV01_{\text{hedge at ref}}}$$
 
 (See Example 14 for a worked numerical case using the second form.)
 
