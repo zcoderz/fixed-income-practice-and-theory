@@ -17,7 +17,7 @@ The crisis period also made three limitations operationally important:
 >
 > The scatterplot tells the story: Gaussian copula joint defaults form a circular cloud—even with high correlation, the extreme corners (joint default/joint survival) are nearly empty. The t-copula places substantial probability mass in those corners. For a risk manager, the difference between a "50-year event" and a "7-year event" is the difference between theoretical reassurance and realized losses.
 
-This appendix extends beyond the base correlation framework introduced in Chapter 50 to survey the broader landscape of credit portfolio models. We begin with the fundamental building blocks—portfolio loss distributions, dependence structures, and the distinction between bottom-up and top-down approaches (Section A6.1). Section A6.2 examines why base correlation "is not enough," providing a rigorous treatment of its empirical failures. Section A6.3 develops a framework map organizing the alternatives: static copula extensions, factor model enhancements, dynamic intensity models, and other mechanisms. Section A6.4 presents copula skew models in detail—the Random Factor Loading (RFL) model and the Double-t copula—that were developed specifically to address correlation smile fitting. Section A6.5 covers bespoke tranche pricing methods, a critical gap in the base correlation framework. Section A6.6 details dynamic bottom-up and top-down models. Section A6.7 addresses the Vasicek model and Basel IRB regulatory capital. Section A6.8 covers calibration and validation—the practical challenge of making these models work. Section A6.9 addresses numerical implementation and loss distribution computation methods. Section A6.10 provides step-by-step derivation pipelines with unit checks for key computational procedures. Section A6.11 covers measurement, stress testing, and sensitivity analysis. Throughout, we balance mathematical rigor with practical guidance for the desk quant who must actually implement, calibrate, and risk-manage these models.
+This appendix extends beyond the base correlation framework introduced in Chapter 50 to survey the broader landscape of credit portfolio models. We begin with the fundamental building blocks—portfolio loss distributions, dependence structures, and the distinction between bottom-up and top-down approaches (Section A6.1). Section A6.2 examines why base correlation "is not enough," providing a rigorous treatment of its empirical failures. Section A6.3 develops a framework map organizing the alternatives: static copula extensions, factor model enhancements, dynamic intensity models, and other mechanisms. Section A6.4 presents copula skew models in detail—the Random Factor Loading (RFL) model and the Double-t copula—that were developed specifically to address correlation smile fitting. Section A6.5 covers bespoke tranche pricing methods, a critical gap in the base correlation framework. Section A6.6 details dynamic bottom-up and top-down models. Section A6.7 addresses the Vasicek model and Basel IRB regulatory capital. Section A6.8 covers calibration and validation—the practical challenge of making these models work. Section A6.9 addresses numerical implementation and loss distribution computation methods. Section A6.10 provides step-by-step derivation pipelines with unit checks for key computational procedures. Section A6.11 covers measurement, stress testing, and sensitivity analysis. Section A6.12 collects practical notes on model risk, P&L drivers, regulatory implications, and implementation pitfalls. Section A6.13 gathers toy and full worked examples that illustrate the techniques developed earlier in the appendix. Throughout, we balance mathematical rigor with practical guidance for the desk quant who must actually implement, calibrate, and risk-manage these models.
 
 **How to use this appendix (reading paths):**
 
@@ -68,11 +68,11 @@ $$\boxed{L(T) = \sum_{i=1}^{N_C} w_i L_i \mathbf{1}_{\\{\tau_i \leq T\\}}}$$
 
 The **loss distribution** is the probability law of $L(T)$. McNeil, Frey, and Embrechts in *Quantitative Risk Management* emphasize that "the main quantity of interest in portfolio credit risk is the distribution of portfolio losses over a fixed time horizon."
 
-For tranche pricing, we need the expected loss on tranches of the form $[K_1, K_2]$:
+For tranche pricing, we need the expected loss on tranches of the form $[K_1, K_2]$. Throughout this appendix we use the *normalized* tranche-loss convention (loss as a fraction of tranche notional, so $\mathbb{E}[L(T; K_1, K_2)] \in [0,1]$):
 
 $$\mathbb{E}[L(T; K_1, K_2)] = \frac{\mathbb{E}[\min(L(T), K_2)] - \mathbb{E}[\min(L(T), K_1)]}{K_2 - K_1}$$
 
-This depends on the *entire distribution* of $L(T)$, not just its mean.
+The numerator alone is the un-normalized tranche expected loss (a fraction of the *portfolio* notional). Both forms are used in market practice; we will state the convention explicitly when ambiguity could arise. This expression depends on the *entire distribution* of $L(T)$, not just its mean.
 
 **Key insight:** Two portfolios with identical expected losses but different loss *distributions* will produce different tranche prices. The challenge is to model the distribution, not just the mean.
 
@@ -87,7 +87,7 @@ This depends on the *entire distribution* of $L(T)$, not just its mean.
 The term "correlation" is used loosely in credit markets, but McNeil et al. clarify the distinction between different dependence concepts:
 
 **Default correlation:** The correlation between default indicators:
-$$\rho_{ij}^{def}(T) = \mathrm{Corr}(I(\tau_i \leq T), I(\tau_j \leq T))$$
+$$\rho_{ij}^{\mathrm{def}}(T) = \mathrm{Corr}(I(\tau_i \leq T), I(\tau_j \leq T))$$
 
 **Asset correlation:** In structural models, the correlation between latent asset values:
 $$\rho_{ij}^{\text{asset}} = \text{Corr}(Z_i, Z_j)$$
@@ -168,11 +168,11 @@ $$Z_i = \sqrt{\rho} X + \sqrt{1-\rho} \varepsilon_i$$
 
 where $X$ is the systematic factor and $\varepsilon_i$ are idiosyncratic shocks.
 
-**Multi-factor extensions** allow for richer correlation structures:
+**Multi-factor extensions** allow for richer correlation structures. With $J$ factors:
 
-$$Z_i = \sum_{k=1}^{K} \beta_{ik} X_k + \sqrt{1 - \sum_{k=1}^{K} \beta_{ik}^2} \varepsilon_i$$
+$$Z_i = \sum_{j=1}^{J} \beta_{ij} X_j + \sqrt{1 - \sum_{j=1}^{J} \beta_{ij}^2}\,\varepsilon_i$$
 
-where $X_k$ might represent industry, region, or rating factors. For a two-factor model, the correlation between credits $i$ and $j$ is:
+where $X_j$ might represent industry, region, or rating factors. (Here $J$ counts factors; tranche strikes are reserved for $K$ as in the Conventions table.) For a two-factor model, the correlation between credits $i$ and $j$ is:
 
 $$\boxed{c_{ij} = \beta_{1i}\beta_{1j} + \beta_{2i}\beta_{2j}}$$
 
@@ -194,7 +194,7 @@ O'Kane notes: "We see that there is a strong positive correlation within each of
 
 **Key insight:** O'Kane emphasizes that modeling $M$ sectors requires an $M$-factor model. A one-factor model cannot capture sector-specific correlation patterns. However, "the price of most portfolio credit derivatives depends to first order on the average correlation level rather than the correlation factor structure," which partially justifies the one-factor approximation in practice.
 
-**Conditional independence:** Crucially, conditional on the factors $(X_1, \ldots, X_K)$, defaults are independent. This enables tractable computation via:
+**Conditional independence:** Crucially, conditional on the factors $(X_1, \ldots, X_J)$, defaults are independent. This enables tractable computation via:
 
 $$\mathbb{E}[g(L)] = \mathbb{E}_X[\mathbb{E}[g(L) \mid X]]$$
 
@@ -327,11 +327,12 @@ Under the Gaussian copula with realistic parameters (5-year maturity, 50bp avera
 - $\psi(5Y, 5\\%)$ implied by $\rho = 30\\%$: approximately 1.6%
 - $\psi(5Y, 7\\%)$ implied by $\rho = 35\\%$: approximately 2.3%
 
-Check convexity: The second differences should be non-positive.
-$(1.6 - 1.2)/2 = 0.20$ (slope 3% to 5%)
-$(2.3 - 1.6)/2 = 0.35$ (slope 5% to 7%)
+Check the no-arbitrage concavity condition $\partial^2\psi / \partial K^2 \leq 0$. The discrete slopes are:
 
-The slope is *increasing*—violating convexity and permitting arbitrage through a butterfly trade.
+- $(1.6 - 1.2)/2 = 0.20$ (slope from 3% to 5%)
+- $(2.3 - 1.6)/2 = 0.35$ (slope from 5% to 7%)
+
+The slope is *increasing*—so $\psi(T,K)$ is locally convex rather than concave, violating the concavity condition and permitting arbitrage through a butterfly trade.
 
 ### A6.2.3 ETL Interpolation: A Better Approach
 
@@ -688,7 +689,7 @@ Calibrating copula skew models involves fitting model parameters to observed tra
 - These are inputs, not calibration targets
 
 **Step 2: Choose copula family and parameterization**
-- RFL: parameters $(\alpha, \beta, \Theta)$ or $(α_1, \alpha_2, \beta, \Theta_1, \Theta_2)$ for two-step
+- RFL: parameters $(\alpha, \beta, \Theta)$ or $(\alpha_1, \alpha_2, \beta, \Theta_1, \Theta_2)$ for two-step
 - Double-t: parameters $(\rho, \nu_Z, \nu_\varepsilon)$
 
 **Step 3: Define objective function**
@@ -866,15 +867,16 @@ O'Kane provides extensive treatment of the Intensity Gamma (IG) model of Joshi a
 - Expected value: $\mathbb{E}[\Gamma(t)] = \gamma t / \lambda$
 - Variance: $\text{Var}(\Gamma(t)) = \gamma t / \lambda^2$
 
-**Default mechanism:** Credit $i$ defaults when $\Gamma(t)$ exceeds a random threshold $\theta_i$:
+**Default mechanism:** Each credit $i$ has an independent (across $i$) trigger level $\theta_i$, and defaults the first time the business-time process crosses it:
 $$\tau_i = \inf\\{t: \Gamma(t) \geq \theta_i\\}$$
 
-where $\theta_i$ is calibrated to match the marginal survival curve:
-$$\mathbb{P}(\theta_i \gt x) = Q_i(t) \text{ when } \mathbb{E}[\Gamma(t)] = x$$
+The trigger distribution is calibrated to match the marginal survival curve. For instance, if $\theta_i \sim \mathrm{Exp}(c_i)$ is independent of $\Gamma$, then
+$$Q_i(t) = \mathbb{P}(\theta_i \gt \Gamma(t)) = \mathbb{E}[e^{-c_i \Gamma(t)}],$$
+and the rate $c_i$ is chosen for each maturity (or as a piecewise-constant function of $t$) so the right-hand side reproduces the credit's marginal survival curve $Q_i(t)$.
 
 **Why this generates clustering:** Large jumps in $\Gamma(t)$ can cause multiple thresholds to be exceeded simultaneously, generating clustered defaults. O'Kane demonstrates this with simulation: "The intensity gamma model exhibits default clustering... we see that defaults do not occur in isolation but tend to occur in groups."
 
-**Calibration:** The model has $2n$ parameters if $n$ gamma processes are used. For a single gamma process:
+**Calibration:** The Joshi–Stacey specification builds business time as a sum of $n$ independent gamma subordinators, each with shape $\gamma_k$ and scale $\lambda_k$, giving $2n$ free parameters. The two-component case ($n = 2$) is a common starting point:
 $$\Gamma(t) = \Gamma_1(t) + \Gamma_2(t)$$
 
 O'Kane reports calibration to CDX NA IG tranches with parameters: $\gamma_1 = 0.0008$, $\gamma_2 = 0.217$, $\lambda_1 = 0.0011$, $\lambda_2 = 0.186$.
@@ -941,7 +943,7 @@ Schönbucher's Markov chain model (2005) directly models the portfolio loss proc
 **Generator matrix:** The dynamics are governed by the generator matrix $A(t)$ with elements $a_{ij}(t)$ representing the rate of transition from $i$ to $j$ defaults.
 
 For a single-step model (one default at a time), the generator entries are:
-$$a_{i,i}(t) = -a_i(t), \qquad a_{i,i+1}(t) = a_i(t), \qquad a_{i,j}(t) = 0 \text{ for } j \notin \{i, i+1\}.$$
+$$a_{i,i}(t) = -a_i(t), \qquad a_{i,i+1}(t) = a_i(t), \qquad a_{i,j}(t) = 0 \text{ for } j \notin \\{i, i+1\\}.$$
 
 **No-arbitrage conditions:** The transition rates must satisfy:
 - $a_{ij}(t) \geq 0$ for $i \lt j$
@@ -963,31 +965,32 @@ This allows modeling of spread dynamics and MTM risk.
 
 Hull in *Risk Management and Financial Institutions* develops the Vasicek model for credit portfolio risk, which underlies the Basel II/III internal ratings-based (IRB) approach.
 
-For a large homogeneous portfolio with one-year default probability $p$ and asset correlation $\rho$, the **Worst Case Default Rate** at confidence level $X$ is:
+For a large homogeneous portfolio with one-year default probability $p$ and asset correlation $\rho$, the **Worst Case Default Rate** at confidence level $\alpha$ is:
 
-$$\boxed{\text{WCDR}(T, X) = \Phi\left(\frac{\Phi^{-1}(p) + \sqrt{\rho}\Phi^{-1}(X)}{\sqrt{1-\rho}}\right)}$$
+$$\boxed{\text{WCDR}(T, \alpha) = \Phi\left(\frac{\Phi^{-1}(p) + \sqrt{\rho}\,\Phi^{-1}(\alpha)}{\sqrt{1-\rho}}\right)}$$
 
 Hull explains: "This is a strange-looking result, but a very important one. It was first developed by Vasicek in 1987."
 
-**Intuition:** At the $X$-th percentile of the systematic factor distribution, the conditional default probability is WCDR. This is the default rate that will not be exceeded with probability $X$.
+**Intuition:** At the $\alpha$-th percentile of the systematic factor distribution, the conditional default probability is WCDR. This is the default rate that will not be exceeded with probability $\alpha$. Note that $\alpha$ here is a confidence level, distinct from the systematic factor $X$ defined in the Conventions table.
 
 **Worked Example A6.3: WCDR Calculation (Hull Example 11.2)**
 - Portfolio: Large number of retail loans
 - One-year PD: $p = 2\\%$
 - Asset correlation: $\rho = 0.10$
-- Confidence level: $X = 99.9\\%$
+- Confidence level: $\alpha = 99.9\\%$
 
-$$\text{WCDR}(1, 0.999) = \Phi\left(\frac{\Phi^{-1}(0.02) + \sqrt{0.10} \times \Phi^{-1}(0.999)}{\sqrt{1-0.10}}\right)$$
-$$= \Phi\left(\frac{-2.054 + 0.316 \times 3.090}{0.949}\right)$$
-$$= \Phi(0.863) = 0.128$$
+Intermediate values: $\Phi^{-1}(0.02) \approx -2.054$, $\sqrt{0.10} \approx 0.316$, $\Phi^{-1}(0.999) \approx 3.090$, $\sqrt{0.90} \approx 0.949$.
+
+$$\text{WCDR}(1, 0.999) = \Phi\left(\frac{\Phi^{-1}(0.02) + \sqrt{0.10}\,\Phi^{-1}(0.999)}{\sqrt{1-0.10}}\right)$$
+$$= \Phi\left(\frac{-2.054 + 0.316 \times 3.090}{0.949}\right) = \Phi\left(\frac{-1.078}{0.949}\right) = \Phi(-1.135) \approx 0.128$$
 
 The 99.9% worst-case one-year default rate is **12.8%**, dramatically higher than the 2% expected default rate.
 
 ### A6.7.2 Basel II/III IRB Capital Formula
 
-The Internal Ratings-Based (IRB) approach uses a modified Vasicek formula for regulatory capital:
+The Internal Ratings-Based (IRB) approach uses a modified Vasicek formula for the capital-requirement ratio (denoted $K_{\mathrm{IRB}}$ here to avoid clashing with the tranche-strike $K$ used elsewhere in this appendix):
 
-$$\boxed{K = \text{LGD} \times \left[\text{WCDR}(1, 0.999) - \text{PD}\right] \times \text{MA}}$$
+$$\boxed{K_{\mathrm{IRB}} = \mathrm{LGD} \times \left[\mathrm{WCDR}(1, 0.999) - \mathrm{PD}\right] \times \mathrm{MA}}$$
 
 where:
 - LGD is loss-given-default
@@ -1004,33 +1007,40 @@ This gives $\rho \approx 0.24$ for very low PDs and $\rho \approx 0.12$ for high
 **Worked Example A6.4: Basel IRB Capital Calculation**
 
 Calculate IRB capital for a corporate loan portfolio:
-- Notional: $100mm
+- Notional: \$100mm
 - PD: 2%
 - LGD: 45%
-- Maturity: 3 years
-- Asset correlation (from Basel formula): $\rho = 0.20$
+- Maturity: $M = 3$ years
 
-**Step 1: WCDR at 99.9%**
-$$\text{WCDR} = \Phi\left(\frac{\Phi^{-1}(0.02) + \sqrt{0.20} \times \Phi^{-1}(0.999)}{\sqrt{0.80}}\right)$$
-$$= \Phi\left(\frac{-2.054 + 0.447 \times 3.090}{0.894}\right) = \Phi(0.25) = 0.599$$
+**Step 1: Asset correlation from the Basel corporate formula**
 
-Wait—this seems too high. Let me recalculate:
-$$= \Phi\left(\frac{-2.054 + 1.382}{0.894}\right) = \Phi(-0.75) = 0.227$$
+For corporate exposures with PD = 0.02:
+$$w(\text{PD}) = \frac{1 - e^{-50 \times 0.02}}{1 - e^{-50}} = \frac{1 - e^{-1}}{1 - e^{-50}} \approx 0.6321$$
 
-So WCDR = 22.7%.
+$$\rho = 0.12\,w(\text{PD}) + 0.24\,(1 - w(\text{PD})) \approx 0.12 \times 0.6321 + 0.24 \times 0.3679 \approx 0.164$$
 
-**Step 2: Maturity adjustment**
-The maturity adjustment formula is:
-$$\text{MA} = \frac{1 + (M - 2.5) \times b}{1 - 1.5 \times b}$$
+**Step 2: WCDR at 99.9%**
 
-where $b = (0.11852 - 0.05478 \times \ln(\text{PD}))^2 \approx 0.15$ for PD = 2%.
+Intermediate values: $\Phi^{-1}(0.02) \approx -2.054$, $\sqrt{0.164} \approx 0.405$, $\Phi^{-1}(0.999) \approx 3.090$, $\sqrt{1-0.164} \approx 0.915$.
 
-For $M = 3$: MA $\approx 1.06$
+$$\text{WCDR} = \Phi\left(\frac{\Phi^{-1}(0.02) + \sqrt{0.164}\,\Phi^{-1}(0.999)}{\sqrt{1-0.164}}\right)$$
+$$= \Phi\left(\frac{-2.054 + 0.405 \times 3.090}{0.915}\right) = \Phi\left(\frac{-0.803}{0.915}\right) = \Phi(-0.878) \approx 0.190$$
 
-**Step 3: Capital requirement**
-$$K = 0.45 \times (0.227 - 0.02) \times 1.06 = 0.099 = 9.9\\%$$
+So WCDR $\approx 19.0\\%$.
 
-**Capital amount:** $100mm × 9.9% = **$9.9mm**
+**Step 3: Maturity adjustment**
+$$\text{MA} = \frac{1 + (M - 2.5)\,b}{1 - 1.5\,b}, \qquad b = (0.11852 - 0.05478 \ln(\text{PD}))^2$$
+
+For PD = 0.02:
+$$b = (0.11852 - 0.05478 \times (-3.912))^2 = (0.11852 + 0.21430)^2 \approx 0.111$$
+
+For $M = 3$:
+$$\text{MA} = \frac{1 + 0.5 \times 0.111}{1 - 1.5 \times 0.111} = \frac{1.0555}{0.8335} \approx 1.27$$
+
+**Step 4: Capital requirement**
+$$K_{\mathrm{IRB}} = \mathrm{LGD} \times (\mathrm{WCDR} - \mathrm{PD}) \times \mathrm{MA} = 0.45 \times (0.190 - 0.02) \times 1.27 \approx 0.097$$
+
+**Capital amount:** \$100mm $\times$ 9.7% $\approx$ **\$9.7mm**
 
 > **Desk Reality: Why Regulatory Capital Matters for Trading**
 >
@@ -1132,7 +1142,7 @@ For heterogeneous portfolios, the conditional loss distribution is computed iter
 
 **Computational complexity:** $O(N_C^2 \times N_X)$ where $N_X$ is the number of factor quadrature points.
 
-**Efficiency improvement:** Only compute up to the strike of interest: $\min(g, j)$ where $g = \lceil K_2 / u \rceil$.
+**Efficiency improvement:** Only compute up to the strike of interest: at credit $j$, evaluate $f^{(j)}(k)$ for $k \leq \min(g, j)$, where $g = \lceil K_2 / u \rceil$ and $u$ is the loss-bucket grid spacing (e.g., $u = w_i (1-R_i)$ for a homogeneous portfolio).
 
 ### A6.9.2 Panjer Recursion
 
@@ -1179,8 +1189,8 @@ For dynamic models, Monte Carlo simulation is often necessary:
 
 **Algorithm for intensity-based models:**
 1. Simulate factor paths $X(t)$ over $[0, T]$
-2. For each credit, compute integrated intensity: $\Lambda_i(T) = \int_0^T \lambda_i(t)dt$
-3. Default if $\Lambda_i(\tau_i) = E_i$ where $E_i \sim \text{Exp}(1)$
+2. For each credit, build the integrated intensity $\Lambda_i(t) = \int_0^t \lambda_i(s)\,ds$
+3. Sample $E_i \sim \mathrm{Exp}(1)$ independently across credits, and set $\tau_i = \inf\\{t: \Lambda_i(t) \geq E_i\\}$ (default if $\tau_i \leq T$)
 4. Aggregate portfolio loss
 5. Compute tranche losses and discount
 
@@ -1213,11 +1223,11 @@ This section collects step-by-step derivation outlines with unit checks for the 
 $$p_i(T) = \Pr(\tau_i \leq T) = 1 - Q_i(0, T)$$
 
 2. **Specify dependence:**
-   - Copula $C$ for $(U_1, \ldots, U_N)$ where $U_i := p_i(\tau_i)$ are uniforms under continuous margins (Sklar), or
+   - Copula $C$ for $(U_1, \ldots, U_{N_C})$ where $U_i := p_i(\tau_i)$ are uniforms under continuous margins (Sklar), or
    - Factor/intensity dynamics that imply a joint law for $(\tau_i)$
 
 3. **Map defaults to portfolio loss** $L(T)$:
-$$L(T) = \sum_{i=1}^{N} w_i (1 - R_i) \mathbf{1}_{\\{\tau_i \leq T\\}}$$
+$$L(T) = \sum_{i=1}^{N_C} w_i (1 - R_i) \mathbf{1}_{\\{\tau_i \leq T\\}}$$
 
 4. **Compute tranche quantities** from $L(T)$ via $TL_{[K_1, K_2]}(L(T))$
 
@@ -1234,12 +1244,12 @@ $$L(T) = \sum_{i=1}^{N} w_i (1 - R_i) \mathbf{1}_{\\{\tau_i \leq T\\}}$$
 ### A6.10.2 Static Copula: Limiting Cases
 
 **Independence copula:**
-$$C_{\text{ID}}(u_1, \ldots, u_N) = \prod_{i=1}^{N} u_i$$
+$$C_{\text{ID}}(u_1, \ldots, u_{N_C}) = \prod_{i=1}^{N_C} u_i$$
 
 **Perfect positive dependence (Fréchet-Hoeffding upper bound):**
-$$C_M(u_1, \ldots, u_N) = \min(u_1, \ldots, u_N)$$
+$$C_M(u_1, \ldots, u_{N_C}) = \min(u_1, \ldots, u_{N_C})$$
 
-**Independence limit:** Joint default probabilities factorize; extreme-loss probabilities decay rapidly with $N$ (binomial-like).
+**Independence limit:** Joint default probabilities factorize; extreme-loss probabilities decay rapidly with $N_C$ (binomial-like).
 
 **Perfect dependence limit:** Defaults are comonotonic; large jumps in $L(T)$ become likely; senior-tranche ETL rises sharply.
 
@@ -1303,7 +1313,7 @@ $$C_M(u_1, \ldots, u_N) = \min(u_1, \ldots, u_N)$$
 
 **Contagion shocks:**
 
-> **Interacting intensities (specification-dependent):** the exact parametric form depends on the chosen interacting-intensity model. For stress testing, a simple schematic is to apply a post-default jump $\\lambda_i(t^+) = \\lambda_i(t^-) + \\delta_{ji}$ to surviving names’ intensities. If you need a specific parametric form (to calibrate, not just to stress), provide the exact model equations/convention you want to use.
+> **Interacting intensities (specification-dependent):** the exact parametric form depends on the chosen interacting-intensity model. For stress testing, a simple schematic is to apply a post-default jump $\lambda_i(t^+) = \lambda_i(t^-) + \delta_{ji}$ to surviving names' intensities. If you need a specific parametric form (to calibrate, not just to stress), provide the exact model equations/convention you want to use.
 
 ### A6.11.3 Sensitivity Outputs
 
@@ -1389,11 +1399,11 @@ The following toy examples use simple numeric parameters to build intuition abou
 
 ### Example A6.5: Two-Name Toy — Independent vs. Perfectly Dependent
 
-Let each name have one-year default probability $p = 0.10$.
+Let each name have one-year default probability $p = 0.10$, and let $D$ denote the number of defaults.
 
 **Independent defaults:**
 
-| $K$ (defaults) | Probability |
+| $D$ (defaults) | Probability |
 |-----|-------------|
 | 0 | $(1-p)^2 = 0.81$ |
 | 1 | $2p(1-p) = 0.18$ |
@@ -1401,29 +1411,29 @@ Let each name have one-year default probability $p = 0.10$.
 
 **Perfect positive dependence (comonotonic):**
 
-| $K$ (defaults) | Probability |
+| $D$ (defaults) | Probability |
 |-----|-------------|
 | 0 | $1 - p = 0.90$ |
 | 1 | $0$ |
 | 2 | $p = 0.10$ |
 
-**Takeaway:** Same marginal PD, but the extreme outcome $K = 2$ jumps from 1% to 10%—a factor of 10.
+**Takeaway:** Same marginal PD, but the extreme outcome $D = 2$ jumps from 1% to 10%—a factor of 10.
 
 ### Example A6.6: N-Name Toy — Dependence and Extreme Losses
 
-Let $N = 10$, each name with $p = 0.05$.
+Let $N_C = 10$, each name with $p = 0.05$, and let $D$ denote the number of defaults.
 
-**Independent defaults:** $K \sim \text{Binomial}(10, 0.05)$.
+**Independent defaults:** $D \sim \mathrm{Binomial}(10, 0.05)$.
 
-$$P(K = 5) = \binom{10}{5} 0.05^5 \cdot 0.95^5 = 252 \times 3.125 \times 10^{-7} \times 0.774 \approx 6.09 \times 10^{-5}$$
+$$P(D = 5) = \binom{10}{5} 0.05^5 \cdot 0.95^5 = 252 \times 3.125 \times 10^{-7} \times 0.7738 \approx 6.09 \times 10^{-5}$$
 
-Summing through $K = 10$: $\Pr(K \geq 5) \approx 6.37 \times 10^{-5} = 0.00637\\%$
+Summing through $D = 10$: $\Pr(D \geq 5) \approx 6.37 \times 10^{-5} \approx 0.00637\\%$.
 
 **Perfect dependence (comonotonic, identical PDs):**
-- $\Pr(K = 10) = p = 0.05$, $\Pr(K = 0) = 0.95$
-- $\Pr(K \geq 5) = 5\\%$
+- $\Pr(D = 10) = p = 0.05$, $\Pr(D = 0) = 0.95$
+- $\Pr(D \geq 5) = 5\\%$
 
-**Takeaway:** A dependence shift can move extreme-loss probability by ~three orders of magnitude.
+**Takeaway:** A dependence shift can move extreme-loss probability by roughly three orders of magnitude.
 
 ### Example A6.7: Tranche ETL Under Two Dependence Settings
 
@@ -1475,10 +1485,10 @@ $0.02 \times (1 - 0.94^3) = 0.02 \times 0.1694 = 0.003389$
 $P(\geq 2) = 1 - 0.98^3 - 3(0.02)(0.98^2) = 0.001184$
 Contribution: $0.98 \times 0.001184 = 0.001160$
 
-**Total:** $\Pr(\geq 2) = 0.003389 + 0.001160 = 0.4549\%$
+**Total:** $\Pr(\geq 2) = 0.003389 + 0.001160 = 0.004549 \approx 0.455\\%$
 
 **Baseline (no contagion; all 4 independent with $p = 0.02$):**
-$\Pr(\geq 2) = 1 - 0.98^4 - 4(0.02)(0.98^3) = 0.2336\%$
+$\Pr(\geq 2) = 1 - 0.98^4 - 4(0.02)(0.98^3) \approx 0.002336 \approx 0.234\\%$
 
 **Takeaway:** Even a simple post-default PD step-up roughly doubles $\Pr(\geq 2)$.
 
@@ -1524,9 +1534,9 @@ $\text{ETL} = 0.15 \times 1 = \mathbf{0.15}$
 
 ### Example A6.11: Recovery Interaction — Vary Recovery, Compute Tail Changes
 
-**Default count distribution** for $N = 10$, equal weights $w = 0.1$:
+**Default count distribution** for $N_C = 10$, equal weights $w = 0.1$, with $D$ denoting the number of defaults:
 
-| $K$ | Probability |
+| $D$ | Probability |
 |-----|-------------|
 | 0 | 0.80 |
 | 1 | 0.15 |
@@ -1641,35 +1651,38 @@ $$\approx 0.145$$
 So **WCDR = 14.5%** at the 99.9% confidence level.
 
 2. **99.9% VaR:**
-$$VaR_{0.999} = WCDR \times LGD \times \text{Portfolio Notional}$$
+$$\mathrm{VaR}_{0.999} = \mathrm{WCDR} \times \mathrm{LGD} \times \text{Portfolio Notional}$$
 
-If portfolio notional is \$100 million:
-Numerically, `VaR_0.999 = 0.145 * 0.45 * 100 = 6.525` (USD millions).
+For a notional of \$100 million:
+$$\mathrm{VaR}_{0.999} = 0.145 \times 0.45 \times 100 = 6.525 \text{ (USD millions)}$$
 
 3. **Expected loss for comparison:**
-$$EL = p \times LGD \times \text{Notional} = 0.015 \times 0.45 \times 100 = 0.675$$
+$$\mathrm{EL} = p \times \mathrm{LGD} \times \text{Notional} = 0.015 \times 0.45 \times 100 = 0.675 \text{ (USD millions)}$$
 
 The unexpected loss (VaR minus EL) is $6.525 - 0.675 = 5.85$ (USD millions).
 
 ### Example A6.16: Intensity Gamma Model Simulation
 
-**Problem:** Simulate defaults under the IG model with parameters $\gamma = 0.1$, $\lambda = 0.5$ for a portfolio of 100 credits with 5-year survival probabilities $Q_i(5) = 0.95$.
+**Problem:** Simulate defaults under the IG model for a portfolio of 100 credits with 5-year survival probabilities $Q_i(5) = 0.95$, taking the trigger distribution to be $\theta_i \sim \mathrm{Exp}(c_i)$ independent across $i$ and independent of the business-time process $\Gamma(t)$.
+
+**Calibrating the trigger rate $c_i$.** Using the closed form $Q_i(t) = \mathbb{E}[e^{-c_i \Gamma(t)}]$, choose $c_i$ so that the right-hand side at $t = 5$ matches $Q_i(5) = 0.95$. For a gamma process $\Gamma$ with $\Gamma(t) \sim \mathrm{Ga}(\gamma t, \mu)$ (shape $\gamma t$, rate $\mu$), this MGF is closed form:
+$$\mathbb{E}[e^{-c_i \Gamma(t)}] = \left(\frac{\mu}{\mu + c_i}\right)^{\gamma t}$$
+and $c_i$ is solved per credit (or per maturity if calibrating a curve).
 
 **Algorithm:**
 
-1. Generate gamma process at horizon: $\Gamma(5) \sim \text{Gamma}(\gamma \times 5, \lambda) = \text{Gamma}(0.5, 0.5)$
-2. For each credit $i$:
-   - Draw threshold: $\theta_i = Q_i^{-1}(U_i)$ where $U_i \sim \text{Uniform}(0,1)$
-   - Default if $\Gamma(5) \geq \theta_i$
-3. Count defaults and compute portfolio loss
+1. Sample $\Gamma(5)$ from its (compound) distribution.
+2. For each credit $i$, sample $\theta_i \sim \mathrm{Exp}(c_i)$ independently.
+3. Default if $\Gamma(5) \geq \theta_i$.
+4. Count defaults and compute portfolio loss; aggregate over many simulations.
 
-**Single path example:**
-- Draw $\Gamma(5) = 1.2$
-- For credit 1: $U_1 = 0.03$, $\theta_1 = Q^{-1}(0.03) = -\ln(0.97) / \lambda_{\text{credit}} \approx 0.6$
-- Since $\Gamma(5) = 1.2 \gt 0.6$, credit 1 defaults
-- Repeat for all credits
+**Single-path illustration:**
+- Suppose $\Gamma(5) = 1.2$.
+- For credit 1, sample $\theta_1$ from $\mathrm{Exp}(c_1)$; suppose the realized draw is $\theta_1 = 0.6$.
+- Since $\Gamma(5) = 1.2 \gt 0.6$, credit 1 defaults.
+- Repeat for all credits.
 
-The simulation exhibits **clustering**: when $\Gamma(5)$ is large, many credits default; when small, few default.
+The simulation exhibits **clustering**: a single large draw of $\Gamma(5)$ pushes many trigger levels below it, so many credits default jointly; small draws produce few defaults.
 
 ### Example A6.17: Tranche Delta in the Gaussian Copula
 
@@ -1736,7 +1749,7 @@ This appendix has extended beyond the base correlation framework to survey the l
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | Why does the Gaussian copula require higher base correlations for senior tranches? | Zero tail dependence: the model cannot generate sufficient extreme joint default probability, so higher correlation compensates |
-| 2 | What is the WCDR formula? | $\text{WCDR}(T, X) = \Phi\left(\frac{\Phi^{-1}(p) + \sqrt{\rho}\Phi^{-1}(X)}{\sqrt{1-\rho}}\right)$ |
+| 2 | What is the WCDR formula? | $\text{WCDR}(T, \alpha) = \Phi\left(\frac{\Phi^{-1}(p) + \sqrt{\rho}\,\Phi^{-1}(\alpha)}{\sqrt{1-\rho}}\right)$ where $\alpha$ is the confidence level |
 | 3 | What is tail dependence? | $\lambda_L = \lim_{u \to 0^+} \mathbb{P}(U_2 \leq u \mid U_1 \leq u)$—the probability of joint extremes |
 | 4 | Why does the Gaussian copula have zero tail dependence? | As $u \to 0$, joint probability of both normals being extreme vanishes faster than linear |
 | 5 | What is conditional independence in factor models? | Given the systematic factor, defaults are independent Bernoulli trials |
@@ -1759,7 +1772,7 @@ This appendix has extended beyond the base correlation framework to survey the l
 | 22 | Why is model risk large in credit portfolios? | Unhedgeable correlation risk; model failures concentrate in tail events |
 | 23 | What is the equity tranche's correlation sensitivity? | Long correlation (gains when correlation rises) |
 | 24 | What is the senior tranche's correlation sensitivity? | Short correlation (loses when correlation rises) |
-| 25 | How many parameters does a single-step Markov chain model have for $N$ credits? | $N$ transition rates $(a_0, a_1, \ldots, a_{N-1})$ |
+| 25 | How many parameters does a single-step Markov chain model have for $N_C$ credits? | $N_C$ transition rates $(a_0, a_1, \ldots, a_{N_C-1})$ |
 | 26 | What is the key flaw of Gaussian copula for senior tranches? | Tail independence ($\lambda = 0$) underestimates joint extreme defaults |
 | 27 | What does RFL stand for and what does it fix? | Random Factor Loading; allows fitting correlation skew via state-dependent correlation |
 | 28 | State the TLP method for bespoke pricing (one sentence). | Map bespoke attachment to index attachment with same expected tranche loss proportion |
@@ -1774,7 +1787,7 @@ This appendix has extended beyond the base correlation framework to survey the l
 | 37 | How many factors are needed to model $M$ sectors? | $M$ factors—one-factor models cannot capture sector structure |
 | 38 | What happens to credit B's spread when positively correlated credit A defaults? | B's spread jumps up; the magnitude increases with correlation |
 | 39 | What is ETL interpolation? | Interpolate expected tranche loss directly, then invert to base correlation |
-| 40 | Why is ETL interpolation preferred over base correlation interpolation? | No-arbitrage constraints ($\partial\psi/\partial K \in [0,1]$, convexity) are easier to enforce in ETL space |
+| 40 | Why is ETL interpolation preferred over base correlation interpolation? | No-arbitrage constraints ($\partial\psi/\partial K \in [0,1]$ and concavity $\partial^2\psi/\partial K^2 \leq 0$) are easier to enforce in ETL space |
 | 41 | What is the PCHIP spline? | Piecewise Cubic Hermite Interpolant: guarantees smoothness and monotonicity |
 | 42 | What is the time-dimension no-arbitrage constraint for base correlation surface? | $\partial^2\psi/\partial T\partial K \geq 0$ |
 | 43 | What is the Clayton copula's lower tail dependence coefficient? | $\lambda_L = 2^{-1/\theta}$ for $\theta \gt 0$; e.g., $\theta = 2$ gives $\lambda_L \approx 0.71$ |
@@ -1794,7 +1807,7 @@ Calculate the lower tail dependence coefficient $\lambda_L$ for:
 (b) Student's t-copula with $\rho = 0.5$ and $\nu = 4$ degrees of freedom
 (c) Interpret the difference for senior tranche pricing.
 
-**Solution sketch:** (a) $\lambda_L = 0$ for Gaussian. (b) Use $\lambda = 2t_5(-\sqrt{5 \cdot 0.5/1.5}) = 2t_5(-1.29) \approx 0.18$. (c) The t-copula generates 18% probability of joint extreme defaults vs. 0% for Gaussian—critical for senior tranches.
+**Solution sketch:** (a) $\lambda_L = 0$ for Gaussian. (b) Use $\lambda = 2 t_5\bigl(-\sqrt{5 \cdot 0.5/1.5}\bigr) = 2 t_5(-1.291) \approx 2 \times 0.127 \approx 0.25$ (consistent with Table A6.1). (c) The t-copula generates ≈25% probability of joint extreme defaults vs. 0% for Gaussian—critical for senior tranches.
 
 ### Problem 2: WCDR Sensitivity
 A portfolio has PD = 2% and correlation $\rho = 0.20$.
@@ -1802,15 +1815,15 @@ A portfolio has PD = 2% and correlation $\rho = 0.20$.
 (b) How does WCDR change if $\rho$ increases to 0.30?
 (c) How does WCDR change if PD increases to 3% (keeping $\rho = 0.20$)?
 
-**Solution sketch:** (a) WCDR = $\Phi((-2.054 + 0.447 \times 3.09)/0.894) = \Phi(0.25) \approx 0.60$ — wait, let me recalculate: $= \Phi((-2.054 + 1.38)/0.894) = \Phi(-0.75) = 0.23$. (b) Higher $\rho$ increases WCDR. (c) Higher PD increases WCDR.
+**Solution sketch:** (a) WCDR $= \Phi\bigl((\Phi^{-1}(0.02) + \sqrt{0.20}\,\Phi^{-1}(0.999))/\sqrt{0.80}\bigr) = \Phi((-2.054 + 1.382)/0.894) = \Phi(-0.752) \approx 0.226 \approx 22.6\\%$. (b) Higher $\rho$ increases WCDR. (c) Higher PD increases WCDR.
 
 ### Problem 3: Base Correlation Arbitrage
 Given base correlations: $\rho^B(3\\%) = 25\\%$, $\rho^B(7\\%) = 40\\%$. Linear interpolation gives $\rho^B(5\\%) = 32.5\\%$.
 (a) Compute the expected tranche losses $\psi(5Y, K)$ for $K = 3\\%, 5\\%, 7\\%$
-(b) Check whether the convexity condition holds
+(b) Check whether the no-arbitrage concavity condition $\partial^2\psi/\partial K^2 \leq 0$ holds
 (c) Describe an arbitrage if it doesn't
 
-**Solution sketch:** Compute ETLs using Gaussian copula. If slope increases (convexity violated), buy 5% base tranche, sell 3% and 7% in butterfly structure.
+**Solution sketch:** Compute ETLs using the Gaussian copula. If discrete slopes of $\psi$ are increasing (concavity violated), buy the 5% base tranche and sell the 3% and 7% base tranches as a butterfly to monetize the convex kink.
 
 ### Problem 4: RFL Model Interpretation
 The RFL model for CDX NA IG has calibrated parameters $\alpha = 54.25\\%$, $\beta = 31.16\\%$, $\Theta = -2.58$.
@@ -1839,15 +1852,15 @@ Use TLP mapping to price a [5%, 10%] bespoke tranche:
 (c) What base correlation should be used?
 
 ### Problem 7: Basel IRB Capital
-Calculate Basel IRB capital for a portfolio:
-- PD = 2%, LGD = 45%, EAD = $100mm
-- Basel correlation: $\rho = 0.12$ (high-PD corporate)
+Calculate Basel IRB capital for a portfolio (ignoring the maturity adjustment):
+- PD = 2%, LGD = 45%, EAD = \$100mm
+- Asset correlation: $\rho = 0.164$ (Basel corporate formula at PD = 0.02)
 
 (a) Compute WCDR at 99.9%
-(b) Compute capital as percentage of EAD
-(c) How much capital (in $) is required?
+(b) Compute capital as percentage of EAD (with MA = 1)
+(c) How much capital (in USD) is required?
 
-**Solution sketch:** (a) WCDR $\approx 15\\%$. (b) K = 0.45 × (0.15 - 0.02) = 5.85%. (c) $5.85mm.
+**Solution sketch:** (a) WCDR $\approx 19\\%$. (b) $K_{\mathrm{IRB}} = 0.45 \times (0.19 - 0.02) \approx 7.65\\%$. (c) \$7.65mm.
 
 ### Problem 8: Markov Chain Generator
 For a 100-credit portfolio, the Markov chain model has transition rates $(a_0, a_1, \ldots, a_{99})$.
@@ -1876,10 +1889,10 @@ Given base correlations at standard strikes:
 - $\rho^B(10\\%) = 45\\%$ → $\psi(5Y, 10\\%) = 2.5\\%$
 
 (a) Use linear interpolation in ETL space to compute $\psi(5Y, 5\\%)$
-(b) Check the convexity condition: is $\partial^2\psi/\partial K^2 \leq 0$?
+(b) Check the concavity (no-arbitrage) condition: is $\partial^2\psi/\partial K^2 \leq 0$?
 (c) Compare to linear interpolation in base correlation space
 
-**Solution sketch:** (a) $\psi(5\\%) = 1.1 + (2.0-1.1) \times (5-3)/(7-3) = 1.55\\%$. (b) Slopes: $(2.0-1.1)/4 = 0.225$, $(2.5-2.0)/3 = 0.167$; slope decreasing ✓ convex. (c) Base corr interpolation may violate convexity.
+**Solution sketch:** (a) $\psi(5\\%) = 1.1 + (2.0-1.1) \times (5-3)/(7-3) = 1.55\\%$. (b) Slopes: $(2.0-1.1)/4 = 0.225$, $(2.5-2.0)/3 = 0.167$; slope decreasing, so $\partial^2\psi/\partial K^2 \leq 0$ — concavity (the no-arbitrage condition) holds. ✓ (c) Linear interpolation of $\rho^B(K)$ may yield a $\psi(K)$ whose discrete slopes are *increasing*, violating concavity.
 
 ### Problem 12: Correlation Skew Stress Test
 Design a stress test that shocks correlation from 0.20 to 0.40.
