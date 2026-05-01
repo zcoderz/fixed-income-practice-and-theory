@@ -996,8 +996,8 @@ $$L_3(T_2) = L_3(0) \exp\!\left(-\tfrac{1}{2}\int_0^{T_2}\!\sigma_3(s)^2\\, ds +
 so $L_3(T_2)$ is linearly homogeneous in $L_3(0)$ and
 $$\frac{\partial L_3(T_2)}{\partial L_3(0)} = \frac{L_3(T_2)}{L_3(0)}.$$
 
-The pathwise delta (when ITM) becomes
-$$\frac{\partial \mathrm{Caplet\\ payoff}}{\partial L_3(0)} = \tau_3\\, \frac{L_3(T_2)}{L_3(0)} \times \mathbf{1}_{L_3(T_2) \gt K}.$$
+The pathwise sensitivity of the (undiscounted) caplet payoff is therefore
+$$\frac{\partial}{\partial L_3(0)} \left[\tau_3 (L_3(T_2) - K)^+\right] = \tau_3\\, \frac{L_3(T_2)}{L_3(0)} \cdot \mathbf{1}_{L_3(T_2) \gt K}.$$
 
 Discount by $P(0, T_3)$ and average over paths to get the Monte Carlo estimate of $\partial V_0 / \partial L_3(0)$.
 
