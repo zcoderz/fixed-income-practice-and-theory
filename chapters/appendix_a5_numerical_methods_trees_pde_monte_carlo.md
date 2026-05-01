@@ -35,15 +35,15 @@ By the end of this appendix, you should be able to look at a derivative specific
 
 ### Black–Scholes Baseline
 
-For a dividend yield $q$ (also denoted $\delta$ in some texts), a call value can be written as:
+For a dividend yield $q$ (also denoted $\delta$ in some texts), a European call value can be written as:
 
-$$C(0)=e^{-qT}S_0\Phi(d_1)-e^{-rT}K\Phi(d_1-\sigma\sqrt{T})$$
+$$C(0)=e^{-qT}S_0\Phi(d_1)-e^{-rT}K\Phi(d_2)$$
 
 with
 
-$$d_1=\frac{\ln(S_0/K)+(r-q+\tfrac12\sigma^2)T}{\sigma\sqrt{T}}$$
+$$d_1=\frac{\ln(S_0/K)+(r-q+\tfrac12\sigma^2)T}{\sigma\sqrt{T}},\qquad d_2 = d_1 - \sigma\sqrt{T}.$$
 
-(Setting $q=0$ gives the non-dividend case. Note: $d_1$ here is distinct from the dimension $d$ used elsewhere in this appendix.)
+(Setting $q=0$ gives the non-dividend case. Note: the subscript on $d_1, d_2$ is just an index — these are scalar quantities, distinct from the state dimension $d$ used elsewhere in this appendix.)
 
 ### A5.1.1 Conventions Used in This Appendix
 
@@ -94,7 +94,7 @@ All four numerical methods (trees, PDE/FD, MC, Fourier) are different approximat
 
 ---
 
-### A5.2.2 State Dimension $d$ (Number of Risk Factors)
+### A5.2.2 State Dimension d (Number of Risk Factors)
 
 **Formal Definition:**
 
@@ -134,7 +134,7 @@ Asians, lookbacks, many callable features with path triggers → MC is often the
 
 - **European:** exercise only at maturity.
 - **American:** exercise at any time; value is the supremum over stopping times (not derived here).
-- In a PDE framing for an American put, the price must satisfy a constraint $P(S,t)\ge \max(K-S,0)$ and features an **unknown exercise boundary** $B(t)$.
+- In a PDE framing for an American put, the price $V(S,t)$ must satisfy the constraint $V(S,t) \ge \max(K-S,0)$ and features an **unknown exercise boundary** $S^{\ast}(t)$ separating exercise and continuation regions.
 
 **Intuition:**
 
@@ -153,7 +153,7 @@ Equity American options: trees and PDE methods are standard tools; MC needs spec
 - **Bias:** $\mathbb{E}[\hat{\theta}]-\theta$.
 - **Variance:** $\mathbb{V}[\hat{\theta}]$.
 - FD/trees: main error is **discretization** (grid/time), typically biased unless extrapolated.
-- MC: main error is **statistical** (variance), decaying like $1/\sqrt{n}$ under CLT conditions.
+- MC: main error is **statistical** (sampling). Standard error decays like $\hat{\sigma}/\sqrt{n}$; under CLT regularity, this gives an asymptotically normal confidence interval.
 
 **Intuition:**
 
@@ -246,7 +246,7 @@ $$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\\,Z_k, \quad 
 
 $$\hat{X}_{k+1} = \hat{X}_k + a(\hat{X}_k)h + b(\hat{X}_k)\sqrt{h}\\,Z_k + \frac{1}{2}b(\hat{X}_k)b'(\hat{X}_k)(Z_k^2 - 1)h$$
 
-The Milstein correction term $\frac{1}{2}bb'(Z^2-1)h$ captures the Itô–Stratonovich correction and improves strong convergence from order 1/2 to order 1.
+The Milstein correction term $\frac{1}{2}bb'(Z^2-1)h$ is the next-order term in the Itô–Taylor expansion of the SDE solution. Including it improves strong convergence from order 1/2 to order 1, while the weak order remains 1 (Milstein primarily helps when path-level accuracy matters — e.g., hedging simulations or path-dependent payoffs).
 
 **When Does It Matter?**
 
@@ -396,11 +396,11 @@ $$f_{i,j} = \max\left\\{\text{exercise value}, \\; e^{-r\Delta t}\left[p\\,f_{i+
 
 **Jarrow–Rudd (JR) / Equal-Probability Tree:**
 
-Set $p = 0.5$ and choose $u, d$ to match mean and variance:
+Set $p = 0.5$ and choose $u, d$ to match the first two moments of the log-return:
 
-$$u = e^{(r-q-\sigma^2/2)\Delta t + \sigma\sqrt{\Delta t}}, \quad d = e^{(r-q-\sigma^2/2)\Delta t - \sigma\sqrt{\Delta t}}$$
+$$u = e^{(r-q-\sigma^2/2)\Delta t + \sigma\sqrt{\Delta t}}, \quad d = e^{(r-q-\sigma^2/2)\Delta t - \sigma\sqrt{\Delta t}}.$$
 
-This tree does **not** recombine in general.
+Since $u, d$ are constants (independent of state and time), the tree **does** recombine: $u\\,d = e^{2(r-q-\sigma^2/2)\Delta t}$ at every node, so up-then-down and down-then-up land at the same price. Compared with CRR, the JR tree centres the log-grid around the risk-neutral drift instead of $S_0$, which can give slightly better convergence for non-zero drift but loses CRR's symmetric structure.
 
 **Leisen–Reimer Tree:**
 
@@ -415,7 +415,9 @@ $$S \to \begin{cases} Su & \text{with probability } p_u \\ S & \text{with probab
 **Standard Parameterization (Hull):**
 
 $$p_u = \frac{1}{2}\left[\frac{\sigma^2\Delta t + \nu^2\Delta t^2}{\Delta x^2} + \frac{\nu\Delta t}{\Delta x}\right]$$
+
 $$p_d = \frac{1}{2}\left[\frac{\sigma^2\Delta t + \nu^2\Delta t^2}{\Delta x^2} - \frac{\nu\Delta t}{\Delta x}\right]$$
+
 $$p_m = 1 - p_u - p_d = 1 - \frac{\sigma^2\Delta t + \nu^2\Delta t^2}{\Delta x^2}$$
 
 where $\nu = r - q - \sigma^2/2$ and typically $\Delta x = \sigma\sqrt{3\Delta t}$.
@@ -431,18 +433,18 @@ where $\nu = r - q - \sigma^2/2$ and typically $\Delta x = \sigma\sqrt{3\Delta t
 
 For the Hull–White model $dr = [\theta(t) - ar]\\,dt + \sigma\\,dW$:
 
-1. Build a trinomial tree for $x = r - \alpha(t)$ where $\alpha(t)$ is the mean-reverting level
-2. The tree for $x$ is standard with mean reversion
-3. Shift the tree using $\alpha(t)$ to fit the initial term structure
+1. Build a trinomial tree for the auxiliary process $x_t = r_t - \alpha(t)$, which satisfies $dx = -ax\\,dt + \sigma\\,dW$ (zero-mean, mean-reverting).
+2. Use **uniform** spacing $\Delta x = \sigma\sqrt{3\Delta t}$. Branching probabilities at interior nodes are chosen to match the conditional mean ($-aj\Delta x \cdot \Delta t$) and variance ($\sigma^2\Delta t$) of $x$, automatically encoding mean reversion. At extreme nodes, the **branching geometry is altered** (e.g., at the top node the three branches go down-down/down/flat instead of up/flat/down) so that the tree cannot drift outside reasonable bounds.
+3. Shift each $x$-node by $\alpha(t)$ to recover $r$ — this displacement is what fits the initial term structure.
 
-**Forward Induction for Calibration (Hull Section 32):**
+**Forward Induction for Calibration (Hull Ch. 32):**
 
-The function $\alpha(t)$ is determined by **forward induction** to match observed discount factors:
-1. Start with known $P(0,t_1)$
-2. Use Arrow–Debreu prices $Q_{i,j}$ (state prices) to compute $\alpha(t_i)$
-3. Adjust probabilities at each node to maintain mean reversion
+The displacement $\alpha(t)$ is determined by **forward induction** to match observed discount factors:
+1. Compute Arrow–Debreu (state) prices $Q_{i,j}$ on the $x$-tree, advancing one time step at a time.
+2. At each step $i$, choose $\alpha(t_i)$ so that the model-implied discount factor $P(0, t_{i+1}) = \sum_j Q_{i,j}\\,\exp(-(j\Delta x + \alpha(t_i))\Delta t)$ equals the observed $P(0, t_{i+1})$ — a one-dimensional root-find.
+3. Use the new $\alpha(t_i)$ to roll $Q$ forward to step $i+1$ and repeat.
 
-**Key Feature:** The tree incorporates mean reversion naturally through modified probabilities and non-uniform node spacing. Why trinomial? The three-point stencil provides the extra degree of freedom needed to match both the mean reversion and volatility simultaneously.
+**Key Feature:** The tree incorporates mean reversion through the **probabilities at interior nodes** and the **branching geometry at extreme nodes** — the spacing itself stays uniform. Why trinomial? The three-point stencil provides the extra degree of freedom needed to match both mean reversion (drift) and volatility simultaneously, which a binomial tree cannot do once mean reversion is present.
 
 ### A5.4.5 Convergence of Binomial Trees
 
@@ -478,8 +480,10 @@ $$\boxed{\frac{\partial f}{\partial t} + (r-q)S\frac{\partial f}{\partial S} + \
 
 **Boundary Conditions (Put Example):**
 - At $t = T$: $f(S,T) = \max(K-S, 0)$
-- As $S \to 0$: $f(0,t) = Ke^{-r(T-t)}$
 - As $S \to \infty$: $f(S,t) \to 0$
+- As $S \to 0$:
+  - **European put:** $f(0,t) = K\\,e^{-r(T-t)}$ (final payoff $K$ discounted to $t$).
+  - **American put:** $f(0,t) = K$ (immediately exercisable for full intrinsic value).
 
 ### A5.5.2 Discretization Setup
 
@@ -506,7 +510,9 @@ $$\boxed{a_j f_{i,j-1} + b_j f_{i,j} + c_j f_{i,j+1} = f_{i+1,j}}$$
 where the coefficients are:
 
 $$a_j = \frac{1}{2}(r-q)j\Delta t - \frac{1}{2}\sigma^2 j^2 \Delta t$$
+
 $$b_j = 1 + \sigma^2 j^2 \Delta t + r\Delta t$$
+
 $$c_j = -\frac{1}{2}(r-q)j\Delta t - \frac{1}{2}\sigma^2 j^2 \Delta t$$
 
 **Solution:** This gives a tridiagonal system at each time step, solved efficiently in $O(M)$ operations using the Thomas algorithm.
@@ -542,7 +548,9 @@ $$\boxed{f_{i,j} = a_j^{\star} f_{i+1,j-1} + b_j^{\star} f_{i+1,j} + c_j^{\star}
 where:
 
 $$a_j^{\star} = \frac{1}{1+r\Delta t}\left(-\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
+
 $$b_j^{\star} = \frac{1}{1+r\Delta t}\left(1 - \sigma^2 j^2\Delta t\right)$$
+
 $$c_j^{\star} = \frac{1}{1+r\Delta t}\left(\frac{1}{2}(r-q)j\Delta t + \frac{1}{2}\sigma^2 j^2\Delta t\right)$$
 
 **Interpretation:** Hull shows these coefficients can be interpreted as transition probabilities, making the explicit method **equivalent to a trinomial tree**.
@@ -553,7 +561,7 @@ $$\boxed{\Delta t \lt \frac{1}{\sigma^2 j_{\max}^2}}$$
 
 When this is violated, the method produces negative option prices and fails to converge.
 
-### A5.5.5 Change of Variable to $Z = \ln S$
+### A5.5.5 Change of Variable to Log-Space (Z = ln S)
 
 Hull recommends transforming to logarithmic coordinates:
 
@@ -592,9 +600,11 @@ This enforces the early exercise constraint.
 
 The mathematically proper formulation of the American option PDE is:
 
-$$\boxed{\min\left(\frac{\partial V}{\partial t} + \mathcal{L}V - rV, \\; V - h\right) = 0}$$
+$$\boxed{\min\left(rV - \frac{\partial V}{\partial t} - \mathcal{L}V, \\; V - h\right) = 0}$$
 
-where $h(S) = \max(K-S, 0)$ for a put. This says: either the PDE holds with equality (continuation region) or the value equals the payoff (exercise region). Penalty methods and PSOR solve this LCP efficiently.
+where $h(S) = \max(K-S, 0)$ for a put and $\mathcal{L}V = (r-q)S\\,\partial V/\partial S + \tfrac{1}{2}\sigma^2 S^2 \\,\partial^2 V/\partial S^2$. This says: either the BS PDE holds with equality (continuation region, where $V \gt h$) or the value equals the payoff (exercise region, where $V = h$ and $rV - V_t - \mathcal{L}V \ge 0$). The two conditions cannot fail simultaneously, and at least one holds at every $(S,t)$. Penalty methods and PSOR solve this LCP efficiently.
+
+**Sign convention check.** In the continuation region the operator term equals zero (PDE holds) and $V - h \gt 0$, so the min is 0. In the exercise region $V - h = 0$ and the operator term is $\ge 0$ (continuing would lose value, which is exactly why the holder exercises), so again the min is 0. Writing the operator term with the opposite sign would invert this logic and give the wrong inequality.
 
 **Alternative (PSOR):** The Projected Successive Over-Relaxation method solves the linear complementarity problem directly.
 
@@ -664,17 +674,17 @@ Most traded barriers are **discretely monitored** (checked at market close), whi
 
 **Broadie–Glasserman–Kou Continuity Correction:**
 
-For discretely monitored barriers, Broadie, Glasserman, and Kou derived a correction factor. For a down barrier $B$ monitored $m$ times:
+For discretely monitored barriers, Broadie, Glasserman, and Kou (1997) derived a correction factor. For a barrier $B$ monitored $m$ times over $[0,T]$ (so $\Delta t_{\text{mon}} = T/m$):
 
-$$\boxed{B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}}}$$
+$$\boxed{B_{\text{eff}} = B \cdot \exp\\!\big(\pm\\,\beta\\,\sigma\sqrt{T/m}\big)}$$
 
-where $\beta \approx 0.5826$ (related to the zeta function). The effective barrier $B_{\text{eff}}$ is lower than $B$, reflecting that discrete monitoring is less likely to trigger than continuous.
+where $\beta = -\zeta(1/2)/\sqrt{2\pi} \approx 0.5826$ (with $\zeta$ the Riemann zeta function). The sign is chosen so that the effective barrier is **shifted away from the spot**: minus for a **down** barrier ($B \lt S_0$, so $B_{\text{eff}} \lt B$), plus for an **up** barrier ($B \gt S_0$, so $B_{\text{eff}} \gt B$). In both cases the discrete monitor is less likely to trigger than continuous monitoring of the same nominal barrier, so the effective barrier moves further from the spot to compensate.
 
 **Grid Stretching:**
 
 For better accuracy near barriers, use non-uniform grids with finer spacing near $B$:
-- Sinh-stretching: $S_j = B + \alpha \sinh(\beta(j/M - 1/2))$
-- Exponential concentration near the barrier
+- Sinh-stretching: $S_j = B + c_1 \sinh\\!\big(c_2 (j/M - 1/2)\big)$, with stretching constants $c_1, c_2 \gt 0$ controlling the width and concentration around $B$ (the symbols $\alpha, \beta$ are reused too much elsewhere in this appendix to be safe here).
+- Exponential concentration near the barrier (e.g., $S_j = B + c_1 (e^{c_2 (j/M - 1/2)} - 1)$).
 
 > **Desk Reality: Barrier Option Pitfalls**
 >
@@ -698,9 +708,9 @@ $$\boxed{\hat{V}_n = \frac{1}{n}\sum_{k=1}^{n} e^{-rT} H(S_T^{(k)})}$$
 
 **Standard Error:**
 
-$$\text{SE} = \frac{\hat{\sigma}}{\sqrt{n}}$$
+$$\mathrm{SE}(\hat{V}_n) = \frac{\hat{\sigma}_{\mathrm{disc}}}{\sqrt{n}}$$
 
-where $\hat{\sigma}$ is the sample standard deviation of the payoffs.
+where $\hat{\sigma}_{\mathrm{disc}}$ is the sample standard deviation of the **discounted** payoffs $\\{e^{-rT}H(S_T^{(k)})\\}$. For deterministic $r$, this equals $e^{-rT}\hat{\sigma}_H/\sqrt{n}$, but on stochastic discount paths the discounted version is the right object.
 
 **95% Confidence Interval:**
 $$\hat{V}_n \pm 1.96 \times \text{SE}$$
@@ -742,7 +752,7 @@ $$\hat{V}_{\text{CV}} = \hat{V} - \beta\left(\hat{Y} - \mathbb{E}[Y]\right)$$
 **Example:** Use the simulated terminal stock price as a control variate (known mean: $S_0 e^{(r-q)T}$).
 
 **Optimal $\beta$:**
-$$\beta^* = \frac{\text{Cov}(\hat{V}, \hat{Y})}{\text{Var}(\hat{Y})}$$
+$$\beta^{\ast} = \frac{\mathrm{Cov}(\hat{V}, \hat{Y})}{\mathrm{Var}(\hat{Y})}$$
 
 #### Importance Sampling
 
@@ -799,21 +809,23 @@ Longstaff and Schwartz (2001) introduced regression-based MC for American/Bermud
 
 **Algorithm (Glasserman Ch. 8):**
 
-1. **Simulate paths:** Generate $n$ paths forward: $\\{S_0, S_{t_1}^{(k)}, \ldots, S_{t_m}^{(k)}\\}_{k=1}^{n}$
+**Step 1 — Simulate paths.** Generate $n$ paths forward: $\\{S_0, S_{t_1}^{(k)}, \ldots, S_{t_m}^{(k)}\\}_{k=1}^{n}$.
 
-2. **Initialize at maturity:** $V_m^{(k)} = h_m(S_{t_m}^{(k)})$
+**Step 2 — Initialize at maturity.** Set $V_m^{(k)} = h_m(S_{t_m}^{(k)})$ for every path.
 
-3. **Backward induction:** For $i = m-1, \ldots, 1$:
+**Step 3 — Backward induction.** For $i = m-1, \ldots, 1$:
 
-   a. **Regress:** Fit continuation value on basis functions:
-   $$C_i(x) \approx \sum_{j=1}^{M} \beta_{ij}\psi_j(x)$$
+(a) Regress the (discounted) realized continuation cash flow on basis functions of the current state:
 
-   b. **Exercise decision:** For each path, exercise if:
-   $$h_i(S_{t_i}^{(k)}) \geq \widehat{C}(S_{t_i}^{(k)})$$
+$$\widehat{C}_i(x) = \sum_{j=1}^{M} \widehat{\beta}_{ij}\\,\psi_j(x).$$
 
-   c. **Update cash flows:** Based on exercise decision
+(b) For each path, exercise at $t_i$ if the immediate payoff exceeds the fitted continuation value:
 
-4. **Estimate price:** Average discounted cash flows across paths
+$$h_i(S_{t_i}^{(k)}) \geq \widehat{C}_i(S_{t_i}^{(k)}).$$
+
+(c) Record the cash flow that path generates from this exercise rule (either the exercise payoff or the cash flow from the next exercise time onward).
+
+**Step 4 — Estimate price.** Discount the cash flow on each path back to $t_0$ and average across paths.
 
 **Common Basis Functions:**
 - Powers: $1, S, S^2, S^3, \ldots$
@@ -897,9 +909,17 @@ where:
 
 **Critical:** Each $Y_\ell^{(k)}$ uses the **same Brownian path** to compute both $P_\ell$ and $P_{\ell-1}$. This correlation makes the variance of $Y_\ell$ small.
 
-**Complexity Theorem (Giles):**
+**Complexity Theorem (Giles 2008):**
 
-Under certain regularity conditions, if weak convergence is $O(h)$ and variance of $P_\ell - P_{\ell-1}$ is $O(h^2)$, then MLMC achieves MSE $\epsilon^2$ with cost $O(\epsilon^{-2})$ instead of the standard MC cost $O(\epsilon^{-2-1/\alpha})$ where $\alpha$ is the weak convergence order.
+Suppose the weak convergence rate is $|\mathbb{E}[P_\ell - P]| = O(h_\ell^\alpha)$, the level variance is $\mathrm{Var}[P_\ell - P_{\ell-1}] = O(h_\ell^\beta)$, and the cost per sample at level $\ell$ is $O(h_\ell^{-1})$. Then MLMC achieves mean-square error $\epsilon^2$ at total cost:
+
+- $O(\epsilon^{-2})$ if $\beta \gt 1$,
+- $O(\epsilon^{-2}(\log\epsilon)^2)$ if $\beta = 1$,
+- $O(\epsilon^{-2-(1-\beta)/\alpha})$ if $\beta \lt 1$,
+
+versus standard MC cost of $O(\epsilon^{-2-1/\alpha})$.
+
+**Practical implication.** With Euler–Maruyama and a Lipschitz payoff, $\beta = 1$ (the weak-Itô regime), giving $O(\epsilon^{-2}(\log\epsilon)^2)$ — already a big win over standard MC's $O(\epsilon^{-3})$ when $\alpha = 1$. With Milstein (strong order 1), $\beta = 2$, achieving the optimal $O(\epsilon^{-2})$. The strong-order-1 simulation is therefore a natural pairing with MLMC.
 
 **When MLMC Helps Most:**
 - Payoffs with low regularity (Asian, barrier, lookback)
@@ -974,12 +994,13 @@ where the coefficients $A_k$ are related to the characteristic function.
 
 **COS Formula for European Options:**
 
-$$\boxed{V = e^{-rT} \sum_{k=0}^{N-1} \text{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\\} \cdot H_k}$$
+$$\boxed{V = e^{-rT} \sum_{k=0}^{N-1}{}^{\\!\prime}\\;\mathrm{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi a/(b-a)}\right\\}\\,H_k}$$
 
-where:
-- $\phi(u)$ is the characteristic function of $\ln(S_T/S_0)$
-- $H_k$ are **payoff coefficients** that depend on the option type (call, put)
-- $[a, b]$ is the truncation range (chosen based on cumulants of the distribution)
+where the prime on the sum, $\sum'$, indicates that the **first term ($k=0$) is weighted by 1/2** — a standard convention in the Fourier cosine expansion (without it, every COS price has a constant offset). The remaining symbols are:
+
+- $\phi(u)$: characteristic function of $\ln(S_T/K)$ (or $\ln S_T$, depending on the convention used to define the payoff coefficients).
+- $H_k$: **payoff coefficients** that depend on the option type (call, put, digital). Closed-form for vanilla payoffs.
+- $[a, b]$: truncation range, chosen from cumulants of the log-price distribution.
 
 **Payoff Coefficients for Calls:**
 
@@ -1006,19 +1027,29 @@ For smooth densities, the COS method achieves **exponential convergence** in $N$
 
 ### A5.7.4 Characteristic Functions for Common Models
 
-**Black–Scholes:**
+A note on convention: $\phi$ can be defined for either the **log-return** $\ln(S_T/S_0)$ or the **log-price** $\ln S_T$ — the two differ by an additive constant $\ln S_0$ inside the exponential, equivalently by a factor $e^{iu\ln S_0}$. Below, BS is shown for the log-return; the Heston form often quoted in the literature is for the log-price (carrying the explicit $iu\ln S_0$ inside). The COS pricing formula must be paired with the matching convention for the payoff coefficients $H_k$.
 
-$$\phi_{\text{BS}}(u) = \exp\left(iu\left(r - q - \frac{\sigma^2}{2}\right)T - \frac{\sigma^2 u^2 T}{2}\right)$$
+**Black–Scholes (log-return form):**
 
-**Heston Stochastic Volatility:**
+$$\phi_{\text{BS}}(u) = \exp\left(iu\left(r - q - \frac{\sigma^2}{2}\right)T - \frac{\sigma^2 u^2 T}{2}\right).$$
+
+**Heston Stochastic Volatility (log-price form):**
 
 $$\phi_{\text{Heston}}(u) = \exp\left(C(u, T) + D(u, T)v_0 + iu\ln S_0\right)$$
 
-where $C$ and $D$ involve the Heston parameters $(\kappa, \theta, \xi, \rho, v_0)$ and complex square roots. The explicit form is given in Heston (1993) and Gatheral's book.
+where $C$ and $D$ involve the Heston parameters $(\kappa, \theta, \xi, \rho, v_0)$ and complex square roots. Common branch-cut traps in the original Heston (1993) form are usually fixed by Albrecher et al.'s (2007) "Little Heston Trap" reformulation; Gatheral and Oosterlee–Grzelak both give the safe expressions explicitly.
 
 **Variance Gamma:**
 
-$$\phi_{\text{VG}}(u) = \left(\frac{1}{1 - iu\theta\nu + \frac{\sigma^2\nu u^2}{2}}\right)^{T/\nu}$$
+The characteristic function of the VG increment $X_T$ over horizon $T$ (parameters: drift $\theta$, vol $\sigma$, gamma-clock variance $\nu$) is:
+
+$$\phi_{X_T}(u) = \left(1 - iu\theta\nu + \tfrac{1}{2}\sigma^2\nu u^2\right)^{-T/\nu}.$$
+
+For risk-neutral pricing, the log-price characteristic function adds a deterministic drift to ensure $\mathbb{E}[S_T] = S_0 e^{(r-q)T}$:
+
+$$\phi_{\ln S_T}(u) = \exp\\!\big(iu(\ln S_0 + (r-q+\omega)T)\big)\\,\phi_{X_T}(u),\qquad \omega = \tfrac{1}{\nu}\ln\\!\big(1-\theta\nu - \tfrac{1}{2}\sigma^2\nu\big).$$
+
+The term $\omega$ is the **martingale correction**; omitting it produces a biased price.
 
 ### A5.7.5 Comparison: FFT vs COS vs PDE vs MC
 
@@ -1130,7 +1161,9 @@ Choose $N = 5$ time steps (monthly), so:
 $$\Delta t = \frac{T}{N} = \frac{5/12}{5} = \frac{1}{12}.$$
 
 $$u = e^{0.40\sqrt{1/12}} = e^{0.1155} = 1.1224$$
+
 $$d = 1/u = 0.8909$$
+
 $$p = \frac{e^{0.10/12} - 0.8909}{1.1224 - 0.8909} = \frac{1.0084 - 0.8909}{0.2315} = 0.507$$
 
 **Step 2: Build the tree forward**
@@ -1158,9 +1191,9 @@ $$f_{i,j} = \max\left\\{50 - S_{i,j}, \\; e^{-0.10/12}[0.507 f_{i+1,j+1} + 0.493
 
 **Step 2: Compute coefficients** for $j = 1, \ldots, 19$:
 
-$$a_j^* = \frac{1}{1+0.10/24}\left(-\frac{0.10 \cdot j}{2 \cdot 24} + \frac{0.16 \cdot j^2}{2 \cdot 24}\right)$$
+$$a_j^{\star} = \frac{1}{1+0.10/24}\left(-\frac{0.10 \cdot j}{2 \cdot 24} + \frac{0.16 \cdot j^2}{2 \cdot 24}\right)$$
 
-(Similar for $b_j^{\star}, c_j^{\star}$)
+(Similar for $b_j^{\star}, c_j^{\star}$.)
 
 **Step 3: Apply recursion**
 
@@ -1172,24 +1205,25 @@ Then apply early exercise: $f_{i,j} \leftarrow \max(f_{i,j}, 50 - j\Delta S)$
 
 The price at $S = 50$ (i.e., $j = 10$) gives the option value: approximately USD 4.26 (Hull Table 21.5).
 
-**Stability Check:** Need $1 - \sigma^2 j^2 \Delta t \gt 0$, so $j \lt \sqrt{24/(0.16)} \approx 12.2$. The explicit method fails for $j \ge 13$.
+**Stability Check:** Need $1 - \sigma^2 j^2 \Delta t \gt 0$, i.e., $j \lt \sqrt{1/(\sigma^2 \Delta t)} = \sqrt{24/0.16} \approx 12.25$. With the chosen grid extending to $j_{\max} = 20$, the central coefficient $b_j^{\star}$ becomes negative for $j \ge 13$ — the method is **formally unstable** at those nodes. In practice the artefact is partly masked by the $f \to 0$ upper boundary condition for puts, but a clean fix is to (i) use the implicit or Crank–Nicolson scheme, (ii) shrink $\Delta t$ to $\Delta t \lt 1/(\sigma^2 j_{\max}^2)$ — here $\Delta t \lt 1/(0.16 \cdot 400) = 1/64$ — or (iii) move to log-space so the coefficients become independent of $j$ (Section A5.5.5).
 
 ---
 
 ### Example A5.3: Implicit Finite Difference with Control Variate
 
-**Setup:** Same American put as above.
+**Setup:** Same American put as Example A5.1 ($S_0 = 50$, $K = 50$, $T = 5/12$, $r = 10\\%$, $\sigma = 40\\%$, $q = 0$). Reference value (fine binomial tree): American put $\approx$ USD 4.49.
 
-**Step 1:** Solve implicit system (tridiagonal) to get American put value: USD 4.07
+**Step 1.** Solve the implicit (tridiagonal) system on the coarse grid for the **American** put, applying the early-exercise floor at every step: $V_{\text{Am}}^{\text{grid}} \approx$ USD 4.07.
 
-**Step 2:** Same grid gives European put: USD 3.91
+**Step 2.** Solve the same system for the **European** put (no early-exercise floor): $V_{\text{Eu}}^{\text{grid}} \approx$ USD 3.91.
 
-**Step 3:** Black–Scholes European put: USD 4.08
+**Step 3.** Compute the closed-form Black–Scholes **European** put: $V_{\text{Eu}}^{\text{BS}} \approx$ USD 4.08. The grid is therefore biased low by about 0.17 for the European problem.
 
-**Step 4:** Control variate adjustment:
-$$\hat{V}_{\text{American}} = 4.07 + (4.08 - 3.91) = 4.24$$
+**Step 4 — Control variate adjustment.** Assume the discretization bias is approximately the same for the American and European problems on this grid:
 
-This is more accurate than the raw grid estimate.
+$$\hat{V}_{\text{Am}}^{\text{cv}} = V_{\text{Am}}^{\text{grid}} + \big(V_{\text{Eu}}^{\text{BS}} - V_{\text{Eu}}^{\text{grid}}\big) = 4.07 + 0.17 = 4.24.$$
+
+**Interpretation.** The adjusted value (4.24) is closer to the reference 4.49 than the raw grid (4.07), but a residual error of about 0.25 remains. The control-variate trick removes the **shared** discretization bias; it cannot remove the part of the error that is specific to the early-exercise constraint (the extra resolution needed near the exercise boundary). To shrink that residual, refine the grid in the $S$-direction near the exercise boundary or apply Richardson extrapolation in $\Delta t$.
 
 ---
 
@@ -1200,11 +1234,10 @@ This is more accurate than the raw grid estimate.
 **Step 1: Generate $n = 10{,}000$ paths**
 
 For each path $k$, use exact GBM simulation:
-$$S_T^{(k)} = S_0 \exp\left[\left(r - q - \frac{\sigma^2}{2}\right)T + \sigma\sqrt{T} Z^{(k)}\right]$$
+$$S_T^{(k)} = S_0 \exp\left[\left(r - q - \frac{\sigma^2}{2}\right)T + \sigma\sqrt{T}\\,Z^{(k)}\right]$$
 
-With our parameters: $r - q - \sigma^2/2 = 0.05 - 0 - 0.02 = 0.03$, so:
-$$S_T^{(k)} = 100 \exp\left[0.03 \times 1 + 0.20 \times 1 \times Z^{(k)}\right]$$
-where $Z^{(k)} \sim N(0,1)$
+With our parameters: $r - q - \sigma^2/2 = 0.05 - 0 - 0.02 = 0.03$, $\sigma\sqrt{T} = 0.20 \cdot \sqrt{1} = 0.20$, so:
+$$S_T^{(k)} = 100 \exp\left[0.03 + 0.20\\,Z^{(k)}\right],\qquad Z^{(k)} \sim N(0,1).$$
 
 **Step 2: Compute payoffs**
 $$H^{(k)} = \max(S_T^{(k)} - 100, 0)$$
@@ -1276,16 +1309,19 @@ At each date $i$, for paths where immediate exercise is in-the-money:
 
 ### Example A5.8: Pathwise Delta
 
-**For European call under GBM:**
+**Setup:** European call on GBM with the same parameters as Example A5.4 ($S_0 = K = 100$, $T = 1$, $r = 5\\%$, $\sigma = 20\\%$, $q = 0$).
 
-$$\Delta = \mathbb{E}\left[e^{-rT}\mathbf{1}_{S_T \gt K}\frac{S_T}{S_0}\right]$$
+**Estimator.** For a call payoff $H(S_T) = (S_T - K)^+$ on GBM, $\partial H/\partial S_T = \mathbf{1}_{S_T \gt K}$ and $\partial S_T/\partial S_0 = S_T/S_0$, so:
+
+$$\Delta = \mathbb{E}\left[e^{-rT}\mathbf{1}_{S_T \gt K}\frac{S_T}{S_0}\right].$$
 
 For each path:
-$$\Delta^{(k)} = e^{-rT}\mathbf{1}_{S_T^{(k)} \gt K}\frac{S_T^{(k)}}{S_0}$$
 
-Average gives an unbiased estimate of delta.
+$$\Delta^{(k)} = e^{-rT}\mathbf{1}_{S_T^{(k)} \gt K}\frac{S_T^{(k)}}{S_0}.$$
 
-**Result:** $\hat{\Delta} \approx 0.64$ (matches Black–Scholes $N(d_1) \approx 0.64$)
+Averaging gives an unbiased estimator of delta.
+
+**Result:** $\hat{\Delta} \approx 0.64$, matching Black–Scholes: with $d_1 = (r + \sigma^2/2)T/(\sigma\sqrt{T}) = 0.07/0.20 = 0.35$, we have $\Delta_{\mathrm{BS}} = e^{-qT}N(d_1) = N(0.35) \approx 0.6368$.
 
 ---
 
@@ -1335,10 +1371,10 @@ Backward induction with call constraint at each exercise date.
 
 **Step 1: Compute cumulants for truncation range**
 
-Using the Heston characteristic function, compute first four cumulants $c_1, c_2, c_4$ and set:
-$$a = c_1 - 10\sqrt{c_2 + \sqrt{c_4}}, \quad b = c_1 + 10\sqrt{c_2 + \sqrt{c_4}}$$
+Using the Heston characteristic function, compute the first four cumulants $c_1, c_2, c_4$ and set:
+$$a = c_1 - L\sqrt{c_2 + \sqrt{c_4}}, \quad b = c_1 + L\sqrt{c_2 + \sqrt{c_4}}$$
 
-Typical result: $a \approx -0.8$, $b \approx 0.8$ for log-price.
+For these parameters, the leading cumulants are approximately $c_1 \approx (r - v_0/2)T = 0.03$ and $c_2 \approx v_0 T = 0.04$ (since $v_0 = \theta$, the integrated-variance term is essentially flat); $c_4$ contributes a small skew/kurtosis correction. With $L = 10$ this gives a wide range $[a, b] \approx [-1.97, 2.03]$ for the log-return $\ln(S_T/S_0)$. Practitioners often use a tighter $L \approx 4$–$8$ in production, which here would give a narrower window such as $[a, b] \approx [-0.77, 0.83]$ at $L = 4$.
 
 **Step 2: Evaluate characteristic function**
 
@@ -1347,9 +1383,9 @@ $$\phi_{\text{Heston}}\left(\frac{k\pi}{b-a}\right)$$
 
 using the Heston formula (complex arithmetic).
 
-**Step 3: Apply COS formula**
+**Step 3: Apply COS formula** (with the $k=0$ term weighted by 1/2):
 
-$$V = e^{-rT} \sum_{k=0}^{127} \text{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi \frac{a}{b-a}}\right\\} \cdot H_k$$
+$$V = e^{-rT} \sum_{k=0}^{127}{}^{\\!\prime}\\;\mathrm{Re}\left\\{\phi\left(\frac{k\pi}{b-a}\right) e^{-ik\pi a/(b-a)}\right\\}\\,H_k$$
 
 where $H_k$ are the call payoff coefficients.
 
@@ -1419,6 +1455,7 @@ Set $V(B, t) = 0$ as boundary condition. Result: $V_{\text{cont}} = 6.21$ (USD).
 **Step 2: Apply Broadie–Glasserman–Kou correction**
 
 $$B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}} = 90 \cdot e^{-0.5826 \times 0.20 \times \sqrt{1/252}}$$
+
 $$B_{\text{eff}} = 90 \cdot e^{-0.00734} = 90 \cdot 0.9927 = 89.34$$
 
 **Step 3: Re-price with effective barrier**
@@ -1436,9 +1473,9 @@ Use $B_{\text{eff}} = 89.34$ instead of $B = 90$. Result: $V_{\text{discrete}} =
 ### A5.10.1 Common Pitfalls
 
 **Trees:**
-- Using too few time steps ($N \lt 50$) for accurate pricing
-- Ignoring odd/even oscillation in convergence
-- Forgetting to adjust for dividends in CRR formulas
+- Using too few time steps ($N \lt 50$) for accurate pricing.
+- Ignoring odd/even oscillation in convergence (consider Leisen–Reimer or Richardson extrapolation).
+- Mismatching the dividend convention: continuous yield $q$ enters the drift as $r-q$; **discrete** dividends require a separate adjustment (escrow the present value of known dividends out of $S_0$, then apply CRR to the residual stochastic component) — using the continuous-$q$ formula on a stock with known cash dividends is a common bug.
 
 **Finite Differences:**
 - Violating explicit method stability conditions
@@ -1621,7 +1658,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 | 17 | What limits trees and FD to low dimensions? | Grid/node count scales as $N^d$ (curse of dimensionality) |
 | 18 | Why is MC preferred for path-dependent options? | Paths naturally encode history; no state augmentation needed |
 | 19 | What is quasi-Monte Carlo? | Uses low-discrepancy sequences instead of pseudo-random; can achieve $O(1/n)$ |
-| 20 | How do you get delta from a tree? | $(f_{0,1} - f_{0,-1})/(S_u - S_d)$ at the first step |
+| 20 | How do you get delta from a tree? | $(f_{1,1} - f_{1,0})/(S_0(u-d))$ at the first step (using the indexing of A5.4.1) |
 | 21 | Define strong convergence for SDE simulation | $\mathbb{E}[|\hat{X}(T) - X(T)|] \leq Ch^\beta$ with strong order $\beta$ |
 | 22 | Define weak convergence for SDE simulation | $|\mathbb{E}[f(\hat{X})] - \mathbb{E}[f(X)]| \leq Ch^\beta$ with weak order $\beta$ |
 | 23 | What are Euler-Maruyama convergence orders? | Strong order 1/2, weak order 1 |
@@ -1633,7 +1670,7 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 | 29 | What is the COS method? | Fourier cosine expansion pricing; exponential convergence for smooth densities |
 | 30 | When can you use Fourier pricing methods? | European options in models with known characteristic functions |
 | 31 | What is the key idea of MLMC? | Telescoping sum: $\mathbb{E}[P_L] = \mathbb{E}[P_0] + \sum_{\ell}\mathbb{E}[P_\ell - P_{\ell-1}]$ |
-| 32 | What is the Broadie-Glasserman-Kou correction? | $B_{\text{eff}} = B \cdot e^{-\beta\sigma\sqrt{T/m}}$ for discrete barrier monitoring |
+| 32 | What is the Broadie-Glasserman-Kou correction? | $B_{\text{eff}} = B \cdot e^{\pm\beta\sigma\sqrt{T/m}}$ with $\beta \approx 0.5826$; sign chosen so $B_{\text{eff}}$ is shifted **away from spot** (minus for down-barriers, plus for up-barriers) |
 
 ---
 
@@ -1689,16 +1726,16 @@ This appendix covered four fundamental numerical methods for derivative pricing:
 
 **Problem 1:** Grid methods scale as $O(N^d)$ in memory and computation; for $d \gt 3$, this becomes prohibitive. MC scales as $O(nd)$—linear in dimension.
 
-**Problem 2:** Stability condition violated. Need $\Delta t \lt 1/(\sigma^2 j^2)$. Either decrease $\Delta t$, use implicit method, or transform to $\ln S$.
+**Problem 2:** Explicit-FD stability condition violated. Need $\Delta t \lt 1/(\sigma^2 j_{\max}^2)$ where $j_{\max}$ is the largest grid index reached. Fix by (i) decreasing $\Delta t$, (ii) switching to the implicit or Crank–Nicolson scheme (both unconditionally stable), or (iii) transforming to $Z = \ln S$ so the coefficients become $j$-independent.
 
 **Problem 4:** Strong convergence measures pathwise accuracy: does the simulated path match the true path? Weak convergence measures distributional accuracy: does the distribution of the simulated value match the true distribution? Strong matters for hedging simulations (tracking P&L along paths); weak suffices for pricing (only need $\mathbb{E}[H(S_T)]$).
 
 **Problem 5 Sketch:**
-- $\Delta t = 0.25/3 = 0.0833$
-- $u = e^{0.30\sqrt{0.0833}} = 1.0905$
-- $d = 0.9170$
-- $p = (e^{0.05 \times 0.0833} - 0.9170)/(1.0905 - 0.9170) = 0.525$
-- Build tree, compute terminal payoffs, backward induct.
+- $\Delta t = 0.25/3 \approx 0.0833$
+- $u = e^{0.30\sqrt{0.0833}} \approx e^{0.0866} \approx 1.0905$
+- $d = 1/u \approx 0.9170$
+- $p = (e^{0.05 \times 0.0833} - 0.9170)/(1.0905 - 0.9170) = (1.0042 - 0.9170)/0.1735 \approx 0.5025$
+- Build the tree forward, set $f_{3,j} = \max(95 - S_{3,j}, 0)$ at maturity, then backward-induct $f_{i,j} = e^{-r\Delta t}[p\\,f_{i+1,j+1} + (1-p)\\,f_{i+1,j}]$.
 
 **Problem 12:** SE scales as $1/\sqrt{n}$. Need $0.50/\sqrt{n'} = 0.05$, so $n' = 1000 \times 100 = 100{,}000$ paths.
 

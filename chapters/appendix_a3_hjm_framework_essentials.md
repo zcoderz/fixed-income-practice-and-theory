@@ -8,7 +8,7 @@ What if you could model the entire yield curve—every forward rate for every ma
 
 This is precisely what the Heath-Jarrow-Morton (HJM) framework delivers. Introduced in 1992, HJM models the evolution of the **entire instantaneous forward-rate curve** $T \mapsto f(t,T)$ rather than specifying a single short-rate process and deriving everything else.
 
-The central insight—and the practical payoff—is the **HJM drift restriction**: once you specify how volatile each point on the forward curve is (the volatility function `sigma(t,T)`), no-arbitrage pins down the drift $\alpha(t,T)$. You cannot freely choose both. This is why people often summarize HJM as *“choose the volatility; the drift follows mechanically.”*
+The central insight—and the practical payoff—is the **HJM drift restriction**: once you specify how volatile each point on the forward curve is (the volatility function $\sigma(t,T)$), no-arbitrage pins down the drift $\alpha(t,T)$. You cannot freely choose both. This is why people often summarize HJM as *“choose the volatility; the drift follows mechanically.”*
 
 HJM is also a unifying viewpoint: many familiar term structure models (e.g., Ho–Lee, Hull–White) can be seen as special cases of HJM, and market models like LMM can be viewed as a discretized HJM built on **simply compounded** forward rates.
 
@@ -48,9 +48,15 @@ This appendix assumes familiarity with no-arbitrage pricing (Appendix A1) and sh
 
 ## Conventions & Notation
 
-- Time is continuous. $t \geq 0$ denotes "today/time of valuation," and $T \gt t$ denotes a maturity date, both measured in years.
+### Modeling conventions
 
+- Continuous-time, frictionless, arbitrage-free setting.
+- Time variable $t \geq 0$ is "today/time of valuation"; $T \gt t$ is a maturity date; both measured in years.
 - Rates are continuously compounded instantaneous rates unless explicitly stated otherwise.
+- HJM dynamics are stated primarily under the money-market numeraire ($\mathbb{Q}^B$), because the drift restriction is most commonly expressed there in the sources.
+- Multi-factor (vector) Brownian drivers are allowed; one-factor is a special case.
+
+### Core objects
 
 - A **zero-coupon bond (ZCB)** maturing at $T$ pays 1 unit of currency at $T$; its time-$t$ price is $P(t,T)$.
 
@@ -62,45 +68,30 @@ $$\frac{dB(t)}{B(t)} = r(t)\\,dt, \quad B(0) = 1, \quad B(t) = \exp\\!\left(\int
 
 $$D(t,T) = \frac{B(t)}{B(T)} = \exp\\!\left(-\int_t^T r(s)\\,ds\right).$$
 
-- **Measures / numeraires** (change-of-numeraire toolkit):
-
-  - $\mathbb{Q}^B$: risk-neutral (money-market) measure with numeraire $B(t)$. Under $\mathbb{Q}^B$, any traded asset price divided by $B(t)$ is a martingale (under mild conditions).
-
-  - $\mathbb{Q}^T$: $T$-forward measure with numeraire $P(t,T)$; pricing a payoff $H_T$ at $T$ becomes $V(t) = P(t,T)\\,\mathbb{E}^T[H_T \mid \mathcal{F}_t]$.
-
-  - $\mathbb{Q}^{\alpha,\beta}$: swap measure with numeraire equal to the swap annuity $A_{\alpha,\beta}(t) = \sum_{i=\alpha+1}^{\beta} \tau_i P(t,T_i)$.
-
 - **Brownian motion:** Under a chosen pricing measure, uncertainty is driven by a $d$-dimensional Brownian motion $W_t = (W_t^{(1)}, \ldots, W_t^{(d)})$.
 
 - **Vector volatility notation:** $\sigma(t,T) \in \mathbb{R}^d$. Inner product $a \cdot b$ and norm $\\|a\\|^2 = a \cdot a$.
 
----
+### Measures and numeraires
 
-## 0. Setup
+- $\mathbb{Q}^B$: risk-neutral (money-market) measure with numeraire $B(t)$. Under $\mathbb{Q}^B$, any traded asset price divided by $B(t)$ is a martingale (under mild conditions).
+- $\mathbb{Q}^T$: $T$-forward measure with numeraire $P(t,T)$; pricing a payoff $H_T$ at $T$ becomes $V(t) = P(t,T)\\,\mathbb{E}^T[H_T \mid \mathcal{F}_t]$.
+- $\mathbb{Q}^{\alpha,\beta}$: swap measure with numeraire equal to the swap annuity $A_{\alpha,\beta}(t) = \sum_{i=\alpha+1}^{\beta} \tau_i P(t,T_i)$.
 
-### Conventions used in this appendix
+### Symbol glossary (quick reference)
 
-- Continuous-time, frictionless, arbitrage-free modeling.
-- Continuously compounded instantaneous rates.
-- HJM dynamics stated primarily under the money-market numeraire ($\mathbb{Q}^B$), because the drift restriction is most commonly expressed there in the sources.
-- Multi-factor (vector) Brownian drivers are allowed; one-factor is a special case.
-
-### Notation glossary (symbols + definitions)
-
-| Symbol | Definition |
-|--------|------------|
-| $t$ | valuation time (years) |
-| $T$ | maturity time (years), with $T \gt t$ |
+| Symbol | Meaning |
+|--------|---------|
+| $t$, $T$ | valuation time and maturity (years), with $T \gt t$ |
 | $P(t,T)$ | time-$t$ price of a ZCB paying 1 at $T$ |
-| $r(t)$ | short rate (per year) |
+| $r(t)$ | instantaneous short rate (per year) |
 | $B(t)$ | money-market account numeraire; $dB/B = r\\,dt$ |
-| $D(t,T)$ | discount factor $= \exp(-\int_t^T r(s)\\,ds)$ |
+| $D(t,T)$ | discount factor $\exp(-\int_t^T r(s)\\,ds)$ |
 | $f(t,T)$ | instantaneous forward rate for maturity $T$ observed at $t$ |
-| $W_t$ | $d$-dimensional Brownian motion under the chosen pricing measure |
 | $\sigma(t,T)$ | instantaneous volatility of $f(t,T)$ (vector in $\mathbb{R}^d$) |
 | $\alpha(t,T)$ | drift of $f(t,T)$ under the stated measure |
-| $\mathbb{Q}^B$ | bank-account (risk-neutral) measure |
-| $\mathbb{Q}^T$ | $T$-forward measure with numeraire $P(t,T)$ |
+| $W_t$ | $d$-dimensional Brownian motion under the chosen pricing measure |
+| $\mathbb{Q}^B$, $\mathbb{Q}^T$ | bank-account and $T$-forward measures |
 
 ---
 
@@ -154,7 +145,7 @@ $$\boxed{P(t,T) = \exp\\!\left(-\int_t^T f(t,u)\\,du\right)}$$
 
 > **Beginner Bridge: From One Number to Infinitely Many**
 >
-> In short-rate models like Vasicek or Hull-White (Appendix A2), the "state" of the interest rate world is captured by a single number: $r(t)$. Given $r(t)$ and the model parameters, you can reconstruct bond prices for any maturity.
+> In short-rate models like Vasicek or Hull–White (Appendix A2), the "state" of the interest rate world is captured by a single number: $r(t)$. Given $r(t)$ and the model parameters, you can reconstruct bond prices for any maturity.
 >
 > HJM takes a radically different approach: the state is the *entire forward curve*—infinitely many numbers $f(t,T)$ for every maturity $T \geq t$. This is like knowing every point on a yield curve simultaneously, rather than just the overnight rate.
 >
@@ -405,7 +396,9 @@ $$\mu^U(t) = \mu^S(t) - \sigma_X(t)\\,\rho\left(\frac{\sigma_S(t)}{S(t)} - \frac
 
 and the Brownian motions are related by
 
-$$dW^U(t) = dW^S(t) - \rho\left(\frac{\sigma_U(t)}{U(t)}\right)^\top dt.$$
+$$dW^U(t) = dW^S(t) - \rho\left(\frac{\sigma_U(t)}{U(t)} - \frac{\sigma_S(t)}{S(t)}\right)^\top dt.$$
+
+In the common special case where $S = B$ (the money-market account, with $\sigma_B/B = 0$), the second formula collapses to $dW^U = dW^S - \rho\\,(\sigma_U/U)^\top dt$.
 
 **Important caution:** applying this to $f(t,T)$ directly requires interpreting $f(t,T)$ as (or as a function of) traded assets in a way consistent with the model setup. The sources explicitly state martingale properties for traded ratios (e.g., forward bond prices, forward LIBOR rates) under forward measures.
 
@@ -509,11 +502,13 @@ $$\phi(t) = \int_0^t \sigma_{RS}^2(s,t)\\,ds$$
 
 This $\phi(t)$ captures the "accumulated variance effect" that would otherwise require knowing the entire path history.
 
-**Joint dynamics:** The two-state Markov process evolves as:
+**Joint dynamics:** The two-state Markov process evolves as
 
-$$d\binom{r(t)}{\phi(t)} = \binom{\mu(r,t)\\,dt + \eta(t)\\,dW(t)}{[\eta^2(t) - 2\kappa(t)\phi(t)]\\,dt}$$
+$$d\binom{r(t)}{\phi(t)} = \binom{\mu(r,t)}{\eta^2(t) - 2\kappa(t)\phi(t)}dt + \binom{\eta(t)}{0}dW(t),$$
 
 with drift $\mu(r,t) = \kappa(t)[f(0,t) - r(t)] + \phi(t) + \frac{\partial}{\partial t}f(0,t)$.
+
+Notice that $\phi(t)$ has no $dW$ term: although $\phi$ depends on the path of $\eta$, it evolves *deterministically given the current state* (an ODE driven by $\eta(t)$ and $\phi(t)$). The randomness enters through the joint state $(r,\phi)$.
 
 **Explicit bond price formula:** Brigo and Mercurio (Proposition 5.3.1) show that under RS volatilities, zero-coupon bond prices have the closed form:
 
@@ -526,48 +521,48 @@ where $\Lambda(t,T) = \int_t^T e^{-\int_t^u \kappa(x)\\,dx}\\,du$. This formula 
 - Efficient PDE methods in two dimensions
 - Stochastic short-rate volatility ($\eta(t)$ can depend on state) while maintaining tractability
 
-**Special case:** When $\kappa$ is constant ($\kappa(x) = a$), the RS volatility reduces to:
+**Special case:** When $\kappa$ is constant ($\kappa(x) = a$), the RS volatility reduces to
 
-$$\sigma(t,T) = \eta(t) e^{-a(T-t)}$$
+$$\sigma(t,T) = \eta(t)\\,e^{-a(T-t)}.$$
 
-which is precisely the Hull-White volatility structure, confirming that Hull-White is a special case of the RS class.
+The further specialization $\eta(t) = \sigma$ (constant short-rate vol) recovers the **Hull–White** volatility structure $\sigma(t,T) = \sigma\\,e^{-a(T-t)}$, confirming that Hull–White is a special case of the RS class. Allowing $\eta(t)$ to be time-varying or state-dependent produces the broader RS family while retaining the two-state Markov representation.
 
 ---
 
-### 5.3 Humped Volatility: The Mercurio-Moraleda Model
+### 5.3 Humped Volatility: The Mercurio–Moraleda Model
 
-Market-implied forward rate volatilities often exhibit a "hump"—volatility peaks at some intermediate maturity rather than being monotone. The Mercurio-Moraleda (2000) model addresses this by specifying:
+Market-implied forward rate volatilities often exhibit a "hump"—volatility peaks at some intermediate maturity rather than being monotone. The Mercurio–Moraleda (2000) model addresses this by specifying
 
-$$\sigma(t,T) = \sigma[\gamma(T-t)+1]e^{-\frac{\lambda}{2}(T-t)}$$
+$$\sigma(t,T) = \sigma_0\\,[\gamma(T-t)+1]\\,e^{-\frac{\lambda}{2}(T-t)},$$
 
-where $\sigma$, $\gamma$, and $\lambda$ are non-negative constants.
+where $\sigma_0$, $\gamma$, and $\lambda$ are non-negative constants. (The scale $\sigma_0$ is distinguished from the function $\sigma(t,T)$.)
 
 **Properties:**
-- **Humped when $2\gamma \gt \lambda$:** Volatility increases for short maturities, peaks, then decays
-- **Time-to-maturity dependent:** Only depends on $T-t$, not on $t$ and $T$ separately
-- **Gaussian:** Rates remain normally distributed (no smile)
+- **Humped when $2\gamma \gt \lambda$:** Volatility increases for short maturities, peaks, then decays.
+- **Time-to-maturity dependent:** Only depends on $T-t$, not on $t$ and $T$ separately.
+- **Gaussian:** Rates remain normally distributed (no smile).
 
-**Practical note:** $(\sigma,\gamma,\lambda)$ are **calibration outputs**. Their values depend on the currency, the option market you fit (caps vs swaptions), and the period you calibrate on. Treat them as knobs that control the hump’s location and height, not as fixed “standard” ranges.
+**Practical note:** $(\sigma_0,\gamma,\lambda)$ are **calibration outputs**. Their values depend on the currency, the option market you fit (caps vs swaptions), and the period you calibrate on. Treat them as knobs that control the hump’s location and height, not as fixed “standard” ranges.
 
-> **Worked Example: Mercurio-Moraleda Volatility**
+> **Worked Example: Mercurio–Moraleda Volatility**
 >
-> With $\sigma = 0.01$, $\gamma = 0.3$, $\lambda = 0.2$:
+> With $\sigma_0 = 0.01$, $\gamma = 0.3$, $\lambda = 0.2$ (so $\lambda/2 = 0.1$):
 >
-> | Time-to-maturity | $\sigma(t,T)$ |
-> |------------------|---------------|
-> | 1 year | $0.01 \times 1.3 \times e^{-0.1} = 0.01176$ |
-> | 3 years | $0.01 \times 1.9 \times e^{-0.3} = 0.01406$ |
-> | 5 years | $0.01 \times 2.5 \times e^{-0.5} = 0.01516$ |
-> | 10 years | $0.01 \times 4.0 \times e^{-1.0} = 0.01472$ |
-> | 20 years | $0.01 \times 7.0 \times e^{-2.0} = 0.00948$ |
+> | Time-to-maturity $\tau = T-t$ | $\sigma(t,T)$ |
+> |---|---|
+> | 1 year | $0.01 \times 1.3 \times e^{-0.1} \approx 0.01176$ |
+> | 3 years | $0.01 \times 1.9 \times e^{-0.3} \approx 0.01408$ |
+> | 5 years | $0.01 \times 2.5 \times e^{-0.5} \approx 0.01516$ |
+> | 10 years | $0.01 \times 4.0 \times e^{-1.0} \approx 0.01472$ |
+> | 20 years | $0.01 \times 7.0 \times e^{-2.0} \approx 0.00947$ |
 >
-> The hump occurs around 5–7 years in this example.
+> The peak (hump location) solves $d\sigma/d\tau = 0$, giving $\tau^\ast = 2/\lambda - 1/\gamma = 10 - 3.\overline{3} \approx 6.7$ years for these parameters.
 
 > **Practitioner Note: Why Humped Vol Matters**
 >
 > In many markets, implied volatilities for short-to-intermediate maturities are not monotone in maturity; they often peak somewhere in the “belly” of the curve. Flat or purely decaying volatility structures can therefore struggle to match prices across maturities. If you calibrate a simple exponential-decay model to long-dated caps, you can misprice shorter-dated caps (and vice versa).
 >
-> The Mercurio-Moraleda model lets you match the hump shape while staying within the Gaussian HJM framework. The tradeoff: more parameters to calibrate.
+> The Mercurio–Moraleda model lets you match the hump shape while staying within the Gaussian HJM framework. The tradeoff: more parameters to calibrate.
 
 ---
 
@@ -595,9 +590,9 @@ where volatility is proportional to the rate level.
 
 **Consequences (and why this is subtle in HJM):**
 
-- Conditional on being well-defined, this produces a **log-normal-like** behavior: volatility scales with the level of the forward rate.
+- When the SDE admits a well-behaved solution, this produces **log-normal-like** behavior: volatility scales with the level of the forward rate.
 - This tends to **rule out negative forward rates** by construction (which may or may not be desirable).
-- However, for **instantaneous forward-rate HJM**, prescribing multiplicative volatility is technically delicate. In particular, preventing **explosions** in the forward-rate dynamics generally imposes restrictions on how the volatility can grow with the state. In the standard treatments, these restrictions effectively *preclude* a clean “log-normal instantaneous forward rate” specification.
+- However, for **instantaneous forward-rate HJM**, prescribing multiplicative volatility is technically delicate. Preventing **explosions** in the forward-rate dynamics generally imposes restrictions on how the volatility can grow with the state, and in the standard treatments these restrictions effectively *preclude* a clean “log-normal instantaneous forward rate” specification.
 
 This is one of the reasons the industry prefers to apply log-normal dynamics to **discrete, simply-compounded forward rates** (the market model / LMM viewpoint) rather than to instantaneous forwards; with a finite tenor grid, an explosion-free log-normal specification becomes possible (Appendix A4).
 
@@ -613,12 +608,12 @@ This is one of the reasons the industry prefers to apply log-normal dynamics to 
 
 A common middle ground is the shifted (displaced) diffusion:
 
-$$df(t,T) = (f(t,T) + \delta)\sigma(t,T)\\,dW_t + \alpha(t,T)\\,dt$$
+$$df(t,T) = \alpha(t,T)\\,dt + (f(t,T) + \delta)\\,\sigma(t,T)\\,dW_t,$$
 
 where $\delta \gt 0$ is a "shift" parameter. This:
-- Allows forwards to be negative down to $-\delta$ (but not below)
-- Can be calibrated so that $(f+\delta)$ behaves “log-normal-ish” even when $f$ is near zero/negative
-- Should be viewed as a **pragmatic parameterization**: $\delta$ is a modeling/quoting choice and is not universal across currencies or desks
+- Allows forwards to be negative down to $-\delta$ (but not below).
+- Can be calibrated so that $(f+\delta)$ behaves “log-normal-ish” even when $f$ is near zero or slightly negative.
+- Should be viewed as a **pragmatic parameterization**: $\delta$ is a modeling/quoting choice and is not universal across currencies or desks.
 
 > **Desk Reality: What people actually mean by “log-normal” in rates**
 >
@@ -654,13 +649,13 @@ In practice (both in risk reports and in model design), yield curve movements ar
 - **Factor 2 (Slope):** steepening/flattening (twists)
 - **Factor 3 (Curvature):** “butterfly” moves (belly vs wings)
 
-A 2–3 factor HJM model can often capture a large share of observed yield curve dynamics. Typical volatility structures:
+A 2–3 factor HJM model can often capture a large share of observed yield curve dynamics. Typical volatility structures (sign and shape across $\tau = T - t$):
 
-| Factor | Economic Meaning | Volatility Shape |
-|--------|-----------------|------------------|
-| Level | Parallel shift | $\sigma_1(t,T) \approx$ constant |
-| Slope | Twist | $\sigma_2(t,T)$ increasing in $T-t$ |
-| Curvature | Butterfly | $\sigma_3(t,T)$ humped |
+| Factor | Economic Meaning | Volatility Shape across maturity |
+|--------|------------------|-----------------------------------|
+| Level | Parallel shift | $\sigma_1(t,T) \gt 0$, roughly flat in $\tau$ |
+| Slope | Steepening / flattening (twist) | $\sigma_2(t,T)$ monotone in $\tau$ with a sign change (e.g. negative at the short end, positive at the long end) |
+| Curvature | Butterfly (belly vs wings) | $\sigma_3(t,T)$ humped, with opposite sign in the belly versus the wings |
 
 > **Practitioner Note: How Many Factors?**
 >
@@ -699,12 +694,12 @@ $$\sigma_i(t,T) = \xi_i(t)\psi_i(T)$$
 
 This separability is necessary and sufficient for the short rate to be Markov in the one-factor Gaussian case.
 
-**What you gain going from HJM to Hull-White:**
+**What you gain going from HJM to Hull–White:**
 - Tractability: one state variable instead of infinity
 - Closed-form bond options (Jamshidian decomposition)
 - Efficient lattice methods
 
-**What you lose going from HJM to Hull-White:**
+**What you lose going from HJM to Hull–White:**
 - Flexibility: can only fit volatility structures of the form $\sigma e^{-a(T-t)}$
 - Cannot independently specify volatilities at different maturities
 
@@ -712,39 +707,43 @@ This separability is necessary and sufficient for the short rate to be Markov in
 
 ### 6.2 The Merton Model: Simplest Bridge Example
 
-Consider the "Merton toy model" (constant drift, constant volatility):
+Consider the "Merton toy model" with **constant** drift and constant volatility:
 
-$$dr(t) = \theta\\,dt + \sigma\\,dW_t$$
+$$dr(t) = \theta\\,dt + \sigma\\,dW_t.$$
 
-**Step 1: Compute bond prices.** For this affine model:
+(The same forward dynamics will hold in the time-varying-$\theta$ case used in Example 10 below; only the bond-price formula picks up extra terms.)
 
-$$P(t,T) = \exp\left[\frac{\sigma^2}{6}(T-t)^3 - \frac{\theta}{2}(T-t)^2 - (T-t)r_t\right]$$
+**Step 1: Compute bond prices.** For this affine model,
+
+$$P(t,T) = \exp\\!\left[\frac{\sigma^2}{6}(T-t)^3 - \frac{\theta}{2}(T-t)^2 - (T-t)\\,r_t\right].$$
 
 **Step 2: Derive forward rates.** Using $f(t,T) = -\partial_T \ln P(t,T)$:
 
-$$f(t,T) = -\frac{\sigma^2}{2}(T-t)^2 + \theta(T-t) + r_t$$
+$$f(t,T) = -\frac{\sigma^2}{2}(T-t)^2 + \theta(T-t) + r_t.$$
 
-**Step 3: Compute forward dynamics.** Differentiate and substitute $dr$:
+**Step 3: Compute forward dynamics.** Differentiating in $t$ at fixed $T$ and using $dr_t = \theta\\,dt + \sigma\\,dW_t$:
 
-$$df(t,T) = \sigma^2(T-t)\\,dt + \sigma\\,dW_t$$
+$$df(t,T) = \big[\sigma^2(T-t) - \theta\big]\\,dt + dr_t = \sigma^2(T-t)\\,dt + \sigma\\,dW_t.$$
 
-**Verification:** Check the HJM drift restriction. With constant $\sigma(t,T) = \sigma$:
+The deterministic $\theta$ pieces cancel, leaving a drift that depends only on $\sigma$ and $T-t$.
 
-$$\alpha(t,T) = \sigma \int_t^T \sigma\\,du = \sigma^2(T-t) \quad \checkmark$$
+**Verification:** Check the HJM drift restriction. With constant $\sigma(t,T) = \sigma$,
 
-The forward drift $\sigma^2(T-t)$ is exactly what HJM predicts.
+$$\alpha(t,T) = \sigma \int_t^T \sigma\\,du = \sigma^2(T-t),\quad \checkmark$$
+
+exactly what HJM predicts.
 
 ---
 
-### 6.3 Hull-White to HJM: Complete Mapping
+### 6.3 Hull–White to HJM: Complete Mapping
 
-The one-factor Hull-White model is:
+The one-factor Hull–White model is:
 
 $$dr(t) = [\theta(t) - a\\,r(t)]\\,dt + \sigma\\,dW_t$$
 
 where $a \gt 0$ is the mean-reversion speed and $\sigma \gt 0$ is the short-rate volatility.
 
-**The HJM volatility induced by Hull-White:** Following Brigo and Mercurio, set:
+**The HJM volatility induced by Hull–White:** Following Brigo and Mercurio, set:
 
 $$\boxed{\sigma(t,T) = \sigma e^{-a(T-t)}}$$
 
@@ -818,14 +817,14 @@ The full development is in Appendix A4.
 
 This section provides practical guidance on when HJM (vs alternatives) is the right choice.
 
-**Use Hull-White (Markovian HJM) when:**
+**Use Hull–White (Markovian HJM) when:**
 - Pricing vanilla caps, floors, swaptions
 - Need closed-form solutions or fast lattices
 - Single-factor dynamics are adequate
 - Calibrating to a few key instruments
 
 **Use general (non-Markovian) HJM when:**
-- You need volatility structures that don't fit Hull-White
+- You need volatility structures that don't fit Hull–White
 - Path-dependent exotics where vol term structure matters
 - Research/validation of other models
 - Multi-factor models with specific correlation structures
@@ -845,7 +844,7 @@ This section provides practical guidance on when HJM (vs alternatives) is the ri
 > | Vanilla swaps | Curve-based (no stochastics) |
 > | Caps/floors | LMM or SABR |
 > | European swaptions | LMM or SABR |
-> | Bermudan swaptions | Hull-White or LGM (Markovian HJM) |
+> | Bermudan swaptions | Hull–White or LGM (Markovian HJM) |
 > | CMS products | LMM with SABR marginals |
 > | Exotics (TARNs, etc.) | LMM Monte Carlo |
 >
@@ -868,48 +867,24 @@ The general HJM framework is infinite-dimensional, which poses obvious computati
 - Represent the state as the vector $\mathbf{f}_t = (f(t,T_1), \ldots, f(t,T_M))$.
 - Initialize from the market curve: $f(0, T_j) = f^{\text{market}}(0, T_j)$ for all $j$.
 
-**Integral approximations:** Use quadrature on the grid:
-- Piecewise constant on the maturity grid: write the maturity knots as $u_0=t \lt u_1 \lt \cdots \lt u_J = T_j$ and approximate
-  $$\int_t^{T_j} \sigma(t,u)\\,du \\;\approx\\; \sum_{k=1}^{J} \sigma(t,u_k)\\,(u_k-u_{k-1}).$$
-- Trapezoidal rule for better accuracy on coarse maturity grids
+**Integral approximations.** Use quadrature on the grid. With maturity knots $u_0=t \lt u_1 \lt \cdots \lt u_J = T_j$, the simplest piecewise-constant rule is
+
+$$\int_t^{T_j} \sigma(t,u)\\,du \\;\approx\\; \sum_{k=1}^{J} \sigma(t,u_k)\\,(u_k-u_{k-1}).$$
+
+Use trapezoidal (or higher-order) weights for better accuracy on coarse maturity grids.
 
 ---
 
 ### 7.2 Simulate discretized HJM (Euler scheme)
 
-**Algorithm (one path):**
+**Method (per simulation path).** Fix a time step $\Delta t$ and number of steps $N$, and start from the market-implied forward curve $f(0,T_j)$ for $j = 1, \ldots, M$. At each time step $t_n = n\\,\Delta t$:
 
-```
-Input: Initial curve f(0,T_j), volatility function σ(t,T),
-       time step Δt, number of steps N, d-factor Brownian motion
-Output: Simulated forward curve at each time step
+1. Draw a single $d$-dimensional Brownian increment $\Delta W_n \sim \mathcal{N}(0, I_d \Delta t)$, the same draw shared by all tenor points (this preserves the correlation structure across the curve).
+2. For each future tenor point $T_j \gt t_n$, build a running estimate of the maturity integral $\int_{t_n}^{T_j} \sigma(t_n,u)\\,du$ by sweeping $j$ in increasing order and adding the contribution $\sigma(t_n,T_j)\\,(T_j - T_{j-1})$ to a cumulative vector (initialized to zero, with $T_0 := t_n$). Use trapezoidal weights for higher accuracy if the maturity grid is coarse.
+3. Compute the HJM drift at each $T_j$ as $\alpha(t_n,T_j) = \sigma(t_n,T_j) \cdot \int_{t_n}^{T_j} \sigma(t_n,u)\\,du$ using the running estimate from step 2.
+4. Apply the Euler update $f(t_{n+1},T_j) = f(t_n,T_j) + \alpha(t_n,T_j)\\,\Delta t + \sigma(t_n,T_j) \cdot \Delta W_n$.
 
-For n = 0 to N-1:
-    t_n = n * Δt
-
-    # Generate d-dimensional Brownian increment
-    ΔW = sqrt(Δt) * randn(d)
-
-    # Running integral over maturity (piecewise-constant quadrature)
-    cum_int_sigma = 0   # vector in R^d
-    prev_T = t_n
-
-    For j = 1 to M (each tenor point):
-        If T_j > t_n:  # Only update future maturities
-
-            # Approximate ∫_{t_n}^{T_j} σ(t_n,u) du on the maturity grid
-            ΔT = T_j - prev_T
-            prev_T = T_j
-            cum_int_sigma += σ(t_n, T_j) * ΔT
-
-            # Compute drift from HJM restriction
-            α = σ(t_n, T_j) · cum_int_sigma
-
-            # Euler update
-            f(t_{n+1}, T_j) = f(t_n, T_j) + α * Δt + σ(t_n, T_j) · ΔW
-```
-
-**Critical implementation note:** All tenor points share the *same* Brownian increment $\Delta W$ at each time step. This ensures the correlation structure is preserved.
+**Critical implementation note:** All tenor points share the *same* Brownian increment $\Delta W_n$ at each time step. Drawing independent shocks per tenor would destroy the across-curve correlation that the model relies on.
 
 ---
 
@@ -949,8 +924,8 @@ Select a functional form $\sigma(t,T;\theta)$ with parameter vector $\theta$. Co
 | Parameterization | Parameters | Best For |
 |------------------|------------|----------|
 | Constant | $\sigma$ | Simple testing |
-| Exponential decay | $\sigma, a$ | Hull-White-like behavior |
-| Humped (Mercurio-Moraleda) | $\sigma_0, \gamma, \lambda$ | Realistic vol term structure |
+| Exponential decay | $\sigma, a$ | Hull–White-like behavior |
+| Humped (Mercurio–Moraleda) | $\sigma_0, \gamma, \lambda$ | Realistic vol term structure |
 | Multi-factor separable | $\xi_i(t), \psi_i(T)$ | Rich correlation structure |
 
 **Step 2: Fit to market instruments**
@@ -992,7 +967,7 @@ where $w_i$ are weights (often inverse bid-offer or inverse vega).
 >
 > $$\min_{\sigma,a} \sum_i \left[\sigma\sqrt{\frac{1-e^{-2aT_i}}{2aT_i}} - \sigma_i^{\text{market}}\right]^2$$
 >
-> **Step 4:** Typical result: $\sigma \approx 0.28$, $a \approx 0.08$
+> **Step 4:** *Illustrative* fitted values for the toy table above might be $\sigma \approx 0.28$ and $a \approx 0.08$. Real calibrated values depend on the currency, the option market, and the date — these are not "standard" numbers.
 
 **Step 3: Validate**
 
@@ -1010,7 +985,7 @@ where $w_i$ are weights (often inverse bid-offer or inverse vega).
 | Product Type | Recommended Method | Why |
 |--------------|-------------------|-----|
 | European bond option | Closed-form (if separable HJM) | RS formula available |
-| European cap/floor | Closed-form or 1D PDE | Hull-White-equivalent gives Black formula |
+| European cap/floor | Closed-form or 1D PDE | Hull–White-equivalent gives Black formula |
 | Bermudan swaption | Lattice (if Markovian) or LSM | Early exercise requires backward induction |
 | Path-dependent exotic | Monte Carlo | No recombining tree possible |
 | CMS spread option | Monte Carlo with control | Path-dependent, multi-factor |
@@ -1065,11 +1040,17 @@ Let
 
 $$X(t,T) := \int_t^T f(t,u)\\,du, \quad \ln P(t,T) = -X(t,T).$$
 
-Then (sketch of Itô logic):
+**Step 1: differentiate $X$.** $X(t,T)$ depends on $t$ both through the lower limit and through the integrand. By stochastic Leibniz / Fubini:
 
-- The lower limit $t$ contributes a term $-f(t,t)\\,dt = -r(t)\\,dt$.
-- The stochastic part contributes $-\int_t^T \sigma(t,u)\\,du \cdot dW_t$.
-- The quadratic variation contributes $+\frac{1}{2}\\|\int_t^T \sigma(t,u)\\,du\\|^2\\,dt$.
+$$dX(t,T) = -f(t,t)\\,dt + \int_t^T df(t,u)\\,du = -r(t)\\,dt + \left(\int_t^T \alpha(t,u)\\,du\right)dt + \left(\int_t^T \sigma(t,u)\\,du\right)\cdot dW_t.$$
+
+**Step 2: pass to $\ln P = -X$.** Negating term-by-term:
+
+$$d\ln P(t,T) = r(t)\\,dt - \left(\int_t^T \alpha(t,u)\\,du\right)dt - \left(\int_t^T \sigma(t,u)\\,du\right)\cdot dW_t.$$
+
+**Step 3: pass to $P = e^{\ln P}$ via Itô.** The Itô correction adds half of the squared diffusion coefficient of $\ln P$:
+
+$$\frac{dP(t,T)}{P(t,T)} = d\ln P(t,T) + \tfrac{1}{2}\\,\\|\sigma_{\ln P}\\|^2\\,dt,\qquad \sigma_{\ln P} = -\int_t^T \sigma(t,u)\\,du.$$
 
 Putting these together yields:
 
@@ -1103,7 +1084,9 @@ $$\mu^U(t) = \mu^S(t) - \sigma_X(t)\\,\rho\left(\frac{\sigma_S(t)}{S(t)} - \frac
 
 and Brownian increments satisfy
 
-$$dW^U(t) = dW^S(t) - \rho\left(\frac{\sigma_U(t)}{U(t)}\right)^\top dt.$$
+$$dW^U(t) = dW^S(t) - \rho\left(\frac{\sigma_U(t)}{U(t)} - \frac{\sigma_S(t)}{S(t)}\right)^\top dt.$$
+
+In the special case where $S = B$ (money-market account, $\sigma_B/B = 0$), this simplifies to $dW^U = dW^S - \rho\\,(\sigma_U/U)^\top dt$.
 
 ---
 
@@ -1113,21 +1096,21 @@ For the RS class of HJM models, bond options have closed-form solutions. The key
 
 **Zero-Coupon Bond Call under RS:**
 
-Under the RS volatility $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$, the price of a European call option with strike $K$, expiry $T$, on a bond maturing at $\tau \gt T$ is:
+Under the RS volatility $\sigma(t,T) = \eta(t)\\,e^{-\int_t^T \kappa(x)\\,dx}$, the price of a European call option with strike $K$, expiry $T$, on a bond maturing at $\tau \gt T$ is
 
-$$\text{ZBC}(t,T,\tau,K) = P(t,\tau)\Phi(d_1) - KP(t,T)\Phi(d_2)$$
+$$\text{ZBC}(t,T,\tau,K) = P(t,\tau)\\,\Phi(d_1) - K\\,P(t,T)\\,\Phi(d_2)$$
 
-where:
-$$d_1 = \frac{\ln(P(t,\tau)/(KP(t,T))) + \frac{1}{2}\Sigma^2}{\Sigma}$$
-$$d_2 = d_1 - \Sigma$$
+where
+
+$$d_1 = \frac{\ln\\!\left(\dfrac{P(t,\tau)}{K\\,P(t,T)}\right) + \tfrac{1}{2}\Sigma^2}{\Sigma}, \qquad d_2 = d_1 - \Sigma,$$
 
 and $\Sigma^2$ is the variance of $\ln P(T,\tau)$ under the $T$-forward measure:
 
-$$\Sigma^2 = \int_t^T \sigma_P^2(s,T,\tau)\\,ds$$
+$$\Sigma^2 = \int_t^T \sigma_P^2(s,T,\tau)\\,ds,$$
 
-where $\sigma_P(s,T,\tau) = \Lambda(T,\tau) \cdot \eta(s) \cdot e^{-\int_s^T \kappa(x)dx}$ is the bond volatility.
+where $\sigma_P(s,T,\tau) = \Lambda(T,\tau) \cdot \eta(s) \cdot e^{-\int_s^T \kappa(x)\\,dx}$ is the bond volatility.
 
-**Connection to Hull-White:** When $\kappa$ is constant ($\kappa = a$), this reduces to the standard Hull-White bond option formula.
+**Connection to Hull–White:** When $\kappa$ is constant ($\kappa = a$) and $\eta$ is constant ($\eta = \sigma$), this reduces to the standard Hull–White bond option formula.
 
 > **Practitioner Note: Jamshidian Decomposition**
 >
@@ -1346,29 +1329,31 @@ $$\alpha(t,T) = \sigma \int_t^T \sigma\\,du = 0.02 \cdot 0.02 \cdot (3-1) = 0.00
 
 ### Example 11: Humped volatility drift computation
 
-Using Mercurio-Moraleda with $\sigma_0 = 0.01$, $\gamma = 0.3$, $\lambda = 0.2$:
+Using Mercurio–Moraleda with $\sigma_0 = 0.01$, $\gamma = 0.3$, $\lambda = 0.2$ (so $\lambda/2 = 0.1$):
 
-$$\sigma(0,T) = 0.01[0.3T + 1]e^{-0.1T}$$
+$$\sigma(0,T) = 0.01\\,[0.3\\,T + 1]\\,e^{-0.1\\,T}.$$
 
 **At $T = 5$:**
-$$\sigma(0,5) = 0.01 \times 2.5 \times e^{-0.5} = 0.01516$$
 
-**Integrated volatility:** $\int_0^5 \sigma(0,u)\\,du$ requires numerical integration:
+$$\sigma(0,5) = 0.01 \times 2.5 \times e^{-0.5} \approx 0.01516.$$
+
+**Integrated volatility:** $\int_0^5 \sigma(0,u)\\,du$ requires numerical integration. Using a right-endpoint Riemann sum with $\Delta u = 1$:
 
 | $u$ | $\sigma(0,u)$ | $\sigma(0,u) \cdot \Delta u$ |
 |-----|---------------|------------------------------|
 | 1 | 0.01176 | 0.01176 |
-| 2 | 0.01306 | 0.01306 |
-| 3 | 0.01395 | 0.01395 |
-| 4 | 0.01454 | 0.01454 |
+| 2 | 0.01310 | 0.01310 |
+| 3 | 0.01408 | 0.01408 |
+| 4 | 0.01475 | 0.01475 |
 | 5 | 0.01516 | 0.01516 |
 
-Sum $\approx 0.0685$.
+Sum $\approx 0.06885$.
 
 **HJM drift:**
-$$\alpha(0,5) = 0.01516 \times 0.0685 = 0.00104$$
 
-This is about 10 bp/year—larger than flat-volatility case due to the hump accumulating more integrated volatility.
+$$\alpha(0,5) = \sigma(0,5) \cdot \int_0^5 \sigma(0,u)\\,du \approx 0.01516 \times 0.06885 \approx 0.00104.$$
+
+This is about 10 bp/year—larger than the flat-volatility case at the same maturity, because the humped shape accumulates more integrated volatility. (A finer grid or trapezoidal rule would give a slightly smaller, more accurate integral; the qualitative answer is unchanged.)
 
 ---
 
@@ -1454,7 +1439,7 @@ $$\boxed{\alpha^{(T)}(t,S) = \sigma(t,S) \cdot \int_T^S \sigma(t,u)\\,du}$$
 
 $$V(t) = P(t,T)\\,\mathbb{E}^T[H_T \mid \mathcal{F}_t].$$
 
-**Hull-White HJM volatility:**
+**Hull–White HJM volatility:**
 
 $$\boxed{\sigma(t,T) = \sigma e^{-a(T-t)}}$$
 
@@ -1498,20 +1483,20 @@ $$\boxed{\sigma(t,T) = \eta(t) \exp\\!\left(-\int_t^T \kappa(x)\\,dx\right)}$$
 | 13 | Under $T$-forward measure, what is a martingale? | Forward bond prices $P(t,T+\tau)/P(t,T)$. |
 | 14 | What is a swap measure numeraire? | Swap annuity $A_{\alpha,\beta}(t) = \sum \tau_i P(t,T_i)$. |
 | 15 | What becomes a martingale under swap measure? | Forward swap rate $S_{\alpha,\beta}(t)$. |
-| 16 | How do Brownian motions relate across numeraires? | $dW^U = dW^S - \rho(\sigma_U/U)^\top dt$. |
+| 16 | How do Brownian motions relate across numeraires? | $dW^U = dW^S - \rho\\,(\sigma_U/U - \sigma_S/S)^\top dt$ (collapses to $-\rho(\sigma_U/U)^\top dt$ when $S = B$). |
 | 17 | What does separable $\sigma(t,T) = \xi(t)\psi(T)$ buy you? | Hull–White-type (finite-dimensional Markov) short-rate model. |
 | 18 | Example exponential-decay forward vol? | $\sigma(t,T) = \sigma\\,e^{-a(T-t)}$. |
 | 19 | Why isn't "general HJM" used directly? | It is infinite-dimensional and too unwieldy; subclasses are sought. |
 | 20 | If $\sigma = 0$, what is $\alpha$? | $\alpha = 0$. |
 | 21 | Why does volatility create positive drift in forward rates? | To offset the "convexity advantage" in bond prices (Jensen's inequality). |
-| 22 | What is the Ritchken-Sankarasubramanian (RS) condition? | $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$ for two-state Markov. |
-| 23 | What is the auxiliary state variable $\phi(t)$ in RS models? | $\phi(t) = \int_0^t \sigma_{RS}^2(s,t)ds$, capturing accumulated variance. |
-| 24 | What HJM volatility corresponds to Hull-White? | $\sigma(t,T) = \sigma e^{-a(T-t)}$. |
-| 25 | Why do longer-maturity forwards have more HJM drift? | More "accumulated volatility behind them" via $\int_t^T \sigma du$. |
-| 26 | HJM drift under $T$-forward measure for $f(t,S)$ with $S \gt T$? | $\alpha^{(T)}(t,S) = \sigma(t,S) \cdot \int_T^S \sigma(t,u)du$ (lower limit is $T$). |
+| 22 | What is the Ritchken–Sankarasubramanian (RS) condition? | $\sigma(t,T) = \eta(t)\\,e^{-\int_t^T \kappa(x)\\,dx}$, necessary and sufficient for a two-state Markov representation in one factor. |
+| 23 | What is the auxiliary state variable $\phi(t)$ in RS models? | $\phi(t) = \int_0^t \sigma_{RS}^2(s,t)\\,ds$, capturing accumulated variance. |
+| 24 | What HJM volatility corresponds to Hull–White? | $\sigma(t,T) = \sigma e^{-a(T-t)}$. |
+| 25 | Why do longer-maturity forwards have more HJM drift? | More "accumulated volatility behind them" via $\int_t^T \sigma\\,du$. |
+| 26 | HJM drift under $T$-forward measure for $f(t,S)$ with $S \gt T$? | $\alpha^{(T)}(t,S) = \sigma(t,S) \cdot \int_T^S \sigma(t,u)\\,du$ (lower limit is $T$). |
 | 27 | What is the main issue with log-normal *instantaneous-forward* HJM? | It can be technically ill-behaved (explosions / restrictive conditions). In practice, log-normality is typically applied to **discrete** forward rates in LMM. |
 | 28 | When is Gaussian HJM a reasonable choice? | When you want tractability and you are willing to allow negative forwards (or your market/portfolio needs them). |
-| 29 | What is the Mercurio-Moraleda volatility form? | $\sigma(t,T) = \sigma[\gamma(T-t)+1]e^{-\frac{\lambda}{2}(T-t)}$. |
+| 29 | What is the Mercurio–Moraleda volatility form? | $\sigma(t,T) = \sigma_0\\,[\gamma(T-t)+1]\\,e^{-\frac{\lambda}{2}(T-t)}$. |
 | 30 | Why did the industry move from HJM to LMM? | Better calibration to discrete instruments; log-normal dynamics are applied to **tenor-grid** forward rates without the same issues as log-normal instantaneous forwards. |
 | 31 | What is the Musiela parameterization? | Reindex forward rates by time-to-maturity: $g(t,x) = f(t,t+x)$, leading to an SPDE formulation. |
 | 32 | What extra term appears in the Musiela SPDE vs standard HJM? | $\frac{\partial g}{\partial x}\\,dt$—the "aging" of the curve as time passes. |
@@ -1570,7 +1555,7 @@ $$\boxed{\sigma(t,T) = \eta(t) \exp\\!\left(-\int_t^T \kappa(x)\\,dx\right)}$$
 
 13. Construct a toy $\sigma(t,T)$ that increases with maturity and discuss how it affects $\alpha(t,T)$.
 
-    > *Sketch:* e.g., $\sigma(t,T) = c(T-t)$; then $\int = c(T-t)^2/2$, $\alpha = c^2(T-t)^3/2$, growing cubically.
+    > *Sketch:* e.g., $\sigma(t,T) = c(T-t)$; then $\int_t^T \sigma(t,u)\\,du = c(T-t)^2/2$ and $\alpha(t,T) = c^2(T-t)^3/2$, growing cubically in $T-t$.
 
 14. Explain why a swap annuity is a natural numeraire for swaptions.
 
@@ -1584,17 +1569,17 @@ $$\boxed{\sigma(t,T) = \eta(t) \exp\\!\left(-\int_t^T \kappa(x)\\,dx\right)}$$
 
     > *Sketch:* Choose $\vartheta$ to minimize pricing error across instruments; caps pin forward vol, swaptions pin correlation.
 
-17. **Hull-White mapping:** Given Hull-White parameters $a = 0.05$ and $\sigma = 0.008$, compute the HJM forward rate volatility $\sigma(t,T)$ for $T - t = 10$ years. Then compute the corresponding drift $\alpha(t,T)$.
+17. **Hull–White mapping:** Given Hull–White parameters $a = 0.05$ and $\sigma = 0.008$, compute the HJM forward rate volatility $\sigma(t,T)$ for $T - t = 10$ years. Then compute the corresponding drift $\alpha(t,T)$.
 
-   > *Solution:* $\sigma(t,T) = 0.008 \cdot e^{-0.5} \approx 0.00485$. Integrated vol: $\frac{0.008}{0.05}(1-e^{-0.5}) \approx 0.0629$. Drift: $0.00485 \times 0.0629 \approx 3.05$ bp/year.
+   > *Solution:* $\sigma(t,T) = 0.008 \cdot e^{-0.5} \approx 0.00485$. Integrated vol: $\frac{0.008}{0.05}(1-e^{-0.5}) \approx 0.0629$. Drift: $0.00485 \times 0.0629 \approx 0.000305$, i.e. about $3.0$ bp/year.
 
-18. **RS framework:** Explain why the RS condition $\sigma(t,T) = \eta(t)e^{-\int_t^T \kappa(x)dx}$ allows for a Markovian representation even when $\eta(t)$ depends on the short rate.
+18. **RS framework:** Explain why the RS condition $\sigma(t,T) = \eta(t)\\,e^{-\int_t^T \kappa(x)\\,dx}$ allows for a Markovian representation even when $\eta(t)$ depends on the short rate.
 
    > *Solution:* The path-dependence is captured entirely by the auxiliary state $\phi(t)$; together with $r(t)$, this forms a sufficient statistic for all bond prices.
 
 19. **Convexity intuition:** A bond with 10-year maturity has higher convexity than a 2-year bond. Explain qualitatively why the HJM drift for the 10-year forward should be larger.
 
-   > *Solution:* Higher convexity means larger "Jensen's advantage"; more upward drift in forward rates needed to offset. Also, the integral $\int_t^T \sigma du$ is larger for longer maturities.
+   > *Solution:* Higher convexity means larger "Jensen's advantage"; more upward drift in forward rates needed to offset. Also, the integral $\int_t^T \sigma\\,du$ is larger for longer maturities.
 
 20. **Variance reduction:** You are pricing a 5-year Bermudan swaption via Monte Carlo under a 2-factor HJM model. Propose two variance reduction techniques and explain why they might help.
 
