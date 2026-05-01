@@ -803,7 +803,7 @@ $z = \frac{\nu}{\alpha} (FK)^{(1-\beta)/2} \ln\frac{F}{K} = \frac{0.4}{0.05} \ti
 For $x(z)$ with $\rho = -0.3$:
 $1 - 2\rho z + z^2 = 1 - 2(-0.3)(-0.1942) + 0.0377 = 1 - 0.1165 + 0.0377 = 0.9212$, so $\sqrt{1 - 2\rho z + z^2} \approx 0.9598$.
 
-$x(z) = \ln\!\left[\frac{0.9598 + (-0.1942) - (-0.3)}{1 - (-0.3)}\right] = \ln\!\left[\frac{1.0656}{1.3}\right] = \ln(0.8197) \approx -0.1989$
+$x(z) = \ln\\!\left[\frac{0.9598 + (-0.1942) - (-0.3)}{1 - (-0.3)}\right] = \ln\\!\left[\frac{1.0656}{1.3}\right] = \ln(0.8197) \approx -0.1989$
 
 $z/x(z) = -0.1942 / (-0.1989) \approx 0.976$
 
@@ -986,13 +986,13 @@ Swaption PV $= A \times c_N = 4.5 \times 0.00129 \approx 0.00581$, i.e., **about
 
 **Find:** Pathwise formula for $\partial \text{Caplet} / \partial L_3(0)$.
 
-**Solution (under the $T_3$-forward measure $\mathbb{Q}^3$, where $L_3$ is a martingale):**
+**Solution.** Work under the $T_3$-forward measure $\mathbb{Q}^3$, where $L_3$ is a martingale.
 
 If $L_3(T_2) \gt K$ (in-the-money):
 $$\frac{\partial}{\partial L_3(0)} \tau_3 (L_3(T_2) - K) = \tau_3 \frac{\partial L_3(T_2)}{\partial L_3(0)}$$
 
 Under lognormal martingale dynamics ($dL_3 = \sigma_3 L_3\\, dW$):
-$$L_3(T_2) = L_3(0) \exp\!\left(-\tfrac{1}{2}\int_0^{T_2}\!\sigma_3(s)^2\\, ds + \int_0^{T_2}\!\sigma_3(s)\\, dW(s)\right),$$
+$$L_3(T_2) = L_3(0) \exp\\!\left(-\tfrac{1}{2}\int_0^{T_2}\\!\sigma_3(s)^2\\, ds + \int_0^{T_2}\\!\sigma_3(s)\\, dW(s)\right),$$
 so $L_3(T_2)$ is linearly homogeneous in $L_3(0)$ and
 $$\frac{\partial L_3(T_2)}{\partial L_3(0)} = \frac{L_3(T_2)}{L_3(0)}.$$
 
@@ -1056,7 +1056,7 @@ Lower correlation reduces swaption volatility (from 18.3% to 17.0%).
 Under the swap measure $\mathbb{Q}^{a,b}$ (numeraire $A_{a,b}$), $S(T)$ is a martingale: $\mathbb{E}^{a,b}[S(T)] = S(0)$. But the coupon is paid under the $T_p$-forward measure $\mathbb{Q}^{T_p}$ (numeraire $P(\cdot, T_p)$). Changing measure introduces the Radon–Nikodym density
 $$\frac{d\mathbb{Q}^{T_p}}{d\mathbb{Q}^{a,b}} \propto \frac{P(T, T_p)/P(0, T_p)}{A_{a,b}(T)/A_{a,b}(0)},$$
 so
-$$\mathbb{E}^{T_p}[S(T)] = S(0) + \underbrace{S(0)\\,\mathrm{Cov}^{a,b}\!\left[\frac{S(T)}{S(0)},\frac{P(T, T_p)/P(0, T_p)}{A_{a,b}(T)/A_{a,b}(0)}\right]}_{\text{convexity adjustment}}.$$
+$$\mathbb{E}^{T_p}[S(T)] = S(0) + \underbrace{S(0)\\,\mathrm{Cov}^{a,b}\\!\left[\frac{S(T)}{S(0)},\frac{P(T, T_p)/P(0, T_p)}{A_{a,b}(T)/A_{a,b}(0)}\right]}_{\text{convexity adjustment}}.$$
 
 For typical CMS, the ratio $P(\cdot, T_p)/A_{a,b}(\cdot)$ is an increasing function of $S$ (the long annuity falls faster than the short bond when rates rise), so the covariance is positive and the adjustment is positive.
 
