@@ -1167,7 +1167,7 @@ Forward induction: from $Q_{0,0} = 1$ and the central-node probabilities, the ti
 | **Positivity** | No (Gaussian; can be negative) | Non-negative; strict positivity if $2ab \geq \sigma^2$ | No (Gaussian; can be negative) |
 | **Volatility behavior** | Constant $\sigma$ | $\propto \sqrt{r}$ (level-dependent) | Constant $\sigma$ (Gaussian) |
 | **Fits $P^M(0,T)$ exactly (as-is)** | Generally no (time-homogeneous limitation) | Generally no (same issue) | Yes, by choosing $\theta(t)$ from initial curve and using $A(t,T)$ built from $P(0,T)$ |
-| **Analytical tractability** | ZCB closed form; often analytical bond options | ZCB closed form; analytical in summaries | ZCB affine with explicit $A, B$; used as exogenous term structure Gaussian model |
+| **Analytical tractability** | ZCB closed form; closed-form bond options (Jamshidian 1989) and Black-style cap/swaption formulas | ZCB closed form; bond options analytical via the noncentral chi-squared distribution | ZCB affine with explicit $A, B$; closed-form bond options as in Vasicek; supports caps and (via Jamshidian) swaptions |
 | **Typical "why used" (supported)** | Simple mean reversion; tractable; simulation and intuition; but not exact curve fit | Positivity + level-dependent vol; tractable; but not exact curve fit | Exact initial curve fit + tractability; used (at least) for risk management and for building analyzable pricing frameworks |
 
 ---
