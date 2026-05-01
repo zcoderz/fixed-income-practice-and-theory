@@ -59,6 +59,21 @@ The single goal to keep in mind: when P&L surprises you, you want a short, check
 
 ---
 
+## Learning Objectives
+
+After working through this chapter, the reader should be able to:
+
+1. Decompose any credit position into a Strategy Card with three explicit parts — exposure decomposition, hedge set with ratios, and failure modes / scenario suite — and articulate the residual risks that survive any "fully hedged" claim.
+2. Distinguish CS01, rates DV01, JTD/VOD, recovery sensitivity, index basis, and (for tranches) tranche PV01, systemic DV01, and Corr01 — naming the bump object, sign, and units for each.
+3. Size hedge ratios for the four core strategy families — bond–CDS basis, single-name vs index proxy, CDS curve steepener/flattener, and senior vs subordinated CDS — and identify the residuals each ratio leaves behind.
+4. Build a desk-style P&L explain for a credit-index position, splitting horizon P&L into carry, rolldown/theta, spread move, and event/default contributions, and reconcile clean vs full MTM around coupon dates.
+5. Diagnose the three structural drivers of the bond–CDS basis (funding asymmetry, delivery option, loss-on-default mismatch $P-R$ vs $1-R$) and explain when a CS01-matched basis package can still produce a large P&L break.
+6. Analyze tranche relative-value trades — equity vs senior, adjacent-tranche PV01 hedges, correlation-neutral combos — and explain why PV01 hedges can fail under default clustering and why local Corr01-neutrality is not global Corr01-neutrality.
+7. Apply the senior-sub spread relationship $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$ and the Merton equity-credit linkage as relative-value *consistency checks*, while recognizing recovery uncertainty and the model's structural simplifications as the dominant risks.
+8. Stress-test any of the above strategies under the "perfect storm" scenarios that recur across this book — funding/repo shocks, dispersion, default clustering, recovery surprise, correlation jumps, and series/roll basis dislocations.
+
+---
+
 ## Conventions & Notation
 
 All numbers are educational toy examples (no real market data; no trade recommendations).
@@ -185,7 +200,7 @@ If these are already familiar, skim this section and jump to 52.3.
 | Index basis | "Index moves but constituents don't (or vice versa)?" | bp or USD | Proxy hedges and index-vs-single-name P&L | Chapters 46–47 |
 | Tranche PV01 / Systemic DV01 / Corr01 | "Tranche / all-name / correlation move — tranche PV?" | USD/bp or USD/1% | Model-dependent; stress-test for clustering and convexity | Chapters 50–51 |
 
-### 1.1 CS01 / Spread DV01
+### 52.2.1 CS01 / Spread DV01
 
 CS01 is the linear spread-risk measure: how much PV changes for a 1 bp move in the *quoted* spread.
 
@@ -225,7 +240,7 @@ If these distinctions feel unfamiliar, Chapter 43 is the prerequisite for the re
 
 ---
 
-### 1.2 Rates DV01
+### 52.2.2 Rates DV01
 
 Rates DV01 isolates interest-rate exposure on funded instruments (cash bonds, some swap legs). It only enters this chapter when a strategy has a bond leg.
 
@@ -235,7 +250,7 @@ where $r$ is the relevant risk-free curve level (or yield). Standard duration/DV
 
 ---
 
-### 1.3 Jump-to-Default (JTD) Exposure
+### 52.2.3 Jump-to-Default (JTD) Exposure
 
 JTD is the discontinuous PV jump if the name defaults today. Where CS01 captures small spread moves, JTD captures the cliff.
 
@@ -261,7 +276,7 @@ $$(1-R) \cdot N = 0.60 \times 5{,}000{,}000 = 3{,}000{,}000 \text{ USD}$$
 
 ---
 
-### 1.4 Recovery / Final-Price Sensitivity
+### 52.2.4 Recovery / Final-Price Sensitivity
 
 Recovery is the second key state variable in default scenarios. Many "basis" and "hedge" surprises trace back to mismatched recovery assumptions.
 
@@ -277,7 +292,7 @@ The CDS protection leg can be cash-settled at a final price determined by dealer
 
 ---
 
-### 1.5 Index Basis (Quoted vs Intrinsic) and Series/Roll Basis
+### 52.2.5 Index Basis (Quoted vs Intrinsic) and Series/Roll Basis
 
 If you remember one thing about CDS indices: there are **two consistent ways** to talk about "the index level," and mixing them creates P&L confusion.
 
@@ -339,7 +354,7 @@ Indices roll every six months. On-the-run liquidity and maturity reset can creat
 
 ---
 
-### 1.6 Tranche Risk Measures (PV01, Correlation, Tail)
+### 52.2.6 Tranche Risk Measures (PV01, Correlation, Tail)
 
 > **Prerequisite:** if tranches are new, pause and read Chapters 49–51. The rest of this chapter assumes comfort with attachment/detachment and the tranche loss function (Ch. 49), correlation in tranche pricing (Ch. 50), and systemic vs idiosyncratic deltas/gammas (Ch. 51).
 
@@ -382,7 +397,7 @@ Clustering scenarios swamp small-spread hedges: PV01 hedges fail because the pay
 
 ---
 
-### 1.7 Carry, Rolldown, and Theta
+### 52.2.7 Carry, Rolldown, and Theta
 
 #### Cash Bond (Brief)
 
@@ -422,7 +437,7 @@ We use **carry + rolldown + spread move + events** as the P&L-explain framework 
 
 ---
 
-### 1.8 Liquidity / Funding / Financing Risk
+### 52.2.8 Liquidity / Funding / Financing Risk
 
 The CDS–cash basis is defined as:
 
@@ -487,7 +502,7 @@ The "bond Libor spread" is typically the asset swap spread for fixed-rate bonds 
 
 The basis persists because CDS and bonds are fundamentally different contracts. O'Kane organizes the drivers into **fundamental factors** (contractual differences) and **market factors** (trading dynamics). Treat both lists as a checklist when a "fully hedged" basis position surprises you.
 
-#### 3.1.1 Fundamental (Contract-Driven) Factors
+#### Fundamental (Contract-Driven) Factors
 
 | # | Factor | What it does |
 |---|--------|--------------|
@@ -498,7 +513,7 @@ The basis persists because CDS and bonds are fundamentally different contracts. 
 | 5 | **Accrued premium at default** | CDS settles accrued at default; bond coupons stop and accrued can be lost. Small but matters in tight basis carry. |
 | 6 | **CDS spreads non-negative** | Asset-swap spreads can go negative (high-quality Treasuries); CDS cannot. Asymmetric floor. |
 
-#### 3.1.2 Market (Flow-Driven) Factors
+#### Market (Flow-Driven) Factors
 
 | # | Factor | What it does |
 |---|--------|--------------|
@@ -701,7 +716,7 @@ $$N_{\text{index}} = -\frac{\beta \cdot CS01_{\text{single}}}{CS01_{\text{index 
 
 Credit curve trades express a view on the *shape* of a single name's CDS spread term structure rather than its level. They extend the relative-value framework from Chapter 44.
 
-#### 3.3.1 Curve Shapes and What They Signal
+#### Curve Shapes and What They Signal
 
 | Shape | Typical context | Hazard-rate implication |
 |-------|-----------------|--------------------------|
@@ -711,7 +726,7 @@ Credit curve trades express a view on the *shape* of a single name's CDS spread 
 
 **Desk intuition for inversion.** An inverted curve is a "survival bet" by the market. *Toy example:* a name trading 800 bp at 1Y and 500 bp at 5Y is saying the market is overwhelmingly focused on near-term default risk. A **curve flattener** (short the short-dated protection, long the longer-dated protection — the structure used in Example 17) monetizes normalization *if the name survives*: as the short-end spread tightens, the short-protection leg gains, dominating the smaller long-protection leg. If the name *defaults* instead, both legs trigger; CS01-neutral sizing requires a *larger* short-protection notional on the short tenor, so the flattener typically realizes a meaningful net loss on default (the larger short leg pays out more than the smaller long leg receives).
 
-#### 3.3.2 Forward CDS Curves
+#### Forward CDS Curves
 
 Spot CDS curves map to forward curves (O'Kane, Table 9.1):
 
@@ -720,7 +735,7 @@ Spot CDS curves map to forward curves (O'Kane, Table 9.1):
 | Upward-sloping | Forward $\gt$ spot — forward-starting protection more expensive |
 | Inverted | Forward $\lt$ spot — declining expected hazard rates |
 
-#### 3.3.3 Curve Arbitrage Bounds
+#### Curve Arbitrage Bounds
 
 O'Kane derives an arbitrage lower bound for inverted curves. Approximately:
 
@@ -737,10 +752,24 @@ A severely inverted curve can violate no-arbitrage constraints implied by the CD
 
 ##### 1. Objective
 
-Express a view on the *shape* of a single name's credit curve:
-- **Steepening** — short end widens relative to long end (slope $S_{\text{short}} - S_{\text{long}}$ increases — e.g., an upward-sloping curve flattens toward the short end, or an inverted curve becomes more inverted).
-- **Flattening** — long end widens relative to short end (slope $S_{\text{short}} - S_{\text{long}}$ decreases — e.g., an upward curve steepens, or an inverted curve normalizes).
-- **Survival bet** — for a name with an inverted curve, "the name survives" implies the short end will **tighten** relative to the long end, i.e., the inverted curve **normalizes**. Per the definitions above, normalization is **flattening**, so the **flattener** profits (matches Example 17). The steepener is the opposite trade and *loses* on this scenario.
+Express a view on the *shape* of a single name's credit curve.
+
+**Convention used in this chapter.** Define the slope of the credit curve as $\sigma \equiv S_{\text{short}} - S_{\text{long}}$ (short tenor spread minus long tenor spread). Note that this is the *signed* short-minus-long differential, not the absolute steepness:
+
+- An **upward-sloping** curve has $\sigma \lt 0$ (long $\gt$ short).
+- A **flat** curve has $\sigma = 0$.
+- An **inverted** curve has $\sigma \gt 0$ (short $\gt$ long).
+
+We then define curve moves and trade names by what happens to $\sigma$:
+
+| Curve move | $\sigma$ change | Concrete example |
+|------------|-----------------|------------------|
+| **"Steepening"** (short widens vs long) | $\sigma$ increases | Upward curve flattens toward short end; inverted curve becomes more inverted |
+| **"Flattening"** (short tightens vs long) | $\sigma$ decreases | Upward curve gets more steeply upward; inverted curve normalizes |
+
+This convention matches the typical CDS-desk usage: a "steepener" trade (Buy short protection + Sell long protection, per O'Kane) profits when $\sigma$ rises, regardless of whether the starting curve is upward or inverted. Standard rates terminology, where "steepening" usually refers to the absolute long-minus-short spread widening, would label some of these moves differently — be careful when translating across asset classes.
+
+- **Survival bet on an inverted name.** "The name survives" implies the short end tightens relative to the long end, i.e., the inverted curve **normalizes** ($\sigma$ decreases). Per the definitions above, normalization is **flattening**, so the **flattener** trade profits (matches Example 17). The steepener is the opposite trade and *loses* on this scenario.
 
 ##### 2. Instruments and Position Construction
 
@@ -898,7 +927,7 @@ For constituent hedges, see Strategy A2 and Example 4 — note the basis complic
 
 The index roll is a critical event: indices roll every six months, and investors who want to stay on-the-run typically sell the old series and buy the new one.
 
-#### 3.4.1 What Drives Roll P&L
+#### What Drives Roll P&L
 
 Two primary sources of roll P&L:
 
@@ -909,7 +938,7 @@ Two primary sources of roll P&L:
 
 The two effects can offset. A credit-upgraded new index with longer maturity may trade at the *same* spread as the old index if composition improvement offsets the curve steepness. (See Examples 8 and 8B.)
 
-#### 3.4.2 The Series Basis
+#### The Series Basis
 
 The price/spread gap between old (off-the-run) and new (on-the-run) series. It persists due to:
 
@@ -1174,7 +1203,7 @@ Even if Corr01 is near zero locally, the position still carries:
 
 ---
 
-## 52.6.3 Strategy Selection: When to Use Which Approach
+### 52.6.3 Strategy Selection: When to Use Which Approach
 
 The strategy families address different risk views. The tables below match each view to a strategy and flag the dominant residual.
 
@@ -1387,13 +1416,15 @@ Size for CS01-neutrality *or* for a specific spread-ratio view.
 
 ##### 4. Hedge Set and Hedge Ratios
 
-**CS01-neutral sizing:**
+**CS01-neutral sizing** (offset small parallel spread moves between the two legs):
 
 $$\boxed{N_{\text{sen}} = N_{\text{sub}} \times \frac{RPV01_{\text{sub}}}{RPV01_{\text{sen}}}}$$
 
-**Ratio-neutral sizing** (maintain the theoretical spread ratio):
+**JTD-neutral sizing** (offset the immediate default cashflow on each leg):
 
-$$\boxed{\frac{N_{\text{sub}} \cdot S_{\text{sub}}}{N_{\text{sen}} \cdot S_{\text{sen}}} = \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
+$$\boxed{N_{\text{sen}} = N_{\text{sub}} \times \frac{1 - R_{\text{sub}}}{1 - R_{\text{sen}}}}$$
+
+CS01-neutral and JTD-neutral sizing are *not* the same — choosing one leaves a residual on the other. As with the curve trade in A3, the two objectives can be reconciled only by accepting a residual (basis carry, recovery exposure, or a small naked CS01).
 
 ##### 5. Scenario Test Suite
 
@@ -1457,13 +1488,40 @@ The trade exploits a logical inconsistency: when equity volatility implies one d
 | Equity vega | indirect (Merton link) | dominant | Vol exposure |
 | JTD | CDS default payoff | equity goes to ~0 | **Significant residual** |
 
-##### 4. Failure Modes
+##### 4. Hedge Set and Hedge Ratios
+
+There is no closed-form hedge ratio for D2. Practical sizing typically involves:
+
+- **Merton-implied hedge ratio.** Use the Merton-model partial derivatives ($\partial S/\partial A$, $\partial S/\partial \sigma_A$) to translate an equity move into an "implied CDS move," then size to offset the implied CS01 of the equity leg with the actual CDS CS01.
+- **Equity puts in place of short stock.** Capping the equity-leg downside with deep out-of-the-money puts converts an unbounded short into a bounded payoff, which is closer in shape to the bounded CDS protection payout.
+- **Overweight the CDS leg in LBO-style scenarios.** Empirically, equity tender premia in LBO scenarios are larger (in dollar terms) than the CS01 × $\Delta S$ MTM impact on a CDS of equal notional — Example 19 illustrates the shortfall.
+
+Because Merton's parameters ($A$, $\sigma_A$) are not directly observable, hedge ratios are model-dependent and need to be back-tested or stress-tested before being relied upon.
+
+##### 5. Scenario Test Suite
+
+| # | Scenario | What it tests |
+|---|----------|---------------|
+| 1 | Equity rallies, CDS unchanged | Equity-credit decorrelation residual |
+| 2 | Equity sells off, CDS widens (joint distress) | Whether hedge ratio overweights the right leg |
+| 3 | LBO / leverage event (discrete shock) | Tender-premium asymmetry vs CDS spread move (Example 19) |
+| 4 | Buyback / dividend recap | Equity moves but CDS may not — model-departure scenario |
+| 5 | Default event (recovery sweep) | JTD residual; equity goes to ~0 while CDS pays $(1-R) \cdot N$ |
+
+##### 6. Failure Modes
 
 | Failure | Why it happens |
 |---------|----------------|
 | **Model risk** | Merton is highly simplified — unrealistic capital structure, single default time, opaque asset values. Any Merton-implied fair value inherits these limitations. |
 | Equity-credit decorrelation | Equity and CDS can diverge for reasons the model doesn't capture (buybacks, dividend changes, sector rotation) |
 | Execution complexity | Running a CDS-equity hedge spans two asset classes with different settlement, margin, and liquidity profiles |
+
+##### 7. Implementation Checklist
+
+- [ ] Document the equity-credit translation rule (Merton derivatives or empirical regression) and the assumed asset volatility / leverage inputs.
+- [ ] Stress-test the hedge under LBO, buyback, and default scenarios — *not* just under small-spread / small-equity moves.
+- [ ] Confirm whether the equity leg uses cash equity (unbounded P&L) or options (bounded), and reflect the resulting payoff asymmetry in scenarios.
+- [ ] Review reference-obligation conventions on the CDS leg — LBOs can change which obligations are deliverable.
 
 ---
 
@@ -1473,16 +1531,16 @@ The trade exploits a logical inconsistency: when equity volatility implies one d
 
 #### Recovery-Driven Spread Ratio
 
-Indicative mean recoveries (Altman et al. dataset):
+Indicative mean recoveries (Altman et al. dataset, as summarized in O'Kane):
 
 | Claim | Recovery $R$ |
 |-------|--------------|
-| Senior secured loan | ~68.5% |
-| Senior unsecured bond | ~34.89% |
+| Senior secured loan | ~68% |
+| Senior unsecured bond | ~35% |
 
 Under an equal-hazard-rate assumption (spread scales like $1-R$):
 
-$$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\text{loan}}} = \frac{0.65}{0.315} \approx 2.06$$
+$$\frac{S_{\text{CDS}}}{S_{\text{LCDS}}} = \frac{1 - R_{\text{bond}}}{1 - R_{\text{loan}}} = \frac{0.65}{0.32} \approx 2.0$$
 
 **Interpretation:** higher expected recovery on loans → lower LGD → lower fair spread, all else equal.
 
@@ -2486,9 +2544,9 @@ If realized sub recovery at default is 5% (not 20%), then the "cheap sub protect
 
 ---
 
-### Example 17: HY Curve Steepener — CS01-Neutral Sizing
+### Example 17: HY Curve Flattener (Bull Flattener) — CS01-Neutral Sizing
 
-**Goal:** size a CS01-neutral 3Y/5Y curve trade on an inverted HY name, then show the JTD mismatch baked into CS01 neutrality.
+**Goal:** size a CS01-neutral 3Y/5Y curve trade on an inverted HY name (the "survival bet" structure), then show the JTD mismatch baked into CS01 neutrality.
 
 #### Setup
 
@@ -2641,8 +2699,8 @@ The trade *loses* money even though both legs moved "the right way" — the equi
 #### Lesson
 
 Equity-CDS sizing is hard:
-- Equity moves are **discontinuous** (tender premium, gap risk).
-- CDS spread moves are large but **bounded** (capped by LGD).
+- Equity moves are **discontinuous** (tender premium, gap risk) and a single LBO can crystallize the equity P&L instantly.
+- CDS-leg P&L is dominated by the **MTM impact of spread widening** (linear-ish in $\Delta S \cdot RPV01$). The *terminal default payoff* is bounded by $(1-R) \cdot N$, but the *MTM gain* on a spread blow-out can lag the equity move in dollar terms when notionals are sized equally — the CDS does not get a "tender premium."
 
 Professional desks typically:
 1. Use **equity puts** rather than short stock to limit downside.
@@ -2726,7 +2784,7 @@ Validate any correlation package with **stressed** correlation moves, not just $
 | 14 | Adjacent Tranche Hedge | PV01 match, clustering failure |
 | 15 | Strategy Comparison Table | Side-by-side exposure map |
 | 16 | Senior vs Sub CDS | Recovery-driven spread relationship |
-| 17 | HY Curve Steepener | CS01-neutral sizing, JTD mismatch |
+| 17 | HY Curve Flattener (Bull Flattener) | CS01-neutral sizing, JTD mismatch |
 | 18 | Negative Basis Funding Stress | Carry decomposition, funding risk |
 | 19 | Equity-CDS Relative Value (LBO) | Merton model application, sizing |
 | 20 | Correlation Shock on Combo | Corr01 convexity, local vs global hedging |
@@ -2789,7 +2847,7 @@ This chapter is an educational risk framework. It does **not** provide recommend
 | **Funding Risk** | Exposure to repo/financing rate changes on funded instruments | CDS is unfunded; bonds face funding risk that can dominate carry |
 | **Negative Basis** | CDS spread < bond asset swap spread; synthetic protection cheaper than cash | Exploitable if funding cost is low enough; destroyed by funding stress |
 | **Positive Basis** | CDS spread > bond spread; protection demand exceeds cash supply | Tends to emerge during distress; squeeze dynamics |
-| **Senior-Sub Spread Ratio** | `S_sub/S_sen = (1-R_sub)/(1-R_sen)` under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
+| **Senior-Sub Spread Ratio** | $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$ under equal hazard rates | Foundation for capital structure arbitrage; recovery uncertainty is key risk |
 | **Merton Model (Credit)** | Equity = call on firm assets; debt = cash − put on assets | Links equity and credit markets; basis for equity-CDS RV trades |
 | **LCDS** | Loan CDS referencing loans and embedding a cancellation feature | Often trades tighter than vanilla CDS due to higher expected recovery; conventions and liquidity matter |
 | **CDS Curve Inversion** | Short-dated spreads exceed long-dated (common in HY distressed) | Signals near-term default risk; curve trades carry JTD mismatch |
@@ -2811,7 +2869,7 @@ This chapter is an educational risk framework. It does **not** provide recommend
 8. **Indices have intrinsic vs quoted basis**; the portfolio swap adjustment reconciles them but is "somewhat arbitrary" (O'Kane).
 9. **Index rolls create P&L** from composition changes and maturity extension—these can offset or compound.
 10. **CDS curve strategies** require CS01-neutral sizing but carry inherent JTD mismatch from unequal notionals.
-11. **Capital structure arbitrage** exploits the senior-sub spread relationship (`S_sub/S_sen = (1-R_sub)/(1-R_sen)`), but recovery uncertainty is the dominant risk.
+11. **Capital structure arbitrage** exploits the senior-sub spread relationship $S_{\text{sub}}/S_{\text{sen}} = (1-R_{\text{sub}})/(1-R_{\text{sen}})$, but recovery uncertainty is the dominant risk.
 12. **Tranche risk is multi-dimensional**: systemic delta, systemic gamma, idiosyncratic delta, idiosyncratic gamma, Corr01, carry, and theta all matter.
 13. **Equity and senior tranches have opposite correlation exposures**: Corr01 is negative for equity, positive for senior (for long protection).
 14. **Positive gamma positions typically have negative carry** (O'Kane)—there is a cost to owning convexity.
@@ -2828,7 +2886,7 @@ This chapter is an educational risk framework. It does **not** provide recommend
 - CS01 hedge: $N_H = -CS01_T / CS01_H$.
 - VOD/JTD (CDS): $VOD = (1 - R - \text{Accrued}) - (S - S_0) \cdot RPV01$.
 - Tranche loss: $L_{[A,B]} = \frac{1}{B - A} \left( \max(L - A, 0) - \max(L - B, 0) \right)$.
-- Senior-sub spread ratio: `S_sub/S_sen = (1 - R_sub)/(1 - R_sen)`.
+- Senior-sub spread ratio: $S_{\text{sub}}/S_{\text{sen}} = (1 - R_{\text{sub}})/(1 - R_{\text{sen}})$.
 - Curve trade CS01-neutral sizing: $N_{\text{short}} = N_{\text{long}} \times RPV01_{\text{long}} / RPV01_{\text{short}}$.
 
 ---
@@ -2929,7 +2987,7 @@ This chapter is an educational risk framework. It does **not** provide recommend
 
 47. **Q:** What is the "positive basis squeeze"? **A:** When CDS spreads widen above bond spreads—often during distress when protection demand surges and bond liquidity dries up.
 
-48. **Q:** What is the senior-sub CDS spread ratio under equal hazard rates? **A:** `S_sub / S_sen = (1 - R_sub) / (1 - R_sen)` — driven purely by recovery difference.
+48. **Q:** What is the senior-sub CDS spread ratio under equal hazard rates? **A:** $S_{\text{sub}}/S_{\text{sen}} = (1 - R_{\text{sub}})/(1 - R_{\text{sen}})$ — driven purely by recovery difference.
 
 49. **Q:** What does the Merton model say about equity and debt? **A:** Equity is a call option on firm assets; debt is equivalent to risk-free cash minus a put on firm assets.
 
