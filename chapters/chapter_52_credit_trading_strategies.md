@@ -1289,7 +1289,7 @@ START: What is your primary view?
 │   ├─ Holding period P&L → Strategy B1
 │   └─ Roll timing → Strategy B2
 │
-├─ View on CORRELATION / TAIL
+├─ View on CORRELATION / TAIL → Use Strategy C1 (Tranche RV)
 │   ├─ Correlation increase → Short equity / Long senior
 │   ├─ Correlation decrease → Long equity / Short senior
 │   └─ Dispersion view → Gamma-driven tranche trade (see Chapter 51)
