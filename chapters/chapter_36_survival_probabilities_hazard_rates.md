@@ -1067,15 +1067,13 @@ Interpretation: market-implied hazards used for valuation can be materially larg
 
 ---
 
-### Example 36.11 (Worked Example): Quote to Q/h to PV, with hazard bump and CS01
-
-**Example Title**: Pricing a risky zero-coupon payoff from a CDS quote (toy model)
+### Example 36.11: Pricing a risky zero-coupon payoff from a CDS quote (toy model)
 
 **Context**
-- You see a 5Y CDS running spread $S$ and want a quick, transparent mapping to survival, PV, and spread risk.
-- This example is a *toy* (credit triangle + flat curves) that you can reproduce in a spreadsheet before you move on to full CDS bootstrapping.
 
-**Timeline (Make Dates Concrete)**
+You see a 5Y CDS running spread $S$ and want a quick, transparent mapping to survival, PV, and spread risk. This example is a *toy* (credit triangle + flat curves) that you can reproduce in a spreadsheet before you move on to full CDS bootstrapping.
+
+**Timeline (concrete dates)**
 - Trade date: 2026-02-15
 - Settlement date: 2026-02-17 (assumed)
 - Maturity date: 2031-02-15
@@ -1088,7 +1086,7 @@ Interpretation: market-implied hazards used for valuation can be materially larg
 - Risk-free discounting (toy): flat continuously-compounded $r=3\%$ per year
 - Hazard model (toy): constant hazard $h$, inferred from the credit triangle
 
-**Outputs (What You Produce)**
+**Outputs**
 - Survival $Q(0,T)$
 - PV of a defaultable payoff with fractional recovery of par
 - Hazard-bump sensitivity (PV change per $+1$ bp/year in $h$)
@@ -1121,13 +1119,13 @@ Plugging $r=0.03$, $h=0.025$, $T=5$, $R=0.40$, $N=10{,}000{,}000$:
 
 $$PV \approx \mathrm{USD}\\,8{,}032{,}863.$$
 
-**Step 5: Hazard bump (parallel $+1$ bp/year in $h$).**
+**Step 5: Hazard bump.** Parallel $+1$ bp/year shift in $h$:
 
 $$\Delta h = 1\text{ bp/year} = 10^{-4}.$$
 
 Reprice at $h+\Delta h = 0.0251$: $PV(h+\Delta h)-PV(h)\approx -\mathrm{USD}\\,2{,}153$ (per USD 10mm notional). Equivalently, the analytic derivative of the closed-form PV satisfies $\partial PV/\partial h \approx -\mathrm{USD}\\,21{,}535{,}000$ per unit hazard, and $-21{,}535{,}000 \times 10^{-4} \approx -2{,}153$.
 
-**Step 6: CS01 (spread $+1$ bp, curve rebuild via triangle).**
+**Step 6: CS01.** Spread $+1$ bp with curve rebuild via the triangle:
 
 $$h(S)=\frac{S}{1-R}, \qquad \Delta S = 1\text{ bp} = 10^{-4}.$$
 
