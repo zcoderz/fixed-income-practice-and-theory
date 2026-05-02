@@ -38,15 +38,15 @@ A critical terminology point: "buying a CDS" in market language typically means 
 
 > **Analogy: The Insurance Policy**
 >
-> A CDS is remarkably similar to Car Insurance.
+> A CDS is structurally similar to an insurance contract:
 >
-> 1.  **Premium Leg**: You pay a periodic fee (premium) to the protection seller.
-> 2.  **Protection Leg**: If the insured event occurs (a credit event), the seller compensates the buyer for the loss-from-par.
-> 3.  **The Difference**: You do not need to own the underlying bond/loan to buy CDS protection.
+> 1. **Premium leg**: the buyer pays a periodic fee (premium) to the protection seller.
+> 2. **Protection leg**: if the insured event occurs (a credit event), the seller compensates the buyer for the loss-from-par.
+> 3. **A key difference from ordinary insurance**: the protection buyer does not need to own the underlying bond or loan; CDS does not require an "insurable interest."
 >
 > **Visual: CDS Cashflows**
 > Buyer $\xrightarrow{\text{Premiums}}$ Seller
-> Seller $\xrightarrow{\text{Protection (if Default)}}$ Buyer
+> Seller $\xrightarrow{\text{Protection (if default)}}$ Buyer
 
 ---
 
@@ -117,8 +117,8 @@ Compute accrual fractions using ACT/360 and apply the premium payment formula fr
 
 **Worked Example: Building a Complete Schedule**
 
-Trade date: Wednesday, 15 January 2026
-Effective date: Thursday, 16 January 2026 (T+1 calendar)
+Trade date: Thursday, 15 January 2026
+Effective date: Friday, 16 January 2026 (T+1 calendar)
 Notional: USD 10 million
 Spread: 35 bp
 Maturity: 5 years → First standard date ≥ 16 January 2031 → 20 March 2031
@@ -138,7 +138,7 @@ Weekend/holiday adjustments create small but real differences in accrual factors
 
 ### 38.2.3 Stub Period Mechanics
 
-The first premium payment often involves a **stub period**—a period shorter or longer than the standard 91–92 days.
+The first premium payment often involves a **stub period**—a period shorter than the standard ~90–92 days between roll dates.
 
 **Front stub (short first coupon):** Trade date falls between roll dates, so the first accrual period is shorter than 3 months. This is the most common case.
 
@@ -347,25 +347,27 @@ Using $\Delta = 0.25$ for each quarterly period and $Q(0, t_0) = 1$:
 
 $$A(0,2) = \frac{1}{2} \sum_{n=1}^{8} 0.25 \times Z(0, t_n) \times (Q(0, t_{n-1}) + Q(0, t_n))$$
 
-| $n$ | $\Delta \times Z$ | $Q_{n-1} + Q_n$ | Contribution |
-|-----|-------------------|-----------------|--------------|
-| 1 | 0.2469 | 1.9950 | 0.2462 |
-| 2 | 0.2438 | 1.9850 | 0.2420 |
-| 3 | 0.2408 | 1.9751 | 0.2378 |
-| 4 | 0.2378 | 1.9653 | 0.2337 |
-| 5 | 0.2349 | 1.9555 | 0.2296 |
-| 6 | 0.2319 | 1.9458 | 0.2256 |
-| 7 | 0.2291 | 1.9361 | 0.2218 |
-| 8 | 0.2262 | 1.9264 | 0.2179 |
-| **Sum** | | | **1.8546** |
+The table below shows the per-period term $\Delta \cdot Z(0,t_n) \cdot (Q(0,t_{n-1})+Q(0,t_n))$; the leading factor of $\tfrac12$ is applied to the column total at the end.
 
-$$A(0,2) = \frac{1}{2} \times 1.8546 = 0.9273 \text{ years}$$
+| $n$ | $\Delta \times Z$ | $Q_{n-1} + Q_n$ | $\Delta \cdot Z \cdot (Q_{n-1}+Q_n)$ |
+|-----|-------------------|-----------------|--------------------------------------|
+| 1 | 0.2469 | 1.9950 | 0.4926 |
+| 2 | 0.2438 | 1.9851 | 0.4840 |
+| 3 | 0.2408 | 1.9751 | 0.4756 |
+| 4 | 0.2378 | 1.9653 | 0.4674 |
+| 5 | 0.2349 | 1.9555 | 0.4593 |
+| 6 | 0.2319 | 1.9458 | 0.4513 |
+| 7 | 0.2291 | 1.9361 | 0.4435 |
+| 8 | 0.2262 | 1.9264 | 0.4358 |
+| **Sum** | | | **3.7093** |
+
+$$A(0,2) = \frac{1}{2} \times 3.7093 = 1.8547 \text{ years}$$
 
 **Step 3: Convert to RPV01 (currency per bp)**
 
-$$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^{-4} \times 0.9273 = USD 927.30 \text{ per bp}.$$
+$$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^{-4} \times 1.8547 = USD\\,1{,}854.66 \text{ per bp}.$$
 
-**Interpretation:** The risky annuity is 0.9273 years. The corresponding `RPV01` for USD 10mm notional is USD 927.30 per bp. The risk-free annuity would be higher; the difference reflects survival-weighting reducing expected payments.
+**Interpretation:** The risky annuity is about 1.85 years. The corresponding RPV01 for USD 10mm notional is roughly USD 1,855 per bp. For comparison, the risk-free 2-year quarterly annuity at 5% is about 1.886 years; the small reduction reflects survival-weighting downweighting later payments.
 
 > **Desk Reality: RPV01 vs “annuity”**
 >
@@ -402,13 +404,13 @@ Using the MTM identity $V(t) = (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01
 
 ## 38.6 The Upfront-Plus-Coupon Trading Regime
 
-Following CDS standardization (often referred to as the April 2009 “Big Bang”), many CDS and CDS indices trade with **fixed running coupons** plus an **upfront payment**. Instead of trading every contract at a bespoke running spread, the contract uses a standard coupon $c$ and the trade is brought to fair value by exchanging an upfront amount.
+Following the CDS standardization initiated by the "Big Bang" Protocol (effective April 8, 2009 for North American single-name CDS, with a parallel "Small Bang" for European names later that year), single-name CDS and CDS indices typically trade with a **fixed running coupon** plus an **upfront payment** at trade time. Instead of trading every contract at a bespoke running spread, the contract uses a standard coupon $c$ and the trade is brought to fair value by exchanging an upfront amount.
 
 > **Deep Dive: The Big Bang (April 2009)**
 >
-> On April 8, 2009, a "Big Bang" occurred in the market for CDS contracts and the way in which they are traded. The standardization had three main parts: auction hardwiring, standardizing trading conventions, and central clearing.
+> The April 2009 Big Bang Protocol introduced three main changes to single-name CDS trading: (i) hard-wiring auctions into the contract for cash settlement; (ii) standardizing trading conventions, including fixed running coupons (e.g., 100 bp and 500 bp in North America) plus upfront payments; and (iii) supporting central clearing.
 >
-> Under the running spread convention, no money was exchanged upfront which implied that CDS positions were implicitly leveraged. The upfront payments are made at initiation and are equal to the present value of the difference between the current market credit spread and the fixed coupon.
+> Before standardization, contracts traded at a bespoke par running spread, with no money exchanged at trade inception. Off-market resets and unwinds therefore left positions with embedded MTM that was realized only over the life of the trade. Fixed-coupon-plus-upfront trading moves that MTM into a single up-front payment equal to the present value of the running differential $(s-c)$ between the current market par spread and the fixed coupon (per Section 38.6.2).
 
 ### 38.6.1 Standard Coupons
 
@@ -427,24 +429,21 @@ If you like bond-style quoting, define a clean price per USD 100 notional as $P=
 $$\boxed{P \approx 100 - 100 \times A(t,T) \times (s - c)}$$
 
 where:
-- $P$ = price per USD 100 notional
+- $P$ = clean price per USD 100 notional
+- $U$ = clean upfront as a fraction of notional
 - $A(t,T)$ = risky annuity (years)
-- $s$ = quoted spread (decimal)
+- $s$ = quoted (current) par spread (decimal per annum)
+- $c$ = fixed contractual coupon (decimal per annum)
 
-**Check (units and sign):** $A$ has units of years and $(s-c)$ has units of 1/year, so $U$ is dimensionless (a fraction of notional). If $s\gt c$ (market par spread above the fixed coupon), then the coupon is “too low” and the protection buyer pays a positive upfront to the seller. In dollars, a convenient equivalent is:
-
-$$
-Upfront_{\mathrm{USD}} \approx (s-c)_{\mathrm{bp}} \times RPV01(t,T).
-$$
-- $c$ = fixed coupon (decimal)
+**Check (units and sign):** $A$ has units of years and $(s-c)$ has units of 1/year, so $U$ is dimensionless (a fraction of notional). If $s\gt c$ (market par spread above the fixed coupon), then the coupon is "too low" and the protection buyer pays a positive upfront to the seller.
 
 **Settlement mechanics:**
-- If $s \gt  c$: the protection buyer pays $(100 - P)$ per USD 100 notional upfront
-- If $s \lt  c$: the protection buyer receives $(P - 100)$ per USD 100 notional upfront
+- If $s \gt c$: the protection buyer pays $(100 - P)$ per USD 100 notional upfront.
+- If $s \lt c$: the protection buyer receives $(P - 100)$ per USD 100 notional upfront.
 
-Equivalently, in dollar terms (using spreads in bp and `RPV01` in currency per bp):
+Equivalently, in dollar terms (using spreads in bp and RPV01 in currency per bp for the stated notional):
 
-$$\boxed{Upfront_{\mathrm{USD}} \approx (s_{\text{bp}}-c_{\text{bp}})\times \text{RPV01}(t,T)}$$
+$$\boxed{\text{Upfront}_{\mathrm{USD}} \approx (s_{\mathrm{bp}}-c_{\mathrm{bp}})\times \text{RPV01}(t,T)}$$
 
 **Example:** Consider a 5-year CDS:
 - Quoted spread: $s = 150$ bp = 0.015
@@ -482,11 +481,11 @@ Mechanically, this reduces the number of bespoke coupons on the book and makes i
 
 ### 38.6.5 Distressed Credits: Pure Upfront Format
 
-Upfront contracts are non-standard for most issuers. However, when an issuer is in distress typically the market CDS spread is of the order of 1000 bp - the market switches from trading using the standard running spread to trading in an upfront format.
+For most names, the standard format is a fixed running coupon (e.g., 100 bp) plus a (relatively small) upfront — the running leg dominates economics. When an issuer becomes distressed and par CDS spreads run into the high hundreds or low thousands of bp, the market typically switches to a **pure upfront** quote: protection trades for a single upfront payment with no running premium (or with the running coupon set to zero).
 
-**Expand (why this happens):** A protection seller may prefer a sure but heavily discounted premium now rather than waiting for a very risky stream of premium cashflows.
+**Expand (why this happens):** A protection seller facing a near-certain credit event may prefer a discounted but certain payment now rather than waiting for a stream of premium cashflows that may be cut short by an imminent default. Quoting in pure upfront also avoids the numerical fragility of expressing very large running spreads when the assumed term structure of survival is steep.
 
-The upfront CDS replaces the premium leg of a CDS with a single payment of $U(0)$ at the initiation of the contract. The protection leg is unchanged.
+A pure-upfront CDS replaces the premium leg with a single payment $U(0)$ at the initiation of the contract; the protection leg is unchanged.
 
 **Valuation identity (par at inception):** For a long-protection buyer who pays upfront $U(0)$, setting the contract value to zero at trade time gives:
 
@@ -499,8 +498,8 @@ $$\boxed{U(0)=(1-R)\int_0^T Z(0,s)\,(-dQ(0,s))}$$
 i.e., the upfront equals the present value of the protection leg (per unit notional) when there is no running premium leg.
 
 **Check (limits):**
-- If default is very unlikely over $[0,T]$, the protection leg PV is near 0, so upfront is near 0.
-- If default is near-certain very soon, the protection leg PV approaches $(1-R)$ (per unit notional), so upfront becomes large.
+- If default is very unlikely over $[0,T]$, the protection leg PV is near 0, so the upfront is near 0.
+- If default is near-certain very soon, the protection leg PV approaches $(1-R)$ per unit notional, so the upfront approaches $(1-R)$ as a fraction of notional.
 
 > **Desk Reality: Quote units**
 >
@@ -519,9 +518,9 @@ Let:
 - $S_{\text{bp}}(t,T)$ be the current market par spread for maturity $T$ (in bp),
 - $\text{RPV01}(t,T)$ be the risky PV of 1 bp of running premium (currency per bp for the stated notional).
 
-**Anchor (per USD 1 face value):** $V(t)=(S(t,T)-S(0,T))\times \text{RPV01}(t,T)$.
+**Anchor (long protection, for the stated notional):** $V(t)=\bigl(S(t,T)-S_0\bigr)\times \text{RPV01}(t,T)$, where $S(t,T)$ is the current par spread for maturity $T$ and $S_0$ is the contractual running spread/coupon.
 
-Using spreads in bp and `RPV01` in currency per bp for the stated notional, a practical MTM identity for a **long protection** position is:
+Using spreads in bp and RPV01 in currency per bp for the stated notional, a practical MTM identity for a **long protection** position is:
 
 $$\boxed{V(t) = \bigl(S_{\text{bp}}(t,T)-S_{0,\text{bp}}\bigr)\,\text{RPV01}(t,T)}$$
 
@@ -561,13 +560,11 @@ There are three economically related but operationally different ways to remove 
 
 ### 38.7.3 Clean versus Full Mark-to-Market
 
-Like bonds, CDS can be quoted **clean** (excluding accrued premium since the last coupon date) or **full/dirty** (including accrued). Define:
-
-The clean value of the CDS contract is calculated by subtracting away the accrued coupon.
+Like bonds, CDS can be quoted **clean** (excluding accrued premium since the last coupon date) or **full/dirty** (including accrued). The two are related by:
 
 $$\boxed{\text{Clean MTM}=\text{Full MTM}-\text{Accrued}}$$
 
-The sign of `Accrued` depends on whether you pay or receive the running coupon: for a long-protection position, accrued premium is typically a negative cashflow (you owe it if you unwind between coupon dates).
+Here "Accrued" is a *signed* quantity: positive for a position that has been **receiving** the running coupon (a short-protection position) and negative for one that has been **paying** it (a long-protection position). Equivalently, for a long-protection position the buyer owes the seller the accrued amount on unwind, so the full MTM is lower than the clean MTM by that amount.
 
 **Critical distinction:** Clean vs full is a *quotation convention* to avoid MTM jumps on coupon dates. It does **not** change the contractual rule that accrued premium is owed on default (Section 38.4).
 
@@ -579,29 +576,29 @@ The sign of `Accrued` depends on whether you pay or receive the running coupon: 
 
 ## 38.8 Buyer versus Seller: Signs and Cashflow Map
 
-The following table summarizes cashflow signs (positive = receive, negative = pay):
+The following table summarizes cashflow and P&L signs (positive = receive/gain, negative = pay/loss):
 
 | Component | Protection Buyer | Protection Seller |
 |-----------|------------------|-------------------|
-| Scheduled premium payments | $-N s \Delta$ | $+N s \Delta$ |
-| Accrued premium at default | $-$ (pays) | $+$ (receives) |
-| Protection payment | $+N(1-R)$ | $-N(1-R)$ |
-| Upfront (if $s \gt  c$) | $-$ (pays) | $+$ (receives) |
-| Upfront (if $s \lt  c$) | $+$ (receives) | $-$ (pays) |
-| MTM if spreads widen | $+$ (gain) | $-$ (loss) |
-| MTM if spreads tighten | $-$ (loss) | $+$ (gain) |
+| Scheduled premium payments (cashflow) | $-N s \Delta$ | $+N s \Delta$ |
+| Accrued premium at default (cashflow) | $-$ (pays) | $+$ (receives) |
+| Protection payment (cashflow) | $+N(1-R)$ | $-N(1-R)$ |
+| Upfront if $s \gt c$ (cashflow) | $-$ (pays) | $+$ (receives) |
+| Upfront if $s \lt c$ (cashflow) | $+$ (receives) | $-$ (pays) |
+| MTM impact when spreads widen (P&L) | $+$ (gain) | $-$ (loss) |
+| MTM impact when spreads tighten (P&L) | $-$ (loss) | $+$ (gain) |
 
-The cashflows are exactly symmetric: every dollar the buyer pays, the seller receives, and vice versa.
+The cashflow rows are exactly symmetric: every dollar the buyer pays, the seller receives, and vice versa. The MTM rows are unrealized P&L impacts; they map symmetrically to the two sides of the same contract.
 
 ---
 
 ## 38.9 Worked Example: Full CDS Lifecycle (Fixed Coupon + Upfront + Default)
 
-**Example Title:** A 5Y CDS trade that defaults mid-quarter
+A 5Y CDS trade that defaults mid-quarter.
 
 **Context**
-- A protection buyer enters a 5Y CDS at a fixed 100 bp coupon (example) when the market par spread is 150 bp, so an upfront is paid.
-- The name defaults mid-quarter; we track upfront, running premium, accrued-at-default, and the protection payment.
+- A protection buyer enters a 5Y CDS at a fixed 100 bp coupon (illustrative; the contractual coupon is product-specific) when the market par spread is 150 bp, so an upfront is paid at trade time.
+- The reference name defaults mid-quarter; we track the upfront, running premium, accrued-at-default, and the protection payment.
 
 **Timeline (Make Dates Concrete)**
 - Trade date: Monday, 19 January 2026
@@ -706,7 +703,7 @@ Before booking a CDS trade, verify:
 1. **Repricing check:** Input the agreed terms; verify the system reproduces the traded upfront
 2. **Schedule check:** Verify payment dates against a trusted source (Bloomberg CDSW)
 3. **RPV01 check:** Convert $\text{RPV01}/(N \times 10^{-4})$ to get a risky annuity in years, then compare to years-to-maturity for high-quality names
-4. **MTM check:** If spreads are in bp and RPV01 is in USD /bp for the position notional, verify $MTM \approx (S_{\text{bp}}-S_{0,\text{bp}})\times RPV01$
+4. **MTM check:** If spreads are in bp and RPV01 is in USD/bp for the position notional, verify $MTM \approx (S_{\text{bp}}-S_{0,\text{bp}})\times RPV01$.
 
 ---
 
@@ -808,7 +805,7 @@ Before booking a CDS trade, verify:
 8. Create a sign table showing buyer and seller cashflows for: (i) scheduled premium, (ii) accrued at default, (iii) protection payment, (iv) upfront (when $s\gt c$).
 9. A credit event occurs on Saturday. A trade executed on Friday has effective date Saturday (T+1 calendar). Explain why the convention matters.
 10. In one sentence, define clean vs full MTM and give one operational “break” it prevents or causes.
-11. If $A(0,2)=1.84$ years for a 2-year CDS and $N=USD 5$ million, compute $RPV01$ in USD /bp.
+11. If $A(0,2)=1.84$ years for a 2-year CDS and $N=USD 5$ million, compute $RPV01$ in USD/bp.
 12. MTM: Long protection with contractual $S_0=150$ bp, market $S=250$ bp, and $RPV01=USD 8{,}000$/bp. Compute MTM.
 
 ### Solution Sketches (Selected)
