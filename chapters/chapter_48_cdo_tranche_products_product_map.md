@@ -49,7 +49,7 @@ Pricing (Chapter 49) and correlation frameworks (Chapter 50) build directly on t
 ### Quick Conventions (Read Once)
 - Attachments/detachments $A,D$ and losses are stated as **fractions of original portfolio notional** $N_{\text{port}}$ unless explicitly stated otherwise.
 - Portfolio loss $L(t)$ is the **cumulative** loss fraction (so $0 \le L(t) \le 1$, or $0 \le L(t) \le L_{\max}$ if you assume fixed recoveries).
-- A tranche is denoted $[A,D]$ with width $w=D-A$. Tranche face notional is $N_{\text{tr}}^{\text{face}} = w\,N_{\text{port}}$.
+- A tranche is denoted $[A,D]$ with width $w=D-A$. Tranche face notional is $N_{\text{tr}}^{\text{face}} = w\\,N_{\text{port}}$.
 - “Tranche loss” can be expressed either (i) as a fraction of **portfolio** notional, or (ii) as a fraction of **tranche** notional. State which you mean.
 - When we use basis points: $1\text{ bp} = 10^{-4}$.
 
@@ -153,7 +153,7 @@ For this book, we focus on **synthetic tranches** because their payoff mechanics
 
 ---
 
-## 48.2 Portfolio Loss $L(t)$: The State Variable
+## 48.2 Portfolio Loss L(t): The State Variable
 
 ### 48.2.1 Definition
 
@@ -161,7 +161,7 @@ The portfolio loss $L(t)$ is the single state variable that drives tranche payof
 
 A general (weighted) definition is:
 
-$$L(T) = \sum_{i=1}^{N_c} w_i\,(1 - R_i)\,\mathbf{1}_{\tau_i \le T}, \qquad \sum_{i=1}^{N_c} w_i = 1$$
+$$L(T) = \sum_{i=1}^{N_c} w_i\\,(1 - R_i)\\,\mathbf{1}_{\tau_i \le T}, \qquad \sum_{i=1}^{N_c} w_i = 1$$
 
 where:
 - $N_c$ is the number of credits in the portfolio
@@ -180,9 +180,9 @@ Each default contributes $(1-R_i)/N_c$ to the portfolio loss.
 
 If **every** name defaults by maturity, the maximum possible realized loss is:
 
-$$\boxed{L_{\max} = \sum_{i=1}^{N_c} w_i\,(1 - R_i)}$$
+$$\boxed{L_{\max} = \sum_{i=1}^{N_c} w_i\\,(1 - R_i)}$$
 
-If you assume a common recovery $R$ for intuition, this becomes $L_{\max} = 1 - R$. For example, with $R = 40\%$, the portfolio cannot lose more than $60\%$ of notional (in the “all default” extreme).
+If you assume a common recovery $R$ for intuition, this becomes $L_{\max} = 1 - R$. For example, with $R = 40\\%$, the portfolio cannot lose more than $60\\%$ of notional (in the “all default” extreme).
 
 This matters for very senior tranches: if the detachment point $D$ is above $L_{\max}$, some of the quoted width is **unreachable** by credit losses. (We handle this explicitly in Section 48.5.4.)
 
@@ -197,9 +197,9 @@ Consider a portfolio of 100 credits, each with USD 10 million face value (total 
 | 3 | USD 10mm | 50% | USD 5mm | 0.50% |
 | **Total** | | | **USD 17.5mm** | **1.75%** |
 
-The portfolio loss is $L = 1.75\%$ of notional, or USD 17.5 million.
+The portfolio loss is $L = 1.75\\%$ of notional, or USD 17.5 million.
 
-### 48.2.4 Why $L(t)$ Is All That Matters
+### 48.2.4 Why L(t) Is All That Matters
 
 For **mechanics**, you don’t need to know *which* names defaulted — only the cumulative loss $L(t)$. Premium and protection payments can be written as functions of $L(t)$ and the tranche strikes $(A,D)$.
 
@@ -218,7 +218,7 @@ The tranche is defined by two “strikes” on portfolio loss:
 
 In our notation, $A = K_1$ (attachment) and $D = K_2$ (detachment), with tranche width $w = D - A$.
 
-**Check (strikes → dollars):** if the portfolio notional is $N_{\text{port}}=USD 100\text{mm}$ and the tranche is $[A,D]=[3\%,7\%]$, then $w=4\%$ and the tranche face notional is $N_{\text{tr}}^{\text{face}} = w\,N_{\text{port}} = USD 4\text{mm}$. This “percent-of-portfolio” convention is a common source of booking mistakes when someone accidentally treats tranche notional as percent-of-tranche.
+**Check (strikes → dollars):** if the portfolio notional is $N_{\text{port}}=USD 100\text{mm}$ and the tranche is $[A,D]=[3\\%,7\\%]$, then $w=4\\%$ and the tranche face notional is $N_{\text{tr}}^{\text{face}} = w\\,N_{\text{port}} = USD 4\text{mm}$. This “percent-of-portfolio” convention is a common source of booking mistakes when someone accidentally treats tranche notional as percent-of-tranche.
 
 ### 48.3.2 Intuition: Deductible and Limit
 
@@ -252,9 +252,9 @@ Desk note: the exact “who owns what” changes by era and regulation. The impo
 
 A standard contractual tranche loss function (expressed as a fraction of **tranche** notional) is:
 
-$$\boxed{L(T, K_1, K_2) = \frac{\max(L(T) - K_1, 0) - \max(L(T) - K_2, 0)}{K_2 - K_1}}$$
+$$\boxed{\ell_{\text{tr}}(T; K_1, K_2) = \frac{\max(L(T) - K_1, 0) - \max(L(T) - K_2, 0)}{K_2 - K_1}}$$
 
-This gives the fractional loss of the tranche—i.e., as a percentage of tranche notional, ranging from 0 to 1 (or 0% to 100%).
+The Greek-letter symbol $\ell_{\text{tr}}$ is used here to distinguish **fractional tranche loss** (a number in $[0, 1]$, expressed as a fraction of *tranche* notional) from the portfolio loss $L(T)$ (a fraction of *portfolio* notional). The two are related by a width rescaling — see 48.4.2.
 
 ### 48.4.2 Portfolio-Scale Tranche Loss
 
@@ -262,10 +262,10 @@ In our notation, we also work with tranche loss expressed as a fraction of **por
 
 $$\boxed{TL(L) = \min\bigl(\max(L - A, 0), D - A\bigr)}$$
 
-The relationship is:
-$$L_{\text{tr}}(T; A, D) = \frac{TL(L(T))}{D - A}$$
+The relationship between the two is just a width rescaling:
+$$\ell_{\text{tr}}(T; A, D) = \frac{TL(L(T))}{D - A}$$
 
-**Check (toy numbers):** for a $[3\%,7\%]$ tranche and portfolio loss $L=5\%$, $TL(L)=\min(\max(5-3,0),4)=2\%$ of portfolio notional, so the tranche has lost $2/4=50\%$ of its face. If $N_{\text{port}}=USD 100\text{mm}$, that is a $USD 2\text{mm}$ loss on a $USD 4\text{mm}$ tranche.
+**Check (toy numbers):** for a $[3\\%,7\\%]$ tranche and portfolio loss $L=5\\%$, $TL(L)=\min(\max(5-3,0),4)=2\\%$ of portfolio notional, so the tranche has lost $2/4=50\\%$ of its face. If $N_{\text{port}}=USD 100\text{mm}$, that is a $USD 2\text{mm}$ loss on a $USD 4\text{mm}$ tranche.
 
 ### 48.4.3 Piecewise Derivation
 
@@ -334,11 +334,11 @@ This is algebraically identical to $\min(\max(L-A, 0), D-A)$ but reveals the tra
 
 **Put-spread form** (for surviving notional):
 
-An equivalent view is that the **remaining tranche notional** is a put spread on portfolio loss:
+An equivalent view is that the **remaining (un-lost) tranche notional**, expressed as a fraction of *portfolio* notional, is a put spread on portfolio loss:
 
-$$f_\kappa(l) = (K_\kappa - l)^+ - (K_{\kappa-1} - l)^+$$
+$$\text{Remaining}(L; A, D) = w - TL(L) = (D - L)^+ - (A - L)^+$$
 
-This is a **put-spread** representation: long a put at the upper strike and short a put at the lower strike. It’s a useful mental model when thinking about tranche “Greeks” (delta/gamma) with respect to portfolio loss.
+That is: long a put at the *upper* strike $D$, short a put at the *lower* strike $A$. Quick check: at $L = 0$ this gives $D - A = w$ (full width remaining); at $L = A$ it gives $D - A = w$ (still full); at $L = D$ it gives $0$ (nothing left). This is a useful mental model when thinking about tranche "Greeks" (delta/gamma) with respect to portfolio loss.
 
 **Alternative form** (using min functions):
 $$TL(L) = \min(L, D) - \min(L, A)$$
@@ -364,7 +364,7 @@ where:
 - $S(A, D)$ is the contractual spread (decimal per annum)
 - $N_{\text{tr}}^{\text{out}}(t_i) = (w - TL(L(t_i))) \cdot N_{\text{port}}$ is outstanding notional
 
-**Check (premium-base amortization):** in the toy above ($[3,7]$ tranche, $L=5\%$), outstanding tranche notional is $(w-TL)N_{\text{port}}=(4\%-2\%)N_{\text{port}}=2\%\,N_{\text{port}}$, i.e., **half** the original tranche face. Premium payments on that tranche are therefore about half their initial size (before discounting and accrual details).
+**Check (premium-base amortization):** in the toy above ($[3,7]$ tranche, $L=5\\%$), outstanding tranche notional is $(w-TL)N_{\text{port}}=(4\\%-2\\%)N_{\text{port}}=2\\%\\,N_{\text{port}}$, i.e., **half** the original tranche face. Premium payments on that tranche are therefore about half their initial size (before discounting and accrual details).
 
 ### 48.5.2 Protection Leg: Loss Payments
 
@@ -391,17 +391,17 @@ Risk systems often approximate this (for intuition) by paying premium on end‑o
 
 ### 48.5.4 Senior Tranche Adjustment for Maximum Loss
 
-For very senior tranches, it’s common to quote detachment points that extend beyond the maximum possible realized portfolio loss implied by recovery assumptions. When $D$ exceeds $L_{\max}$, part of the tranche width is **unreachable** by credit losses.
+For very senior tranches, it's common to quote detachment points that extend beyond the maximum possible realized portfolio loss implied by recovery assumptions. When $D$ exceeds $L_{\max}$, part of the tranche width is **unreachable** by credit losses.
 
-Consider a portfolio of $N_c$ credits with assumed recovery rate $R$. The maximum possible portfolio loss is:
-$$L_{\max} = (1 - R)$$
+Consider a portfolio under the simplifying assumption of a common recovery rate $R$ across all names (so $L_{\max}$ reduces from the general $\sum_i w_i(1-R_i)$ in §48.2.2 to a single number):
+$$L_{\max} = 1 - R$$
 
 For a tranche with detachment $D \gt L_{\max}$, the tranche can never be fully wiped out by defaults alone. The effective tranche width for loss purposes is:
 $$w_{\text{eff}} = \min(D, L_{\max}) - A$$
 
-**Example:** If $R = 40\%$ (so $L_{\max} = 60\%$) and the super-senior tranche is $[30\%, 100\%]$:
+**Example:** If $R = 40\\%$ (so $L_{\max} = 60\\%$) and the super-senior tranche is $[30\\%, 100\\%]$:
 - Nominal width: 70%
-- Effective width: $60\% - 30\% = 30\%$
+- Effective width: $60\\% - 30\\% = 30\\%$
 - The 40% above $L_{\max}$ is "unreachable"—this affects both pricing and risk calculations
 
 This adjustment matters primarily for super-senior tranches with very high detachment points.
@@ -418,13 +418,17 @@ A simple (common) PV decomposition for the protection buyer is:
 $$PV \approx PV(\text{protection leg}) - PV(\text{premium leg}) - \text{upfront (if any)}$$
 
 At a desk level, you can think of:
-- **Premium leg PV** (running spread $S$ paid on expected outstanding notional):
-  $$PV_{\text{prem}} \approx S \sum_i \alpha_i\,P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]$$
-- **Protection leg PV** (expected discounted incremental tranche losses):
-  $$PV_{\text{prot}} \approx \sum_j P(0,u_j)\,\mathbb{E}[\Delta TL_j]\,N_{\text{port}}$$
+
+**Premium leg PV** (running spread $S$ paid on expected outstanding notional):
+
+$$PV_{\text{prem}} \approx S \sum_i \alpha_i\\,P(0,t_i)\\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]$$
+
+**Protection leg PV** (expected discounted incremental tranche losses):
+
+$$PV_{\text{prot}} \approx \sum_j P(0,u_j)\\,\mathbb{E}[\Delta TL_j]\\,N_{\text{port}}$$
 
 The **par running spread** $S^{\star}$ is the value that makes the trade have zero PV (ignoring any upfront), i.e.
-$$\boxed{S^{\star} \approx \frac{PV_{\text{prot}}}{\sum_i \alpha_i\,P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]}}$$
+$$\boxed{S^{\star} \approx \frac{PV_{\text{prot}}}{\sum_i \alpha_i\\,P(0,t_i)\\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]}}$$
 
 **Risk (be explicit about “what is bumped”)**
 - **Spread PV01 (contract-spread bump):** bump the contractual running spread $S$ by $+1$ bp $=10^{-4}$, holding the expected outstanding-notional profile fixed.
@@ -457,27 +461,28 @@ One commonly used grid (varies by index and vintage) is:
 | **Junior Mezzanine** | 3% — 7% | 3% — 6% | 10% — 15% |
 | **Senior Mezzanine** | 7% — 10% | 6% — 9% | 15% — 25% |
 | **Senior** | 10% — 15% | 9% — 12% | 25% — 35% |
-| **Super Senior** | 15% — 30% | 12% — 22% | 35% — 60% |
+| **Super Senior** | 15% — 30% | 12% — 22% | 35% — 100% |
 
-Some references also quote a residual “$K$–100%” tranche. If you treat recoveries as fixed so that $L_{\max} \lt 100\%$, detachment points above $L_{\max}$ create “unreachable width” and need the adjustment in Section 48.5.4.
+Some references also quote a residual "$K$–100%" tranche. Whenever recoveries are non-zero, $L_{\max} \lt 100\\%$, so detachment points above $L_{\max}$ create "unreachable width" and require the adjustment in Section 48.5.4.
 
 ### 48.6.2 Why These Specific Attachment Points?
 
 The attachment points are chosen to reflect the expected loss characteristics of each index:
 
-**CDX IG (0–3% equity):** For a 125-name equal‑weight index and a rough recovery assumption of $R \approx 40\%$, each default contributes about
-$$\frac{1-R}{125} \approx \frac{0.60}{125} \approx 0.48\%$$
+**CDX IG (0–3% equity):** For a 125-name equal‑weight index and a rough recovery assumption of $R \approx 40\\%$, each default contributes about
+$$\frac{1-R}{125} \approx \frac{0.60}{125} \approx 0.48\\%$$
 of portfolio loss. So the 0–3% tranche corresponds to roughly the “first ~6 defaults” under that simplified arithmetic. (Real life is messier: weights vary, recoveries vary, and defaults are not independent.)
 
-**CDX HY (0-10% equity):** High-yield portfolios have much higher expected loss—defaults are more frequent and often clustered. The 0-10% equity tranche reflects this higher default probability, ensuring the equity absorbs a meaningful portion of expected loss before mezzanine tranches are impacted.
+**CDX HY (0–10% equity):** CDX HY indices typically reference 100 names rather than 125, and trade with higher running spreads (i.e., higher implied default probabilities) and similar recoveries. With $R \approx 40\\%$, each default contributes about
+$$\frac{1-R}{100} \approx 0.60\\%$$
+of portfolio loss. So a 10% attachment corresponds to roughly the *first ~16–17 defaults* — a much wider absorbing layer than the IG 0–3% (~6 defaults), which is consistent with HY's materially higher expected and tail default counts. A narrower equity in HY would be exhausted under almost any non-trivial stress, leaving the HY mezzanine tranches behaving like equity from day one.
 
 **iTraxx Europe:** Similar logic to CDX IG, though slight differences in attachment points (3-6% vs 3-7% for junior mezz) reflect different market conventions and portfolio characteristics.
 
 ### 48.6.3 Why Standard Tranches Matter
 
-Standard tranches have the **same mechanics** as any single‑tranche synthetic CDO; the difference is **liquidity** and **observability**. Because standard tranches are quoted more regularly, their prices become inputs for:
+Standard tranches have the **same mechanics** as any single-tranche synthetic CDO; the difference is **liquidity** and **observability**. Because they are quoted more regularly, their prices serve as:
 
-Standard tranches serve as:
 1. **Hedging instruments** for bespoke tranche books
 2. **Calibration inputs** for correlation models (Chapter 50)
 3. **Relative value benchmarks** for credit portfolio views
@@ -524,13 +529,13 @@ Equity is frequently among the more actively traded slices because it concentrat
 
 ### 48.7.1 Leverage Ratio Definition
 
-$$\boxed{\text{Leverage} = \frac{\Delta_s}{F(K_1, K_2)}}$$
+A tranche's **systemic spread leverage** is the ratio of its spread PV01 (per unit tranche face) to the spread PV01 of the underlying index (per unit index notional), under a parallel bump of all index spreads:
 
-where $\Delta_s$ is the systemic delta (spread sensitivity of the tranche in terms of equivalent index notional) and $F(K_1, K_2)$ is the face value of the tranche.
+$$\boxed{\text{Leverage}(A, D) \\;=\\; \frac{\text{Systemic spread PV01 per unit tranche face}}{\text{Systemic spread PV01 per unit index notional}}}$$
 
-More intuitively:
+In words: how much spread sensitivity does USD 1 of tranche face carry, compared with USD 1 of the underlying index? "Systemic spread PV01" here means the PV change for a 1 bp parallel bump in the index spread, holding everything else fixed by your stated bump rule (see §48.5.5 pitfall).
 
-$$\boxed{\text{Leverage} = \frac{\text{Systemic spread PV01 of tranche}}{\text{Systemic spread PV01 of equivalent index notional}}}$$
+A tranche with leverage $\lambda$ behaves, for small parallel index spread moves, like $\lambda$ times its face notional in the underlying index.
 
 ### 48.7.2 Worked Example (DV01 Ratio)
 
@@ -584,21 +589,17 @@ where $TL_m(\cdot)$ is the *portfolio‑fraction* loss allocated to tranche $m$.
 
 ### 48.8.2 The Mathematical Derivation
 
-Starting from the definition of tranche expected loss:
+Write the $m$-th tranche's portfolio-fraction loss as $TL_m(L) = \min(L, K_m) - \min(L, K_{m-1})$ (the "min-of-min" form from §48.4.5). Then the total expected portfolio-fraction loss across all tranches is:
 
-$$\text{Total EL} = \mathbb{E}\left[\sum_{m=1}^{M}(K_m - K_{m-1}) L(T, K_{m-1}, K_m)\right]$$
+$$\text{Total EL} = \mathbb{E}\left[\sum_{m=1}^{M} TL_m(L(T))\right] = \mathbb{E}\left[\sum_{m=1}^{M}\bigl(\min(L(T), K_m) - \min(L(T), K_{m-1})\bigr)\right]$$
 
-Using the alternative form of the tranche loss function:
+This is a telescoping sum: adjacent terms cancel and only the endpoints survive,
 
-$$= \mathbb{E}\left[\sum_{m=1}^{M}\left(\min[L(T), K_m] - \min[L(T), K_{m-1}]\right)\right]$$
+$$= \mathbb{E}\bigl[\min(L(T), K_M) - \min(L(T), K_0)\bigr].$$
 
-This is a telescoping sum. Expanding:
+With $K_0 = 0$ we have $\min(L(T), 0) = 0$ since $L(T) \ge 0$. With the top tranche detaching at $K_M$ at least as large as $L_{\max}$ (so $L(T) \le K_M$ almost surely), $\min(L(T), K_M) = L(T)$. Therefore:
 
-$$= \mathbb{E}[\min(L(T), K_M) - \min(L(T), K_0)]$$
-
-Since $K_0 = 0$ and $K_M = 1$ (or $L_{\max}$ if capped at maximum loss):
-
-$$\boxed{\mathbb{E}\left[\sum_{m=1}^{M}(K_m - K_{m-1}) L(T, K_{m-1}, K_m)\right] = \mathbb{E}[L(T)]}$$
+$$\boxed{\sum_{m=1}^{M} \mathbb{E}[TL_m(L(T))] = \mathbb{E}[L(T)]}$$
 
 ### 48.8.3 Why This Matters
 
@@ -624,6 +625,8 @@ Mechanics intuition: when a default pushes losses into (say) the equity tranche,
 ## 48.9 Waterfall Mechanics: Loss Allocation Across Tranches
 
 ### 48.9.1 The Capital Structure Tower
+
+> **A note on orientation.** In §48.1.2 the *champagne tower* analogy puts equity at the **top** (it gets wet first). The *capital-structure* tower below puts equity at the **bottom** (losses fill from below up). Both pictures are correct — they're orthogonal mental models for the same waterfall. The rest of this chapter (and book) uses the capital-structure orientation in diagrams; the §48.1.2 analogy is the only inversion.
 
 Visualizing the capital structure as a tower helps understand loss flow:
 
@@ -744,9 +747,9 @@ The intuition becomes clearest at the extremes:
   - If $A \ge L_{\max}$, the tranche is always untouched
   - If $A \lt L_{\max} \lt D$, the tranche takes a **partial** loss in the “all default” scenario
 
-**Check (why equity can “like” higher correlation at the same mean loss):** take $L_{\max}=60\%$ and an equity tranche $[0,3\%]$. Suppose $\mathbb{E}[L]=2\%$.
+**Check (why equity can “like” higher correlation at the same mean loss):** take $L_{\max}=60\\%$ and an equity tranche $[0,3\\%]$. Suppose $\mathbb{E}[L]=2\\%$.
 - In a low-correlation picture where $L$ is tightly concentrated near its mean, equity is often **partially** hit, with tranche loss close to 2% of portfolio notional.
-- In a perfect-correlation two-state picture, take $L=0$ with probability $1-p$ and $L=60\%$ with probability $p$. Matching $\mathbb{E}[L]=2\%$ gives $p=2/60\approx 3.33\%$. Equity loss is then $0$ (no-default state) or $3\%$ (all-default state), so $\mathbb{E}[TL_{0-3}]\approx p\times 3\% \approx 0.10\%$ of portfolio notional—much smaller than 2%.
+- In a perfect-correlation two-state picture, take $L=0$ with probability $1-p$ and $L=60\\%$ with probability $p$. Matching $\mathbb{E}[L]=2\\%$ gives $p=2/60\approx 3.33\\%$. Equity loss is then $0$ (no-default state) or $3\\%$ (all-default state), so $\mathbb{E}[TL_{0-3}]\approx p\times 3\\% \approx 0.10\\%$ of portfolio notional—much smaller than 2%.
 This is purely a distribution-shape effect: higher correlation pushes probability mass toward “no loss” and “catastrophe,” and equity only cares about losses up to 3%.
 
 This is the essence of why tranches are "correlation products": the same expected loss can produce vastly different outcomes depending on whether losses are dispersed or clustered.
@@ -776,7 +779,7 @@ A simplified cliff‑effect illustration:
 - A senior **ABS** tranche can still be protected even if losses on the underlying mortgage portfolios are substantial (because junior ABS tranches absorb losses first).
 - A senior **ABS CDO** tranche built from **mezzanine ABS tranches** may only receive its full promised return if underlying mortgage‑portfolio losses stay below a much lower threshold (because it is “senior” only with respect to already-thin mezzanine collateral).
 
-One stylized loss table for this structure is:
+One stylized loss table for this structure is (illustrative numbers, *not* a market estimate). The shape follows from a simple two-layer assumption: the mezzanine-ABS layer fully absorbs the first 10% of mortgage-pool losses, and any further mortgage losses flow one-for-one into the ABS CDO senior tranche until 25% mortgage losses exhaust it (so the senior ABS CDO tranche has effective attachment 10% and detachment 25% *measured against the underlying mortgage-pool loss*):
 
 | Losses on underlying mortgage portfolios | Loss on senior ABS CDO tranche (illustrative) |
 |---|---|
@@ -784,6 +787,8 @@ One stylized loss table for this structure is:
 | 15% | ~33% |
 | 20% | ~67% |
 | 25% | 100% |
+
+The point is qualitative: a tranche labeled "senior" at the second layer can be exposed to *underlying* losses far below those that would harm a same-label tranche of a single-layer ABS — the resecuritization concentrates loss exposure into a narrower band of underlying outcomes.
 
 ### 48.11.2 What Went Wrong
 
@@ -803,23 +808,25 @@ From a tranche desk perspective, the “what went wrong” story has several lay
 
 A **CDO‑squared** pushes resecuritization further: the collateral is itself a portfolio of CDO tranches. This adds another layer of subordination and makes the structure extremely sensitive to whether losses are **dispersed** or **clustered** across sub‑portfolios.
 
-The danger is extreme sensitivity to loss clustering:
+The danger is extreme sensitivity to loss clustering.
 
-Illustrative example: consider five sub‑portfolios, each with a tranche that has 4% subordination and 5% width. Assume equal weights and a fixed recovery so each default contributes the same portfolio‑loss increment. Now compare two ways 20 defaults can arrive:
+**Illustrative setup.** Five sub-portfolios, each with 100 equally-weighted credits and 40% common recovery, so a single default contributes $0.6\\%/\text{sub-portfolio}\times100 = 0.6\\%$ of *that* sub-portfolio's notional. From each sub-portfolio we take a sub-tranche with attachment $4\\%$ and detachment $9\\%$ (width $5\\%$). The five sub-tranches form a "super-portfolio" with equal weights ($20\\%$ each); the **super-tranche** is the entire $0$–$100\\%$ range of that super-portfolio (i.e., the investor is exposed to *any* loss in the underlying sub-tranches).
 
-**Scenario 1 (dispersed losses):** 4 defaults in each of 5 sub-portfolios
-- Each sub-portfolio: 2.4% loss (below 4% subordination)
-- Sub-tranche loss: 0%
-- Super-tranche loss: 0%
+Now compare two ways the same 20 defaults can arrive:
+
+**Scenario 1 (dispersed losses):** 4 defaults in each of the 5 sub-portfolios
+- Each sub-portfolio: $4 \times 0.6\\% = 2.4\\%$ loss (below 4% sub-tranche attachment)
+- Each sub-tranche loss: $0\\%$
+- Super-portfolio loss: $5 \times 20\\% \times 0\\% = 0\\%$
 - **Investor takes no loss**
 
 **Scenario 2 (clustered losses):** All 20 defaults in one sub-portfolio
-- That sub-portfolio: 12% loss (exceeds 4% subordination + 5% width)
-- That sub-tranche: 100% wiped
-- Super-tranche: 20% loss (that sub-tranche was 20% of super-portfolio)
-- **Investor loses 20%**
+- That sub-portfolio: $20 \times 0.6\\% = 12\\%$ loss (exceeds attachment + width = $4\\% + 5\\% = 9\\%$)
+- That sub-tranche: $100\\%$ wiped (loss $= 5\\%$ of that sub-portfolio's notional)
+- Super-portfolio loss: $20\\% \times 100\\% + 4 \times 20\\% \times 0\\% = 20\\%$
+- **Investor loses 20%** of the super-tranche notional
 
-Same number of defaults, vastly different outcomes. This is correlation risk at its most extreme.
+Same number of defaults, vastly different outcomes. This is correlation risk at its most extreme: if the second layer's tranches sit *above* the typical first-layer loss but *below* a clustered first-layer loss, the resecuritization converts a relatively-likely clustering event into a near-total loss for the investor.
 
 ---
 
@@ -874,7 +881,7 @@ Before trading or booking a tranche, verify:
 
 1. **Confusing portfolio vs tranche notional**: The portfolio might be USD 1bn but your tranche notional is only USD 30mm (the width × portfolio notional)
 
-2. **Mixing % and USD  units**: Always convert explicitly
+2. **Mixing % and USD units**: Always convert explicitly
 
 3. **Misreading attachment/detachment**: They are percentages of the **reference portfolio** notional
 
@@ -898,7 +905,7 @@ $$L_2 \ge L_1 \Rightarrow TL(L_2) \ge TL(L_1)$$
 $$w - TL(L) \ge 0$$
 
 **Loss conservation** (for full capital structure):
-$$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
+$$\sum_m TL_m(L) = L \quad \text{when the tranches are contiguous, $K_0 = 0$, and the top detachment $K_M \ge L_{\max}$.}$$
 
 > **What Middle Office Sees:**
 >
@@ -917,7 +924,7 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 ### Example 0: Par Running Spread and Spread PV01 (Toy, With Dates)
 
 **Context**
-- Price a 1-year single-tranche contract $[A,D]=[3\%,7\%]$ on a USD 100mm portfolio under a toy deterministic loss path.
+- Price a 1-year single-tranche contract $[A,D]=[3\\%,7\\%]$ on a USD 100mm portfolio under a toy deterministic loss path.
 - Why it matters: it connects **quote → cashflows → PV → a bump-defined risk number** without requiring a full correlation model.
 
 **Timeline (illustrative; ignore holidays/business-day adjustments)**
@@ -927,9 +934,9 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 
 **Inputs**
 - $N_{\text{port}}=USD 100\text{mm}$
-- Tranche: $[3\%,7\%]$ so $w=4\%$ and $N_{\text{tr}}^{\text{face}}=w\,N_{\text{port}}=USD 4\text{mm}$
+- Tranche: $[3\\%,7\\%]$ so $w=4\\%$ and $N_{\text{tr}}^{\text{face}}=w\\,N_{\text{port}}=USD 4\text{mm}$
 - Premium accrual: ACT/360-style quarterly approximation $\alpha=0.25$ each period
-- Discounting: flat continuously compounded $r=5\%$ so:
+- Discounting: flat continuously compounded $r=5\\%$ so:
   - $P(0,0.25)\approx 0.9876$, $P(0,0.5)\approx 0.9753$, $P(0,0.75)\approx 0.9632$, $P(0,1.0)\approx 0.9512$
 - Assumed portfolio loss levels $L(t)$ at premium dates: 2.9%, 3.1%, 3.1%, 3.2%
 
@@ -943,18 +950,18 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 1. Compute portfolio-scale tranche loss $TL(L(t_i))=\min(\max(L(t_i)-A,0),w)$.
 2. Compute outstanding tranche notional $N_{\text{tr}}^{\text{out}}(t_i)=(w-TL(L(t_i)))N_{\text{port}}$.
 3. Compute protection PV from incremental losses $\Delta TL\cdot N_{\text{port}}$.
-4. Compute the “risky annuity” $\mathcal{A}:=\sum_i \alpha_i\,P(0,t_i)\,N_{\text{tr}}^{\text{out}}(t_i)$.
+4. Compute the “risky annuity” $\mathcal{A}:=\sum_i \alpha_i\\,P(0,t_i)\\,N_{\text{tr}}^{\text{out}}(t_i)$.
 5. Solve $S^{\star}=PV_{\text{prot}}/\mathcal{A}$. Then $PV01_S \approx 10^{-4}\mathcal{A}$.
 
 **Cashflows (protection buyer perspective; positive = receive)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-06-20 | $-0.25\,S^{\star} \cdot USD 4.0\text{mm}\approx -USD 50{,}950$ | premium on full outstanding |
+| 2026-06-20 | $-0.25\\,S^{\star} \cdot USD 4.0\text{mm}\approx -USD 50{,}950$ | premium on full outstanding |
 | 2026-09-20 | $+USD 100{,}000$ | tranche loss increases from 0 to 0.1% of portfolio |
-| 2026-09-20 | $-0.25\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | premium base reduced after loss |
-| 2026-12-20 | $-0.25\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | still outstanding USD 3.9mm |
+| 2026-09-20 | $-0.25\\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | premium base reduced after loss |
+| 2026-12-20 | $-0.25\\,S^{\star} \cdot USD 3.9\text{mm}\approx -USD 49{,}676$ | still outstanding USD 3.9mm |
 | 2027-03-20 | $+USD 100{,}000$ | tranche loss increases from 0.1% to 0.2% of portfolio |
-| 2027-03-20 | $-0.25\,S^{\star} \cdot USD 3.8\text{mm}\approx -USD 48{,}403$ | premium on the remaining outstanding |
+| 2027-03-20 | $-0.25\\,S^{\star} \cdot USD 3.8\text{mm}\approx -USD 48{,}403$ | premium on the remaining outstanding |
 
 **P&L / Risk Interpretation**
 - $S^{\star}$ is “loss PV divided by risky annuity”: more expected loss $\Rightarrow$ higher par spread; faster amortization $\Rightarrow$ smaller annuity $\Rightarrow$ higher par spread.
@@ -975,9 +982,9 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 ### Common Setup
 
 - **Portfolio notional:** $N_{\text{port}} = USD 100{,}000{,}000$ (USD 100mm)
-- **Standard tranche ladder:** $[0, 3\%]$, $[3, 7\%]$, $[7, 10\%]$, $[10, 15\%]$, $[15, 30\%]$
-- **Tranche loss formula:** $TL(L) = \min(\max(L - A, 0), D - A)$
-- **Dollar loss:** $TL(L) = TL(L) \times N_{\text{port}}$
+- **Standard tranche ladder:** $[0, 3\\%]$, $[3, 7\\%]$, $[7, 10\\%]$, $[10, 15\\%]$, $[15, 30\\%]$
+- **Tranche loss formula (portfolio fraction):** $TL(L) = \min(\max(L - A, 0), D - A)$
+- **Dollar tranche loss:** multiply the portfolio-fraction $TL(L)$ by the portfolio notional, i.e. $TL(L) \cdot N_{\text{port}}$ in currency.
 
 ### Example 1: Dollar Attachment/Detachment
 
@@ -985,29 +992,29 @@ $$\sum_m TL_m(L) = L \text{ when tranches are contiguous and span } [0, 1]$$
 
 | Tranche | Attachment $A$ | Detachment $D$ | Width | Face Notional |
 |---------|----------------|----------------|-------|---------------|
-| $[0, 3\%]$ | USD 0mm | USD 3mm | USD 3mm | USD 3mm |
-| $[3, 7\%]$ | USD 3mm | USD 7mm | USD 4mm | USD 4mm |
-| $[7, 10\%]$ | USD 7mm | USD 10mm | USD 3mm | USD 3mm |
-| $[10, 15\%]$ | USD 10mm | USD 15mm | USD 5mm | USD 5mm |
-| $[15, 30\%]$ | USD 15mm | USD 30mm | USD 15mm | USD 15mm |
+| $[0, 3\\%]$ | USD 0mm | USD 3mm | USD 3mm | USD 3mm |
+| $[3, 7\\%]$ | USD 3mm | USD 7mm | USD 4mm | USD 4mm |
+| $[7, 10\\%]$ | USD 7mm | USD 10mm | USD 3mm | USD 3mm |
+| $[10, 15\\%]$ | USD 10mm | USD 15mm | USD 5mm | USD 5mm |
+| $[15, 30\\%]$ | USD 15mm | USD 30mm | USD 15mm | USD 15mm |
 
 **Total face notional:** USD 3mm + USD 4mm + USD 3mm + USD 5mm + USD 15mm = USD 30mm (30% of portfolio)
 
 ### Example 2: Loss Within Equity Tranche
 
-**Given:** $L = 1.5\%$, tranche $[0, 3\%]$
+**Given:** $L = 1.5\\%$, tranche $[0, 3\\%]$
 
 $$TL = \min(\max(0.015 - 0, 0), 0.03) = 0.015$$
 
 - **Dollar tranche loss:** USD 1.5mm
 - **Remaining notional:** $(0.03 - 0.015) \times USD 100\text{mm} = USD 1.5\text{mm}$
-- **Tranche loss as % of tranche:** $0.015/0.03 = 50\%$
+- **Tranche loss as % of tranche:** $0.015/0.03 = 50\\%$
 
 **Interpretation:** Half the equity tranche has been eroded. Premium payments will be based on the surviving USD 1.5mm.
 
 ### Example 3: Loss Below Mezzanine Attachment
 
-**Given:** $L = 1.5\%$, tranche $[3, 7\%]$
+**Given:** $L = 1.5\\%$, tranche $[3, 7\\%]$
 
 $$TL = \min(\max(0.015 - 0.03, 0), 0.04) = 0$$
 
@@ -1017,51 +1024,51 @@ $$TL = \min(\max(0.015 - 0.03, 0), 0.04) = 0$$
 
 ### Example 4: Loss Spanning Multiple Tranches
 
-**Given:** $L = 5\%$ (USD 5mm portfolio loss)
+**Given:** $L = 5\\%$ (USD 5mm portfolio loss)
 
 | Tranche | Calculation | Dollar Loss | Status |
 |---------|-------------|-------------|--------|
-| $[0, 3\%]$ | $\min(0.05, 0.03) = 0.03$ | USD 3mm | **Wiped** |
-| $[3, 7\%]$ | $\min(\max(0.05-0.03, 0), 0.04) = 0.02$ | USD 2mm | Partial |
-| $[7, 10\%]$ | $\min(\max(0.05-0.07, 0), 0.03) = 0$ | USD 0 | Intact |
+| $[0, 3\\%]$ | $\min(0.05, 0.03) = 0.03$ | USD 3mm | **Wiped** |
+| $[3, 7\\%]$ | $\min(\max(0.05-0.03, 0), 0.04) = 0.02$ | USD 2mm | Partial |
+| $[7, 10\\%]$ | $\min(\max(0.05-0.07, 0), 0.03) = 0$ | USD 0 | Intact |
 
 **Waterfall verification:** USD 3mm + USD 2mm = USD 5mm ✓
 
 ### Example 5: Large Loss Across Capital Structure
 
-**Given:** $L = 12\%$ (USD 12mm portfolio loss)
+**Given:** $L = 12\\%$ (USD 12mm portfolio loss)
 
 | Tranche | Width | Tranche Loss | Dollar Loss | Status |
 |---------|-------|--------------|-------------|--------|
-| $[0, 3\%]$ | 3% | 3% | USD 3mm | **Wiped** |
-| $[3, 7\%]$ | 4% | 4% | USD 4mm | **Wiped** |
-| $[7, 10\%]$ | 3% | 3% | USD 3mm | **Wiped** |
-| $[10, 15\%]$ | 5% | 2% | USD 2mm | Partial (remaining USD 3mm) |
-| $[15, 30\%]$ | 15% | 0% | USD 0 | Intact |
+| $[0, 3\\%]$ | 3% | 3% | USD 3mm | **Wiped** |
+| $[3, 7\\%]$ | 4% | 4% | USD 4mm | **Wiped** |
+| $[7, 10\\%]$ | 3% | 3% | USD 3mm | **Wiped** |
+| $[10, 15\\%]$ | 5% | 2% | USD 2mm | Partial (remaining USD 3mm) |
+| $[15, 30\\%]$ | 15% | 0% | USD 0 | Intact |
 
 **Total:** USD 3mm + USD 4mm + USD 3mm + USD 2mm = USD 12mm ✓
 
 ### Example 6: Incremental Loss Allocation
 
-**Scenario:** Portfolio loss increases from $L_1 = 4\%$ to $L_2 = 6\%$ (incremental USD 2mm loss)
+**Scenario:** Portfolio loss increases from $L_1 = 4\\%$ to $L_2 = 6\\%$ (incremental USD 2mm loss)
 
-**At $L_1 = 4\%$:**
+**At $L_1 = 4\\%$:**
 - Equity: TL = 3% → USD 3mm (wiped)
 - Jr Mezz: TL = 1% → USD 1mm (remaining USD 3mm)
 
-**At $L_2 = 6\%$:**
+**At $L_2 = 6\\%$:**
 - Equity: TL = 3% → USD 3mm (unchanged, already wiped)
 - Jr Mezz: TL = 3% → USD 3mm (remaining USD 1mm)
 
 **Incremental allocation:**
 - Equity: $\Delta TL = 0$ (cannot absorb more—wiped)
-- Jr Mezz: $\Delta TL = 2\%$ → USD 2mm
+- Jr Mezz: $\Delta TL = 2\\%$ → USD 2mm
 
 All incremental losses flow to the mezzanine tranche.
 
 ### Example 7: Premium Payment Mechanics
 
-**Setup:** Tranche $[3, 7\%]$ after portfolio loss $L = 5\%$ (from Example 4)
+**Setup:** Tranche $[3, 7\\%]$ after portfolio loss $L = 5\\%$ (from Example 4)
 
 - **Remaining tranche notional:** USD 2mm
 - **Contractual spread:** $S = 250$ bp = 0.025 per annum
@@ -1081,41 +1088,41 @@ This is a simple “deterministic ladder” illustration: assume equal exposures
 
 **Setup:**
 - Portfolio: 100 credits, each USD 10mm face (USD 1bn total)
-- Tranche: $[3\%, 7\%]$, face USD 40mm, spread 250bp, 5-year maturity
+- Tranche: $[3\\%, 7\\%]$, face USD 40mm, spread 250bp, 5-year maturity
 - Recovery: 30% on all defaults
-- Loss per default: $(1 - 0.30)/100 = 0.70\%$
+- Loss per default: $(1 - 0.30)/100 = 0.70\\%$
 
 **Defaults required to hit tranche:**
-- First loss at default #5: Cumulative loss = $5 \times 0.70\% = 3.5\%$
-- Tranche loss = $(3.5\% - 3.0\%)/4\% = 12.5\%$
+- First loss at default #5: Cumulative loss = $5 \times 0.70\\% = 3.5\\%$
+- Tranche loss = $(3.5\\% - 3.0\\%)/4\\% = 12.5\\%$
 
 **Tranche wiped at default #10:**
-- Cumulative loss = $10 \times 0.70\% = 7.0\%$
-- Tranche loss = $(7.0\% - 3.0\%)/4\% = 100\%$
+- Cumulative loss = $10 \times 0.70\\% = 7.0\\%$
+- Tranche loss = $(7.0\\% - 3.0\\%)/4\\% = 100\\%$
 
 This kind of ladder calculation is a useful sanity check before you do any real pricing (where default timing and loss severity are random).
 
 ### Example 9: Complete Capital Structure Loss Conservation
 
-**Given:** $L = 25\%$, tranches span $[0, 30\%]$ with a residual $[30, 100\%]$
+**Given:** $L = 25\\%$, tranches span $[0, 30\\%]$ with a residual $[30, 100\\%]$
 
 | Tranche | TL Calculation | Dollar Loss |
 |---------|----------------|-------------|
-| $[0, 3\%]$ | $\min(0.25, 0.03) = 0.03$ | USD 3mm |
-| $[3, 7\%]$ | $\min(0.25-0.03, 0.04) = 0.04$ | USD 4mm |
-| $[7, 10\%]$ | $\min(0.25-0.07, 0.03) = 0.03$ | USD 3mm |
-| $[10, 15\%]$ | $\min(0.25-0.10, 0.05) = 0.05$ | USD 5mm |
-| $[15, 30\%]$ | $\min(0.25-0.15, 0.15) = 0.10$ | USD 10mm |
-| $[30, 100\%]$ | $\max(0.25-0.30, 0) = 0$ | USD 0mm |
+| $[0, 3\\%]$ | $\min(0.25, 0.03) = 0.03$ | USD 3mm |
+| $[3, 7\\%]$ | $\min(0.25-0.03, 0.04) = 0.04$ | USD 4mm |
+| $[7, 10\\%]$ | $\min(0.25-0.07, 0.03) = 0.03$ | USD 3mm |
+| $[10, 15\\%]$ | $\min(0.25-0.10, 0.05) = 0.05$ | USD 5mm |
+| $[15, 30\\%]$ | $\min(0.25-0.15, 0.15) = 0.10$ | USD 10mm |
+| $[30, 100\\%]$ | $\max(0.25-0.30, 0) = 0$ | USD 0mm |
 | **Total** | | **USD 25mm** |
 
-**Verification:** $USD 25\text{mm} = 25\% \times USD 100\text{mm}$ ✓
+**Verification:** $USD 25\text{mm} = 25\\% \times USD 100\text{mm}$ ✓
 
 Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 ### Example 10: Premium Calculation with Multiple Periods
 
-**Scenario:** Track mezzanine $[3, 7\%]$ premium across four quarters with intervening defaults
+**Scenario:** Track mezzanine $[3, 7\\%]$ premium across four quarters with intervening defaults
 
 | Quarter | Portfolio Loss $L$ | Tranche Loss | Outstanding | Premium (USD ) |
 |---------|-------------------|--------------|-------------|--------------|
@@ -1127,23 +1134,23 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 (Using 200bp spread for illustration)
 
-**Protection leg payments:** At Q2 default, protection seller pays $(4\%-3\%) \times USD 100\text{mm} = USD 1\text{mm}$. At Q3 default, pays $(5\%-4\%) \times USD 100\text{mm} = USD 1\text{mm}$.
+**Protection leg payments:** Each is the *increment* in tranche loss times portfolio notional. At Q2, $\Delta TL = TL(4\\%) - TL(2\\%) = 1\\% - 0\\% = 1\\%$ of portfolio, so the protection seller pays $1\\% \times USD 100\text{mm} = USD 1\text{mm}$. At Q3, $\Delta TL = TL(5\\%) - TL(4\\%) = 2\\% - 1\\% = 1\\%$, so another $USD 1\text{mm}$.
 
 ### Example 11: Same Width, Different Attachment
 
-**Compare:** $[0, 3\%]$ vs $[7, 10\%]$ (both 3% width) at $L = 5\%$
+**Compare:** $[0, 3\\%]$ vs $[7, 10\\%]$ (both 3% width) at $L = 5\\%$
 
 | Tranche | Calculation | Dollar Loss | Status |
 |---------|-------------|-------------|--------|
-| $[0, 3\%]$ | $\min(0.05, 0.03) = 0.03$ | USD 3mm | **Wiped** |
-| $[7, 10\%]$ | $\max(0.05 - 0.07, 0) = 0$ | USD 0 | Intact |
+| $[0, 3\\%]$ | $\min(0.05, 0.03) = 0.03$ | USD 3mm | **Wiped** |
+| $[7, 10\\%]$ | $\max(0.05 - 0.07, 0) = 0$ | USD 0 | Intact |
 
-**At $L = 8\%$:**
+**At $L = 8\\%$:**
 
 | Tranche | Calculation | Dollar Loss | Status |
 |---------|-------------|-------------|--------|
-| $[0, 3\%]$ | 0.03 | USD 3mm | Wiped (unchanged) |
-| $[7, 10\%]$ | $\min(0.08 - 0.07, 0.03) = 0.01$ | USD 1mm | Partial |
+| $[0, 3\\%]$ | 0.03 | USD 3mm | Wiped (unchanged) |
+| $[7, 10\\%]$ | $\min(0.08 - 0.07, 0.03) = 0.01$ | USD 1mm | Partial |
 
 **Key insight:** Higher attachment shifts loss exposure to more extreme scenarios.
 
@@ -1193,7 +1200,7 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 | Premium leg | Running spread payments on outstanding tranche notional | Premium base amortizes as losses accrue |
 | Protection leg | Payments equal to incremental tranche loss | Drives jump risk and default-loss cashflows |
 | Par running spread $S^{\star}$ | Spread that makes PV $\approx 0$ (given a model/assumptions) | Turns “expected loss” into a quote object |
-| Risky annuity | $\sum_i \alpha_i P(0,t_i)\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]$ | Sets spread PV01 magnitude for a contract-spread bump |
+| Risky annuity | $\sum_i \alpha_i P(0,t_i)\\,\mathbb{E}[N_{\text{tr}}^{\text{out}}(t_i)]$ | Sets spread PV01 magnitude for a contract-spread bump |
 | Spread PV01 | PV change for a +1bp bump to contractual spread $S$ (with a stated hold-fixed rule) | Only meaningful when the bumped object is explicit |
 | Leverage ratio | Systemic spread PV01 of tranche ÷ systemic spread PV01 of equivalent index notional | Explains why small tranche face can carry huge spread risk |
 | Conservation of expected loss | $\sum_m E[TL_m] = E[L]$ | No-arbitrage constraint on pricing |
@@ -1210,9 +1217,9 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 | $L(t)$ | Cumulative portfolio loss fraction | fraction of $N_{\text{port}}$ |
 | $A, D$ | Attachment / detachment | fractions of $N_{\text{port}}$ |
 | $w=D-A$ | Tranche width | fraction of $N_{\text{port}}$ |
-| $L(T,K_1,K_2)$ | Fractional tranche loss | fraction of tranche notional, $\in[0,1]$ |
+| $\ell_{\text{tr}}(T;K_1,K_2)$ | Fractional tranche loss | fraction of tranche notional, $\in[0,1]$ |
 | $TL(L)$ | Tranche loss (portfolio scale) | fraction of portfolio notional |
-| $N_{\text{tr}}^{\text{face}}$ | Tranche face notional | $w\,N_{\text{port}}$ currency |
+| $N_{\text{tr}}^{\text{face}}$ | Tranche face notional | $w\\,N_{\text{port}}$ currency |
 | $N_{\text{tr}}^{\text{out}}(t)$ | Outstanding tranche notional | $(w-TL(L(t)))N_{\text{port}}$ currency |
 | $S(A,D)$ | Running tranche spread | decimal per year |
 | $\alpha_i$ | Premium accrual factor | year fraction (contract-defined) |
@@ -1247,8 +1254,8 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 | 22 | What is "virtual reference portfolio"? | List of reference entities—doesn't physically exist as CDS book |
 | 23 | Why did ABS CDO AAA tranches fail in 2008? | Underlying mortgage defaults were highly correlated |
 | 24 | Common premium accrual convention for index tranches? | Often quarterly payments with ACT/360-style day count (contract governs). |
-| 25 | If $L = 2\%$, what is TL for $[3, 7\%]$ tranche? | Zero (below attachment) |
-| 26 | If $L = 12\%$, is $[7, 10\%]$ wiped? | Yes (12% > 10% detachment) |
+| 25 | If $L = 2\\%$, what is TL for $[3, 7\\%]$ tranche? | Zero (below attachment) |
+| 26 | If $L = 12\\%$, is $[7, 10\\%]$ wiped? | Yes (12% > 10% detachment) |
 | 27 | Formula for outstanding tranche notional in dollars? | $(w - TL(L)) \times N_{\text{port}}$ |
 | 28 | What makes tranches different from portfolio CDS? | Non-linear payoff: loss only within $[A, D]$ window |
 | 29 | Who tends to hold super-senior risk? | Often banks/insurers; varies by era, regulation, and market regime. |
@@ -1267,11 +1274,11 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 1. For $N_{\text{port}} = USD 500\text{mm}$, convert tranche $[7, 10]$ to dollar attachment/detachment and face notional.
 
-2. With $L = 2.5\%$, compute TL and outstanding notional for equity $[0, 3]$.
+2. With $L = 2.5\\%$, compute TL and outstanding notional for equity $[0, 3]$.
 
-3. With $L = 2.5\%$, compute TL for mezzanine $[3, 7]$. Explain why.
+3. With $L = 2.5\\%$, compute TL for mezzanine $[3, 7]$. Explain why.
 
-4. With $L = 8\%$, compute tranche losses for $[0, 3]$, $[3, 7]$, and $[7, 10]$.
+4. With $L = 8\\%$, compute tranche losses for $[0, 3]$, $[3, 7]$, and $[7, 10]$.
 
 5. Portfolio loss goes from 9% to 12%. Compute incremental losses for $[7, 10]$ and $[10, 15]$.
 
@@ -1283,7 +1290,7 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 9. Portfolio has 50 equal-weight names on USD 100mm. Four default with 40% recovery. Compute $L$.
 
-10. For $[0, 3]$ and $[10, 15]$, sketch $TL(L)$ vs $L \in [0, 20\%]$.
+10. For $[0, 3]$ and $[10, 15]$, sketch $TL(L)$ vs $L \in [0, 20\\%]$.
 
 11. A tranche has width 5% and has incurred 2% portfolio-scale loss. What fraction of tranche notional remains?
 
@@ -1308,15 +1315,15 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 ### Solution Sketches (Selected)
 
-**1.** $[7, 10]$: $A = 0.07 \times 500 = USD 35\text{mm}$, $D = USD 50\text{mm}$, face = $3\% \times 500 = USD 15\text{mm}$
+**1.** $[7, 10]$: $A = 0.07 \times 500 = USD 35\text{mm}$, $D = USD 50\text{mm}$, face = $3\\% \times 500 = USD 15\text{mm}$
 
-**2.** $[0, 3]$, $L = 2.5\%$: $TL = 2.5\%$, outstanding = $3\% - 2.5\% = 0.5\%$ of portfolio = $0.5\text{mm}$ on $100\text{mm}$
+**2.** $[0, 3]$, $L = 2.5\\%$: $TL = 2.5\\%$, outstanding = $3\\% - 2.5\\% = 0.5\\%$ of portfolio = $0.5\text{mm}$ on $100\text{mm}$
 
-**3.** $[3, 7]$: $L = 2.5\% \lt A = 3\%$ → $TL = 0$. Subordination from equity protects mezzanine.
+**3.** $[3, 7]$: $L = 2.5\\% \lt A = 3\\%$ → $TL = 0$. Subordination from equity protects mezzanine.
 
-**4.** $L = 8\%$: $[0, 3]$ loss = 3% (wiped), $[3, 7]$ loss = 4% (wiped), $[7, 10]$ loss = 1% (remaining 2%)
+**4.** $L = 8\\%$: $[0, 3]$ loss = 3% (wiped), $[3, 7]$ loss = 4% (wiped), $[7, 10]$ loss = 1% (remaining 2%)
 
-**5.** $9\% \to 12\%$: At 9%, $[7, 10]$ has 2% loss; at 10% it's 3% (wiped). At 10%, $[10, 15]$ starts. From 10% to 12%, 2% goes to $[10, 15]$. So: $[7, 10]$ gets 1%, $[10, 15]$ gets 2%.
+**5.** $9\\% \to 12\\%$: At 9%, $[7, 10]$ has 2% loss; at 10% it's 3% (wiped). At 10%, $[10, 15]$ starts. From 10% to 12%, 2% goes to $[10, 15]$. So: $[7, 10]$ gets 1%, $[10, 15]$ gets 2%.
 
 **6.** Premium = $\alpha \cdot S \cdot N_{\text{out}} = 0.25 \times 0.04 \times 1.5\text{mm} = USD 15{,}000$
 
@@ -1324,17 +1331,24 @@ Loss conservation holds: sum of tranche losses equals portfolio loss.
 
 **8.** High correlation means outcomes are bimodal: either most credits survive (equity untouched) or most default (equity wiped anyway). More probability of the "all survive" scenario benefits equity.
 
-**9.** Each name has USD 100mm / 50 = USD 2mm notional. Loss per default = USD 2mm × 60% = USD 1.2mm. Four defaults = USD 4.8mm, so $L = 4.8\text{mm} / 100\text{mm} = 4.8\%$.
+**9.** Each name has USD 100mm / 50 = USD 2mm notional. Loss per default = USD 2mm × 60% = USD 1.2mm. Four defaults = USD 4.8mm, so $L = 4.8\text{mm} / 100\text{mm} = 4.8\\%$.
 
 **10.** For $[0, 3]$: TL rises linearly from 0 to 3% as L goes 0→3%, then flat at 3%. For $[10, 15]$: TL = 0 for L ≤ 10%, rises linearly 10%→15%, then flat at 5%.
 
 **16.** Leverage $= \frac{USD 550{,}000}{USD 30{,}000} \approx 18.33\times$. Under this “systemic spread PV01” definition, the tranche has ~18× the spread sensitivity of the same stated notional of the index.
 
-**17.** By conservation: $3\% \times 25\% + 4\% \times 5\% + 93\% \times \text{EL}(7\text{-}100\%) = 3\%$
+**17.** By conservation, summing portfolio-fraction tranche EL across all tranches must equal portfolio EL = 3%. For each tranche, *portfolio-fraction* EL = (tranche width) × (EL as fraction of tranche notional).
 
-$0.75\% + 0.20\% + 93\% \times \text{EL} = 3\%$
+- 0–3% tranche: $3\\% \times 25\\% = 0.75\\%$ of portfolio
+- 3–7% tranche: $4\\% \times 5\\% = 0.20\\%$ of portfolio
+- 7–100% tranche: $93\\% \times \text{EL}_{7\text{-}100} = ?$
 
-$\text{EL}(7\text{-}100\%) = (3\% - 0.95\%) / 93\% = 2.05\% / 93\% \approx 0.022\%$ (very small, as expected for super-senior)
+Setting the sum equal to 3%:
+
+$$0.75\\% + 0.20\\% + 93\\% \times \text{EL}_{7\text{-}100} = 3\\%$$
+$$\text{EL}_{7\text{-}100} = \frac{3\\% - 0.95\\%}{93\\%} = \frac{2.05\\%}{93\\%} \approx 2.20\\%$$
+
+So the 7–100% tranche has expected loss ≈ 2.2% **of tranche notional** — small in tranche-fraction terms, as expected for a deeply subordinated tranche, even though it accounts for the bulk of *portfolio*-fraction EL after the equity and junior mezz layers (2.05% out of 3%).
 
 ---
 
