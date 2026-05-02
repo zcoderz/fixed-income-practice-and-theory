@@ -65,13 +65,13 @@ Both parameters leave **residual unsecured exposure**. A threshold of $H$ means 
 
 ### 33.1.5 The Cure Period (Margin Period of Risk)
 
-Even with zero threshold and daily margining, exposure is not eliminated because margining is discrete and close-out takes time. A common modeling abstraction is to assume that the defaulting party stops posting collateral (and stops returning excess collateral) $c$ days before close-out. The parameter $c$ is called the cure period or margin period of risk (MPOR); toy calculations often use values like 10–20 days.
+Even with zero threshold and daily margining, exposure is not eliminated because margining is discrete and close-out takes time. A common modeling abstraction is to assume that the defaulting party stops posting collateral (and stops returning excess collateral) $\delta$ days before close-out. The parameter $\delta$ is the cure period, more often called the **margin period of risk (MPOR)**; toy calculations often use values like 10–20 days. (We use $\delta$ here to avoid clash with the collateral rate $c(t)$.)
 
-Under this abstraction, collateral at the default/close-out time reflects the portfolio value $c$ days earlier, not the portfolio value at default. Residual exposure is driven by the MTM move during the MPOR.
+Under this abstraction, collateral at the default/close-out time reflects the portfolio value $\delta$ days earlier, not the portfolio value at default. Residual exposure is driven by the MTM move during the MPOR.
 
-**Toy example (two-way, zero threshold; $c=20$ days):**
+**Toy example (two-way, zero threshold; $\delta=20$ days):**
 - MTM at default time: $V(\tau)=\mathrm{USD}\\,50\text{mm}$
-- MTM 20 days earlier: $V(\tau-20d)=\mathrm{USD}\\,45\text{mm}$
+- MTM 20 days earlier: $V(\tau-20\text{d})=\mathrm{USD}\\,45\text{mm}$
 - Collateral frozen near $\mathrm{USD}\\,45\text{mm}$ ⇒ net exposure $\approx \mathrm{USD}\\,5\text{mm}$
 
 This cure-period effect explains why even "fully collateralized" trades carry credit exposure and therefore require CVA (see Chapter 34).
@@ -140,7 +140,7 @@ The point is not that the collateral rate is a metaphysical “risk-free rate,�
 To make the idea concrete, consider a simple toy example.
 
 **Setup (hypothetical):**
-- Receive \mathrm{USD}\\,1,000,000 exactly in 1 year.
+- Receive $\mathrm{USD}\\,1{,}000{,}000$ exactly in 1 year.
 - Collateral discount factor: $P^c(0,1)=0.9750$.
 - A different (incorrect-for-this-CSA) discount factor: $P^{w}(0,1)=0.9700$.
 
@@ -149,7 +149,7 @@ Then:
 $$PV^c = 1{,}000{,}000\times 0.9750 = \mathrm{USD}\\,975{,}000,\qquad
 PV^w = 1{,}000{,}000\times 0.9700 = \mathrm{USD}\\,970{,}000.$$
 
-The \mathrm{USD}\\,5,000 difference is purely a discounting choice: it is the PV impact of using the wrong funding/discounting assumption for a collateralized trade.
+The $\mathrm{USD}\\,5{,}000$ difference is purely a discounting choice: it is the PV impact of using the wrong funding/discounting assumption for a collateralized trade.
 
 **Check:** For a positive cashflow, a higher discount factor must produce a higher PV.
 
@@ -262,9 +262,11 @@ OIS discount factors:
 
 OIS annuity: $A_{\text{OIS}} = 0.9750 + 0.9500 = 1.9250$
 
-Projected floating rates (from a separate term rate curve):
+Projected floating rates (from a *separate* term-rate projection curve, built independently of the OIS discount curve—e.g., from FRAs or futures referencing the term index):
 - $L_1 = 3.20\\%$
 - $L_2 = 3.50\\%$
+
+These differ from the forwards implied by $P^L$ alone (which would be $\approx 3.09\\%$ and $\approx 3.19\\%$) precisely because, in a multi-curve world, the projection and discount curves are independent inputs.
 
 Floating PV discounted on OIS:
 
@@ -295,7 +297,7 @@ Some CSAs specify **more than one eligible collateral currency**. When that happ
 
 This matters because the choice can be:
 - **state-dependent** (rates, FX forwards/basis, and funding conditions change over time), and
-- **exposure-dependent** (the party that is out-of-the-money posts collateral).
+- **exposure-dependent** (the party with negative MTM—the one who would owe on close-out—posts collateral).
 
 So multi-currency collateral can embed an option-like feature in the CSA (often called “cheapest-to-deliver collateral” in desk language). The detailed modeling of that optionality is out of scope here; the goal is to make the *discounting dependency* explicit and teachable.
 
@@ -306,16 +308,16 @@ In a two-currency setup:
 - cash collateral is remunerated in currency $y$ at rate $c^y(t)$
 - $r^x(t)$ and $r^y(t)$ denote the (currency-specific) “risk-free” short rates used in the idealized pricing setup
 
-Under perfect collateralization, a compact way to express the domestic-currency PV is:
+Under perfect collateralization, a compact way to express the domestic-currency PV at time $t$ is:
 
 $$
-P_{X}^{x, C, y}(t)=\mathbb{E}_{t}^{x}\left[e^{-\int_{0}^{T}\left(r^{x}(s)+c^{y}(s)-r^{y}(s)\right) d s} X_{T}^{x}\right].
+V^{x, C, y}(t)=\mathbb{E}_{t}^{x}\left[e^{-\int_{t}^{T}\left(r^{x}(s)+c^{y}(s)-r^{y}(s)\right) d s} X_{T}^{x}\right].
 $$
 
 **Corollary (same currency):** if the payoff and collateral currencies coincide $(x=y)$, the formula reduces to “discount at the collateral rate”:
 
 $$
-P_{X}^{x, C, y}(t)=\mathbb{E}_{t}^{x}\left[e^{-\int_{0}^{T} c^{x}(s) d s} X_{T}^{x}\right].
+V^{x, C, x}(t)=\mathbb{E}_{t}^{x}\left[e^{-\int_{t}^{T} c^{x}(s) d s} X_{T}^{x}\right].
 $$
 
 ### 33.5.3 Expand: Effective Discounting Rate and Sanity Checks
@@ -389,14 +391,15 @@ This chapter focuses on the **clean** collateral-discounted logic and on how CSA
 
 Chapter 34 develops CVA in detail. Here we note only a common discrete-time approximation:
 
-$$\boxed{\text{CVA} = \sum_{i=1}^{n} (1-R) \cdot q_i \cdot v_i}$$
+$$\boxed{\text{CVA} = (1-R)\sum_{i=1}^{n} P(0,t_i)\cdot q_i \cdot EE_i}$$
 
 where:
-- $q_i$: risk-neutral probability of loss from counterparty default during interval $i$
-- $v_i$: PV of expected net exposure (after collateral) at interval midpoint
-- $R$: recovery rate
+- $R$: recovery rate (so $1-R$ is the loss given default)
+- $P(0,t_i)$: discount factor to the interval midpoint $t_i$ (typically the OIS/collateral curve)
+- $q_i$: risk-neutral probability of counterparty default during interval $i$
+- $EE_i$: expected (positive) net exposure after collateral at $t_i$, in currency units
 
-In realistic portfolios, the $v_i$ are portfolio-level objects (netting + collateral timing) and are often estimated via simulation; the point here is only the *shape* of the adjustment: expected discounted loss given default.
+In realistic portfolios, the $EE_i$ are portfolio-level objects (netting + collateral timing) and are often estimated via simulation; the point here is only the *shape* of the adjustment: expected discounted loss given default.
 
 ### 33.6.4 Hybrid Discounting for Partial Collateralization
 
@@ -422,7 +425,7 @@ When a downgrade occurs, the party must immediately post additional collateral e
 
 **Why this is dangerous:** a credit downgrade tends to coincide with worsening funding conditions and widening exposures, so downgrade triggers can create a feedback loop: *credit deterioration → more collateral required → less liquidity → more credit deterioration*.
 
-**Historical example:** after several downgrades, AIG had posted more than \mathrm{USD}\\,40 billion in collateral as of November 2008.
+**Historical example:** after several downgrades, AIG had posted more than $\mathrm{USD}\\,40$ billion in collateral as of November 2008.
 
 **Implications for pricing:**
 
@@ -479,7 +482,7 @@ PAI fundamentally changes how swap economics work compared to legacy bilateral t
 | **Interest on collateral** | May differ from trade economics | PAI aligns collateral interest with discounting |
 | **Effective discounting** | Depends on party's funding | Enforced as overnight rate |
 
-**The key insight:** PAI operationalizes OIS discounting. When you receive PAI at the overnight rate on your VM, the economics are identical to discounting at that rate. This is not coincidence—it's the mechanism that makes the no-arbitrage argument work in practice.
+**The key insight:** PAI operationalizes OIS discounting. Because PAI accrues at the overnight rate on the VM balance—the poster of cash *receives* PAI, the holder *pays* it—the daily cashflow exactly matches the time value of money implied by an OIS discount curve. This is not coincidence; it is the mechanism that makes the no-arbitrage argument work in practice.
 
 ### 33.7.4 PAI and P&L
 
@@ -489,9 +492,11 @@ $$\text{Daily PnL} = \Delta\text{MTM} + \text{Coupon received} - \text{Coupon pa
 
 A common mistake is ignoring PAI when computing carry. On a large swap book, daily PAI can be substantial:
 
-**Example:** A desk with $\mathrm{USD}\\,500\text{mm}$ net positive VM at 5% overnight rate earns:
+**Example:** With $\mathrm{USD}\\,500\text{mm}$ of cash variation margin sitting on one side of the trade and a 5% overnight rate, the gross PAI accrual is roughly
 
-$$\text{Annual PAI} \approx \mathrm{USD}\\,500{,}000{,}000 \times 0.05 = \mathrm{USD}\\,25{,}000{,}000$$
+$$\mathrm{USD}\\,500{,}000{,}000 \times 0.05 \approx \mathrm{USD}\\,25\text{mm/year}$$
+
+(ignoring ACT/360 vs ACT/365 fine-tuning). With this book’s sign convention ($+VM$ = cash held by us), the side holding the cash *pays* this PAI to the side that posted it; the poster *receives* it.
 
 This is real money that affects the economics of holding positions.
 
@@ -515,7 +520,7 @@ This is real money that affects the economics of holding positions.
 For an OIS-discounted portfolio, a natural first risk scalar is the sensitivity of PV to the **OIS discount curve**.
 
 **Definition (this book’s convention):**
-- **Bump object:** the OIS *discount* curve (e.g., a parallel shift of continuously-compounded OIS zero rates `y^{OIS}(0,T)`)
+- **Bump object:** the OIS *discount* curve (e.g., a parallel shift of continuously-compounded OIS zero rates $y^{\mathrm{OIS}}(0,T)$)
 - **Bump size:** 1 bp $=10^{-4}$
 - **Units:** currency per 1 bp for the stated notional
 - **Sign convention:** $DV01 := PV(\text{OIS rates down }1\text{bp})-PV(\text{base})$.
@@ -825,8 +830,8 @@ Higher collateral rate → lower PV for receiving cashflows.
 - CSA allows USD or EUR collateral
 - USD OIS: $P^{\text{USD}}(0,1) = 0.9700$ (~3.09% rate)
 - EUR OIS: $P^{\text{EUR}}(0,1) = 0.9850$ (~1.52% rate)
-- Spot EUR/USD: $S_0 = 1.10$
-- 1-year forward: $F = 1.0833$
+- Spot $S_0 = 1.10$ USD per EUR (i.e., 1 EUR = 1.10 USD; standard EUR/USD quote)
+- 1-year CIP forward $F$ in USD per EUR: $F = S_0 \times P^{\text{EUR}}/P^{\text{USD}} = 1.10 \times 0.9850/0.9700 \approx 1.1170$
 
 **Option A: USD Collateral**
 
@@ -834,51 +839,52 @@ $$PV^{\text{USD}} = \mathrm{USD}\\,10{,}000{,}000 \times 0.9700 = \mathrm{USD}\\
 
 **Option B: EUR Collateral (with CIP holding)**
 
-Effective USD discount factor when posting EUR:
+Effective USD discount factor when posting EUR (CIP identity $P^{\text{USD}} = P^{\text{EUR}}\\,S_0/F$):
 
-$$P^{\text{EUR→USD}}(0,1) \approx P^{\text{EUR}}(0,1) \times \frac{F}{S_0} = 0.9850 \times \frac{1.0833}{1.10} = 0.9700$$
+$$P^{\text{EUR}\rightarrow\text{USD}}(0,1) \approx P^{\text{EUR}}(0,1) \times \frac{S_0}{F} = 0.9850 \times \frac{1.10}{1.1170} = 0.9700$$
 
-With CIP holding, the two are approximately equal.
+With CIP holding, the two are approximately equal—as required for arbitrage-free pricing under risk-free collateral.
 
-**With cross-currency basis of -25bp (EUR cheaper):**
+**With cross-currency basis of $-25$ bp (EUR collateral pays below CIP, so effectively "cheap" for the poster):**
 
-$$P^{\text{EUR→USD, adj}}(0,1) \approx 0.9700 \times e^{0.0025} = 0.9724$$
+$$P^{\text{EUR}\rightarrow\text{USD, adj}}(0,1) \approx 0.9700 \times e^{0.0025} = 0.9724$$
 
 $$PV^{\text{EUR, adj}} = \mathrm{USD}\\,10{,}000{,}000 \times 0.9724 = \mathrm{USD}\\,9{,}724{,}000$$
 
-**Advantage to posting EUR:** $\mathrm{USD}\\,24{,}000$
+**Mark-to-market difference vs USD-collateral case:** $\mathrm{USD}\\,24{,}000$ (higher PV because the EUR-collateralized funding rate is below the CIP-implied rate).
 
 ---
 
 ### Example 33.10: Self-Financing Replication Walkthrough
 
 **Setup:**
-- Bank A sells derivative paying $\mathrm{USD}\\,1{,}000{,}000$ to counterparty B in 1 year
-- Perfect collateralization at $c = 2.50\\%$ (continuous)
-- A hedges by buying a zero-coupon bond
+- Bank A sells a derivative obligating A to pay $\mathrm{USD}\\,1{,}000{,}000$ to counterparty B at $T=1$ year
+- Perfect collateralization at $c = 2.50\\%$ (continuous compounding)
+- A hedges by buying a zero-coupon bond paying $\mathrm{USD}\\,1{,}000{,}000$ at $t=1$
+- Assumption: A can fund/invest at the collateral rate $c$ (rehypothecation or equivalent funding channel)
 
 **Step 1: A's hedge cost**
 
 $$\text{Bond cost} = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025} = \mathrm{USD}\\,975{,}309.91$$
 
-**Step 2: Collateral flows**
+**Step 2: Cash flows at inception**
 
-At inception:
-- Derivative value to A is $-V(0)$ (liability)
-- A posts collateral $|V(0)|$ to B
-- B pays premium $P$ to A
+- A receives premium $P$ from B (the fair price of the derivative).
+- A posts collateral $C(0) = |V(0)|$ to B (because A's MTM is negative — A owes).
+- Under the funding-channel assumption, A funds $C(0)$ by borrowing at rate $c$; the carrying cost of holding the collateral position is therefore zero from A's perspective (interest paid on the borrowing equals interest received on the posted collateral, since both accrue at $c$).
 
-For A to be self-financing: $P - C(0) = \text{hedge cost}$
+Net cash A has available to deploy: $P$ (premium received), since the collateral-borrowing leg is self-financing under the assumption.
 
-**Step 3: Collateral accrual**
+**Step 3: Self-financing condition**
 
-If collateral rate = hedge funding rate = 2.50%, the funding is self-financing.
+A buys the hedge at cost $\mathrm{USD}\\,975{,}309.91$. For A to neither gain nor lose at $t=0$, the premium must equal the bond cost:
+
+$$P = \mathrm{USD}\\,975{,}309.91 = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025}.$$
 
 **Step 4: Terminal flows at $t = 1$**
-- A receives $\mathrm{USD}\\,1{,}000{,}000$ from bond
-- A pays $\mathrm{USD}\\,1{,}000{,}000$ to B
-- A receives back collateral (including interest)
-- Net to A: zero
+- A receives $\mathrm{USD}\\,1{,}000{,}000$ from the bond.
+- A pays $\mathrm{USD}\\,1{,}000{,}000$ to B (derivative obligation).
+- A receives back collateral with accrued interest at $c$, and repays the matching collateral-funding loan with the same accrual—net zero.
 
 **No-arbitrage price:**
 
@@ -888,7 +894,7 @@ $$\boxed{V(0) = \mathrm{USD}\\,1{,}000{,}000 \times e^{-0.025} = \mathrm{USD}\\,
 
 ### Example 33.11: Domestic PV with Foreign-Currency Collateral (Toy)
 
-This example illustrates the `r^x + c^y - r^y` discounting identity from Section 33.5 in a simple constant-rate toy world.
+This example illustrates the $r^x + c^y - r^y$ discounting identity from Section 33.5 in a simple constant-rate toy world.
 
 **Setup (hypothetical, continuous compounding):**
 - Payoff currency: USD ($x=\text{USD}$)
@@ -978,7 +984,7 @@ $$\text{PAI}_{\text{month}} \approx \mathrm{USD}\\,3{,}680.56 \times 30 = \mathr
 
 $$\text{PAI}_{\text{annual}} \approx \mathrm{USD}\\,25{,}000{,}000 \times 0.0530 = \mathrm{USD}\\,1{,}325{,}000$$
 
-**P&L implication:** If we're holding $\mathrm{USD}\\,25\text{mm}$ positive MTM on a receiver swap, we earn PAI. But this PAI is offset by the fact that we're implicitly “short” rates on our discount curve exposure. The economics balance out—which is exactly the point of PAI.
+**P&L implication:** With $+\mathrm{USD}\\,25\text{mm}$ VM held by us, the daily PAI we *pay* is a real cash outflow that must be tracked alongside coupon flows and MTM changes. On a collateralized swap, this PAI flow is exactly the daily-funding leg that makes OIS-discounted PV self-consistent: ignore it and your P&L will not reconcile to a curve-based valuation.
 
 ---
 
@@ -1040,7 +1046,7 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 
 1. **Collateral remuneration determines discounting.** If cash collateral earns overnight rates, discount at overnight rates. This is a no-arbitrage requirement, not a convention.
 
-2. **The LIBOR-OIS spread blew out during the crisis.** A spread of 275 bp made ignoring the discounting basis impossible.
+2. **The LIBOR-OIS spread blew out during the crisis.** The 3-month USD LIBOR-OIS spread briefly reached roughly 364 bp in October 2008, after sitting near 10 bp pre-crisis—making the discounting basis impossible to ignore.
 
 3. **Multi-curve pricing is now standard.** OIS for discounting, term rate curves for projection. The curves serve different economic functions.
 
@@ -1065,7 +1071,7 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | **Credit Support Annex (CSA)** | Annex to ISDA Master Agreement specifying collateral terms | Determines which discount rate applies |
 | **Variation Margin (VM)** | Collateral exchanged daily to reflect MTM changes | Reduces credit exposure; ties funding to collateral rate |
 | **Collateral Remuneration Rate $c(t)$** | Rate paid on posted cash collateral | Directly determines the appropriate discount rate |
-| **OIS (Overnight Indexed Swap)** | Fixed vs. geometric average of overnight rates | Market instrument for extracting risk-free term structure |
+| **OIS (Overnight Indexed Swap)** | Fixed vs. compounded overnight rate over each period | Market instrument for extracting the overnight/collateral discount curve |
 | **OIS Discounting** | Using OIS curve to discount collateralized derivatives | Standard post-crisis practice; reflects actual funding |
 | **Projection Curve** | Curve for forecasting floating rate payments | Separated from discount curve in multi-curve framework |
 | **Threshold** | MTM level below which no VM is required | Creates residual unsecured exposure |
@@ -1092,7 +1098,7 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | $H$ | CSA threshold |
 | $R$ | Recovery rate |
 | $q_i$ | Default probability for interval $i$ |
-| $v_i$ | PV of expected exposure at interval $i$ |
+| $EE_i$ | Expected (positive) net exposure after collateral at interval $i$ |
 | $\beta_c(t)$ | Collateral account numeraire |
 | $DV01$ | $PV(\text{rates down }1\text{bp})-PV(\text{base})$ for the stated bump object |
 
@@ -1118,7 +1124,7 @@ The shift from LIBOR discounting to OIS discounting reflects a fundamental econo
 | 14 | Why can exposure exist even with VM and zero threshold? | MTM can move during MPOR and before collateral is settled/updated |
 | 15 | What is rehypothecation? | Using collateral posted by one counterparty to fund positions with another |
 | 16 | What operational detail can break “discount at $c(t)$”? | If collateral is segregated (not reusable) or timing/settlement differs, the hedge may not be funded at $c(t)$ |
-| 17 | Give the basic CVA approximation | $\text{CVA} \approx \sum(1-R)q_i v_i$ |
+| 17 | Give the basic CVA approximation | $\text{CVA} \approx (1-R)\sum_i P(0,t_i)\\,q_i\\,EE_i$ |
 | 18 | What is wrong-way risk? | When exposure increases as counterparty credit deteriorates |
 | 19 | Under perfect collateralization, how does foreign-currency collateral enter discounting? | Effective domestic discount rate: $r^{x}+c^{y}-r^{y}$ (and if $x=y$, discount at $c^x$) |
 | 20 | What must you verify before choosing a discount curve? | Collateral currency, remuneration benchmark $c(t)$, threshold/MTA, timing (settlement/MPOR), and reuse/segregation |
