@@ -134,8 +134,8 @@ Major index families roll on a schedule (commonly semi-annually). Each roll crea
 Tenor labels (3Y/5Y/7Y/10Y) refer to **standard maturity dates**, not “exactly T years from today.” Because series are launched only on specific roll dates, the on-the-run “5Y” at launch can have *slightly more* than five years remaining, and it “ages” into *slightly less* than five years remaining by the next roll.
 
 **Rule of thumb (±3 months):**
-- at issuance, an on-the-run “T-year” index is often around $T+3$ months to maturity,
-- six months later (at the next roll), it is around $T-3$ months to maturity.
+- at issuance, an on-the-run "$T$-year" index has roughly **$T$ years $+\ 3$ months** to maturity (so a 5Y at issue is about 63 months out, not 60),
+- six months later (just before the next roll), the same series has roughly **$T$ years $-\ 3$ months** to maturity.
 
 **Typical maturity alignment (check the confirmation):**
 - a March roll can align to a June maturity date for the corresponding tenor,
@@ -198,7 +198,7 @@ When an index quotes by spread, the screen quote is an annualized **index spread
 
 Let $N_{\text{out}}$ be the current outstanding notional (after defaults). Define $U_{\mathrm{USD}}\gt 0$ to mean “protection buyer pays upfront.” A common approximation is:
 
-$$\boxed{U_{\mathrm{USD}} \approx (S_{I,\text{bp}}-C_{\text{bp}})\,RPV01_I}$$
+$$\boxed{U_{\mathrm{USD}} \approx (S_{I,\text{bp}}-C_{\text{bp}})\\,RPV01_I}$$
 
 **Anchor (fixed-coupon regime):** the upfront is the present value of the difference between payments at the quoted spread and payments at the fixed coupon for the remaining life of the transaction (estimated under a specified procedure). If the quoted spread is **less** than the coupon, the **seller** of protection pays this PV to the buyer at trade inception; if the quoted spread is **greater** than the coupon, the **buyer** pays it to the seller.
 
@@ -210,11 +210,11 @@ $$\boxed{U_{\mathrm{USD}} \approx (S_{I,\text{bp}}-C_{\text{bp}})\,RPV01_I}$$
 
 Convert to “points upfront” (percent of notional) via:
 
-$$\boxed{U = \frac{U_{\mathrm{USD}}}{N_{\text{out}}}, \qquad U_{\mathrm{pct}}=100\,U}$$
+$$\boxed{U = \frac{U_{\mathrm{USD}}}{N_{\text{out}}}, \qquad U_{\mathrm{pct}}=100\\,U}$$
 
 **Useful identity (unit check):** if you work with the risky annuity $A_I$ in years (Chapter 38), then
 $RPV01_I = N_{\text{out}} \cdot 10^{-4} \cdot A_I$. In that case,
-$U \approx (S_I-C)\,A_I$ when $S_I,C$ are in decimal form (e.g., 160 bp = 0.0160).
+$U \approx (S_I-C)\\,A_I$ when $S_I,C$ are in decimal form (e.g., 160 bp = 0.0160).
 
 **Interpretation (with this sign):**
 - If $S_{I,\text{bp}} \gt C_{\text{bp}}$: protection buyer **pays** upfront (index “below par”)
@@ -229,14 +229,14 @@ For some index families, the market quotes a **price per 100 notional** so the u
 $$\boxed{U_{\mathrm{pct}} = 100 - P_{\text{bond}}}$$
 
 **Examples (treat $P_{\text{bond}}$ as the price per 100 of notional, i.e., 102.18 means 102.18% of par):**
-- $P_{\text{bond}} = 102.18$ ⇒ $U_{\mathrm{pct}}=100-102.18=-2.18\%$. Under our sign convention, the **protection buyer receives** 2.18% upfront (equivalently, the long-credit side pays 2.18%).
-- $P_{\text{bond}} = 99.50$ ⇒ $U_{\mathrm{pct}}=100-99.50=+0.50\%$. Under our sign convention, the **protection buyer pays** 0.50% upfront (equivalently, the long-credit side receives 0.50%).
+- $P_{\text{bond}} = 102.18$ ⇒ $U_{\mathrm{pct}}=100-102.18=-2.18\\%$. Under our sign convention, the **protection buyer receives** 2.18% upfront (equivalently, the long-credit side pays 2.18%).
+- $P_{\text{bond}} = 99.50$ ⇒ $U_{\mathrm{pct}}=100-99.50=+0.50\\%$. Under our sign convention, the **protection buyer pays** 0.50% upfront (equivalently, the long-credit side receives 0.50%).
 
 **Dollar upfront from bond price (use outstanding notional):**
 
 $$\boxed{U_{\mathrm{USD}} = N_{\text{out}} \times (1 - P_{\text{bond}}/100)}$$
 
-**Check (points → dollars):** 1.00 point is 1% of notional. So a 0.01-point move corresponds to $N_{\text{out}}\times 0.01\%$ dollars (e.g., on $N_{\text{out}}=USD 50\text{mm}$, 0.01 point is $USD 5{,}000$). This is a fast reconciliation check for price-quoted indices.
+**Check (points → dollars):** 1.00 point is 1% of notional. So a 0.01-point move corresponds to $N_{\text{out}}\times 0.01\\%$ dollars (e.g., on $N_{\text{out}}=USD\\,50\text{mm}$, 0.01 point is $USD\\,5{,}000$). This is a fast reconciliation check for price-quoted indices.
 
 **Why this exists:** spread→upfront conversion requires a PV01 convention (and sometimes iteration). A price quote sidesteps that by making the upfront the quote object.
 
@@ -246,13 +246,13 @@ $$\boxed{U_{\mathrm{USD}} = N_{\text{out}} \times (1 - P_{\text{bond}}/100)}$$
 
 Given $S_{I,\text{bp}}$, $C_{\text{bp}}$, and $RPV01_I$ (currency per bp):
 
-$$\boxed{U_{\mathrm{USD}} \approx (S_{I,\text{bp}}-C_{\text{bp}})\,RPV01_I}$$
+$$\boxed{U_{\mathrm{USD}} \approx (S_{I,\text{bp}}-C_{\text{bp}})\\,RPV01_I}$$
 
 **From upfront dollars to implied spread (hold the PV01 convention fixed):**
 
 $$\boxed{S_{I,\text{bp}} \approx C_{\text{bp}} + \frac{U_{\mathrm{USD}}}{RPV01_I}}$$
 
-To get **percent-of-notional**, use $U_{\mathrm{pct}} = 100\,U_{\mathrm{USD}}/N_{\text{out}}$. To get the **price per 100**, use:
+To get **percent-of-notional**, use $U_{\mathrm{pct}} = 100\\,U_{\mathrm{USD}}/N_{\text{out}}$. To get the **price per 100**, use:
 $$\boxed{P_{\text{bond}} = 100 - U_{\mathrm{pct}}.}$$
 
 ### 45.2.5 The Index Factor
@@ -290,7 +290,7 @@ $$\boxed{\text{Accrued Premium} = N_{\text{out}} \times C \times \Delta(t_{\text
 
 where $\Delta(\cdot,\cdot)$ is a day-count year fraction (often ACT/360 for standard CDS coupons; always confirm for the specific index).
 
-**Check (accrued scale):** one day of accrued premium is about $N_{\text{out}}\times C \times (1/360)$. For $N_{\text{out}}=USD\,50\text{mm}$ and $C=100$ bp $=0.0100$, that is $50{,}000{,}000 \times 0.0100 / 360 \approx USD\,1{,}389$ per day. If your accrued comes out 10× larger, you likely mixed bp and percent (using $C=0.10$ instead of $0.0100$) or used the wrong day-count denominator.
+**Check (accrued scale):** one day of accrued premium is about $N_{\text{out}}\times C \times (1/360)$. For $N_{\text{out}}=USD\\,50\text{mm}$ and $C=100$ bp $=0.0100$, that is $50{,}000{,}000 \times 0.0100 / 360 \approx USD\\,1{,}389$ per day. If your accrued comes out 10× larger, you likely mixed bp and percent (using $C=0.10$ instead of $0.0100$) or used the wrong day-count denominator.
 
 > **Quick check:** If one system reports “clean” and another reports “full/dirty,” the difference is often just accrued premium (plus small settlement mechanics). When P&L breaks, reconcile **upfront vs accrued** before assuming the model is wrong.
 
@@ -324,10 +324,10 @@ Every 6 months—commonly on **March 20** and **September 20** for the best-know
 
 **The roll calendar:**
 
-| Issue Date | Maturity Alignment | Next Roll |
-|------------|-------------------|-----------|
-| March 20 | Matures June 20 (T years out) | September 20 |
-| September 20 | Matures December 20 (T years out) | March 20 |
+| Series Launch (issue date) | Maturity-Date Alignment for a "$T$-year" Tenor | Next Roll Date |
+|----------------------------|------------------------------------------------|----------------|
+| March 20 | Maturity falls on June 20, $T$ years later (so a 5Y issued 2026-03-20 matures 2031-06-20 — about $T$ years $+\ 3$ months from issue) | September 20 (six months later) |
+| September 20 | Maturity falls on December 20, $T$ years later (so a 5Y issued 2026-09-20 matures 2031-12-20 — about $T$ years $+\ 3$ months from issue) | March 20 (six months later) |
 
 ### 45.3.2 What Happens at Roll
 
@@ -409,7 +409,7 @@ From the auction final price $FP$ (value per 100 of deliverable), the protection
 
 $$\boxed{\text{Protection Payment (per name)} = \frac{N}{M} \times \left(1 - \frac{FP}{100}\right)}$$
 
-**Example:** If the final price is 35 per 100, the cash payoff is $65\%$ of the per-name notional.
+**Example:** If the final price is 35 per 100, the cash payoff is $65\\%$ of the per-name notional.
 
 ### 45.4.4 Accrued Premium at Default
 
@@ -429,13 +429,13 @@ For a 125-name index, each default reduces the factor by $1/125 = 0.008$ (0.8 pe
 
 > **Deep Dive: "Big Short"-Style Mechanics on a HY Index**
 >
-> The 2008-era trades depicted in *The Big Short* were on **subprime mortgage indices** (ABX), not on corporate CDS indices. The default-payout mechanics, however, are analogous. To make them concrete, consider a long-protection position on a hypothetical 100-name HY index (matching the CDX.NA.HY constituent count) with original notional $N=USD 100$m, so each name represents $N/M = USD 1$m.
+> The 2008-era trades depicted in *The Big Short* were on **subprime mortgage indices** (ABX), not on corporate CDS indices. The default-payout mechanics, however, are analogous. To make them concrete, consider a long-protection position on a hypothetical 100-name HY index (matching the CDX.NA.HY constituent count) with original notional $N = USD\ 100$ million, so each name represents $N/M = USD\ 1$ million.
 >
-> 1.  **The Wait:** the buyer pays running premium (bleed). With no defaults, the index notional is full ($USD 100$m).
+> 1.  **The Wait:** the buyer pays running premium (bleed). With no defaults, the index notional is the full USD 100 million.
 > 2.  **The Event:** a constituent defaults; the credit-event process (Chapter 40) determines a final price $FP$.
-> 3.  **The Payout:** the buyer receives $(1-FP/100)\times USD\,1$m immediately at cash settlement. With $FP=40$ (a 40% recovery), that is $USD 600{,}000$ on this name.
-> 4.  **The Aftermath:** the factor drops by $1/100=0.01$ and outstanding notional falls to $USD 99$m. No further premium accrues on the defaulted name.
-> 5.  **The End Game:** if 10 names default at the same $FP=40$, the buyer collects $\sim USD 6$m in cumulative payouts, the factor falls to $0.90$, and outstanding notional is $USD 90$m. The "jackpot" arrives **name by name**, not all at once.
+> 3.  **The Payout:** the buyer receives $(1 - FP/100) \times USD\ 1\\,\text{million}$ immediately at cash settlement. With $FP = 40$ (a 40% recovery), that is USD 600,000 on this name.
+> 4.  **The Aftermath:** the factor drops by $1/100 = 0.01$ and outstanding notional falls to USD 99 million. No further premium accrues on the defaulted name.
+> 5.  **The End Game:** if 10 names default at the same $FP = 40$, the buyer collects roughly USD 6 million in cumulative payouts, the factor falls to $f = 0.90$, and outstanding notional is USD 90 million. The "jackpot" arrives **name by name**, not all at once.
 
 **Impact on future coupons:**
 
@@ -543,8 +543,8 @@ Why the basis can be positive or negative (mechanism-level):
 
 **Inputs**
 - Instrument: 5Y investment-grade index (series per confirmation)
-- Notional: $N=USD\,50{,}000{,}000$
-- Current index factor: $f=0.984$, so $N_{\text{out}}=Nf=USD\,49{,}200{,}000$.
+- Notional: $N=USD\\,50{,}000{,}000$
+- Current index factor: $f=0.984$, so $N_{\text{out}}=Nf=USD\\,49{,}200{,}000$.
 - Fixed coupon: $C=100\text{ bp}=0.0100$
 - Quoted index spread: $S_{I,\text{bp}}=160\text{ bp}$ (i.e., $S_I=0.0160$)
 - Risky annuity: $A_I=4.20$ years (per unit notional, per Chapter 38)
@@ -561,24 +561,24 @@ Why the basis can be positive or negative (mechanism-level):
 **Step-by-step**
 1. Translate quote → upfront:
    - Convert annuity to $\text{RPV01}$ (currency per bp for this position):
-     $RPV01_I = N_{\text{out}} \times 10^{-4} \times A_I = USD\,49{,}200{,}000\times 10^{-4}\times 4.20 = USD\,20{,}664/\text{bp}$
+     $RPV01_I = N_{\text{out}} \times 10^{-4} \times A_I = USD\\,49{,}200{,}000\times 10^{-4}\times 4.20 = USD\\,20{,}664/\text{bp}$
    - Spread difference: $S_{I,\text{bp}}-C_{\text{bp}} = 160-100 = 60$ bp
-   - Dollar upfront $U_{\mathrm{USD}}\approx 60\times USD\,20{,}664 = USD\,1{,}239{,}840$ (paid by protection buyer)
-   - Upfront fraction $U=U_{\mathrm{USD}}/N_{\text{out}} = 1{,}239{,}840/49{,}200{,}000 \approx 0.02520$, so $U_{\mathrm{pct}}\approx 2.52\%$
+   - Dollar upfront $U_{\mathrm{USD}}\approx 60\times USD\\,20{,}664 = USD\\,1{,}239{,}840$ (paid by protection buyer)
+   - Upfront fraction $U=U_{\mathrm{USD}}/N_{\text{out}} = 1{,}239{,}840/49{,}200{,}000 \approx 0.02520$, so $U_{\mathrm{pct}}\approx 2.52\\%$
 2. Accrued premium from last coupon to effective (step-in) date:
    - Day count: $\Delta = 60/360 = 0.166\overline{6}$ (2025-12-20 → 2026-02-18, ACT/360)
-   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD\,49{,}200{,}000\times 0.0100\times 0.16667\approx USD\,82{,}000$ (paid by protection buyer)
+   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD\\,49{,}200{,}000\times 0.0100\times 0.16667\approx USD\\,82{,}000$ (paid by protection buyer)
 3. Settlement cash (what actually moves on settlement date):
-   - Total cash at settlement $\approx USD\,1{,}239{,}840+USD\,82{,}000=USD\,1{,}321{,}840$ paid
+   - Total cash at settlement $\approx USD\\,1{,}239{,}840+USD\\,82{,}000=USD\\,1{,}321{,}840$ paid
 4. CS01 check (spread down 1bp, hold other inputs fixed):
-   - With the down-bump definition, $\text{CS01}\approx -RPV01_I = -USD\,20{,}664$/bp for long protection.
+   - With the down-bump definition, $\text{CS01}\approx -RPV01_I = -USD\\,20{,}664$/bp for long protection.
 
 **Cashflows (illustrative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-20 | $-USD\,1{,}239{,}840$ | Upfront implied by spread vs coupon |
-| 2026-02-20 | $-USD\,82{,}000$ | Accrued premium (2025-12-20 → 2026-02-18, ACT/360) |
-| 2026-03-20 | $-USD\,123{,}000$ | Next running coupon (assumes no further defaults; $\alpha\times N_{\text{out}}\times C$ with $\alpha=90/360=0.25$ for 2025-12-20 → 2026-03-20, ACT/360) |
+| 2026-02-20 | $-USD\\,1{,}239{,}840$ | Upfront implied by spread vs coupon |
+| 2026-02-20 | $-USD\\,82{,}000$ | Accrued premium (2025-12-20 → 2026-02-18, ACT/360) |
+| 2026-03-20 | $-USD\\,123{,}000$ | Next running coupon (assumes no further defaults; $\alpha\times N_{\text{out}}\times C$ with $\alpha=90/360=0.25$ for 2025-12-20 → 2026-03-20, ACT/360) |
 
 **P&L / Risk Interpretation**
 - The settlement cash is **upfront + accrued**. If you reconcile cash but only one leg is booked, you will see an immediate P&L break.
@@ -601,7 +601,7 @@ Why the basis can be positive or negative (mechanism-level):
 ### Example 45.C: Calculate Index Notional and Coupon After Defaults
 
 **Given:** CDX.NA.IG with:
-- Initial notional $N = USD\,100{,}000{,}000$
+- Initial notional $N = USD\\,100{,}000{,}000$
 - Number of constituents $M = 125$
 - Coupon $C = 100$ bp $= 0.0100$
 - Quarterly accrual fraction $\alpha = 0.25$
@@ -615,26 +615,26 @@ $$f = \frac{M - D}{M} = \frac{125 - 2}{125} = \frac{123}{125} = 0.984$$
 
 **Step 2:** Outstanding notional:
 
-$$N_{\text{out}} = N \times f = 100{,}000{,}000 \times 0.984 = USD\,98{,}400{,}000$$
+$$N_{\text{out}} = N \times f = 100{,}000{,}000 \times 0.984 = USD\\,98{,}400{,}000$$
 
 **Step 3:** Quarterly coupon payment:
 
 **Before defaults:**
 
-$$\text{Coupon} = 100{,}000{,}000 \times 0.0100 \times 0.25 = USD\,250{,}000$$
+$$\text{Coupon} = 100{,}000{,}000 \times 0.0100 \times 0.25 = USD\\,250{,}000$$
 
 **After 2 defaults:**
 
-$$\text{Coupon} = 98{,}400{,}000 \times 0.0100 \times 0.25 = USD\,246{,}000$$
+$$\text{Coupon} = 98{,}400{,}000 \times 0.0100 \times 0.25 = USD\\,246{,}000$$
 
-**Reduction:** $USD\,250{,}000 - USD\,246{,}000 = USD\,4{,}000$ per quarter.
+**Reduction:** $USD\\,250{,}000 - USD\\,246{,}000 = USD\\,4{,}000$ per quarter.
 
 ---
 
 ### Example 45.D: Default Settlement Calculation
 
 **Given:**
-- Index notional $N = USD\,50{,}000{,}000$
+- Index notional $N = USD\\,50{,}000{,}000$
 - Number of names $M = 125$
 - One constituent defaults
 - Auction final price $FP = 35$ (per 100 face value)
@@ -643,19 +643,19 @@ $$\text{Coupon} = 98{,}400{,}000 \times 0.0100 \times 0.25 = USD\,246{,}000$$
 
 **Step 1:** Per-name notional:
 
-$$N_{\text{name}} = \frac{N}{M} = \frac{50{,}000{,}000}{125} = USD\,400{,}000$$
+$$N_{\text{name}} = \frac{N}{M} = \frac{50{,}000{,}000}{125} = USD\\,400{,}000$$
 
 **Step 2:** Loss given default (LGD) fraction:
 
-$$\text{LGD fraction} = 1 - \frac{FP}{100} = 1 - 0.35 = 0.65 = 65\%$$
+$$\text{LGD fraction} = 1 - \frac{FP}{100} = 1 - 0.35 = 0.65 = 65\\%$$
 
 **Step 3:** Protection payment:
 
-$$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400{,}000 \times 0.65 = USD\,260{,}000$$
+$$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400{,}000 \times 0.65 = USD\\,260{,}000$$
 
 **Sanity checks:**
-- If $FP = 0$ (total loss): Payment $= USD\,400{,}000$ ✓ (bounded by per-name notional)
-- If $FP = 100$ (full recovery): Payment $= USD\,0$ ✓
+- If $FP = 0$ (total loss): Payment $= USD\\,400{,}000$ ✓ (bounded by per-name notional)
+- If $FP = 100$ (full recovery): Payment $= USD\\,0$ ✓
 
 ---
 
@@ -664,7 +664,7 @@ $$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400{,}000 \times
 **Scenario:** You hold long protection on the *off-the-run* CDX.NA.IG (call it series $k$) and want to roll to the *on-the-run* (series $k+1$).
 
 **Given (illustrative; series-specific upfronts are mark-to-market):**
-- Notional $N = USD\,25{,}000{,}000$
+- Notional $N = USD\\,25{,}000{,}000$
 - Off-the-run upfront to unwind: you receive 0.80% (i.e., the position has positive mark-to-market for the long-protection side)
 - On-the-run upfront to enter (long protection): you pay 0.50%
 
@@ -674,17 +674,17 @@ $$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400{,}000 \times
 
 To close long protection, you enter an offsetting short-protection trade in the same series. You receive:
 
-$$\text{Receive} = 25{,}000{,}000 \times 0.0080 = USD\,200{,}000$$
+$$\text{Receive} = 25{,}000{,}000 \times 0.0080 = USD\\,200{,}000$$
 
 **Step 2:** Cash to enter the on-the-run leg.
 
 To enter new long protection, you pay:
 
-$$\text{Pay} = 25{,}000{,}000 \times 0.0050 = USD\,125{,}000$$
+$$\text{Pay} = 25{,}000{,}000 \times 0.0050 = USD\\,125{,}000$$
 
 **Step 3:** Net roll cash.
 
-$$\text{Net} = USD\,200{,}000 - USD\,125{,}000 = +USD\,75{,}000 \text{ (received)}$$
+$$\text{Net} = USD\\,200{,}000 - USD\\,125{,}000 = +USD\\,75{,}000 \text{ (received)}$$
 
 **Note:** This ignores bid/offer spreads and assumes both trades settle on the same accrual grid. In practice, off-the-run liquidity can be worse, accrued-premium timing differs, and the two series have different constituent lists and slightly different maturities — all of which can make realized roll cash differ from this toy calculation.
 
@@ -695,7 +695,7 @@ $$\text{Net} = USD\,200{,}000 - USD\,125{,}000 = +USD\,75{,}000 \text{ (received
 **Scenario:** A trader mistakenly books a CDX.NA.HY trade using spread convention instead of price convention.
 
 **Given:**
-- Notional $N = USD\,100{,}000{,}000$
+- Notional $N = USD\\,100{,}000{,}000$
 - Correct quote: $P_{\text{bond}} = 102.18$ (price per 100 of notional, i.e., the index trades 2.18 points above par)
 - Incorrectly assumed: the same number is treated as an upfront fraction (sign flipped)
 
@@ -703,15 +703,15 @@ $$\text{Net} = USD\,200{,}000 - USD\,125{,}000 = +USD\,75{,}000 \text{ (received
 
 **Correct (price convention):**
 
-$$U_{\mathrm{pct}} = 100 - 102.18 = -2.18\%$$
+$$U_{\mathrm{pct}} = 100 - 102.18 = -2.18\\%$$
 
-$$U_{\mathrm{USD}} = 100{,}000{,}000 \times (-0.0218) = -USD\,2{,}180{,}000$$
+$$U_{\mathrm{USD}} = 100{,}000{,}000 \times (-0.0218) = -USD\\,2{,}180{,}000$$
 
 i.e., $U_{\mathrm{USD}}\lt 0$ means the **protection buyer receives** USD 2,180,000 upfront.
 
-**Direction error if you flip the sign:** If you book +2.18% (buyer pays) instead of -2.18% (buyer receives), the cashflow on a USD 100,000,000 trade is wrong by $2\times 2.18\% = 4.36\%$, i.e., USD 4,360,000.
+**Direction error if you flip the sign:** If you book +2.18% (buyer pays) instead of -2.18% (buyer receives), the cashflow on a USD 100,000,000 trade is wrong by $2\times 2.18\\% = 4.36\\%$, i.e., USD 4,360,000.
 
-**Unit error if you misread the quote as a spread in bp:** If you treat "102.18" as 102.18 bp of running spread (rather than a price per 100), you would feed it into the spread→upfront converter $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\,RPV01_I$ and produce an entirely different upfront. With a 500 bp HY coupon, $S-C \approx 102.18-500 = -397.82$ bp, so the converter says the buyer *receives* $\sim USD\,397.82\times RPV01_I$ — the magnitude depends on your assumed PV01, but the implied number is typically several percent of notional, totally inconsistent with the actual price-quoted upfront. The booking error can easily be on the order of millions of dollars on a USD 100mm trade.
+**Unit error if you misread the quote as a spread in bp:** If you treat "102.18" as 102.18 bp of running spread (rather than a price per 100), you would feed it into the spread→upfront converter $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\\,RPV01_I$ and produce an entirely different upfront. With a 500 bp HY coupon, $S-C \approx 102.18-500 = -397.82$ bp, so the converter says the buyer *receives* $\sim USD\\,397.82\times RPV01_I$ — the magnitude depends on your assumed PV01, but the implied number is typically several percent of notional, totally inconsistent with the actual price-quoted upfront. The booking error can easily be on the order of millions of dollars on a USD 100mm trade.
 
 **Lesson:** Always verify the quoting convention for the specific index family before booking. CDX.NA.HY uses bond price; CDX.NA.IG uses spread.
 
@@ -720,19 +720,19 @@ i.e., $U_{\mathrm{USD}}\lt 0$ means the **protection buyer receives** USD 2,180,
 ### Example 45.G: Index Factor Impact on CS01
 
 **Given:**
-- CDX.NA.IG position: $N = USD\,100{,}000{,}000$ original notional, 5Y maturity.
-- Index CS01 magnitude at full factor ($f=1$): $|\text{CS01}_{f=1}| = USD\,47{,}000$ per bp.
+- CDX.NA.IG position: $N = USD\\,100{,}000{,}000$ original notional, 5Y maturity.
+- Index CS01 magnitude at full factor ($f=1$): $|\text{CS01}_{f=1}| = USD\\,47{,}000$ per bp.
 - Current factor: $f = 0.976$ (corresponding to one default in a 125-name index since $1/125=0.008$, so three defaults give $f = 1 - 3/125 = 0.976$).
 
 **Task:** Compute the CS01 magnitude at the current factor.
 
-**Solution:** RPV01 (and therefore CS01 to first order) scales linearly with outstanding notional $N_{\text{out}}=N\,f$, so
+**Solution:** RPV01 (and therefore CS01 to first order) scales linearly with outstanding notional $N_{\text{out}}=N\\,f$, so
 
-$$|\text{CS01}_f| = |\text{CS01}_{f=1}| \times f = USD\,47{,}000 \times 0.976 = USD\,45{,}872\ \text{per bp.}$$
+$$|\text{CS01}_f| = |\text{CS01}_{f=1}| \times f = USD\\,47{,}000 \times 0.976 = USD\\,45{,}872\ \text{per bp.}$$
 
-The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for **long protection** the value is **negative** (so $\text{CS01}\approx -USD\,45{,}872$/bp); for **short protection** it is positive.
+The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for **long protection** the value is **negative** (so $\text{CS01}\approx -USD\\,45{,}872$/bp); for **short protection** it is positive.
 
-**Risk implication:** If your risk system still carries the full-factor CS01 ($USD\,47{,}000$/bp) but the actual factor is 0.976, the *reported* magnitude is overstated by $USD\,1{,}128$/bp. Over a 10 bp move, that is a $USD\,11{,}280$ P&L attribution discrepancy.
+**Risk implication:** If your risk system still carries the full-factor CS01 ($USD\\,47{,}000$/bp) but the actual factor is 0.976, the *reported* magnitude is overstated by $USD\\,1{,}128$/bp. Over a 10 bp move, that is a $USD\\,11{,}280$ P&L attribution discrepancy.
 
 ---
 
@@ -821,7 +821,7 @@ The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for *
 - $S_{I,\text{bp}}$: quoted index spread (bp/year) when spread-quoted; $S_I=S_{I,\text{bp}}\times 10^{-4}$.
 - $P_{\text{bond}}$: price quote per 100 notional (for price-quoted indices).
 - $U_{\mathrm{USD}}$: upfront cash amount (currency), with $U_{\mathrm{USD}}\gt 0$ meaning the **protection buyer pays**; $U=U_{\mathrm{USD}}/N_{\text{out}}$; $U_{\mathrm{pct}}=100U$.
-- $RPV01_I$: PV of 1 bp/year of running premium for the position (currency per bp). Risky annuity $A_I := RPV01_I/(N_{\text{out}}\,10^{-4})$ has units of years.
+- $RPV01_I$: PV of 1 bp/year of running premium for the position (currency per bp). Risky annuity $A_I := RPV01_I/(N_{\text{out}}\\,10^{-4})$ has units of years.
 - $FP$: auction final price (per 100); $R=FP/100$; $LGD=1-R$.
 - $\Delta(t_1,t_2)$: day-count year fraction.
 - $\text{CS01} := PV(\text{spread down }1\text{bp})-PV(\text{base})$ under the stated bump object (currency per bp).
@@ -843,11 +843,11 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 | 7 | How does CDX.NA.IG quote in the market? | By spread (not price) |
 | 8 | How does CDX.NA.HY quote in the market? | By bond price (not spread) |
 | 9 | Why do HY indices use bond price quoting? | To avoid disputes about index PV01 for spread-to-upfront conversion |
-| 10 | Convert $P_{\text{bond}}=102.18$ (per 100) to upfront | $U_{\mathrm{pct}}=100-102.18=-2.18\%$ (protection buyer receives) |
-| 11 | Convert $P_{\text{bond}}=99.50$ (per 100) to upfront | $U_{\mathrm{pct}}=100-99.50=+0.50\%$ (protection buyer pays) |
+| 10 | Convert $P_{\text{bond}}=102.18$ (per 100) to upfront | $U_{\mathrm{pct}}=100-102.18=-2.18\\%$ (protection buyer receives) |
+| 11 | Convert $P_{\text{bond}}=99.50$ (per 100) to upfront | $U_{\mathrm{pct}}=100-99.50=+0.50\\%$ (protection buyer pays) |
 | 12 | Spread-quoted: upfront dollars formula | $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\text{RPV01}$ (under the PV01 convention used) |
 | 13 | What is RPV01 (units)? | PV of 1 bp/year of running premium (currency per bp) |
-| 14 | What is “points upfront”? | $U_{\mathrm{pct}}=100\,U_{\mathrm{USD}}/N_{\text{out}}$ (percent of notional) |
+| 14 | What is “points upfront”? | $U_{\mathrm{pct}}=100\\,U_{\mathrm{USD}}/N_{\text{out}}$ (percent of notional) |
 | 15 | Settlement cash at entry (clean vs full) | Full cash ≈ upfront + accrued premium; clean quote focuses on upfront |
 | 16 | What happens to index notional when a constituent defaults? | Equal weights: the factor drops by $1/M$, so $N_{\text{out}}$ drops by $N/M$ |
 | 17 | Protection payment per default (per name) | $\frac{N}{M}\left(1-\frac{FP}{100}\right)$ |
@@ -866,7 +866,7 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 3. Price-quoted index: $N=USD 50$mm, $f=0.95$, $P_{\text{bond}}=98.25$. Compute upfront dollars and pay/receive for a protection buyer.
 4. Factor + coupon: $M=125$, $D=3$, $N=USD 200$mm, $C_{\text{bp}}=80$, quarterly $\alpha=0.25$. Compute $f$, $N_{\text{out}}$, and the next coupon cashflow.
 5. Default settlement: $N=USD 50$mm, $M=100$, $FP=27$. Compute the protection payment (per name and total) and the new outstanding notional after the default.
-6. Accrued premium: $N_{\text{out}}=USD\,75$mm, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
+6. Accrued premium: $N_{\text{out}}=USD\\,75$mm, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
 7. Roll cash: roll $N=USD 30$mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Compute net roll cash.
 8. CS01: a long-protection index position has $\text{RPV01}=USD 18{,}200/\text{bp}$. Using the down-bump definition, approximate CS01 and interpret the sign.
 9. Concept: explain two structural sources of roll P&L even if spreads did not “move” on the screen.
@@ -874,11 +874,11 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 
 ### Solution Sketches (Selected)
 
-**2.** $N_{\text{out}}=USD\,99.2$mm. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD\,1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\%$ paid.
+**2.** $N_{\text{out}}=USD\\,99.2$mm. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD\\,1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\\%$ paid.
 
-**3.** $U_{\mathrm{pct}}=100-98.25=1.75\%$ paid. $N_{\text{out}}=USD\,47.5$mm, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD\,831{,}250$ paid.
+**3.** $U_{\mathrm{pct}}=100-98.25=1.75\\%$ paid. $N_{\text{out}}=USD\\,47.5$mm, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD\\,831{,}250$ paid.
 
-**8.** $\text{CS01}\approx -\text{RPV01}=-USD\,18{,}200/\text{bp}$ for long protection (under the down-bump definition: a 1 bp spread tightening reduces the long-protection PV).
+**8.** $\text{CS01}\approx -\text{RPV01}=-USD\\,18{,}200/\text{bp}$ for long protection (under the down-bump definition: a 1 bp spread tightening reduces the long-protection PV).
 
 **9.** (i) The constituent portfolio can change between series; (ii) the new on-the-run contract is typically ~6 months longer maturity, changing PV01/fair spread even with identical names.
 

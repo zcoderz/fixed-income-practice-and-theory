@@ -320,7 +320,7 @@ The ETF analogy suggests that if the index trades at a premium to intrinsic, you
 **Stylized pattern (not a rule):**
 - In sell-offs, the quoted index spread can move faster than computed intrinsic (especially if intrinsic is built from mid quotes in less-liquid names), producing basis moves.
 - As liquidity returns and single-name markets re-open, basis can narrow, but convergence timing is uncertain.
-- The sign and size of the basis are path-dependent: documentation mismatches (No-Re vs Mod-Re), bid-ask dispersion, and roll effects can dominate.
+- The sign and size of the basis are path-dependent: documentation mismatches (e.g., XR vs MMR across regions, or any legacy Mod-Re marks fed into a No-Re index intrinsic), bid-ask dispersion, and roll effects can dominate.
 
 There is no universal “typical” stress-period basis magnitude. To quantify basis behavior for a specific index family and date range, you need a historical time series (quoted index, constituent quotes, and the exact intrinsic calculation rule) and then summarize the resulting distribution (levels, tails, and persistence).
 
@@ -462,7 +462,7 @@ $$\Delta PV \approx N \cdot RPV01_I(t,T)\cdot \Delta b,$$
 so
 $$\boxed{Basis01 \approx N \cdot RPV01_I(t,T)\cdot 10^{-4}.}$$
 
-**Check (numbers):** For $N=USD 100\text{mm}$ and $RPV01_I=4.0$ years, $Basis01\approx USD 40{,}000/\text{bp}$. A +3bp basis widening is roughly +USD 120k for a long-protection index position.
+**Check (numbers):** For $N=$ USD 100mm and $RPV01_I=4.0$ years, $Basis01\approx 40{,}000$ (USD per bp). A +3 bp basis widening is roughly +USD 120k for a long-protection index position.
 
 ### 46.5.2 P&L Decomposition: Index vs Constituents
 
@@ -481,9 +481,9 @@ If you've hedged to be CS01-neutral ($N_I \cdot CS01_I = \sum_m N_m \cdot CS01_m
 
 To hedge a long-protection index position with short-protection constituent trades, match CS01:
 
-$$\text{Index CS01} = N_I \times 10^{-4} \times RPV01_I$$
+$$\mathrm{Index\\,CS01} = N_I \times 10^{-4} \times RPV01_I$$
 
-$$\text{Constituent CS01} = \sum_m N_m \times 10^{-4} \times RPV01_m$$
+$$\mathrm{Constituent\\,CS01} = \sum_m N_m \times 10^{-4} \times RPV01_m$$
 
 For equal constituent notionals, set:
 $$N_m = \frac{N_I \cdot RPV01_I}{\sum_m RPV01_m}$$
@@ -616,7 +616,7 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 - Next coupon payment date: 2026-03-20
 
 **Inputs**
-- Notional: $N=USD 100{,}000{,}000$
+- Notional: $N=100{,}000{,}000$ (USD)
 - Index coupon: $C=60$ bp
 - Quoted index level: $S_{\text{quoted}}=72$ bp
 - Index RPV01: $RPV01_I=4.5$ years (per unit notional, from your index pricer at the quoted level)
@@ -635,26 +635,26 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
    - Interpretation: $U=0.54\\%$ of notional (54 points per 10,000 notional, or "54 bp points")
 
 2. **Convert upfront points to dollars**
-   $$U_{\mathrm{USD}} = N \cdot U = 100{,}000{,}000 \times 0.0054 = USD 540{,}000.$$
+   $$U_{\mathrm{USD}} = N \cdot U = 100{,}000{,}000 \times 0.0054 = 540{,}000\quad (\mathrm{USD})$$
 
 3. **Compute accrued premium to settlement**
    - Accrual fraction to settlement: $\tau=\frac{27}{360}=0.075$ (27 actual days from 2025-12-20 to 2026-01-16)
-   - Full quarter accrual fraction: $\tau_{\text{qtr}}=\frac{90}{360}=0.25$ (2025-12-20 to 2026-03-20)
+   - Full quarter accrual fraction: $\tau_{\mathrm{qtr}}=\frac{90}{360}=0.25$ (2025-12-20 to 2026-03-20)
    - Accrued running premium (dollars):
-   $$Accrued_{\mathrm{USD}}=N \cdot C \cdot \tau = 100{,}000{,}000 \times 0.0060 \times 0.075 = USD 45{,}000.$$
+   $$\mathrm{Accrued}_{\mathrm{USD}}=N \cdot C \cdot \tau = 100{,}000{,}000 \times 0.0060 \times 0.075 = 45{,}000\quad (\mathrm{USD})$$
 
 4. **Settlement cash amount (buyer of protection)**
-   $$\text{Settlement cash paid} = U_{\mathrm{USD}} + Accrued_{\mathrm{USD}} = 540{,}000 + 45{,}000 = USD 585{,}000.$$
+   $$\mathrm{Settlement\\,cash\\,paid} = U_{\mathrm{USD}} + \mathrm{Accrued}_{\mathrm{USD}} = 540{,}000 + 45{,}000 = 585{,}000\quad (\mathrm{USD})$$
 
 **Cashflows (protection buyer sign convention: pay = negative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-01-16 | $-USD 585{,}000$ | Upfront + accrued premium paid at settlement |
-| 2026-03-20 | $-USD 150{,}000$ | Full quarter running coupon: $-N\cdot C\cdot \tau_{\text{qtr}}=-100\text{mm}\cdot 0.0060\cdot 0.25$ |
+| 2026-01-16 | −USD 585,000 | Upfront + accrued premium paid at settlement |
+| 2026-03-20 | −USD 150,000 | Full quarter running coupon: $-N\cdot C\cdot \tau_{\mathrm{qtr}}=-100{,}000{,}000\times 0.0060\times 0.25$ |
 
 **P&L / Risk Interpretation**
 - The upfront sign is intuitive: if $S_{\text{quoted}}\gt C$, the protection buyer pays upfront; if $S_{\text{quoted}}\lt C$, the protection buyer receives upfront.
-- A quick “risk scalar” is $Basis01\approx N\cdot RPV01_I\cdot 10^{-4}=100{,}000{,}000\times 4.5\times 10^{-4}=USD 45{,}000/\text{bp}$ (buyer of protection).
+- A quick "risk scalar" is $Basis01\approx N\cdot RPV01_I\cdot 10^{-4}=100{,}000{,}000\times 4.5\times 10^{-4}= 45{,}000$ (USD per bp; buyer of protection).
 
 **Sanity Checks**
 - **Limit check:** If $S_{\text{quoted}}=C$, then $U=0$ and settlement cash is just accrued premium.
@@ -726,42 +726,42 @@ The proportional adjustment preserves relative ranking while forcing intrinsic t
 
 **Position:** Long protection on USD 100mm index with RPV01 = 4.1 years
 
-**Index CS01:**
-$$CS01_I = USD 100mm \times 10^{-4} \times 4.1 = USD 41{,}000/\text{bp}$$
+**Index CS01** (with $N_I = $ USD 100mm):
+$$CS01_I = N_I \times 10^{-4} \times RPV01_I = 100{,}000{,}000 \times 10^{-4} \times 4.1 = 41{,}000\quad (\mathrm{USD\\,per\\,bp})$$
 
 **Hedge:** Short protection on 5 constituents with RPV01 = [4.4, 4.2, 4.0, 3.8, 3.6] years (sum = 20.0).
 
 For equal notional per name $N_m$, match constituent CS01 to index CS01:
 $$\sum_m N_m\cdot RPV01_m\cdot 10^{-4} = N_m\cdot \sum_m RPV01_m\cdot 10^{-4} = N_m\cdot 20.0\cdot 10^{-4} = 41{,}000$$
-$$N_m = \frac{41{,}000}{20.0\cdot 10^{-4}} = USD 20.5\text{mm}$$
+$$N_m = \frac{41{,}000}{20.0\cdot 10^{-4}} = 20{,}500{,}000\quad (\mathrm{i.e.,\\,USD\\,20.5\\,mm})$$
 
-**Hedge:** USD 20.5mm short protection per name (5 names, total $102.5mm notional) vs $100mm long protection index.
+**Hedge:** USD 20.5mm short protection per name (5 names, total USD 102.5mm notional) vs USD 100mm long-protection index.
 
 ---
 
 ### Example 8: Basis Trade P&L Scenarios
 
 **Position:** CS01-neutral (Example 7)
-- Long protection index: CS01 = +USD 41k/bp
-- Short protection constituents: CS01 = -USD 41k/bp
+- Long-protection index: $CS01 = +\mathrm{USD}\\,41\text{k/bp}$
+- Short-protection constituents: $CS01 = -\mathrm{USD}\\,41\text{k/bp}$ (aggregate)
 
 **Scenario (i): Parallel widening, no basis change**
 - Index widens 20 bp, each name widens 20 bp
-- Index P&L: $+20 \times 41k = +USD 820k$
-- Hedge P&L: $-20 \times 41k = -USD 820k$
-- **Net: $0$** (systematic risk hedged)
+- Index P&L: $+20\times 41 = +820$ (thousand USD)
+- Hedge P&L: $-20\times 41 = -820$ (thousand USD)
+- **Net:** USD 0 (systematic risk hedged)
 
 **Scenario (ii): Pure basis move**
 - Constituents unchanged, index tightens 10 bp
-- Index P&L: $-10 \times 41k = -USD 410k$
-- Hedge P&L: $0$
-- **Net: -USD 410k** (basis P&L)
+- Index P&L: $-10\times 41 = -410$ (thousand USD)
+- Hedge P&L: USD 0
+- **Net:** $-\mathrm{USD}\\,410\text{k}$ (basis P&L)
 
 **Scenario (iii): Idiosyncratic constituent widening**
 - Index unchanged, Name 5 widens 100 bp (others flat)
-- Index P&L: $0$
-- Hedge P&L on Name 5: $-100 \times (20.5mm \times 10^{-4} \times 3.6) = -USD 738k$
-- **Net: -USD 738k** (idiosyncratic risk)
+- Index P&L: USD 0
+- Hedge P&L on Name 5: $-100\times (20{,}500{,}000\times 10^{-4}\times 3.6) = -738{,}000$ (USD)
+- **Net:** $-\mathrm{USD}\\,738\text{k}$ (idiosyncratic risk)
 
 ---
 
@@ -807,7 +807,7 @@ $$S_{\text{intrinsic}} = \frac{50(4.40) + 100(4.00) + 200(3.60)}{4.40 + 4.00 + 3
 **Residual risks:**
 
 1. **Composition mismatch:** Names present in Series $N$ but not in $N\!+\!1$ create idiosyncratic exposure. If one of those names widens 50 bp, your Series $N$ position gains, but your Series $N\!+\!1$ hedge does not respond.
-   - Estimated impact (if $M=125$ names): $\approx USD 50\text{mm} \times (1/125) \times 50\text{bp} \times 4.1 \times 10^{-4} \approx USD 8{,}200$
+   - Estimated impact (with $M=125$ names): $50{,}000{,}000\times (1/125)\times 50\times 10^{-4}\times 4.1 \approx 8{,}200$ (USD), i.e. about USD 8.2k
 
 2. **Series basis:** If Series $N$ trades at a different basis to its intrinsic than Series $N\!+\!1$, you have a basis mismatch.
    - If Series $N$ basis is -2 bp and Series $N\!+\!1$ is 0 bp, you're effectively short 2 bp of series basis.
@@ -847,7 +847,7 @@ Practical data notes:
 
 ### 46.7.3 Common Pitfalls
 
-1. **Documentation mismatch:** Using Mod-Re constituent spreads without adjusting for No-Re index (CDX)
+1. **Documentation mismatch:** Using constituent spreads on a different restructuring basis from the index (e.g., legacy Mod-Re marks for a No-Re CDX index, or MMR-quoted European single-names for a No-Re intrinsic)
 2. **Stale quotes:** Computing intrinsic from end-of-day constituent spreads vs intraday index moves
 3. **Bid-ask conflation:** Using mid-market intrinsic for execution analysis
 4. **Recovery inconsistency:** Different recovery assumptions across names or vs index
@@ -918,7 +918,7 @@ Practical data notes:
 | 8 | Why can the index move before single names? | The index is often more liquid; single-name quotes can lag, so an intrinsic built from a stale snapshot can diverge |
 | 9 | What is the portfolio swap adjustment (PSA)? | A calibration step that adjusts constituent curves so the basket-implied index matches the quoted index |
 | 10 | Why is PSA useful for tranche/index option work? | You want one consistent set of curves that reproduces the quoted index before calibrating products built on the index |
-| 11 | What happens to index notional after a default (equal-weight index)? | It is reduced by $1/M$ (via the index factor); future premium cashflows shrink accordingly |
+| 11 | What happens to index notional after a default (equal-weight index)? | The index factor decreases by $1/M_0$ ($M_0$ = constituents at series inception); the outstanding notional drops by the same fraction and future premium cashflows shrink in proportion |
 | 12 | What's the spread-to-upfront mapping (spread-quoted index)? | Upfront points per unit notional: $U \approx (S_{\text{quoted}}-C)\cdot RPV01_I$ |
 | 13 | If all constituent spreads and RPV01s are equal, what is intrinsic? | The common spread (weighted average reduces to simple average) |
 | 14 | How does bid-ask dispersion affect intrinsic? | It creates an executable intrinsic *band*; a mid-based intrinsic may not be tradeable |
@@ -928,7 +928,7 @@ Practical data notes:
 | 18 | What happens to intrinsic when dispersion increases? | It often falls relative to the simple average because wide names carry smaller RPV01 weights |
 | 19 | Name two limits to basis arbitrage | Execution/market impact and margin/capital constraints (also contract mismatch and convergence uncertainty) |
 | 20 | In stress, what can happen to basis? | Basis can widen when the index reprices faster than the constituent snapshot; convergence timing is uncertain |
-| 21 | What P&L impact does a +3bp basis widening have on USD 100mm with RPV01=4.2? | Approx $100mm \times 3 \times 10^{-4} \times 4.2 \approx USD 126{,}000$ (long-protection index view) |
+| 21 | What P&L impact does a +3bp basis widening have on USD 100mm with RPV01=4.2? | Approx $100{,}000{,}000\times 3\times 10^{-4}\times 4.2 \approx 126{,}000$, i.e. about USD 126k (long-protection index view) |
 
 ## Mini Problem Set
 
@@ -936,7 +936,7 @@ Practical data notes:
 
 1. Compute intrinsic spread for 4 names: spreads [40, 60, 80, 100] bp, RPV01 [4.5, 4.0, 3.5, 3.0] years.
 2. Given quoted = 90 bp, intrinsic = 86 bp, compute basis and interpret.
-3. Compute the upfront (dollars) for: $C=50$ bp, $S=80$ bp, $RPV01=4.2$ years, $N=USD 200\text{mm}$.
+3. Compute the upfront (dollars) for: $C=50$ bp, $S=80$ bp, $RPV01=4.2$ years, $N=$ USD 200mm.
 4. Why does a 1000 bp name get less weight in intrinsic than a 10 bp name?
 5. Compute a bid/ask intrinsic band: 2 names, Name A bid/ask 90/110, Name B 10/12, both RPV01=4.0.
 6. Explain how documentation differences (e.g., restructuring treatment) can create a systematic cross-index basis.
@@ -956,9 +956,9 @@ Practical data notes:
 
 **1.** Intrinsic $=\frac{40(4.5)+60(4.0)+80(3.5)+100(3.0)}{4.5+4.0+3.5+3.0}=\frac{1000}{15}=66.67$ bp.
 
-**3.** Upfront dollars $=N\cdot (S-C)\cdot 10^{-4}\cdot RPV01=200\text{mm}\cdot 30\cdot 10^{-4}\cdot 4.2=USD 2.52\text{mm}$.
+**3.** Upfront dollars $=N\cdot (S-C)\cdot 10^{-4}\cdot RPV01=200{,}000{,}000\times 30\times 10^{-4}\times 4.2=2{,}520{,}000$ (i.e., USD 2.52mm).
 
-**8.** $CS01\approx N\cdot RPV01\cdot 10^{-4}=50\text{mm}\cdot 4.2\cdot 10^{-4}=USD 21{,}000/\text{bp}$.
+**8.** $CS01\approx N\cdot RPV01\cdot 10^{-4}=50{,}000{,}000\times 4.2\times 10^{-4}=21{,}000$ (USD per bp).
 
 **4.** Intrinsic uses RPV01 weights. A very wide name has lower survival and a shorter expected premium-paying life, so its RPV01 is smaller and it receives less weight than its “count weight.”
 
