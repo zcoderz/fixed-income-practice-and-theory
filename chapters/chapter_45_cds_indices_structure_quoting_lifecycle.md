@@ -16,7 +16,7 @@ When a trader says they are "buying CDX," they usually mean: **buy protection on
 
 > **Why Middle Office Cares**
 >
-> Your daily risk report shows CDX.IG DV01 exposure aggregated across the desk. When the index rolls from Series 41 to Series 42, positions need rebooking from the old series to the new. A missed roll booking causes P&L breaks when the old series stops updating and reconciliation issues when positions appear on "dead" instruments. Understanding the roll calendar, the index factor after defaults, and the quoting convention is essential for anyone producing or consuming credit risk reports.
+> Your daily risk report shows CDX.IG **CS01** exposure (sometimes labeled "credit DV01") aggregated across the desk. When the index rolls — say, from Series 41 to Series 42 — positions need rebooking from the old series to the new. A missed roll booking causes P&L breaks when the old series stops updating and reconciliation issues when positions appear on "dead" instruments. Understanding the roll calendar, the index factor after defaults, and the quoting convention is essential for anyone producing or consuming credit risk reports.
 
 Prerequisites: [Chapter 38 — Single-Name CDS](chapter_38_cds_contract_mechanics.md), [Chapter 40 — CDS Auction Process](chapter_40_cds_auction_process.md), [Chapter 41 — CDS Indices Mechanics (Coupons, Rolls)](chapter_41_cds_indices_mechanics_coupons_rolls.md)  
 Follow-on: [Chapter 46 — Intrinsic Index Spread and Index Basis](chapter_46_intrinsic_index_spread_and_index_basis.md), [Chapter 47 — Hedging and Relative Value in CDS Indices](chapter_47_hedging_relative_value_cds_indices.md)
@@ -36,7 +36,7 @@ Follow-on: [Chapter 46 — Intrinsic Index Spread and Index Basis](chapter_46_in
 
 ---
 
-## Index Naming: Decoding the Identifier
+## 45.1 Index Naming: Decoding the Identifier
 
 A CDS index identifier encodes multiple pieces of information in a structured format. Understanding this structure is essential for correct trade booking and risk management.
 
@@ -44,22 +44,24 @@ A CDS index identifier encodes multiple pieces of information in a structured fo
 
 An index family defines (i) a reference-entity universe (region/sector), (ii) a credit-quality bucket (IG/HY/crossover), and (iii) a ruleset for rolling and maintaining constituents. Table 45.1 is a simplified map of common families.
 
-**Table 45.1: Major CDS Index Families**
+**Table 45.1: Major CDS Index Families (reference launch sizes)**
 
-| Index Name | Geography | Credit Quality | Number of Credits |
-|------------|-----------|----------------|-------------------|
+| Index Name | Geography | Credit Quality | Reference Launch Size |
+|------------|-----------|----------------|-----------------------|
 | CDX.NA.IG | North America | Investment Grade | 125 |
 | CDX.NA.HY | North America | High Yield | 100 |
-| CDX.NA.XO | North America | Crossover | 35 |
-| CDX.EM | Emerging Markets | Sovereign | 15 |
-| CDX.EM.Diversified | Emerging Markets | Sovereign + Corporate | 40 |
-| iTraxx Europe | Europe | Investment Grade | 125 |
-| iTraxx Europe Crossover | Europe | Crossover | 40 |
+| CDX.NA.XO † | North America | Crossover | 35 |
+| CDX.EM | Emerging Markets | Sovereign | ~14–15 |
+| CDX.EM.Diversified † | Emerging Markets | Sovereign + Corporate | 40 |
+| iTraxx Europe (Main) | Europe | Investment Grade | 125 |
+| iTraxx Europe Crossover | Europe | Crossover | 75 (earlier series: 40–50) |
 | iTraxx Japan | Japan | Investment Grade | 50 |
-| iTraxx Asia ex-Japan | Asia ex-Japan | Investment Grade | 50 |
+| iTraxx Asia ex-Japan | Asia ex-Japan | Investment Grade | 40 (varies by series) |
 | iTraxx Australia | Australia | Investment Grade | 25 |
 
-> **Note (counts drift within a series):** Constituent counts typically start at a standard launch size, then decline within a series as defaults remove names (without replacement).
+> **Notes:**
+> - Counts shown are reference launch sizes; constituent counts can change across series, and decline *within* a series as defaults remove names (without replacement). Always treat the official series termsheet / administrator reference data as the source of truth.
+> - † CDX.NA.XO and CDX.EM.Diversified are included for historical context. Liquidity and on-the-run status of these sub-indices have varied substantially over time; verify current status against administrator reference data before assuming a tradable on-the-run exists.
 
 > **Crossover:** “Crossover” indices target credits near the IG/HY boundary (often fallen angels / crossover-rated names).
 
@@ -79,27 +81,27 @@ Index composition is maintained by an independent administrator under published 
 
 A complete index identifier follows the pattern:
 
-$$\boxed{\text{[Family].[Region].[Quality].[Series]}\ [\text{Tenor}]}$$
+$$\boxed{\text{[Family].[Region].[Quality].[Series] [Tenor]}}$$
 
 **Example: CDX.NA.IG.42 5Y**
 
 | Component | Value | Meaning |
 |-----------|-------|---------|
-| CDX | — | Index family (North American indices) |
-| NA | — | North America |
-| IG | — | Investment Grade |
-| 42 | — | Series number (42nd vintage) |
-| 5Y | — | 5-year maturity contract |
+| CDX | — | Index brand family (covers North America and emerging markets) |
+| NA | — | Region: North America |
+| IG | — | Credit-quality bucket: Investment Grade |
+| 42 | — | Series number (42nd vintage of this sub-index) |
+| 5Y | — | 5-year standard maturity |
 
-**Example: iTraxx Europe Series 6 7Y**
+**Example: iTraxx Europe Series 41 7Y**
 
 | Component | Value | Meaning |
 |-----------|-------|---------|
-| iTraxx | — | Index family (European indices) |
-| Europe | — | European constituents |
-| (IG implied) | — | Investment grade unless otherwise noted |
-| Series 6 | — | 6th vintage |
-| 7Y | — | 7-year maturity contract |
+| iTraxx | — | Index brand family (covers Europe, Japan, Asia ex-Japan, Australia) |
+| Europe | — | Region: European constituents |
+| (IG implied) | — | Credit quality: investment grade unless otherwise noted (e.g., "Crossover") |
+| Series 41 | — | 41st vintage |
+| 7Y | — | 7-year standard maturity |
 
 ### 45.1.4 Why Indices Exist: Operational Advantages
 
@@ -152,7 +154,7 @@ Practical intuition: the 5Y tenor is often treated as the benchmark point; other
 
 ---
 
-## Quoting: Spread vs. Price
+## 45.2 Quoting: Spread vs. Price
 
 One of the most operationally critical aspects of CDS indices is understanding when they quote as **spread** versus when they quote as **price**. Getting this wrong leads to booking errors.
 
@@ -226,9 +228,9 @@ For some index families, the market quotes a **price per 100 notional** so the u
 
 $$\boxed{U_{\mathrm{pct}} = 100 - P_{\text{bond}}}$$
 
-**Examples:**
-- Bond price = 102.18% ⇒ $U_{\mathrm{pct}}=100-102.18=-2.18\%$. Under our sign convention, the **protection buyer receives** 2.18% upfront (equivalently, the long-credit side pays 2.18%).
-- Bond price = 99.50% ⇒ $U_{\mathrm{pct}}=100-99.50=+0.50\%$. Under our sign convention, the **protection buyer pays** 0.50% upfront (equivalently, the long-credit side receives 0.50%).
+**Examples (treat $P_{\text{bond}}$ as the price per 100 of notional, i.e., 102.18 means 102.18% of par):**
+- $P_{\text{bond}} = 102.18$ ⇒ $U_{\mathrm{pct}}=100-102.18=-2.18\%$. Under our sign convention, the **protection buyer receives** 2.18% upfront (equivalently, the long-credit side pays 2.18%).
+- $P_{\text{bond}} = 99.50$ ⇒ $U_{\mathrm{pct}}=100-99.50=+0.50\%$. Under our sign convention, the **protection buyer pays** 0.50% upfront (equivalently, the long-credit side receives 0.50%).
 
 **Dollar upfront from bond price (use outstanding notional):**
 
@@ -271,7 +273,7 @@ where $M$ is the original constituent count and $D$ is the number of defaulted n
 $$\boxed{N_{\text{out}} = N \times f}$$
 
 > **Desk Reality:** The index administrator publishes the official index factor / outstanding notional after credit events.
-> **Common break:** A stale factor makes notional, coupon cashflows, and risk (DV01/CS01) wrong and creates cash/P&L breaks after defaults.
+> **Common break:** A stale factor makes notional, coupon cashflows, and risk (CS01 / "credit DV01") wrong and creates cash/P&L breaks after defaults.
 > **What to check:** Confirm the factor used in risk and booking against the official factor for the specific series.
 
 ### 45.2.6 Clean vs. Full (Dirty) Pricing
@@ -366,12 +368,13 @@ Operationally, distinguish:
 - **effective date** (protection starts; accrual clock),
 - **cash settlement date** (upfront + accrued premium exchanged).
 
-| Event | Timing |
-|-------|--------|
+| Event | Timing (post-Big-Bang/SNAC standard; always confirm) |
+|-------|----------|
 | Trade date | T |
-| Cash settlement | T + (platform/confirmation-specific) |
-| First coupon | Next scheduled coupon date |
-| Subsequent coupons | Quarterly (day count per contract) |
+| Step-in (effective) date | T + 1 calendar day (protection start) |
+| Cash settlement (upfront + accrued) | T + 3 business days (typical) |
+| First coupon | Next scheduled IMM-style coupon date (20th of Mar/Jun/Sep/Dec) |
+| Subsequent coupons | Quarterly on the 20th of Mar/Jun/Sep/Dec; accrual day count is ACT/360 (standard) |
 
 **Coupon setting at inception:** each series has a fixed running coupon specified by the index terms. In the standardized fixed-coupon regime, the coupon is chosen from a small set of standard coupons (e.g., 100 bp for many IG indices, 500 bp for many HY indices) and the upfront adjusts so the trade clears at the market level. Always use the coupon specified for the series you are trading.
 
@@ -424,15 +427,15 @@ $$\boxed{f^{\text{new}} = f^{\text{old}}-\frac{1}{M}, \qquad N_{\text{out}}^{\te
 
 For a 125-name index, each default reduces the factor by $1/125 = 0.008$ (0.8 percentage points) and reduces outstanding notional by $N/125$.
 
-> **Deep Dive: The "Big Short" Mechanics**
+> **Deep Dive: "Big Short"-Style Mechanics on a HY Index**
 >
-> In the movie *The Big Short*, Dr. Burry waits for defaults. How does the payout actually look?
+> The 2008-era trades depicted in *The Big Short* were on **subprime mortgage indices** (ABX), not on corporate CDS indices. The default-payout mechanics, however, are analogous. To make them concrete, consider a long-protection position on a hypothetical 100-name HY index (matching the CDX.NA.HY constituent count) with original notional $N=USD 100$m, so each name represents $N/M = USD 1$m.
 >
-> 1.  **The Wait**: He pays premium (bleed). The index notional is full (USD 100m).
-> 2.  **The Event**: A name defaults.
-> 3.  **The Payout**: He gets paid $(1-R) \times USD 800k$ immediately (cash settlement).
-> 4.  **The Aftermath**: The index notional shrinks to USD 99.2m. He stops paying premium on the dead name.
-> 5.  **The End Game**: If 10 names default, he collects $\sim USD 6m$ in payouts, and the index shrinks. He doesn't get "The Jackpot" all at once; he gets it name-by-name interaction.
+> 1.  **The Wait:** the buyer pays running premium (bleed). With no defaults, the index notional is full ($USD 100$m).
+> 2.  **The Event:** a constituent defaults; the credit-event process (Chapter 40) determines a final price $FP$.
+> 3.  **The Payout:** the buyer receives $(1-FP/100)\times USD\,1$m immediately at cash settlement. With $FP=40$ (a 40% recovery), that is $USD 600{,}000$ on this name.
+> 4.  **The Aftermath:** the factor drops by $1/100=0.01$ and outstanding notional falls to $USD 99$m. No further premium accrues on the defaulted name.
+> 5.  **The End Game:** if 10 names default at the same $FP=40$, the buyer collects $\sim USD 6$m in cumulative payouts, the factor falls to $0.90$, and outstanding notional is $USD 90$m. The "jackpot" arrives **name by name**, not all at once.
 
 **Impact on future coupons:**
 
@@ -504,23 +507,23 @@ Why the basis can be positive or negative (mechanism-level):
 
 ### Example 45.A: Parse a Complete Index Identifier
 
-**Task:** Decode "CDX.NA.HY.7 5Y" and identify all relevant parameters.
+**Task:** Decode "CDX.NA.HY.45 5Y" and identify all relevant parameters.
 
 **Solution:**
 
 | Component | Parsed Value | Meaning |
 |-----------|--------------|---------|
-| CDX | Index family | North American CDS index family |
+| CDX | Index brand family | CDX (administered separately from iTraxx; covers North America and emerging markets) |
 | NA | Region | North America |
-| HY | Credit quality | High Yield |
-| 7 | Series | 7th vintage (series numbering; date depends on index family) |
-| 5Y | Tenor label | 5-year maturity contract |
+| HY | Credit-quality bucket | High Yield |
+| 45 | Series | 45th vintage of CDX.NA.HY (illustrative; the precise current series depends on the date) |
+| 5Y | Tenor label | 5-year standard maturity (actual remaining time can be ±3 months from the label) |
 
-**Additional facts from Table 45.1:**
-- Number of credits: 100 (standard for CDX.NA.HY)
-- Quoting convention: Bond price (not spread)
-- Fixed coupon: Fixed at series inception (series-specific; do not assume)
-- Roll dates: March 20 and September 20
+**Additional facts (from Table 45.1 and standard market conventions; always verify against the current termsheet):**
+- Reference launch size: 100 credits (CDX.NA.HY).
+- Quoting convention: bond price (not spread).
+- Fixed coupon: set at series inception; for CDX.NA.HY the standard fixed coupon is 500 bp post-Big-Bang/SNAC. Do not assume — check the series termsheet.
+- Roll dates: March 20 and September 20.
 
 ---
 
@@ -532,10 +535,10 @@ Why the basis can be positive or negative (mechanism-level):
 - You are booking a **buy-protection** index trade and need the **cash settlement** and a first-pass **CS01**.
 
 **Timeline (Concrete Dates)**
-- Trade date: 2026-02-16
-- Effective date (assumed for this example): 2026-02-17
-- Cash settlement date (assumed for this example): 2026-02-20
-- Previous coupon date: 2025-12-20
+- Trade date: 2026-02-17 (Tuesday; the prior Monday was Presidents' Day, a US bank holiday)
+- Effective (step-in) date: 2026-02-18 (T+1)
+- Cash settlement date: 2026-02-20 (T+3 business days, per post-Big-Bang CDS standard)
+- Previous coupon date: 2025-12-20 (unadjusted; CDS coupon-date grid)
 - Next coupon date: 2026-03-20
 
 **Inputs**
@@ -562,20 +565,20 @@ Why the basis can be positive or negative (mechanism-level):
    - Spread difference: $S_{I,\text{bp}}-C_{\text{bp}} = 160-100 = 60$ bp
    - Dollar upfront $U_{\mathrm{USD}}\approx 60\times USD 20{,}664 = USD 1{,}239{,}840$ (paid by protection buyer)
    - Upfront fraction $U=U_{\mathrm{USD}}/N_{\text{out}} = 1{,}239{,}840/49.2\text{mm} = 0.0252$ ⇒ $U_{\mathrm{pct}}=2.52\%$
-2. Accrued premium from last coupon to effective date:
-   - Day count: $\Delta = 59/360 \approx 0.163889$ (2025-12-20 → 2026-02-17)
-   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD 49.2\text{mm}\times 0.0100\times 0.163889=USD 80{,}633.33$ (paid by protection buyer)
+2. Accrued premium from last coupon to effective (step-in) date:
+   - Day count: $\Delta = 60/360 = 0.166\overline{6}$ (2025-12-20 → 2026-02-18, ACT/360)
+   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD\,49{,}200{,}000\times 0.0100\times 0.16667=USD\,82{,}000.00$ (paid by protection buyer)
 3. Settlement cash (what actually moves on settlement date):
-   - Total cash at settlement $\approx USD 1{,}239{,}840+USD 80{,}633.33=USD 1{,}320{,}473.33$ paid
+   - Total cash at settlement $\approx USD\,1{,}239{,}840+USD\,82{,}000=USD\,1{,}321{,}840$ paid
 4. CS01 check (spread down 1bp, hold other inputs fixed):
    - With the down-bump definition, $\text{CS01}\approx -RPV01_I = -USD 20{,}664/\text{bp}$ for long protection.
 
 **Cashflows (illustrative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-20 | $-USD 1{,}239{,}840$ | Upfront implied by spread vs coupon |
-| 2026-02-20 | $-USD 80{,}633.33$ | Accrued premium (2025-12-20 → 2026-02-17) |
-| 2026-03-20 | $-USD 123{,}000$ | Next running coupon (assumes no further defaults; $0.25\times N_{\text{out}}\times C$) |
+| 2026-02-20 | $-USD\,1{,}239{,}840$ | Upfront implied by spread vs coupon |
+| 2026-02-20 | $-USD\,82{,}000$ | Accrued premium (2025-12-20 → 2026-02-18, ACT/360) |
+| 2026-03-20 | $-USD\,123{,}000$ | Next running coupon (assumes no further defaults; $\alpha\times N_{\text{out}}\times C$ with $\alpha=90/360=0.25$ for 2025-12-20 → 2026-03-20, ACT/360) |
 
 **P&L / Risk Interpretation**
 - The settlement cash is **upfront + accrued**. If you reconcile cash but only one leg is booked, you will see an immediate P&L break.
@@ -656,30 +659,32 @@ $$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400,000 \times 0
 
 ### Example 45.E: Roll Trade Mechanics
 
-**Scenario:** You hold long protection on off-the-run CDX.NA.IG Series 6 and want to roll to on-the-run Series 7.
+**Scenario:** You hold long protection on the *off-the-run* CDX.NA.IG (call it series $k$) and want to roll to the *on-the-run* (series $k+1$).
 
-**Given:**
-- Notional $N = USD 25,000,000$
-- Series 6 (off-the-run) upfront to unwind: you receive 0.80% to close
-- Series 7 (on-the-run) upfront to enter: you pay 0.50%
+**Given (illustrative; series-specific upfronts are mark-to-market):**
+- Notional $N = USD\,25{,}000{,}000$
+- Off-the-run upfront to unwind: you receive 0.80% (i.e., the position has positive mark-to-market for the long-protection side)
+- On-the-run upfront to enter (long protection): you pay 0.50%
 
-**Task:** Calculate net cash from roll.
+**Task:** Calculate net cash from the roll.
 
-**Step 1:** Cash from unwinding Series 6:
+**Step 1:** Cash from unwinding the off-the-run leg.
 
-To close long protection, you enter offsetting short protection. You receive:
-$$\text{Receive} = 25,000,000 \times 0.0080 = USD 200,000$$
+To close long protection, you enter an offsetting short-protection trade in the same series. You receive:
 
-**Step 2:** Cash to enter Series 7:
+$$\text{Receive} = 25{,}000{,}000 \times 0.0080 = USD\,200{,}000$$
+
+**Step 2:** Cash to enter the on-the-run leg.
 
 To enter new long protection, you pay:
-$$\text{Pay} = 25,000,000 \times 0.0050 = USD 125,000$$
 
-**Step 3:** Net roll cash:
+$$\text{Pay} = 25{,}000{,}000 \times 0.0050 = USD\,125{,}000$$
 
-$$\text{Net} = USD 200,000 - USD 125,000 = +USD 75,000 \text{ (received)}$$
+**Step 3:** Net roll cash.
 
-**Note:** This ignores bid/ask spreads and assumes both trades settle on the same accrual grid. In practice, off-the-run liquidity can be worse, and accrued-premium timing can make realized roll cash differ from this toy calculation.
+$$\text{Net} = USD\,200{,}000 - USD\,125{,}000 = +USD\,75{,}000 \text{ (received)}$$
+
+**Note:** This ignores bid/offer spreads and assumes both trades settle on the same accrual grid. In practice, off-the-run liquidity can be worse, accrued-premium timing differs, and the two series have different constituent lists and slightly different maturities — all of which can make realized roll cash differ from this toy calculation.
 
 ---
 
@@ -688,39 +693,44 @@ $$\text{Net} = USD 200,000 - USD 125,000 = +USD 75,000 \text{ (received)}$$
 **Scenario:** A trader mistakenly books a CDX.NA.HY trade using spread convention instead of price convention.
 
 **Given:**
-- Notional $N = USD 100,000,000$
-- Correct quote: Bond price = 102.18%
-- Incorrectly assumed: Spread quote treated as coupon + upfront
+- Notional $N = USD\,100{,}000{,}000$
+- Correct quote: $P_{\text{bond}} = 102.18$ (price per 100 of notional, i.e., the index trades 2.18 points above par)
+- Incorrectly assumed: the same number is treated as an upfront fraction (sign flipped)
 
 **What's the error?**
 
 **Correct (price convention):**
-$$U_{\mathrm{pct}} = 100\% - 102.18\% = -2.18\%$$
-$$U_{\mathrm{USD}} = 100,000,000 \times 0.0218 = USD 2,180,000 \text{ received}$$
 
-If you mistakenly treat the bond price as an upfront quote, you might book +2.18% paid instead of -2.18% received — a $4.36mm cashflow difference on $100mm notional.
+$$U_{\mathrm{pct}} = 100 - 102.18 = -2.18\%$$
 
-**If spread were misinterpreted:**
-Suppose the trader thought "102.18" was a spread in bp and applied spread mechanics with a different result — the error could be millions of dollars.
+$$U_{\mathrm{USD}} = 100{,}000{,}000 \times (-0.0218) = -USD\,2{,}180{,}000$$
+
+i.e., $U_{\mathrm{USD}}\lt 0$ means the **protection buyer receives** USD 2,180,000 upfront.
+
+**Direction error if you flip the sign:** If you book +2.18% (buyer pays) instead of -2.18% (buyer receives), the cashflow on a USD 100,000,000 trade is wrong by $2\times 2.18\% = 4.36\%$, i.e., USD 4,360,000.
+
+**Unit error if you misread the quote as a spread in bp:** If you treat "102.18" as 102.18 bp of running spread (rather than a price per 100), you would feed it into the spread→upfront converter $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\,RPV01_I$ and produce an entirely different upfront. With a 500 bp HY coupon, $S-C \approx 102.18-500 = -397.82$ bp, so the converter says the buyer *receives* $\sim USD\,397.82\times RPV01_I$ — the magnitude depends on your assumed PV01, but the implied number is typically several percent of notional, totally inconsistent with the actual price-quoted upfront. The booking error can easily be on the order of millions of dollars on a USD 100mm trade.
 
 **Lesson:** Always verify the quoting convention for the specific index family before booking. CDX.NA.HY uses bond price; CDX.NA.IG uses spread.
 
 ---
 
-### Example 45.G: Index Factor Impact on DV01
+### Example 45.G: Index Factor Impact on CS01
 
 **Given:**
 - CDX.NA.IG position: USD 100mm notional, 5Y maturity
-- Index DV01 (full factor): USD 47,000 per bp
+- Index CS01 magnitude (at full factor, $f=1$): $|\text{CS01}| = USD\,47{,}000$ per bp
 - Current factor: $f = 0.976$ (3 defaults have occurred)
 
-**Task:** Calculate actual DV01 exposure.
+**Task:** Compute the CS01 magnitude at the current factor.
 
-**Solution:**
+**Solution:** RPV01 (and therefore CS01 to first order) scales linearly with outstanding notional $N_{\text{out}}=N\,f$, so
 
-$$\text{Actual DV01} = \text{Full DV01} \times f = 47,000 \times 0.976 = USD 45,872$$
+$$|\text{CS01}_f| = |\text{CS01}_{f=1}| \times f = USD\,47{,}000 \times 0.976 = USD\,45{,}872\ \text{per bp.}$$
 
-**Risk implication:** If your risk system shows USD 47,000 DV01 but the factor is 0.976, your actual exposure is $1,128 less per bp. Over a 10 bp move, that's an $11,280 P&L discrepancy.
+The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for **long protection** the value is **negative** (so $\text{CS01}\approx -USD\,45{,}872$/bp); for **short protection** it is positive.
+
+**Risk implication:** If your risk system stores the full-factor CS01 (USD 47,000 per bp) but the actual factor is 0.976, the *reported* magnitude is overstated by USD 1,128 per bp. Over a 10 bp move, that is an USD 11,280 P&L attribution discrepancy.
 
 ---
 
@@ -743,13 +753,13 @@ $$\text{Actual DV01} = \text{Full DV01} \times f = 47,000 \times 0.976 = USD 45,
 
 1. **Quoting convention confusion:** IG indices quote spread; HY/EM quote price. Mixing them causes large booking errors.
 
-2. **Series/tenor confusion:** "Series 7 5Y" means the 7th vintage of the 5-year contract, not a 7-year contract in Series 5.
+2. **Series/tenor confusion:** "Series 45 5Y" means the 45th vintage with a 5-year tenor, not a 7-year contract in some "Series 5." The number after the dot (or after "Series") is the vintage; the trailing "5Y" / "7Y" / "10Y" is the tenor.
 
 3. **Forgetting the ±3 month rule:** A "5Y" index at issuance has ~63 months to maturity, not 60.
 
 4. **Roll date assumptions:** Verify actual roll schedule — market conventions can shift.
 
-5. **Ignoring the index factor:** The index may have fewer than 125 names if defaults have occurred. Notional, DV01, and coupon all scale with the factor.
+5. **Ignoring the index factor:** The index may have fewer than its launch-size constituent count if defaults have occurred. Notional, CS01 (or "credit DV01"), and coupon all scale with the factor.
 
 6. **Regional credit event differences:** CDX excludes restructuring (No-Re); iTraxx includes it (Mod-Re). This affects basis calculations and hedging.
 
@@ -787,7 +797,7 @@ $$\text{Actual DV01} = \text{Full DV01} \times f = 47,000 \times 0.976 = USD 45,
 | **On-the-run** | Most recently issued series | Concentrates liquidity; benchmark for hedging |
 | **Off-the-run** | Previous series (still tradable) | Lower liquidity; may have different constituents |
 | **Series** | A specific vintage with fixed coupon and constituent list | Identifies which version you're trading |
-| **Index factor ($f$)** | $(M-D)/M$ — fraction of names remaining | Scales notional, DV01, and coupons |
+| **Index factor ($f$)** | $(M-D)/M$ — fraction of names remaining | Scales notional, CS01 (or "credit DV01"), and coupons |
 | **Price quote (“bond price”)** | Quote $P_{\text{bond}}$ per 100; $U_{\mathrm{pct}}=100-P_{\text{bond}}$ | Used in some families to encode upfront directly |
 | **Spread quote** | Quote $S_{I,\text{bp}}$ in bp; $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\text{RPV01}$ | Convert spread → upfront cash under a PV01 convention |
 | **Roll** | Transitioning from old to new series | Causes P&L from composition and maturity changes |
@@ -831,8 +841,8 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 | 7 | How does CDX.NA.IG quote in the market? | By spread (not price) |
 | 8 | How does CDX.NA.HY quote in the market? | By bond price (not spread) |
 | 9 | Why do HY indices use bond price quoting? | To avoid disputes about index PV01 for spread-to-upfront conversion |
-| 10 | Convert bond price 102.18% to upfront | Upfront = 100% - 102.18% = -2.18% (you receive) |
-| 11 | Convert bond price 99.50% to upfront | Upfront = 100% - 99.50% = +0.50% (you pay) |
+| 10 | Convert $P_{\text{bond}}=102.18$ (per 100) to upfront | $U_{\mathrm{pct}}=100-102.18=-2.18\%$ (protection buyer receives) |
+| 11 | Convert $P_{\text{bond}}=99.50$ (per 100) to upfront | $U_{\mathrm{pct}}=100-99.50=+0.50\%$ (protection buyer pays) |
 | 12 | Spread-quoted: upfront dollars formula | $U_{\mathrm{USD}}\approx (S_{I,\text{bp}}-C_{\text{bp}})\text{RPV01}$ (under the PV01 convention used) |
 | 13 | What is RPV01 (units)? | PV of 1 bp/year of running premium (currency per bp) |
 | 14 | What is “points upfront”? | $U_{\mathrm{pct}}=100\,U_{\mathrm{USD}}/N_{\text{out}}$ (percent of notional) |
@@ -854,7 +864,7 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 3. Price-quoted index: $N=USD 50$mm, $f=0.95$, $P_{\text{bond}}=98.25$. Compute upfront dollars and pay/receive for a protection buyer.
 4. Factor + coupon: $M=125$, $D=3$, $N=USD 200$mm, $C_{\text{bp}}=80$, quarterly $\alpha=0.25$. Compute $f$, $N_{\text{out}}$, and the next coupon cashflow.
 5. Default settlement: $N=USD 50$mm, $M=100$, $FP=27$. Compute the protection payment (per name and total) and the new outstanding notional after the default.
-6. Accrued premium: `N_out = USD 75mm`, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
+6. Accrued premium: $N_{\text{out}}=USD\,75$mm, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
 7. Roll cash: roll $N=USD 30$mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Compute net roll cash.
 8. CS01: a long-protection index position has $\text{RPV01}=USD 18{,}200/\text{bp}$. Using the down-bump definition, approximate CS01 and interpret the sign.
 9. Concept: explain two structural sources of roll P&L even if spreads did not “move” on the screen.
@@ -862,11 +872,11 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 
 ### Solution Sketches (Selected)
 
-**2.** `N_out = 99.2mm`. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD 1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\%$ paid.
+**2.** $N_{\text{out}}=USD\,99.2$mm. Spread difference $=40$ bp. $U_{\mathrm{USD}}\approx 40\times 42{,}500=USD\,1{,}700{,}000$ paid; $U_{\mathrm{pct}}\approx 100\times 1.7/99.2=1.71\%$ paid.
 
-**3.** $U_{\mathrm{pct}}=100-98.25=1.75\%$ paid. `N_out = 47.5mm`, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD 831{,}250$ paid.
+**3.** $U_{\mathrm{pct}}=100-98.25=1.75\%$ paid. $N_{\text{out}}=USD\,47.5$mm, so $U_{\mathrm{USD}}=47.5\text{mm}\times 0.0175=USD\,831{,}250$ paid.
 
-**8.** $\text{CS01}\approx -\text{RPV01}=-USD 18{,}200/\text{bp}$ for long protection (spreads down reduces PV).
+**8.** $\text{CS01}\approx -\text{RPV01}=-USD\,18{,}200/\text{bp}$ for long protection (under the down-bump definition: a 1 bp spread tightening reduces the long-protection PV).
 
 **9.** (i) The constituent portfolio can change between series; (ii) the new on-the-run contract is typically ~6 months longer maturity, changing PV01/fair spread even with identical names.
 
