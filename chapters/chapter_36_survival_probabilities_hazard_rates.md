@@ -1266,7 +1266,7 @@ Before trusting any survival curve, run these checks:
 | 18 | What measure do historical default rates live in? | Real-world ($\mathbb{P}$) |
 | 19 | Why can risk-neutral PDs exceed real-world PDs? | Spreads include risk premia beyond expected loss |
 | 20 | If $S = 120$ bp and $R = 40\%$, what is implied $h$? | $h = 0.012/0.6 = 0.02 = 2\%$/year |
-| 21 | What does "default is a surprise" mean? | Can't predict default with certainty; only probability $h dt$ over $dt$ |
+| 21 | What does "default is a surprise" mean? | Conditional on survival, default in the next interval $dt$ has probability $h\,dt$ — never certain in advance |
 | 22 | How does reduced-form differ from structural models? | Models hazard directly; doesn't require asset value below barrier |
 | 23 | No-arbitrage constraint on hazard rates? | $h(t) \geq 0$ for all $t$ |
 | 24 | No-arbitrage constraint on survival curve? | $Q(t)$ must be non-increasing |
