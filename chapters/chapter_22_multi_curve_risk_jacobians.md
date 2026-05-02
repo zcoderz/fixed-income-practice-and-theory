@@ -10,8 +10,8 @@ These questions lie at the heart of curve risk management. Chapters 11–14 intr
 
 In practice, the answer is: *a lot*. Two curve builders can reprice the same benchmark instruments and still produce different deltas, because they distribute a quote bump differently across the curve. Some methods keep perturbations local; others propagate (or even oscillate) the shock into distant tenors. Those choices show up directly in hedges and in whether “risk explains P&L.”
 
-Prerequisites: [Chapter 11 — DV01/PV01 — Definitions, Computation, and “What’s Being Bumped”](chapters/chapter_11_dv01_pv01_definitions_computation.md); [Chapter 14 — Key-Rate DV01 and Bucket Exposures](chapters/chapter_14_key_rate_dv01_bucket_exposures.md); [Chapter 17 — Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md); [Chapter 18 — OIS Discounting Curve](chapters/chapter_18_ois_discounting_curve.md); [Chapter 19 — Projection Curves (LIBOR/SOFR) and Multi-Curve](chapters/chapter_19_projection_curves_libor_sofr_multi_curve.md); [Chapter 20 — Tenor Basis](chapters/chapter_20_tenor_basis.md); [Chapter 21 — Cross-Currency Curves](chapters/chapter_21_cross_currency_curves.md).  
-Follow-on: [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapters/chapter_26_swap_pv01_dv01_hedging.md); [Chapter 33 — Collateral Discounting (OIS)](chapters/chapter_33_collateral_discounting_ois.md).
+Prerequisites: [Chapter 11 — DV01/PV01 — Definitions, Computation, and “What’s Being Bumped”](chapter_11_dv01_pv01_definitions_computation.md); [Chapter 14 — Key-Rate DV01 and Bucket Exposures](chapter_14_key_rate_dv01_bucket_exposures.md); [Chapter 17 — Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo](chapter_17_curve_construction_bootstrapping_interpolation.md); [Chapter 18 — OIS Discounting Curve](chapter_18_ois_discounting_curve.md); [Chapter 19 — Projection Curves (LIBOR/SOFR) and Multi-Curve](chapter_19_projection_curves_libor_sofr_multi_curve.md); [Chapter 20 — Tenor Basis](chapter_20_tenor_basis.md); [Chapter 21 — Cross-Currency Curves](chapter_21_cross_currency_curves.md).  
+Follow-on: [Chapter 26 — Swap PV01, DV01, and Hedging with Swaps](chapter_26_swap_pv01_dv01_hedging.md); [Chapter 33 — Collateral Discounting (OIS)](chapter_33_collateral_discounting_ois.md).
 
 ## Learning Objectives
 - Translate **quote moves → curve-node moves → PV moves** using the chain rule and a curve-builder Jacobian.
@@ -52,9 +52,9 @@ where $x = (x_1, \ldots, x_M)$ represents the curve's internal parameterization�
 
 For simple fixed-income instruments, this dependence is often straightforward. A bond paying cash flows $c_j$ at times $t_j$ has:
 
-$$V_0 = \sum_{j=1}^{n} c_j   P(t_j)$$
+$$V_0 = \sum_{j=1}^{n} c_j \cdot P(0, t_j)$$
 
-where $P(t_j)$ is the discount factor to time $t_j$. More complex instruments—swaptions, callables, exotics—may have nonlinear dependencies on the curve, but the fundamental structure remains: PV is a function of the curve.
+where $P(0, t_j)$ is the discount factor from today to time $t_j$. More complex instruments—swaptions, callables, exotics—may have nonlinear dependencies on the curve, but the fundamental structure remains: PV is a function of the curve.
 
 ### 22.1.2 The Curve Builder as a Function
 
@@ -115,7 +115,7 @@ Numerical note: central differences (bump up and bump down) typically improve st
 
 ### 22.1.5 Worked Example: Quote DV01 via a Bootstrapped Jacobian (Toy 3‑Pillar Curve)
 
-**Example Title**: From the 3Y par swap quote to a bond PV and quote DV01
+**Goal:** From the 3Y par swap quote to a bond PV and quote DV01.
 
 **Context**
 - You want a risk number that maps directly to a hedge instrument quote (a par swap rate pillar).
@@ -129,7 +129,7 @@ Numerical note: central differences (bump up and bump down) typically improve st
 **Inputs**
 - Instrument: 3Y fixed-rate bond, annual coupon 5%, face $F=USD100{,}000{,}000$.
 - Market quotes (toy): annual-pay par swap rates $S_1=4.00\\%$, $S_2=4.20\\%$, $S_3=4.30\\%$.
-- Assumptions (toy): single-curve world; annual accrual factors $=1$; rates are decimals in formulas.
+- Assumptions (toy): single-curve world; annual accrual factors $\tau_i=1$; rates are decimals in formulas.
 
 **Outputs (What You Produce)**
 - Discount factors $P(0,1)$, $P(0,2)$, $P(0,3)$.
@@ -211,19 +211,19 @@ The trade-off is fundamental: methods that produce smooth, continuous forward cu
 > **Analogy: The Pin and the Rope**
 >
 > Imagine the yield curve is a loose rope laid on a table.
-> *   **The Quotes**: You hammer pins into the table at specific points (2Y, 3Y, 5Y) to hold the rope in place.
-> *   **The Bump**: Now, grab the 20Y pin and yank it up by 1 inch, while keeping the 19Y and 30Y pins stuck tight to the table.
-> *   **The Result**: The rope between 19Y and 20Y must stretch violently upward. The rope between 20Y and 30Y must dive violently downward to get back to the 30Y pin.
+> *   **The Quotes**: You hammer a pin into the table at every benchmark tenor (e.g., 1Y, 2Y, 3Y, 5Y, 10Y, 20Y, 30Y) so the rope passes exactly through each pin.
+> *   **The Bump**: Now grab the 20Y pin and yank it up by 1 inch, while keeping every other pin (10Y, 30Y, …) stuck tight to the table.
+> *   **The Result**: To still pass through every fixed pin, the rope must rear up just before 20Y and then dive sharply down between 20Y and 30Y.
 >
 > This violent up-and-down shape is the "See-Saw." It's not created by the market; it's created by the tension of your interpolation method fighting against your fixed pins.
 
 When locality fails, a 1bp quote bump can cause a noisy, ringing perturbation that spreads into short- and long-dated parts of the forward curve. For example, bumping the 2Y swap rate by 1 bp while holding 1Y and 3Y fixed can look fairly localized under bootstrap-style methods, but a globally coupled spline fit can spread the perturbation across short and long maturities.
 
-The mechanics can be seen from a rough approximation: swap rates are approximately linear combinations of forward rates:
+The mechanics can be seen from a rough approximation. Under matching fixed/floating schedules and a single-curve world, the par swap rate is exactly an annuity-weighted average of period forwards. For an annual-pay $n$-year swap with annual periods $[i-1, i]$, $i = 1, \ldots, n$:
 
-$$S_n \approx \sum_{i=1}^{n} w_{i,n} L_i$$
+$$S_n = \sum_{i=1}^{n} w_{i,n} L_i, \qquad w_{i,n} = \frac{\tau_i P(0, i)}{A_n}, \qquad A_n=\sum_{j=1}^n \tau_j P(0, j),$$
 
-where $S_n$ is the $n$-year swap rate, $L_i$ is the $i$-year forward rate, and $w_{i,n} \approx 1/n$ for annual swaps. Inverting this relationship:
+where $S_n$ is the $n$-year par swap rate and $L_i$ is the (annual) forward rate over the $i$-th period (year $i-1$ to year $i$). For unit accrual ($\tau_i=1$) and a roughly flat low-rate curve the discount factors are nearly equal across periods, so $w_{i,n}\approx 1/n$ and $S_n \approx (1/n)\sum_{i=1}^n L_i$. Inverting this approximation:
 
 $$\boxed{L_n \approx n \cdot S_n - (n-1) \cdot S_{n-1}}$$
 
@@ -310,8 +310,8 @@ Once we have $J$, computing quote risk becomes:
 2. **Multiply by Jacobian**: $\frac{dV_0}{dq} = \nabla_x V_0 \cdot J$
 
 For many portfolios, node sensitivities are simple:
-- A zero-coupon bond maturing at $t_j$: $\frac{\partial V_0}{\partial P(t_j)} = 1$ (for unit notional)
-- A coupon bond: $\frac{\partial V_0}{\partial P(t_j)} = c_j$ (the cash flow at $t_j$)
+- A zero-coupon bond maturing at $t_j$: $\frac{\partial V_0}{\partial P(0, t_j)} = 1$ (for unit notional)
+- A coupon bond: $\frac{\partial V_0}{\partial P(0, t_j)} = c_j$ (the cash flow at $t_j$)
 - A swap: sum of fixed and floating leg sensitivities
 
 The Jacobian captures all the complexity of the curve construction, while node sensitivities capture the instrument's cash flow structure.
@@ -346,19 +346,19 @@ The Jacobian $J$ is $100 \times 15$. Each column shows how a 1 bp bump to one qu
 
 ### 22.3.6 Worked Example: A Small Numerical Jacobian
 
-**Setup:** A minimal curve with 3 quotes (1Y, 2Y, 3Y deposit rates) and 3 nodes (1Y, 2Y, 3Y zero rates). Under piecewise-constant interpolation, each deposit pins exactly one zero rate.
+**Setup:** A minimal curve with 3 quotes (1Y, 2Y, 3Y deposit rates) and 3 nodes (1Y, 2Y, 3Y zero rates). Each deposit is a zero-coupon instrument whose rate $r_i$ pins the discount factor $P(0, T_i)$ (and hence the zero rate $z_i$ at $T_i$) directly, so each quote pins exactly one node — independent of the interpolation choice between pillars.
 
 **Quotes:** $q = (4.00\\%, 4.50\\%, 5.00\\%)$
 
 **Base zero rates:** $x = (4.00\\%, 4.50\\%, 5.00\\%)$ (deposits bootstrap directly to zero rates)
 
-**Jacobian (under this interpolation):**
+**Jacobian (deposits-only, sequential bootstrap):**
 
 $$J = \begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix}$$
 
 This is the identity matrix because each quote determines exactly one node. Bumping the 2Y deposit by 1 bp changes only the 2Y zero rate by 1 bp.
 
-**With cubic spline interpolation**, the Jacobian would typically have non-zero off-diagonal entries (illustrative numbers):
+**Contrast — global cubic-spline fit on a coupled instrument set:** if the same three nodes are instead solved jointly under a $C^2$ smoothness constraint that couples nodes across pillars, the Jacobian typically has non-zero off-diagonal entries (illustrative numbers):
 
 $$J \approx \begin{pmatrix} 0.95 & 0.04 & 0.01 \\ 0.08 & 0.85 & 0.07 \\ 0.02 & 0.12 & 0.86 \end{pmatrix}$$
 
@@ -451,11 +451,11 @@ This simply raises all forwards in bucket $[t_k, t_{k+1})$ by 1 bp. A common cho
 
 Forward-rate deltas $\partial_k V_0$ give a detailed picture of where risk resides, but the $\mu_k$ basis is usually *not* the same as your tradable hedge set. You still need a mapping from “risk buckets” to “hedge instruments.”
 
-To translate forward deltas into hedge notionals, we use the Jacobian in reverse. Define:
-- $\partial \mathbf{H}$: the matrix where column $k$ contains forward deltas $\partial_k H_l$ for hedging instrument $l$
-- $\partial \mathbf{V}_0$: the vector of forward deltas for the portfolio
+To translate forward deltas into hedge notionals, we use a *hedge sensitivity matrix* (sometimes called a hedge Jacobian, distinct from the curve-builder Jacobian $J$ of Section 22.3). Let $L$ be the number of available hedge instruments and $K$ the number of risk buckets, and define:
+- $\partial \mathbf{H}$: an $L \times K$ matrix where entry $(l, k)$ is the bucket-$k$ forward delta $\partial_k H_l$ of hedge instrument $l$ (so column $k$ stacks the bucket-$k$ deltas across hedge instruments)
+- $\partial \mathbf{V}_0$: the $K$-vector of bucket forward deltas for the portfolio
 
-The optimal hedge weights $\mathbf{p}$ solve a least-squares problem:
+The optimal hedge weights $\mathbf{p}\in\mathbb{R}^L$ solve a least-squares problem:
 
 $$\boxed{\hat{\mathbf{p}} = \underset{\mathbf{p}}{\text{argmin}} \left( \sum_k W_k^2 \left(\mathbf{p}^\top \partial_k \mathbf{H} - \partial_k V_0\right)^2 + \sum_l U_l^2 p_l^2 \right)}$$
 
@@ -463,7 +463,7 @@ where:
 - $W_k$ weights the importance of hedging bucket $k$
 - $U_l$ weights the "reluctance" to use instrument $l$ (e.g., based on bid-ask spread)
 
-In the simple case of equal weights and $N = K$ (same number of hedging instruments as risk buckets):
+In the simple case of equal weights and $L = K$ (same number of hedging instruments as risk buckets, with $\partial \mathbf{H}$ square and invertible):
 
 $$\mathbf{p} = (\partial \mathbf{H}^\top)^{-1} \partial \mathbf{V}_0$$
 
@@ -474,13 +474,13 @@ This setup is intentionally flexible: you can choose the shock basis $\mu_k$ (ri
 > **Deep Dive: The Exploding Hedge**
 >
 > What happens if you try to hedge a 10-year risk using only 2-year and 30-year swaps?
-> *   Math: You are trying to invert a singular (or nearly singular) Jacobian matrix.
+> *   Math: You are trying to invert a singular (or nearly singular) hedge matrix $\partial\mathbf{H}$.
 > *   Result: The math will give you an answer, but it will be unstable (very large offsetting notionals).
 > *   Reality: You have created a massive position to hedge a small risk, relying on a delicate correlation that might break.
 >
 > **Rule of Thumb**: If hedge notionals are huge relative to the risk you are trying to neutralize, the problem is ill-posed. Stop and add a better hedging instrument (or change the risk basis).
 >
-> **Mathematical Diagnosis:** Compute the condition number of the Jacobian. A large $\kappa(J)$ means small delta errors can produce large swings in hedge notionals.
+> **Mathematical Diagnosis:** Compute the condition number $\kappa(\partial\mathbf{H})$ of the hedge matrix. A large $\kappa(\partial\mathbf{H})$ means small delta errors can produce large swings in hedge notionals. (The same diagnostic applies to the curve-builder Jacobian $J$ when the hedge instruments coincide with the curve build's benchmarks.)
 
 ### 22.4.5 Cumulative Par-Point Approach
 
@@ -511,7 +511,7 @@ Chapters 18–21 established that modern curve construction requires multiple in
 
 Each of these curves responds to different market quotes. A comprehensive risk report must show sensitivity to each type.
 
-### 22.5.2 Orthogonal Risk Decomposition
+### 22.5.2 Risk Decomposition by Curve Role
 
 In a spread-based multi-curve build (base index curve + basis spreads + discounting curve), you can choose the quote set so that bumps correspond to distinct *economic* risk types:
 
@@ -519,7 +519,7 @@ In a spread-based multi-curve build (base index curve + basis spreads + discount
 - **Discounting risk:** bump funding/discounting instruments (e.g., OIS quotes) while holding projection-curve quotes fixed. PV changes through discount factors only.
 - **Basis risk:** bump basis swap spreads that define a non-base projection curve relative to the base. This moves one index curve relative to another.
 
-The point is not that these risks are literally independent in the market; it is that the *reporting basis* keeps “like risks” together and makes aggregation/hedging cleaner.
+These bucketed deltas are sometimes called an **orthogonal decomposition** in the engineering sense that each bucket is moved independently in *quote space*. The risks themselves are *not* literally orthogonal in a statistical sense (level and basis often co-move historically); what the decomposition delivers is that the *reporting basis* keeps "like risks" together, so aggregation and hedging are cleaner.
 
 ### 22.5.3 Why Independence Matters
 
@@ -581,11 +581,9 @@ Computing sensitivities is only half the story. A trading desk must also have a 
 
 A risk system's quality is ultimately measured by **P&L predict**: do the sensitivities you compute explain the P&L you observe?
 
-Given, at time $t$, first- and second-order terms $\nabla^H(t)$ and $A^H(t)$, and the observed market data movement over $[t,t+h]$ denoted $\delta$, we would expect the time $t+h$ portfolio value to be approximately (here $\delta$ is a realized market move vector, not the 1bp bump used earlier in curve deltas):
+Let $\nabla^H(t)$ and $A^H(t)$ denote the gradient and Hessian of $V$ with respect to the market data vector $\Theta_{\text{mkt}}$ at time $t$, and let $\delta := \Theta_{\text{mkt}}(t+h) - \Theta_{\text{mkt}}(t)$ be the realized market move over $[t, t+h]$ (here $\delta$ is the *realized* vector of market moves, not the 1bp bump used earlier in curve deltas). Then a Taylor expansion gives:
 
-$$\boxed{V(t+h) \approx V(t) + \frac{\partial V}{\partial t} \cdot h + \nabla^H(t) \cdot \delta + \frac{1}{2} \delta^\top \cdot A^H(t) \cdot \delta}$$
-
-where $A^H(t)$ is the Hessian matrix of second derivatives.
+$$\boxed{V(t+h) \approx V(t) + \frac{\partial V}{\partial t} \cdot h + \nabla^H(t) \cdot \delta + \tfrac{1}{2}\, \delta^\top A^H(t)\, \delta}$$
 
 **Check (DV01 dot move sanity):** If you report quote DV01s in currency per bp using the down-bump definition $DV01_{q_i}=PV(q_i-1\text{bp})-PV(q)$, then for a realized quote move $\Delta q_i$ measured in bp:
 
@@ -603,7 +601,7 @@ Poor P&L predict often signals curve/risk methodology problems:
 
 1. **Inconsistent Curves:** Using different curves for pricing vs risk
 2. **Stale Jacobians:** Using yesterday's Jacobian with today's quotes
-3. **Missing Risk Factors:** Not capturing basis or cross-currency exposures
+3. **Missing Risk Factors:** Not capturing tenor basis, cross-currency basis, or other off-curve exposures
 4. **Interpolation Artifacts:** See-saw effects creating phantom exposures
 
 A common failure mode is using different curves (or different curve-building rules) for valuation vs risk: PV is marked on one mapping from quotes to curves, while deltas are computed under another, so “delta × move” does not line up with the MTM.
@@ -628,19 +626,19 @@ This is order-independent but leaves an unexplained residual due to cross-convex
 
 A subtle but important point: when computing the time-decay ("theta") component of P&L, what should be held fixed? Simply freezing all market quotes causes problems because some instruments have fixed maturity dates (futures) while others have fixed tenors (swap quotes).
 
-One approach is to define a “forward” market-data vector (what you expect market inputs to be at $t+h$, conditional on information at $t$):
+One approach is to define a “forward” market-data vector — the expectation, under a chosen pricing measure, of market inputs at $t+h$ conditional on information at $t$:
 
-$$\Theta_{\text{mkt}}^f(t) = \mathbb{E}^{t+h}(\Theta_{\text{mkt}}(t+h) | \mathcal{F}_t)$$
+$$\Theta_{\text{mkt}}^f(t) := \mathbb{E}\!\left[\,\Theta_{\text{mkt}}(t+h)\,\big|\,\mathcal{F}_t\,\right]$$
 
 and define theta as:
 
-$$\frac{\partial V}{\partial t} \approx \frac{V(t+h; \Theta_{\text{mkt}}^f(t)) - V(t)}{h}$$
+$$\frac{\partial V}{\partial t} \approx \frac{V(t+h; \Theta_{\text{mkt}}^f(t)) - V(t)}{h}.$$
 
-This is consistent with rolling the discount curve forward over a short horizon via:
+This is consistent with rolling the discount curve forward along today’s curve. The **forward discount factor** for $[t+h, T]$, seen at time $t$, is
 
-$$P(t+h, T) = \frac{P(t, T)}{P(t, t+h)} \approx P(t, T)(1 + r(t)h)$$
+$$P^f(t; t+h, T) := \frac{P(t, T)}{P(t, t+h)} \approx P(t, T)\,(1 + r(t)\,h),$$
 
-which matches the idea that a locally risk-free position earns the short rate over a short holding period.
+so under the deterministic-roll assumption ($P(t+h, T) = P^f(t; t+h, T)$), a locally risk-free position earns the short rate $r(t)$ over a short holding period $h$.
 
 ### 22.6.5 The P&L Predict Diagnostic Checklist
 
@@ -789,7 +787,7 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | **P&L predict** | Ability of computed deltas to explain realized P&L | Ultimate validation of risk methodology |
 | **P&L explain** | Attribution of realized P&L to specific market moves | Diagnostic tool for understanding P&L drivers |
 | **Bucket limits** | Maximum allowed exposure per tenor bucket | Prevents concentration risk |
-| **Condition number** | $\kappa(J)$ measures how hedge ratios react to small delta errors | Large $\kappa(J)$ → unstable hedges and “exploding notionals” |
+| **Condition number** | $\kappa(\partial\mathbf{H})$ (or $\kappa(J)$ when hedges coincide with curve benchmarks) measures how hedge ratios react to small delta errors | Large condition number → unstable hedges and “exploding notionals” |
 
 ---
 
@@ -811,10 +809,11 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | $\partial_k V$ | Gâteaux derivative w.r.t. $\mu_k$ | currency per unit $\varepsilon$ (often reported per 1bp) |
 | $\Theta_{\text{mkt}}(t)$ | market data vector | the risk factors actually used by valuation |
 | $\delta$ | realized market move | $\delta = \Theta_{\text{mkt}}(t+h)-\Theta_{\text{mkt}}(t)$ |
-| $\nabla^H(t)$ | sensitivities w.r.t. $\Theta_{\text{mkt}}$ | currency per unit of each market input |
-| $A^H(t)$ | Hessian w.r.t. $\Theta_{\text{mkt}}$ | currency per (input unit)^2 |
+| $\nabla^H(t)$ | gradient of $V$ w.r.t. $\Theta_{\text{mkt}}$ | currency per unit of each market input |
+| $A^H(t)$ | Hessian of $V$ w.r.t. $\Theta_{\text{mkt}}$ | currency per (input unit)$^2$ |
 | $\bar{x}_j$ | adjoint variable in AD | $\partial V/\partial x_j$ in reverse sweep |
-| $\kappa(J)$ | condition number of $J$ | dimensionless; large $\kappa(J)$ = ill-conditioned |
+| $\partial\mathbf{H}$ | hedge sensitivity matrix (bucket deltas of hedge instruments) | rows = hedge instruments, columns = risk buckets |
+| $\kappa(\cdot)$ | condition number (of $J$ or of $\partial\mathbf{H}$) | dimensionless; large value = ill-conditioned |
 
 ---
 
@@ -839,14 +838,14 @@ This chapter developed the machinery for computing and interpreting curve risk i
 | 15 | What is P&L predict? | The ability of computed deltas to explain the portfolio's realized daily P&L |
 | 16 | What is the difference between P&L predict and P&L explain? | Predict uses sensitivities to forecast future P&L; explain attributes observed P&L to market moves |
 | 17 | How do you improve numerical stability when computing Jacobians? | Use central (two-sided) finite differences, fixed random seeds, appropriate bump sizes |
-| 18 | If $N$ hedging instruments exist and $K$ risk buckets, when is the hedge unique? | When $N = K$ and the Jacobian is invertible |
+| 18 | If $L$ hedging instruments exist and $K$ risk buckets, when is the hedge unique? | When $L = K$ and the hedge matrix $\partial\mathbf{H}$ is invertible |
 | 19 | What determines whether quote bumps "propagate locally"? | The interpolation method used in curve construction |
 | 20 | Why might independent curve construction for different tenors cause problems? | It prevents natural aggregation of level risk vs basis risk |
 | 21 | What is a curve overlay? | A user-specified adjustment $\varepsilon_f(t)$ added to the forward curve for special dates (e.g., turn-of-year) |
 | 22 | Why should theta be computed using forward values rather than frozen quotes? | Because some instruments have fixed maturities (futures) while others have fixed tenors (swaps), causing distortions when quotes are simply frozen |
 | 23 | What is algorithmic differentiation (AD)? | Differentiate valuation code via the chain rule; reverse mode computes sensitivities to many inputs in one backward sweep (constant-factor overhead vs valuation) |
 | 24 | What is the adjoint equation in AD? | `xbar_j = sum over children k of j: xbar_k * (dx_k/dx_j)`, propagating sensitivities backward from output to inputs |
-| 25 | What does a large $\kappa(J)$ warn you about? | Ill-conditioned mapping/hedge: small delta errors can imply huge, unstable hedge notionals |
+| 25 | What does a large condition number $\kappa(\partial\mathbf{H})$ (or $\kappa(J)$) warn you about? | Ill-conditioned hedge matrix (or curve mapping): small delta errors can imply huge, unstable hedge notionals |
 | 26 | When should you refresh the Jacobian intraday? | After large quote moves, calendar rolls/fixings, major events, or very large new trades (triggers are desk-specific) |
 
 ---
@@ -886,7 +885,7 @@ Why does the cumulative par-point approach produce less extreme forward curve sh
 A portfolio has significant gamma (second-order sensitivity). Which P&L explain method—waterfall or bump-and-reset—will produce a smaller unexplained residual? Why?
 
 **11. AD Complexity Comparison**
-A desk has 500 curve nodes and 1,000 trades. Compare the computational cost (in terms of valuation operations) of:
+A desk has 500 benchmark quotes (also taken as the number of curve nodes, for simplicity) and 1,000 trades. Compare the computational cost (in terms of trade-valuation operations) of:
 (a) Bump-and-rebuild with central differences
 (b) Cached Jacobian approach
 (c) Adjoint AD
@@ -936,15 +935,15 @@ The desk has limits: (i) $|\text{net DV01}| \le USD50{,}000$, where net DV01 is 
 
 To comply (thinking in bucket-DV01 units): add $+USD30k$ of 5Y bucket DV01 and add $-USD10k$ of 10Y bucket DV01 (e.g., via swaps whose bucket DV01 is concentrated at those tenors). This would give:
 - 2Y: +USD40k, 5Y: −USD50k, 10Y: +USD50k, 30Y: −USD20k
-- All buckets at or below USD50k; net DV01 = USD0 ≤ USD50k ✓
+- All buckets at or below USD50k ✓; new net DV01 $=40-50+50-20=+USD20$k → $|{+}20|\le 50$ ✓ (the proposed adjustments change net DV01 from 0 to $+20$k, still inside the limit).
 
 ---
 
 ## References
 
-- (Andersen & Piterbarg, *Interest Rate Modeling*, “6.4 Managing Yield Curve Risk” and “22.2 P&L Predict / P&L Explain”)
-- (Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets*, “Key Rate Shifts”)
-- (Oosterlee, *Mathematical Modeling and Computation in Finance*, “Example 12.3.5”)
-- (Hull, *Risk Management and Financial Institutions*, section on OIS discounting / curve choice in swap valuation)
-- (Crépey, *Counterparty Risk and Funding*, introduction (multiple curves and discounting vs projection))
-- (Nocedal & Wright, *Numerical Optimization*, “The Reverse Mode” (automatic differentiation))
+- Andersen & Piterbarg, *Interest Rate Modeling*, “Managing Yield Curve Risk” (par-point deltas, Jacobians, controlled perturbations) and the chapter on P&L predict / P&L explain.
+- Tuckman & Serrat, *Fixed Income Securities: Tools for Today's Markets*, “Key Rate Shifts” (key-rate DV01 as a basis of curve shocks).
+- Oosterlee et al., *Mathematical Modeling and Computation in Finance*, sections on yield-curve construction and locality/hedge-locality of bumps.
+- Hull, *Risk Management and Financial Institutions*, sections on OIS discounting and the choice of curve in swap valuation.
+- Crépey, Bielecki & Brigo, *Counterparty Risk and Funding*, introduction to multiple curves (discounting vs projection) and the post-crisis multi-curve framework.
+- Nocedal & Wright, *Numerical Optimization*, “Automatic Differentiation” (reverse-mode AD as an algorithmic chain rule on computation graphs).
