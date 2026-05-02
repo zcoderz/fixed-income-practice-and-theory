@@ -1171,7 +1171,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | 1 | What does $V(t)$ represent in counterparty exposure? | Net MTM of all trades in a netting set at time $t$. |
 | 2 | What is the bank's exposure without collateral? | $E(t) = \max(V(t), 0)$ |
 | 3 | What is the bank's exposure with collateral? | $E = \max(V - C, 0)$ |
-| 4 | What is netting (contractually)? | A clause treating all covered trades as a single transaction on default. |
+| 4 | What is netting (contractually)? | A clause (under ISDA's "single agreement" principle) that treats all covered trades as one contract for close-out, so the close-out amount is computed on the net MTM. |
 | 5 | How do you compute exposure without netting? | $\sum \max(V_i, 0)$ |
 | 6 | How do you compute exposure with netting? | $\max(\sum V_i, 0)$ |
 | 7 | What is current exposure (CE)? | $CE=E(0)=\max(V(0)-C(0),0)$. |
