@@ -810,7 +810,7 @@ A **CDO‑squared** pushes resecuritization further: the collateral is itself a 
 
 The danger is extreme sensitivity to loss clustering.
 
-**Illustrative setup.** Five sub-portfolios, each with 100 equally-weighted credits and 40% common recovery, so a single default contributes $0.6\\%/\text{sub-portfolio}\times100 = 0.6\\%$ of *that* sub-portfolio's notional. From each sub-portfolio we take a sub-tranche with attachment $4\\%$ and detachment $9\\%$ (width $5\\%$). The five sub-tranches form a "super-portfolio" with equal weights ($20\\%$ each); the **super-tranche** is the entire $0$–$100\\%$ range of that super-portfolio (i.e., the investor is exposed to *any* loss in the underlying sub-tranches).
+**Illustrative setup.** Five sub-portfolios, each with 100 equally-weighted credits and 40% common recovery, so a single default contributes $(1-R)/100 = 0.6\\%$ of *that* sub-portfolio's notional. From each sub-portfolio we take a sub-tranche with attachment $4\\%$ and detachment $9\\%$ (width $5\\%$). The five sub-tranches form a "super-portfolio" with equal weights ($20\\%$ each); the **super-tranche** is the entire $0$–$100\\%$ range of that super-portfolio (i.e., the investor is exposed to *any* loss in the underlying sub-tranches).
 
 Now compare two ways the same 20 defaults can arrive:
 
