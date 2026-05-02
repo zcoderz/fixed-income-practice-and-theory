@@ -653,7 +653,7 @@ Despite the economic similarity, paying fixed on a swap and shorting a bond diff
 | **Initial funding** | No cash outlay (zero-NPV at inception) | Must borrow the bond (repo); may require margin |
 | **Repo exposure** | None | Exposed to squeeze if bond becomes special |
 | **Delivery risk** | None | May face fails if unable to deliver |
-| **Counterparty credit** | Swap counterparty risk | No counterparty risk (you owe them) |
+| **Counterparty credit** | Swap counterparty risk (mitigated by CCP if cleared, by CSA collateral otherwise) | Repo counterparty risk (the lender of the bond / cash collateral holder) |
 | **Accounting** | Often hedge accounting eligible | More complex accounting treatment |
 | **Capital treatment** | Generally lower capital charge | Higher capital for some institutions |
 
