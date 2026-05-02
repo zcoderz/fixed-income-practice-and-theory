@@ -164,16 +164,12 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 **Outputs (What You Produce)**
 - Expected tranche loss fraction (ETL): $\mathbb{E}[L(T;A,D)]$ (unitless, in $[0,1]$).
 - Expected surviving fraction: $\mathbb{E}[1-L(T;A,D)]$ (unitless).
-- Toy PV per USD 1 of tranche notional (short protection):
-
-  $$PV \approx s\\,T\\,\mathbb{E}[1-L(T;A,D)] - \mathbb{E}[L(T;A,D)]$$
+- Toy PV per USD 1 of tranche notional (short protection): $PV \approx s\\,T\\,\mathbb{E}[1-L(T;A,D)] - \mathbb{E}[L(T;A,D)]$.
 
 **Step-by-step**
 1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\\,(K/N)$.
-2. Map portfolio loss to tranche loss fraction:
-
-   $$L(T;A,D) = \frac{\min(L(T),D) - \min(L(T),A)}{D-A}$$
-3. Compute ETL $=\\mathbb{E}[L(T;A,D)]$ and expected survival $=\\mathbb{E}[1-L(T;A,D)]$.
+2. Map portfolio loss to tranche loss fraction: $L(T;A,D) = [\min(L(T),D) - \min(L(T),A)]/(D-A)$.
+3. Compute ETL $=\mathbb{E}[L(T;A,D)]$ and expected survival $=\mathbb{E}[1-L(T;A,D)]$.
 4. Plug into the toy PV formula above.
 
 **Cashflows (table)** *(toy: expected values shown at maturity)*
@@ -395,9 +391,9 @@ All latent variables collapse to the single factor. Defaults become perfectly de
 
 **Definition (Upper and lower tail dependence):** Given r.v.'s $X_1$ and $X_2$ with marginal distributions $F_1$ and $F_2$,
 
-$$\lambda_{\mathrm{U}} = \lim_{u \to 1^-} \Pr\!\left[X_2 \gt F_2^{-1}(u) \mid X_1 \gt F_1^{-1}(u)\right],$$
+$$\lambda_{\mathrm{U}} = \lim_{u \to 1^-} \Pr\\!\left[X_2 \gt F_2^{-1}(u) \mid X_1 \gt F_1^{-1}(u)\right],$$
 
-$$\lambda_{\mathrm{L}} = \lim_{u \to 0^+} \Pr\!\left[X_2 \le F_2^{-1}(u) \mid X_1 \le F_1^{-1}(u)\right].$$
+$$\lambda_{\mathrm{L}} = \lim_{u \to 0^+} \Pr\\!\left[X_2 \le F_2^{-1}(u) \mid X_1 \le F_1^{-1}(u)\right].$$
 
 Intuition: $\lambda_{\mathrm{U}}$ is a limiting conditional probability of a joint extreme in the upper tail; $\lambda_{\mathrm{L}}$ is the analogous object in the lower tail.
 
@@ -498,15 +494,15 @@ $$\psi(T, K) = \mathbb{E}[\min(L, K)] = \int_0^K (1 - F_L(\ell))\\, d\ell.$$
 
 Substituting the LHP loss CDF and changing variables $\ell = (1-R)\Phi(v)$ reduces the integral to a bivariate-normal closed form:
 
-$$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\left(\Phi^{-1}(p),\\, \Phi^{-1}\!\left(\frac{K}{1-R}\right);\\, \sqrt{1-\rho}\right)}$$
+$$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\\!\left(\Phi^{-1}(p),\\, \Phi^{-1}\\!\left(\frac{K}{1-R}\right);\\, \sqrt{1-\rho}\right)}$$
 
 where $\Phi_2(a, b; r)$ is the bivariate standard normal CDF with correlation $r$. Note that the correlation argument of the bivariate is $\sqrt{1-\rho}$ — *not* $\sqrt{\rho}$ — even though $\rho$ is the asset correlation between the latent variables $Z_i$.
 
 **Equivalent two-term form (often seen in references).** The same object can be split as
 
-$$\psi(T,K) = (1-R)\\,\Phi_2\!\left(\Phi^{-1}(p),\\,-x^{\star}(K);\\,-\sqrt{\rho}\right) + K\\,\Phi(x^{\star}(K)),$$
+$$\psi(T,K) = (1-R)\\,\Phi_2\\!\left(\Phi^{-1}(p),\\,-x^{\star}(K);\\,-\sqrt{\rho}\right) + K\\,\Phi(x^{\star}(K)),$$
 
-with $x^{\star}(K) = \dfrac{\Phi^{-1}(p) - \sqrt{1-\rho}\\,\Phi^{-1}\!\bigl(K/(1-R)\bigr)}{\sqrt{\rho}}$. Here the first term is $\mathbb{E}[L(T)\\,\mathbf{1}\\{L(T)\le K\\}]$ and the second is $K\\,\Pr(L(T)\gt K)$. The two forms are equivalent via the bivariate-normal identity $\Phi_2(a,b;r) + \Phi_2(a,-b;-r) = \Phi(a)$.
+with $x^{\star}(K) = \dfrac{\Phi^{-1}(p) - \sqrt{1-\rho}\\,\Phi^{-1}\\!\bigl(K/(1-R)\bigr)}{\sqrt{\rho}}$. Here the first term is $\mathbb{E}[L(T)\\,\mathbf{1}\\{L(T)\le K\\}]$ and the second is $K\\,\Pr(L(T)\gt K)$. The two forms are equivalent via the bivariate-normal identity $\Phi_2(a,b;r) + \Phi_2(a,-b;-r) = \Phi(a)$.
 
 **Limit checks.**
 - $\rho \to 0$: bivariate correlation $\to 1$ (comonotone), so $\psi(T,K) \to (1-R)\\,\min(p,\\, K/(1-R)) = \min((1-R)p,\\, K)$. Matches the deterministic LHP loss at independence (loss concentrates at $(1-R)p$).
@@ -548,9 +544,9 @@ For bespoke portfolios with heterogeneous names, Monte Carlo simulation of the f
 
 **Compound correlation** is the flat correlation `rho` that, when used in the one-factor Gaussian copula, reprices a given tranche to its market value:
 
-$$\boxed{PV(A, D, \rho^*) = 0}$$
+$$\boxed{PV(A, D, \rho^{\star}) = 0}$$
 
-This is a one-dimensional root-finding problem: find $\rho^*$ such that model PV equals market PV.
+This is a one-dimensional root-finding problem: find $\rho^{\star}$ such that model PV equals market PV.
 
 ### 50.5.2 The Multiple Solutions Problem
 
