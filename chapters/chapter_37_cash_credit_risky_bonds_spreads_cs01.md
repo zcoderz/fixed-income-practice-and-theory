@@ -1567,10 +1567,10 @@ The protection buyer pays 21.8% upfront plus 500 bp running. Equivalently:
 **Why Protection Sellers Prefer Upfront:**
 
 If default occurs in year 1, the seller has received:
-- **Running format:** 1500 bp × 1 year × USD 10mm = USD 1.5mm
-- **Upfront format:** 2180k upfront + 500k running = USD 2.68mm
+- **Running format only:** $1500\text{ bp} \times 1\text{ yr} \times 10\text{mm} = $ USD 1.5 mm.
+- **Upfront + standard coupon:** USD 2.18 mm upfront + 500 bp $\times$ 1 yr $\times$ 10mm = USD 2.18 mm + USD 0.5 mm = USD 2.68 mm.
 
-The upfront format front-loads payment, protecting the seller from early default.
+The upfront format front-loads payment, protecting the seller from early-default cashflow loss.
 
 ---
 
