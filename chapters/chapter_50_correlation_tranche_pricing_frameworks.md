@@ -188,7 +188,7 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 | Equity $0\text{–}3\\%$ | 0.3976 | 0.0200 | $-0.2470\times N_{\mathrm{tr}}$ | $+0.2250\times N_{\mathrm{tr}}$ |
 | Super-senior $30\text{–}100\\%$ | $\approx 0$ | 0.0086 | $+0.2500\times N_{\mathrm{tr}}$ | $+0.2393\times N_{\mathrm{tr}}$ |
 
-For $N_{\mathrm{tr}}=USD 10\text{mm}$, the equity PV increases by about $USD 4.72\text{mm}$ when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about $USD 0.11\text{mm}$.
+For a tranche notional of USD 10mm (i.e., $N_{\mathrm{tr}}=10\\,\mathrm{mm}$ in USD), the equity PV increases by about USD 4.72mm when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about USD 0.11mm.
 
 **P&L / Risk Interpretation**
 - The **equity short-protection** position benefits when dependence increases (PV up): it is **long correlation** under the book’s sign convention.
@@ -295,10 +295,10 @@ where:
 $$\boxed{A_i=\beta_i Z+\sqrt{1-\beta_i^2}\\,\varepsilon_i}$$
 with a market factor $Z\sim N(0,1)$ and a loading $\beta_i\in[0,1]$. In the flat-correlation case, $\beta_i=\sqrt{\rho}$ and $Z=X$.
 
-**Verification:** $Z_i$ is standard normal: $\mathbb{E}[Z_i] = 0$, $\text{Var}(Z_i) = \rho + (1-\rho) = 1$.
+**Verification:** $Z_i$ is standard normal: $\mathbb{E}[Z_i] = 0$, $\mathrm{Var}(Z_i) = \rho + (1-\rho) = 1$.
 
 **Pairwise correlation:** For $i \neq j$:
-$$\text{Corr}(Z_i, Z_j) = \mathbb{E}[Z_i Z_j] = \rho \mathbb{E}[X^2] + 0 = \rho$$
+$$\mathrm{Corr}(Z_i, Z_j) = \mathbb{E}[Z_i Z_j] = \rho\\,\mathbb{E}[X^2] + 0 = \rho$$
 
 This is the "flat correlation" assumption: all pairs have the same correlation `rho`.
 
@@ -715,7 +715,7 @@ Index tranche quotes are commonly given as either a running spread only, or an u
 
 For each tranche, find correlation such that:
 
-$$PV_{\text{model}}(\text{correlation}) = PV_{\text{market}}$$
+$$PV_{\mathrm{model}}(\rho) = PV_{\mathrm{market}}$$
 
 At initiation with market quotes, this typically means $PV = 0$.
 
@@ -1071,13 +1071,13 @@ Consider portfolio loss distributions:
 Both have mean loss = 9.2%.
 
 **Equity tranche [0%, 3%]:**
-$$L_{tr} = \min(L, 0.03) / 0.03$$
+$$L_{\mathrm{tr}} = \min(L, 0.03) / 0.03$$
 
 - Low dep: ETL = $0.05(0) + 0.95(1) = 0.95$
 - High dep: ETL = $0.30(0) + 0.70(1) = 0.70$
 
 **Senior tranche [10%, 15%]:**
-$$L_{tr} = (\min(L, 0.15) - \min(L, 0.10)) / 0.05$$
+$$L_{\mathrm{tr}} = (\min(L, 0.15) - \min(L, 0.10)) / 0.05$$
 
 - Low dep: ETL = $0.05(1) = 0.05$
 - High dep: ETL = $0.1125(1) = 0.1125$
@@ -1133,7 +1133,7 @@ Iterating:
 Holding $\rho(3\\%) = 18\\%$ fixed, find $\rho(7\\%)$ such that [3%, 7%] tranche prices at 250bp.
 
 Compute [3%, 7%] ETL as:
-$$ETL_{3,7} = \frac{\psi(7\\%, \rho(7\\%)) - \psi(3\\%, \rho(3\\%))}{0.04}$$
+$$\mathrm{ETL}_{3,7} = \frac{\psi(7\\%, \rho(7\\%)) - \psi(3\\%, \rho(3\\%))}{0.04}$$
 
 Iterating:
 - $\rho(7\\%) = 25\\%$: Implied spread = 230bp (too low)
@@ -1201,7 +1201,7 @@ Recalibrating:
 **Equity [0–3%] correlation 01:**
 1. Compute PV at $\rho(3\\%) = 18\\%$: PV = 0 (calibrated)
 2. Bump to $\rho(3\\%) = 19\\%$: recompute ETL and PV
-3. $\text{Corr01} = \text{PV}(19\\%) - \text{PV}(18\\%)$
+3. $\mathrm{Corr01} = PV(0.19) - PV(0.18)$
 
 Result (sign): Corr01 $\gt 0$ (short protection gains when correlation rises)
 
@@ -1248,8 +1248,8 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 - Senior delta: ~2x
 
 **Delta-neutral sizing:**
-- Equity DV01: $10mm × 20 = $200mm equivalent
-- Senior notional needed: $200mm / 2 = $100mm
+- Equity index-spread exposure: USD 10mm × 20 = USD 200mm equivalent
+- Senior notional needed: USD 200mm / 2 = USD 100mm
 
 **Resulting position:**
 - Sell USD 10mm 0-3% protection
@@ -1320,7 +1320,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 | Test | What to Check |
 |------|---------------|
 | **Repricing** | Each calibration instrument reprices to market |
-| **ETL bounds** | $0 \le \text{ETL} \le 1$; loss amount in $[0, D-A]$ |
+| **ETL bounds** | $0 \le \mathrm{ETL} \le 1$; loss amount in $[0, D-A]$ |
 | **Spread monotonicity** | Tranchelet spreads decrease with subordination |
 | **Density positivity** | Implied loss density $\geq 0$ everywhere |
 | **Limiting cases** | $\rho = 0$ gives independence; $\rho \to 1$ gives clustering |
