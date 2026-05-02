@@ -14,8 +14,8 @@ Practical takeaway: the “right” hedge ratio often lies somewhere between the
 
 This chapter develops a risk framework for synthetic tranches. Section 1 establishes the core definitions: tranche loss mapping, expected tranche loss, and a tranche survival curve that enables CDS-style valuation. Section 2 provides a desk-friendly P&L decomposition—spread, correlation, jump-to-default, and recovery terms. Sections 3–5 develop each risk measure in detail: tranche PV01 and the systemic/idiosyncratic distinction (Section 3), correlation risk and Corr01 (Section 4), and jump-to-default clustering with its tail dependence implications (Section 5). Section 6 presents a hedging map—what instruments address which risks, and why PV01 hedges can fail under default clustering.
 
-Prerequisites: [Chapter 38 — CDS Contract Mechanics](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 39 — CDS Credit Events and Settlement](chapters/chapter_39_cds_credit_events_settlement.md), [Chapter 40 — CDS Auction Process](chapters/chapter_40_cds_auction_process.md), [Chapter 49 — Tranche Core Concepts](chapters/chapter_49_tranche_core_concepts_etl_pv.md), [Chapter 50 — Correlation and Tranche Pricing Frameworks](chapters/chapter_50_correlation_tranche_pricing_frameworks.md)  
-Follow-on: [Chapter 52 — Credit Trading Strategies](chapters/chapter_52_credit_trading_strategies.md)
+Prerequisites: [Chapter 38 — CDS Contract Mechanics](chapter_38_cds_contract_mechanics.md), [Chapter 39 — CDS Credit Events and Settlement](chapter_39_cds_credit_events_settlement.md), [Chapter 40 — CDS Auction Process](chapter_40_cds_auction_process.md), [Chapter 49 — Tranche Core Concepts](chapter_49_tranche_core_concepts_etl_pv.md), [Chapter 50 — Correlation and Tranche Pricing Frameworks](chapter_50_correlation_tranche_pricing_frameworks.md)  
+Follow-on: [Chapter 52 — Credit Trading Strategies](chapter_52_credit_trading_strategies.md)
 
 ---
 
@@ -76,9 +76,11 @@ Many reference formulas are written for short protection; be explicit about sign
 
 #### Formal Definition (Units Explicit)
 
-Let $L(t) \in [0, 1]$ be the portfolio cumulative loss fraction by time $t$:
+Let $L(t) \in [0, 1]$ be the portfolio cumulative loss fraction by time $t$, defined as
 
-$$L(t) = \frac{\mathrm{cumulative portfolio loss dollars by } t}{F}.$$
+$$L(t) = \frac{\sum_{j: \tau_j \le t}(1 - R_j)\, F_j}{F},$$
+
+where $F_j$ is the face value of name $j$, $R_j$ its recovery, $\tau_j$ its default time, and $F$ the total portfolio notional.
 
 **Units:** unitless fraction of portfolio notional.
 
@@ -103,7 +105,7 @@ $$\boxed{\mathrm{ON}(L) = W - \mathrm{TL}(L)}$$
 
 Every risk measure for tranches ultimately flows through:
 
-$$\mathrm{portfolio loss distribution} \;\Rightarrow\; \mathrm{tranche loss distribution} \;\Rightarrow\; \mathrm{PV and Greeks}.$$
+portfolio loss distribution $\Rightarrow$ tranche loss distribution $\Rightarrow$ PV and Greeks.
 
 Nonlinearity ($\min/\max$) is why tranches exhibit strong tail and jump sensitivity.
 
@@ -151,11 +153,11 @@ A useful CDS-style valuation representation for a tranche uses the tranche survi
 
 **Protection Leg PV** (per unit tranche notional):
 
-$$\mathrm{Protection Leg PV} = \int_0^T Z(s)\,(-dQ(s; A, D)).$$
+$$\mathrm{PV}_{\mathrm{prot}} = \int_0^T Z(s)\,(-dQ(s; A, D)).$$
 
-**Tranche PV** (short protection, per unit tranche notional) is written as premium leg minus protection leg using a trapezoidal discretization:
+**Tranche PV** (long protection, per unit tranche notional) is protection leg minus premium leg, using a trapezoidal discretization for the premium leg:
 
-$$V(A, D) = \frac{s_{\mathrm{dec}}}{2} \sum_{i=1}^{N} \Delta_i Z(t_i)(Q(t_{i-1}) + Q(t_i)) \;-\; \int_0^T Z(s)\,(-dQ(s)).$$
+$$V(A, D) = \int_0^T Z(s)\,(-dQ(s)) \;-\; \frac{s_{\mathrm{dec}}}{2} \sum_{i=1}^{N} \Delta_i Z(t_i)\bigl(Q(t_{i-1}) + Q(t_i)\bigr).$$
 
 Once $Q$ is available, tranche valuation follows the same structure as CDS valuation: replace issuer survival by tranche survival (and, in the CDS mapping, treat the tranche as a zero-recovery exposure).
 
@@ -173,7 +175,7 @@ Desk analytics frequently store/trade on objects like:
 
 ---
 
-### 1.4 Tranche PV01 / Spread Risk (Quote Mechanics, USD /bp)
+### 1.4 Tranche PV01 / Spread Risk (Quote Mechanics, USD/bp)
 
 #### Formal Definition (What Is Bumped, Units Explicit)
 
@@ -183,7 +185,7 @@ There are two distinct but commonly conflated "spread risks":
 
 For a spread-quoted tranche, define:
 
-$$\boxed{\mathrm{PV01}_{\mathrm{tranche spread}} = \frac{\partial \mathrm{PV}}{\partial s} \times 1\mathrm{bp}}$$
+$$\boxed{\mathrm{PV01}_s = \frac{\partial \mathrm{PV}}{\partial s} \times 1\mathrm{bp}}$$
 
 where $s$ is the contractual tranche spread quote (bp/year).
 
@@ -199,9 +201,11 @@ This chapter's "Tranche PV01" is item (1) unless explicitly stated otherwise.
 
 #### Intuition
 
-`PV01_tranche_spread` is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
+$\mathrm{PV01}_s$ is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
 
-**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial PV/\partial s \lt 0$ so `PV01_tranche_spread` is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if tranche face is `N_tr_face = W*F = USD 40mm`, average surviving fraction is about `Q_avg = 75%`, and premium runs for about `T = 5` years, then `|PV01_tranche_spread| per bp ≈ 1e-4 * Q_avg * N_tr_face * T ≈ USD 15,000`, before discounting and accrual details. If your PV01 is `USD 150,000/bp`, you are probably off by a factor of 10 in bp/percent or notional scaling.
+**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial \mathrm{PV}/\partial s \lt 0$, so $\mathrm{PV01}_s$ is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if the tranche face is $N_{\mathrm{tr}} = W \cdot F = 40$ mm USD, the average surviving fraction is about $Q_{\mathrm{avg}} \approx 75\%$, and premium runs for about $T = 5$ years, then
+$$|\mathrm{PV01}_s| \;\approx\; 10^{-4}\cdot Q_{\mathrm{avg}}\cdot N_{\mathrm{tr}}\cdot T \;\approx\; 15{,}000 \text{ USD per bp},$$
+before discounting and accrual details. If your PV01 is around 150,000 USD/bp, you are probably off by a factor of 10 in bp/percent or notional scaling.
 
 #### How It Appears in Practice
 
@@ -254,7 +258,7 @@ $$\mathrm{JTD}_\omega = \mathrm{PV}_{\mathrm{after}}(\omega) - \mathrm{PV}_{\mat
 A standard idiosyncratic tranche risk measure is **value-on-default (VOD)**. This measures the impact of an immediate default and the resulting change in value of a tranche position.
 
 Consider an immediate-default scenario for one portfolio constituent. Let:
-- $H_0$ be the defaulted name’s notional as a **fraction** of portfolio notional $F$ (so the default loss fraction is `H0*(1-R0)`),
+- $H_0$ be the defaulted name's notional as a **fraction** of portfolio notional $F$, so the default loss fraction is $H_0(1-R_0)$,
 - $R_0$ be the recovery (or auction final price proxy),
 - $L_1$ be the portfolio cumulative loss fraction just before the default.
 
@@ -262,28 +266,29 @@ Then the portfolio loss jumps by:
 
 $$\Delta L = H_0(1-R_0), \qquad L^+ = L_1 + \Delta L.$$
 
-**Check (why “PV01-matched” can still blow up):** take an equal-weight 125-name portfolio with $H_0=1/125$ and assume $R_0=40\%$, so $\Delta L \approx 0.60/125 \approx 0.48\%$. For a $[3\%,7\%]$ tranche sitting just below attachment at $L_1=2.8\%$, the post-default loss is $L^+=3.28\%$, so tranche loss jumps by about $0.28\%$ of portfolio notional (7% of tranche face because $0.28/4=7\%$). On $F=USD 1\mathrm{bn}$, that is a $USD 2.8\mathrm{mm}$ loss—an event P&L that has little to do with small-spread PV01 hedges.
+**Check (why "PV01-matched" can still blow up):** take an equal-weight 125-name portfolio with $H_0=1/125$ and assume $R_0=40\%$, so $\Delta L \approx 0.60/125 \approx 0.48\%$. For a $[3\%,7\%]$ tranche sitting just below attachment at $L_1=2.8\%$, the post-default loss is $L^+=3.28\%$, so tranche loss jumps by about $0.28\%$ of portfolio notional (7% of tranche face because $0.28/4=7\%$). On a portfolio of $F = 1$ bn USD, that is a 2.8 mm USD loss — an event P&L that has little to do with small-spread PV01 hedges.
 
 The immediate tranche loss increment (fraction of portfolio) is:
 
 $$\Delta \mathrm{TL} = \mathrm{TL}(L^+) - \mathrm{TL}(L_1), \qquad 0 \le \Delta \mathrm{TL} \le W.$$
 
-In strike notation `K1-K2` (think `K1 = A` and `K2 = D`), the same subordination-consumption shift is often written:
+In strike notation $[K_1, K_2]$ (with $K_1 = A$ and $K_2 = D$), the same subordination-consumption shift is often written
 
-$$K_{1} \rightarrow K_{1}-H_{0}\left(1-R_{0}\right), \qquad K_{2} \rightarrow K_{2}-H_{0}\left(1-R_{0}\right).$$
+$$K_1 \rightarrow K_1 - H_0(1-R_0), \qquad K_2 \rightarrow K_2 - H_0(1-R_0).$$
 
-In the common sub-case where the tranche is unhit just before the event and becomes hit after the event, the loss increment simplifies to:
+In the common sub-case where the tranche is unhit just before the event ($L_1 \le K_1$) and becomes hit but not capped after the event ($K_1 \lt L_1 + H_0(1-R_0) \le K_2$), the loss increment simplifies to
 
-$$\Delta \mathrm{TL}=\max \left[L_{1}+H_{0}\left(1-R_{0}\right)-K_{1}, 0\right] \quad \mathrm{(assume } \Delta \mathrm{TL} \lt K_{2}-K_{1} \mathrm{)}.$$
+$$\Delta \mathrm{TL} = L_1 + H_0\left(1-R_0\right) - K_1 \quad (\text{equivalently}, \ \max\left[L_1 + H_0(1-R_0) - K_1, 0\right] \text{ in the same regime}).$$
 
 So the **cash settlement** to a long-protection holder is:
 
-$$\boxed{G = F \cdot \Delta \mathrm{TL} \;\;\;(\mathrm{USD})}$$
+$$\boxed{G = F \cdot \Delta \mathrm{TL} \quad (\mathrm{USD})}$$
 
-A common modeling recipe for the **post-event MTM** is:
-1. Remove the defaulted name from the remaining portfolio (updating portfolio notional/factor consistently).
-2. Treat the realized loss as consuming subordination: shift strikes down by the loss increment, $A \rightarrow A - \Delta L$ and $D \rightarrow D - \Delta L$ (equivalently: `K1 -> K1 - H0*(1-R0)` and `K2 -> K2 - H0*(1-R0)`).
-3. Reprice the surviving tranche on the reduced outstanding to obtain $\mathrm{PV}_{\mathrm{after}}$.
+A common modeling recipe for the **post-event MTM** (keeping strikes as fractions of the *original* portfolio notional $F$) is:
+1. Drop the defaulted name from the surviving-portfolio loss model (one fewer credit can default going forward).
+2. Treat the realized loss as already consumed subordination: the future loss process now starts from $L^+ = L_1 + H_0(1-R_0)$ rather than from $L_1$. Equivalently, in the original-notional framing the effective attachment/detachment seen from $L^+$ are
+   $$A_{\mathrm{eff}} = A - H_0(1-R_0), \qquad D_{\mathrm{eff}} = D - H_0(1-R_0).$$
+3. Reprice the surviving tranche on this reduced effective notional / consumed subordination to obtain $\mathrm{PV}_{\mathrm{after}}$.
 
 In this chapter, we treat VOD/JTD-style measures as **total default-event value change**: post-event MTM change plus any immediate cash loss payment. Some systems report the cash payment and the MTM change separately; confirm your reporting convention.
 
@@ -354,7 +359,9 @@ Recovery sensitivity is convention-dependent: it may refer to recovery on the de
 
 A practitioner decomposition is a bookkeeping identity for explaining daily P&L and sizing hedges:
 
-$$\Delta\mathrm{PV} \approx \underbrace{\Delta\mathrm{PV}_{\mathrm{Spread/PV01}}}_{\mathrm{small spread-like moves}} + \underbrace{\Delta\mathrm{PV}_{\mathrm{Corr}}}_{\mathrm{dependence shift}} + \underbrace{\Delta\mathrm{PV}_{\mathrm{JTD}}}_{\mathrm{default jumps}} + \underbrace{\Delta\mathrm{PV}_{\mathrm{Rec/FinalPrice}}}_{\mathrm{LGD/final price}} + \underbrace{\Delta\mathrm{PV}_{\mathrm{Residual}}}_{\mathrm{model/basis/liquidity}}$$
+$$\Delta\mathrm{PV} \;\approx\; \Delta\mathrm{PV}_{\mathrm{Spread}} \;+\; \Delta\mathrm{PV}_{\mathrm{Corr}} \;+\; \Delta\mathrm{PV}_{\mathrm{JTD}} \;+\; \Delta\mathrm{PV}_{\mathrm{Rec}} \;+\; \Delta\mathrm{PV}_{\mathrm{Residual}}.$$
+
+The terms capture, respectively: small spread-like moves (PV01-style), dependence/correlation shifts, default-event jumps, recovery / auction final-price changes, and a residual term (model, basis, liquidity).
 
 Below is how to interpret each term economically and operationally.
 
@@ -393,7 +400,7 @@ Captures P&L due to changes in dependence (correlation, copula tail, skew), hold
 #### Operational Implementation
 
 - **Correlation 01:** bump correlation and reprice.
-- In a base-correlation framework, the tranche depends on `rho(K1)` and `rho(K2)`; changes in the base correlation curve can create hedge slippage when spreads move (mapping effects).
+- In a base-correlation framework, the tranche depends on $\rho(K_1)$ and $\rho(K_2)$; changes in the base correlation curve can create hedge slippage when spreads move (mapping effects).
 
 #### Shock/Scenario
 
@@ -447,18 +454,18 @@ When a credit event occurs on a portfolio constituent, the settlement process de
 
 2. **Auction Process:** A CDS auction determines the final price for the defaulted reference obligation (see Chapter 40 for full auction mechanics).
 
-3. **Final Price → Loss Calculation:**
-   $$\mathrm{Loss} = (1 - \mathrm{Final Price}) \times \mathrm{Defaulted Notional}$$
+3. **Final price → loss calculation.** Let $\mathrm{FP}$ denote the auction final price (as a fraction of par) and $N_d$ the defaulted notional. The realized name-level loss is
+   $$\mathrm{Loss}_{\mathrm{name}} = (1 - \mathrm{FP}) \cdot N_d.$$
 
 4. **Tranche Impact:** The portfolio loss $L$ increases, and tranche loss $\mathrm{TL}(L)$ is recalculated.
 
 5. **Settlement:** Protection seller pays $G = \Delta\mathrm{TL} \times F$ to protection buyer if the tranche is hit.
 
-**Example Title**: Auction settlement → tranche loss payment $G$ (toy timeline)
+**Worked example: auction settlement → tranche loss payment $G$ (toy timeline).**
 
 **Context**
 - You are long protection on a 3–7% tranche. A name defaults and settles via an auction-style final price.
-- Goal: translate “Final Price” → portfolio loss jump → tranche loss jump → cash settlement amount.
+- Goal: translate "final price" → portfolio loss jump → tranche loss jump → cash settlement amount.
 
 **Timeline (Toy Dates; Real Dates Follow the Auction Process)**
 - Trade date (valuation date): 2026-02-15
@@ -467,10 +474,10 @@ When a credit event occurs on a portfolio constituent, the settlement process de
 - Cash settlement date (assumed): 2026-03-12
 
 **Inputs**
-- Portfolio notional: $F = USD 500$mm across 100 equal names (USD 5mm each)
+- Portfolio notional: $F = 500$ mm USD across 100 equal names (5 mm each)
 - Tranche: $[A,D]=[3\%,7\%]$ (width $W=4\%$)
 - Portfolio loss before the new default: $L^- = 2.5\%$
-- Defaulted name notional: USD 5mm
+- Defaulted name notional: 5 mm USD
 - Auction final price: 35% (treat as recovery for loss calculation)
 
 **Outputs (What You Produce)**
@@ -479,23 +486,23 @@ When a credit event occurs on a portfolio constituent, the settlement process de
 - Cash settlement amount: $G = \Delta\mathrm{TL}\times F$ (USD)
 
 **Step-by-step**
-1. **Loss dollars on the defaulted name**
-   $$\mathrm{Loss}_{\mathrm{name}} = (1-\mathrm{Final Price})\times USD 5\mathrm{mm} = (1-0.35)\times USD 5\mathrm{mm}=USD 3.25\mathrm{mm}$$
-2. **Convert to portfolio loss fraction**
-   $$\Delta L=USD 3.25\mathrm{mm}/USD 500\mathrm{mm}=0.0065=0.65\%$$
-3. **Update portfolio loss**
-   $$L^+=L^-+\Delta L=2.5\%+0.65\%=3.15\%$$
-4. **Tranche loss before/after**
-   - Before: $\mathrm{TL}(2.5\%)=\min(\max(2.5\%-3\%,0),4\%)=0$
-   - After: $\mathrm{TL}(3.15\%)=\min(\max(3.15\%-3\%,0),4\%)=0.15\%$
-   - Increment: $\Delta\mathrm{TL}=0.15\%$
-5. **Cash settlement**
-   $$G=\Delta\mathrm{TL}\times F=0.15\%\times USD 500\mathrm{mm}=USD 0.75\mathrm{mm}$$
+1. **Loss dollars on the defaulted name** (in mm USD):
+   $$\mathrm{Loss}_{\mathrm{name}} = (1-\mathrm{FP})\times 5 = (1-0.35)\times 5 = 3.25.$$
+2. **Convert to portfolio loss fraction:**
+   $$\Delta L = 3.25 / 500 = 0.0065 = 0.65\%.$$
+3. **Update portfolio loss:**
+   $$L^+ = L^- + \Delta L = 2.5\% + 0.65\% = 3.15\%.$$
+4. **Tranche loss before/after** (with $A = 3\%$, $W = 4\%$):
+   - Before: $\mathrm{TL}(2.5\%) = \min(\max(2.5\% - 3\%, 0), 4\%) = 0$.
+   - After: $\mathrm{TL}(3.15\%) = \min(\max(3.15\% - 3\%, 0), 4\%) = 0.15\%$.
+   - Increment: $\Delta\mathrm{TL} = 0.15\%$.
+5. **Cash settlement** (in mm USD):
+   $$G = \Delta\mathrm{TL}\times F = 0.0015 \times 500 = 0.75.$$
 
 **Cashflows (table)**
-| Date | Cashflow | Explanation |
+| Date | Cashflow (USD mm) | Explanation |
 |---|---:|---|
-| 2026-03-12 | +USD 0.75mm | Protection buyer receives $G$ because the default pushed $L$ above attachment |
+| 2026-03-12 | +0.75 | Protection buyer receives $G$ because the default pushed $L$ above attachment |
 
 **P&L / Risk Interpretation**
 - $G$ is the realized “jump” cashflow that a PV01 hedge is *not* designed to offset.
@@ -567,7 +574,7 @@ $$\mathrm{PV01}_{\mathrm{upfront}} = \frac{\partial \mathrm{PV}}{\partial U} \ti
 
 **Coupon PV01** is still defined as $\frac{\partial \mathrm{PV}}{\partial c} \times 1\mathrm{bp}$.
 
-The reference gives an example where the $0$–$3\%$ tranche is quoted as upfront percent plus 500 bp/year running, while other tranches are quoted in bp.
+A common illustrative convention has the $0$–$3\%$ tranche quoted as upfront percent plus a 500 bp/year fixed running coupon, while more senior tranches are quoted as a pure running spread.
 
 **Upfront ↔ spread conversion (CDS-style):** In the fixed-coupon quote convention, the upfront (as a fraction of tranche notional) converts to par spread via:
 
@@ -585,7 +592,9 @@ As a quick rule of thumb, “1% upfront” corresponds to roughly $\frac{100}{\m
 
 For a long protection position, schematically:
 
-$$\mathrm{Premium leg} \propto s_{\mathrm{dec}} \times \sum Z \Delta \times \mathrm{expected outstanding}.$$
+$$\mathrm{PV}_{\mathrm{prem}} \;\propto\; s_{\mathrm{dec}} \times \sum_i \Delta_i\, Z(t_i) \times \overline{\mathrm{EON}}_i,$$
+
+i.e., spread $\times$ discounted accrual $\times$ expected outstanding.
 
 Therefore $|\mathrm{PV01}|$ increases with expected outstanding and with discount factors (higher $Z$, longer maturity).
 
@@ -617,10 +626,9 @@ Rather than relying on any single numeric “risk report snapshot,” focus on t
 
 ---
 
-## 3.5 Systemic and Idiosyncratic Gamma (Second-Order Sensitivity)
+### 3.5 Systemic and Idiosyncratic Gamma (Second-Order Sensitivity)
 
-Beyond first-order delta measures, tranches exhibit significant **gamma**—the second derivative of value with respect to spread moves. O'Kane Ch 17 distinguishes two types of gamma that parallel the systemic/idiosyncratic delta distinction.
-Beyond first-order delta measures, tranches exhibit significant **gamma**—the second derivative of value with respect to spread moves. Two useful notions parallel the systemic/idiosyncratic delta distinction.
+Beyond first-order delta measures, tranches exhibit significant **gamma** — the second derivative of value with respect to spread moves. Two useful notions parallel the systemic/idiosyncratic delta distinction.
 
 ### 3.5.1 Systemic Gamma Definition
 
@@ -634,7 +642,7 @@ where $S$ represents a parallel shift in all portfolio spreads.
 
 $$\Gamma_s = V(S + 1\mathrm{bp}) - 2V(S) + V(S - 1\mathrm{bp})$$
 
-**Units:** USD (the P&L impact of the gamma effect per 1bp squared move).
+**Units:** USD per $(1\,\mathrm{bp})^2$ (i.e., the gamma-driven P&L for a $(1\,\mathrm{bp})^2$ change; for an $n$-bp move, the gamma P&L scales as $\tfrac{1}{2}\,\Gamma_s\,n^2$).
 
 ### 3.5.2 Idiosyncratic Gamma Definition
 
@@ -642,9 +650,9 @@ $$\Gamma_s = V(S + 1\mathrm{bp}) - 2V(S) + V(S - 1\mathrm{bp})$$
 
 $$\boxed{\Gamma_i = \frac{\partial^2 V}{\partial S_i^2} \times (1\mathrm{bp})^2}$$
 
-For a portfolio of $N$ names, the **aggregate idiosyncratic gamma** is the sum:
+For a portfolio of $N$ names, the **aggregate idiosyncratic gamma** is the sum
 
-$$\Gamma_{\mathrm{idio, total}} = \sum_{i=1}^{N} \Gamma_i$$
+$$\Gamma_{\mathrm{idio}}^{\mathrm{tot}} = \sum_{i=1}^{N} \Gamma_i.$$
 
 ### 3.5.3 Gamma Sign Patterns Across the Capital Structure
 
@@ -659,13 +667,15 @@ The exact magnitudes depend on the calibration and the market state; the sign pa
 
 The gamma signs exhibit a striking pattern that has profound hedging implications:
 
-**Equity tranches have negative systemic gamma and positive idiosyncratic gamma:**
-- **Negative systemic gamma** means convexity works *against* equity holders for large parallel spread moves. A 10bp spread widening costs more than 10× a 1bp move—the position "bleeds" under volatility.
-- **Positive idiosyncratic gamma** reflects that individual name spread moves have diminishing marginal impact as the equity tranche approaches its attachment point.
+All signs below are stated for the **long-protection** position (chapter convention). For the opposite (cash equity / short protection) side, flip every sign.
 
-**Senior tranches have positive systemic gamma and negative idiosyncratic gamma:**
-- **Positive systemic gamma** means senior tranches benefit from convexity in large market-wide moves—they are "long volatility" in the systemic dimension.
-- **Negative idiosyncratic gamma** reflects increasing marginal sensitivity as the tranche approaches attachment from individual name deterioration.
+**Long-protection equity has negative systemic gamma and positive idiosyncratic gamma:**
+- **Negative systemic gamma** ($\Gamma_s \lt 0$) means a delta-hedged long-protection equity book is short volatility in parallel portfolio-spread moves: the gamma term $\tfrac{1}{2}\Gamma_s(\Delta S)^2$ is negative for any non-zero $\Delta S$, so re-hedging through volatile widening or tightening "bleeds" the book through transaction costs and adverse re-hedging slippage.
+- **Positive idiosyncratic gamma** reflects that individual name spread moves have diminishing marginal impact on the equity tranche once that name's CDS spread is wide enough that its default is largely "priced in".
+
+**Long-protection senior has positive systemic gamma and negative idiosyncratic gamma:**
+- **Positive systemic gamma** means a delta-hedged long-protection senior book is long volatility in parallel moves: a large market-wide widening produces *more* than the linear delta would predict, since the senior tranche's expected loss is convex in portfolio spread (it only ramps up once spreads imply a non-trivial joint-default tail).
+- **Negative idiosyncratic gamma** reflects increasing marginal sensitivity as a single name's deterioration starts to consume the senior subordination buffer.
 
 > **Desk Note: Negative Gamma and Re‑Hedging Costs**
 >
@@ -690,9 +700,9 @@ If you treat $\Gamma_s^{(1\mathrm{bp})}$ as the “gamma‑01” (units: USD per
 
 $$\Delta V_{\Gamma} \approx \frac{1}{2}\,\Gamma_s^{(1\mathrm{bp})}\left(\frac{\Delta S}{1\mathrm{bp}}\right)^2.$$
 
-For an equity tranche with $\Gamma_s^{(1\mathrm{bp})} \approx -4{,}000$ (USD), a 10bp parallel spread move gives:
+For an equity tranche with $\Gamma_s^{(1\mathrm{bp})} \approx -4{,}000$ USD (a typical magnitude for a 0–3% tranche on a 125-name index portfolio), a 10 bp parallel spread move gives:
 
-$$\Delta V_{\Gamma} \approx \frac{1}{2} \times \Gamma_s^{(1\mathrm{bp})}\left(\frac{10\mathrm{bp}}{1\mathrm{bp}}\right)^2 = \frac{1}{2} \times (-4{,}000) \times 100 = -USD 200{,}000$$
+$$\Delta V_{\Gamma} \approx \tfrac{1}{2} \cdot \Gamma_s^{(1\mathrm{bp})}\left(\frac{10\,\mathrm{bp}}{1\,\mathrm{bp}}\right)^2 = \tfrac{1}{2} \cdot (-4{,}000) \cdot 100 = -200{,}000 \text{ USD}.$$
 
 This is *in addition to* any delta slippage from hedge rebalancing.
 
@@ -714,7 +724,7 @@ Let $\alpha$ be the trader's view on the fraction of spread variance that is sys
 
 **Blended hedge ratio:**
 
-$$\Delta_{\mathrm{hedge}} = \alpha \cdot \Delta_{\mathrm{systemic}} + (1-\alpha) \cdot \Delta_{\mathrm{idio, total}}$$
+$$\Delta_{\mathrm{hedge}} = \alpha \cdot \Delta_{\mathrm{systemic}} + (1-\alpha) \cdot \Delta_{\mathrm{idio}}^{\mathrm{tot}}.$$
 
 This $\alpha$‑blend is a simple heuristic for “between the extremes.” Key point: spread moves are a mix of systemic and idiosyncratic components, and the hedge that works best depends on which component is likely to dominate.
 
@@ -754,17 +764,17 @@ $$\mathrm{CorrDelta} \approx \frac{V(\rho + \Delta\rho) - V(\rho - \Delta\rho)}{
 
 ### 4.3 If Base Correlation Is Used (Minimal Desk Summary)
 
-A `[K1, K2]` tranche can be decomposed as a linear combination of two base (equity) tranches and is priced by assigning different correlations to `[0, K1]` and `[0, K2]`.
+A $[K_1, K_2]$ tranche can be decomposed as a linear combination of two base (equity) tranches and is priced by assigning different correlations to $[0, K_1]$ and $[0, K_2]$.
 
-**Expected loss relationship under base correlation:**
+**Expected loss relationship under base correlation.** Let $\mathrm{ETL}_{[K_1,K_2]}(T)$ denote the expected tranche loss as a fraction of *tranche* notional. Then
 
-$$\mathbb{E}[L(T, K_1, K_2)] = \frac{\mathbb{E}_{\rho(K_2)}[\min(L(T), K_2)] - \mathbb{E}_{\rho(K_1)}[\min(L(T), K_1)]}{K_2 - K_1}.$$
+$$\mathrm{ETL}_{[K_1,K_2]}(T) = \frac{\mathbb{E}_{\rho(K_2)}\!\left[\min(L(T), K_2)\right] - \mathbb{E}_{\rho(K_1)}\!\left[\min(L(T), K_1)\right]}{K_2 - K_1},$$
 
-This creates a known inconsistency (different base tranches assign different correlations to the same underlying portfolio) and base correlation is not arbitrage-free, though it has practical advantages.
+where the numerator is in fractions of *portfolio* notional and the denominator $K_2 - K_1 = W$ converts to per-unit-tranche-notional. The two expectations are taken under different base correlations $\rho(K_1)$ and $\rho(K_2)$ — which is exactly the source of the well-known inconsistency: the same portfolio is priced with two different correlations. Base correlation is therefore not arbitrage-free in general, although it has practical advantages.
 
 #### What Is Bumped in Base Correlation?
 
-A `[K1, K2]` tranche value is only sensitive to `rho(K1)` and `rho(K2)` within the base correlation framework.
+A $[K_1, K_2]$ tranche value is only sensitive to $\rho(K_1)$ and $\rho(K_2)$ within the base correlation framework.
 
 Desk implementations differ for non‑standard strikes and interpolation (e.g., interpolating in correlation vs ETL space, enforcing shape constraints). Naive linear interpolation can generate arbitrage‑like behavior; confirm what your system does.
 
@@ -785,9 +795,9 @@ We will verify this tranche dependence numerically in Examples 8–9 (toy depend
 
 ### 5.1 Single-Name Default Shock vs Clustered Default Shock
 
-**Single-name default shock:** one issuer defaults with recovery $R$, producing portfolio loss increment:
+**Single-name default shock:** one issuer with face value $N_d$ defaults with recovery $R$, producing portfolio loss increment
 
-$$\Delta L = \frac{(1 - R) \cdot \mathrm{defaulted face value}}{F}.$$
+$$\Delta L = \frac{(1 - R)\,N_d}{F}.$$
 
 **Tranche loss increment:**
 
@@ -918,24 +928,25 @@ In this simplified view, the natural hedging instruments are other correlation p
 
 #### Worked Example: Capital Structure Combination for Correlation Reduction
 
-Consider a trader long protection on the 3–7% mezzanine tranche (typically long correlation). To reduce net correlation exposure:
+Consider a trader long protection on the 3–7% mezzanine tranche (typically *long correlation* in this regime, i.e., positive Corr01 from the long-protection perspective). To reduce net correlation exposure:
 
-**Step 1:** Measure Corr01 of the mezzanine position.
-- Suppose Corr01(3–7%) = +USD 150,000 per 1% correlation increase.
+**Step 1.** Measure Corr01 of the mezzanine position.
+- Suppose $\mathrm{Corr01}_{[3,7]}^{\mathrm{long\,prot}} = +150{,}000$ USD per $+1\%$ in $\rho$.
 
-**Step 2:** Find opposing correlation exposure.
-- Equity tranches are typically short correlation.
-- Suppose Corr01(0–3%) = –USD 80,000 per 1% correlation increase.
+**Step 2.** Identify a tranche with the opposite-sign Corr01.
+- Equity is typically *short correlation* from the long-protection perspective.
+- Suppose $\mathrm{Corr01}_{[0,3]}^{\mathrm{long\,prot}} = -80{,}000$ USD per $+1\%$ in $\rho$.
 
-**Step 3:** Size the hedge.
-Use the hedge ratio `n_equity = -Corr01(3-7)/Corr01(0-3) = 1.875`.
+**Step 3.** Size the hedge. Solving $\mathrm{Corr01}_{[3,7]} + n_{\mathrm{eq}} \cdot \mathrm{Corr01}_{[0,3]} = 0$ for the equity *long-protection* notional gives
 
-Sell protection on 1.875× the notional of 0–3% equity to offset correlation exposure.
+$$n_{\mathrm{eq}} = -\frac{\mathrm{Corr01}_{[3,7]}}{\mathrm{Corr01}_{[0,3]}} = -\frac{+150{,}000}{-80{,}000} = +1.875.$$
 
-**Caveat:** This hedge is imperfect because:
+So **buy** (long) protection on $1.875\times$ the mezz notional of the 0–3% equity tranche to offset correlation exposure: the trader's net Corr01 becomes $+150{,}000 + 1.875\cdot(-80{,}000) = 0$.
+
+**Caveat:** this hedge is imperfect because:
 1. Premium legs don't perfectly offset (different RPV01s).
-2. The relationship between Corr01s is model-dependent.
-3. Both tranches have spread risk that may or may not offset.
+2. The relationship between the two Corr01s is model-dependent (it changes with the base-correlation skew, calibration, and portfolio spread).
+3. Both tranches still carry spread, JTD, and recovery risks that this Corr01-only sizing does not control.
 
 #### Skew Hedging Procedure (Base Correlation)
 
@@ -951,7 +962,7 @@ This procedure captures how the bespoke tranche is exposed to skew movements (ch
 
 #### Failure Modes / Residual Risks
 
-- **Curve/mapping risk (base correlation "mapping" sensitivity):** bespoke tranche value depends on `rho(K1)`, `rho(K2)` and their dependence on portfolio spread; hedges can slip when mapping changes.
+- **Curve/mapping risk (base correlation "mapping" sensitivity):** bespoke tranche value depends on $\rho(K_1)$ and $\rho(K_2)$ and their dependence on portfolio spread; hedges can slip when mapping changes.
 - **Interpolation/arbitrage artifacts** (linear interpolation can create arbitrage-like issues).
 - **Model dependence:** correlation hedges rely on the pricing model being correct; if the model is wrong, hedges fail.
 
@@ -974,7 +985,7 @@ Use scenario-based hedging/limits: evaluate residual P&L under clustered default
 
 ---
 
-## 6.4 Key Visualizations for Tranche Risk
+### 6.4 Key Visualizations for Tranche Risk
 
 Understanding tranche risk requires visualizing the nonlinear relationships that distinguish tranches from linear instruments. The following charts are essential for risk management:
 
@@ -1084,13 +1095,13 @@ $$\boxed{\mathrm{PV} = \mathrm{PV}_{\mathrm{prot}} - \mathrm{PV}_{\mathrm{prem}}
 
 Let $\mathrm{PV}(s)$ be PV as a function of contractual tranche spread $s$ in bp/year.
 
-**Central-difference PV01:**
+**Central-difference PV01** (the $\pm 1$ shifts are by 1 bp each, and the result is reported per 1 bp bump):
 
-$$\boxed{\mathrm{PV01} \approx \frac{\mathrm{PV}(s + 1) - \mathrm{PV}(s - 1)}{2}}$$
+$$\boxed{\mathrm{PV01} \approx \frac{\mathrm{PV}(s + 1\,\mathrm{bp}) - \mathrm{PV}(s - 1\,\mathrm{bp})}{2}}$$
 
 **Units:** USD per bp.
 
-**Sign sanity:** for long protection, increasing $s$ increases premium you pay, so PV should go down $\Rightarrow$ PV01 < 0.
+**Sign sanity:** for long protection, increasing $s$ increases the premium you pay, so PV should go down. Hence $\mathrm{PV01} \lt 0$ for a long-protection position.
 
 ---
 
@@ -1132,7 +1143,7 @@ This matches the definition of Corr01 as a 1% absolute bump in correlation used 
 
 | Parameter | Value |
 |-----------|-------|
-| Portfolio notional | $F = USD 100{,}000{,}000$ |
+| Portfolio notional | $F = 100{,}000{,}000$ USD ($= 100$ mm) |
 | Payment grid (quarterly, $T = 1$y) | $t_0 = 0$, $t_1 = 0.25$, $t_2 = 0.50$, $t_3 = 0.75$, $t_4 = 1.00$ |
 | Accruals | $\Delta_i = 0.25$ |
 | Discount factors (toy) | $Z(0.25) = 0.990$, $Z(0.50) = 0.985$, $Z(0.75) = 0.980$, $Z(1.00) = 0.975$ |
@@ -1209,7 +1220,7 @@ $$\mathrm{PV}_{\mathrm{prot}} \approx F \sum_{i=1}^{4} Z(t_i) \Delta\mathrm{ETL}
 
 Sum $Z$: $3.930$. So:
 
-$$\boxed{\mathrm{PV}_{\mathrm{prot}} = 100\mathrm{mm} \times 0.00393 = USD 393{,}000}$$
+$$\boxed{\mathrm{PV}_{\mathrm{prot}} = 100\,\mathrm{mm} \times 0.00393 = 393{,}000 \text{ USD}}$$
 
 ---
 
@@ -1242,16 +1253,16 @@ $$\mathrm{PV}_{\mathrm{prem}} = F \cdot \frac{s}{10{,}000} \sum_{i=1}^{4} \Delta
 
 Compute each term (using $F \cdot s/10{,}000 = 100\mathrm{mm} \cdot 0.01 = 1\mathrm{mm}$):
 
-| $i$ | Calculation | Result |
-|-----|-------------|--------|
-| 1 | $1\mathrm{mm} \cdot 0.25 \cdot 0.990 \cdot 0.0395$ | USD 9,776.25 |
-| 2 | $1\mathrm{mm} \cdot 0.25 \cdot 0.985 \cdot 0.0385$ | USD 9,475.63 |
-| 3 | $1\mathrm{mm} \cdot 0.25 \cdot 0.980 \cdot 0.0375$ | USD 9,187.50 |
-| 4 | $1\mathrm{mm} \cdot 0.25 \cdot 0.975 \cdot 0.0365$ | USD 8,898.38 |
+| $i$ | Calculation | Result (USD) |
+|-----|-------------|-------------:|
+| 1 | $1\mathrm{mm} \cdot 0.25 \cdot 0.990 \cdot 0.0395$ | 9,776.25 |
+| 2 | $1\mathrm{mm} \cdot 0.25 \cdot 0.985 \cdot 0.0385$ | 9,480.63 |
+| 3 | $1\mathrm{mm} \cdot 0.25 \cdot 0.980 \cdot 0.0375$ | 9,187.50 |
+| 4 | $1\mathrm{mm} \cdot 0.25 \cdot 0.975 \cdot 0.0365$ | 8,896.88 |
 
 **Total:**
 
-$$\boxed{\mathrm{PV}_{\mathrm{prem}} = USD 37{,}337.76}$$
+$$\boxed{\mathrm{PV}_{\mathrm{prem}} = \mathrm{USD}\,37{,}341.25}$$
 
 ---
 
@@ -1265,17 +1276,17 @@ Since $\mathrm{PV}_{\mathrm{prem}}$ is linear in $s$, define the "annuity per 1b
 
 $$\mathrm{PV01}_{\mathrm{annuity}} = F \cdot \frac{1}{10{,}000} \sum_{i=1}^{4} \Delta_i Z(t_i) \overline{\mathrm{EON}}_i.$$
 
-From Example 4, $\mathrm{PV}_{\mathrm{prem}}(100\mathrm{bp}) = USD 37{,}337.76$, so:
+From Example 4, $\mathrm{PV}_{\mathrm{prem}}(100\,\mathrm{bp}) = \mathrm{USD}\,37{,}341.25$, so:
 
-$$\mathrm{PV01}_{\mathrm{annuity}} = USD 37{,}337.76 / 100 = USD 373.3776 \mathrm{ per bp}.$$
+$$\mathrm{PV01}_{\mathrm{annuity}} = \frac{37{,}341.25}{100} = \mathrm{USD}\,373.4125 \text{ per bp}.$$
 
 **Par spread solves:**
 
 $$0 = \mathrm{PV}_{\mathrm{prot}} - s^{\star} \cdot \mathrm{PV01}_{\mathrm{annuity}} \quad\Rightarrow\quad s^{\star} = \frac{\mathrm{PV}_{\mathrm{prot}}}{\mathrm{PV01}_{\mathrm{annuity}}}.$$
 
-Using $\mathrm{PV}_{\mathrm{prot}} = USD 393{,}000$:
+Using $\mathrm{PV}_{\mathrm{prot}} = \mathrm{USD}\,393{,}000$:
 
-$$\boxed{s^{\star} = \frac{393{,}000}{373.3776} = 1052.6 \mathrm{ bp}}$$
+$$\boxed{s^{\star} = \frac{393{,}000}{373.4125} \approx 1052.5 \text{ bp}}$$
 
 **Interpretation:**
 - If contractual spread $s \lt s^{\star}$, long protection has positive PV (cheap premium).
@@ -1285,18 +1296,18 @@ $$\boxed{s^{\star} = \frac{393{,}000}{373.3776} = 1052.6 \mathrm{ bp}}$$
 
 ### Example 6: Tranche PV01: Bump s by +/-1bp and Compute PV01 via Central Difference
 
-Use PV at $s = 100$bp (Examples 3–4):
+Use PV at $s = 100$ bp (Examples 3–4):
 
-$$\mathrm{PV}(100) = 393{,}000 - 37{,}337.76 = 355{,}662.24.$$
+$$\mathrm{PV}(100) = 393{,}000 - 37{,}341.25 = 355{,}658.75 \quad (\mathrm{USD}).$$
 
 Because premium leg PV scales linearly with $s$, we can compute:
 
-- $\mathrm{PV}(101) = \mathrm{PV}(100) - 1 \times \mathrm{PV01}_{\mathrm{annuity}} = 355{,}662.24 - 373.3776 = 355{,}288.86$
-- $\mathrm{PV}(99) = \mathrm{PV}(100) + 373.3776 = 356{,}035.62$
+- $\mathrm{PV}(101) = \mathrm{PV}(100) - 1 \times \mathrm{PV01}_{\mathrm{annuity}} = 355{,}658.75 - 373.4125 = 355{,}285.34$
+- $\mathrm{PV}(99) = \mathrm{PV}(100) + 373.4125 = 356{,}032.16$
 
 **Central-difference PV01:**
 
-$$\mathrm{PV01} \approx \frac{\mathrm{PV}(101) - \mathrm{PV}(99)}{2} = \frac{355{,}288.86 - 356{,}035.62}{2} = -373.38 \mathrm{ USD /bp}.$$
+$$\mathrm{PV01} \approx \frac{\mathrm{PV}(101) - \mathrm{PV}(99)}{2} = \frac{355{,}285.34 - 356{,}032.16}{2} = -373.41 \quad (\mathrm{USD/bp}).$$
 
 **Sign check:** negative for long protection (higher contractual spread means paying more premium). ✓
 
@@ -1341,7 +1352,7 @@ Sum $= 0.024822969$.
 
 Thus PV01 annuity per bp:
 
-$$\mathrm{PV01}_{\mathrm{equity}} = F \cdot \frac{1}{10{,}000} \cdot 0.024822969 = 100\mathrm{mm}/10{,}000 \cdot 0.024822969 = USD 248.23/\mathrm{bp}.$$
+$$\mathrm{PV01}_{\mathrm{equity}} = F \cdot \frac{1}{10{,}000} \cdot 0.024822969 = \frac{100\,\mathrm{mm}}{10{,}000} \cdot 0.024822969 \approx 248.23 \text{ USD/bp}.$$
 
 #### (b) Senior Tranche $[15, 30]$: $W = 0.15$
 
@@ -1353,7 +1364,7 @@ $$= 0.15 \cdot 0.25(0.990 + 0.985 + 0.980 + 0.975) = 0.15 \cdot 0.9825 = 0.14737
 
 Thus:
 
-$$\mathrm{PV01}_{\mathrm{senior}} = 10{,}000 \cdot 0.147375 = USD 1{,}473.75/\mathrm{bp}.$$
+$$\mathrm{PV01}_{\mathrm{senior}} = \frac{F}{10{,}000} \cdot 0.147375 = 10{,}000 \cdot 0.147375 = 1{,}473.75 \text{ USD/bp}.$$
 
 #### Conclusion (Numerical)
 
@@ -1383,27 +1394,29 @@ Since all losses are below 15%, tranche never attaches:
 
 **Premium PV:**
 
-$$\mathrm{PV}_{\mathrm{prem},A} = s \cdot \mathrm{PV01}_A = 50 \cdot 1{,}473.75 = USD 73{,}687.50$$
+$$\mathrm{PV}_{\mathrm{prem},A} = s \cdot \mathrm{PV01}_A = 50 \cdot 1{,}473.75 = 73{,}687.50 \text{ USD}.$$
 
 So long-protection PV:
 
-$$\mathrm{PV}_A = 0 - 73{,}687.50 = -USD 73{,}687.50.$$
+$$\mathrm{PV}_A = 0 - 73{,}687.50 = -73{,}687.50 \text{ USD}.$$
 
 #### Dependence Setting B (Higher Tail / Higher "Correlation")
 
-Keep the same mean portfolio loss as setting A but add a tail state beyond 15%:
+Keep the same mean portfolio loss as setting A but redistribute mass: more probability at zero loss and more probability at a tail state beyond 15%.
 
 | $L$ | Probability |
 |-----|-------------|
-| 0% | 0.83 |
-| 5% | 0.12 |
+| 0% | 0.90 |
+| 5% | 0.05 |
 | 25% | 0.05 |
 
-**Mean check:**
+**Mean checks (both settings).**
 
-$$0 \cdot 0.83 + 0.05 \cdot 0.12 + 0.25 \cdot 0.05 = 0.006 + 0.0125 = 0.0185,$$
+Setting A: $0\cdot 0.60 + 0.02\cdot 0.25 + 0.05\cdot 0.10 + 0.10\cdot 0.05 = 0 + 0.005 + 0.005 + 0.005 = 0.015$ (1.5%).
 
-same as setting A's mean (1.85%).
+Setting B: $0\cdot 0.90 + 0.05\cdot 0.05 + 0.25\cdot 0.05 = 0 + 0.0025 + 0.0125 = 0.015$ (1.5%).
+
+So the two settings have the same mean (1.5%) but very different *shapes*: setting B concentrates mass at zero and at a 25% tail state, mimicking what high default clustering does to a portfolio loss distribution.
 
 **Compute tranche loss for $[15, 30]$:**
 - At $L = 25\%$: $\mathrm{TL} = 25\% - 15\% = 10\% = 0.10$.
@@ -1417,27 +1430,27 @@ Assume linear in time: $\Delta\mathrm{ETL}_i = 0.005/4 = 0.00125$.
 
 **Protection PV:**
 
-$$\mathrm{PV}_{\mathrm{prot},B} = 100\mathrm{mm} \cdot 0.00125 \cdot (0.990 + 0.985 + 0.980 + 0.975) = 100\mathrm{mm} \cdot 0.0049125 = USD 491{,}250.$$
+$$\mathrm{PV}_{\mathrm{prot},B} = 100\,\mathrm{mm} \cdot 0.00125 \cdot (0.990 + 0.985 + 0.980 + 0.975) = 100\,\mathrm{mm} \cdot 0.0049125 = 491{,}250 \text{ USD}.$$
 
 **Premium PV01** (recompute with declining EON):
 
 $W = 0.15$, $\mathrm{EON}(1) = 0.15 - 0.005 = 0.145$.
 
-Using the computed sum $\sum \Delta Z \overline{\mathrm{EON}} = 0.1449265625$ (see derivation in analysis), PV01:
+Using the computed sum $\sum \Delta_i Z(t_i)\,\overline{\mathrm{EON}}_i = 0.1449265625$ (trapezoidal sum on the same grid), PV01:
 
-$$\mathrm{PV01}_B = 10{,}000 \cdot 0.1449265625 = USD 1{,}449.27/\mathrm{bp}.$$
+$$\mathrm{PV01}_B = \frac{F}{10{,}000} \cdot 0.1449265625 = 1{,}449.27 \text{ USD/bp}.$$
 
-**Premium PV at $s = 50$bp:**
+**Premium PV at $s = 50$ bp:**
 
-$$\mathrm{PV}_{\mathrm{prem},B} = 50 \cdot 1{,}449.27 = USD 72{,}463.28.$$
+$$\mathrm{PV}_{\mathrm{prem},B} = 50 \cdot 1{,}449.27 = 72{,}463.28 \text{ USD}.$$
 
 Thus:
 
-$$\mathrm{PV}_B = 491{,}250 - 72{,}463.28 = USD 418{,}786.72.$$
+$$\mathrm{PV}_B = 491{,}250 - 72{,}463.28 = 418{,}786.72 \text{ USD}.$$
 
 #### PV Change Due to Dependence Shift
 
-$$\boxed{\Delta\mathrm{PV} = \mathrm{PV}_B - \mathrm{PV}_A = 418{,}786.72 - (-73{,}687.50) = USD 492{,}474.22}$$
+$$\boxed{\Delta\mathrm{PV} = \mathrm{PV}_B - \mathrm{PV}_A = 418{,}786.72 - (-73{,}687.50) = 492{,}474.22 \text{ USD}}$$
 
 **Interpretation:** A "pure dependence/tail" increase (with mean loss held fixed) massively impacts senior tranche PV.
 
@@ -1455,11 +1468,11 @@ Then midpoint $\rho = 0.30$, $\Delta\rho = 0.10$.
 
 **Compute CorrDelta:**
 
-$$\mathrm{CorrDelta} \approx \frac{\mathrm{PV}(0.40) - \mathrm{PV}(0.20)}{2 \cdot 0.10} = \frac{418{,}786.72 - (-73{,}687.50)}{0.20} = \frac{492{,}474.22}{0.20} = USD 2{,}462{,}371.10 \mathrm{ per unit } \rho.$$
+$$\mathrm{CorrDelta} \approx \frac{\mathrm{PV}(0.40) - \mathrm{PV}(0.20)}{2 \cdot 0.10} = \frac{418{,}786.72 - (-73{,}687.50)}{0.20} = \frac{492{,}474.22}{0.20} = 2{,}462{,}371.10 \text{ USD per unit } \rho.$$
 
 **Convert to Corr01 (1% absolute bump):**
 
-Corr01 is approximately USD 24,623.71 per 1% absolute correlation bump.
+$$\mathrm{Corr01} \approx \mathrm{CorrDelta} \times 0.01 \approx 24{,}623.71 \text{ USD per 1\% absolute correlation bump}.$$
 
 This corresponds to Corr01 as the PV change for a 1% absolute increase in correlation.
 
@@ -1467,15 +1480,15 @@ This corresponds to Corr01 as the PV change for a 1% absolute increase in correl
 
 ### Example 10: Single-Name Default Scenario: Compute Portfolio Loss Increment, Tranche Loss Increment, PV Change Proxy
 
-**Portfolio:** 100 equal names, each USD 1mm. Total $F = USD 100$mm.
+**Portfolio:** 100 equal names, each 1 mm USD. Total $F = 100$ mm USD.
 
 **Default event:**
 - One name defaults, recovery $R = 40\%$ $\Rightarrow$ LGD $= 60\%$.
-- Loss dollars: `0.60 * USD 1mm = USD 0.60mm`.
+- Loss dollars: $0.60 \times 1\,\mathrm{mm} = 0.60$ mm USD.
 
 **Loss fraction increment:**
 
-$$\Delta L = 0.60\mathrm{mm} / 100\mathrm{mm} = 0.006 = 0.6\%.$$
+$$\Delta L = 0.60 / 100 = 0.006 = 0.6\%.$$
 
 **Assume realized portfolio loss before default:** $L^- = 2.8\% = 0.028$. After default:
 
@@ -1497,12 +1510,12 @@ $$\Delta\mathrm{TL} = 0.004 - 0 = 0.004.$$
 
 **Dollar loss payment on tranche:**
 
-$$\boxed{G = \Delta\mathrm{TL} \cdot F = 0.004 \times 100\mathrm{mm} = USD 0.40\mathrm{mm}}$$
+$$\boxed{G = \Delta\mathrm{TL} \cdot F = 0.004 \times 100\,\mathrm{mm} = 0.40 \text{ mm USD}}$$
 
 #### PV Change Proxy
 
-- Immediate protection payment to long protection is $+USD 0.40$mm.
-- Remaining outstanding tranche notional decreases from `W*F = 0.04*100mm = USD 4.0mm` to `(W-DeltaTL)*F = 0.036*100mm = USD 3.6mm`.
+- Immediate protection payment to long protection is $+0.40$ mm USD.
+- Remaining outstanding tranche notional decreases from $W \cdot F = 0.04 \times 100\,\mathrm{mm} = 4.0$ mm USD to $(W - \Delta\mathrm{TL}) \cdot F = 0.036 \times 100\,\mathrm{mm} = 3.6$ mm USD.
 - Premium leg PV will drop (because premium is paid on outstanding); protection leg PV also drops (less remaining protection).
 
 A book-consistent way to capture the total jump is VOD, which includes repricing after the default and adding/subtracting $G$.
@@ -1515,29 +1528,29 @@ Use same portfolio and tranche.
 
 **Cluster event:**
 - $k = 5$ defaults simultaneously, each with $R = 40\%$.
-- Total loss dollars = `5 * 0.60mm = 3.0mm`.
+- Total loss dollars = $5 \times 0.60 = 3.0$ mm USD.
 - $\Delta L = 3.0/100 = 0.03 = 3\%$.
 
 **Assume $L^- = 2.8\% = 0.028$. Then $L^+ = 0.058 = 5.8\%$.**
 
 **Tranche loss:**
 
-$$\mathrm{TL}(L^-) = 0, \quad \mathrm{TL}(L^+) = \min(\max(0.058 - 0.03, 0), 0.04) = 0.028 = 2.8\%.$$
+$$\mathrm{TL}(L^-) = 0, \qquad \mathrm{TL}(L^+) = \min(\max(0.058 - 0.03, 0), 0.04) = 0.028 = 2.8\%.$$
 
 **So loss payment:**
 
-$$\boxed{G = 0.028 \times 100\mathrm{mm} = USD 2.8\mathrm{mm}}$$
+$$\boxed{G = 0.028 \times 100\,\mathrm{mm} = 2.8 \text{ mm USD}}$$
 
 **Remaining tranche notional after the jump:**
 
-$$(0.04 - 0.028) \times 100\mathrm{mm} = 0.012 \times 100\mathrm{mm} = USD 1.2\mathrm{mm}.$$
+$$(0.04 - 0.028) \times 100\,\mathrm{mm} = 0.012 \times 100\,\mathrm{mm} = 1.2 \text{ mm USD}.$$
 
 #### Comparison to Example 10
 
-| Scenario | Loss Payment $G$ |
-|----------|------------------|
-| Single-name default | USD 0.40mm |
-| Cluster of 5 defaults | USD 2.8mm |
+| Scenario | Loss payment $G$ (mm USD) |
+|----------|--------------------------:|
+| Single-name default | 0.40 |
+| Cluster of 5 defaults | 2.80 |
 
 This is the nonlinear "clustering amplification" of tranche jump exposure.
 
@@ -1545,33 +1558,33 @@ This is the nonlinear "clustering amplification" of tranche jump exposure.
 
 ### Example 12: Recovery/Final Price Sensitivity: Vary Recovery and Compute Tranche Payout Differences
 
-Single-name default with $L^- = 2.8\%$ and face value USD 1mm.
+Single-name default with $L^- = 2.8\%$ and face value 1 mm USD on a 100 mm USD portfolio (so $H_0 = 1\%$).
 
 **Compute $G$ for different recoveries:**
 
-#### Case R = 20%
+#### Case $R = 20\%$
 
-- LGD = 80%, loss dollars = USD 0.80mm → $\Delta L = 0.008 = 0.8\%$
-- $L^+ = 3.6\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 3.6 - 3.0 = 0.6\%$
-- `G = 0.006 * 100mm = USD 0.60mm`
+- LGD = 80%, loss dollars = 0.80 mm USD $\Rightarrow$ $\Delta L = 0.008 = 0.8\%$.
+- $L^+ = 3.6\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 3.6\% - 3.0\% = 0.6\%$.
+- $G = 0.006 \times 100\,\mathrm{mm} = 0.60$ mm USD.
 
-#### Case R = 40%
+#### Case $R = 40\%$
 
-From Example 10: $G = USD 0.40$mm
+From Example 10: $G = 0.40$ mm USD.
 
-#### Case R = 60%
+#### Case $R = 60\%$
 
-- LGD = 40%, loss dollars = USD 0.40mm → $\Delta L = 0.004 = 0.4\%$
-- $L^+ = 3.2\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 0.2\%$
-- `G = 0.002 * 100mm = USD 0.20mm`
+- LGD = 40%, loss dollars = 0.40 mm USD $\Rightarrow$ $\Delta L = 0.004 = 0.4\%$.
+- $L^+ = 3.2\%$ $\Rightarrow$ $\mathrm{TL}(L^+) = 0.2\%$.
+- $G = 0.002 \times 100\,\mathrm{mm} = 0.20$ mm USD.
 
-**Sensitivity (finite difference):**
+**Sensitivity (finite difference, per unit $R$):**
 
-$$\frac{\Delta G}{\Delta R} \approx \frac{0.20\mathrm{mm} - 0.60\mathrm{mm}}{0.60 - 0.20} = \frac{-0.40\mathrm{mm}}{0.40} = -1.00\mathrm{mm per 1.0 recovery}.$$
+$$\frac{\Delta G}{\Delta R} \approx \frac{0.20 - 0.60}{0.60 - 0.20} = \frac{-0.40}{0.40} = -1.00 \text{ (mm USD per 1.0 unit of } R\text{)}.$$
 
-**So per 1% recovery:**
+In this regime (tranche unhit before, hit after but not capped), the analytic sensitivity is exactly $\partial G/\partial R = -H_0 \cdot F = -0.01 \times 100\,\mathrm{mm} = -1.00$ mm USD per unit $R$.
 
-Approximately \(-0.01\) mm, i.e., USD 10,000 lower PV per +1% recovery.
+**Per 1% recovery:** $\partial G/\partial R \times 0.01 = -0.01$ mm USD, i.e., 10,000 USD lower jump cashflow per $+1\%$ in recovery (long protection receives less).
 
 ---
 
@@ -1580,29 +1593,29 @@ Approximately \(-0.01\) mm, i.e., USD 10,000 lower PV per +1% recovery.
 We hedge contractual tranche-spread PV01 (quote PV01) of $[3, 7]$ long protection using $[0, 3]$ short protection.
 
 **From Examples:**
-- $\mathrm{PV01}_{3-7}^{\mathrm{(long prot)}} = -USD 373.38/\mathrm{bp}$ (Example 6).
-- $\mathrm{PV01}_{0-3}^{\mathrm{(long prot)}} = -USD 248.23/\mathrm{bp}$ (Example 7(a)).
-- Therefore $\mathrm{PV01}_{0-3}^{\mathrm{(short prot)}} = +USD 248.23/\mathrm{bp}$.
+- $\mathrm{PV01}_{[3,7]}^{\mathrm{long\,prot}} = -373.41$ USD/bp (Example 6).
+- $\mathrm{PV01}_{[0,3]}^{\mathrm{long\,prot}} = -248.23$ USD/bp (Example 7(a)).
+- Therefore $\mathrm{PV01}_{[0,3]}^{\mathrm{short\,prot}} = +248.23$ USD/bp.
 
-Let hedge scale be $h$ (multiplier of notional exposure of the $0$–$3$ tranche relative to the base USD 100mm portfolio in this toy setup). Solve:
+Let hedge scale be $h$ (multiplier of notional exposure of the $[0,3]$ tranche relative to the base USD 100 mm portfolio in this toy setup). Solve:
 
-$$-373.38 + h \cdot 248.23 = 0 \quad\Rightarrow\quad h = \frac{373.38}{248.23} = 1.504.$$
+$$-373.41 + h \cdot 248.23 = 0 \quad\Rightarrow\quad h = \frac{373.41}{248.23} \approx 1.5043.$$
 
 #### Validation Under Small Spread Move
 
-Assume both tranche contractual spreads increase by `Delta s = +5bp`.
+Assume both tranche contractual spreads increase by $\Delta s = +5$ bp.
 
 **Target P&L:**
 
-$$\Delta\mathrm{PV}_{3-7} \approx -373.38 \times 5 = -USD 1{,}866.9.$$
+$$\Delta\mathrm{PV}_{[3,7]} \approx -373.41 \times 5 = -1{,}867.05 \text{ USD}.$$
 
 **Hedge P&L:**
 
-$$\Delta\mathrm{PV}_{\mathrm{hedge}} \approx h \cdot (+248.23) \times 5 = 1.504 \times 1{,}241.15 = +USD 1{,}867.0.$$
+$$\Delta\mathrm{PV}_{\mathrm{hedge}} \approx h \cdot (+248.23) \times 5 \approx 1.5043 \times 1{,}241.15 \approx +1{,}867.05 \text{ USD}.$$
 
 **Net:**
 
-$$\boxed{\Delta\mathrm{PV}_{\mathrm{net}} \approx +0.1 \mathrm{ (rounding)}}$$
+$$\boxed{\Delta\mathrm{PV}_{\mathrm{net}} \approx 0 \text{ (within rounding)}}$$
 
 So the position is PV01-neutral to small tranche spread quote moves in this toy setting.
 
@@ -1611,39 +1624,39 @@ So the position is PV01-neutral to small tranche spread quote moves in this toy 
 ### Example 14: Hedge Failure Under Clustering: Apply Clustered Default Scenario to the PV01-Hedged Portfolio
 
 Use the PV01-neutral portfolio from Example 13:
-- Long protection $[3, 7]$ on USD 100mm portfolio.
-- Short protection $[0, 3]$ scaled by $h = 1.504$.
+- Long protection $[3, 7]$ on the USD 100 mm portfolio.
+- Short protection $[0, 3]$ scaled by $h \approx 1.5043$.
 
 **Now apply a clustered default shock from no prior losses:**
-- $k = 8$ defaults, each USD 1mm face, recovery 40%.
-- Each loss = USD 0.60mm → total loss = `8 * 0.60 = USD 4.8mm`.
+- $k = 8$ defaults, each USD 1 mm face, recovery 40%.
+- Each loss = USD 0.60 mm → total loss = $8 \times 0.60 = $ USD 4.8 mm.
 - Portfolio loss fraction jump: $\Delta L = 4.8/100 = 4.8\%$.
 
 **Compute tranche loss increments from $L^- = 0$ to $L^+ = 4.8\%$:**
 
-#### Mezz Tranche [3, 7]
+#### Mezz Tranche $[3,7]$
 
-$$\mathrm{TL}_{3-7}(4.8\%) = \min(4.8\% - 3.0\%,\; 4.0\%) = 1.8\%.$$
+$$\mathrm{TL}_{[3,7]}(4.8\%) = \min(4.8\% - 3.0\%,\; 4.0\%) = 1.8\%.$$
 
 Dollar loss payment to long protection:
 
-$$G_{3-7} = 1.8\% \times 100\mathrm{mm} = USD 1.8\mathrm{mm}.$$
+$$G_{[3,7]} = 1.8\% \times 100\,\mathrm{mm} = 1.8 \text{ mm USD}.$$
 
-#### Equity Tranche [0, 3]
+#### Equity Tranche $[0,3]$
 
-$$\mathrm{TL}_{0-3}(4.8\%) = \min(4.8\%, 3.0\%) = 3.0\%.$$
+$$\mathrm{TL}_{[0,3]}(4.8\%) = \min(4.8\%, 3.0\%) = 3.0\%.$$
 
-Dollar loss payment for short protection position (a cost):
+Dollar loss payment from short-protection position (a cost):
 
-$$G_{0-3} = 3.0\% \times 100\mathrm{mm} = USD 3.0\mathrm{mm}.$$
+$$G_{[0,3]} = 3.0\% \times 100\,\mathrm{mm} = 3.0 \text{ mm USD}.$$
 
-Scaled by $h = 1.504$, hedge pays:
+Scaled by $h \approx 1.5043$, hedge pays:
 
-$$h \cdot G_{0-3} = 1.504 \times 3.0 = USD 4.512\mathrm{mm}.$$
+$$h \cdot G_{[0,3]} \approx 1.5043 \times 3.0 \approx 4.513 \text{ mm USD}.$$
 
 #### Net Jump P&L (Ignoring MTM Repricing of Remaining Legs for Simplicity)
 
-$$\boxed{\Delta\mathrm{PV}_{\mathrm{jump}} \approx +1.8 - 4.512 = -USD 2.712\mathrm{mm}}$$
+$$\boxed{\Delta\mathrm{PV}_{\mathrm{jump}} \approx +1.800 - 4.513 = -2.713 \text{ mm USD}}$$
 
 #### Interpretation
 
@@ -1659,9 +1672,9 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 
 | Measure | Bump | Definition | Interpretation |
 |---------|------|------------|----------------|
-| **Tranche PV01** | Contractual tranche spread $s$ by +1bp | $\mathrm{PV}(s+1) - \mathrm{PV}(s)$ (USD/bp) or central difference | Premium-leg annuity exposure |
+| **Tranche PV01** | Contractual tranche spread $s$ by $+1$ bp | $\mathrm{PV}(s+1\,\mathrm{bp}) - \mathrm{PV}(s)$ (USD per bp) — or symmetric central difference $[\mathrm{PV}(s+1)-\mathrm{PV}(s-1)]/2$ | Premium-leg annuity exposure |
 | **Correlation delta / Corr01** | Correlation parameter $\rho$ by +1% absolute | $\mathrm{Corr01} = V(\rho + 0.01) - V(\rho)$ | In a one-factor Gaussian copula parameterization, $\rho = \beta^2$ |
-| **JTD / VOD** | Immediate default of a name (or set of names), with recovery $R$ | Total PV change under the default-event scenario (MTM reprice plus any immediate loss payment $F\cdot G$ if tranche is hit) | Discrete jump exposure |
+| **JTD / VOD** | Immediate default of a name (or set of names), with recovery $R$ | Total PV change under the default-event scenario: post-default MTM reprice plus any immediate loss payment $G = F\cdot\Delta\mathrm{TL}$ (USD) when the tranche is hit | Discrete jump exposure |
 
 ---
 
@@ -1760,7 +1773,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 14 | Why does correlation matter for senior tranches? | It changes tail probability of many defaults. |
 | 15 | What is JTD for a tranche? | PV change under a specified default-event scenario. |
 | 16 | What is VOD? | "Value-on-default," measuring PV impact of an immediate default. |
-| 17 | How does VOD incorporate immediate loss payment $G$? | Under a loss-payment default scenario, include the cash payment (dollars: $F\cdot G$) and the post-default MTM of the reduced tranche; some systems report cash and MTM separately. |
+| 17 | How does VOD incorporate immediate loss payment $G$? | Include the cash payment $G = F \cdot \Delta\mathrm{TL}$ (USD) and the post-default MTM of the reduced tranche; some systems report cash and MTM separately. |
 | 18 | What is default clustering? | Multiple defaults occurring together/in stress states. |
 | 19 | Define upper tail dependence coefficient $\lambda_u$. | Limiting conditional exceedance probability as quantile $\to 1$. |
 | 20 | Gaussian copula tail dependence? | No tail dependence except at perfect correlation; e.g., lower tail dependence coefficient $\lambda_{\ell}=0$ for $\rho\neq 1$. |
@@ -1769,7 +1782,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 23 | What is the "correlation term"? | P&L from dependence parameter shifts (Corr01/CorrDelta). |
 | 24 | What is the "recovery term"? | P&L from recovery/LGD/final price changes. |
 | 25 | What is residual/model risk? | P&L not explained by first-order terms; model/basis/liquidity effects. |
-| 26 | In base correlation, which parameters drive a `[K1, K2]` tranche? | `rho(K1)` and `rho(K2)`. |
+| 26 | In base correlation, which parameters drive a $[K_1, K_2]$ tranche? | $\rho(K_1)$ and $\rho(K_2)$. |
 | 27 | What contradiction does base correlation introduce? | Different base tranches assign different correlations to same portfolio. |
 | 28 | Why can base correlation interpolation create issues? | Linear interpolation can generate arbitrage-like tranchelet spreads. |
 | 29 | What's the simplest PV01 hedge ratio formula? | $n_H = -\mathrm{PV01}_T / \mathrm{PV01}_H$. |
@@ -1788,17 +1801,17 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 | 42 | What does the "hockey stick" shape of TL(L) create? | Nonlinear risk characteristics — PV01 hedges fail for large moves and defaults. |
 | 43 | How does auction final price affect tranche settlement? | Loss = (1 - Final Price) × Defaulted Notional; lower final price means larger tranche loss increment. |
 | 44 | What is the leverage ratio for a tranche? | Systemic delta / tranche notional — measures effective exposure amplification. |
-| 45 | What is systemic gamma? | Second derivative of tranche value with respect to parallel portfolio spread moves: $\Gamma_s = \frac{\partial^2 V}{\partial S^2}(1\mathrm{bp})^2$. |
-| 46 | What is idiosyncratic gamma? | Second derivative of tranche value with respect to a single name's spread: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}(1\mathrm{bp})^2$. |
-| 47 | What sign is systemic gamma for equity tranches? | Negative—convexity works against equity holders for large parallel spread moves. |
-| 48 | What sign is systemic gamma for senior tranches? | Positive—senior tranches benefit from convexity in large market-wide moves (long volatility). |
+| 45 | What is systemic gamma? | Second derivative of tranche value with respect to parallel portfolio spread moves: $\Gamma_s = \frac{\partial^2 V}{\partial S^2}\cdot(1\,\mathrm{bp})^2$. |
+| 46 | What is idiosyncratic gamma? | Second derivative of tranche value with respect to a single name's spread: $\Gamma_i = \frac{\partial^2 V}{\partial S_i^2}\cdot(1\,\mathrm{bp})^2$. |
+| 47 | What sign is systemic gamma for long-protection equity tranches? | Negative — convexity term $\tfrac{1}{2}\Gamma_s(\Delta S)^2$ subtracts from the linear delta P&L for any non-zero $\Delta S$, so a delta-hedged book bleeds via re-hedging in volatile moves. |
+| 48 | What sign is systemic gamma for long-protection senior tranches? | Positive — convexity term adds to the linear delta P&L, so the long-protection senior is "long volatility" in parallel moves. |
 | 49 | What is the Gaussian copula tail dependence coefficient (lower tail)? | Zero: $\lambda_{\ell}=0$ for $\rho\neq 1$. |
 | 50 | What is the t-copula tail dependence formula (lower tail)? | $\lambda_{\ell}=2 F_{t, \nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$ where $F_{t,\nu+1}$ is a $t$ CDF. |
 | 51 | Why can Gaussian copula understate senior tranche risk? | Zero tail dependence means joint extreme events can be understated relative to tail-dependent dependence structures. |
 | 52 | What does negative systemic gamma imply operationally? | Delta hedges become stale quickly in volatile parallel moves; frequent re-hedging can create a “bleed” via execution costs and convexity. |
 | 53 | What is the hedging decision parameter $\alpha$ in the blended hedge framework? | Trader's view on fraction of spread variance that is systemic; $\alpha = 1$ means all parallel, $\alpha = 0$ means all idiosyncratic. |
 | 54 | How do you compute systemic gamma via finite differences? | $\Gamma_s = V(S + 1\mathrm{bp}) - 2V(S) + V(S - 1\mathrm{bp})$. |
-| 55 | What is the approximate gamma P&L for a 10bp spread move with systemic gamma = −USD 4,000? | $\frac{1}{2} \times (-4{,}000) \times 100 = -USD 200{,}000$ loss. |
+| 55 | What is the approximate gamma P&L for a 10 bp spread move with $\Gamma_s^{(1\,\mathrm{bp})} = -4{,}000$ USD? | $\tfrac{1}{2} \times (-4{,}000) \times 10^2 = -200{,}000$ USD. |
 
 ---
 
@@ -1820,7 +1833,7 @@ The portfolio was PV01-neutral for small tranche spread quote moves, but suffere
 1. $A=2\%$, $W=3\%$. $\mathrm{TL}(0\%)=0\%$, $\mathrm{TL}(1\%)=0\%$, $\mathrm{TL}(3\%)=1\%$, $\mathrm{TL}(6\%)=3\%$ (capped at $W$).
 2. `F*W*s_dec = 50mm*0.04*0.02 = USD 40,000` per year. Trapezoid sum is `sum_i Delta_i Z_i (Q_{i-1}+Q_i)/2 = 0.935875`. So `PV_prem ≈ 40,000*0.935875 = USD 37,435`.
 3. `DeltaETL1=0.002`, `DeltaETL2=0.003`. `PV_prot = 50mm*[0.99(0.002)+0.97(0.003)] = USD 244,500`.
-4. Using the annuity sum from (2): `PV_prem = F*W*s_dec*0.935875`. Solve `s_dec=244,500/(50mm*0.04*0.935875)=0.13065`, so `s_star ≈ 1306.5bp`.
+4. Using the annuity sum from (2): `PV_prem = F*W*s_dec*0.935875`. Solve `s_dec = 244,500 / (50mm*0.04*0.935875) = 244,500 / 1,871,750 ≈ 0.13063`, so `s_star ≈ 1306.3 bp`.
 5. `PV01 ≈ (1.15-1.20)/2 mm/bp = -0.025 mm/bp = -USD 25,000/bp`.
 6. `CorrDelta ≈ (0.35-(-0.05))/0.2 = 2.0mm` per unit rho. `Corr01 ≈ 0.01*2.0mm = 0.02mm = USD 20,000` per +1% absolute.
 7. Before: `TL(2.5%)=0`. After: `TL(3.15%)=min(3.15%-3%,4%)=0.15%`. So `G=0.15%*500mm=USD 0.75mm`.
