@@ -45,7 +45,7 @@ Before diving into the mechanics, lock down a sign convention. Counterparty expo
 | **Collateral sign** | We define $C(t)$ as collateral held by the bank at time $t$. $C(t)\gt 0$ means the counterparty has posted collateral; $C(t)\lt 0$ means the bank has posted collateral (amount $-C(t)$). |
 | **Exposure** | Bank exposure to counterparty default at time $t$: $E(t)=\max(V(t)-C(t),0)$. |
 
-We keep the full symbol list in `## Notation` near the end; the only symbols you need immediately are $V(t)$, $C(t)$, $E(t)$, and the CSA parameters “threshold” $H$, “minimum transfer amount” $m$, and “cure period / MPOR” $c$.
+The full symbol list lives in the **Notation** section near the end of the chapter. The symbols you need immediately are $V(t)$, $C(t)$, $E(t)$, and the CSA parameters "threshold" $H$, "minimum transfer amount" $m$, and "cure period / MPOR" $c$.
 
 ---
 
@@ -243,7 +243,7 @@ Both features increase residual exposure but reduce operational friction.
 
 **Expand (why it matters):** Rehypothecation can improve funding efficiency for the collateral receiver, but it adds **credit risk for the collateral poster**. If the receiver defaults while holding (and having reused) your collateral, recovering it can be harder. One mitigation is **segregation**: keeping collateral in a segregated third-party account, which can improve its seniority versus other unsecured claims.
 
-**Check (failure mode):** If you post collateral when the bank is in-the-money, and the bank reinvests/rehypothecates it, then a fast market move that flips the MTM followed by the bank's default can leave you exposed to both (i) an MTM loss and (ii) impaired recovery of the collateral you posted.
+**Check (failure mode, from the poster's perspective):** Suppose the counterparty has posted collateral to the bank because the bank is in-the-money, and the bank rehypothecates that collateral. If a fast market move now flips the MTM and the bank itself defaults, the counterparty (the original poster) faces (i) an MTM loss on the trade and (ii) impaired recovery on the rehypothecated collateral. The same logic applies in mirror image when the bank is the poster and the counterparty rehypothecates.
 
 ### 32.3.7 Downgrade Triggers (Preview)
 
