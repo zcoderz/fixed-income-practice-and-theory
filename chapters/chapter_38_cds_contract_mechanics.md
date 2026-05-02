@@ -75,18 +75,18 @@ $$
 
 **Example:** Consider a USD 10 million notional CDS with a 35 bp running spread. For a 91-day quarter:
 
-$$\text{PremiumPay} = 10{,}000{,}000 \times 0.0035 \times \frac{91}{360} = 10{,}000{,}000 \times 0.0035 \times 0.2528 = USD 8{,}847$$
+$$\text{PremiumPay} = 10{,}000{,}000 \times 0.0035 \times \frac{91}{360} \approx 8{,}847 \text{ USD}.$$
 
 ### 38.2.2 Payment Schedule Construction: The Step-by-Step Algorithm
 
 Standard CDS premium schedules are built around quarterly **standard dates**. Usually, contracts mature on the following standard dates: March 20, June 20, September 20, and December 20.
 
-These are sometimes informally called “CDS IMM dates,” but note the distinction: the CDS market always chooses the 20th date of the month while the official IMM date is the 3rd Wednesday of the month.
+These are sometimes informally called "CDS IMM dates," but note the distinction: the CDS market always uses the 20th of the month, whereas the official IMM date (used for short-term interest rate futures) is the 3rd Wednesday of the month.
 
 **Step 1 — Determine the Maturity Date:**
 Choose the scheduled termination date as the first standard date that falls **at least** $T$ years after the effective date.
 
-For a 5-year CDS with effective date 20 January 2026, the maturity date is the first of 20 Mar/Jun/Sep/Dec that is at least 5 years after effective date—namely, 20 March 2031.
+For a 5-year CDS with effective date 20 January 2026, the maturity date is the first standard date (20 Mar / 20 Jun / 20 Sep / 20 Dec) that is at least 5 years after the effective date — namely, 20 March 2031.
 
 **Step 2 — Generate Payment Dates by Stepping Back:**
 Starting from the maturity date, step backward in three-month increments along the standard-date grid until you reach the first coupon date after the effective date.
@@ -147,7 +147,7 @@ The first premium payment often involves a **stub period**—a period shorter th
 **Why this matters for P&L:**
 If a system incorrectly assumes a full 90-day first period, the first premium payment will be overstated by approximately:
 
-$$\frac{90 - 63}{360} \times N \times s = \frac{27}{360} \times 10{,}000{,}000 \times 0.0035 = USD 2{,}625$$
+$$\frac{90 - 63}{360} \times N \times s = \frac{27}{360} \times 10{,}000{,}000 \times 0.0035 = 2{,}625 \text{ USD}.$$
 
 On a USD 10 million trade, that's a USD 2,625 error on day one—enough to trigger a break investigation.
 
@@ -181,7 +181,7 @@ $$\boxed{\text{ProtPay} = N(1 - R)}$$
 
 **Example:** On USD 10 million notional with recovery of 40%:
 
-$$\text{ProtPay} = 10{,}000{,}000 \times (1 - 0.40) = USD 6{,}000{,}000$$
+$$\text{ProtPay} = 10{,}000{,}000 \times (1 - 0.40) = 6{,}000{,}000 \text{ USD}.$$
 
 The protection buyer receives USD 6 million, compensating for the loss from par on the reference obligations.
 
@@ -193,9 +193,9 @@ Two common settlement methods are:
 
 If the buyer can source bonds trading at 38 cents on the dollar, they pay USD 3.8 million to acquire USD 10 million face value, deliver these bonds, and receive USD 10 million from the seller—a net gain of USD 6.2 million.
 
-**Cash settlement:** The protection seller pays the protection buyer the face value minus an auction-determined recovery price. If the recovery price is 38%, the seller pays $10{,}000{,}000 \times (1 - 0.38) = USD 6{,}200{,}000$.
+**Cash settlement:** The protection seller pays the protection buyer the face value minus an auction-determined recovery price. If the recovery price is 38%, the seller pays $10{,}000{,}000 \times (1 - 0.38) = 6{,}200{,}000$ USD.
 
-Both methods should produce the same economic result when the cash settlement price equals the market value of deliverable obligations. In many contracts/descriptions, cash settlement uses an ISDA-organized auction process to determine the recovery price.
+Both methods produce the same economic result when the cash-settlement recovery price equals the market value of deliverable obligations. Under the post–Big Bang standard contracts, cash settlement uses the recovery price determined by the ISDA-organized credit-event auction (covered in detail in [Chapter 40](chapters/chapter_40_cds_auction_process.md)).
 
 **Why auctions matter:** Physical settlement can become operationally difficult when protection notional is large relative to available deliverables. An auction provides a single recovery price used for cash settlement across contracts.
 
@@ -213,7 +213,7 @@ $$\boxed{\text{AccruedPrem}(\tau) = N \cdot s \cdot \frac{\text{DayDiff}(t_{n-1}
 
 **Example:** Using the schedule from Section 38.2.2, suppose default occurs on 10 August 2026. The previous payment date was 22 June 2026, so 49 days have elapsed:
 
-$$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = USD 4{,}764$$
+$$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} \approx 4{,}764 \text{ USD}.$$
 
 **Sanity check:** The accrued amount (USD 4,764) is less than a full quarter's premium (USD 8,847), as expected since default occurred roughly halfway through the period.
 
@@ -366,7 +366,7 @@ $$A(0,2) = \frac{1}{2} \times 3.7093 = 1.8547 \text{ years}$$
 
 **Step 3: Convert to RPV01 (currency per bp)**
 
-$$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^{-4} \times 1.8547 = USD\\,1{,}854.66 \text{ per bp}.$$
+$$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^{-4} \times 1.8547 \approx 1{,}854.66 \text{ USD per bp}.$$
 
 **Interpretation:** The risky annuity is about 1.85 years. The corresponding RPV01 for USD 10mm notional is roughly USD 1,855 per bp. For comparison, the risk-free 2-year quarterly annuity at 5% is about 1.886 years; the small reduction reflects survival-weighting downweighting later payments.
 
@@ -374,7 +374,7 @@ $$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^
 >
 > Risk systems typically report `RPV01` in **currency per bp** for a stated notional. Quant models often work with the underlying annuity $A(t,T)$ in **years**. Always do a unit check before multiplying.
 >
-> A quick conversion is `RPV01 ≈ N × A × 10^{-4}`.
+> A quick conversion is $\text{RPV01} \approx N \times A \times 10^{-4}$.
 
 ### 38.5.4 Spread Sensitivity (CS01 / “Credit DV01”)
 
@@ -395,7 +395,7 @@ Using the MTM identity $V(t) = (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01
 - **Long protection:** $\Delta PV_{+1\text{ bp}} \approx +\text{RPV01}$, so $CS01 \approx -\text{RPV01}$
 - **Short protection:** $\Delta PV_{+1\text{ bp}} \approx -\text{RPV01}$, so $CS01 \approx +\text{RPV01}$
 
-**Example:** If $\text{RPV01}=USD 4{,}200$/bp for USD 10mm notional, then long protection has $CS01 \approx -USD 4{,}200$/bp and short protection has $CS01 \approx +USD 4{,}200$/bp.
+**Example:** If $\text{RPV01} = $ USD 4,200/bp for USD 10 mm notional, then long protection has $CS01 \approx -$ USD 4,200/bp and short protection has $CS01 \approx +$ USD 4,200/bp.
 
 > **Desk Reality: “What is being bumped?”**
 >
@@ -455,7 +455,7 @@ $$P \approx 100 - 100 \times 4.2 \times (0.015 - 0.01) = 97.9$$
 
 The protection buyer pays $(100 - 97.9) = 2.1$ per USD 100 notional upfront. On USD 10 million notional:
 
-$$\text{Upfront} = 0.021 \times 10{,}000{,}000 = USD 210{,}000$$
+$$\text{Upfront} = 0.021 \times 10{,}000{,}000 = 210{,}000 \text{ USD}.$$
 
 **Intuition:** The spread (150 bp) exceeds the coupon (100 bp) by 50 bp. Over an annuity of 4.2 years, this is roughly $50 \times 4.2 = 210$ bp $\approx 2.1\%$ of notional upfront.
 
@@ -539,11 +539,11 @@ For a **short protection** position, the value is the negative of this.
 
 First compute:
 
-$$\text{RPV01} = N \times 10^{-4} \times A = 10{,}000{,}000 \times 10^{-4} \times 4.208 = USD 4{,}208/\text{bp}$$
+$$\text{RPV01} = N \times 10^{-4} \times A = 10{,}000{,}000 \times 10^{-4} \times 4.208 = 4{,}208 \text{ USD per bp}.$$
 
 Then:
 
-$$V(t) = (320-75)\times 4{,}208 = USD 1{,}030{,}960$$
+$$V(t) = (320-75)\times 4{,}208 = 1{,}030{,}960 \text{ USD}.$$
 
 The protection buyer has a mark-to-market gain of approximately USD 1.03 million.
 
@@ -622,26 +622,26 @@ A 5Y CDS trade that defaults mid-quarter.
 
 **Step-by-step**
 1. **Translate quote to upfront**
-   - $\text{RPV01} = N \times 10^{-4} \times A = 10{,}000{,}000 \times 10^{-4} \times 4.2 = USD 4{,}200/\text{bp}$
-   - $\text{Upfront} \approx (s-c)_{\text{bp}} \times \text{RPV01} = 50 \times 4{,}200 = USD 210{,}000$ (buyer pays)
+   - $\text{RPV01} = N \times 10^{-4} \times A = 10{,}000{,}000 \times 10^{-4} \times 4.2 = 4{,}200$ USD/bp
+   - $\text{Upfront} \approx (s-c)_{\text{bp}} \times \text{RPV01} = 50 \times 4{,}200 = 210{,}000$ USD (buyer pays)
 2. **Compute scheduled premium payments**
    - $\text{PremiumPay} = N \cdot c \cdot \text{DayDiff}/360$
 3. **Compute accrued premium at default**
    - Days since last payment (22 Jun → 10 Aug): 49
-   - $\text{Accrued} = 10{,}000{,}000 \times 0.01 \times 49/360 = USD 13{,}611$
+   - $\text{Accrued} = 10{,}000{,}000 \times 0.01 \times 49/360 \approx 13{,}611$ USD
 4. **Compute protection payment**
    - Recovery from auction: $R=40\%$
-   - $\text{Protection} = N(1-R)=10{,}000{,}000\times 0.60=USD 6{,}000{,}000$
+   - $\text{Protection} = N(1-R)=10{,}000{,}000\times 0.60 = 6{,}000{,}000$ USD
 
 **Cashflows (table)**
 
-| Date | Cashflow (Buyer) | Explanation |
-|------|------------------|-------------|
-| 22 Jan 2026 | $-USD 210{,}000$ | Upfront (since $s\gt c$) |
-| 20 Mar 2026 | $-USD 16{,}389$ | Running coupon for 59 days at 100 bp |
-| 22 Jun 2026 | $-USD 26{,}111$ | Running coupon for 94 days at 100 bp |
-| 10 Aug 2026 | $-USD 13{,}611$ | Accrued coupon to credit event |
-| ~Aug 2026 | $+USD 6{,}000{,}000$ | Protection payment (cash settlement) |
+| Date | Cashflow to buyer (USD) | Explanation |
+|------|------------------------:|-------------|
+| 22 Jan 2026 | $-210{,}000$ | Upfront (since $s\gt c$) |
+| 20 Mar 2026 | $-16{,}389$ | Running coupon for 59 days at 100 bp |
+| 22 Jun 2026 | $-26{,}111$ | Running coupon for 94 days at 100 bp |
+| 10 Aug 2026 | $-13{,}611$ | Accrued coupon to credit event |
+| ~Aug 2026 | $+6{,}000{,}000$ | Protection payment (cash settlement) |
 
 **P&L / Risk Interpretation**
 - The upfront is the PV of paying a 100 bp coupon when the market par level is 150 bp.
@@ -704,7 +704,7 @@ Before booking a CDS trade, verify:
 1. **Repricing check:** Input the agreed terms; verify the system reproduces the traded upfront
 2. **Schedule check:** Verify payment dates against a trusted source (Bloomberg CDSW)
 3. **RPV01 check:** Convert $\text{RPV01}/(N \times 10^{-4})$ to get a risky annuity in years, then compare to years-to-maturity for high-quality names
-4. **MTM check:** If spreads are in bp and RPV01 is in USD/bp for the position notional, verify $MTM \approx (S_{\text{bp}}-S_{0,\text{bp}})\times RPV01$.
+4. **MTM check:** If spreads are in bp and RPV01 is in USD/bp for the position notional, verify $\text{MTM} \approx (S_{\text{bp}}-S_{0,\text{bp}})\times \text{RPV01}$.
 
 ---
 
@@ -717,10 +717,10 @@ Before booking a CDS trade, verify:
 5. On a credit event, future premiums stop, but accrued premium up to the event date is owed.
 6. The protection payment is bounded by $0 \le N(1-R) \le N$ and can settle physically or in cash (often via auction).
 7. The risky annuity $A(t,T)$ values the survival-weighted premium stream (including accrued-at-default under a mid-period approximation).
-8. `RPV01(t,T)` is the PV of 1 bp of running premium (currency per bp for the stated notional): `RPV01 = N × 10^{-4} × A`.
-9. Fixed coupon + upfront trades can be approximated as upfront fraction $U \approx A(s-c)$, or upfront dollars $\approx (s_{\text{bp}}-c_{\text{bp}})\times RPV01$.
-10. A practical MTM identity is $V(t)\approx (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\times RPV01$ (with curve-rebuild caveats).
-11. Clean MTM is a quoting convention: `Clean = Full − Accrued`; do not confuse it with the contractual accrued-at-default cashflow.
+8. $\text{RPV01}(t,T)$ is the PV of 1 bp of running premium (currency per bp for the stated notional): $\text{RPV01} = N \times 10^{-4} \times A$.
+9. Fixed coupon + upfront trades can be approximated as upfront fraction $U \approx A(s-c)$, or upfront dollars $\approx (s_{\text{bp}}-c_{\text{bp}})\times \text{RPV01}$.
+10. A practical MTM identity is $V(t)\approx (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\times \text{RPV01}$ (with curve-rebuild caveats).
+11. Clean MTM is a quoting convention: $\text{Clean MTM} = \text{Full MTM} - \text{Accrued}$; do not confuse it with the contractual accrued-at-default cashflow.
 12. Unwind cash settlement can occur after a short lag (e.g., T+3 business); be consistent about settlement date and clean/full conventions.
 
 ---
@@ -749,7 +749,7 @@ Before booking a CDS trade, verify:
 | $N$ | CDS notional (face value) |
 | $s$ | Running spread (decimal per annum; 100 bp = 0.01) |
 | $c$ | Fixed coupon (decimal per annum) |
-| $\Delta(t_1, t_2)$ | Accrual fraction = DayDiff(t_1, t_2)/360 |
+| $\Delta(t_1, t_2)$ | Accrual fraction $= \text{DayDiff}(t_1, t_2)/360$ |
 | $\tau$ | Credit event date |
 | $R$ | Recovery rate (fraction of par) |
 | $Z(t, T)$ | Risk-free discount factor from $t$ to $T$ |
@@ -759,7 +759,7 @@ Before booking a CDS trade, verify:
 | $P$ | Upfront price per 100 notional |
 | $V(t)$ | Mark-to-market value |
 | $S_0$ | Contractual spread |
-| $S_t$ or $S(t,T)$ | Current market spread |
+| $S(t,T)$ | Current market par spread for maturity $T$ as observed at time $t$ |
 
 ---
 
@@ -796,26 +796,26 @@ Before booking a CDS trade, verify:
 
 ## Mini Problem Set
 
-1. Compute the quarterly premium payment for $N = USD 25$ million, $s = 150$ bp, and a 90-day quarter under ACT/360.
+1. Compute the quarterly premium payment for $N = $ USD 25 million, $s = 150$ bp, and a 90-day quarter under ACT/360.
 2. A CDS has effective date 15 January 2026. The first roll date is 20 March 2026. Calculate the accrual fraction for the stub period.
-3. Default occurs 45 days after the last coupon date. Compute accrued premium for $N = USD 10$ million and coupon $c=200$ bp.
+3. Default occurs 45 days after the last coupon date. Compute accrued premium for $N = $ USD 10 million and coupon $c=200$ bp.
 4. If auction recovery is 28%, compute the protection payment on USD 15 million notional.
 5. Fixed-coupon trade: $s = 250$ bp, $c = 100$ bp, risky annuity $A = 4.0$ years. Compute the clean price per USD 100 notional and state who pays upfront.
-6. Using $RPV01$: $N=USD 10$ million, $RPV01=USD 4{,}500$/bp, $s = 80$ bp, $c = 100$ bp. Compute upfront dollars and state direction.
+6. Using $\text{RPV01}$: $N = $ USD 10 million, $\text{RPV01}=$ USD 4,500/bp, $s = 80$ bp, $c = 100$ bp. Compute upfront dollars and state direction.
 7. Explain why physical and cash settlement produce the same economic result when the auction final price equals the deliverable market value.
 8. Create a sign table showing buyer and seller cashflows for: (i) scheduled premium, (ii) accrued at default, (iii) protection payment, (iv) upfront (when $s\gt c$).
 9. A credit event occurs on Saturday. A trade executed on Friday has effective date Saturday (T+1 calendar). Explain why the convention matters.
 10. In one sentence, define clean vs full MTM and give one operational “break” it prevents or causes.
-11. If $A(0,2)=1.84$ years for a 2-year CDS and $N=USD 5$ million, compute $RPV01$ in USD/bp.
-12. MTM: Long protection with contractual $S_0=150$ bp, market $S=250$ bp, and $RPV01=USD 8{,}000$/bp. Compute MTM.
+11. If $A(0,2)=1.84$ years for a 2-year CDS and $N = $ USD 5 million, compute $\text{RPV01}$ in USD/bp.
+12. MTM: Long protection with contractual $S_0=150$ bp, market $S=250$ bp, and $\text{RPV01}=$ USD 8,000/bp. Compute MTM.
 
 ### Solution Sketches (Selected)
 
-**1.** $USD 93{,}750$ (use $s=0.015$ and $90/360=0.25$).
+**1.** USD 93,750 (use $s=0.015$ and $90/360=0.25$).
 
 **5.** $P \approx 100 - 100\times 4.0\times(0.025-0.01)=94$; buyer pays $6\%$ upfront (since $s\gt c$).
 
-**12.** $MTM\approx (250-150)\times 8{,}000 = USD 800{,}000$ (long protection gains when spreads widen).
+**12.** $\text{MTM}\approx (250-150)\times 8{,}000 = 800{,}000$ USD (long protection gains when spreads widen).
 
 **7.** Physical settlement: buy deliverable at the market recovery price and deliver at par, netting $N(1-R)$. Cash settlement pays $N(1-R)$ directly when the auction price equals the deliverable market value.
 
