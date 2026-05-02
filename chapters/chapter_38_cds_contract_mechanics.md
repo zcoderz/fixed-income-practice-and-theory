@@ -368,7 +368,7 @@ $$A(0,2) = \frac{1}{2} \times 3.7093 = 1.8547 \text{ years}$$
 
 $$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^{-4} \times 1.8547 \approx 1{,}854.66 \text{ USD per bp}.$$
 
-**Interpretation:** The risky annuity is about 1.85 years. The corresponding RPV01 for USD 10mm notional is roughly USD 1,855 per bp. For comparison, the risk-free 2-year quarterly annuity at 5% is about 1.886 years; the small reduction reflects survival-weighting downweighting later payments.
+**Interpretation:** The risky annuity is about 1.85 years. The corresponding RPV01 for USD 10 million notional is roughly USD 1,855 per bp. For comparison, the risk-free 2-year quarterly annuity at 5% is about 1.886 years; the small reduction reflects survival-weighting downweighting later payments.
 
 > **Desk Reality: RPV01 vs “annuity”**
 >
@@ -395,7 +395,7 @@ Using the MTM identity $V(t) = (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01
 - **Long protection:** $\Delta PV_{+1\text{ bp}} \approx +\text{RPV01}$, so $CS01 \approx -\text{RPV01}$
 - **Short protection:** $\Delta PV_{+1\text{ bp}} \approx -\text{RPV01}$, so $CS01 \approx +\text{RPV01}$
 
-**Example:** If $\text{RPV01} = $ USD 4,200/bp for USD 10 mm notional, then long protection has $CS01 \approx -$ USD 4,200/bp and short protection has $CS01 \approx +$ USD 4,200/bp.
+**Example:** If $\text{RPV01} = $ USD 4,200/bp for USD 10 million notional, then long protection has $CS01 \approx -$ USD 4,200/bp and short protection has $CS01 \approx +$ USD 4,200/bp.
 
 > **Desk Reality: “What is being bumped?”**
 >
