@@ -288,7 +288,7 @@ where, assuming no coupon is paid in $(t,T)$, $\text{Carry}^i(t\to T)=\bigl[AI^i
 
 $$\boxed{NB^i(t) \approx GB^i(t) - \text{Carry}^i(t \to T)}$$
 
-At the final delivery date, carry to $T$ is zero and $NB(T)=GB(T)=\text{CostDel}(T)$. The CTD has $NB^{CTD}(T)=0$.
+At the final delivery date, carry to $T$ is zero and $NB(T)=GB(T)=\text{CostDel}(T)$. The CTD has $NB^{\text{CTD}}(T)=0$.
 
 In many practical setups, **net basis is the carry-adjusted measure used for cash–futures relative value**, and its level/dispersion across deliverables is a proxy for CTD uncertainty and delivery-option value.
 
@@ -955,7 +955,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 5. Gross basis $GB=P-cfF$ is the clean cash–futures spread; net basis $NB=P_{fwd}-cfF\approx GB-\text{carry}$ is carry-adjusted and desk-relevant.
 6. Implied repo is the break-even financing rate for buy-and-deliver; compare it to your marginal funding (GC vs special).
 7. Delivery options transfer value from long to short and explain why exact theoretical pricing is harder than a single-bond cost-of-carry forward.
-8. Futures DV01 depends on the bump object and the assumed CTD mapping; under a CTD-held-fixed mapping, $DV01_{fut}\approx DV01_{CTD}/cf$.
+8. Futures DV01 depends on the bump object and the assumed CTD mapping; under a CTD-held-fixed mapping, $DV01_{\text{fut}}\approx DV01_{\text{CTD}}/cf^{\text{CTD}}$.
 9. Hedges break when CTD switches; re-run DV01 and hedge ratios under alternative CTDs.
 10. Rolls and squeezes are funding-and-delivery phenomena; carry and specials can dominate yield moves near delivery.
 
