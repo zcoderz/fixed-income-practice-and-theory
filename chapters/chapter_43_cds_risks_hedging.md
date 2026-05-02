@@ -191,7 +191,7 @@ Consider this critical scenario:
 
 If you hedge CS01 to zero using an index or different single-name:
 - **Spread moves:** Net P&L ≈ 0 (hedged)
-- **Reference entity defaults:** You owe $(1-R) \times USD 10\text{mm} = USD 6\text{mm}$ (at 40% recovery)
+- **Reference entity defaults:** You owe $(1-R) \times USD\\,10\text{mm} = USD\\,6\text{mm}$ (at 40% recovery)
 - **Your hedge:** Pays nothing—it was on a different name/index that didn't default
 
 **This is the essence of "basis risk at default"**—your spread hedge may work perfectly for daily P&L but provide zero protection against the binary default event.
@@ -206,10 +206,10 @@ While spread movements produce continuous P&L, default is a discontinuous event 
 
 Using the MTM identity $V(t) = \bigl(S(t,T) - S_0\bigr)\cdot \text{RPV01}(t,T)$, a long-protection position's MTM loss from spread tightening is **bounded** because spreads cannot go below zero. If $S(t,T) \to 0$, then $V(t) \to -S_0\cdot \text{RPV01}\times N$.
 
-**Example:** With $N=USD 10\text{mm}$, $S_0 = 200$ bp, and $\text{RPV01} \approx 4.0$, the maximum MTM loss from spread tightening is about:
+**Example:** With $N=USD\\,10\text{mm}$, $S_0 = 200$ bp, and $\text{RPV01} \approx 4.0$, the maximum MTM loss from spread tightening is about:
 $$10{,}000{,}000 \times 0.02 \times 4.0 = USD\\,800{,}000$$
 
-By contrast, for a **protection seller**, a reference-entity default creates a discrete loss of roughly $(1-R)N$ (e.g., $USD 6\text{mm}$ at 40\% recovery). This scale difference is why a CS01 hedge can look “tight” in daily P&L yet fail catastrophically on default.
+By contrast, for a **protection seller**, a reference-entity default creates a discrete loss of roughly $(1-R)N$ (e.g., $USD\\,6\text{mm}$ at 40\% recovery). This scale difference is why a CS01 hedge can look "tight" in daily P&L yet fail catastrophically on default.
 
 
 
@@ -374,8 +374,7 @@ $$s_{\text{net}} = s + \sum_{j=1}^{k} n_j\\, h^{(j)}.$$
 
 **Equivalent hedge notionals** are the $n_j$ that make selected components of $s_{\text{net}}$ close to zero (exactly zero if the system is square and well-conditioned; otherwise least-squares).
 
-**Toy example (2-bucket hedge, diagonal approximation):** suppose your book has bucket CS01s (long protection convention) of $s=(+12{,}000,\ +8{,}000)$ $USD /\text{bp}$ to the (3Y, 7Y) quotes. Suppose a USD 10mm notional on-market 3Y CDS has bucket CS01 $(+3{,}000,\ 0)$ $USD /\text{bp}$ and a USD 10mm on-market 7Y CDS has $(0,\ +6{,}000)$ $USD /\text{bp}$. To neutralize, choose hedge notionals (in units of USD 10mm notional)
-A diagonal approximation gives $n_3 = -12{,}000/3{,}000=-4.0$ and $n_7=-8{,}000/6{,}000\approx -1.33$.
+**Toy example (2-bucket hedge, diagonal approximation):** suppose your book has bucket CS01s (long protection convention) of $s=(+12{,}000,\ +8{,}000)\\,USD/\text{bp}$ on the (3Y, 7Y) par quotes. A USD 10mm notional on-market 3Y CDS has bucket CS01 $(+3{,}000,\ 0)\\,USD/\text{bp}$, and a USD 10mm on-market 7Y CDS has $(0,\ +6{,}000)\\,USD/\text{bp}$. Solve for hedge notionals $n_3, n_7$ (expressed in units of USD 10mm) that zero the net bucket vector. The diagonal approximation gives $n_3 = -12{,}000/3{,}000 = -4.0$ and $n_7 = -8{,}000/6{,}000 \approx -1.33$.
 Negative notionals mean you **sell protection** in those hedges (negative CS01) to offset the book’s positive CS01.
 
 **Check:** In practice the hedge response matrix is often “somewhat local” (a tenor mostly loads on nearby curve points), but it is not perfectly diagonal once you include bootstrap/interpolation details. Always validate by repricing the full book under the same bucket bumps used to compute the hedge.
@@ -610,7 +609,7 @@ A well-functioning risk system should have a **small** residual most days; persi
 - Default scenario date: 2026-02-18 (between coupons)
 
 **Inputs**
-- Notional: $N=USD 10{,}000{,}000$
+- Notional: $N=USD\\,10{,}000{,}000$
 - Contract running spread: $S_0=150$ bp
 - Current market par spread (5Y): $S(t,T)=175$ bp
 - `RPV01`: $\text{RPV01}(t,T)=4.20$ years (from the calibrated survival curve)
@@ -636,26 +635,26 @@ A well-functioning risk system should have a **small** residual most days; persi
 4. **Compute VOD (immediate-default PV jump):**
    $$\text{VOD} = -\text{PV} + (1-R)N - N S_0 \Delta_0 \approx -105{,}000 + 6{,}000{,}000 - 25{,}000 \approx USD\\,5{,}870{,}000.$$
 5. **Size the proxy hedge (parallel CS01-neutral):**
-   - Index CS01 per USD 1mm notional is $USD 3{,}800/10 = USD 380/\text{bp}$.
-   - Required index notional to offset $USD 4{,}200/\text{bp}$: $N_{\text{idx}} \approx 4{,}200/380 \approx USD 11.05\text{mm}$.
+   - Index CS01 per USD 1mm notional is $USD\\,3{,}800/10 = USD\\,380/\text{bp}$.
+   - Required index notional to offset $USD\\,4{,}200/\text{bp}$: $N_{\text{idx}} \approx 4{,}200/380 \approx USD\\,11.05\text{mm}$.
    - Implement by **selling** index protection (negative CS01) to offset the single-name’s positive CS01.
 
 **Cashflows (table; long protection, illustrative)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-03-20 | $-N S_0 \Delta$ $\approx -USD 37{,}500$ | scheduled quarterly premium if survive ($\Delta \approx 0.25$) |
-| 2026-02-18 (default) | $+(1-R)N - N S_0 \Delta_0$ $\approx +USD 5{,}975{,}000$ | protection payment minus accrued premium; contract terminates |
+| 2026-03-20 | $-N\\,S_0\\,\Delta \approx -USD\\,37{,}500$ | scheduled quarterly premium if survive ($\Delta \approx 0.25$) |
+| 2026-02-18 (default) | $+(1-R)N - N\\,S_0\\,\Delta_0 \approx +USD\\,5{,}975{,}000$ | protection payment minus accrued premium; contract terminates |
 
 **P&L / Risk Interpretation**
-- The PV ($USD 105k$) is small compared to the default jump: the position is primarily **event risk**.
-- The CS01 ($USD 4.2k/\text{bp}$) means a 10 bp widening is only about $+USD 42k$ of MTM.
+- The PV ($\approx USD\\,105\text{k}$) is small compared to the default jump: the position is primarily **event risk**.
+- The CS01 ($\approx USD\\,4.2\text{k}/\text{bp}$) means a 10 bp widening is only about $+USD\\,42\text{k}$ of MTM.
 - A proxy hedge can neutralize systematic spread moves while leaving most name-default risk untouched.
 
-To see the proxy limitation, note that index default payoffs are diluted by constituent weights. A default produces an index payoff of about $w\cdot (1-R)\\,N_{\text{idx}}$ on the index leg. With $w=1\\%$, $R=40\\%$, and $N_{\text{idx}}=USD 11.05\text{mm}$, that is only:
+To see the proxy limitation, note that index default payoffs are diluted by constituent weights. A default produces an index payoff of about $w\cdot (1-R)\\,N_{\text{idx}}$ on the index leg. With $w=1\\%$, $R=40\\%$, and $N_{\text{idx}}=USD\\,11.05\text{mm}$, that is only:
 
 $$0.01 \cdot 0.60 \cdot 11.05\text{mm} \approx USD\\,66{,}300,$$
 
-far smaller than the $\approx USD 5.87\text{mm}$ name-level `VOD`.
+far smaller than the $\approx USD\\,5.87\text{mm}$ name-level `VOD`.
 
 **Sanity Checks**
 - **Units:** spread (1/yr) × `RPV01` (yr) × notional (currency) = currency PV.
@@ -910,8 +909,8 @@ The hedge was CS01-neutral to parallel moves but has **positive P&L on steepenin
 **Setup:** Own USD 10mm corporate bond at price 102, buy CDS protection.
 
 **JTD hedge sizing:**
-- Bond loss at default (R=40\%): $(102-40)/100 \times 10\text{mm} = USD 6.2\text{mm}$
-- CDS notional needed: $6.2\text{mm} / 0.6 = USD 10.33\text{mm}$
+- Bond loss at default ($R=40\\%$): $(102-40)/100 \times 10\text{mm} = USD\\,6.2\text{mm}$
+- CDS notional needed: $6.2\text{mm} / 0.6 = USD\\,10.33\text{mm}$
 
 **Scenario: Basis widens (bond spread +80bp, CDS +40bp)**
 
@@ -1061,8 +1060,8 @@ Residual within acceptable tolerance. Note that the parallel-plus-steepening spl
 ### Problems
 
 1. A 5y CDS has `RPV01` = 4.2 years. Notional USD 20mm. Compute the (approximate) CS01 for a protection buyer.
-2. Compute `VOD` for a protection buyer with $R = 35\\%$, $S_0 = 150$ bp, $\Delta_0 = 0.25$, $N = USD 5\text{mm}$, and $V(t)=0$.
-3. If `Rec01` = $-USD 12{,}000$ per +1\% recovery, what is PV change for recovery falling from 40\% to 30\% (holding everything else fixed)?
+2. Compute `VOD` for a protection buyer with $R = 35\\%$, $S_0 = 150$ bp, $\Delta_0 = 0.25$, $N = USD\\,5\text{mm}$, and $V(t)=0$.
+3. If `Rec01` = $-USD\\,12{,}000$ per $+1\\%$ recovery, what is PV change for recovery falling from $40\\%$ to $30\\%$ (holding everything else fixed)?
 4. Explain why a 5y CDS has exposure to 1y hazard rates even if you “only traded the 5y point”.
 5. A bond trades at 95 (dirty price per 100 of face). Recovery assumed 40\%. Size CDS notional $N_{\text{CDS}}$ to hedge the bond’s default loss (first-order, ignore coupons).
 6. Spreads widen 50 bp. Initial CS01 = USD 5,000/bp. Why might actual P&L be less than USD 250,000?
