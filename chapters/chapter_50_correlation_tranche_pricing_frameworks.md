@@ -828,8 +828,7 @@ The one‑factor Gaussian copula is only one possible dependence model; a common
    - Lower $\nu$ = fatter tails = more tail dependence
    - Small $\nu$ (e.g., 4) is often used as a “stressy” example; $\nu \to \infty$ recovers Gaussian
 
-2. **Tail dependence coefficient:**
-   $$\lambda = 2 t_{\nu+1}\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$$
+2. **Tail dependence coefficient:** $\lambda = 2\\, t_{\nu+1}\\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$.
 
 3. **When t-copula adds value:**
    - Senior tranche pricing (tail-sensitive)
@@ -1000,8 +999,7 @@ The purpose of mapping is to choose a “standard” strike $K_s^{\star}$ on a l
 1. **No-mapping (direct):** Use index base correlation at same strike
    - Simple but ignores portfolio differences
 
-2. **ATM-style mapping:** Match ratio of strike to expected loss
-   $$\frac{K_B}{\mathbb{E}[L_B]} = \frac{K_s}{\mathbb{E}[L_s]}$$
+2. **ATM-style mapping:** Match ratio of strike to expected loss: $K_B / \mathbb{E}[L_B] = K_s / \mathbb{E}[L_s]$.
 
 3. **TLP (tranche loss proportion) mapping:** Match ratio of tranche loss to portfolio loss
    - Useful when “moneyness” differs across portfolios
