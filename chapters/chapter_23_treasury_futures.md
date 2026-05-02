@@ -284,7 +284,7 @@ Using the repo/carry engine from Chapter 9, you can write the forward clean pric
 
 $$P_{\text{fwd}}^i(t) \approx P^i(t) - \text{Carry}^i(t \to T),$$
 
-where $\text{Carry}^i(t\to T)=\bigl[AI^i(T)-AI^i(0)\bigr]-(P^i(t)+AI^i(t))\cdot r\\,d/360$ is **coupon accrual income minus repo financing cost** between $t$ and $T$ (positive carry means owning the bond is profitable on a financed basis). Substituting into the net basis definition gives
+where, assuming no coupon is paid in $(t,T)$, $\text{Carry}^i(t\to T)=\bigl[AI^i(T)-AI^i(t)\bigr]-(P^i(t)+AI^i(t))\cdot r\\,d/360$ is **coupon accrual income minus repo financing cost** between $t$ and $T$ (positive carry means owning the bond is profitable on a financed basis; if a coupon falls in $(t,T)$, replace the accrual term with realized coupon income compounded forward to $T$). Substituting into the net basis definition gives
 
 $$\boxed{NB^i(t) \approx GB^i(t) - \text{Carry}^i(t \to T)}$$
 
@@ -328,7 +328,7 @@ $$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F + AI_i(T)}{P_i(0) + AI_i(0
 
 **Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small unfinanced gain over 30–90 days annualizes into a non-trivial rate. Rearranging the boxed formula, $r_{\text{imp}}\approx (\text{Invoice}(T)-\text{Dirty}(0))/\text{Dirty}(0)\times 360/d$, i.e. the unfinanced delivery gain divided by today’s dirty price, annualized. Toy: if $d=90$ days, today’s dirty price is 102, and the invoice at delivery is 102.10 (so the unfinanced gain is 0.10 per USD100), then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\\%$ (about 39 bp). Comparing this number to your marginal funding rate (e.g., GC repo) tells you whether cash-and-carry covers its financing.
 
-Note: this formula assumes no coupon is paid between $t=0$ and $T$. If a coupon is paid in the interim, add it (compounded forward at $r_{\text{imp}}$) to the numerator before solving.
+Note: this formula assumes no coupon is paid between $t=0$ and $T$. If a coupon $C$ is paid at time $d_C$ in the interim, add it to the numerator compounded forward to $T$ (in practice most desks compound at the repo rate or use simple interest, since the implied solve is small for short windows).
 
 ### 23.7.2 Interpretation
 
@@ -444,8 +444,8 @@ for the **stated bump object**. Here $1\text{bp}=10^{-4}$ in rate units, and DV0
 For a Treasury futures contract you must be explicit about *what is being bumped*. In this chapter, we use a CTD-based mapping:
 
 1. **Assume a CTD bond** at time $t$ (hold CTD identity fixed for the bump).
-2. **Map futures to CTD near delivery:** $F \approx P^{CTD}/cf^{CTD}$ (per USD100).
-3. **Bump object:** bump the CTD yield/curve down by 1bp, reprice $P^{CTD}$, and translate that price change to $F$ using the mapping above.
+2. **Map futures to CTD near delivery:** $F \approx P^{\text{CTD}}/cf^{\text{CTD}}$ (per USD100).
+3. **Bump object:** bump the CTD yield/curve down by 1bp, reprice $P^{\text{CTD}}$, and translate that price change to $F$ using the mapping above.
 
 This is a practical desk approximation. A more complete methodology would allow CTD to re-optimize under the bump (which can matter when net bases are tight).
 
@@ -486,7 +486,7 @@ The key point is that $DV01_{\text{fut}}$ depends on the assumed CTD (via $DV01^
 
 ### 23.10.4 CTD Switching Risk (Why “DV01-Neutral” Hedges Break)
 
-If CTD switches, the futures DV01 changes abruptly (because both $DV01_{CTD}$ and $cf_{CTD}$ change). A hedge that was DV01-neutral under yesterday’s CTD can become materially over- or under-hedged overnight.
+If CTD switches, the futures DV01 changes abruptly (because both $DV01^{\text{CTD}}$ and $cf^{\text{CTD}}$ change). A hedge that was DV01-neutral under yesterday’s CTD can become materially over- or under-hedged overnight.
 
 This is not a subtle effect: if CTD switches between bonds with meaningfully different duration or conversion factor, the hedge ratio can jump by double-digit percentages. Monitoring near-CTDs and recalculating hedge ratios under alternative CTDs is part of operating Treasury futures hedges on a desk.
 
@@ -543,8 +543,8 @@ This relationship holds when CTD is the same across both contracts. If CTD diffe
 
 Hedgers with positions extending beyond the front delivery month must **roll** their futures hedge. This involves:
 
-1. **Close the front-month position** (buy back if short, sell if long)
-2. **Open the deferred-month position** (sell if hedging, buy if originally short)
+1. **Close the front-month position:** buy back if you were short, sell if you were long.
+2. **Re-establish the same direction in the deferred contract:** sell deferred if you were short the front, buy deferred if you were long the front.
 
 The net cost of rolling equals the roll spread at execution. If roll = 0.50 (front above deferred) and you’re rolling a short hedge forward:
 - You buy back the front contract at 108.00 (closing the original short).
@@ -749,8 +749,8 @@ Over the next few months:
 
 **Sanity Checks**
 - Units: all prices/basis are per USD100; per-contract scaling is $N/100=1000$.
-- Sign: rates down 1bp should increase $P^{CTD}$ and $F$, so DV01 is positive for long futures.
-- Limit: if you plug $r=r_{imp}$ into the financing step, $\Pi$ should be ~0.
+- Sign: rates down 1bp should increase $P^{\text{CTD}}$ and $F$, so DV01 is positive for long futures.
+- Limit: if you plug $r=r_{\text{imp}}$ into the financing step, $\Pi$ should be $\approx 0$.
 
 ### Conventions for Examples
 
@@ -1022,8 +1022,8 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 | 15 | Why can delivery options depress the futures price? | The long effectively pays for options owned by the short, so the futures can trade below a naive single-bond forward |
 | 16 | What is the DV01 convention in this book? | $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$, positive for long rates risk |
 | 17 | What is being bumped for futures DV01 in this chapter? | CTD yield (or CTD pricing curve) down 1bp, holding CTD identity fixed |
-| 18 | Give the CTD-mapped futures DV01 approximation | $DV01_{fut,USD100}\approx DV01_{CTD,USD100}/cf_{CTD}$ |
-| 19 | Give the DV01 hedge ratio | $n_{\text{contracts}}=DV01_{exposure}/DV01_{fut}$ |
+| 18 | Give the CTD-mapped futures DV01 approximation | $DV01_{\text{fut, per USD100}}\approx DV01_{\text{CTD, per USD100}}/cf^{\text{CTD}}$ |
+| 19 | Give the DV01 hedge ratio | $n_{\text{contracts}}=DV01_{\text{exposure}}/DV01_{\text{fut}}$ |
 | 20 | What is CTD switching risk? | Risk that the CTD changes, causing DV01 and hedge ratios to jump |
 | 21 | What does “special” repo mean? | A bond finances below GC because it is scarce/in demand to borrow |
 | 22 | How can specialness change CTD? | Lower financing cost improves carry, lowers net basis, and can make a bond cheapest after financing |
@@ -1051,7 +1051,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 1. Invoice $=0.8750\times108.50+2.10=97.04$ per USD100. Per contract: $97.04\times1000=USD97{,}040$.
 2. Compute $P-cfF$: 0.98, 1.12, 1.10 → CTD is Bond 1 (minimum).
 3. $GB=102.50-0.95\times108.00=-0.10$ per USD100.
-6. $r_{imp}=(103.85/103.20-1)\times 360/60\approx 3.78\\%$.
+6. $r_{\text{imp}}=(103.85/103.20-1)\times 360/60\approx 3.78\\%$.
 7. Futures DV01 per contract $=1000\times(0.072/0.85)=USD84.71/\text{bp}$. Hedge $\approx 30{,}000/84.71\approx 354$ contracts.
 
 ---
