@@ -4,15 +4,6 @@
 
 ## Introduction
 
-## Learning Objectives
-- Translate a CDS relative value (RV) idea into a precise object being traded (curve, basis, capital structure, equity-credit, index vs single-name).
-- Map quotes $\rightarrow$ PV $\rightarrow$ a risk vector: CS01 (total + bucketed), JTD/VOD, recovery sensitivity, and theta (plus funding/liquidity exposures when relevant).
-- Construct hedge ratios with explicit bump objects, units, and sign conventions—and interpret what residual risks remain.
-- Run a minimal verification checklist (scenario tests + unit/sign checks) before trading or sizing.
-
-Prerequisites: [Chapter 38](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 42](chapters/chapter_42_bootstrapping_cds_survival_curve.md), [Chapter 43](chapters/chapter_43_cds_risks_hedging.md), [Chapter 14](chapters/chapter_14_key_rate_dv01_bucket_exposures.md)  
-Follow-on: [Chapter 45](chapters/chapter_45_cds_indices_structure_quoting_lifecycle.md), [Chapter 46](chapters/chapter_46_intrinsic_index_spread_and_index_basis.md), [Chapter 47](chapters/chapter_47_hedging_relative_value_cds_indices.md)
-
 A corporate's 3-year CDS trades at 80bp, its 5-year at 120bp. Is that steep or flat? A hedge fund manager sees the cash bond trading 30bp wider than the CDS. Is that a buying opportunity or a warning sign? A credit trader notices that senior and subordinated CDS spreads have compressed. Should she put on a capital structure trade? The equity desk sees implied volatility on puts at 60% while the credit desk sees 5Y CDS at 150bp—is that relationship in line, or is one market mispricing the credit risk?
 
 These questions sit at the heart of CDS relative value trading. Unlike directional credit positions that simply bet on spreads widening or tightening, relative value (RV) trades attempt to exploit mispricings between related instruments while hedging out broader market exposure. The appeal is obvious: if you can identify a temporary dislocation between the 3-year and 5-year CDS curve, why take outright default risk when you can trade the relationship instead?
@@ -22,6 +13,15 @@ The danger lies in what appears market-neutral but is not. A CDS position carrie
 This chapter takes a risk-first approach to CDS relative value. Building on CDS contract mechanics (Chapter 38), survival-curve bootstrapping (Chapter 42), and CDS risk measures (Chapter 43), we develop a systematic workflow for translating any RV idea into explicit exposures, designing hedges that target specific risks, identifying failure modes before they materialize, and constructing verification tests that expose hidden vulnerabilities. The same workflow applies to curve trades (steepeners/flatteners), cash-CDS basis trades, capital structure trades (senior vs subordinated), equity-credit RV (structural-model language), and index vs single-name RV (with details developed further in Chapters 45–47).
 
 We begin with the core risk concepts that underpin all CDS positions: CS01, jump-to-default, recovery sensitivity, and theta. We then apply these concepts systematically to the major RV trade types, working through the mechanics of constructing and hedging each position. We conclude with equity-credit relative value—a domain that bridges the credit derivatives and equity derivatives desks through the Merton framework—and historical case studies that illuminate how seemingly "hedged" positions can fail catastrophically.
+
+## Learning Objectives
+- Translate a CDS relative value (RV) idea into a precise object being traded (curve, basis, capital structure, equity-credit, index vs single-name).
+- Map quotes $\rightarrow$ PV $\rightarrow$ a risk vector: CS01 (total + bucketed), JTD/VOD, recovery sensitivity, and theta (plus funding/liquidity exposures when relevant).
+- Construct hedge ratios with explicit bump objects, units, and sign conventions—and interpret what residual risks remain.
+- Run a minimal verification checklist (scenario tests + unit/sign checks) before trading or sizing.
+
+Prerequisites: [Chapter 38](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 42](chapters/chapter_42_bootstrapping_cds_survival_curve.md), [Chapter 43](chapters/chapter_43_cds_risks_hedging.md), [Chapter 14](chapters/chapter_14_key_rate_dv01_bucket_exposures.md)  
+Follow-on: [Chapter 45](chapters/chapter_45_cds_indices_structure_quoting_lifecycle.md), [Chapter 46](chapters/chapter_46_intrinsic_index_spread_and_index_basis.md), [Chapter 47](chapters/chapter_47_hedging_relative_value_cds_indices.md)
 
 ---
 
@@ -177,12 +177,10 @@ A non-zero basis is not automatically a “mispricing.” It can reflect (i) con
 Think of the bond as a funded position with coupon cashflows and the CDS as a standardized protection contract. Several contractual differences can move $S_{\text{CDS}}-S_{\text{Bond}}$ away from zero:
 
 1. **Funding and balance-sheet usage:** buying a bond typically requires financing (repo, haircuts). Buying CDS protection does not require paying principal up front, but it can create margin/collateral needs and counterparty exposures.
-
 2. **Delivery / settlement option:** in physical settlement the protection buyer may be able to deliver a cheapest-to-deliver (CTD) obligation; in auction settlement the realized payout depends on the auction final price. Either way, the *set of deliverables* matters.
-
-3. **Credit event definition vs “bond default”:** CDS credit events can be broader or different than the bond’s payment default, depending on the contract and jurisdiction (e.g., restructuring language).
-
-4. **Loss-on-default scaling:** a CDS protection payment is $N_{\text{CDS}}(1-R)$. A bond purchased at dirty price $P_{\text{dirty}}$ (quoted per 100 face) has a default loss of $\bigl(P_{\text{dirty}}/100 - R\bigr)\,N_{\text{bond}}$ — the difference between the price paid (as a fraction of face) and the recovery fraction, scaled by face. The two payoffs scale by different factors of $(1-R)$, so the same nominal hedge can leave residual jump risk.
+3. **Credit event definition vs "bond default":** CDS credit events can be broader or different than the bond's payment default, depending on the contract and jurisdiction (e.g., restructuring language).
+4. **Loss-on-default scaling:** a CDS protection payment is $N_{\text{CDS}}(1-R)$. A bond purchased at dirty price $P_{\text{dirty}}$ (quoted per 100 face) has a default loss of $\bigl(P_{\text{dirty}}/100 - R\bigr)\,N_{\text{bond}}$ — the difference between the price paid (as a fraction of face) and the recovery fraction, scaled by face. The two payoffs scale by different factors of $(1-R)$, so the same nominal hedge can leave residual jump risk (see the sizing identity below).
+5. **Accrued cashflows around default:** standard CDS settlement includes premium accrued to the default date; bond coupon accrual treatment differs and can create default-scenario P&L mismatches.
 
 **Check (default-hedge sizing vs. CS01 sizing):** if you want a CDS leg to hedge a bond's *default* loss in a stylized cash-settlement picture, match
 
@@ -193,8 +191,6 @@ so
 $$N_{\text{CDS}} \\;\approx\\; \frac{P_{\text{dirty}}/100-R}{1-R}\\,N_{\text{bond}}.$$
 
 For example, if $P_{\text{dirty}}=85$ and $R=40\\%$, then $(0.85-0.40)/(1-0.40)=0.45/0.60=0.75$, so $N_{\text{CDS}}\approx 0.75\\,N_{\text{bond}}$. Sizing instead to make a package "CS01-neutral" can produce a very different notional and leave a large jump at default.
-
-5. **Accrued cashflows around default:** standard CDS settlement includes premium accrued to the default date; bond coupon accrual treatment differs and can create default-scenario P&L mismatches.
 
 ### 44.2.2 Market Factors Driving the Basis
 
@@ -429,11 +425,11 @@ Equity-credit relative value compares two markets’ implied views of default ri
 
 ### 44.5.1 The Merton Model: Equity as a Call Option
 
-**Anchor:** in the basic Merton model, equity is the residual claim on firm assets. If the firm has debt face value $D$ due at time $T$, then equity at $T$ is:
+**Anchor:** in the basic Merton model, the firm has a single zero-coupon liability of face value $D$ maturing at $T$, asset value $V_t$ follows geometric Brownian motion under the risk-neutral measure with constant volatility $\sigma_V$, and default occurs only at $T$ if $V_T \lt D$. Equity is the residual claim on firm assets:
 
 $$E_T = \max(V_T - D, 0)$$
 
-Under the model assumptions, equity today is priced like a Black–Scholes call option on firm value:
+Under the model assumptions (single bullet debt, no intermediate default, no dividends), equity today is priced like a Black–Scholes call option on firm value:
 
 $$\boxed{E_0 = V_0 N(d_1) - D e^{-rT} N(d_2)}$$
 
@@ -480,7 +476,7 @@ An equity-credit RV workflow:
 1. **Equity side:** infer $(V_0,\sigma_V)$ — and from them DD — from observed $(E_0,\sigma_E)$ together with debt structure inputs $(D, T, r)$ by solving the two-equation Merton system numerically.
 2. **Credit side:** bootstrap the survival curve from quoted CDS par spreads (Chapter 42) to obtain an implied hazard term structure $\lambda(t)$ at the same horizon as the equity-side DD.
 3. **Compare:** decide whether "equity-implied credit risk" (mapped from DD via a chosen calibration) looks rich/cheap versus CDS-implied hazards.
-4. **Express:** trade a hedged package (e.g., long equity protection + short CDS protection, or the reverse), and explicitly track residual risks.
+4. **Express:** trade a hedged package (e.g., long equity puts plus short CDS protection, or sell equity puts plus buy CDS protection — depending on which leg looks rich), and explicitly track residual risks (delta, vega, jump, funding).
 
 **What breaks (risk-first):**
 - **Jump risk and path dependence:** structural models are smooth; real credit has jumps, discrete events, and legal uncertainty.
