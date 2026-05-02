@@ -1,5 +1,22 @@
 # Chapter 40: The CDS Auction Process — What It Does and Why It Exists
 
+## Introduction
+
+A CDS credit event forces the market to answer a practical question: *at what price do we settle all outstanding protection on the name?* Physical settlement answers by delivering bonds; cash settlement answers by paying a cash amount linked to a market price of deliverables.
+
+When CDS notional is large relative to deliverable debt, forcing everyone into physical settlement can create a scramble for a scarce set of deliverable bonds (a short squeeze). Settlement demand then distorts bond prices and the operational burden of sourcing deliverables becomes the limiting factor. The ISDA auction mechanism was designed to produce a single **Auction Final Price** for the deliverable obligations, which then maps mechanically into a cash settlement amount for every contract on the same reference entity.
+
+A widely cited stress test is the Lehman Brothers bankruptcy (September 2008): estimates put CDS notional far larger than the amount of deliverable Lehman obligations, and the auction (held in October 2008) produced an Auction Final Price of 8.625 (per 100), implying a cash settlement of 91.375% of notional for long protection.
+
+This chapter focuses on three links in the chain:
+
+- **Quote:** the auction output $FP_{100}$ (Auction Final Price, points per 100 outstanding principal).
+- **Cashflows:** protection payout and the (often forgotten) accrued premium owed up to the event date.
+- **Risk:** sensitivity of the payout to the auction final price and the basis risk created by deliverable dispersion.
+
+Prerequisites: [Chapter 35 — Default, Recovery, Credit Events](chapters/chapter_35_default_recovery_credit_events.md), [Chapter 38 — CDS Contract Mechanics](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 39 — CDS Credit Events and Settlement](chapters/chapter_39_cds_credit_events_settlement.md)  
+Follow-on: [Chapter 41 — CDS Indices Mechanics, Coupons, Rolls](chapters/chapter_41_cds_indices_mechanics_coupons_rolls.md), [Chapter 43 — CDS Risks and Hedging](chapters/chapter_43_cds_risks_hedging.md), [Chapter 44 — CDS Relative Value Trading Frameworks](chapters/chapter_44_cds_relative_value_trading_frameworks.md)
+
 ## Learning Objectives
 
 - Explain why auction settlement exists (notional > deliverables and short squeezes).
@@ -7,23 +24,6 @@
 - Translate an Auction Final Price quote into a cash settlement amount, including accrued premium on default.
 - Work a full cash-settlement timeline with unit/sign checks.
 - State a simple risk measure: sensitivity of protection payout to a +1-point change in Auction Final Price.
-
-**Prerequisites:** [Chapter 38](chapters/chapter_38_cds_contract_mechanics.md), [Chapter 39](chapters/chapter_39_cds_credit_events_settlement.md), [Chapter 35](chapters/chapter_35_default_recovery_credit_events.md)  
-**Follow-on:** [Chapter 41](chapters/chapter_41_cds_indices_mechanics_coupons_rolls.md), [Chapter 43](chapters/chapter_43_cds_risks_hedging.md), [Chapter 44](chapters/chapter_44_cds_relative_value_trading_frameworks.md)
-
-## Introduction
-
-A CDS credit event forces the market to answer a practical question: *at what price do we settle all outstanding protection on the name?* Physical settlement answers by delivering bonds; cash settlement answers by paying a cash amount linked to a market price of deliverables.
-
-When CDS notional is large relative to deliverable debt, forcing everyone into physical settlement can create a scramble for a scarce set of deliverable bonds (a short squeeze). Settlement demand then distorts bond prices and the operational burden of sourcing deliverables becomes the limiting factor. The ISDA auction mechanism was designed to produce a single **Auction Final Price** for the deliverable obligations, which then maps mechanically into a cash settlement amount for every contract on the same reference entity.
-
-A widely cited stress test is the Lehman Brothers bankruptcy (September 2008): estimates put CDS notional far larger than the amount of deliverable Lehman obligations, and the auction produced an Auction Final Price of 8.625 (per 100), implying a cash settlement of 91.375% of notional for long protection.
-
-This chapter focuses on three links in the chain:
-
-- **Quote:** the auction output $FP_{100}$ (Auction Final Price, points per 100 outstanding principal).
-- **Cashflows:** protection payout and the (often forgotten) accrued premium owed up to the event date.
-- **Risk:** sensitivity of the payout to the auction final price and the basis risk created by deliverable dispersion.
 
 ## 40.1 The Problem: When CDS Notional Exceeds Debt Outstanding
 
@@ -33,7 +33,7 @@ Chapter 39 established that physical settlement requires the protection buyer to
 
 This works well when the amount of CDS protection outstanding is modest relative to the available debt. But the credit derivatives market grew rapidly through the 2000s, and a structural problem emerged: CDS notional outstanding could far exceed the supply of deliverable obligations.
 
-Lehman is a stark example: widely cited estimates put outstanding CDS notional around $400 billion versus roughly $155 billion of deliverable Lehman debt. If everyone tried to source deliverables, the combined buying pressure would create a short squeeze—pushing bond prices up and reducing the effective protection payout under physical settlement.
+Lehman is a stark example: widely cited estimates put gross CDS notional outstanding around USD 400 billion versus roughly USD 155 billion of deliverable Lehman debt. (Net CDS notional after multilateral netting was much smaller — around USD 5–6 billion — but the gross figure is what drove operational squeeze concerns, since each contract requires its own delivery under physical settlement.) If a meaningful share of contracts tried to source deliverables, the combined buying pressure would create a short squeeze—pushing bond prices up and reducing the effective protection payout under physical settlement.
 
 Mechanically, if protection buyers must buy bonds to deliver, that forced demand can lift post-event bond prices above “fundamental” levels. Because the physical-settlement gain is $N - \text{(cost to acquire deliverables)}$, higher deliverable prices translate into smaller protection gains.
 
@@ -51,11 +51,11 @@ The economic logic is compelling:
 
 > **Analogy: The Market Clearing**
 >
-> Imagine 100 people promised to deliver a specific rare painting (the bond). There are only 5 paintings in existence.
+> Imagine 100 protection buyers each need a specific rare painting (the bond) to deliver to their counterparty in exchange for par. Only 5 paintings exist.
 >
-> *   **Physical Settlement Madness**: 100 people fight over 5 paintings. The price skyrockets to USD 100 million. The protection sellers lose everything.
-> *   **The Auction Solution**: Everyone agrees to meet in a room. We ask the 5 owners: "What is a fair price to sell?" We ask the 100 buyers: "What is a fair price to settle?"
-> *   **Result**: We agree on a single price (e.g., USD 5 million). The 95 people who can't find a painting just pay the cash difference. Order is restored.
+> *   **Physical Settlement Madness**: 100 buyers compete for 5 paintings. The price is bid up far above any “fair” level, slashing the effective gain from delivering at par. Some contracts simply cannot be settled on time.
+> *   **The Auction Solution**: Dealers submit two-way markets and physical-settlement requests are netted into a single open interest. Stage 2 limit orders clear that open interest at a single price.
+> *   **Result**: One auction final price applies to **all 100 contracts**. Every contract cash-settles against that price — no one has to source a painting. Order is restored.
 
 ---
 
@@ -83,7 +83,7 @@ where $R = FP_{100}/100$ is the recovery fraction.
 
 **Lehman example:** The auction determined $FP_{100} = 8.625$, implying $R = 0.08625$. For a protection buyer with USD 100 million notional:
 
-$$\text{Payout} = USD\ 100\text{mm} \times (1 - 0.08625) = USD\ 91.375\text{mm}$$
+$$\text{Payout} = \mathrm{USD}\\,100\text{mm} \times (1 - 0.08625) = \mathrm{USD}\\,91.375\text{mm}$$
 
 The key point is not the historical number itself, but the mapping: **auction price $\rightarrow$ settlement cash amount**. Any accrued premium due up to the event date is handled separately (Section 40.5.4).
 
@@ -141,7 +141,7 @@ If the OI is filled, the **Auction Final Price** is set by the marginal (last) m
 
 **Expand (intuition):** Think of open interest as a single, auction-sized “market order” that must be cleared. Stage 2 supplies the depth of the order book on the opposite side. The cap amount keeps the final price from being determined by far-away prints relative to the Stage-1 midpoint.
 
-**Check (toy clearing example):** Suppose Stage 1 yields $IMM=35.00$ and $OI=+150$ (a bid to purchase deliverables). In Stage 2, participants submit offers:
+**Check (toy clearing example):** Suppose Stage 1 yields $IMM=35.00$ and $OI=+150$ (units: arbitrary; e.g., USD millions of bond face — units cancel). The positive sign means a net bid to purchase deliverables. In Stage 2, participants submit offers:
 
 | Offer Price | Offer Volume |
 |---|---:|
@@ -152,7 +152,7 @@ If the OI is filled, the **Auction Final Price** is set by the marginal (last) m
 Administrators match the OI starting from the lowest offers:
 - 33.00: fill 50 (remaining OI = 100)
 - 34.00: fill 70 (remaining OI = 30)
-- 36.00: fill 30 (OI filled; remaining offer volume is unfilled)
+- 36.00: fill 30 of the 100 available (OI filled; remaining 70 of the 36.00 offer is unmatched)
 
 The marginal matched offer is 36.00, so (ignoring any cap adjustment in the settlement terms) **Auction Final Price = 36.00**.
 
@@ -166,11 +166,12 @@ The marginal matched offer is 36.00, so (ignoring any cap adjustment in the sett
 
 The Lehman bankruptcy is a canonical illustration of why auctions matter. Widely cited estimates highlight a severe mismatch between the amount of CDS protection outstanding and the supply of deliverable Lehman obligations:
 
-- **CDS outstanding:** approximately USD 400 billion
-- **Debt outstanding:** approximately USD 155 billion
-- **Ratio:** CDS notional was roughly 2.6× the available debt
+- **Gross CDS notional outstanding:** approximately USD 400 billion
+- **Deliverable Lehman debt outstanding:** approximately USD 155 billion
+- **Ratio:** gross CDS notional was roughly 2.6× the available debt
+- **Net CDS notional** (after multilateral netting): much smaller, around USD 5–6 billion
 
-Physical settlement for all contracts was mathematically impossible. Even if every dollar of Lehman debt were delivered multiple times (which makes no economic sense), there wouldn't be enough to settle all contracts.
+Universal physical settlement was operationally infeasible: each contract requires a distinct bond delivery to a specific counterparty at the same time, so a single bond cannot be reused across multiple settlements. With gross CDS notional well above the supply of deliverable obligations, sourcing the required bonds simultaneously would have caused a severe squeeze even if total physical settlement demand was a fraction of gross notional.
 
 The ISDA auction determined an Auction Final Price of 8.625 (per 100). This implied:
 - Recovery rate: 8.625%
@@ -188,7 +189,7 @@ Auction settlement grew out of a practical constraint: when CDS notional can exc
 
 On April 8, 2009, the market moved through a widely cited CDS standardization (“Big Bang”) with three main parts: auction hardwiring, standardizing trading conventions, and central clearing.
 
-### 40.4.4 Earlier Precedents: The Delivery Option Problem
+### 40.4.4 The Delivery Option in Physical Settlement
 
 Even when physical settlement is feasible, it embeds a **delivery option**: the protection buyer can choose which eligible deliverable obligation to deliver. If different deliverables trade at different post-event prices (even within the same seniority), the choice matters. Auction settlement compresses the deliverable set into a single settlement price $FP_{100}$, but a hedge can still exhibit **basis risk** if the bond you care about is not close to the implied “CTD” value reflected in the auction price.
 
@@ -196,19 +197,19 @@ Even when physical settlement is feasible, it embeds a **delivery option**: the 
 
 When a constituent of a CDS index (CDX, iTraxx) experiences a credit event, the auction process applies to that name specifically. The auction-determined final price then flows through to index positions.
 
-At a high level, a single-name credit event affects only the defaulted constituent’s slice of the index notional. If the index has $M$ constituents and total notional $N$, the affected notional is $N/M$.
+The standard CDS indices (CDX and iTraxx) are **equal-weighted**: each of the $M$ constituents carries weight $1/M$. So a single-name credit event affects only the defaulted constituent’s slice of the index notional. If the index has $M$ equal-weighted constituents and total notional $N$, the affected notional is $N/M$.
 
-Under cash settlement via auction, the index holder's economics are:
+Under cash settlement via auction, the index holder's economics on the defaulted slice are:
 
 $$\text{Index Payout} = \frac{N}{M} \times \left(1 - \frac{FP_{100}}{100}\right)$$
 
-where $N$ is the total index notional, $M$ is the number of index constituents, and $FP_{100}$ is the auction final price for the defaulted name.
+where $N$ is the total index notional, $M$ is the number of (equal-weighted) index constituents, and $FP_{100}$ is the auction final price for the defaulted name.
 
 > **Desk Reality:** Index default settlement is usually processed as a cash settlement on the affected slice plus a notional reduction.
 > **Common break:** forgetting the $1/M$ scaling (or using the wrong $M$ for the specific index series/roll).
 > **What to check:** compute affected notional $N/M$, apply the same auction payout formula, and reconcile the post-settlement index notional.
 
-**Check (toy number):** Consider a 125-name index position with $N=USD 125\text{mm}$. One constituent defaults with $FP_{100}=40$. Affected notional is $125\text{mm}/125=USD 1\text{mm}$ and payout is $USD 1\text{mm}\times(1-0.40)=USD 0.6\text{mm}$. After settlement, the index notional reduces by $USD 1\text{mm}$. See Chapter 41 for full index mechanics.
+**Check (toy number):** Consider a 125-name index position with $N=\mathrm{USD}\\,125\text{mm}$. One constituent defaults with $FP_{100}=40$. Affected notional is $125\text{mm}/125=\mathrm{USD}\\,1\text{mm}$ and payout is $\mathrm{USD}\\,1\text{mm}\times(1-0.40)=\mathrm{USD}\\,0.6\text{mm}$. After settlement, the index notional reduces by $\mathrm{USD}\\,1\text{mm}$ (from $125\text{mm}$ to $124\text{mm}$). See Chapter 41 for full index mechanics.
 
 ---
 
@@ -234,7 +235,7 @@ $$\boxed{\text{Payout to Protection Buyer} = N \times \left(1 - \frac{FP_{100}}{
 
 This is the same identity as $N(1-R)$ with $R := FP_{100}/100$.
 
-**Check (quick number):** If $N=USD 100\text{mm}$ and $FP_{100}=35$, then payout $=100\text{mm}\times(1-0.35)=USD 65\text{mm}$.
+**Check (quick number):** If $N=\mathrm{USD}\\,100\text{mm}$ and $FP_{100}=35$, then payout $=100\text{mm}\times(1-0.35)=\mathrm{USD}\\,65\text{mm}$.
 
 ### 40.5.3 Unit and Boundary Checks
 
@@ -248,7 +249,7 @@ This is the same identity as $N(1-R)$ with $R := FP_{100}/100$.
 - If $FP_{100} = 0$ (total loss): Payout = $N$
 - For $0 \le FP_{100} \le 100$: $0 \le \text{Payout} \le N$ ✓
 
-**Sensitivity:** Each 1-point change in $FP_{100}$ changes payout by $0.01 \times N$.
+**Sensitivity:** A 1-point change in $FP_{100}$ moves the long-protection payout by $0.01 \times N$ in the *opposite* direction (long protection benefits when $FP_{100}$ falls). Section 40.8.1 gives the explicit signed bump definition.
 
 ### 40.5.4 Accrued Premium at Default
 
@@ -296,7 +297,7 @@ This is paid by the protection buyer to the seller and is separate from the prot
 - Cash settlement date: 2026-02-21 (illustration; actual schedule is auction-specific)
 
 **Inputs**
-- Notional: $N=USD 10{,}000{,}000$
+- Notional: $N=\mathrm{USD}\\,10{,}000{,}000$
 - Running spread: $s=500\text{ bp}=0.05$ (annualized)
 - Premium day count (toy assumption): ACT/360 simple accrual
 - Days accrued since last premium date: 52 days $\Rightarrow \alpha=52/360$
@@ -310,9 +311,10 @@ This is paid by the protection buyer to the seller and is separate from the prot
 
 **Step-by-step**
 1. Recovery fraction: $R=FP_{100}/100=0.35$.
-2. Protection payout: $10{,}000{,}000\times(1-0.35)=USD 6{,}500{,}000$.
-3. Accrued premium: $10{,}000{,}000\times0.05\times(52/360)=USD 72{,}222.22$.
-4. Net settlement to protection buyer: $USD 6{,}500{,}000-USD 72{,}222.22=USD 6{,}427{,}777.78$.
+2. Protection payout: $10{,}000{,}000\times(1-0.35)=\mathrm{USD}\\,6{,}500{,}000$.
+3. Accrued premium: $10{,}000{,}000\times0.05\times(52/360)=\mathrm{USD}\\,72{,}222.22$.
+4. Net settlement to protection buyer: $\mathrm{USD}\\,6{,}500{,}000-\mathrm{USD}\\,72{,}222.22=\mathrm{USD}\\,6{,}427{,}777.78$.
+5. Final-price sensitivity (long protection): $\dfrac{\Delta\text{Payout}}{\Delta FP_{100}}=-\dfrac{N}{100}=-\mathrm{USD}\\,100{,}000$ per +1 point in $FP_{100}$. So a 5-point upward move in $FP_{100}$ would reduce the payout by about $\mathrm{USD}\\,500{,}000$.
 
 **Cashflows (positive = received by protection buyer)**
 | Date | Cashflow | Explanation |
@@ -329,7 +331,7 @@ This is paid by the protection buyer to the seller and is separate from the prot
 - Unit check: payout and accrued premium are in USD; $FP_{100}$ is “points per 100”; $\alpha$ is a year fraction.
 - Sign check (long protection): $\Delta FP_{100}\gt 0 \Rightarrow \Delta \text{Payout}\lt 0$.
 - Limit check: $FP_{100}=100 \Rightarrow$ payout $=0$; $FP_{100}=0 \Rightarrow$ payout $=N$.
-- Accrued premium should be between 0 and the full‑period premium $N\\,s\\,\Delta(\text{last premium date},\text{next premium date})$. In this toy timeline the full coupon is about $USD 10\text{mm}\times 5\%\times 0.25 \approx USD 125\text{k}$, so $USD 72\text{k}$ is plausible.
+- Accrued premium should be between 0 and the full‑period premium $N\\,s\\,\Delta(\text{last premium date},\text{next premium date})$. In this toy timeline the full coupon is about $\mathrm{USD}\\,10\text{mm}\times 5\\%\times 0.25 \approx \mathrm{USD}\\,125\text{k}$, so $\mathrm{USD}\\,72\text{k}$ is plausible.
 
 **Debug Checklist (When Your Result Looks Wrong)**
 - Did you use points (35) vs fractions (0.35) consistently?
@@ -472,10 +474,10 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 | 2 | What does the CDS auction determine? | A single Auction Final Price $FP_{100}$ used for cash settlement |
 | 3 | How does Hull describe what the auction targets? | "Mid-market value of the cheapest deliverable bond" |
 | 4 | What is the cash settlement payout formula? | $N(1-R) = N(1 - FP_{100}/100)$ |
-| 5 | How much Lehman CDS vs debt was outstanding in 2008? | ~$400B CDS vs ~$155B debt |
+| 5 | How much Lehman CDS vs debt was outstanding in 2008? | ~USD 400 billion gross CDS notional vs ~USD 155 billion deliverable debt |
 | 6 | What was Lehman's auction final price? | 8.625 per 100 (about 8.6 cents on the dollar) |
 | 7 | What payout rate did Lehman protection buyers receive? | 91.375% of principal |
-| 8 | Why was physical settlement impossible for Lehman? | CDS notional (2.6×) exceeded available deliverable debt |
+| 8 | Why was universal physical settlement infeasible for Lehman? | Gross CDS notional (~2.6×) exceeded available deliverable debt, and each contract requires a distinct simultaneous delivery |
 | 9 | What is a "short squeeze" in this context? | Buyers competing for scarce deliverables push prices up |
 | 10 | How do auctions prevent short squeezes? | Eliminate need to source physical deliverables |
 | 11 | When are physical and cash settlement economically equivalent? | When auction final price equals CTD market price |
@@ -490,12 +492,12 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 | 20 | Where do you find the auction schedule and parameters (e.g., cap amount)? | In the event-specific auction settlement terms published for the auction |
 | 21 | What cashflows stop after a credit event? | Regular premium payments cease |
 | 22 | Does the same auction price apply to all contracts on a reference entity? | Yes — standardization across all contracts |
-| 23 | If $N = USD 100\text{mm}$ and $FP_{100} = 35$, what is the payout? | $100\text{mm} \times 0.65 = USD 65\text{mm}$ |
+| 23 | If $N = \mathrm{USD}\\,100\text{mm}$ and $FP_{100} = 35$, what is the payout? | $100\text{mm} \times 0.65 = \mathrm{USD}\\,65\text{mm}$ |
 | 24 | What documents specify auction operational details? | ISDA Auction Settlement protocols and Determinations Committee rules |
 | 25 | Why might deliverables trade at different prices after default? | Accrued interest differences, differing restructuring expectations |
 | 26 | What is "deliverable dispersion risk"? | Risk that specific hedged bond differs in price from CTD/auction value |
 | 27 | What is the payout sensitivity per 1-point change in $FP_{100}$? | $0.01 \times N$ |
-| 28 | For a $USD 50\text{mm}$ position, what payout change from $FP$ moving 35→40? | Decrease of $USD 2.5\text{mm}$ |
+| 28 | For a $\mathrm{USD}\\,50\text{mm}$ position, what payout change from $FP_{100}$ moving 35→40? | Decrease of $\mathrm{USD}\\,2.5\text{mm}$ (long protection) |
 | 29 | What is the Cap Amount used for in Stage 2? | It caps extreme limit-order prices around the Stage-1 midpoint (IMM), per the auction terms |
 | 30 | What should you verify on a real trade before computing settlement? | Settlement type, auction price, notional, accrual conventions |
 | 31 | What is "open interest" in a CDS auction? | Net physical settlement requests (buy minus sell) |
@@ -510,21 +512,21 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 **Solution Sketches (Selected) are below.**
 
-1. A CDS has $N = USD 12\text{mm}$ and $FP_{100} = 25$. Compute payout and implied recovery.
+1. A CDS has $N = \mathrm{USD}\\,12\text{mm}$ and $FP_{100} = 25$. Compute payout and implied recovery.
 
-2. If $N = USD 40\text{mm}$, compare payouts for $FP_{100} = 15$ vs $FP_{100} = 55$. What is the difference?
+2. If $N = \mathrm{USD}\\,40\text{mm}$, compare payouts for $FP_{100} = 15$ vs $FP_{100} = 55$. What is the difference?
 
-3. A CDS has spread $s = 500$ bps and notional $N = USD 30\text{mm}$. A credit event occurs 1 month into the quarter. Using $\alpha = 1/12$, compute accrued premium.
+3. A CDS has spread $s = 500$ bps and notional $N = \mathrm{USD}\\,30\text{mm}$. A credit event occurs 1 month into the quarter. Using $\alpha = 1/12$, compute accrued premium.
 
-4. A protection buyer has $N = USD 50\text{mm}$. If $FP_{100}$ is 10 points lower than expected, what is the payout surprise?
+4. A protection buyer has $N = \mathrm{USD}\\,50\text{mm}$. If $FP_{100}$ is 10 points lower than expected, what is the payout surprise?
 
 5. Show that $0 \le \text{payout} \le N$ when $0 \le FP_{100} \le 100$.
 
-6. Given $N = USD 20\text{mm}$, compute payout for $R = 0.30$ and $R = 0.60$. Interpret.
+6. Given $N = \mathrm{USD}\\,20\text{mm}$, compute payout for $R = 0.30$ and $R = 0.60$. Interpret.
 
-7. Construct net cashflows for buyer and seller including $USD 0.05\text{mm}$ accrued premium and $USD 6.0\text{mm}$ protection payout.
+7. Construct net cashflows for buyer and seller including $\mathrm{USD}\\,0.05\text{mm}$ accrued premium and $\mathrm{USD}\\,6.0\text{mm}$ protection payout.
 
-8. If Lehman's auction produced 91.375% payout rate, what would be the payout on $USD 200\text{mm}$ notional?
+8. If Lehman's auction produced 91.375% payout rate, what would be the payout on $\mathrm{USD}\\,200\text{mm}$ notional?
 
 9. Explain why a short squeeze can reduce protection payout under physical settlement.
 
@@ -532,7 +534,7 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 11. Using Hull's statement that the auction determines "mid-market value of the cheapest deliverable bond," explain why this aligns with physical settlement economics.
 
-12. A portfolio has three CDS positions: $N_1 = USD 10\text{mm}$, $N_2 = USD 25\text{mm}$, $N_3 = USD 15\text{mm}$. If all default with $FP_{100} = 40$, compute total payout.
+12. A portfolio has three CDS positions: $N_1 = \mathrm{USD}\\,10\text{mm}$, $N_2 = \mathrm{USD}\\,25\text{mm}$, $N_3 = \mathrm{USD}\\,15\text{mm}$. If all default with $FP_{100} = 40$, compute total payout.
 
 13. Describe how final price uncertainty affects risk management near distress.
 
@@ -540,13 +542,13 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 15. List five data items needed to process a credit event settlement for a CDS position.
 
-16. **(Simulation)** Suppose Stage 1 results are IMM = 40.00 and OI = +USD 100mm (a bid to purchase). Stage 2 therefore consists of *offers* (opposite side of OI). Given the following Stage 2 offers, find the Auction Final Price (ignore any cap adjustments):
+16. **(Simulation)** Suppose Stage 1 results are IMM = 40.00 and OI = +USD 100mm (a bid to purchase deliverables). Stage 2 therefore consists of *offers* (opposite side of OI). Given the following Stage 2 offers, find the Auction Final Price (ignore any cap adjustments):
     - 40.00: USD 20mm
     - 39.50: USD 40mm
     - 39.00: USD 50mm
     - 38.50: USD 30mm
 
-17. A CDX.NA.IG position has $USD 62.5\text{mm}$ notional (125 names). One name defaults with $FP_{100} = 40$. Calculate the payout and remaining index notional.
+17. A CDX.NA.IG position has $\mathrm{USD}\\,62.5\text{mm}$ notional (125 names, equal-weighted). One name defaults with $FP_{100} = 40$. Calculate the payout on the affected slice and the remaining index notional.
 
 18. **(Reasoning)** In an auction where Stage 2 accepts offers (OI > 0), explain why a participant with long protection might submit aggressive offers, and what constrains this strategy.
 
@@ -554,21 +556,21 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 ### Solution Sketches (Selected)
 
-**1.** $R = 0.25$. Payout $= 12\text{mm} \times (1 - 0.25) = USD 9\text{mm}$.
+**1.** $R = 0.25$. Payout $= 12\text{mm} \times (1 - 0.25) = \mathrm{USD}\\,9\text{mm}$.
 
-**2.** $FP = 15 \Rightarrow 40\text{mm} \times 0.85 = USD 34\text{mm}$; $FP = 55 \Rightarrow 40\text{mm} \times 0.45 = USD 18\text{mm}$. Difference = $USD 16\text{mm}$.
+**2.** $FP_{100} = 15 \Rightarrow 40\text{mm} \times 0.85 = \mathrm{USD}\\,34\text{mm}$; $FP_{100} = 55 \Rightarrow 40\text{mm} \times 0.45 = \mathrm{USD}\\,18\text{mm}$. Difference $= \mathrm{USD}\\,16\text{mm}$.
 
-**3.** Accrued premium $= 30\text{mm} \times 0.05 \times (1/12) = USD 0.125\text{mm}$.
+**3.** Accrued premium $= 30\text{mm} \times 0.05 \times (1/12) = \mathrm{USD}\\,0.125\text{mm}$.
 
-**4.** Surprise $= N \times 0.10 = 50\text{mm} \times 0.10 = USD 5\text{mm}$.
+**4.** Surprise $= N \times 0.10 = 50\text{mm} \times 0.10 = \mathrm{USD}\\,5\text{mm}$.
 
 **5.** Since $FP_{100}/100 \in [0,1]$, we have $1 - FP_{100}/100 \in [0,1]$. Multiplying by $N \ge 0$ preserves bounds.
 
-**6.** $R = 0.30 \Rightarrow 20\text{mm} \times 0.70 = USD 14\text{mm}$; $R = 0.60 \Rightarrow 20\text{mm} \times 0.40 = USD 8\text{mm}$. Higher recovery → lower payout.
+**6.** $R = 0.30 \Rightarrow 20\text{mm} \times 0.70 = \mathrm{USD}\\,14\text{mm}$; $R = 0.60 \Rightarrow 20\text{mm} \times 0.40 = \mathrm{USD}\\,8\text{mm}$. Higher recovery → lower payout.
 
-**7.** Buyer net $= +6.0 - 0.05 = +USD 5.95\text{mm}$; seller net $= -6.0 + 0.05 = -USD 5.95\text{mm}$.
+**7.** Buyer net $= +6.0 - 0.05 = +\mathrm{USD}\\,5.95\text{mm}$; seller net $= -6.0 + 0.05 = -\mathrm{USD}\\,5.95\text{mm}$.
 
-**8.** Payout $= 200\text{mm} \times 0.91375 = USD 182.75\text{mm}$.
+**8.** Payout $= 200\text{mm} \times 0.91375 = \mathrm{USD}\\,182.75\text{mm}$.
 
 **9.** Under physical settlement, if CDS notional exceeds deliverable bonds, protection buyers must compete to source bonds. This buying pressure drives prices up (short squeeze), so the bond costs more to acquire. Since the protection buyer delivers the bond for par, a higher acquisition cost means lower net gain (effectively lower payout).
 
@@ -576,16 +578,16 @@ Physical settlement can extend for weeks (some sources cite up to 72 calendar da
 
 ---
 
-**16.** Since $OI \gt 0$, Stage 2 consists of offers. Sort offers from lowest to highest and accumulate volume until it reaches $100\text{mm}$:
-- 38.50: $30\text{mm}$ (remaining OI $=70\text{mm}$)
-- 39.00: $30+50=80\text{mm}$ (remaining OI $=20\text{mm}$)
-- 39.50: $80+40=120\text{mm}$ (OI filled)
+**16.** Since $OI \gt 0$, Stage 2 consists of offers. Sort offers from lowest to highest and match against the $100\text{mm}$ open interest:
+- 38.50: take all $30\text{mm}$ (cumulative $30\text{mm}$; remaining OI $=70\text{mm}$)
+- 39.00: take all $50\text{mm}$ (cumulative $80\text{mm}$; remaining OI $=20\text{mm}$)
+- 39.50: take $20\text{mm}$ of the $40\text{mm}$ available (cumulative $100\text{mm}$; OI filled)
 
 The marginal matched offer is 39.50, so **Auction Final Price = 39.50** (ignoring any cap adjustments).
 
-**17.** Affected notional = $62.5\text{mm}/125 = USD 0.5\text{mm}$. Payout = $0.5\text{mm} \times (1-0.40) = USD 0.3\text{mm}$. Remaining notional = $62.5\text{mm} - 0.5\text{mm} = USD 62.0\text{mm}$.
+**17.** Affected notional $= 62.5\text{mm}/125 = \mathrm{USD}\\,0.5\text{mm}$. Payout $= 0.5\text{mm} \times (1-0.40) = \mathrm{USD}\\,0.3\text{mm}$. Remaining index notional $= 62.5\text{mm} - 0.5\text{mm} = \mathrm{USD}\\,62.0\text{mm}$.
 
-**18.** Long protection benefits from a lower $FP_{100}$ (higher payout). If Stage 2 accepts offers, submitting low-priced offers can pull the marginal matched offer down and reduce the final price. Constraints include: (1) you may have to actually sell deliverables at the prices you submit; (2) limit orders are capped around IMM by the Cap Amount; and (3) Stage-1 information (IMM and OI) is published, so other participants can respond with their own orders.
+**18.** Long protection benefits from a lower $FP_{100}$ (higher payout). If Stage 2 accepts offers (because $OI \gt 0$), submitting low-priced offers can pull the marginal matched offer down (lower-priced offers are matched first, so less of the OI is cleared at higher prices). Constraints include: (1) if matched, you are committed to deliver bonds at the AFP, so you need to be able to source the deliverables; (2) limit-order prices are constrained around IMM by the Cap Amount; and (3) Stage-1 information (IMM and direction/size of OI) is published, so other participants can respond with their own orders.
 
 ---
 
