@@ -183,19 +183,19 @@ A common USD “fixed vs SOFR” swap structure looks similar to the legacy USD 
 
 **Step 1: Compound the daily rates**
 
-$$\prod_{i=1}^{91} \left(1 + 0.0425 \cdot \frac{1}{360}\right) = \left(1 + \frac{0.0425}{360}\right)^{91} = 1.010878$$
+$$\prod_{i=1}^{91} \left(1 + 0.0425 \cdot \frac{1}{360}\right) = \left(1 + \frac{0.0425}{360}\right)^{91} \approx 1.010800$$
 
 **Step 2: Annualize to get the period rate**
 
-$$R = \frac{360}{91} \times (1.010878 - 1) = 0.04302 = 4.302\\%$$
+$$R = \frac{360}{91} \times (1.010800 - 1) \approx 0.04273 = 4.273\\%$$
 
-Note that the compounded rate (4.302%) slightly exceeds the simple average (4.25%) due to compounding.
+Note that the compounded rate (4.273%) slightly exceeds the simple average (4.25%) due to compounding.
 
 **Step 3: Calculate the payment**
 
-$$\text{Payment} = USD50,000,000 \times 0.04302 \times \frac{91}{360} = USD543,697$$
+$$\text{Payment} = USD50{,}000{,}000 \times 0.04273 \times \frac{91}{360} \approx USD540{,}000$$
 
-**Sanity check:** Simple interest would give USD50M × 4.25% × (91/360) = USD537,153. The compounded amount is about USD6,500 higher—a small but meaningful difference on large notionals.
+**Sanity check:** Simple interest would give USD50M × 4.25% × (91/360) ≈ USD537,153. The compounded amount is about USD2,850 higher—a small but meaningful difference on large notionals.
 
 ---
 
@@ -316,7 +316,7 @@ Consider a swap with 1.2 years remaining, fixed rate 3% paid semiannually, and a
 | 1.2 | -1.500 | +1.857 | +0.357 | 0.9600 | +0.343 |
 | **Total** | | | | | **+0.292** |
 
-The swap value of +USD0.292 million (per USD100 million notional) reflects that floating rates have risen above the fixed rate, benefiting the floating receiver.
+The swap value of +USD0.292 million (per USD100 million notional) reflects that the *forwards* implied for the remaining periods (3.4% and 3.7% above the 3.0% fixed) outweigh the lower locked-in coupon for the in-progress first period (about 2.5%), benefiting the floating receiver on net.
 
 > **Technique: Napkin Valuation**
 >
@@ -407,10 +407,10 @@ Modern swap valuation uses:
 
 > **Analogy: The Projector and The Auditor**
 >
-> In the old days (Single Curve), one person guessed the future rates and valued the money. Now, these jobs are split.
+> In the old days (Single Curve), one curve served both jobs — forecasting future floating rates and discounting all cashflows. Now, those jobs are split:
 >
-> *   **The Projector (Blue Curve):** "I am looking at the term index market (legacy IBOR). I predict the floating rate in 5 years will be 4.00%."
-> *   **The Auditor (Green Curve):** "I don't care about risky banks. I care about the *value of money* today. Since this trade is collateralized with cash, correct value is determined by the safe rate (OIS/SOFR). I will discount that 4.00% payment using the 3.00% risk-free rate."
+> *   **The Projector (Blue Curve):** "I look at the term-index market (e.g., legacy IBOR). The forwards from this curve say the floating rate for the period starting in 5 years is 4.00%."
+> *   **The Auditor (Green Curve):** "I care about the *value of money* today. Since this trade is collateralized with cash, the relevant discount rate is the rate paid on collateral — typically an overnight rate (OIS/SOFR). I will discount that 4.00% payment using the (lower) overnight curve."
 >
 > The key point is that the curve used to forecast floating coupons need not be the curve used to discount those cashflows.
 
@@ -418,9 +418,9 @@ For a swap referencing index $k$, the floating forward rate is:
 
 $$\boxed{L_k(0; T_i, T_{i+1}) = \frac{1}{\tau_i^k}\left(\frac{P_k(0, T_i)}{P_k(0, T_{i+1})} - 1\right)}$$
 
-The swap value becomes:
+The receiver-fixed swap value (per unit notional, scale by $N$ for total) becomes:
 
-$$V^k_{\text{swap}}(0) = \sum_j c \cdot \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}}) - \sum_i L_k(0; T_i, T_{i+1}) \cdot \tau_i^k \cdot P_d(0, T_{i+1})$$
+$$V^k_{\text{recv}}(0) = N \left[ \sum_j c \cdot \tau_j^{\text{fix}} \cdot P_d(0, T_j^{\text{fix}}) - \sum_i L_k(0; T_i, T_{i+1}) \cdot \tau_i^k \cdot P_d(0, T_{i+1}^{\text{flt}}) \right]$$
 
 Note carefully: forwards come from $P_k$, but discounting uses $P_d$.
 
@@ -438,8 +438,8 @@ Practical takeaway: in a multi-curve world, always state explicitly:
 >
 > *   **X-Axis:** Time.
 > *   **Y-Axis:** Rate %.
-> *   **Blue Line (Projection)**: High and volatile. Represents the 3-month Bank Rate. This determines *how much cash flows*.
-> *   **Green Line (Discount)**: Lower and stable. Represents the Overnight Risk-Free Rate. This determines *how much that cash is worth*.
+> *   **Blue Line (Projection)**: Higher and more volatile. Represents the 3-month term-index (e.g., legacy IBOR) forwards. This determines *how much cash flows*.
+> *   **Green Line (Discount)**: Lower and more stable. Represents the overnight risk-free / OIS curve. This determines *how much that cash is worth*.
 > *   **The Spread**: The gap between them is the "Basis." It fluctuates with credit stress.
 >
 > **The Key**: Even if the Basis blows out (Blue line spikes), the Green line might stay flat. Your *cash flows* increase, but your *discount rate* doesn't. This is why multi-curve valuation is critical during crises.
@@ -609,31 +609,31 @@ $$c_{\text{par}} = \frac{0.0300}{0.9775} = 0.03069 \approx 3.069\\%$$
 
 **Problem:** Value a swap where the fixed rate differs from the par rate.
 
-**Setup:** Same curves as Example A, notional $N = USD100,000,000$, but the swap has a fixed rate of $c = 3.20\\%$ (above par).
+**Setup:** Same curves as Example A, notional $N = USD100{,}000{,}000$, but the swap has a fixed rate of $c = 3.20\\%$ (above par).
 
 **Step 1: PV of floating leg**
 
 Using the single-curve identity:
 
-$$PV_{\text{float}} = N(1 - P(0,1)) = USD100,000,000 \times 0.0300 = USD3,000,000$$
+$$PV_{\text{float}} = N(1 - P(0,1)) = USD100{,}000{,}000 \times 0.0300 = USD3{,}000{,}000$$
 
 **Step 2: PV of fixed leg**
 
-$$PV_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = USD100,000,000 \times 0.032 \times 0.9775 = USD3,128,000$$
+$$PV_{\text{fixed}} = N \cdot c \cdot A^{\text{fix}}(0) = USD100{,}000{,}000 \times 0.032 \times 0.9775 = USD3{,}128{,}000$$
 
 **Step 3: Swap NPV**
 
 For the receiver (receive fixed, pay float):
 
-$$V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = USD3,128,000 - USD3,000,000 = +USD128,000$$
+$$V_{\text{recv}} = PV_{\text{fixed}} - PV_{\text{float}} = USD3{,}128{,}000 - USD3{,}000{,}000 = +USD128{,}000$$
 
 For the payer (pay fixed, receive float):
 
-$$V_{\text{payer}} = -USD128,000$$
+$$V_{\text{payer}} = -USD128{,}000$$
 
 **Alternative formula:** Using the off-market relationship:
 
-$$V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}(0) = USD100,000,000 \times (0.032 - 0.03069) \times 0.9775 = USD128,000 \checkmark$$
+$$V_{\text{recv}} = N(c - c_{\text{par}}) \cdot A^{\text{fix}}(0) = USD100{,}000{,}000 \times (0.032 - 0.03069) \times 0.9775 = USD128{,}000 \checkmark$$
 
 ### Example C: Multi-Curve vs. Single-Curve Pricing
 
@@ -726,7 +726,7 @@ $$\text{Upfront} = N \times (c_{\text{par}} - c_{\text{off-market}}) \times A^{\
 
 **Example:** USD100 million notional, 5-year, with annuity factor 4.5:
 
-$$\text{Upfront} = USD100M \times (0.0400 - 0.0350) \times 4.5 = USD2,250,000$$
+$$\text{Upfront} = USD100M \times (0.0400 - 0.0350) \times 4.5 = USD2{,}250{,}000$$
 
 The client pays USD2.25 million upfront and then pays 3.50% fixed over the life of the swap.
 
@@ -748,7 +748,7 @@ $$V = N \times (c_{\text{market}} - c_{\text{old}}) \times A^{\text{fix}}$$
 
 The annuity for a 9-year swap paying semiannually can be approximated from the discount factor, or computed directly. Using approximate annuity of 7.5:
 
-$$V \approx USD10,000,000 \times (0.0625 - 0.0575) \times 7.5 = USD375,000$$
+$$V \approx USD10{,}000{,}000 \times (0.0625 - 0.0575) \times 7.5 = USD375{,}000$$
 
 You *receive* approximately USD375,000 to terminate the swap.
 
@@ -776,11 +776,17 @@ You *receive* approximately USD375,000 to terminate the swap.
 
 On each reset date, a floating-rate note is approximately worth **par**: the coupon for the next period is set to the prevailing market rate for that period, so (ignoring credit and frictions) the note is “fair” for the next accrual interval.
 
-Between reset dates, the floater’s value is close to par and can be approximated by discounting the next cashflow:
+Between reset dates, the floater’s value is close to par and can be approximated by discounting the single next cashflow (the next coupon plus the floater’s post-reset value, which is itself approximately par):
 
-$$P_{\text{floater}} = \frac{N + N \cdot L_{\text{current}} \cdot \tau}{1 + L_{\text{today}} \cdot \tau'}$$
+$$P_{\text{floater}} \approx \frac{N + N \cdot L_{\text{current}} \cdot \tau}{1 + L_{\text{today}} \cdot \tau'}$$
 
-where $L_{\text{current}}$ is the rate already set for the current period and $\tau'$ is the time remaining to payment.
+where:
+- $L_{\text{current}}$ is the rate already locked in for the current period
+- $\tau$ is the (full) accrual factor for that period
+- $L_{\text{today}}$ is today’s simple-interest rate for the time remaining to the payment
+- $\tau'$ is the time remaining to that payment.
+
+At a reset date $\tau' = \tau$ and $L_{\text{today}} = L_{\text{current}}$, so the formula collapses to $P_{\text{floater}} = N$ (par).
 
 ### 25.10.2 Duration of a Floating-Rate Note
 
@@ -1013,11 +1019,13 @@ A common textbook motivation for swaps is the *comparative advantage* story. Con
 
 AAACorp has absolute advantage in both markets, but BBBCorp has *comparative* advantage in the floating market (its spread over AAACorp is smaller: 70bp in floating vs. 120bp in fixed).
 
-If AAACorp wants floating and BBBCorp wants fixed:
-- AAACorp borrows fixed at 4.0%, enters swap to receive 4.35%, pay SOFR → Net: SOFR - 0.35%
-- BBBCorp borrows floating at SOFR + 1.0%, enters swap to pay 4.35%, receive SOFR → Net: 5.35%
+If AAACorp wants floating and BBBCorp wants fixed, choose a swap fixed rate of 3.95% (the midpoint of the gain split):
+- AAACorp borrows fixed at 4.0%, enters swap to receive 3.95%, pay SOFR → Net: SOFR + 0.05%
+- BBBCorp borrows floating at SOFR + 1.0%, enters swap to pay 3.95%, receive SOFR → Net: 4.95%
 
-Both are better off: AAACorp pays SOFR - 0.35% (vs. SOFR + 0.3%) and BBBCorp pays 5.35% (vs. 5.2%). Total gain: 50bp, split between them.
+Both are better off: AAACorp pays SOFR + 0.05% (vs. SOFR + 0.3% direct, saving 25bp) and BBBCorp pays 4.95% (vs. 5.2% direct, saving 25bp). Total gain: 50bp, split evenly.
+
+(For the swap rate to make both parties better off, it must lie strictly between 3.7% and 4.2%; rates outside that band hand all the gain to one side at the expense of the other.)
 
 > **Practitioner Note:** Treat this as intuition, not an arbitrage. In real markets, liquidity, balance sheet, regulation, and transaction costs complicate the story.
 
@@ -1180,9 +1188,9 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A4.** $V_{\text{recv}}/N = (c - c_{\text{par}}) \cdot A = 0.002 \times 0.9735 = 0.00195$
 
-**A5.** $V_{\text{payer}} = -N(c - c_{\text{par}}) \cdot A = -USD50M \times 0.001 \times 4.2 = -USD210,000$
+**A5.** $V_{\text{payer}} = -N(c - c_{\text{par}}) \cdot A = -USD50M \times 0.001 \times 4.2 = -USD210{,}000$
 
-**A6.** $c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} L_k(0; T_i, T_{i+1}) P_d(0, T_{i+1})}{\sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})}$
+**A6.** $c_{\text{par}} = \frac{\sum_i \tau_i^{\text{flt}} L_k(0; T_i, T_{i+1}) P_d(0, T_{i+1}^{\text{flt}})}{\sum_j \tau_j^{\text{fix}} P_d(0, T_j^{\text{fix}})}$
 
 **A7.** The identity relies on forwards and discounting using the same curve. In multi-curve, forwards come from $P_k$ while discounting uses $P_d$—the telescoping cancellation doesn't hold.
 
@@ -1190,13 +1198,13 @@ The separation of projection and discounting curves is not academic pedantry—i
 
 **A9.** Decrease. With upward-sloping curve, early exchanges favor you (receive fixed > expected floating). As these positive-value exchanges settle, remaining swap expected to have negative value to you—counterparty exposure declines.
 
-**A10.** Receiver-fixed has $DV01\gt 0$ under the book convention, so a **rates up** move is approximately the opposite sign:
-So $\Delta PV \approx -DV01 \times 75 \approx -3{,}375{,}000$ USD.
+**A10.** Receiver-fixed has $DV01\gt 0$ under the book convention (PV rises when rates fall), so a **rates up** move produces a PV change of approximately the opposite sign and magnitude $|DV01| \times 75$:
+$\Delta PV \approx -DV01 \times 75 \approx -3{,}375{,}000$ USD.
 So the receiver-fixed position is roughly $-USD3.375$ million; the payer-fixed counterparty has positive exposure of about USD3.375 million (ignoring collateral and convexity).
 
 **A11.** Bid: 4.50% - 0.05% = 4.45%; Offer: 4.50% + 0.02% = 4.52%
 
-**A12.** Compounded factor: $(1 + 0.05/360)^{92} = 1.01289$. Period rate: $(360/92) \times 0.01289 = 5.044\\%$. Payment: $USD25M \times 0.05044 \times (92/360) = USD322,256$
+**A12.** Compounded factor: $(1 + 0.05/360)^{92} \approx 1.01286$. Period rate: $(360/92) \times 0.01286 \approx 5.033\\%$. Payment: $USD25M \times 0.05033 \times (92/360) \approx USD321{,}475$ (or directly, $25M \times 0.012859 \approx USD321{,}475$).
 
 ---
 

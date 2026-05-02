@@ -392,7 +392,7 @@ Informally: it is the replacement cost *right now* if the counterparty defaulted
 
 ### 32.6.2 Potential Future Exposure (PFE) and Maximum PFE (MPFE)
 
-**Potential future exposure (PFE)** for a given date is a high-percentile of the exposure distribution at that date — a tail measure that captures "how bad could exposure get?" at a chosen confidence level:
+**Potential future exposure (PFE)** for a given date is a high quantile of the exposure distribution at that date — a tail measure that captures "how bad could exposure get?" at a chosen confidence level:
 
 $$
 \boxed{PFE_q(t) := \inf\\{x : P(E(t) \leq x) \geq q\\}}.
