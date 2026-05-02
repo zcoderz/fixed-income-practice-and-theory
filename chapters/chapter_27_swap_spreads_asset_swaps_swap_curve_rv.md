@@ -263,8 +263,8 @@ $$A(0) = \frac{1.0876 - 0.9438}{4.4396} = \frac{0.1438}{4.4396} = 0.0324 = 324 \
 | 2031-02-15 | +103.625 | final coupon + principal |
 
 **P&L / Risk Interpretation**
-- The number “ASW = 324 bp” means: in the par asset-swap package, you are effectively receiving floating $+$ 324 bp (before funding), so the bond is *cheap* versus the swap curve.
-- Sensitivity magnitude: $1$ bp $=10^{-4}$. Per unit notional, a 1bp change in the contractual spread changes PV by about $\text{PV01}\\times 10^{-4}$. With $\text{PV01}=4.4396$, that is $4.4396\\times 10^{-4}=0.00044396$ per unit notional (and USD4{,}440 per USD10\text{mm}).
+- The number "ASW = 324 bp" means: in the par asset-swap package, you are effectively receiving floating $+$ 324 bp (before funding), so the bond is *cheap* versus the swap curve.
+- Sensitivity magnitude: $1\\text{ bp}=10^{-4}$. Per unit notional, a 1 bp change in the contractual spread changes PV by about $\text{PV01}\\times 10^{-4}$. With $\text{PV01}=4.4396$, that is $4.4396\\times 10^{-4}=0.00044396$ per unit notional, i.e. about USD 4,440 per USD 10mm of notional.
 - For an *existing* asset swap, the relevant move is usually the *market* ASW $A(t)$. Using $\text{MTM}(t)=(A(0)-A(t))\cdot\text{PV01}(t,T)$, a widening in market ASW (higher $A(t)$) is a mark-to-market loss for the original buyer.
 
 **Sanity Checks**
@@ -307,11 +307,11 @@ $$\text{MTM}(t) = (A(0) - A(t)) \cdot \text{PV01}(t,T)$$
 
 where $A(t)$ is the current asset swap spread for the bond. This formula follows from the fact that unwinding an asset swap involves entering an offsetting position at the current spread. The fixed legs and Libor payments cancel, leaving only the difference in spreads times the remaining PV01.
 
-**Worked example.** If the asset swap was entered at $A(0) = 323.9$ bp on USD10 million notional, and one year later the spread has tightened to $A(t) = 284$ bp with remaining PV01 of 3.622, the mark-to-market is:
+**Worked example.** If the asset swap was entered at $A(0) = 323.9$ bp on USD 10 million notional, and one year later the spread has tightened to $A(t) = 284$ bp with remaining PV01 of 3.622 discounted years, the mark-to-market is:
 
-$$\text{MTM} = (323.9 - 284.0) \text{ bp} \times 3.622 \times USD10\text{mm} = 39.9 \times 0.0001 \times 3.622 \times 10{,}000{,}000 = USD144{,}518$$
+$$\text{MTM} = (323.9 - 284.0)\text{ bp}\\times 3.622 \\times 10{,}000{,}000 = 39.9\\times 10^{-4}\\times 3.622\\times 10{,}000{,}000$$
 
-The position has profited because the issuer’s credit spread tightened, as reflected in both a higher bond price and a lower market ASW.
+which works out to about USD 144,518. The position has profited because the issuer's credit spread tightened, as reflected in both a higher bond price and a lower market ASW.
 
 ### 27.3.7 Financing Intuition: Why Repo Matters
 
@@ -325,67 +325,93 @@ so the realized carry depends on the repo rate you pay (and whether the bond is 
 
 ## 27.4 The Premium Bond Trap
 
-### 27.4.1 The Problem: Par ASW Mixes Credit and Price Effects
+### 27.4.1 The Problem: Par ASW Mixes Credit and Coupon-Scale Effects
 
-The par asset swap spread has a subtle but important flaw: it can be misleading for bonds trading far from par. This "premium bond trap" catches practitioners who mechanically compare par ASW spreads across bonds with very different dollar prices and coupons without thinking through the embedded price/par mechanics.
+The par asset swap spread has a subtle but important flaw: it can be misleading for bonds trading far from par or with very different coupon levels. This "premium bond trap" catches practitioners who mechanically compare par ASW spreads across bonds with very different dollar prices and coupons without thinking through the formula's embedded scaling effects.
 
-The issue arises from the structure of the par asset swap. When a bond trades at a premium ($P \gt 100$), the asset swap buyer:
-1. Pays par (100) but receives a bond worth $P \gt 100$
-2. Has net upfront value of $(P - 100)$ at inception (because the par exchange differs from the bond’s full price)
+The issue is in the par ASW formula itself:
 
-This upfront value is effectively amortized into the running spread over the life of the swap. The running ASW quote can therefore reflect not only credit compensation but also the mechanical effect of being far from par.
+$$A=\frac{P_{\text{Libor}}-P}{\text{PV01}}.$$
+
+For two bonds with the *same* Z-spread (genuinely identical credit risk), the numerator $P_{\text{Libor}}-P$ scales with the absolute size of the bond's cashflows (more coupons → larger absolute differential), while the denominator $\text{PV01}$ depends only on the schedule of dates and discount factors. The result is that the running ASW quote can reflect not only credit compensation but also a mechanical coupon-driven scaling effect that biases high-coupon (premium) bonds to wider quotes.
+
+The "premium bond" label is shorthand: the trap is most visible for bonds with very different coupons (one at deep discount, one at large premium), which is also when the price/par mismatch in the par-asset-swap structure is largest.
 
 ### 27.4.2 Intuition: Why Par ASW Can Mislead Away from Par
 
-Consider two bonds from the same issuer with identical credit risk:
+Consider two bonds from the same issuer with identical credit risk (same Z-spread), priced on a flat 4% swap curve:
 
-| Bond | Coupon | Price | Maturity | True Credit Spread |
-|------|--------|-------|----------|-------------------|
-| Bond A | 2% | 95 | 5Y | 100 bp |
-| Bond B | 6% | 108 | 5Y | 100 bp |
+| Bond | Coupon | Clean Price | Maturity | True Credit Spread (Z-spread) |
+|------|--------|-------------|----------|-------------------------------|
+| Bond A | 3% | 91.25 | 5Y | 100 bp |
+| Bond B | 7% | 108.75 | 5Y | 100 bp |
 
-Both bonds have the same credit spread in a Z-spread or CDS sense. But their par ASW quotes can differ materially because the par-asset-swap structure embeds an upfront value linked to price and coupon schedule.
+Both bonds have the same credit spread in a Z-spread or CDS sense (and, on a flat curve, the same yield to maturity of 5%). Yet their par ASW quotes differ — the mechanism is structural, not credit-related.
 
-- **Bond A (discount):** The structure includes a positive upfront paid by the buyer (about 5 points) that is effectively amortized through the running spread.
-- **Bond B (premium):** The structure includes a positive upfront value to the buyer (about 8 points) that is also effectively amortized through the running spread.
+The par ASW formula
 
-As a result, cross-bond comparisons of par ASW can confuse "credit compensation" with "price/par mechanics."
+$$A=\frac{P_{\text{Libor}}-P}{\text{PV01}}$$
 
-> **Pitfall — Par ASW is a “pure credit spread”:** Par asset swap spreads embed both credit compensation *and* a mechanical price/par amortization effect when bonds are far from par.
-> **Why it matters:** You can buy the “wide ASW” bond and discover you mainly bought premium/discount mechanics rather than relative credit value.
-> **Quick check:** If $|P-100|$ is large, compare market ASW $A^{\ast}=A/P$ and a curve-based spread measure (ZVS/Z-spread). If the ranking flips, you are in premium-bond-trap territory.
+has a numerator that scales with the absolute size of the bond's cashflows: more coupons mean a larger absolute $(P_{\text{Libor}}-P)$ for the same Z-spread. The denominator $\text{PV01}$ depends only on the schedule of dates and the Libor discount factors — not on cashflow amounts. So:
+
+- **Bond A (low coupon, discount):** smaller cashflow magnitudes per coupon date $\Rightarrow$ smaller $(P_{\text{Libor}}-P)$ $\Rightarrow$ smaller par ASW.
+- **Bond B (high coupon, premium):** larger cashflow magnitudes per coupon date $\Rightarrow$ larger $(P_{\text{Libor}}-P)$ $\Rightarrow$ larger par ASW.
+
+So even with identical credit risk, par ASW gives the higher-coupon bond a wider quote. The bias is mechanical — it is driven by the bond's coupon level (and resulting price relative to par), not by relative credit value.
+
+As a result, cross-bond comparisons of par ASW can confuse "credit compensation" with "coupon-driven scaling effects."
+
+> **Pitfall — Par ASW is not a "pure credit spread":** Par asset swap spreads conflate credit compensation with the absolute magnitude of bond cashflows; high-coupon (premium) bonds appear "wider" than low-coupon (discount) bonds with identical credit risk.
+> **Why it matters:** You can buy the "wide ASW" bond and discover the wider quote came from coupon mechanics, not relative credit value.
+> **Quick check:** If two bonds have very different coupons or trade far from par, cross-check par ASW against market ASW $A^{\ast}=A/P$ and a curve-based spread measure (ZVS/Z-spread). If the ranking changes, the par ASW comparison is unreliable.
 
 ### 27.4.3 Worked Example: The Trap in Action
 
 **Setup:**
-- Issuer XYZ has two bonds outstanding
-- Both have 5-year maturity and identical credit risk
-- Swap curve is flat at 4%
+- Issuer XYZ has two bonds outstanding.
+- Both have 5-year maturity, semiannual coupons, and identical credit risk: Z-spread $=100$ bp by construction.
+- Swap curve is flat at 4% (semiannual compounding), so each bond's YTM $=4\\%+1\\%=5\\%$.
+- $\text{PV01}\approx 4.491$ discounted years (computed below); $P_{\text{Libor}}$ is the bond's PV on the 4% curve.
 
-| Bond | Coupon | Clean Price | YTM | Par ASW |
-|------|--------|-------------|-----|---------|
-| XYZ 3% | 3% | 95.50 | 5.00% | 80 bp |
-| XYZ 7% | 7% | 112.00 | 4.80% | 120 bp |
+| Bond | Coupon | Clean Price | YTM | $P_{\text{Libor}}$ | Par ASW | Market ASW |
+|------|--------|-------------|-----|--------------------|---------|------------|
+| XYZ 3% | 3% | 91.25 | 5.00% | 95.51 | 94.9 bp | 104.0 bp |
+| XYZ 7% | 7% | 108.75 | 5.00% | 113.47 | 105.1 bp | 96.7 bp |
 
-A naive analyst looking only at par ASW would conclude that the 7% bond is "cheaper" (wider spread). But this is the premium bond trap—the 7% bond's wider par ASW reflects its premium price amortization, not superior value.
+**Computing par ASW.** With $\sum_{n=1}^{10} Z(0,t_n)=8.9826$ on the flat 4% curve and $Z(0,5)=0.82035$:
 
-**The fix:** Use market ASW or Z-spread to compare:
+$$P_{\text{Libor}}^{3\\%}=\tfrac{0.03}{2}\sum Z+100\cdot Z(0,5)=1.5\times 8.9826+100\times 0.82035=95.51$$
 
-$$A^{\ast}_{3pct} = \frac{80 \text{ bp}}{0.955} = 83.8 \text{ bp}$$
+$$P_{\text{Libor}}^{7\\%}=\tfrac{0.07}{2}\sum Z+100\cdot Z(0,5)=3.5\times 8.9826+100\times 0.82035=113.47$$
 
-$$A^{\ast}_{7pct} = \frac{120 \text{ bp}}{1.12} = 107.1 \text{ bp}$$
+$$\text{PV01}=0.5\times 8.9826=4.491$$
 
-Market ASW ($A^{\ast} = A/P$) reduces the mechanical par-notional effect, but ASW remains convention-dependent. For cross-bond comparisons, desks typically cross-check with Z-spread and/or CDS.
+$$A_{3\\%}=\frac{95.51-91.25}{4.491}=\frac{4.26}{4.491}\approx 94.9\text{ bp}\;(\approx 95\text{ bp})$$
+
+$$A_{7\\%}=\frac{113.47-108.75}{4.491}=\frac{4.72}{4.491}\approx 105.1\text{ bp}\;(\approx 105\text{ bp})$$
+
+A naive analyst looking only at **par ASW** would conclude that the 7% bond is "cheaper" (wider by about 10 bp). But this is the premium-bond trap — the 7% bond's wider par ASW reflects its larger absolute cashflows (higher coupon dollars), not superior credit value.
+
+**Cross-checking with market ASW.** Computing $A^{\ast}=A/P$ (using the precise decimal $A$ from each ratio above and per-unit-face $P$):
+
+$$A^{\ast}_{3\\%} = \frac{0.009486}{0.9125} \approx 0.01040 = 104.0\text{ bp}$$
+
+$$A^{\ast}_{7\\%} = \frac{0.010513}{1.0875} \approx 0.00967 = 96.7\text{ bp}$$
+
+Market ASW *reverses* the ranking: by this measure the 3% bond now looks "wider." Neither par ASW nor market ASW correctly identifies the equal credit risk; both have structural biases (par ASW favors high-coupon bonds, market ASW favors low-price bonds), and the biases work in opposite directions.
+
+Only the Z-spread (100 bp for both, by construction) and CDS-implied spreads provide an unbiased reference. For rigorous cross-bond comparisons, desks rely on Z-spread and/or CDS rather than ASW.
 
 > **Desk Reality: The RV Analyst's Checklist**
 >
 > When comparing bonds on ASW:
-> 1. **Check dollar prices:** Premium vs. discount matters
-> 2. **Use consistent measure:** Z-spread or CDS for apples-to-apples comparison
-> 3. **If using par ASW:** Adjust for price/par difference explicitly
-> 4. **Red flag:** If a high-coupon bond looks "cheap" on par ASW, verify with Z-spread before trading
+> 1. **Check dollar prices and coupons:** Premium-vs-discount and high-vs-low coupon both matter.
+> 2. **Use a curve-based measure:** Z-spread (or CDS-implied spread) for apples-to-apples comparison.
+> 3. **If using par ASW:** Recognize that the ranking is biased upward for high-coupon bonds.
+> 4. **Cross-check with market ASW:** If par ASW and market ASW disagree on which bond is "wider," neither is reliable for credit comparison — go to Z-spread.
+> 5. **Red flag:** If a high-coupon bond looks "cheap" on par ASW or a low-coupon bond looks "cheap" on market ASW, verify with Z-spread before trading.
 >
-> The classic mistake: "The 8% bonds are 30 bp wide to the 3% bonds on ASW—buy the 8s!" No—you may be buying the premium, not the spread.
+> The classic mistake: "The 8% bonds are 30 bp wide to the 3% bonds on par ASW — buy the 8s!" No — you may be buying the coupon mechanics, not the credit spread.
 
 ### 27.4.4 When Par ASW Is Appropriate
 
@@ -435,13 +461,13 @@ Although ASW and ZVS both measure a bond's spread to the swap curve, they are co
 | **Numerical method** | Root-finding (iterate $\theta$) | Direct formula |
 | **Price sensitivity** | None—defined as the spread that reprices | Par ASW varies with price; market ASW adjusts |
 
-For simple fixed-rate bonds under single-curve assumptions with a flat curve, the two measures are close. In the special case of a flat swap curve, ASW reduces to (bond yield − swap rate); away from that case, ASW and ZVS can differ meaningfully.
+For simple fixed-rate bonds under single-curve assumptions with a flat swap curve and prices near par, the two measures are close: par ASW is approximately equal to (bond yield − swap rate). Away from that case (steep curves, bonds far from par, very different coupon levels), ASW and ZVS can differ meaningfully.
 
 **When the measures diverge.** The ASW and ZVS can differ significantly when:
 
-1. **Curve shape is non-flat.** ZVS shifts all discount rates uniformly by the same spread. ASW is determined by a PV01-weighted average that depends on the structure of the swap.
+1. **Curve shape is non-flat.** ZVS shifts all discount rates uniformly by the same spread. Par ASW divides $(P_{\text{Libor}}-P)$ by PV01 (the annuity), which weights the schedule of dates differently — so the two measures pick up different parts of the curve shape.
 
-2. **Bonds trade away from par.** Par ASW includes price/par amortization effects; ZVS does not.
+2. **Bonds trade away from par or have very different coupons.** Both measures depend on $P$, but they divide the deviation $(P_{\text{Libor}}-P)$ by different quantities (par ASW by PV01; ZVS by a duration-weighted PV factor). High-coupon and premium bonds carry larger absolute $(P_{\text{Libor}}-P)$, which inflates par ASW relative to ZVS.
 
 3. **Conventions differ.** Clean vs. dirty price inputs, par/par vs. market/market structures can create discrepancies.
 
@@ -516,12 +542,12 @@ Six common factors that drive the CDS-bond basis are:
 
 | Factor | Effect on Basis | Explanation |
 |--------|-----------------|-------------|
-| **Funding costs** | Negative basis when funding expensive | Bond positions require financing; CDS does not |
-| **Counterparty risk** | Positive basis (CDS wider) | CDS buyer faces protection seller credit risk |
-| **Cheapest-to-deliver option** | Positive basis | CDS protection buyer can deliver cheapest bond |
-| **Accrued interest treatment** | Varies | Settlement differences between bond and CDS |
-| **Bond liquidity** | Negative basis when bonds illiquid | Bonds may trade cheap due to illiquidity |
-| **Restructuring definition** | Positive basis for bonds at premium | CDS may pay par on restructuring; bond worth more |
+| **Funding costs** | Negative basis when funding expensive | Bond positions require financing; unfunded CDS does not |
+| **Counterparty risk** | Negative basis (CDS tighter) | Protection buyer worries the seller may not pay; willing to pay less for CDS, so CDS spread tighter than bond ASW |
+| **Cheapest-to-deliver option** | Positive basis | At a credit event, the protection buyer chooses the cheapest deliverable bond, which makes CDS protection more valuable; CDS spread widens relative to bond ASW |
+| **Accrued interest treatment** | Varies | Settlement differences between bond and CDS at a credit event |
+| **Bond liquidity** | Negative basis when bonds illiquid | Illiquid bonds trade cheap (wider ASW), pushing $\text{CDS}-\text{ASW}$ negative |
+| **Restructuring definition** | Positive basis when restructuring is included | CDS contracts that include restructuring as a credit event give the protection buyer an extra trigger, raising CDS spreads relative to bond ASW |
 
 ### 27.6.4 The Basis Trade
 
@@ -552,16 +578,16 @@ When the basis is significantly non-zero, traders can attempt to capture it thro
 
 ### 27.6.5 Basis Trade P&L Attribution
 
-For a negative basis trade (long bond, long CDS protection):
+For a negative basis trade (long bond, long CDS protection, with the bond financed in repo and asset-swapped to floating):
 
 | Component | P&L Driver | Typical Magnitude |
 |-----------|------------|-------------------|
-| Carry (positive) | Coupon + ASW - CDS premium - funding | Running P&L |
-| Rate P&L | Curve moves × DV01 (if not hedged) | Can dominate |
-| Spread P&L | Bond spread change × spread DV01 | Main credit exposure |
-| CDS P&L | CDS spread change × CDS DV01 | Offsets bond spread P&L |
-| Basis P&L | (Bond spread - CDS spread) change | The trade's thesis |
-| Funding P&L | Changes in repo/financing rates | Often overlooked |
+| Carry | $\text{LIBOR}+\text{ASW}-\text{CDS premium}-r_{\text{repo}}$ (sign depends on basis vs. funding) | Running P&L |
+| Rate P&L | Curve moves $\times$ residual rate exposure (small if asset-swapped/DV01-hedged) | Small for hedged trade |
+| Spread P&L (bond) | Bond spread change $\times$ spread DV01 of bond | Main cash-side credit exposure |
+| CDS P&L | CDS spread change $\times$ CDS DV01 | Offsets bond spread P&L |
+| Basis P&L | $(\text{CDS spread}-\text{Bond spread})$ change $\times$ DV01 | The trade's thesis (basis convergence) |
+| Funding P&L | Changes in repo/financing rates | Often overlooked; can dominate in stress |
 
 The key insight: a "hedged" basis trade still has exposure to *changes in the basis itself*, plus funding rate risk.
 
@@ -573,7 +599,7 @@ The key insight: a "hedged" basis trade still has exposure to *changes in the ba
 
 Asset swap positions carry interest rate risk because the bond’s rates sensitivity typically differs from the swap package’s rates sensitivity. Even if you think of an asset swap as a “credit trade,” day-to-day P&L can still be dominated by rates unless you hedge it.
 
-**Risk definition (explicit convention).** Aligning with `refactor_plan/notation_registry.md`, we use:
+**Risk definition (explicit convention).** Throughout this chapter (and the book), we use:
 
 $$DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base}),\\qquad 1\text{bp}=10^{-4}.$$
 
@@ -591,7 +617,7 @@ where $|DV01_{\text{swap}}|$ is the *magnitude* of the swap DV01 per unit swap n
 
 $$\text{Swap notional fraction} = \frac{0.0263}{0.0350} = 0.751$$
 
-So USD100 million in bonds would be DV01-matched with approximately USD75.1 million swap notional.
+So USD 100 million in bonds would be DV01-matched with approximately USD 75.1 million swap notional.
 
 > **Practical warning:** DV01 matching creates a zero first-order exposure to parallel rate shifts, but residual risks remain—curve twists, convexity differences, and of course spread changes.
 
@@ -611,9 +637,9 @@ $$\text{MTM}(t)=(A(0)-A(t))\cdot\text{PV01}(t,T),$$
 
 so $\partial\text{MTM}/\partial A(t)=-\text{PV01}(t,T)$: widening market ASW is a loss for the original buyer.
 
-**Units and magnitude.** For a USD100 million position with $\text{PV01}=2.763$ discounted years, a 1 bp change corresponds to approximately:
+**Units and magnitude.** For a USD 100 million position with $\text{PV01}=2.763$ discounted years, a 1 bp change in the spread corresponds to approximately:
 
-$$\Delta V = 0.0001 \times 2.763 \times 100{,}000{,}000 = USD27{,}630$$
+$$\Delta V = 10^{-4}\\times 2.763 \\times 100{,}000{,}000 \approx 27{,}630\text{ (USD)}.$$
 
 ### 27.7.3 Comprehensive P&L Decomposition
 
@@ -623,9 +649,11 @@ An asset swap position's P&L can be decomposed into five main components:
 
 **2. Spread P&L.** From changes in the asset swap spread, proportional to PV01. This is typically the intended exposure in an asset swap trade.
 
-**3. Carry P&L.** The accrual of coupon income net of swap fixed payments and financing costs. For a DV01-matched position:
+**3. Carry P&L.** The accrual of coupon income net of swap fixed payments and financing costs. For a financed, DV01-matched par asset swap, the daily carry includes the bond coupon, swap fixed leg, swap floating leg (LIBOR/index), ASW spread, and repo financing:
 
-$$\text{Daily Carry} = \frac{\text{Bond Coupon} - \text{Swap Fixed Rate} + \text{ASW Spread} - \text{Repo Rate}}{360} \times \text{Notional}$$
+$$\text{Daily Carry} = \frac{\text{Bond Coupon} - \text{Swap Fixed Rate} + \text{LIBOR} + \text{ASW Spread} - \text{Repo Rate}}{360} \times \text{Notional}$$
+
+In a textbook par asset swap, the swap fixed leg is set equal to the bond coupon, so the first two terms cancel and the carry collapses to $(\text{LIBOR}+\text{ASW}-\text{Repo})/360\times\text{Notional}$. When the swap fixed leg differs from the bond coupon (e.g., when the swap is struck at the prevailing par swap rate), the residual mismatch shows up as the first two terms of the formula. (For ACT/365 currencies, replace 360 with 365.)
 
 **4. Rolldown P&L.** From the passage of time with an unchanged curve, as the bond "rolls down" the curve and the swap amortizes.
 
@@ -648,28 +676,28 @@ $$\text{Daily Carry} = \frac{\text{Bond Coupon} - \text{Swap Fixed Rate} + \text
 
 ### 27.7.4 Worked Example: P&L Scenarios
 
-Consider a position that is long USD100 million of a bond asset-swapped at $A_0 = 150$ bp with:
-- Bond DV01: USD26,300 per bp
-- Swap hedge DV01: USD26,300 per bp (DV01-matched)
-- ASW spread sensitivity: USD27,000 per bp (from PV01)
+Consider a position that is long USD 100 million of a bond asset-swapped at $A_0 = 150$ bp with:
+- Bond DV01: USD 26,300 per bp (positive: long bond benefits when rates fall, by chapter convention)
+- Swap hedge DV01: USD 26,300 per bp magnitude on a pay-fixed swap (offsetting sign), DV01-matched
+- ASW spread sensitivity: USD 27,000 per bp, from $\text{PV01}\times 10^{-4}\times \text{Notional}$
 
-**Scenario 1: Parallel rate shift +10 bp, no ASW move**
-- Bond P&L: $-10 \times USD26,300 = -USD263,000$
-- Swap hedge P&L: $+10 \times USD26,300 = +USD263,000$
+**Scenario 1: Parallel rate shift +10 bp (rates rise), no ASW move**
+- Bond P&L: $-10\\times 26{,}300 = -263{,}000$ USD (long bond loses when rates rise)
+- Swap hedge P&L: $+10\\times 26{,}300 = +263{,}000$ USD (pay-fixed swap profits when rates rise)
 - Net P&L: $\approx 0$ (rates hedged)
 
 **Scenario 2: ASW tightens 20 bp, rates unchanged**
-- Spread P&L: $+20 \times USD27,000 = +USD540,000$
-- The trade profits from ASW normalization
+- Spread P&L (long ASW position): $+20\\times 27{,}000 = +540{,}000$ USD
+- The trade profits from ASW tightening (issuer credit improves)
 
 **Scenario 3: Bond-specific spread widens 30 bp**
-- Spread P&L: $-30 \times USD27,000 = -USD810,000$
+- Spread P&L: $-30\\times 27{,}000 = -810{,}000$ USD
 - The trade loses from idiosyncratic widening
 
 **Scenario 4: Repo rate spikes 50 bp**
-- Funding cost increase: $+50 \times USD100\text{mm} / 10{,}000 = +USD500{,}000$ annually
-- Over a quarter, this is ~USD125,000 of additional cost
-- The carry advantage erodes significantly
+- Funding cost increase: $50\\times 10^{-4}\\times 100{,}000{,}000 = 500{,}000$ USD annually (a P&L drag)
+- Over a quarter, this is roughly USD 125,000 of additional cost.
+- The carry advantage erodes significantly.
 
 Even positions framed as “collect the spread” can experience significant mark-to-market volatility from spread changes, potentially forcing position reductions at the worst time.
 
@@ -794,7 +822,7 @@ The same swap rate produces swap spreads differing by 10 bp purely from benchmar
 
 ### Example B: ASW Cashflow Setup
 
-**Given (per USD100 notional):**
+**Given (per USD 100 notional):**
 - Bond coupon: 5% annual, semiannual payments
 - ASW spread: $A = 20$ bp
 - LIBOR resets: $L = (0.0300, 0.0320, 0.0310)$ (semiannual)
@@ -839,22 +867,27 @@ The market asset swap spread is slightly lower in magnitude because the floating
 
 **Hedge ratio:**
 
-$$\text{Swap notional} = USD100\text{mm} \times \frac{0.0263}{0.0350} = USD75.1\text{mm}$$
+$$\text{Swap notional fraction} = \frac{0.0263}{0.0350} \approx 0.751$$
+
+So USD 100 million in bonds is DV01-matched with approximately USD 75.1 million swap notional.
 
 ### Example F: Premium Bond Trap Illustration
 
-**Given two bonds from same issuer:**
+**Given two bonds from the same issuer (semiannual, on a flat 4% swap curve):**
 
-| Bond | Coupon | Price | 5Y Maturity | Z-Spread |
-|------|--------|-------|-------------|----------|
-| A | 2% | 95 | 5Y | 100 bp |
-| B | 6% | 108 | 5Y | 100 bp |
+| Bond | Coupon | Clean Price | 5Y Maturity | Z-Spread (true credit) |
+|------|--------|-------------|-------------|------------------------|
+| A | 3% | 91.25 | 5Y | 100 bp |
+| B | 7% | 108.75 | 5Y | 100 bp |
 
-**Par ASW calculation (simplified):**
-- Bond A: Par ASW ≈ Z-spread adjusted for discount = ~85 bp
-- Bond B: Par ASW ≈ Z-spread adjusted for premium = ~130 bp
+**Spread measures (computed in Section 27.4.3):**
 
-**Trap:** Bond B looks 45 bp "cheaper" on par ASW, but has identical credit risk. Use Z-spread for apples-to-apples comparison.
+| Bond | Par ASW | Market ASW | Z-spread |
+|------|---------|------------|----------|
+| A | 94.9 bp | 104.0 bp | 100 bp |
+| B | 105.1 bp | 96.7 bp | 100 bp |
+
+**Trap:** Bond B looks ~10 bp "cheaper" on par ASW, but has identical credit risk. Bond A then looks ~7 bp "cheaper" on market ASW — the ranking reverses. Both ASW measures have structural biases from coupon level and bond price; only Z-spread (or CDS) gives the unbiased comparison.
 
 ---
 
@@ -915,7 +948,7 @@ This chapter has developed the framework for understanding swap spreads, asset s
 
 4. **Asset swap spreads** anchor bonds to the swap curve, measuring value relative to bank-credit-based funding. The formula $A = (P_{\text{Libor}} - P)/\text{PV01}$ provides the par ASW spread.
 
-5. **The premium bond trap**: Par ASW can be misleading for bonds far from par; use market ASW and cross-check with Z-spread/CDS for comparisons.
+5. **The premium bond trap**: Par ASW can be misleading for bonds with very different coupons or far from par; both par ASW and market ASW have structural biases (in opposite directions). For unbiased cross-bond credit comparisons, use Z-spread or CDS-implied spreads.
 
 6. **Market asset swaps** use notional equal to bond price, with $A^{\ast} = A/P$, reversing the timing and direction of counterparty exposure.
 
@@ -938,7 +971,7 @@ This chapter has developed the framework for understanding swap spreads, asset s
 | Repo specialness | A specific bond finances below GC in repo | Changes the economics and interpretation of bond-vs-swap RV trades |
 | Negative swap spreads | Swap rate < benchmark Treasury yield | Often reflects benchmark cheapening and convention/curve differences, not “banks safer than government” |
 | Asset swap (par) | Bond + swap package that costs par | Turns a fixed bond into a synthetic floater + spread (before funding) |
-| Premium bond trap | Par ASW comparisons break away from par | Cross-check with market ASW and ZVS/Z-spread (and sometimes CDS) |
+| Premium bond trap | Par ASW gives biased rankings across coupon levels (and market ASW reverses the bias) | Use ZVS/Z-spread or CDS for unbiased cross-bond credit comparisons |
 | $P_{\text{Libor}}$ | PV of bond cashflows on swap curve | Reference for cheap/rich determination |
 | PV01 (annuity) | $\sum Z \Delta$ (discounted years) | Converts a spread move (in bp/year) into PV/P&L |
 | ZVS / Z-spread | Spread that reprices the bond under curve discounting | Curve-based spread measure (numerical solve) distinct from ASW |
@@ -978,8 +1011,8 @@ This chapter has developed the framework for understanding swap spreads, asset s
 | 4 | Give two mechanisms that can make swap spreads negative without a “credit paradox.” | (i) the chosen Treasury benchmark cheapens vs a smooth curve; (ii) the swap rate and Treasury yield embed different premia and conventions |
 | 5 | What is the first diagnostic question when swap spreads move? | “Which leg moved?” (swap curve vs Treasury benchmark yield) and what benchmark was used |
 | 6 | Write the par ASW spread formula. | $A = (P_{\text{Libor}} - P)/\text{PV01}$ |
-| 7 | What is the premium bond trap? | Par ASW can be misleading when bonds are far from par |
-| 8 | How to avoid the premium bond trap? | Prefer market ASW and cross-check with Z-spread/CDS |
+| 7 | What is the premium bond trap? | Par ASW formula scales numerator $(P_{\text{Libor}}-P)$ with cashflow magnitudes; high-coupon (premium) bonds appear wider on par ASW than low-coupon (discount) bonds with identical credit risk |
+| 8 | How to avoid the premium bond trap? | Use Z-spread (or CDS-implied spread) for cross-bond credit comparisons; both par ASW and market ASW have biases (in opposite directions) |
 | 9 | Define $P_{\text{Libor}}(0,T)$. | $(c/f) \sum Z + Z(T)$—Libor-discounted value of bond cashflows |
 | 10 | How does market ASW spread $A^{\ast}$ relate to $A$? | $A^{\ast} = A/P$ |
 | 11 | What is the CDS-bond basis? | CDS spread minus ASW spread |
