@@ -258,7 +258,8 @@ To reduce (or remove) restructuring‑driven delivery optionality, market docume
 **Expand:** All else equal, broader deliverability makes the buyer’s option more valuable and tends to widen spreads:
 - **Old‑Re** has the broadest deliverable set (largest potential delivery option).
 - **No‑Re** removes restructuring as a credit event (smallest restructuring‑driven optionality).
-- **Mod‑Re / Mod‑Mod‑Re** sit in between by restricting maturity and (for Mod‑Mod‑Re) transferability of eligible deliverables after a restructuring.
+- **Mod‑Re** sits between Old‑Re and No‑Re by capping deliverable maturity and accepting only fully transferable obligations.
+- **Mod‑Mod‑Re** is between Mod‑Re and Old‑Re: it raises the maturity cap (60 months for restructured obligations) and additionally accepts *conditionally* transferable obligations.
 
 **Check:** Don’t treat this as a strict ranking. The realized spread differences depend on (i) the probability of a restructuring event, and (ii) post‑event price dispersion across eligible deliverables.
 
