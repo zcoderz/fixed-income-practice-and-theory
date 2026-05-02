@@ -662,13 +662,17 @@ Total P&L from an FX forward position decomposes into:
 
 ### 29.11.2 First-Order Decomposition
 
-For small changes, the PV change decomposes as:
+For small changes in the *state variables* $(S, P_F, P_D)$, the PV change decomposes algebraically as:
 
-$$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot PnL}} + \underbrace{N_F \cdot S \cdot \Delta P_F - N_F \cdot K \cdot \Delta P_D}_{\text{Rates PnL}}$$
+$$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot PnL}} + \underbrace{N_F \cdot S \cdot \Delta P_F - N_F \cdot K \cdot \Delta P_D}_{\text{DF PnL (rate moves + time passage)}}$$
 
 **Spot P&L** is intuitive: the position gains/loses based on spot movement times delta.
 
-**Rates P&L** captures the impact of domestic and foreign rate changes on the discount factors.
+**DF P&L** captures the impact of changes in the two discount factors. Note that $P_F(t,T)$ and $P_D(t,T)$ both depend on the curves *and* on calendar time $t$, so the DF bucket above mixes two effects:
+- the **curve / rates P&L** (curve moves at fixed time), and
+- the **carry / theta P&L** (time passage at fixed curves)
+
+The next subsection isolates the carry component; the worked example in §29.11.4 attributes Spot, Rates, and Carry separately and shows that they sum (up to a small cross-effects residual) to the directly revalued $\Delta V$.
 
 ### 29.11.3 Carry: The Time-Decay Component
 
