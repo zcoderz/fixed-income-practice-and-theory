@@ -107,7 +107,7 @@ Before you compare risk numbers across systems, lock four knobs:
 - **Units:** report quote DV01s in **currency per 1bp of the quote** (or per tick for price-like quotes).
 - **Sign convention (book-wide):** define $DV01_{q_i} := PV(q_i-1\text{bp})-PV(\text{base})$. Positive means the position gains when the relevant quote is shifted **down** by 1bp.
 
-> **Pitfall — What is being bumped?:** Mixing “quote DV01” (bump $q_i$ and rebuild) with “node DV01” (bump a curve node $x_j$ holding the builder fixed) and calling both “DV01.”
+> **Pitfall — what is being bumped:** Mixing “quote DV01” (bump $q_i$ and rebuild) with “node DV01” (bump a curve node $x_j$ holding the builder fixed) and calling both “DV01.”
 > **Why it matters:** hedge ratios and P&L predict depend on the *mapping* from quote space to curve space; two systems can agree on PV and still disagree on DV01 if they bump different objects or rebuild differently.
 > **Quick check:** confirm units (currency per 1bp of $q_i$) and that $DV01_{q_i}$ from the chain rule matches bump-and-rebuild within a small tolerance (and has the down-bump sign).
 
