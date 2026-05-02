@@ -84,7 +84,7 @@ The annuity has a natural interpretation: it is the present value of receiving 1
 > *   **The Signal**: The difference between the Rates (Fixed Rate - Floating Rate). This fluctuates every day.
 > *   **The Amplifier (Annuity)**: The Annuity Factor ($A$) determines how *loud* that signal is in dollars.
 >
-> $$PV = \text{Signal} \times \text{Amplifier}$$
+> $\quad PV = \text{Signal} \times \text{Amplifier}$
 >
 > *   **1-Year Swap**: Tiny speakers (Annuity $\approx$ 1.0). A 10bp rate move ("Signal") is barely audible in P&L.
 > *   **30-Year Swap**: Stadium concert speakers (Annuity $\approx$ 20.0). A 10bp rate move will blow out your eardrums (huge P&L).
@@ -232,7 +232,7 @@ Here is a simple timeline mental model. Let $T_{\text{next}}$ be the next reset/
 - **Right after a reset:** the floating coupon for the coming accrual period is set to a then-current fixing. The floating leg resembles a par floater, so there is little long-horizon fixed-cashflow exposure left to “drag around.”
 - **Between resets:** the most “locked” cashflow is the next coupon amount implied by the last fixing (plus any short stub). The main PV sensitivity is therefore discounting over the short horizon to $T_{\text{next}}$, which is why the floating leg’s DV01 is small compared with the fixed leg’s DV01.
 
-**Toy scale check:** Suppose `T_next = 0.25y` (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\\%$. The next coupon cash amount is approximately $100\text{mm}\times 0.25\times 0.04=1.0$ million USD. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=25$ USD. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional - hence “short duration.”
+**Toy scale check:** Suppose $T_{\text{next}}=0.25$ y (3 months), $\alpha=0.25$, $N=USD100$mm, and the last fixing is $L=4\\%$. The next coupon cash amount is approximately $100\text{mm}\times 0.25\times 0.04=1.0$ million USD. If you approximate discounting sensitivity as $d(PV)/dy\approx -T_{\text{next}}\cdot PV$ for a parallel zero-rate move, then a 1bp *down* move changes the PV of that coupon by about $T_{\text{next}}\times PV\times 10^{-4}\approx 0.25\times 1{,}000{,}000\times 10^{-4}=25$ USD. That is tiny compared with the tens of thousands of dollars per bp that the fixed leg can generate on the same notional — hence "short duration."
 
 ---
 
@@ -284,7 +284,7 @@ $$PV_{\text{pay}}^{\text{bump,disc}} \approx -USD1,739,268$$
 
 $$DV01_{\text{disc}} = PV(\text{rates down }1\text{bp})-PV(\text{base}) \approx -1,739,268 - (-1,739,000) = -USD268$$
 
-**Check (why discount DV01 can be small):** A discount-curve shift mainly rescales *present values*. If the swap is near par, the fixed and floating legs are both large and mostly offset, so the net PV being rescaled is small. A back-of-the-envelope scale is $DV01_{\text{disc}}\sim (\text{net PV})\times (\text{average maturity})\times 10^{-4}$. Here the net PV is about $-USD1.74$mm and the average cashflow horizon is a couple of years, so the scale is on the order of a few hundred dollars per bp—consistent with $-USD268$.
+**Check (why discount DV01 is small here):** A discount-curve shift rescales the *net* swap PV. Because the fixed and floating legs largely offset, what gets rescaled is the small net PV rather than each leg separately. A back-of-the-envelope magnitude is $|DV01_{\text{disc}}|\sim |\text{net PV}|\times \bar{T}\times 10^{-4}$, where $\bar{T}$ is the PV-weighted average cashflow maturity. Here $|\text{net PV}|\approx USD1.74$mm and $\bar{T}\approx 1.5$ years, giving a few hundred dollars per bp—consistent with $-USD268$.
 
 **Projection curve bump (rates down 1bp, projection curve only):**
 
@@ -419,7 +419,9 @@ Two quick implications (when $DV01_A$ and $DV01_B$ are reported as **magnitudes*
 >
 > Need a quick hedge ratio on the trading desk? Use the ratio of Durations.
 >
-> $$\text{Hedge Ratio} \approx \frac{\text{Duration}_{\text{Bond}}}{\text{Duration}_{\text{Swap}}}$$
+> $\quad \text{Hedge Ratio} \approx \dfrac{\text{Duration}_{\text{Bond}}}{\text{Duration}_{\text{Swap}}}$
+>
+> (Here "duration of swap" is shorthand for the swap annuity expressed in years, which approximately equals the modified duration of the par-bond equivalent. The ratio recovers the DV01 match exactly only when the bond is at par.)
 >
 > *   **Scenario**: Hedge USD100M of 10-Year Bonds (Duration $\approx$ 8.5) with 5-Year Swaps (Duration $\approx$ 4.5).
 > *   **Ratio**: $8.5 / 4.5 \approx 1.9$.
@@ -443,9 +445,9 @@ Here is a fundamental insight that risk reports often obscure: **a DV01 hedge do
 
 When you hedge a bond with a swap, your P&L is no longer driven by rate levels. Instead, it's driven by the *relative movement* of bond yields vs swap rates—the swap spread.
 
-$$\boxed{\text{Residual PnL} \approx DV01 \times (\Delta y_{\text{bond}} - \Delta y_{\text{swap}})}$$
+$$\boxed{\text{Residual PnL} \approx DV01 \times (\Delta y_{\text{swap}} - \Delta y_{\text{bond}})}$$
 
-If Treasury yields rise 10bp and swap rates rise 10bp, your hedged position is flat. But if Treasury yields rise 10bp and swap rates rise only 6bp (a 4bp spread widening), you lose money.
+(with $DV01\gt 0$ for the long bond and "$\Delta y$" denoting a conventional rate change, positive when rates rise). If Treasury yields rise 10bp and swap rates rise 10bp, your hedged position is flat. But if Treasury yields rise 10bp and swap rates rise only 6bp (a 4bp spread widening), the formula gives $DV01\times(6-10)=-4\times DV01$ — a loss.
 
 > **Desk Reality:** “DV01-neutral” often gets paraphrased as “hedged.”
 > **Common break:** a DV01 match can remove parallel *rates* exposure but leave large *swap-spread/basis* and *curve-shape* exposures.
@@ -486,7 +488,13 @@ The procedure is straightforward:
 
 Consider receiving fixed on $100\text{mm}$ of a 6-year par swap under a flat curve (for illustration). To compute the exposure to the six-month forward rate 2.5 years forward, bump **that** forward rate by +1bp, keep all other forwards the same, rebuild the discount factors implied by the perturbed forwards, and reprice the swap.
 
-$$-USD100,000,000 \times (99.995813\\% - 100\\%) = USD4,187$$
+For the par receiver swap, the bumped value drops slightly. Expressing the receiver's PV via its synthetic-bond equivalent (a fixed coupon bond at the par rate has price 100 per 100 notional, and the receiver swap's value equals that synthetic bond price minus 100), the synthetic bond falls from $100\\%$ to about $99.995813\\%$. The receiver swap PV change is therefore:
+
+$$\Delta V_{\text{rec}} = USD100{,}000{,}000 \times (99.995813\\% - 100\\%) \approx -USD4{,}187.$$
+
+Reporting this as a *bucket DV01* — equal to $-\Delta V$ for the +1bp UP bump, so that long-duration positions show positive bucket exposures (consistent with $DV01 := PV(\text{rates down}) - PV(\text{base})$):
+
+$$\text{Bucket DV01}_{\text{rec}} \approx +USD4{,}187 \text{ per 1bp}.$$
 
 **Check (order of magnitude):** A single 6-month forward bucket bumped by 1bp changes expected cashflows for roughly one accrual period. A crude scale is
 
@@ -515,15 +523,15 @@ Both approaches reveal the term structure of risk. For swap books, buckets are p
 
 > **Visual: The Bucket Risk Histogram**
 >
-> Consider a position: Receive Fixed 6Y Swap vs Pay Fixed 4Y Swap, sized to zero parallel DV01.
+> Consider a position: Receive Fixed 6Y Swap + Pay Fixed 4Y Swap, sized to zero parallel DV01.
 >
-> *   **6Y Swap**: Risk is distributed evenly across 6 years
-> *   **4Y Swap (short)**: Negative risk concentrated in first 4 years
+> *   **6Y Swap (long)**: Positive bucket exposures spread across years 0-6 (no big "principal" cliff at maturity, since the swap has no principal exchange).
+> *   **4Y Swap (short)**: Negative bucket exposures spread across years 0-4 (and zero past year 4).
 >
 > *   **Net Profile**:
->     *   Years 0-4: Net negative exposure (short risk)
->     *   Years 4-6: Net positive exposure (long risk)
->     *   Sum: Zero (parallel DV01 neutral)
+>     *   Years 0-4: Net negative (the 4Y short outweighs the 6Y long here, because zero parallel DV01 forces the 4Y notional to be larger).
+>     *   Years 4-6: Net positive (only the 6Y leg contributes — the 4Y has no exposure past its maturity).
+>     *   Sum across all buckets: Zero (parallel DV01 neutral by construction).
 >
 > Even with zero *parallel* DV01, the portfolio can have large offsetting bucket exposures and therefore meaningful P&L under steepening/flattening moves.
 
@@ -552,12 +560,12 @@ A DV01-neutral hedge can have significant P&L under non-parallel curve moves. Co
 
 **Worked Example:**
 
-With DV01-matched positions (bond + payer swap), apply a twist: +10bp at years 1-2, 0bp at year 3, -10bp at years 4-5.
+With DV01-matched positions (long bond + payer swap), apply a twist: +10bp at years 1-2, 0bp at year 3, -10bp at years 4-5.
 
 These dollar figures are **illustrative**. The point is that a "DV01-neutral" hedge can still carry meaningful **key-rate** exposure that produces P&L under twists.
 
-- The zero bond gains as the 5-year rate falls: approximately +USD43,610
-- The swap loses because the annuity's PV weights extend across the curve, and the short end (where rates rose) pulls value down: approximately -USD41,433
+- The zero bond gains as the 5-year rate falls: approximately +USD43,610.
+- The payer swap loses because most of its DV01 weight sits at the long end (the par-swap-equivalent bond's cashflow at maturity dominates the PV-weighted sum). The 5-year rate fell — bad for a payer where it has its biggest exposure. The small offsetting gain at the short end (where rates rose, helping the payer there) does not fully cancel the long-end loss. Net: approximately -USD41,433.
 
 **Residual P&L:** +USD2,177
 
@@ -565,9 +573,9 @@ This residual arises from "key-rate mismatch"—the instruments have different e
 
 **Quantifying curve risk:** The P&L from a curve twist can be expressed in terms of key-rate exposures:
 
-$$\text{PnL}_{\text{twist}} = \sum_i KR01_i^{\text{portfolio}} \times \Delta y_i$$
+$$\text{PnL}_{\text{twist}} \approx -\sum_i KR01_i^{\text{portfolio}} \times \Delta y_i$$
 
-where $KR01_i$ is the key-rate exposure to tenor $i$ and $\Delta y_i$ is the rate change at that tenor. For a DV01-neutral portfolio, $\sum_i KR01_i = 0$, but individual $KR01_i$ values can be large with opposite signs—creating twist exposure.
+where $KR01_i$ is the key-rate exposure to tenor $i$ (using the same convention as DV01: $KR01_i \gt 0$ for long-duration positions, since rates *down* increase PV) and $\Delta y_i$ is the conventional rate change at that tenor (positive when the rate rises). The leading minus sign converts a "rates up" change into the corresponding PV move. For a DV01-neutral portfolio, $\sum_i KR01_i = 0$, but individual $KR01_i$ values can be large with opposite signs—creating twist exposure.
 
 ### 26.9.2 Basis Risk
 
@@ -629,9 +637,11 @@ The cost of rebalancing (bid-ask, market impact) must be weighed against the cos
 
 In frictionless markets, paying fixed on a swap is economically similar to shorting a par bond of the same maturity: both positions profit when rates rise. The cash flows are nearly equivalent—both involve paying fixed coupons and having offsetting floating-rate exposure.
 
-Specifically:
-- **Receive fixed + Long bond** ≈ zero rate exposure (if matched)
-- **Pay fixed** ≈ **Short bond** (in terms of rate direction)
+Specifically (in terms of rate direction):
+- **Receive fixed** ≈ **Long bond** (both gain when rates fall).
+- **Pay fixed** ≈ **Short bond** (both gain when rates rise).
+
+So a duration-neutral package can be built as **Pay fixed + Long bond** (or **Receive fixed + Short bond**) when the DV01s are matched.
 
 ### 26.10.2 Why They Differ in Practice
 
@@ -651,7 +661,7 @@ Despite the economic similarity, paying fixed on a swap and shorting a bond diff
 
 When a Treasury becomes "special" in the repo market—meaning it's expensive to borrow—shorting that bond becomes costly. The short seller must pay the repo rate to borrow the bond, and for special securities, this rate can be well below general collateral rates.
 
-Mechanically, scarcity of a particular bond increases the value of *borrowing* it. Lenders can demand a more favorable repo rate, and shorts effectively pay for the privilege of borrowing the security. This is one reason “short bond” and “pay fixed” can diverge in realized P&L even if they look similar in a frictionless model.
+Mechanically, scarcity of a bond raises the *cost of borrowing* it. In a repo, the bond holder lends the bond and receives cash; for a special bond, the holder can demand a *lower* repo rate on that cash (favorable to them, since they pay less interest on the cash leg). The short, who borrows the bond, effectively pays this premium through the lower rate they receive. This is one reason "short bond" and "pay fixed" can diverge in realized P&L even if they look similar in a frictionless model.
 
 > **Desk Reality:** if a bond is special (hard/expensive to borrow), it can be operationally cheaper to express a similar “rates short” view via swaps than by shorting the bond.
 > **Common break:** treating “pay fixed ≈ short bond” as identical ignores financing/borrow costs; the package can pick up repo-specialness and swap-spread P&L.
@@ -685,7 +695,7 @@ Company XYZ issues USD500mm of 5-year fixed-rate bonds at 4.50% to institutional
 
 **Step 2: Corporate Enters Swap**
 
-XYZ wants floating-rate exposure (perhaps it has floating-rate assets). It enters a payer swap with a bank:
+XYZ wants floating-rate exposure (perhaps it has floating-rate assets). It enters a **receiver swap** with a bank (receive fixed, pay floating):
 - XYZ **receives** fixed 4.00% (the 5-year swap rate)
 - XYZ **pays** 3-month SOFR
 
@@ -715,8 +725,8 @@ Heavy corporate issuance plus hedging flows can move swap spreads because the �
 | Party | Pays | Receives | Net Exposure |
 |-------|------|----------|--------------|
 | **Bond investors** | Cash (to buy bonds) | 4.50% fixed | Long fixed-rate credit |
-| **XYZ Corp** | 4.50% (bond) + 4.00% (swap) | SOFR | Floating-rate liability |
-| **Bank (swap dealer)** | SOFR | 4.00% | Long fixed / short floating |
+| **XYZ Corp** | 4.50% (bond) + SOFR (swap floating) | 4.00% (swap fixed) | Floating-rate liability (SOFR + 50bp) |
+| **Bank (swap dealer)** | 4.00% (swap fixed) | SOFR (swap floating) | Short fixed / long floating (rate-short, hedged separately) |
 | **Treasury market** | (receives supply from bank hedging) | | |
 
 ---
@@ -846,13 +856,13 @@ Rule of thumb: if a DV01 is quoted **per 100 face**, divide by 100 before scalin
 
 7. **[Medium - Multi-curve]** In a multi-curve framework, if you bump only the discount curve by +1bp, what happens qualitatively to a payer swap's PV?
 
-8. **[Medium - Corporate]** A corporation issues USD200mm 5-year fixed bonds at 5.00% and enters a payer swap at 4.50%. What is the corporation's effective funding rate?
+8. **[Medium - Corporate]** A corporation issues USD200mm 5-year fixed bonds at 5.00% and enters a **receiver swap** at 4.50% (receives 4.50% fixed from the bank, pays SOFR floating to the bank) to convert its fixed debt to floating. What is the corporation's effective funding rate (in terms of SOFR plus a spread)?
 
 9. **[Hard - Floating Leg]** Why is the floating leg's DV01 approximately proportional to the time to next reset? What happens to the floating leg DV01 immediately after a rate fixing?
 
 10. **[Hard - Debugging]** A par swap calculation shows PV = +USD50,000 instead of zero. List three possible causes.
 
-11. **[Hard - Bucket]** A 6-year receive-fixed swap is hedged with a 4-year pay-fixed swap to zero parallel DV01. The curve then steepens (short rates up, long rates down). Does the portfolio gain or lose?
+11. **[Hard - Bucket]** A 6-year receive-fixed swap is hedged with a 4-year pay-fixed swap to zero parallel DV01. The curve then **flattens** (short rates up, long rates down). Does the portfolio gain or lose?
 
 12. **[Hard - Integration]** Explain why swaps are preferred over bonds for systematic factor (PCA) hedging. What bond-specific issues do swaps avoid?
 
@@ -876,9 +886,13 @@ For $N = 100\text{mm}$: $PV_{\text{pay}} = -USD2,097,000$ (negative to payer bec
 
 **4.** $N_{\text{swap}} = DV01_{\text{bond}} / PV01_{\text{swap per mm}} = 8,500 / 750 = 11.33\text{mm}$. Enter a payer swap to offset the long-bond exposure.
 
-**5.** A DV01-neutral portfolio has offsetting exposures that sum to zero for parallel shifts but may have opposite signs across tenors. In a steepening (short rates up, long rates down):
-- If you're long short-end risk (positive bucket exposure at short end) and short long-end risk (negative bucket exposure at long end), you lose on both: the short end rises (your long position loses) and the long end falls (your short position gains, but you're short, so the falling rates hurt you).
-- Example: Receive fixed 10Y, pay fixed 2Y sized to zero DV01. Steepening: 2Y rate +20bp, 10Y rate -10bp. The 2Y payer leg gains (good), but the 10Y receiver leg loses more because it has higher weight at the now-more-valuable long end.
+**5.** A DV01-neutral portfolio has key-rate exposures that sum to zero across tenors. Under a parallel shift they offset; under a curve **steepening** (long-end rises, short-end falls or rises less — i.e., the long-minus-short spread widens), a portfolio whose key-rate weights are skewed toward the long end will lose:
+- Position: Receive fixed 10Y + pay fixed 2Y, sized to zero parallel DV01. Both legs sit at *different* points on the curve: the receive-10Y leg has positive long-end exposure; the pay-2Y leg has negative short-end exposure. This is implicitly a *flattener* trade (it gains when 10Y - 2Y narrows).
+- Steepening example: 2Y rate -5bp, 10Y rate +20bp (10Y - 2Y widens by 25bp).
+  - Receive 10Y: 10Y rate up → receiver leg loses.
+  - Pay 2Y: 2Y rate down → payer leg loses.
+  - Both legs lose; the parallel DV01 was zero by construction, but the curve-shape (key-rate) exposure is not.
+- The mirror image: under a *flattening* (e.g., 2Y +20bp and 10Y -10bp), the same position would gain on both legs.
 
 **6.**
 - Treasury loss: $-4,800 \times 12 = -USD57,600$
