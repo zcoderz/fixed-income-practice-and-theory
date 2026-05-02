@@ -59,18 +59,20 @@ The inverse quote simply flips the numerator and denominator:
 
 $$\boxed{S_t^{F/D} = \frac{1}{S_t^{D/F}}}$$
 
-If EUR/USD (USD per EUR) is 1.20, then USD/EUR (EUR per USD) is $1/1.20 = 0.8333$.
+Worked inversion in the chapter's notation: if $S_t^{\text{USD/EUR}} = 1.20$ (USD per EUR), then $S_t^{\text{EUR/USD}} = 1/1.20 = 0.8333$ (EUR per USD).
 
 This seems trivial, but the inversion becomes critical when applying CIP formulas. As we will see, inverting the spot quote also inverts the ratio of discount factors in the forward pricing formula. Getting this wrong is one of the most common implementation errors in cross-currency systems.
 
+> **Notation note: chapter symbol order vs market pair name.** Throughout this chapter, $S^{D/F}$ writes domestic *first*, foreign *second*, so $S^{\text{USD/EUR}}$ means "USD per EUR." The FX market, however, names pairs as **base/quote**, where the rate equals quote-currency per 1 unit of base currency. So the same number market participants call "EUR/USD = 1.20" appears in this chapter as $S^{\text{USD/EUR}}=1.20$. The two conventions agree on the *number*; they disagree on the *order of letters* in the pair label. When reconciling a system value with a market quote, always check whether the stored field is "$D/F$" (chapter) or "BASE/QUOTE" (market).
+
 > **Desk Reality: FX Quote Conventions**
 >
-> The FX market has evolved specific quote conventions for major pairs:
+> Market pair names always follow **base/quote**: the rate equals quote-currency units per 1 unit of base currency. Which side of the pair is "base" is a market convention that varies by pair:
 >
-> | Convention | Example Pairs | Quote Meaning |
-> |------------|--------------|---------------|
-> | **Base/Quote** | EUR/USD, GBP/USD | USD per 1 unit of EUR or GBP |
-> | **Quote/Base** | USD/JPY, USD/CHF | JPY or CHF per 1 USD |
+> | Pair (base/quote) | Base | Quote | Quote meaning |
+> |-------------------|------|-------|---------------|
+> | EUR/USD, GBP/USD, AUD/USD, NZD/USD | EUR, GBP, AUD, NZD | USD | USD per 1 unit of base |
+> | USD/JPY, USD/CHF, USD/CAD | USD | JPY, CHF, CAD | Quote currency per 1 USD |
 >
 > When a trader says "EUR/USD is bid at 1.0950," they mean someone will buy euros at the rate of 1.0950 USD per EUR. When they say "Dollar-Yen is offered at 150.25," they mean someone will sell dollars at 150.25 JPY per USD.
 >
@@ -78,15 +80,21 @@ This seems trivial, but the inversion becomes critical when applying CIP formula
 
 ### 29.1.3 Cross Rates and Triangular Consistency
 
-When trading crosses (non-USD pairs), the market derives rates from the USD legs:
+When trading crosses (non-USD pairs), the market derives rates from the USD legs. In the chapter's $S^{D/F}$ notation:
 
-$$S^{EUR/GBP} = \frac{S^{USD/GBP}}{S^{USD/EUR}}$$
+$$S^{\text{EUR/GBP}} = \frac{S^{\text{USD/GBP}}}{S^{\text{USD/EUR}}},$$
 
-If USD/GBP = 1.2750 and USD/EUR = 1.0900, then EUR/GBP = 1.2750/1.0900 = 1.1697.
+read as (EUR per GBP) = (USD per GBP) ÷ (USD per EUR), since (USD per GBP) × (EUR per USD) = (EUR per GBP).
+
+Numerical example. Suppose 1 GBP costs USD 1.2750 and 1 EUR costs USD 1.0900 — that is, $S^{\text{USD/GBP}}=1.2750$ and $S^{\text{USD/EUR}}=1.0900$. Then
+
+$$S^{\text{EUR/GBP}} = \frac{1.2750}{1.0900} = 1.1697 \text{ EUR per GBP.}$$
+
+(Equivalently, 1 EUR ≈ 0.8550 GBP, which is what the market typically *quotes* under the BASE/QUOTE convention as "EUR/GBP ≈ 0.8550" — recall that the market pair name "EUR/GBP" reverses the slash relative to chapter notation; see the Notation Note in §29.1.2.)
 
 Arbitrage keeps cross rates consistent. If the calculated cross differs from the quoted cross by more than transaction costs, traders profit by buying cheap and selling dear across the three pairs. This **triangular arbitrage** keeps the currency market internally consistent.
 
-> **Practitioner Note:** Most retail and interbank platforms quote crosses directly, but the underlying liquidity is in the USD pairs. When you trade EUR/GBP, the dealer often executes EUR/USD and USD/GBP legs, earning the cross spread. This explains why cross pairs typically have wider bid-ask spreads than major USD pairs.
+> **Practitioner Note:** Most retail and interbank platforms quote crosses directly, but the underlying liquidity is in the USD pairs. When you trade EUR/GBP, the dealer often executes EUR/USD and GBP/USD legs, earning the cross spread. This explains why cross pairs typically have wider bid-ask spreads than major USD pairs.
 
 ---
 
@@ -207,26 +215,24 @@ $$\boxed{F_0 = S_0 e^{(r - r_f)T}}$$
 
 where $r$ is the domestic risk-free rate and $r_f$ is the foreign risk-free rate (both continuously compounded).
 
-One intuition is to treat foreign currency as an asset that **earns the foreign risk-free rate**. FX forward pricing then looks like dividend-adjusted forward pricing, with the foreign rate playing the role of a dividend yield.
-
-This is a powerful insight: **FX forward pricing is just dividend-adjusted forward pricing**, with the foreign rate playing the role of the dividend yield.
+One intuition is to treat foreign currency as an asset that **earns the foreign risk-free rate**. FX forward pricing is then a special case of dividend-adjusted forward pricing, with the foreign rate playing the role of a continuous dividend yield.
 
 ### 29.4.2 The Replication Argument
 
-Consider two strategies to convert 1,000 units of foreign currency into domestic currency at time $T$:
+Consider two strategies that each start with 1,000 units of foreign currency at time $0$ and end entirely in domestic currency at time $T$. If both strategies are riskless and self-financing, they must produce the same terminal amount of domestic currency—otherwise the market admits a riskless arbitrage.
 
-**Strategy A (Use forward):**
-1. Enter a forward contract to sell foreign currency at rate $F_0$
-2. At $T$, convert the 1,000 foreign using the forward: receive $1,000 \cdot F_0$ domestic
+**Strategy A (Invest foreign, then convert via forward):**
+1. Today, invest 1,000 foreign at the foreign risk-free rate $r_f$. At $T$ this grows to $1{,}000\\,e^{r_f T}$ foreign.
+2. Today, also enter a forward contract to sell exactly $1{,}000\\,e^{r_f T}$ foreign at rate $F_0$ at time $T$.
+3. At $T$, deliver the foreign principal-plus-interest into the forward and receive $1{,}000\\,e^{r_f T}\\,F_0$ domestic.
 
-**Strategy B (Spot + invest):**
-1. Invest 1,000 foreign at the foreign rate $r_f$: grows to $1,000 \cdot e^{r_f T}$ at $T$
-2. Simultaneously borrow the domestic-currency equivalent today: $1,000 \cdot S_0$
-3. The domestic borrowing grows to $1,000 \cdot S_0 \cdot e^{rT}$ at $T$
+**Strategy B (Convert at spot, then invest in domestic):**
+1. Today, sell 1,000 foreign at spot rate $S_0$ for $1{,}000\\,S_0$ domestic.
+2. Invest $1{,}000\\,S_0$ at the domestic risk-free rate $r$. At $T$ this grows to $1{,}000\\,S_0\\,e^{rT}$ domestic.
 
-For no arbitrage, both strategies must give the same terminal domestic amount:
+Both strategies are riskless (the forward in Strategy A locks in the future FX conversion), and both turn an initial 1,000 foreign into a known domestic amount at $T$. No-arbitrage therefore requires the two terminal amounts to match:
 
-$$1,000 \cdot e^{r_f T} \cdot F_0 = 1,000 \cdot S_0 \cdot e^{rT}$$
+$$1{,}000 \cdot e^{r_f T} \cdot F_0 = 1{,}000 \cdot S_0 \cdot e^{rT}$$
 
 Solving: $F_0 = S_0 e^{(r - r_f)T}$.
 
@@ -379,19 +385,19 @@ No expectations about future spot rates enter this equation. The forward is the 
 
 ### 29.6.2 The Forward Rate Bias Puzzle
 
-**Uncovered interest parity (UIP)** is the empirical hypothesis that expected depreciation offsets the interest differential. One common test runs a regression of spot changes on the forward premium:
+**Uncovered interest parity (UIP)** is the hypothesis that the expected change in spot offsets the interest differential, so an investor is indifferent on average between holding the high-rate currency (and being expected to lose on FX) and holding the low-rate currency (and being expected to gain on FX). One common test runs a regression of spot changes on the forward premium:
 
 $$s_{t+1}-s_t = a + b\left(f_t-s_t\right)+\varepsilon_{t+1},$$
 
-where $s_t=\log S_t$ and $f_t=\log F_t$. Under uncovered interest parity, the slope $b$ should be close to $+1$: a larger forward premium should correspond to expected depreciation.
+where $s_t=\log S_t^{D/F}$ and $f_t=\log F_t^{D/F}$. Under UIP, the slope $b$ should be close to $+1$: in our $D/F$ convention, $f_t - s_t \gt 0$ means the foreign currency trades at a forward premium (domestic rates higher than foreign), and UIP predicts a matching expected appreciation of the foreign currency, $\mathbb{E}[s_{t+1} - s_t] \approx f_t - s_t \gt 0$. Equivalently, the high-rate (domestic) currency is expected to depreciate by roughly the interest differential.
 
-One way to summarize what is found in data: a foreign interest rate one percentage point higher than its usual differential (equivalently, a one percentage point higher forward-spot spread) can be associated with *further appreciation* of the foreign currency rather than depreciation. This is one statement of the **forward discount / forward premium puzzle**.
+A common empirical finding is that the slope $b$ is well below $+1$, often close to zero or even negative. Translated into the $D/F$ convention: when the foreign rate is one percentage point higher than its usual level (so $f_t - s_t$ is *more negative* than usual, i.e., a wider forward discount on the foreign currency), the foreign currency tends on average to *appreciate further* rather than depreciate as UIP predicts. This is the **forward discount / forward premium puzzle** (sometimes called the Fama puzzle).
 
 A practical translation is:
 - **CIP** is a no-arbitrage constraint (within transaction costs and funding frictions).
 - **UIP** is an empirical statement about *risk premia* and can fail.
 
-Carry trades (borrow low-rate, invest high-rate) can earn positive average returns, but they are exposed to tail events (sharp reversals) that are not captured by the forward premium alone.
+Carry trades (borrow low-rate, invest high-rate) have historically earned positive average returns, but they are exposed to tail events (sharp reversals) that are not captured by the forward premium alone.
 
 ### 29.6.3 Practical Implication
 
@@ -497,21 +503,21 @@ If domestic rates exceed foreign rates, $P_D \lt P_F$, so $K \gt S_0$: you pay m
 
 A hedged foreign bond earns the **domestic** rate, not the foreign rate. This is not immediately obvious but follows directly from CIP.
 
-**Example:**
+**Example (simple-rate convention so that DF, rate, and realized return are all stated consistently):**
 - Hold a EUR zero-coupon bond paying €1,000,000 at $T = 1$ year
-- EUR discount factor: $P_F = 0.9750$ (implying ~2.56% EUR rate)
-- USD discount factor: $P_D = 0.9600$ (implying ~4.08% USD rate)
+- EUR discount factor: $P_F = 0.9750$, equivalent to $R_F = 1/P_F - 1 \approx 2.56\\%$ over the year
+- USD discount factor: $P_D = 0.9600$, equivalent to $R_D = 1/P_D - 1 \approx 4.17\\%$ over the year
 - Spot: $S_0 = 1.2000$ USD/EUR
 
 **Unhedged:** Your USD value at maturity depends on the unknown future spot rate.
 
-**Hedged:** Sell €1,000,000 forward at $F = 1.20 \times 0.9750/0.9600 = 1.21875$
+**Hedged:** Sell €1,000,000 forward at $F^{\star} = S_0 \cdot P_F/P_D = 1.2000 \times 0.9750/0.9600 = 1.21875$ USD/EUR.
 
-At maturity, receive $1,218,750$ USD. Your hedged USD return:
+At maturity, receive $1{,}218{,}750$ USD. The USD value invested today (the cost of the EUR ZCB in USD) is $S_0 \cdot P_F \cdot \text{€1{,}000{,}000} = 1.2000 \times 0.9750 \times 1{,}000{,}000 = 1{,}170{,}000$ USD. Your hedged 1-year USD return is:
 
-$$\frac{1,218,750}{1,200,000 \times 0.9750} = \frac{1,218,750}{1,170,000} = 1.0417$$
+$$\frac{1{,}218{,}750}{1{,}170{,}000} = 1.0417,$$
 
-This is $1/0.96 = 4.17\\%$—the USD rate, not the EUR rate.
+i.e., $4.17\\%$ over the year. This matches $R_D = 1/P_D - 1 = 4.17\\%$, the **USD** simple rate—not the EUR rate. (Equivalently in continuous compounding, $\ln(1.0417)\approx -\ln(P_D)\approx 4.08\\%$—same fact, different convention.)
 
 **The hedge transforms your rate exposure along with your currency exposure.** You "converted" the EUR bond into a synthetic USD bond.
 
@@ -668,40 +674,61 @@ $$\Delta V \approx \underbrace{N_F \cdot P_F \cdot \Delta S}_{\text{Spot PnL}} +
 
 Unlike options, forwards don't have time decay in the traditional sense. But they do have **carry**—the P&L from time passing if nothing else changes.
 
-If you're long a forward at $K \lt F^{\star}$ (profitable position), as time passes and the forward approaches maturity, the position value converges to $(F^{\star} - K) \times N_F$. The rate of this convergence is the carry.
+If you're long a forward at $K \lt F^{\star}_t$, as time passes the discount factor approaches 1 so the present value $N_F\\,P_D(t,T)\\,(F^{\star}_t-K)$ pulls toward its undiscounted value $N_F(F^{\star}_t-K)$; in the limit $t\to T$, $F^{\star}_t \to S_t$, so the realized payoff at maturity is $N_F(S_T-K)$. The rate at which $V_t$ changes from time alone (with spot and curves held fixed) is the **carry**.
 
-For a position struck at the fair forward ($K = F^{\star}$), daily carry equals the forward point earn-out:
+A direct calculation from $V_t = N_F (S_t P_F(t,T) - K P_D(t,T))$, holding $S_t$ and the curves fixed and using $\partial P_F/\partial t = r_f P_F$, $\partial P_D/\partial t = r P_D$ under flat continuous rates, gives
 
-$$\text{Daily Carry} \approx N_F \times S \times (r - r_f) \times \frac{1}{365}$$
+$$\frac{\partial V_t}{\partial t}\bigg|_{K=F^{\star}_0} = N_F\\,K\\,P_D(t,T)\\,(r_f - r),$$
+
+i.e., the **long-forward carry has the sign of $r_f - r$**: positive when foreign rates exceed domestic rates, negative when domestic rates are higher. For short tenors $K\\,P_D \approx S$, so a useful daily approximation is
+
+$$\boxed{\text{Daily carry of a long FX forward} \approx N_F \times S \times (r_f - r) \times \frac{1}{365}.}$$
+
+A short forward simply flips the sign. This is the FX-market analogue of "earn the foreign rate, pay the domestic rate" on a synthetic-long-foreign position—when domestic rates are higher than foreign, that synthetic position bleeds carry every day.
 
 ### 29.11.4 Worked P&L Attribution Example
 
-**Position:** Long EUR 10mm vs USD, K = 1.0950, original forward = 1.0950 (struck at fair)
+**Position:** Long EUR 10mm vs USD, struck at the Day 0 fair forward.
 
-**Day 0:**
-- Spot: 1.0800
-- 3M Forward: 1.0950
-- USD 3M rate: 5.5%
-- EUR 3M rate: 4.0%
-- PV = 0 (struck at fair forward)
+**Day 0 (consistent inputs):**
+- Spot $S_0 = 1.0800$
+- USD 3M continuously-compounded rate: $r = 5.5\\%$
+- EUR 3M continuously-compounded rate: $r_f = 4.0\\%$
+- Tenor $T = 0.25$ years
+- Fair forward $F^{\star}_0 = S_0\\,e^{(r-r_f)T} = 1.0800 \times e^{0.00375} \approx 1.0841$
+- Strike $K = F^{\star}_0 = 1.0841$, so $V_0 = 0$
 
 **Day 30:**
-- Spot: 1.0900 (+100 pips)
-- 3M (now 2M) Forward: 1.0975
-- USD rate: 5.6% (+10bp)
-- EUR rate: 3.9% (-10bp)
+- Spot $S_{30} = 1.0900$ (+100 pips)
+- USD rate: $5.6\\%$ (+10 bp)
+- EUR rate: $3.9\\%$ (-10 bp)
+- Remaining tenor: $T - t = 60/365 \approx 0.1644$ years
+- New fair forward $F^{\star}_{30} = 1.0900 \times e^{0.017 \times 0.1644} \approx 1.0930$
+- Discount factors: $P_D^{30} \approx e^{-0.056 \times 0.1644} \approx 0.9908$, $P_F^{30} \approx e^{-0.039 \times 0.1644} \approx 0.9936$
 
-**P&L Attribution:**
+Direct revaluation:
 
-1. **Spot P&L:** $\Delta S \times N_F \times P_F \approx 0.01 \times 10{,}000{,}000 \times 0.99 = +99{,}000$ USD
+$$V_{30} = N_F\\,(S_{30}\\,P_F^{30} - K\\,P_D^{30}) = 10^7\\,(1.0900\times0.9936 - 1.0841\times0.9908) \approx +88{,}900 \text{ USD}.$$
 
-2. **Rates P&L:** The rate differential widened (USD up, EUR down), making EUR at a larger forward premium. This partially offsets or adds to spot P&L depending on the position. Estimate: additional ~USD 5,000.
+**P&L attribution (first-order, evaluated at Day-0 levels):**
 
-3. **Carry P&L:** 30 days of carry at ~1.5% annualized differential = ~USD 12,000.
+1. **Spot P&L:** $N_F\\,P_F\\,\Delta S \approx 10^7 \times 0.9901 \times 0.01 \approx +99{,}000$ USD. (Day-0 $P_F = e^{-0.04\times 0.25} \approx 0.9901$.)
 
-4. **Total P&L:** ~USD 116,000
+2. **Rates P&L:** USD rates up 10 bp and EUR rates down 10 bp widen $r-r_f$ by 20 bp, lifting the fair forward and helping a long position struck at the (now lower) Day 0 fair. Using the toy DV01s of Section 29.9.2 evaluated at $T-t = 0.25$:
 
-(Exact attribution requires full revaluation at intermediate points.)
+$$\Delta V_{r_f} \approx N_F\\,S_0\\,(T-t)\\,P_F^0 \times 10 \text{ bp} \approx +2{,}700 \text{ USD};$$
+
+$$\Delta V_{r_d} \approx N_F\\,K\\,(T-t)\\,P_D^0 \times 10 \text{ bp} \approx +2{,}700 \text{ USD};$$
+
+total Rates P&L $\approx +5{,}400$ USD.
+
+3. **Carry P&L (negative for a long forward when domestic rates exceed foreign):** $K = F^{\star}_0 \gt S_0$, and with rates unchanged the fair forward decays toward spot, so a long position at fair *loses* about $N_F\\,S\\,(r_f - r)/365$ per day. Over 30 days at $r_f - r = -1.5\\%$:
+
+$$\text{Carry} \approx 10^7 \times 1.0800 \times (-0.015) \times \tfrac{30}{365} \approx -13{,}300 \text{ USD}.$$
+
+4. **Total (first-order):** $99{,}000 + 5{,}400 - 13{,}300 \approx +91{,}100$ USD.
+
+This matches the direct revaluation of $\approx +88{,}900$ within $\sim$2.5%; the residual is the second-order cross-term $N_F\\,(\Delta S)(\Delta P_F)$ and discounting effects, which a fully consistent attribution allocates to a small "cross-effects" bucket. (Exact attribution requires full revaluation at intermediate points, or an Itô-style decomposition that includes second-order terms.)
 
 ---
 
@@ -722,13 +749,15 @@ A **Tom/Next (T/N) swap** is the most common rolling mechanism:
 
 The difference between the two rates is the **Tom/Next points**, which reflect one day's worth of interest differential.
 
-### 29.12.3 Implied Overnight Rate
+### 29.12.3 Implied Overnight Rate Differential
 
-From T/N points, you can derive the implied overnight funding rate:
+T/N points reflect one day of interest differential between the two currencies. From them, you can back out the implied **overnight rate differential** (not a single overnight rate):
 
-$$\text{Implied Rate} = \frac{\text{T/N Points}}{\text{Spot}} \times \frac{360}{1} \times 100$$
+$$\text{Implied annualized }(r_d - r_f) \approx \frac{\text{T/N points}}{S} \times 360,$$
 
-This should approximately equal the overnight interest differential. Deviations indicate funding stress or year-end effects.
+where the right-hand side is a decimal (multiply by 100 if you prefer percent). The "360" is the day-count basis used in the major money markets that quote T/N points; for currencies on an ACT/365 basis (e.g., GBP, AUD), use 365 instead. Given a known overnight rate in one currency (e.g., SOFR for USD), the implied rate in the other currency follows by addition or subtraction.
+
+This should approximately equal the actual overnight interest differential between the two OIS curves. Deviations indicate funding stress or year-end effects (and feed directly into the cross-currency basis covered in Chapter 30).
 
 ### 29.12.4 Connection to Cross-Currency Basis
 
@@ -762,18 +791,17 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 
 **Interpretation:** USD rates exceed EUR rates, so EUR trades at a forward premium (more dollars per euro in the forward than at spot).
 
-### Worked Example (Template): 3M EUR/USD Forward — Fair Forward, PV, and Risk
+### Example B: 3M EUR/USD Forward — Fair Forward, PV, and Risk
 
-**Context**
-- A USD-based investor will pay EUR 10,000,000 in 3 months and wants to lock the USD amount.
+**Context.** A USD-based investor will pay EUR 10,000,000 in 3 months and wants to lock the USD amount.
 
-**Timeline (Illustrative; ignore holidays)**
+**Timeline (illustrative; ignore holidays).**
 - Trade date: 2026-02-17
 - Spot value date: 2026-02-19 (assume T+2)
 - Forward value date: 2026-05-19 (3M from spot)
 - Exchange at maturity: physical exchange of EUR and USD on 2026-05-19
 
-**Inputs**
+**Inputs.**
 - Spot (for the spot value date): $S_0^{\text{USD/EUR}} = 1.2000$.
 - Discount factors from spot date to forward date (toy numbers):
   - USD: $P_D=0.9901$
@@ -782,49 +810,45 @@ $$F_0 \approx 1.2181 \text{ USD/EUR}$$
 - Notional: $N_F = 10{,}000{,}000$ EUR.
 - Contract delivery price: $K=1.2100$ USD/EUR (slightly above fair).
 
-**Outputs (What You Produce)**
-- Fair forward $F^{\star}$
-- PV in USD (at trade date; using the spot→forward discount factors)
-- FX delta (foreign units)
-- Curve DV01s (USD per 1bp; bump object and sign as defined in Section 29.9)
+**Outputs.** Fair forward $F^{\star}$; PV in USD at the trade date (using the spot-to-forward discount factors); FX delta in foreign units; curve DV01s in USD per 1 bp under the bump object and sign of Section 29.9.
 
-**Step-by-step**
-
-**Step 1 (Fair forward (CIP, DF form)):**
+**Step 1 — fair forward (CIP, DF form).**
 
 $$F^{\star} = S_0 \frac{P_F}{P_D} = 1.2000 \times \frac{0.9975}{0.9901} = 1.2090.$$
 
-**Step 2 (PV of the off-market forward (long = buy EUR)):**
+**Step 2 — PV of the off-market forward, long (buy EUR).**
 
 $$V_0^{(\text{USD})}=N_F\left(S_0P_F-KP_D\right)=10{,}000{,}000\left(1.2000\times0.9975-1.2100\times0.9901\right)\approx-10{,}200.$$
 
-**Step 3 (FX delta (foreign units)):**
+The PV is *negative* because $K=1.2100$ is above the fair $F^{\star}=1.2090$: the long forward overpays for EUR by about $0.001$ USD per EUR, applied to the discounted notional.
 
-$$\frac{\partial V}{\partial S}=N_F P_F=10{,}000{,}000\times0.9975=9{,}975{,}000\ \text{EUR}.$$
+**Step 3 — FX delta (foreign units).**
 
-**Step 4 (Curve DV01s (toy parallel bump, $1\text{bp}=10^{-4}$, $\tau=0.25$)):**
+$$\frac{\partial V}{\partial S}=N_F P_F=10{,}000{,}000\times0.9975=9{,}975{,}000\\,\text{EUR}.$$
+
+**Step 4 — curve DV01s** (toy parallel bump on each curve separately; $1\\,\text{bp}=10^{-4}$; $\tau=0.25$).
 
 $$DV01_F \approx +N_F\\,S_0\\,\tau\\,P_F\\,10^{-4}=+10{,}000{,}000\times1.2000\times0.25\times0.9975\times10^{-4}\approx +299.$$
 
 $$DV01_D \approx -N_F\\,K\\,\tau\\,P_D\\,10^{-4}=-10{,}000{,}000\times1.2100\times0.25\times0.9901\times10^{-4}\approx -300.$$
 
-**Cashflows**
+**Cashflows.**
 | Date | Cashflow | Explanation |
 |---|---:|---|
 | 2026-05-19 | +€10,000,000 | Receive foreign notional |
 | 2026-05-19 | -USD 12,100,000 | Pay domestic notional $K\times N_F$ |
 
-**P&L / Risk Interpretation**
+**P&L and risk interpretation.**
 - **Spot move:** if EUR/USD rises by $+0.01$, PV increases by about $\Delta V \approx (N_F P_F)\Delta S \approx 9.975\times 10^6 \times 0.01 \approx +99{,}750$ USD.
-- **Rates move:** a 1bp down shift in EUR discounting increases PV by $\approx +299$ USD; a 1bp down shift in USD discounting decreases PV by $\approx -300$ USD.
-- **Desk mapping:** it is natural to treat the forward as “long foreign ZCB, short domestic ZCB” plus spot delta; many risk systems bucket the two DV01s onto the respective curves.
+- **Rates move:** a 1 bp down shift in EUR discounting increases PV by $\approx +299$ USD; a 1 bp down shift in USD discounting changes PV by $\approx -300$ USD (i.e., decreases PV by about USD 300).
+- **Desk mapping:** it is natural to treat the forward as "long foreign ZCB, short domestic ZCB" plus spot delta; many risk systems bucket the two DV01s onto the respective curves.
 
-**Sanity Checks**
-- Units: $S, K$ are USD/EUR, so $N_F(SP_F-KP_D)$ is USD.
+**Sanity checks.**
+- Units: $S, K$ are USD/EUR, so $N_F(SP_F-KP_D)$ is in USD.
 - Zero-value check: if $K=F^{\star}$, PV is (approximately) 0 at inception.
 - Quote-direction check: if you invert the quote, invert the DF ratio as well.
 
-### Example D: Arbitrage When Forward Is Mispriced
+### Example C: Arbitrage When Forward Is Mispriced
 
 **Given:** Same as the worked example above, but market forward is $F_{\text{mkt}} = 1.2200$ (too high vs CIP-implied 1.2090).
 
