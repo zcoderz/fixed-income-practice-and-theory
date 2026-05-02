@@ -143,14 +143,14 @@ Tenor labels (3Y/5Y/7Y/10Y) refer to **standard maturity dates**, not “exactly
 
 **Table 45.2: Standard Maturity Points**
 
-| Maturity Label | Most Liquid? | Typical Use |
-|----------------|--------------|-------------|
-| 3Y | No | Short-dated hedging |
-| 5Y | Yes | Benchmark trading, hedging |
-| 7Y | No | Curve trades |
-| 10Y | Yes | Long-dated exposure |
+| Maturity Label | Liquidity (typical) | Typical Use |
+|----------------|---------------------|-------------|
+| 3Y | Light | Short-dated hedging |
+| 5Y | Deep (benchmark) | Benchmark trading, broad hedging |
+| 7Y | Light | Curve trades |
+| 10Y | Moderate | Long-dated exposure (secondary benchmark) |
 
-Practical intuition: the 5Y tenor is often treated as the benchmark point; other tenors can exist but may be less liquid depending on the family and market conditions.
+Practical intuition: the 5Y tenor is the primary benchmark in most index families; 10Y is a secondary benchmark; 3Y and 7Y are typically lighter and quoted on demand.
 
 ---
 
@@ -290,7 +290,7 @@ $$\boxed{\text{Accrued Premium} = N_{\text{out}} \times C \times \Delta(t_{\text
 
 where $\Delta(\cdot,\cdot)$ is a day-count year fraction (often ACT/360 for standard CDS coupons; always confirm for the specific index).
 
-**Check (accrued scale):** one day of accrued premium is about $N_{\text{out}}\times C \times (1/360)$. For $N_{\text{out}}=USD 50\text{mm}$ and $C=100$ bp, that is $USD 13{,}889$ per day. If your accrued is off by 10×, you likely mixed bp and percent or used the wrong day-count denominator.
+**Check (accrued scale):** one day of accrued premium is about $N_{\text{out}}\times C \times (1/360)$. For $N_{\text{out}}=USD\,50\text{mm}$ and $C=100$ bp $=0.0100$, that is $50{,}000{,}000 \times 0.0100 / 360 \approx USD\,1{,}389$ per day. If your accrued comes out 10× larger, you likely mixed bp and percent (using $C=0.10$ instead of $0.0100$) or used the wrong day-count denominator.
 
 > **Quick check:** If one system reports “clean” and another reports “full/dirty,” the difference is often just accrued premium (plus small settlement mechanics). When P&L breaks, reconcile **upfront vs accrued** before assuming the model is wrong.
 
@@ -543,10 +543,10 @@ Why the basis can be positive or negative (mechanism-level):
 
 **Inputs**
 - Instrument: 5Y investment-grade index (series per confirmation)
-- Notional: $N=USD 50{,}000{,}000$
-- Current index factor: $f=0.984$ ⇒ $N_{\text{out}}=Nf=USD 49{,}200{,}000$
-- Fixed coupon: $C=100\text{bp}=0.0100$
-- Quoted index spread: $S_{I,\text{bp}}=160\text{bp}$ (i.e., $S_I=0.0160$)
+- Notional: $N=USD\,50{,}000{,}000$
+- Current index factor: $f=0.984$, so $N_{\text{out}}=Nf=USD\,49{,}200{,}000$.
+- Fixed coupon: $C=100\text{ bp}=0.0100$
+- Quoted index spread: $S_{I,\text{bp}}=160\text{ bp}$ (i.e., $S_I=0.0160$)
 - Risky annuity: $A_I=4.20$ years (per unit notional, per Chapter 38)
 - Day count for coupon accrual: ACT/360
 
@@ -561,17 +561,17 @@ Why the basis can be positive or negative (mechanism-level):
 **Step-by-step**
 1. Translate quote → upfront:
    - Convert annuity to $\text{RPV01}$ (currency per bp for this position):
-     $RPV01_I = N_{\text{out}} \times 10^{-4} \times A_I = USD 49.2\text{mm}\times 10^{-4}\times 4.20 = USD 20{,}664/\text{bp}$
+     $RPV01_I = N_{\text{out}} \times 10^{-4} \times A_I = USD\,49{,}200{,}000\times 10^{-4}\times 4.20 = USD\,20{,}664/\text{bp}$
    - Spread difference: $S_{I,\text{bp}}-C_{\text{bp}} = 160-100 = 60$ bp
-   - Dollar upfront $U_{\mathrm{USD}}\approx 60\times USD 20{,}664 = USD 1{,}239{,}840$ (paid by protection buyer)
-   - Upfront fraction $U=U_{\mathrm{USD}}/N_{\text{out}} = 1{,}239{,}840/49.2\text{mm} = 0.0252$ ⇒ $U_{\mathrm{pct}}=2.52\%$
+   - Dollar upfront $U_{\mathrm{USD}}\approx 60\times USD\,20{,}664 = USD\,1{,}239{,}840$ (paid by protection buyer)
+   - Upfront fraction $U=U_{\mathrm{USD}}/N_{\text{out}} = 1{,}239{,}840/49{,}200{,}000 \approx 0.02520$, so $U_{\mathrm{pct}}\approx 2.52\%$
 2. Accrued premium from last coupon to effective (step-in) date:
    - Day count: $\Delta = 60/360 = 0.166\overline{6}$ (2025-12-20 → 2026-02-18, ACT/360)
-   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD\,49{,}200{,}000\times 0.0100\times 0.16667=USD\,82{,}000.00$ (paid by protection buyer)
+   - Accrued premium $=N_{\text{out}}\times C\times \Delta=USD\,49{,}200{,}000\times 0.0100\times 0.16667\approx USD\,82{,}000$ (paid by protection buyer)
 3. Settlement cash (what actually moves on settlement date):
    - Total cash at settlement $\approx USD\,1{,}239{,}840+USD\,82{,}000=USD\,1{,}321{,}840$ paid
 4. CS01 check (spread down 1bp, hold other inputs fixed):
-   - With the down-bump definition, $\text{CS01}\approx -RPV01_I = -USD 20{,}664/\text{bp}$ for long protection.
+   - With the down-bump definition, $\text{CS01}\approx -RPV01_I = -USD\,20{,}664$/bp for long protection.
 
 **Cashflows (illustrative)**
 | Date | Cashflow | Explanation |
@@ -601,7 +601,7 @@ Why the basis can be positive or negative (mechanism-level):
 ### Example 45.C: Calculate Index Notional and Coupon After Defaults
 
 **Given:** CDX.NA.IG with:
-- Initial notional $N = USD 100,000,000$
+- Initial notional $N = USD\,100{,}000{,}000$
 - Number of constituents $M = 125$
 - Coupon $C = 100$ bp $= 0.0100$
 - Quarterly accrual fraction $\alpha = 0.25$
@@ -615,24 +615,26 @@ $$f = \frac{M - D}{M} = \frac{125 - 2}{125} = \frac{123}{125} = 0.984$$
 
 **Step 2:** Outstanding notional:
 
-$$N_{\text{out}} = N \times f = 100,000,000 \times 0.984 = USD 98,400,000$$
+$$N_{\text{out}} = N \times f = 100{,}000{,}000 \times 0.984 = USD\,98{,}400{,}000$$
 
 **Step 3:** Quarterly coupon payment:
 
 **Before defaults:**
-$$\text{Coupon} = 100,000,000 \times 0.0100 \times 0.25 = USD 250,000$$
+
+$$\text{Coupon} = 100{,}000{,}000 \times 0.0100 \times 0.25 = USD\,250{,}000$$
 
 **After 2 defaults:**
-$$\text{Coupon} = 98,400,000 \times 0.0100 \times 0.25 = USD 246,000$$
 
-**Reduction:** $USD 250,000 - USD 246,000 = USD 4,000$ per quarter
+$$\text{Coupon} = 98{,}400{,}000 \times 0.0100 \times 0.25 = USD\,246{,}000$$
+
+**Reduction:** $USD\,250{,}000 - USD\,246{,}000 = USD\,4{,}000$ per quarter.
 
 ---
 
 ### Example 45.D: Default Settlement Calculation
 
 **Given:**
-- Index notional $N = USD 50,000,000$
+- Index notional $N = USD\,50{,}000{,}000$
 - Number of names $M = 125$
 - One constituent defaults
 - Auction final price $FP = 35$ (per 100 face value)
@@ -641,7 +643,7 @@ $$\text{Coupon} = 98,400,000 \times 0.0100 \times 0.25 = USD 246,000$$
 
 **Step 1:** Per-name notional:
 
-$$N_{\text{name}} = \frac{N}{M} = \frac{50,000,000}{125} = USD 400,000$$
+$$N_{\text{name}} = \frac{N}{M} = \frac{50{,}000{,}000}{125} = USD\,400{,}000$$
 
 **Step 2:** Loss given default (LGD) fraction:
 
@@ -649,11 +651,11 @@ $$\text{LGD fraction} = 1 - \frac{FP}{100} = 1 - 0.35 = 0.65 = 65\%$$
 
 **Step 3:** Protection payment:
 
-$$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400,000 \times 0.65 = USD 260,000$$
+$$\text{Payment} = N_{\text{name}} \times \text{LGD fraction} = 400{,}000 \times 0.65 = USD\,260{,}000$$
 
 **Sanity checks:**
-- If $FP = 0$ (total loss): Payment $= USD 400,000$ ✓ (bounded by per-name notional)
-- If $FP = 100$ (full recovery): Payment $= USD 0$ ✓
+- If $FP = 0$ (total loss): Payment $= USD\,400{,}000$ ✓ (bounded by per-name notional)
+- If $FP = 100$ (full recovery): Payment $= USD\,0$ ✓
 
 ---
 
@@ -718,9 +720,9 @@ i.e., $U_{\mathrm{USD}}\lt 0$ means the **protection buyer receives** USD 2,180,
 ### Example 45.G: Index Factor Impact on CS01
 
 **Given:**
-- CDX.NA.IG position: USD 100mm notional, 5Y maturity
-- Index CS01 magnitude (at full factor, $f=1$): $|\text{CS01}| = USD\,47{,}000$ per bp
-- Current factor: $f = 0.976$ (3 defaults have occurred)
+- CDX.NA.IG position: $N = USD\,100{,}000{,}000$ original notional, 5Y maturity.
+- Index CS01 magnitude at full factor ($f=1$): $|\text{CS01}_{f=1}| = USD\,47{,}000$ per bp.
+- Current factor: $f = 0.976$ (corresponding to one default in a 125-name index since $1/125=0.008$, so three defaults give $f = 1 - 3/125 = 0.976$).
 
 **Task:** Compute the CS01 magnitude at the current factor.
 
@@ -730,7 +732,7 @@ $$|\text{CS01}_f| = |\text{CS01}_{f=1}| \times f = USD\,47{,}000 \times 0.976 = 
 
 The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for **long protection** the value is **negative** (so $\text{CS01}\approx -USD\,45{,}872$/bp); for **short protection** it is positive.
 
-**Risk implication:** If your risk system stores the full-factor CS01 (USD 47,000 per bp) but the actual factor is 0.976, the *reported* magnitude is overstated by USD 1,128 per bp. Over a 10 bp move, that is an USD 11,280 P&L attribution discrepancy.
+**Risk implication:** If your risk system still carries the full-factor CS01 ($USD\,47{,}000$/bp) but the actual factor is 0.976, the *reported* magnitude is overstated by $USD\,1{,}128$/bp. Over a 10 bp move, that is a $USD\,11{,}280$ P&L attribution discrepancy.
 
 ---
 
@@ -744,7 +746,7 @@ The sign of CS01 follows the bump convention used in §45.2.7 (down-bump): for *
 - [ ] **Quoting convention:** Spread (IG) vs. price (HY/EM)
 - [ ] **Fixed coupon:** Series-specific; confirm from confirmation/reference data
 - [ ] **Upfront:** Amount and direction (pay/receive)
-- [ ] **Settlement date:** Per confirmation/platform; do not assume
+- [ ] **Settlement date:** Post-Big-Bang/SNAC standard is T+3 business days; verify against confirmation
 - [ ] **Current index factor:** Number of names removed and current factor
 - [ ] **Accrued premium:** If trading between coupon dates
 - [ ] **Cash reconciliation:** Settlement cash = upfront + accrued premium (check sign and units)
