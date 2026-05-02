@@ -338,9 +338,9 @@ Consider a 5-year 3% annual coupon bond priced at 100.905 (per USD100 face) vers
 
 **Bond DV01 (per USD100 face):**
 
-Under a +1bp bump to yields, the bond price falls to approximately 100.857.
+Under a +1bp bump to yields, the bond price falls to approximately 100.8574.
 
-$$DV01_{\text{bond}} = 100.905 - 100.857 = 0.0476 \text{ per USD100 face}$$
+$$DV01_{\text{bond}} = 100.905 - 100.8574 = 0.0476 \text{ per USD100 face}$$
 
 For USD10mm face: $DV01 = USD4{,}758$ per bp.
 
@@ -727,7 +727,8 @@ Heavy corporate issuance plus hedging flows can move swap spreads because the �
 | **Bond investors** | Cash (to buy bonds) | 4.50% fixed | Long fixed-rate credit |
 | **XYZ Corp** | 4.50% (bond) + SOFR (swap floating) | 4.00% (swap fixed) | Floating-rate liability (SOFR + 50bp) |
 | **Bank (swap dealer)** | 4.00% (swap fixed) | SOFR (swap floating) | Short fixed / long floating (rate-short, hedged separately) |
-| **Treasury market** | (receives supply from bank hedging) | | |
+
+(The bank's separate hedge — typically buying or selling Treasuries and/or entering offsetting swaps — is not shown above. Aggregate corporate-issuance hedging flows are one of several drivers of swap-spread moves, alongside dealer balance-sheet capacity and Treasury supply/demand.)
 
 ---
 
