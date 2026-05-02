@@ -628,7 +628,7 @@ Before modeling settlement outcomes, verify:
 
 **Q6:** Soft events preserve term structure → different obligations trade at different prices → buyer can choose cheapest. Hard events collapse all debt to one price → no choice benefit.
 
-**Q7:** Per 100 face: $V_{\text{DO}}/100 = (P_{\text{hedged}}-P_{\text{CTD}})/100 = (48-40)/100 = 0.08$ (8 points, i.e., 8% of face). For $N=\mathrm{USD}\\,10\text{mm}$: $V_{\text{DO}}=10{,}000{,}000\times 0.08=\mathrm{USD}\\,800{,}000$.
+**Q7:** Fractional delivery-option value: $(P_{\text{hedged}}-P_{\text{CTD}})/100 = (48-40)/100 = 0.08$ (8 points, i.e., 8% of face). Per 100 of face this is USD 8. For $N=\mathrm{USD}\\,10\text{mm}$: $V_{\text{DO}}=N\times 0.08=10{,}000{,}000\times 0.08=\mathrm{USD}\\,800{,}000$.
 
 **Q9:** $\Pi_{\text{cash}} = N(1 - P_{\text{final}}/100)$. $\Pi_{\text{phys}} = N(1 - P_{\text{CTD}}/100)$. If $P_{\text{final}} = P_{\text{CTD}}$, both equal $N(1 - P_{\text{CTD}}/100)$. QED.
 
