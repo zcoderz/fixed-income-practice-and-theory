@@ -66,11 +66,11 @@ $$\Delta(t_{n-1}, t_n) = \frac{\text{DayDiff}(t_{n-1}, t_n)}{360}$$
 
 **Unit check:** $N$ (dollars) × $s$ (1/year) × $\Delta$ (years) = dollars. The spread is quoted per annum, and the accrual fraction converts the annual rate to the period's portion.
 
-**Sign check:** If you write cashflows from the position-holder perspective (positive = received), then premium payments are **negative** for the protection buyer and **positive** for the protection seller:
+**Sign check:** If you write cashflows from the position-holder perspective (positive = receive), then premium payments are **negative** for the protection buyer and **positive** for the protection seller:
 
 $$
-PremiumCashflow_{\mathrm{buyer}}(t_n)=-N s \Delta(t_{n-1},t_n),\qquad
-PremiumCashflow_{\mathrm{seller}}(t_n)=+N s \Delta(t_{n-1},t_n).
+\text{PremiumCF}_{\mathrm{buyer}}(t_n)=-N\,s\,\Delta(t_{n-1},t_n),\qquad
+\text{PremiumCF}_{\mathrm{seller}}(t_n)=+N\,s\,\Delta(t_{n-1},t_n).
 $$
 
 **Example:** Consider a USD 10 million notional CDS with a 35 bp running spread. For a 91-day quarter:
@@ -217,8 +217,7 @@ $$\text{AccruedPrem} = 10{,}000{,}000 \times 0.0035 \times \frac{49}{360} = USD 
 
 **Sanity check:** The accrued amount (USD 4,764) is less than a full quarter's premium (USD 8,847), as expected since default occurred roughly halfway through the period.
 
-**Check (rule of thumb):** If default time within the period is “roughly uniform” for intuition, then accrued premium at default is often on the order of **half** of the full-period premium: $AccruedPrem(\tau)\approx \frac{1}{2} N s \Delta(t_{n-1},t_n)$.
-This is the same mid-period-default intuition used later when approximating the accrued-at-default contribution to `RPV01`.
+**Check (rule of thumb):** If default time within the period is "roughly uniform" for intuition, then the accrued premium at default is often on the order of **half** of the full-period premium: $\text{AccruedPrem}(\tau)\approx \tfrac{1}{2}\,N\,s\,\Delta(t_{n-1},t_n)$. This is the same mid-period-default intuition used later when approximating the accrued-at-default contribution to RPV01.
 
 ### 38.4.2 Premium Payments Stop at Default
 
@@ -268,7 +267,7 @@ $$\boxed{\text{RPV01}(t,T) = N \times 10^{-4} \times A(t,T)}$$
 
 where $1\text{ bp}=10^{-4}$ and $N$ is the CDS notional.
 
-**Check (order of magnitude):** For a 5Y quarterly CDS, the risky annuity $A(t,T)$ is typically a few “years” (less than the risk-free annuity because survival $Q$ downweights later coupons). So for $N=USD 10\text{mm}$, you expect `RPV01` to be on the order of $10{,}000{,}000\times 10^{-4}\times A \approx 1{,}000\times A$, i.e., a few thousand dollars per bp—not USD 100k/bp and not USD 10/bp.
+**Check (order of magnitude):** For a 5Y quarterly CDS, the risky annuity $A(t,T)$ is typically a few years (less than the risk-free annuity because survival $Q$ downweights later coupons). So for $N=$ USD 10 million, you expect RPV01 to be on the order of $10{,}000{,}000\times 10^{-4}\times A \approx 1{,}000\times A$, i.e., a few thousand dollars per bp — not USD 100k/bp and not USD 10/bp.
 
 ### 38.5.1 Premium Leg Present Value
 
@@ -290,19 +289,21 @@ Start from the building blocks from Chapter 36.
 
 $$\hat{Z}(t, t_n) = Z(t, t_n) \cdot Q(t, t_n)$$
 
-where `Z(t, t_n)` is the risk-free discount factor and `Q(t, t_n)` is the survival probability.
+where $Z(t, t_n)$ is the risk-free discount factor and $Q(t, t_n)$ is the survival probability.
+
+Let $M$ denote the number of remaining premium periods to maturity (we use $M$ here so as not to clash with the notional $N$).
 
 **Component 1 — Scheduled Payments:**
 
-For scheduled premium payments made at dates $t_1, \ldots, t_N$ if the credit survives:
+For scheduled premium payments made at dates $t_1, \ldots, t_M$ if the credit survives:
 
-$$A_{\text{sched}}(t,T) = \sum_{n=1}^{N} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot Q(t, t_n)$$
+$$A_{\text{sched}}(t,T) = \sum_{n=1}^{M} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot Q(t, t_n)$$
 
 **Component 2 — Accrued at Default:**
 
 If default occurs between $t_{n-1}$ and $t_n$, accrued premium from $t_{n-1}$ to the default time $\tau$ must be paid. The exact PV involves an integral over default time, but a practical approximation is:
 
-$$A_{\text{accr}}(t,T) \approx \frac{1}{2} \sum_{n=1}^{N} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) - Q(t, t_n))$$
+$$A_{\text{accr}}(t,T) \approx \frac{1}{2} \sum_{n=1}^{M} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) - Q(t, t_n))$$
 
 The intuition: on average, default occurs mid-period, so the expected accrued is half the full period's premium.
 
@@ -310,9 +311,9 @@ The intuition: on average, default occurs mid-period, so the expected accrued is
 
 Combining both components and applying the mid-period-default approximation yields:
 
-$$\boxed{A(t, T) = \frac{1}{2} \sum_{n=1}^{N} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) + Q(t, t_n))}$$
+$$\boxed{A(t, T) = \frac{1}{2} \sum_{n=1}^{M} \Delta(t_{n-1}, t_n) \cdot Z(t, t_n) \cdot (Q(t, t_{n-1}) + Q(t, t_n))}$$
 
-This elegant formula averages adjacent survival probabilities for each period, capturing both the scheduled payment (weighted by `Q(t, t_n)`) and the expected accrued at default (difference term).
+This formula averages adjacent survival probabilities for each period, capturing both the scheduled payment (weighted by $Q(t, t_n)$) and the expected accrued at default (the $Q(t,t_{n-1})-Q(t,t_n)$ "default in this period" term).
 
 **Sanity checks:**
 - If $Q(t, t_n) = 1$ for all $n$ (no default risk), $A$ reduces to the risk-free annuity
@@ -383,11 +384,11 @@ $$\text{RPV01}(0,2) = N \times 10^{-4} \times A(0,2) = 10{,}000{,}000 \times 10^
 **Bump size:** $1\text{ bp} = 10^{-4}$  
 **Units:** currency per 1 bp for the stated notional  
 
-**Sign convention (aligned to Chapter 37):**
+**Sign convention (aligned to Chapter 37):** writing $V_{\text{long-credit}}(S)$ for the PV of a long-credit position (e.g., long a bond, or short protection) as a function of the relevant spread $S$,
 
-$$\boxed{CS01 \equiv -\bigl(P(S+1\text{ bp}) - P(S)\bigr)}$$
+$$\boxed{CS01 \equiv -\bigl(V_{\text{long-credit}}(S+1\text{ bp}) - V_{\text{long-credit}}(S)\bigr)}$$
 
-so that spread widening ($+1$ bp) implies $P \downarrow$ and $CS01\gt 0$ for **long-credit** positions (e.g., selling protection).
+so that spread widening ($+1$ bp) makes $V_{\text{long-credit}}$ fall and $CS01\gt 0$ for **long-credit** positions (e.g., selling protection).
 
 Using the MTM identity $V(t) = (S_{\text{bp}}(t,T)-S_{0,\text{bp}})\,\text{RPV01}(t,T)$ (and holding `RPV01` fixed), a $+1$ bp widening changes PV by approximately:
 
@@ -783,8 +784,8 @@ Before booking a CDS trade, verify:
 | 15 | What is the risky annuity $A(t,T)$? | The survival-weighted PV factor (years) that underlies RPV01: $RPV01 = N \times 10^{-4}\times A$ |
 | 16 | If spread > coupon, who pays upfront? | Protection buyer pays |
 | 17 | If spread < coupon, who pays upfront? | Protection seller pays (buyer receives) |
-| 18 | Approx upfront (dollars) in fixed coupon trades? | $Upfront_{\mathrm{USD}} \approx (s_{\text{bp}}-c_{\text{bp}})\times RPV01$ |
-| 19 | Approx MTM identity (long protection)? | $V\approx (S_{\text{bp}}-S_{0,\text{bp}})\times RPV01$ |
+| 18 | Approx upfront (dollars) in fixed coupon trades? | $\text{Upfront}_{\mathrm{USD}} \approx (s_{\text{bp}}-c_{\text{bp}})\times \text{RPV01}$ |
+| 19 | Approx MTM identity (long protection)? | $V\approx (S_{\text{bp}}-S_{0,\text{bp}})\times \text{RPV01}$ |
 | 20 | What is clean vs full MTM? | Clean excludes accrued; full includes accrued: Clean = Full − Accrued |
 | 21 | When might trades be quoted in upfront format? | When spreads are very wide (distressed); quotes naturally become upfront % of notional |
 | 22 | What is the settlement timing for CDS unwind? | Often a short lag (e.g., T+3 business days; confirmation-specific) |
