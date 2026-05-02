@@ -373,13 +373,13 @@ Exact MTM/resettable mechanics vary by currency pair and documentation (reset fr
 Consider a USD/JPY basis swap with USD notional $N_{\text{USD}}=1$ and JPY notional $N_{\text{JPY}}=1/X(0)$ JPY (notionals matched at the spot $X(0)$, in USD per JPY, at inception). One side receives USD floating flat in exchange for paying JPY floating plus a fixed spread $e_{\text{JPY}}$. Under the simplifying assumption that the USD index curve coincides with the USD discount curve, the USD floating leg (plus principal repayment) prices to par, $1$ USD. The JPY floating leg (plus principal repayment) then prices, **per unit JPY notional in JPY**, to
 
 $$
-B(e_{\text{JPY}}) \;=\; \sum_{i=0}^{n-1}\left(\frac{P_{\text{JPY}}^{(L)}(0,t_i)}{P_{\text{JPY}}^{(L)}(0,t_{i+1})} - 1 + e_{\text{JPY}}\,\tau_i\right) P_{\text{JPY}}(0,t_{i+1}) \;+\; P_{\text{JPY}}(0,t_n).
+B(e_{\text{JPY}}) = \sum_{i=0}^{n-1}\left(\frac{P_{\text{JPY}}^{(L)}(0,t_i)}{P_{\text{JPY}}^{(L)}(0,t_{i+1})} - 1 + e_{\text{JPY}}\\,\tau_i\right) P_{\text{JPY}}(0,t_{i+1}) + P_{\text{JPY}}(0,t_n).
 $$
 
 Multiplying by the matched JPY notional and converting to USD at spot, the JPY leg is worth $X(0)\cdot N_{\text{JPY}}\cdot B(e_{\text{JPY}}) = B(e_{\text{JPY}})$ USD. The USD value of the basis swap (to the receive-USD/pay-JPY side, per $1$ USD notional) is therefore
 
 $$
-V_{\text{basisswap},\text{USD}}(0) \;=\; 1 \;-\; B(e_{\text{JPY}}).
+V_{\text{basisswap},\text{USD}}(0) = 1 - B(e_{\text{JPY}}).
 $$
 
 Two ingredients went into this formula:
@@ -716,7 +716,7 @@ This risk is distinct from both FX delta and rates DV01. A portfolio can be FX-h
 >
 > From Example 21.3, the basis swap PV (per receive-USD/pay-JPY side, with USD notional $N_d$) is
 >
-> $V = N_d\\,[1 - (B + e\,A)]$
+> $V = N_d\\,[1 - (B + e\\,A)]$
 >
 > where $B$ is the "no-basis" JPY floating-leg PV (per JPY notional, in JPY) and $A$ is the JPY spread annuity. Sensitivity to the JPY-leg basis spread:
 >
