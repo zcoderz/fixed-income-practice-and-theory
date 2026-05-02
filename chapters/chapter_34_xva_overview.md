@@ -77,8 +77,6 @@ Understanding XVA requires distinguishing three different notions of "value":
 >
 > This tension is structural: Sales optimizes flow and client relationships; Trading is measured on risk-adjusted returns after internal charges/reserves. The practical resolution is transparency: agree on an XVA methodology and show the client a clean price alongside an all-in price.
 
----
-
 ### 34.1.4 TVA (Advanced): Why the Stack Is Not Unique
 
 We will call **total valuation adjustment (TVA)** the aggregate value of all the adjustments which are required in order to account for bilateral counterparty risk under funding constraints.
@@ -642,12 +640,16 @@ $$
 
 **Step 2: DVA Calculation**
 
-Assume bank CDS spread: 60 bp, and the bank's negative exposure (when the swap is in-the-money to the counterparty) averages USD 1.5M.
+Assume bank CDS spread: 60 bp, and the bank's negative exposure (when the swap is in-the-money to the counterparty) averages USD 1.5M. Assume bank recovery $R = 40\\%$ as well.
 
-Bank's 7-year default probability: about 6%
+Implied bank hazard rate and 7-year default probability:
 
 $$
-\text{DVA} \approx (1 - 0.40) \times 0.06 \times 1{,}500{,}000 = 54{,}000
+h_{\text{bank}} \approx \frac{0.006}{0.60} = 0.01\text{/yr},\qquad 1 - Q_{\text{bank}}(7) = 1 - e^{-0.07} \approx 0.07.
+$$
+
+$$
+\text{DVA} \approx (1 - 0.40) \times 0.07 \times 1{,}500{,}000 \approx 63{,}000
 $$
 
 **Step 3: FVA Calculation**
@@ -688,17 +690,17 @@ $$
 |-----------|--------|------|
 | Mid-Market NPV | USD 1,200,000 | + |
 | CVA | USD (240,000) | − |
-| DVA | USD 54,000 | + |
+| DVA | USD 63,000 | + |
 | FVA | USD (18,000) | − |
 | MVA | USD (48,600) | − |
 | KVA | USD (880,000) | − |
-| **Net Desk Economics** | **USD 67,400** | |
+| **Net Desk Economics** | **USD 76,400** | |
 
-**Interpretation:** The "profitable" USD 1.2M trade actually nets only about USD 67K for the desk after XVA charges. The KVA alone consumes USD 880K — roughly 73% of the gross NPV — and dominates the entire stack.
+**Interpretation:** The "profitable" USD 1.2M trade actually nets only about USD 76K for the desk after XVA charges. The KVA alone consumes USD 880K — roughly 73% of the gross NPV — and dominates the entire stack.
 
 > **Desk Reality: The Deal/No-Deal Decision**
 >
-> At about USD 67K net on USD 1.2M of mid-market value, should the desk do this trade?
+> At about USD 76K net on USD 1.2M of mid-market value, should the desk do this trade?
 >
 > **Arguments for:**
 > - Client relationship value
@@ -706,11 +708,11 @@ $$
 > - Flow that improves hedging efficiency elsewhere
 >
 > **Arguments against:**
-> - Approximate ROE on USD 2.2M capital, averaged over the 7-year life: $\mathrm{ROE} \approx \frac{67{,}400}{2{,}200{,}000 \times 7} \approx 0.4\\%$ per year.
+> - Approximate ROE on USD 2.2M capital, averaged over the 7-year life: $\mathrm{ROE} \approx \frac{76{,}400}{2{,}200{,}000 \times 7} \approx 0.5\\%$ per year.
 > - Bank's hurdle rate is 12%, so this trade destroys value
 > - Capital may be better deployed elsewhere
 >
-> **The XVA desk's role:** Provide these numbers so the decision is informed. Do not let sales book a trade as "USD 1.2M profit" when desk economics say only USD 67K.
+> **The XVA desk's role:** Provide these numbers so the decision is informed. Do not let sales book a trade as "USD 1.2M profit" when desk economics say only USD 76K.
 
 ---
 
@@ -763,6 +765,20 @@ $$\mathrm{CVA}_{\text{WWR}} = 0.6 \times 510{,}000 = \boxed{306{,}000 \text{ USD
 
 **Takeaway:** The positive correlation between exposure and default probability materially increases CVA. In this stylized example, using “average exposure × average PD” understates the true expected loss by over 50%.
 
+### 34.9.4 The Alpha Multiplier (Regulatory Shortcut)
+
+Modeling WWR explicitly — i.e., a joint dynamics for market factors and counterparty credit — is hard. A common regulatory shortcut, used in Basel's Internal Model Method (IMM) for counterparty credit risk capital, is to multiply the *independence-based* effective EPE by a fixed scalar $\alpha$ — the **alpha multiplier** — as a blanket conservative adjustment for general WWR and other model risks:
+
+$$
+\mathrm{EAD} = \alpha \times \mathrm{Effective\ EPE}.
+$$
+
+The standard supervisory value is $\alpha = 1.4$ (banks may receive approval to use an internal alpha subject to a 1.2 floor). The shortcut is a *capital* device, not a fair-value device: it sits on the regulatory EAD/RWA side, not on desk-economics CVA. But it is a useful mental model — when you cannot compute the joint expectation correctly, multiplying an independence-based estimate by a factor of order 1.4 is a defensible first-pass conservatism.
+
+> **What it is, and isn't:**
+> - **It is:** a conservative scalar applied to an independence-based exposure measure to derive a regulatory EAD.
+> - **It isn't:** a substitute for explicit dependence modeling on a desk that needs sensitivities — an alpha multiplier does not tell you *how* to hedge WWR.
+
 ---
 
 ## 34.10 The XVA Desk: Organization and Transfer Pricing
@@ -789,9 +805,9 @@ Banks organize XVA management in one of two ways:
 >
 > **At trade inception:**
 > - Trader shows +USD 1.2M NPV (mid-market)
-> - XVA desk charges total XVA (sum of all charges, net of DVA): $\,$ CVA + FVA + MVA + KVA − DVA = 240K + 18K + 48.6K + 880K − 54K $\approx$ USD 1,133K
-> - Trader's day-one P&L: USD 1,200K − USD 1,133K $\approx$ USD 67K
-> - XVA desk books a USD 1,133K reserve (against expected future losses, funding costs, and capital usage)
+> - XVA desk charges total XVA (sum of all charges, net of DVA): CVA + FVA + MVA + KVA − DVA = 240K + 18K + 48.6K + 880K − 63K $\approx$ USD 1,124K
+> - Trader's day-one P&L: USD 1,200K − USD 1,124K $\approx$ USD 76K
+> - XVA desk books a USD 1,124K reserve (against expected future losses, funding costs, and capital usage)
 >
 > **Over the trade's life:**
 > - Trader's P&L: changes in mid-market value
@@ -907,6 +923,8 @@ At a high level, desks manage CVA risk via:
 - **Credit hedges:** instruments linked to counterparty spread risk (e.g., single-name CDS when available).
 - **Market hedges:** hedges that reduce the exposure profile (rates/FX/commodity deltas/vegas that drive $v_i$).
 - **Structural mitigants:** netting, collateral terms, and closeout conventions that reduce exposure-at-default in the first place.
+
+---
 
 ## 34.13 Practical Implementation Notes
 
