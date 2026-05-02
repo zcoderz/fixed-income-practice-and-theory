@@ -189,7 +189,7 @@ At the final delivery date $T$, no-arbitrage implies the settlement price must s
 
 $$\boxed{F(T) = \min_i \frac{P_i(T)}{cf_i} = \frac{P^{\text{CTD}}(T)}{cf^{\text{CTD}}}}$$
 
-Reason (intuition): if $F(T)$ were above the minimum $P/cf$, you could buy the cheapest bond, sell futures, deliver, and lock in a profit. If $F(T)$ were below the minimum $P/cf$, you could sell the cheapest bond, buy futures, take delivery, and lock in a profit. In frictionless markets, these arbitrages force the equality.
+Reason (intuition): if $F(T)$ were strictly above the minimum $P/cf$, you could buy the cheapest bond, short the futures, and deliver — locking in a profit of $cf^{\text{CTD}}F(T)-P^{\text{CTD}}(T)\gt 0$. If $F(T)$ were strictly below the minimum $P/cf$, you could go long the futures, take delivery (the short will rationally hand you the cheapest bond), and immediately sell that bond in cash for a profit of $P^{\text{CTD}}(T)-cf^{\text{CTD}}F(T)\gt 0$. In frictionless markets, these arbitrages force the equality.
 
 A key consequence: **the cost of delivering the CTD at final settlement is zero**:
 
@@ -209,11 +209,11 @@ The cost of delivering a non-CTD bond is positive.
 
 Conversion factors would equalize delivery attractiveness only in a special case (think: a flat curve at the notional yield and no rounding frictions). In reality, yields are not exactly 6% and the curve is not flat. Because $cf_i$ is fixed, bonds with different durations respond differently to yield changes, and the identity of the CTD can change.
 
-A useful local approximation is to look at the “adjusted price” $P_i/cf_i$. Around a given yield level,
+A useful local approximation is to look at the “adjusted price” $P_i/cf_i$. Around a given yield level (and treating $D_i$ as bond $i$’s modified duration, which is a positive number),
 
 $$\frac{d(P_i/cf_i)}{dy} \approx -\frac{P_i}{cf_i} \times D_i$$
 
-so higher-duration bonds’ adjusted prices move more for a given yield change.
+so higher-duration bonds’ adjusted prices fall by a larger absolute amount for a given yield rise.
 
 ### 23.5.2 Yield Level Effects
 
@@ -236,12 +236,12 @@ This creates a systematic pattern:
 
 > **Visual: The CTD Switch Graph**
 >
-> Imagine plotting the Adjusted Price ($P/cf$) of three bonds against Yield.
+> Imagine plotting the adjusted prices $P_i/cf_i$ of three deliverables against the bond yield level.
 >
-> *   **Low Yield**: The Short Duration bond line is lowest. (CTD = Short).
-> *   **High Yield**: The Long Duration bond line falls faster (steeper slope) and crosses below. (CTD = Long).
-> *   **The Crossing Point**: This is where the lines intersect. At this exact yield, the short is indifferent.
-> *   **The Futures Price**: It follows the *bottom envelope* of all these lines. This curved shape (concave) equals **Negative Convexity**.
+> - **Low yield:** the short-duration bond’s adjusted price is lowest, so it is CTD.
+> - **High yield:** the long-duration bond’s adjusted price falls faster (steeper slope) and crosses below, so it becomes CTD.
+> - **Crossing point:** where two lines intersect, the short is indifferent between those two deliverables.
+> - **Futures price:** at delivery, $F(T)$ tracks the *lower envelope* $\min_i P_i/cf_i$. Each individual $P_i/cf_i$ curve is convex in yield, but the envelope kinks **downward** at every CTD switch (the slope of the envelope becomes steeper, not shallower, as you cross). This kinked envelope is what practitioners call **negative convexity** for bond futures: near a switch the futures price reacts more strongly to a yield move in one direction than in the other, just like a position that is short an option.
 
 ### 23.5.4 Negative Convexity of Futures
 
@@ -249,7 +249,7 @@ At delivery, the futures settlement is the **minimum envelope** of adjusted pric
 
 $$F(T)=\min_i \frac{P_i(T)}{cf_i}$$
 
-As yields move, the identity of the minimizing bond can switch. That makes the futures behave like it is **short an option**: in rallies it tends to “switch into” a lower-duration deliverable, and in sell-offs it tends to “switch into” a higher-duration deliverable. Equivalently, the *effective duration* of the futures tends to fall as yields fall.
+As yields move, the identity of the minimizing bond can switch. That makes the futures behave like it is **short an option**: in rallies it tends to “switch into” a lower-duration deliverable, and in sell-offs it tends to “switch into” a higher-duration deliverable. Equivalently, the futures’ DV01 (its empirical duration, computed by re-pricing under up/down yield shocks) tends to *fall* as yields fall — the opposite of how a single fixed-coupon bond behaves.
 
 This is the practical meaning of “negative convexity” here: when CTD is near switching, second-order effects and CTD-switch risk can dominate a hedge that looks DV01-neutral under a single assumed CTD.
 
@@ -280,11 +280,11 @@ $$\boxed{NB^i(t) = P_{\text{fwd}}^i(t) - cf^i \times F(t)}$$
 
 where $P_{\text{fwd}}^i(t)$ is the forward price of bond $i$ for delivery at $T$.
 
-Using the repo/carry engine from Chapter 9, you can write the forward clean price schematically as:
+Using the repo/carry engine from Chapter 9, you can write the forward clean price schematically as
 
-$$P_{\text{fwd}}^i(t) \approx P^i(t) - \text{Carry}^i(t \to T)$$
+$$P_{\text{fwd}}^i(t) \approx P^i(t) - \text{Carry}^i(t \to T),$$
 
-Substituting into the net basis definition:
+where $\text{Carry}^i(t\to T)=\bigl[AI^i(T)-AI^i(0)\bigr]-(P^i(t)+AI^i(t))\cdot r\\,d/360$ is **coupon accrual income minus repo financing cost** between $t$ and $T$ (positive carry means owning the bond is profitable on a financed basis). Substituting into the net basis definition gives
 
 $$\boxed{NB^i(t) \approx GB^i(t) - \text{Carry}^i(t \to T)}$$
 
@@ -302,7 +302,7 @@ For bonds that are close competitors for CTD, net basis behaves like an option-v
 
 ### 23.6.4 Basis Trade P&L
 
-At a high level, a long-basis trade is: buy the cash bond, finance it, and short futures with the correct “tailing” so the hedge ratio is consistent with the conversion factor. Under that construction, P&L is largely driven by changes in net basis:
+At a high level, a long-basis trade is: buy the cash bond, finance it in repo, and short futures with the correct number of contracts so the hedge is consistent with the conversion factor. Practitioners call the small daily adjustments to the futures hedge that account for futures’ daily margining (cash bonds settle on a single trade date; futures pay/collect daily variation margin) the **tail**, and the act of resizing the hedge to neutralize the resulting financing on margin flows is **tailing the hedge**. Under a properly tailed long-basis trade, P&L is largely driven by changes in net basis:
 
 $$\text{PnL} \approx \frac{N_{\text{bond}}}{100}\\,[NB^i(t')-NB^i(t)]$$
 
@@ -326,7 +326,9 @@ Solving:
 
 $$\boxed{r_{\text{imp},i} = \left(\frac{cf_i \times F + AI_i(T)}{P_i(0) + AI_i(0)} - 1\right) \frac{360}{d}}$$
 
-**Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small delivery profit over 30–90 days annualizes into a non-trivial rate. For small profits, $r_{\text{imp}}\approx (\text{profit}/\text{dirty today})\times 360/d$. Toy: if $d=90$ days and the invoice is 0.10 per USD100 higher than the financed cost on a dirty price near 102, then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\\%$ (about 39 bp).
+**Checks (limits + scaling):** The annualization factor $360/d$ is why implied repo can look “large” over short horizons: a small unfinanced gain over 30–90 days annualizes into a non-trivial rate. Rearranging the boxed formula, $r_{\text{imp}}\approx (\text{Invoice}(T)-\text{Dirty}(0))/\text{Dirty}(0)\times 360/d$, i.e. the unfinanced delivery gain divided by today’s dirty price, annualized. Toy: if $d=90$ days, today’s dirty price is 102, and the invoice at delivery is 102.10 (so the unfinanced gain is 0.10 per USD100), then $r_{\text{imp}}\approx (0.10/102)\times 360/90\approx 0.39\\%$ (about 39 bp). Comparing this number to your marginal funding rate (e.g., GC repo) tells you whether cash-and-carry covers its financing.
+
+Note: this formula assumes no coupon is paid between $t=0$ and $T$. If a coupon is paid in the interim, add it (compounded forward at $r_{\text{imp}}$) to the numerator before solving.
 
 ### 23.7.2 Interpretation
 
@@ -351,9 +353,9 @@ Lower repo rates mean lower financing costs, which increases carry and reduces t
 
 Some bonds finance **special** (at repo rates below general collateral) due to scarcity and high demand to borrow that specific issue.
 
-**Special spread** = GC rate - Special rate
+The **special spread** is $r_{\text{GC}}-r_{\text{special}}\ge 0$: the discount the borrower of cash gets by pledging the special bond instead of GC.
 
-If a bond in the delivery basket can be financed special, its carry improves. This can make it CTD even if its cash price is slightly higher than alternatives.
+If a bond in the delivery basket can be financed special, its financing cost is lower, its carry improves, and its net basis falls. That can make it CTD even if its clean cash price is slightly higher than alternatives.
 
 **Example logic:** Bond A costs USD101.20 to buy, but finances at 3.5% (special). Bond B costs USD100.90 but finances at 5% (GC). The lower financing cost for A may more than offset its higher price, making A the CTD.
 
@@ -473,14 +475,14 @@ $$\boxed{DV01_{\text{fut, per contract}} \approx \frac{N}{100} \times \frac{DV01
 
 ### 23.10.3 Hedge Ratios (Duration or DV01)
 
-You can size a futures hedge using either duration or DV01:
+You can size a futures hedge using either modified duration or DV01:
 
-- **Duration form (conceptual):** number of contracts $\propto \frac{(\text{PV of exposure})\times(\text{duration of exposure})}{(\text{PV per futures contract})\times(\text{duration of assumed CTD})}$.
+- **Duration form (conceptual):** number of contracts $\approx \dfrac{V_p\\,D_p}{V_f\\,D_f}$, where $V_p$ and $D_p$ are the dollar value and modified duration of the exposure, $V_f=N\cdot F/100$ is the dollar value per futures contract at the current quote, and $D_f$ is the modified duration of the asset underlying the futures (in practice, the assumed CTD; near delivery the futures’ own duration is approximately $D^{\text{CTD}}$ because the $cf$ factor cancels: $-dF/dy \approx P^{\text{CTD}}D^{\text{CTD}}/cf^{\text{CTD}}$ and $V_f\propto F\approx P^{\text{CTD}}/cf^{\text{CTD}}$).
 - **DV01 form (most practical):**
 
 $$\boxed{n = \frac{DV01_{\text{exposure}}}{DV01_{\text{fut}}}}$$
 
-The key point is that $DV01_{\text{fut}}$ depends on the assumed CTD (via DV01 and conversion factor), so you must monitor it over time.
+The key point is that $DV01_{\text{fut}}$ depends on the assumed CTD (via $DV01^{\text{CTD}}$ and $cf^{\text{CTD}}$), so you must monitor it over time as financing, curve shape, and CTD identity evolve.
 
 ### 23.10.4 CTD Switching Risk (Why “DV01-Neutral” Hedges Break)
 
@@ -544,10 +546,10 @@ Hedgers with positions extending beyond the front delivery month must **roll** t
 1. **Close the front-month position** (buy back if short, sell if long)
 2. **Open the deferred-month position** (sell if hedging, buy if originally short)
 
-The net cost of rolling equals the roll spread at execution. If roll = 0.50 (front above deferred) and you're rolling a short hedge:
-- You buy back front at 108.00
-- You sell back at 107.50
-- Cost per contract: USD0.50 × 1000 = USD500
+The net cost of rolling equals the roll spread at execution. If roll = 0.50 (front above deferred) and you’re rolling a short hedge forward:
+- You buy back the front contract at 108.00 (closing the original short).
+- You sell the deferred contract at 107.50 (re-establishing the short hedge).
+- Net cash cost per contract: $(108.00-107.50)\times 1000 = $ USD500 per contract; this is a real cash outlay equal to the roll spread.
 
 > **Desk Reality:** Roll liquidity often concentrates as the front contract approaches delivery, and many traders quote the roll directly rather than legging two outrights.  
 > **Common break:** Roll slippage can dominate “hedged” P&L during roll periods (it is real P&L, not noise).  
@@ -572,11 +574,11 @@ For a hedged position that rolls, total P&L decomposes into:
 $$\text{Total PnL} = \text{Cash PnL} + \text{Futures MTM} + \text{Roll Slippage}$$
 
 where:
-- **Cash P&L:** Change in bond value plus carry earned
-- **Futures MTM:** Change in futures positions (mark-to-market)
-- **Roll Slippage:** Difference between theoretical and executed roll
+- **Cash P&L:** change in cash bond clean price plus net carry earned (coupon income net of repo financing).
+- **Futures MTM:** mark-to-market change on the futures position (already daily-cash via variation margin).
+- **Roll Slippage:** the difference between the theoretical roll (carry-implied) and the price at which the roll was actually executed.
 
-Understanding this decomposition helps explain why a "hedged" position still shows P&L.
+Understanding this decomposition helps explain why a “hedged” position still shows P&L.
 
 ---
 
@@ -810,23 +812,23 @@ CTD is **Bond A** (most negative cost = largest delivery profit for short).
 
 ### Example D: CTD Switch After Yield Rise
 
-Assume yields rise 50 bp. Using DV01 approximation: $\Delta P \approx -\text{DV01} \times 50$
+Assume yields rise 50 bp. Using DV01 approximation: $\Delta P \approx -\text{DV01} \times 50$ per USD100 (with DV01 quoted per bp).
 
-**DV01s:** A = 0.085, B = 0.075, C = 0.095
+**DV01s (per USD100):** A = 0.085, B = 0.075, C = 0.095. (C has the highest duration; A is intermediate; B is the shortest.)
 
 **New prices:**
 - $P'_A = 101.20 - 4.25 = 96.95$
 - $P'_B = 109.80 - 3.75 = 106.05$
 - $P'_C = 94.60 - 4.75 = 89.85$
 
-**New futures:** $F' = 107.00$
+**New futures price:** $F' = 107.00$ (the new market quote after the yield rise; for context, $\min_i P'_i/cf_i \approx P'_C/cf_C \approx 106.71$, so 107.00 is consistent with the new lower envelope plus a small option/optionality cushion before final settlement).
 
-**New costs:**
+**New costs of delivery:**
 - $\text{CostDel}'_A = 96.95 - 0.9012 \times 107 = 96.95 - 96.43 = +0.52$
 - $\text{CostDel}'_B = 106.05 - 0.9775 \times 107 = 106.05 - 104.59 = +1.46$
 - $\text{CostDel}'_C = 89.85 - 0.8420 \times 107 = 89.85 - 90.09 = -0.24$
 
-CTD switches from **A to C**. The higher-duration bond becomes CTD when yields rise.
+CTD switches from **A to C**. The higher-duration bond becomes CTD when yields rise — consistent with the conversion-factor heuristic in Section 23.5.
 
 ### Example E: Gross and Net Basis
 
@@ -910,7 +912,7 @@ $$\text{Roll} = F_{\text{Mar}} - F_{\text{Jun}} = 112.50 - 112.15 = 0.35$$
 - Net cost per contract: $0.35 \times 1000 = 350$ USD
 - Total roll cost: $100 \times 350 = 35{,}000$ USD
 
-**Sanity check:** The roll should approximate carry from Mar to Jun delivery. If carry is approximately $USD0.35$ per USD100 over 3 months, this is consistent.
+**Sanity check:** The roll should approximate $\text{Carry}(T_{\text{Mar}}\to T_{\text{Jun}})/cf^{\text{CTD}}$ from Section 23.11.2. If carry between front and deferred delivery is approximately 0.35 per USD100 *and* the CTD’s conversion factor is close to 1.0, the implied roll near 0.35 is consistent. With $cf$ materially below 1, the same carry would imply a *larger* roll (e.g., $0.35/0.90\approx 0.39$).
 
 ---
 
