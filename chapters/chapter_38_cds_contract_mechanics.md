@@ -815,9 +815,9 @@ Before booking a CDS trade, verify:
 
 **5.** $P \approx 100 - 100\times 4.0\times(0.025-0.01)=94$; buyer pays $6\%$ upfront (since $s\gt c$).
 
-**12.** $\text{MTM}\approx (250-150)\times 8{,}000 = 800{,}000$ USD (long protection gains when spreads widen).
-
 **7.** Physical settlement: buy deliverable at the market recovery price and deliver at par, netting $N(1-R)$. Cash settlement pays $N(1-R)$ directly when the auction price equals the deliverable market value.
+
+**12.** $\text{MTM}\approx (250-150)\times 8{,}000 = 800{,}000$ USD (long protection gains when spreads widen).
 
 ---
 
