@@ -506,7 +506,7 @@ With constituent spreads $S_m$ and risky annuities $RPV01_m$, and assuming the s
 
 $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot RPV01_m}{\sum_{m=1}^{M} RPV01_m}}$$
 
-**Expand (intuition):** this is *not* a simple average of spreads. Names with larger `RPV01` (often the wider, riskier names) carry more weight in “intrinsic,” because a 1bp move on those names is worth more PV.
+**Expand (intuition):** this is *not* a simple average of spreads. Names with larger `RPV01` carry more weight in "intrinsic," because a 1bp move on those names is worth more PV.
 
 **Expand (mechanics):** `RPV01` is larger when a name is expected to survive longer and pay more premium (typically *tighter* names), and smaller when default is more likely (often *wider/distressed* names). So the intrinsic spread is usually **pulled toward the tighter names** because distressed constituents tend to get down-weighted by their smaller `RPV01`.
 
@@ -535,7 +535,7 @@ The index basis can be positive or negative depending on:
 
 4. **CDO issuance:** Synthetic CDO issuance creates supply of index protection.
 
-5. **Skew effects:** When a few names are much wider than the rest, the intrinsic spread is pulled higher, potentially creating a negative basis.
+5. **Skew / dispersion effects:** When a few names blow out wider than the rest, the RPV01-weighted intrinsic moves up faster than a sticky index quote can adjust (even though intrinsic stays *below* the simple arithmetic average — because the wide names' RPV01s are smaller). The result: $S_{\text{intrinsic}}$ can rise above $S_{\text{index}}$, pushing the basis $S_{\text{index}}-S_{\text{intrinsic}}$ negative.
 
 ### 44.6.3 Trading the Index Basis
 
@@ -635,7 +635,7 @@ For each exposure, specify the hedge instrument and what risk it targets:
 | IR DV01 | Interest rate swaps |
 | Equity delta | Stock or equity options |
 | Recovery | Often unhedgeable; scenario management |
-| Funding | Funding derivatives (if available) |
+| Funding | OIS / Libor-OIS basis swaps; term repo or repo-rate swaps where available |
 
 ### 44.8.4 Step 4: Identify Failure Modes
 
