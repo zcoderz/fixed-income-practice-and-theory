@@ -54,7 +54,7 @@ This “surprise default” property is exactly what makes intensity models flex
 
 ---
 
-## 36.2 The Survival Function $Q(t)$
+## 36.2 The Survival Function Q(t)
 
 ### 36.2.1 Definition and Interpretation
 
@@ -127,14 +127,14 @@ The hazard rate is the *per-unit-time* intensity. It tells you how "risky" each 
 
 > **Analogy: Radioactive Decay**
 >
-> A portfolio of bonds is like a block of **Radioactive Uranium**.
+> A portfolio of identical risky bonds is like a block of **radioactive uranium**.
 >
 > *   **Decay (Default)**: Individual atoms (companies) decay (default) at random times.
-> *   **Hazard Rate ($h$)**: This is the **decay rate** (related to half-life). A high $h$ means the block is highly radioactive and atoms are popping off quickly.
-> *   **Survival Probability ($Q$)**: The weight of the uranium block remaining at time $t$.
-> *   **Intensity**: If you put a Geiger counter next to the block, the "clicks" are the defaults. The rate of clicking is $h$.
+> *   **Hazard Rate ($h$)**: The **per-atom decay rate** — related to half-life. A high $h$ means atoms pop off quickly.
+> *   **Survival Probability ($Q(t)$)**: The fraction of the original atoms (bonds) still alive at time $t$.
+> *   **Intensity**: A Geiger counter next to a block of $N_0$ initially-alive atoms registers clicks at rate $h\,N_0\,Q(t) = h\,N(t)$, where $N(t)=N_0 Q(t)$ is the surviving population. The *per-surviving-atom* intensity is $h$, which stays constant under constant hazard even as the population decays.
 >
-> **Half-Life Connection:** For constant hazard $h$, the "half-life" (time for 50% to default) is $t_{1/2} = \ln(2)/h \approx 0.693/h$. A 2% hazard rate implies a half-life of about 35 years.
+> **Half-Life Connection:** For constant hazard $h$, the median time-to-default for an individual credit is $t_{1/2} = \ln(2)/h \approx 0.693/h$ (equivalently, the time at which 50% of an initial pool has defaulted). A 2% hazard rate implies a median survival time of about 34.7 years.
 
 One Monte Carlo intuition: discretize time into small steps $dt$. Conditional on survival to $t$, default occurs in $[t,t+dt]$ with probability $h(t)\,dt$. As $dt\to 0$, the per-step default probability goes to zero, but the **per-year** intensity $h(t)$ stays finite.
 
@@ -242,8 +242,8 @@ From the survival ODE $Q'(t) = -h(t) Q(t)$, we get the key identity:
 
 $$\boxed{f(t) = h(t) Q(t)}$$
 
-Equivalently, the default probability in a short interval is:
-$$\Pr(T\lt \tau \le T+dT)=f(T)\,dT=h(T)\exp\left(-\int_0^T h(t)\,dt\right)dT.$$
+Equivalently, the default probability in a short interval at time $T$ is:
+$$\Pr(T\lt \tau \le T+dT)=f(T)\,dT=h(T)\exp\left(-\int_0^T h(s)\,ds\right)dT.$$
 
 **Interpretation:** The probability of defaulting "at time $t$" (more precisely, in $[t, t+dt]$) equals the hazard rate at $t$ times the probability of surviving to $t$. You can only default at $t$ if you're still alive at $t$.
 
@@ -273,11 +273,11 @@ This is the **exponential survival** model—the continuous-time analog of geome
 
 ### 36.5.1 Mean Default Time
 
-O'Kane derives the expected default time for constant hazard. Using the density $f(t) = h e^{-h t}$:
+For constant hazard, the expected default time follows from integrating against the density $f(t) = h e^{-h t}$:
 
 $$\mathbb{E}[\tau] = \int_0^\infty t \cdot f(t) dt = \int_0^\infty t \cdot h e^{-h t} dt = \frac{1}{h}$$
 
-The variance is $\text{Var}(\tau) = 1/h^2$, so the standard deviation equals the mean.
+The variance is $\text{Var}(\tau) = 1/h^2$, so for the exponential distribution the standard deviation equals the mean (a defining property; the coefficient of variation is exactly 1).
 
 **Example:** A credit with hazard rate $h = 0.02$ (2% per year) has expected default time:
 
@@ -333,10 +333,11 @@ $$h(t) = h_i \quad \text{for } t \in [t_{i-1}, t_i)$$
 
 The hazard rate is constant within each interval but can jump between intervals. This corresponds to a survival curve that is piecewise exponential—$Q(t)$ decays exponentially within each interval, with a possibly different decay rate in each.
 
-> **Visual: The Staircase & The Slope**
+> **Visual: The Staircase & The Piecewise-Linear Log-Survival**
 >
-> *   **Hazard Rate ($h$)**: Imagine a **Staircase**. It stays flat at 1% for Year 1, then jumps up to 2% for Year 2, then 3% for Year 3.
-> *   **Survival Curve ($Q$)**: This creates a **kinked slope**. The log-survival graph is a straight line sloping down. At Year 1, the slope gets steeper (more decay). At Year 2, it gets steeper again.
+> *   **Hazard Rate ($h$)**: Imagine a **staircase**. It stays flat at 1% for Year 1, then jumps up to 2% for Year 2, then 3% for Year 3.
+> *   **Log-Survival ($\ln Q$)**: This produces a **piecewise-linear**, downward-sloping graph: the slope equals $-h$ on each interval, so it steepens at each knot where $h$ jumps up.
+> *   **Survival Curve ($Q$)**: $Q(t)$ itself is continuous but *piecewise exponential* — a series of decaying exponentials with different rates spliced together at the knots.
 > *   **Bootstrapping**: We build this staircase one step at a time. We use the 1Y CDS spread to build the first step. Then we use the 2Y CDS spread (and the first step) to build the second step.
 
 ### 36.6.2 Forward Survival Formulas
@@ -370,21 +371,21 @@ This formula is central to survival curve bootstrapping from CDS spreads (Chapte
 
 ### 36.6.4 Interpolation Schemes
 
-O'Kane discusses interpolation between grid points in detail. The choice of interpolation scheme affects both pricing accuracy and curve smoothness. Three common approaches:
+The choice of interpolation between grid points affects both pricing accuracy and curve smoothness. Three common approaches:
 
 | Scheme | Interpolation Of | Hazard Behavior | Properties |
 |--------|-----------------|-----------------|------------|
 | Linear in $Q$ | Survival probability | Piecewise non-constant | Can produce negative hazards |
-| Linear in $\ln Q$ | Log survival | **Piecewise constant** hazard | ensures $Q\in(0,1]$ and $h\ge 0$ if endpoints are consistent |
-| Linear in $H$ | Cumulative hazard | Piecewise linear hazard | Smooth, but requires care |
+| Linear in $\ln Q$ (equivalently, linear in $H$) | Log-survival or cumulative hazard | **Piecewise constant** hazard | Ensures $Q\in(0,1]$ and $h\ge 0$ if knot values are consistent |
+| Linear in $h$ | Hazard rate | Piecewise linear hazard | Smoother $h$, but $H(t)$ is piecewise quadratic; care needed at knots |
 
-Linear interpolation of $\ln Q(t)$ between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for $t_{n-1}\lt t^\ast\lt t_n$:
+Linear interpolation of $\ln Q(t)$ between knot points is equivalent to assuming a piecewise-constant forward default rate (hazard) between those knot points. Concretely, for $t_{n-1}\lt t^\ast\lt t_n$, with $h_n$ denoting the constant hazard on the n-th interval $[t_{n-1}, t_n)$ (consistent with §36.6.1):
 
 - Survival probabilities remain between 0 and 1
-- Hazard rates remain positive (no-arbitrage)
+- Hazard rates remain non-negative (no-arbitrage)
 - The curve is continuous in $Q(t)$ but jumps in $h(t)$ at knots
 
-$$h_{n-1}=\frac{1}{t_n-t_{n-1}}\ln\left(\frac{Q(t_{n-1})}{Q(t_n)}\right), \qquad Q(t^\ast) = Q(t_{n-1}) \cdot e^{-(t^\ast - t_{n-1}) \cdot h_{n-1}}.$$
+$$h_n=\frac{1}{t_n-t_{n-1}}\ln\left(\frac{Q(t_{n-1})}{Q(t_n)}\right), \qquad Q(t^\ast) = Q(t_{n-1}) \cdot e^{-(t^\ast - t_{n-1}) \cdot h_n}.$$
 
 > **Implementation Note: What Happens When Bootstrapping Fails**
 >
@@ -413,14 +414,14 @@ Risk-neutral hazard rates are derived from market prices, not from historical de
 
 Default statistics from rating agencies (e.g., Moody's or S&P default studies) give real-world probabilities—the frequency of default observed historically in each rating category.
 
-Hull presents striking evidence of the gap by comparing seven-year historical hazard rates to hazard rates implied by bond yields:
+A widely cited comparison of seven-year historical hazard rates (1970–2013 Moody's data) against hazard rates implied by corporate-bond yields (1996–2007 average spreads, recovery assumed at 40%) — taken from a published study summarized in the references — illustrates the gap:
 
 | Rating | Historical Hazard Rate | Hazard Rate from Bonds | Ratio | Difference |
 |--------|------------------------|------------------------|-------|------------|
-| Aaa | 0.04% | 0.67% | 16.8× | 0.63% |
-| Aa | 0.06% | 0.78% | 13.0× | 0.72% |
-| A | 0.13% | 1.28% | 9.8× | 1.15% |
-| Baa | 0.47% | 2.38% | 5.1× | 1.91% |
+| Aaa | 0.034% | 0.596% | 17.3× | 0.561% |
+| Aa | 0.098% | 0.728% | 7.4× | 0.630% |
+| A | 0.233% | 1.145% | 5.8× | 0.912% |
+| Baa | 0.416% | 2.126% | 5.1× | 1.709% |
 
 In this sample, the risk-neutral-implied hazard can be many times larger than the historical hazard (e.g., ~5× for Baa and ~17× for Aaa).
 
@@ -433,7 +434,7 @@ The economic story is that spreads include compensation beyond actuarial expecte
 
 ### 36.7.3 Why the Ratio Is Largest for High-Quality Credits
 
-Notice that the ratio is 16.8× for Aaa but only 5.1× for Baa. This pattern is economically meaningful:
+Notice that the ratio is roughly 17× for Aaa but only ~5× for Baa. This pattern is economically meaningful:
 
 For high-quality credits (Aaa, Aa), the *actual* default probability is tiny. But the *spread* isn't zero—investors still demand compensation for:
 - Liquidity (Treasuries are more liquid than even AAA corporates)
@@ -465,13 +466,13 @@ Mixing them up leads to either systematic mispricing (using real-world for prici
 > - **Credit VaR team**: Uses historical default data (real-world) adjusted for economic conditions. They measure "what could we lose?"
 > - **CVA desk**: Uses risk-neutral for pricing adjustments, but may blend with real-world for wrong-way risk.
 >
-> A common error: applying CDS-implied PDs to a loan portfolio's economic capital calculation. This can overstate expected losses by large multiples (e.g., 5–17× in Hull’s sample table).
+> A common error: applying CDS-implied PDs to a loan portfolio's economic capital calculation. This can overstate expected losses by large multiples (e.g., ~5× to ~17× in the sample comparison above).
 >
 > The opposite error: using historical PDs to price a CDS. Your hedge would be systematically wrong, and you'd lose money on average.
 
 ### 36.7.5 Converting Between Measures
 
-While there's no universal formula to convert between measures (the risk premium varies by name, rating, and market conditions), Hull provides a rough approach for understanding the wedge:
+There is no universal formula to convert between measures (the risk premium varies by name, rating, and market conditions). A rough decomposition that helps build intuition for the wedge is:
 
 $$\text{Credit spread} \approx (1-R) \times h_{\mathbb{Q}} \approx (1-R) \times h_{\mathbb{P}} + \text{risk premium} + \text{liquidity premium}$$
 
@@ -521,12 +522,12 @@ With standard 40% recovery ($1-R = 0.60$):
 
 | Spread | Implied Hazard | Mental Math |
 |--------|----------------|-------------|
-| 60 bp | 1.0%/year | Spread × 1.67 |
-| 120 bp | 2.0%/year | Spread × 1.67 |
-| 300 bp | 5.0%/year | Spread × 1.67 |
-| 600 bp | 10%/year | Spread × 1.67 |
+| 60 bp | 1.00%/year | $60 \times 1.67 \approx 100$ bp |
+| 120 bp | 2.00%/year | $120 \times 1.67 \approx 200$ bp |
+| 300 bp | 5.00%/year | $300 \times 1.67 \approx 500$ bp |
+| 600 bp | 10.0%/year | $600 \times 1.67 \approx 1000$ bp |
 
-The multiplier is $1/(1-R) = 1/0.6 \approx 1.67$.
+The multiplier $1/(1-R) = 1/0.6 \approx 1.67$ is dimensionless: multiplying the spread (in any consistent unit) gives the hazard in that same unit. So 100 bp of hazard is the same as 1.00%/year.
 
 **Varying Recovery:**
 
@@ -544,23 +545,23 @@ Higher assumed recovery means larger implied hazard rate (more defaults needed t
 
 Given: CDS spread $S = 50$ bp = 0.0050, Recovery $R = 40\%$
 
-$$h = \frac{0.0050}{0.60} = 0.0083 = 0.83\%/\text{year}$$
+$$h = \frac{0.0050}{0.60} \approx 0.00833 = 0.833\%/\text{year}$$
 
-5-year survival (assuming constant hazard):
-$$Q(5) = e^{-0.0083 \times 5} = e^{-0.0417} = 0.959 = 95.9\%$$
+5-year survival (assuming constant hazard, using the unrounded $h$):
+$$Q(5) = e^{-hT} = e^{-0.0500/0.60} = e^{-0.04167} \approx 0.9592 = 95.9\%$$
 
-5-year default probability: $1 - 0.959 = 4.1\%$
+5-year default probability: $1 - 0.9592 \approx 4.08\%$
 
 **Example B: High Yield (500bp spread)**
 
 Given: CDS spread $S = 500$ bp = 0.05, Recovery $R = 40\%$
 
-$$h = \frac{0.05}{0.60} = 0.0833 = 8.33\%/\text{year}$$
+$$h = \frac{0.05}{0.60} \approx 0.08333 = 8.333\%/\text{year}$$
 
-5-year survival:
-$$Q(5) = e^{-0.0833 \times 5} = e^{-0.417} = 0.659 = 65.9\%$$
+5-year survival (using the unrounded $h$):
+$$Q(5) = e^{-hT} = e^{-0.500/0.60} = e^{-0.4167} \approx 0.6592 = 65.9\%$$
 
-5-year default probability: $1 - 0.659 = 34.1\%$
+5-year default probability: $1 - 0.6592 \approx 34.08\%$
 
 **Example C: Distressed Credit (2000bp spread)**
 
@@ -575,8 +576,7 @@ $$Q(1) = e^{-0.25} = 0.779 = 77.9\%$$
 
 > **Desk Reality: The "Survival to Next Quarter" Test**
 >
-> For distressed credits, traders often focus on short-term survival. If $h = 25\%$/year, quarterly survival is:
-> $$Q(0.25) = e^{-0.25 \times 0.25} = e^{-0.0625} = 93.9\%$$
+> For distressed credits, traders often focus on short-term survival. If $h = 25\%$/year, quarterly survival is $Q(0.25) = e^{-0.25 \times 0.25} = e^{-0.0625} \approx 0.939 = 93.9\%$.
 >
 > That's a 6.1% probability of default *this quarter*. When you see spreads above 2000bp, the market is saying there's real risk of imminent default.
 
@@ -749,7 +749,7 @@ If the curve is inverted beyond certain bounds (and under idealized assumptions)
 
 ### 36.10.3 Quantitative Arbitrage Bounds
 
-O'Kane derives approximate and exact arbitrage bounds. For a curve starting at 800bp at 6M:
+Under the credit triangle approximation, requiring non-negative forward hazard between adjacent maturities yields a simple lower-bound condition on the spread term structure. For a curve starting at 800bp at 6M:
 
 $$S_{m} \gtrsim S_{m-1} \times \frac{T_{m-1}}{T_m}$$
 
@@ -785,7 +785,7 @@ Interpretation: under the approximation and zero bid/offer, an inverted curve th
 
 ### 36.11.1 The Threshold Simulation Method
 
-For Monte Carlo simulation of credit portfolios, CVA calculations, and stress testing, we need to simulate random default times. McNeil provides a clean algorithm based on the **threshold method**.
+For Monte Carlo simulation of credit portfolios, CVA calculations, and stress testing, we need to simulate random default times. The standard approach is the **threshold method**.
 
 **Key Insight:** If $E$ is a standard exponential random variable (rate 1), and we define:
 
@@ -800,24 +800,24 @@ $$\Pr(\tau \gt  t) = \Pr(H^{-1}(E) \gt  t) = \Pr(E \gt  H(t)) = e^{-H(t)} = Q(t)
 
 ### 36.11.2 Algorithm: Simulating a Single Default Time
 
-$$\boxed{\text{Algorithm: Threshold Simulation for Default Time}}$$
+**Algorithm: Threshold simulation for a default time.**
 
 **Input:** Hazard rate function $h(t)$ (or piecewise constant hazards $h_1, h_2, \ldots$)
 
 **Output:** Simulated default time $\tau$
 
-1. **Draw** `E ~ Exponential(1)` (equivalently, `E = -ln(U)` where `U ~ Uniform(0,1)`)
-2. **Compute** cumulative hazard function $H(t) = \int_0^t h(s) ds$
-3. **Solve** $H(\tau) = E$ for $\tau$
+1. **Draw** $E \sim \mathrm{Exponential}(1)$ (equivalently, $E = -\ln(U)$ where $U \sim \mathrm{Uniform}(0,1)$).
+2. **Compute** the cumulative hazard function $H(t) = \int_0^t h(s)\,ds$.
+3. **Solve** $H(\tau) = E$ for $\tau$.
 
 **For constant hazard $h$:**
 $$\tau = \frac{E}{h}$$
 
-**For piecewise constant hazards:**
-Find the interval containing $\tau$ by searching:
-- If $E \leq H(t_1) = h_1 t_1$: $\tau = E/h_1$
-- If $H(t_1) \lt  E \leq H(t_2)$: $\tau = t_1 + (E - H(t_1))/h_2$
-- Continue...
+**For piecewise constant hazards:** Find the interval $i^\ast$ such that $H(t_{i^\ast-1}) \lt E \leq H(t_{i^\ast})$ (with the convention $t_0=0$, $H(0)=0$). Then default occurs in that interval and:
+
+$$\tau = t_{i^\ast - 1} + \frac{E - H(t_{i^\ast - 1})}{h_{i^\ast}}.$$
+
+For example, if $E \leq H(t_1) = h_1 t_1$, default lies in $[0, t_1)$ and $\tau = E/h_1$. If $H(t_1) \lt E \leq H(t_2)$, default lies in $[t_1, t_2)$ and $\tau = t_1 + (E - H(t_1))/h_2$. Continue this search until the interval is found.
 
 ### 36.11.3 Worked Example: Constant Hazard
 
@@ -849,7 +849,7 @@ This simulation method is the foundation for:
 - **Portfolio credit risk:** Simulate correlated default times for all names, compute portfolio loss distribution
 - **Stress testing:** Condition on elevated hazard rates, re-run simulations
 
-McNeil provides multivariate extensions (Algorithm 9.34) for simulating multiple correlated default times, which is essential for CDO pricing and portfolio credit risk.
+A multivariate extension to simulate multiple correlated default times jointly (essential for CDO pricing and portfolio credit risk) is given in McNeil-Frey-Embrechts Algorithm 9.34.
 
 ---
 
@@ -859,12 +859,12 @@ McNeil provides multivariate extensions (Algorithm 9.34) for simulating multiple
 
 In basic reduced-form models, $h(t)$ is a deterministic function calibrated to market data. But in reality, hazard rates change randomly over time as credit conditions evolve.
 
-A **Cox process** (or doubly stochastic process) extends the framework to allow $h(t)$ to be itself a stochastic process. McNeil provides the formal definition:
+A **Cox process** (or doubly stochastic process) extends the framework to allow $h(t)$ to be itself a stochastic process. The formal definition (McNeil-Frey-Embrechts Definition 9.11) is:
 
-**Definition (McNeil 9.11):** A random time `tau` is called **doubly stochastic** with respect to background filtration `F_t` if `tau` admits the conditional hazard-rate process `gamma_t` and:
+**Definition (doubly stochastic random time):** A random time $\tau$ is called **doubly stochastic** with respect to a background filtration $(\mathcal{F}_t)$ if $\tau$ admits an $(\mathcal{F}_t)$-conditional hazard-rate process $(\gamma_t)$, the cumulative hazard $\Gamma_t=\int_0^t \gamma_s\,ds$ is strictly increasing, and:
 
 $$
-\Pr(\tau \gt t \mid \mathcal{F}_{\infty}) = \exp\left(-\int_0^t \gamma_s\,ds\right)
+\Pr(\tau \gt t \mid \mathcal{F}_{\infty}) = \exp\left(-\int_0^t \gamma_s\,ds\right).
 $$
 
 ### 36.12.2 Why Stochastic Hazard Matters
@@ -889,7 +889,7 @@ Modeling these dynamics requires stochastic hazard rates.
 
 For **single-name CDS pricing**, deterministic hazard rates (calibrated daily to market spreads) are sufficient—we mark to market, not mark to model.
 
-For **portfolio credit risk**, **CVA with wrong-way risk**, and **options on credit spreads**, stochastic hazard matters. McNeil notes that the threshold simulation method extends naturally: simulate both the factor process and the hazard path, then apply the same $\tau = H^{-1}(E)$ formula.
+For **portfolio credit risk**, **CVA with wrong-way risk**, and **options on credit spreads**, stochastic hazard matters. The threshold simulation method extends naturally: simulate both the factor process and the hazard path, then apply the same $\tau = H^{-1}(E)$ formula.
 
 > **Practitioner Note:** Most single-name CDS desks use deterministic hazard curves. Stochastic hazard enters when you need:
 > - Default correlation (portfolio products)
@@ -963,9 +963,9 @@ The upward-sloping hazard structure (1% to 3%) causes faster decay in $Q(t)$ aft
 
 **Given:** Annual survival probabilities $Q(0) = 1$, $Q(1) = 0.99$, $Q(2) = 0.975$, $Q(3) = 0.955$
 
-**Compute piecewise hazard rates:**
+**Compute piecewise hazard rates** using the inversion formula from §36.6.3 with annual grid ($\Delta t_i = 1$ year), so the $1/\Delta t_i$ factor drops out:
 
-$$h_i = -\ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\right) \quad (\text{for } \Delta t_i = 1)$$
+$$h_i = -\frac{1}{\Delta t_i}\ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\right) = -\ln\left(\frac{Q(t_i)}{Q(t_{i-1})}\right) \;\text{(per year, with } \Delta t_i = 1)$$
 
 | Period | Calculation | $h_i$ |
 |--------|-------------|-------------|
@@ -1007,21 +1007,21 @@ $$\Pr(\tau \leq 5) = 1 - 0.8825 = 11.75\%$$
 
 ### Example 36.7: Expected Loss Calculation
 
-**Given:** Notional $N = \mathrm{USD}\\,10\text{m}$, Recovery $R = 40\%$, 5-year horizon, constant hazard $h = 2\%$
+**Given:** Notional $N = \mathrm{USD}\\,10\text{mm}$ (10 million), Recovery $R = 40\%$, 5-year horizon, constant hazard $h = 2\%$
 
 From Example 36.1: $Q(5) = 0.9048$
 
 **Expected loss (undiscounted):**
 
-$$EL = N \cdot (1-R) \cdot (1-Q(5)) = 10\text{m} \times 0.60 \times 0.0952 = \mathrm{USD}\\,571{,}200$$
+$$EL = N \cdot (1-R) \cdot (1-Q(5)) = 10\text{mm} \times 0.60 \times 0.0952 = \mathrm{USD}\\,571{,}200$$
 
 If hazard doubles to $h = 4\%$:
 
 $Q(5) = e^{-0.20} = 0.8187$
 
-$$EL = 10\text{m} \times 0.60 \times 0.1813 = \mathrm{USD}\\,1{,}087{,}800$$
+$$EL = 10\text{mm} \times 0.60 \times 0.1813 = \mathrm{USD}\\,1{,}087{,}800$$
 
-Doubling the hazard rate nearly doubles the expected loss—a useful sensitivity to remember.
+Doubling the hazard rate nearly doubles the expected loss—a useful sensitivity to remember (the ratio here is $1{,}087{,}800/571{,}200 \approx 1.90$, slightly less than 2 because $1-Q(5)$ is concave in $h$).
 
 ---
 
@@ -1052,22 +1052,22 @@ This path shows long survival; the credit doesn't default for 50 years.
 
 ### Example 36.10: Risk-Neutral vs Real-World Comparison
 
-**Given (from Hull Table 24.2):** Baa credit (seven-year average hazard rates)
+**Given (Baa-rated credits, seven-year averages — see References):**
 
 | Measure | Hazard Rate | Ratio (market / historical) |
 |---------|-------------|-----------------------------|
-| Historical (real-world) | 0.47%/year |  |
-| Implied from bond yields (risk-neutral estimate) | 2.38%/year | $2.38/0.47 \approx 5.1\times$ |
+| Historical (real-world) | 0.416%/year |  |
+| Implied from bond yields (risk-neutral estimate) | 2.126%/year | $2.126/0.416 \approx 5.1\times$ |
 
 **Sanity check (constant-hazard translation to 7Y PD):**
-- Historical: $1-e^{-0.0047\cdot 7}\approx 3.24\%$
-- Market-implied: $1-e^{-0.0238\cdot 7}\approx 15.35\%$
+- Historical: $1-e^{-0.00416\cdot 7}\approx 2.87\%$
+- Market-implied: $1-e^{-0.02126\cdot 7}\approx 13.83\%$
 
 Interpretation: market-implied hazards used for valuation can be materially larger than historical default-frequency estimates used for scenario and loss forecasting.
 
 ---
 
-### Example 36.11 (Worked Example): Quote → $Q/h$ → PV → hazard bump and CS01
+### Example 36.11 (Worked Example): Quote to Q/h to PV, with hazard bump and CS01
 
 **Example Title**: Pricing a risky zero-coupon payoff from a CDS quote (toy model)
 
@@ -1095,26 +1095,45 @@ Interpretation: market-implied hazards used for valuation can be materially larg
 - CS01 (PV change per $+1$ bp in $S$ with a curve rebuild rule approximated by the triangle)
 
 **Step-by-step**
-1. **Translate quote → hazard (triangle):**
-   $$h=\frac{S}{1-R}=\frac{0.0150}{0.60}=0.0250.$$
-2. **Compute survival to maturity:**
-   $$Q(0,T)=e^{-hT}=e^{-0.0250\cdot 5}\approx 0.8825.$$
-3. **Specify the payoff you are valuing (fractional recovery of par):**
-   - If $\tau\gt T$: receive $N$ at $T$.
-   - If $\tau\le T$: receive $RN$ at $\tau$.
-4. **Write PV using the default density $f(t)=hQ(t)$:**
-   $$PV = N\Big(P(0,T)Q(0,T) + R\int_0^T P(0,t)\,f(t)\,dt\Big).$$
-   With flat $r$ and constant $h$, this simplifies to:
-   $$PV = N\left(e^{-(r+h)T} + R\frac{h}{r+h}\left(1-e^{-(r+h)T}\right)\right).$$
-   Plugging $r=0.03$, $h=0.025$, $T=5$, $R=0.40$, $N=10{,}000{,}000$:
-   $$PV \approx \mathrm{USD}\\,8{,}032{,}863.$$
-5. **Hazard bump (parallel $+1$ bp/year in $h$):**
-   $$\Delta h = 1\text{ bp/year} = 10^{-4}.$$
-   Compute $PV(h+\Delta h)-PV(h)\approx -\mathrm{USD}\\,2{,}153$ (per USD 10mm notional).
-6. **CS01 (spread $+1$ bp, curve rebuild via triangle):**
-   $$h(S)=\frac{S}{1-R}, \qquad \Delta S = 1\text{ bp} = 10^{-4}.$$
-   So $\Delta h = \Delta S/(1-R)\approx 1.67$ bp/year, and:
-   $$\mathrm{CS01} \approx PV(S+\Delta S)-PV(S) \approx -\mathrm{USD}\\,3{,}588 \;\;(\text{per } \mathrm{USD}\\,10\text{mm}).$$
+
+**Step 1: Translate quote → hazard (triangle).**
+
+$$h=\frac{S}{1-R}=\frac{0.0150}{0.60}=0.0250.$$
+
+**Step 2: Compute survival to maturity.**
+
+$$Q(0,T)=e^{-hT}=e^{-0.0250\cdot 5}\approx 0.8825.$$
+
+**Step 3: Specify the payoff you are valuing (fractional recovery of par).**
+
+- If $\tau\gt T$: receive $N$ at $T$.
+- If $\tau\le T$: receive $RN$ at $\tau$.
+
+**Step 4: Write PV using the default density $f(t)=hQ(t)$.**
+
+$$PV = N\Big(P(0,T)Q(0,T) + R\int_0^T P(0,t)\,f(t)\,dt\Big).$$
+
+With flat $r$ and constant $h$, this simplifies to:
+
+$$PV = N\left(e^{-(r+h)T} + R\frac{h}{r+h}\left(1-e^{-(r+h)T}\right)\right).$$
+
+Plugging $r=0.03$, $h=0.025$, $T=5$, $R=0.40$, $N=10{,}000{,}000$:
+
+$$PV \approx \mathrm{USD}\\,8{,}032{,}863.$$
+
+**Step 5: Hazard bump (parallel $+1$ bp/year in $h$).**
+
+$$\Delta h = 1\text{ bp/year} = 10^{-4}.$$
+
+Reprice at $h+\Delta h = 0.0251$: $PV(h+\Delta h)-PV(h)\approx -\mathrm{USD}\\,2{,}153$ (per USD 10mm notional). Equivalently, the analytic derivative of the closed-form PV satisfies $\partial PV/\partial h \approx -\mathrm{USD}\\,21{,}535{,}000$ per unit hazard, and $-21{,}535{,}000 \times 10^{-4} \approx -2{,}153$.
+
+**Step 6: CS01 (spread $+1$ bp, curve rebuild via triangle).**
+
+$$h(S)=\frac{S}{1-R}, \qquad \Delta S = 1\text{ bp} = 10^{-4}.$$
+
+Under the triangle curve-rebuild rule, $\Delta h = \Delta S/(1-R)\approx 1.67$ bp/year. By linearity in the 1bp regime:
+
+$$\mathrm{CS01} = PV(S+\Delta S)-PV(S) \approx \frac{1}{1-R}\bigl[PV(h+\Delta h_{\text{1bp}})-PV(h)\bigr] \approx -\mathrm{USD}\\,3{,}588 \;\;(\text{per } \mathrm{USD}\\,10\text{mm}).$$
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
@@ -1149,7 +1168,7 @@ See `## References` for sources on the hazard model, the credit triangle, and th
 
 **Year-fraction consistency:** Hazard rates are per-year quantities. Ensure $\Delta t$ uses the same year-fraction convention as the cashflow schedule you are pricing. For CDS premium accrual conventions, follow the contract details (see Chapters 38–41).
 
-**Recovery convention:** Many formulas assume a fixed recovery fraction $R$ with loss $(1-R)$ paid at default. O'Kane notes there are variations: recovery of par, recovery of market value, etc. Know which convention your system uses and ensure consistency across pricing and risk.
+**Recovery convention:** Many formulas assume a fixed recovery fraction $R$ with loss $(1-R)$ paid at default. There are several variations in practice — recovery of par, recovery of market value, and recovery of treasury — and they yield different prices and Greeks. Know which convention your system uses and ensure consistency across pricing and risk.
 
 **Accrued premium:** The credit triangle assumes continuous premium. Real CDS pay discretely (often quarterly) and include premium accrual to the default date; this matters more when spreads are large.
 
@@ -1291,12 +1310,12 @@ Before trusting any survival curve, run these checks:
 2. $\bar{h}=-\ln(0.92)/3 \approx 0.0278$, i.e., $\bar{h}\approx 2.78\%$/year.
 6. $h\approx S/(1-R)=0.008/0.65\approx 0.0123$, i.e., $1.23\%$/year.
 10. Use risk-neutral (spread-implied) for valuation/hedging; use real-world/historical for scenario analysis and loss forecasting.
-12. Negative CS01 means PV falls when spreads widen. Ask: what spread is bumped, what is the curve rebuild rule, what recovery is held fixed, and what notional/price scaling is used (per 1bp, per \$1mm, per 100 par).
+12. Negative CS01 means PV falls when spreads widen. Ask: what spread is bumped, what is the curve rebuild rule, what recovery is held fixed, and what notional/price scaling is used (per 1 bp, per USD 1 mm, per 100 par).
 
 ## References
 
-- O’Kane, *Modelling Single-name and Multi-name Credit Derivatives*, “The Hazard Rate Model”; “Calculating the Survival Probability”; “The Credit Triangle”; “Detecting Arbitrage in the Curve”
-- Hull, *Options, Futures, and Other Derivatives*, “Real-World vs. Risk-Neutral Probabilities” (Table 24.2)
-- McNeil, Frey, Embrechts, *Quantitative Risk Management*, hazard rates and cumulative hazard (Chapter 9); “Algorithm 9.14 (univariate threshold simulation)”
-- Glasserman, *Monte Carlo Methods in Financial Engineering*, “Default Times and Valuation” (intensity identity and valuation with $r+\lambda$)
+- O'Kane, *Modelling Single-name and Multi-name Credit Derivatives*, "The Hazard Rate Model"; "Calculating the Survival Probability"; "The Credit Triangle"; "Detecting Arbitrage in the Curve"
+- Hull, *Risk Management and Financial Institutions*, Chapter 19 ("Estimating Default Probabilities"); Tables 19.4 and 19.5 ("Cumulative Default Probabilities Compared with Credit Spreads" and "Average Seven-Year Hazard Rates"); section "Real-World vs. Risk-Neutral Probabilities"
+- McNeil, Frey, Embrechts, *Quantitative Risk Management*, Chapter 9: hazard rates and cumulative hazard, Definition 9.11 (doubly stochastic random time), Algorithm 9.14 (univariate threshold simulation), Algorithm 9.34 (multivariate threshold simulation)
+- Glasserman, *Monte Carlo Methods in Financial Engineering*, "Default Times and Valuation" (intensity identity and valuation with $r+\lambda$)
 - Brigo, Morini, Pallavicini, *Counterparty Credit Risk, Collateral and Funding*, “Intensity Models” (cumulative intensity transform and inversion)
