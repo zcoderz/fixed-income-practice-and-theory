@@ -506,7 +506,7 @@ With constituent spreads $S_m$ and risky annuities $RPV01_m$, and assuming the s
 
 $$\boxed{S_{\text{intrinsic}} = \frac{\sum_{m=1}^{M} S_m \cdot RPV01_m}{\sum_{m=1}^{M} RPV01_m}}$$
 
-**Expand (intuition):** this is *not* a simple average of spreads. Names with larger `RPV01` carry more weight in "intrinsic," because a 1bp move on those names is worth more PV.
+**Expand (intuition):** this is *not* a simple average of spreads. Names with larger `RPV01` — typically the *tighter* names, because they are expected to survive longer and pay more premium — carry more weight in "intrinsic," since a 1bp move on those names is worth more PV.
 
 **Expand (mechanics):** `RPV01` is larger when a name is expected to survive longer and pay more premium (typically *tighter* names), and smaller when default is more likely (often *wider/distressed* names). So the intrinsic spread is usually **pulled toward the tighter names** because distressed constituents tend to get down-weighted by their smaller `RPV01`.
 
