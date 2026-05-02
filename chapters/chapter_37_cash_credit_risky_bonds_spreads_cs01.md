@@ -44,7 +44,7 @@ When you **buy/sell bonds**, the cash settlement amount is based on the **dirty*
 ### Base Curve and Discount Factors
 The base (risk-free) curve is represented by discount factors $Z(0,t)$ (e.g., government/OIS). Risk-free PV of deterministic cashflows is:
 
-$$\sum_{i} CF_i \\, Z(0, t_i)$$
+$$PV_{\text{rf}} = \sum_{i} CF_i \\, Z(0, t_i).$$
 
 ### Default Time
 $\tau$ is the (random) default time.
@@ -279,7 +279,7 @@ If the current settlement is on a coupon date (so clean = dirty), this simplifie
 
 $$\boxed{P(t) = 1 + \bigl(F(0) - F(t)\bigr) \cdot A(t)}, \qquad A(t) = \sum_{n=1}^{N} \frac{\alpha_n}{\prod_{m=1}^{n}\bigl(1 + \alpha_m\bigl(L_m + F(t)\bigr)\bigr)}.$$
 
-Here $A(t)$ is the FRN annuity (sum of accrual-weighted discount factors at $L+F(t)$). To convert to per-100 face, multiply both $P(t)$ and the annuity term by 100.
+Here $A(t)$ is the FRN annuity (sum of accrual-weighted discount factors at $L+F(t)$). Multiplying through by 100 gives the per-100-face form $P_{\text{per 100}}(t) = 100 + 100\bigl(F(0) - F(t)\bigr)\cdot A(t)$, which matches the linear approximation below.
 
 **Intuition:**
 
@@ -628,10 +628,10 @@ So “more time” can mean “more time to recover,” which can push longer sp
 **Equity-Like Convexity:**
 
 Distressed bonds exhibit **positive convexity** in a way that resembles equity:
-- If the issuer defaults, bondholders lose (but are capped at losing face minus recovery)
-- If the issuer recovers, the bond can rally dramatically—potentially from USD 30 back toward par
+- If the issuer defaults, the bondholder's loss is capped at *current price minus recovery* — for a bond at USD 30 with expected recovery USD 35, the realized capital loss is small or even slightly positive.
+- If the issuer recovers, the bond can rally dramatically — potentially from USD 30 back toward par, a 200%+ return.
 
-This asymmetric payoff makes distressed bond analysis resemble equity analysis more than investment-grade credit analysis.
+This asymmetric payoff (small downside, large upside) makes distressed bond analysis resemble equity analysis more than investment-grade credit analysis.
 
 > **Practitioner Note: Pull-to-Par vs. Pull-to-Recovery**
 >
