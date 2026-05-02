@@ -37,11 +37,7 @@ None of this machinery is glamorous. But every CVA calculation, every credit lim
 
 ## Perspective and Signs
 
-Before diving into the mechanics, lock down a sign convention. Counterparty exposure calculations are notorious for sign errors—getting the direction of collateral or exposure wrong can reverse your conclusion entirely.
-
-### 32.0.1 Bank Perspective and Sign Rules
-
-We adopt the **bank/dealer perspective** throughout. The bank has a portfolio of derivatives with a counterparty, and we measure the bank's credit risk to that counterparty.
+Before diving into the mechanics, lock down a sign convention. Counterparty exposure calculations are notorious for sign errors—getting the direction of collateral or exposure wrong can reverse your conclusion entirely. We adopt the **bank/dealer perspective** throughout: the bank has a portfolio of derivatives with a counterparty, and we measure the bank's credit risk to that counterparty.
 
 | Item | Description |
 |------------|-------------|
@@ -96,7 +92,7 @@ Two commonly used summary objects are:
 - **$PFE_q(t)$:** the $q$-quantile of $E(t)$ at time $t$ (e.g., $q=95\\%$ or $97.5\\%$).
 - **Maximum PFE / MPFE:** the maximum of $PFE_q(t)$ over a time window (often the trade life), used as a single “peak” number.
 
-**Check (sanity):** if there is no uncertainty about future MTM (a deterministic $V(t)$), then $EE(t)=E(t)$ and $PFE_q(t)=E(t)$ for any $q$: there is no “tail” because there is no distribution.
+**Check (sanity):** if there is no uncertainty about future MTM (a deterministic $V(t)$), then expected exposure $EE(t)\equiv\mathbb{E}[E(t)]$ collapses to $E(t)$, and $PFE_q(t)=E(t)$ for any $q$: there is no “tail” because there is no distribution. (We define $EE$ formally in Section 32.6.3.)
 
 ---
 
@@ -133,7 +129,7 @@ Each positive trade value contributes to exposure; negative trade values are ign
 
 **With netting** (net portfolio exposure):
 
-The "single transaction" principle means the close-out is computed on the net value:
+ISDA's "single agreement" principle treats all transactions under the master agreement as one contract, so the close-out is computed on the net value:
 
 $$V_{\text{net}} = \sum_{i=1}^{N} V_i$$
 
@@ -189,7 +185,7 @@ $$\boxed{E(t) = \max(V(t) - C(t), 0)}$$
 
 **Variation margin** is collateral exchanged frequently to track the current MTM under the CSA.
 
-In a **perfect, instantaneous, zero-threshold VM world**, current exposure would be driven to zero. If $V$ changes, collateral immediately adjusts so that $C = V$ when $V \gt 0$ (or $C = V$ for two-way VM). Then $E = \max(V - V, 0) = 0$.
+In a **perfect, instantaneous, two-way, zero-threshold VM world**, current exposure would be driven to zero. If $V$ changes, collateral immediately adjusts so that $C(t)=V(t)$ at all times: when $V\gt 0$ the counterparty has posted $V$ to the bank, and when $V\lt 0$ the bank has posted $|V|$ to the counterparty. Then $E = \max(V - V, 0) = 0$.
 
 In reality, this idealized state is never achieved because of:
 1. **Thresholds** — collateral only required above a threshold
@@ -243,7 +239,7 @@ Both features increase residual exposure but reduce operational friction.
 
 ### 32.3.6 Rehypothecation and Segregation
 
-**Anchor (definition):** Rehypothecation means collateral received as a guarantee can be reused (as an investment or as further collateral).
+**Anchor (definition):** Rehypothecation is the practice of reusing collateral received from a counterparty—either by investing it (e.g., placing it in a money market) or by re-posting it as collateral elsewhere (e.g., to fund an offsetting hedge).
 
 **Expand (why it matters):** Rehypothecation can improve funding efficiency for the collateral receiver, but it adds **credit risk for the collateral poster**. If the receiver defaults while holding (and having reused) your collateral, recovering it can be harder. One mitigation is **segregation**: keeping collateral in a segregated third-party account, which can improve its seniority versus other unsecured claims.
 
@@ -284,14 +280,17 @@ A CCP operates similarly to an exchange clearing house:
 
 ### 32.4.3 The CCP Default Waterfall
 
-If a CCP member defaults, losses are absorbed in a specific order (a default **waterfall**):
+If a CCP member defaults, losses are absorbed in a specific order (a default **waterfall**). A typical structure is:
 
 1. The initial margin of the defaulting member
 2. The default fund contribution of the defaulting member
-3. The default fund contributions of other members
-4. The equity of the CCP
+3. A pre-funded slice of the CCP's own equity ("skin in the game"), placed before surviving members' contributions to align CCP incentives
+4. The default fund contributions of surviving members (mutualized)
+5. Further loss-allocation tools — additional CCP equity, powers of assessment on members, variation-margin-gains haircutting, or other recovery mechanisms specified in the CCP's rulebook
 
-This structure means that even highly creditworthy counterparties face some mutualized credit risk when clearing through a CCP—they could lose part of their default fund contribution if another member defaults.
+The exact sequencing, the size of skin-in-the-game, and the available recovery tools are CCP- and jurisdiction-specific.
+
+This structure means that even highly creditworthy counterparties face some mutualized credit risk when clearing through a CCP—they could lose part of their default fund contribution (and potentially face additional assessments) if another member defaults.
 
 ### 32.4.4 Bilateral vs. CCP: A Comparison
 
@@ -336,7 +335,7 @@ Even with a two-way, zero-threshold collateral agreement, exposure at default ca
 
 ### 32.5.2 Collateral at Default Is Stale
 
-**Anchor (simulation convention):** In this calculation, it is usually assumed that the counterparty stops posting collateral and stops returning any excess collateral held $c$ days before a default. The parameter $c$—the number of days before default when the counterparty stops posting and returning collateral—is typically 10 or 20 days and is referred to as the *cure period* or *margin period of risk*. In order to know what collateral is held at the midpoint of an interval in the event of a default, it is necessary to calculate the value of transactions $c$ days earlier.
+**Anchor (simulation convention):** The standard modeling assumption is that the counterparty stops posting and returning collateral $c$ days before close-out. The parameter $c$—the gap between the last good collateral exchange and close-out—is the *cure period* or *margin period of risk* (MPOR). Typical orders of magnitude are a few business days for centrally cleared portfolios and 10–20 business days for bilateral non-cleared portfolios, with the exact horizon set by the regulatory regime (e.g., the BCBS-IOSCO non-cleared margin rules and Basel SA-CCR/IMM frameworks). To compute exposure at close-out time $\tau$, the model uses the portfolio value $c$ days earlier as a proxy for the collateral actually held: $C(\tau)\approx V(\tau-c)$ under two-way zero-threshold VM.
 
 This stale-collateral effect means that even under "perfect collateralization," exposure can emerge from market moves during MPOR.
 
@@ -369,7 +368,6 @@ $$
 E(\tau)=\max(50-45,0)=5.
 $$
 
-
 If instead $V(\tau-c)=55$, the assumption implies collateral worth $55$ at $\tau$ and $E(\tau)=0$ (and excess collateral would be returned).
 
 > **Pitfall — Fully collateralized ≠ zero exposure:** People mentally equate “daily VM” with “no counterparty exposure.”
@@ -394,17 +392,23 @@ Informally: it is the replacement cost *right now* if the counterparty defaulted
 
 ### 32.6.2 Potential Future Exposure (PFE) and Maximum PFE (MPFE)
 
-**Potential future exposure (PFE)** for a given date is the maximum exposure at that date, with a high degree of statistical confidence (i.e., a high percentile of the exposure distribution):
+**Potential future exposure (PFE)** for a given date is a high-percentile of the exposure distribution at that date — a tail measure that captures "how bad could exposure get?" at a chosen confidence level:
 
 $$
 \boxed{PFE_q(t) := \inf\\{x : P(E(t) \leq x) \geq q\\}}.
 $$
 
-**Maximum PFE / MPFE** is the maximum of $PFE_q(t)$ over a time window (often the trade life). It is used as a single “peak” number for credit limits.
+**Maximum PFE / MPFE** is the maximum of $PFE_q(t)$ over a time window $[0,T]$ (often the trade life):
+
+$$
+MPFE_q := \max_{t\in[0,T]} PFE_q(t).
+$$
+
+It is used as a single "peak" number for credit limits.
 
 **Important modeling point:** PFE is usually computed via simulation: for each future time, simulate the portfolio value (to obtain $V(t)$, then $E(t)$). There is no default simulation involved: only the portfolio is simulated, not the default of the counterparty. Default probabilities enter later when you convert exposure into expected loss (e.g., CVA).
 
-**Check (order statistic):** With $N$ simulated exposures at a fixed time $t$, $PFE_q(t)$ is the $q$-quantile of the $N$ numbers. For example, if $N=10{,}000$ and $q=97.5\\%$, it is the 250th largest exposure.
+**Check (order statistic):** With $N$ simulated exposures at a fixed time $t$, $PFE_q(t)$ is the $q$-quantile of the $N$ numbers. Under the inf-CDF convention, this is the order statistic at rank $\lceil Nq\rceil$ (sorted ascending). For example, if $N=10{,}000$ and $q=97.5\\%$, it is the 9750th-smallest value (equivalently, the 251st-largest) — informally, the cutoff that exactly 250 simulated exposures strictly exceed.
 
 ### 32.6.3 Expected Exposure (EE)
 
@@ -414,18 +418,19 @@ $$
 \boxed{EE(t) := \mathbb{E}[E(t)] = \mathbb{E}[\max(V(t) - C(t), 0)]}.
 $$
 
-
 ### 32.6.4 Expected Positive Exposure (EPE)
 
-**EPE** is a time-aggregated measure of $EE(t)$. A common convention is a time-weighted average:
+**EPE** is a time-aggregated measure of $EE(t)$. A common convention is a time-weighted average over a horizon $[0,T]$:
 
 $$
 EPE := \frac{1}{T}\int_0^T EE(t)\\,dt
-\quad\text{or}\quad
-EPE \approx \sum_i w_i\\,EE(t_i).
+\quad\text{or, on a discrete grid }t_1\lt \dots\lt t_n,\quad
+EPE \approx \frac{1}{T}\sum_{i=1}^{n} EE(t_i)\\,\Delta t_i,
 $$
 
-Because definitions vary (time grid, weighting, collateral treatment), always confirm the exact EPE definition used by your system.
+where $\Delta t_i$ is the length of the $i$-th interval and $\sum_i \Delta t_i = T$.
+
+Because definitions vary (time grid, weighting, collateral treatment, and whether averaging is over the trade life or a regulatory one-year window), always confirm the exact EPE definition used by your system.
 
 ### 32.6.5 Exposure at Default (EAD) (Preview)
 
@@ -442,15 +447,21 @@ This object appears in some capital and expected-loss calculations, but the deta
 From the counterparty’s perspective, the relevant “mirror” quantity is the positive part of $(C-V)$. Under our sign convention, define:
 
 $$
-\boxed{ENE(t) := \mathbb{E}[\max(C(t)-V(t),0)] = \mathbb{E}[\max(-(V(t)-C(t)),0)]}.
+\boxed{ENE(t) := \mathbb{E}[\max(C(t)-V(t),0)]}.
 $$
 
+This is the *negative part* of $V-C$ in expectation: the bank's MTM-net-of-collateral position when the counterparty would be the at-risk party.
 
 Downstream, **DVA** uses ENE in an analogous way to how CVA uses EE. A full treatment of DVA belongs in Chapter 34.
 
 ### 32.6.7 A Note on $P$ vs. $Q$
 
-In one common convention, PFE is framed as a $P$-percentile (physical measure) for limit/stress purposes, while pricing adjustments (like CVA) rely on risk-neutral ($Q$) valuation. In practice, institutions vary in how they implement this split. The safe operational rule: always verify which measure and calibration your exposure engine is using before comparing numbers across systems.
+The portfolio value $V(t)$ is always a market price, so the *valuation* on each path uses risk-neutral ($Q$) inputs (curves, vols, forwards). What can differ is the *measure used to simulate the underlying risk factors*:
+
+- **Risk and limits.** For PFE and similar tail measures used in credit limits, stress testing, and capital, simulation is often done under the physical measure $P$ (real-world drifts and volatilities estimated from history). The resulting $PFE_q(t)$ is then a $P$-quantile of the path-by-path exposure.
+- **Pricing adjustments.** For CVA, DVA, and other XVAs, the convention is risk-neutral ($Q$) simulation, since these adjustments are themselves prices and must be consistent with traded hedges.
+
+Institutions vary in how strictly they enforce the split, and some metrics (e.g., regulatory EPE) are defined under $Q$ even though they look risk-management-flavored. The safe operational rule: before comparing numbers across systems, verify *which measure* the simulation uses and *which calibration* feeds the path generator.
 
 ---
 
@@ -471,9 +482,7 @@ For an interest rate swap portfolio, typical risk factors include:
 
 **Step 2: Generate Scenarios**
 
-For each simulation path $\omega$ and each future time $t_i$:
-1. Simulate market variable evolution: $X^{(\omega)}(t_i)$
-2. These may use geometric Brownian motion, short-rate models, or more sophisticated processes
+For each simulation path $\omega$ and each future time $t_i$, simulate the joint evolution of the risk factors $X^{(\omega)}(t_i)$. Common dynamics include geometric Brownian motion (for FX and equity), short-rate or HJM-type models (for rates), and reduced-form intensity models (for credit), often combined into a single multi-factor framework.
 
 **Step 3: Compute Portfolio Values**
 
@@ -516,16 +525,16 @@ Exposure metrics are functions of $V(t)$, which in turn depends on risk factors 
 - **Bump object:** the market input you perturb (e.g., a parallel 1bp shift to the discount zero curve used for valuation).
 - **Bump size:** $1\text{bp}=10^{-4}$.
 - **Units:** currency per 1bp (state whether “per 100 notional” or “per USD 1 notional”).
-- **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For a plain long fixed-income position, rates down $\Rightarrow PV$ up $\Rightarrow DV01\gt 0$.
+- **Sign convention (book-wide):** $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. For a plain long-duration fixed-income position, rates down $\Rightarrow PV$ up $\Rightarrow DV01\gt 0$.
 
 To get an “exposure DV01,” you would bump the curve, revalue $V^{(\omega)}(t_i)$ on each path, recompute $E^{(\omega)}(t_i)$, then re-aggregate into bumped $EE(t_i)$ or $PFE_q(t_i)$. This is conceptually simple but computationally expensive, so many implementations use proxies.
 
 **Expand (the $\max$ makes exposure “option-like”):** Because $E=\max(V-C,0)$ is a positive-part function, exposure is *one-sided*. On a path where $V^{(\omega)}(t_i)-C^{(\omega)}(t_i)$ is comfortably negative, $E^{(\omega)}(t_i)=0$ and a small risk-factor bump often leaves exposure unchanged (pathwise exposure sensitivity $\approx 0$). Near the boundary $V\approx C$, small bumps can switch exposure on/off, so finite-difference bump size and central-difference schemes matter.
 
-**Check (two-path toy):** Suppose at a future date $t$ there are two equally likely states, and on both states the *portfolio PV* has $DV01=+USD 100\text{k}$ per 1bp (rates down $\Rightarrow V$ up by $0.10\text{mm}$).
-- State A: $V-C=+USD 1.00\text{mm}\Rightarrow E=1.00\text{mm}$. After a 1bp rates-down bump, $E$ increases to $1.10\text{mm}$.
-- State B: $V-C=-USD 1.00\text{mm}\Rightarrow E=0$. After the same bump, $V-C=-0.90\text{mm}\Rightarrow E$ stays 0.
-So the expected-exposure DV01 is about $0.5\times USD 100\text{k}=USD 50\text{k}$ per 1bp, not USD 100k: the negative-exposure state contributes no exposure sensitivity.
+**Check (two-path toy):** Suppose at a future date $t$ there are two equally likely states, and on both states the *portfolio PV* has $DV01=+\mathrm{USD}\\,100\text{k}$ per 1bp (rates down $\Rightarrow V$ up by $0.10\text{mm}$).
+- State A: $V-C=+\mathrm{USD}\\,1.00\text{mm}\Rightarrow E=1.00\text{mm}$. After a 1bp rates-down bump, $E$ increases to $1.10\text{mm}$.
+- State B: $V-C=-\mathrm{USD}\\,1.00\text{mm}\Rightarrow E=0$. After the same bump, $V-C=-0.90\text{mm}\Rightarrow E$ stays 0.
+So the expected-exposure DV01 is about $0.5\times \mathrm{USD}\\,100\text{k}=\mathrm{USD}\\,50\text{k}$ per 1bp, not USD 100k: the negative-exposure state contributes no exposure sensitivity.
 
 ### 32.7.4 The Exposure Cone
 
@@ -606,9 +615,9 @@ Options have distinct exposure profiles depending on whether you bought or sold 
 
 ### 32.9.3 Right-Way Risk
 
-The opposite is **right-way risk**: exposure and default probability are negatively correlated.
+The opposite is **right-way risk**: exposure and default probability are negatively correlated, so the bank is most owed by the counterparty exactly in the states where the counterparty is healthiest.
 
-Heuristically, a client using derivatives to hedge an underlying business exposure can create right-way risk: when the derivative moves against the client, the underlying exposure may be helping them, so their credit quality may be better in those states.
+Heuristically, a client using derivatives to hedge an underlying business risk can create right-way risk. Suppose the client's underlying business benefits from a market move that simultaneously causes the hedge to lose money (so the bank's MTM with the client rises). In those states, the client's underlying business is doing well, so their credit quality is typically *better*—giving the bank exposure in the "safe" states rather than the "stressed" states.
 
 ### 32.9.4 Modeling Wrong-Way Risk
 
@@ -627,14 +636,14 @@ At a high level, there are two approaches:
 When a trader considers adding a new trade to an existing portfolio with a counterparty, the key question is: *How does this trade affect the CVA we charge?*
 
 The answer is **not** simply the standalone CVA of the new trade. Because of netting, the new trade interacts with existing trades:
-- If the new trade has *opposite* exposure to the existing portfolio, it provides a netting benefit and *reduces* total exposure
-- If the new trade has *similar* exposure to the existing portfolio, it adds to exposure
+- If the new trade's MTM tends to be of *opposite sign* to the existing portfolio's MTM, it provides a netting benefit and *reduces* netting-set exposure
+- If the new trade's MTM tends to move in the *same direction* as the existing portfolio's, it adds to netting-set exposure
 
 ### 32.10.2 Incremental vs. Standalone
 
-The incremental effect depends on how the new trade co-moves with the existing portfolio under the netting agreement:
-- If it is positively correlated with existing exposure, incremental CVA tends to be positive.
-- If it is negatively correlated (an “offsetting” trade), incremental CVA can be negative.
+The incremental effect depends on how the new trade's MTM co-moves with the existing netting set's MTM:
+- If the new trade tends to move in the *same* direction as the existing portfolio (so positive states get even more positive), incremental CVA is typically positive.
+- If it tends to move in the *opposite* direction (an "offsetting" trade that nets down the portfolio), incremental CVA can be negative.
 
 $$\boxed{\Delta CVA = CVA_{\text{portfolio + new}} - CVA_{\text{portfolio}}}$$
 
@@ -802,8 +811,10 @@ At $t = 1y$:
 - $3 \geq 1 \Rightarrow C = 3$
 - Exposure $E = \max(5 - 3, 0) = 2$
 
-**Case 2: $V = -5$**
-- Bank exposure is $\max(-5 - C, 0) = 0$ under symmetric posting
+**Case 2: $V = -5$** (symmetric two-way posting)
+- Bank's "post amount" $= \max(|V| - H, 0) = \max(5 - 2, 0) = 3$
+- $3 \geq m=1 \Rightarrow$ bank posts $3$, so $C = -3$
+- Exposure $E = \max(-5 - (-3), 0) = \max(-2, 0) = 0$
 
 **Results:** $E \in \\{2, 0\\}$ with equal probability.
 
@@ -1000,8 +1011,8 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 - Sign convention: $V\gt 0$ means the counterparty owes the bank; $C\gt 0$ means collateral held by the bank.
 - Two-way, zero-threshold VM with the modeling convention: collateral at $\tau$ is based on the MTM $c$ days earlier.
 - Cure period / MPOR lookback: $c=20$ calendar days.
-- Portfolio MTM at close-out: $V(\tau)=+USD 50\text{mm}$.
-- Portfolio MTM $c$ days earlier: $V(\tau-c)=+USD 45\text{mm}$.
+- Portfolio MTM at close-out: $V(\tau)=+\mathrm{USD}\\,50\text{mm}$.
+- Portfolio MTM $c$ days earlier: $V(\tau-c)=+\mathrm{USD}\\,45\text{mm}$.
 
 **Outputs (What You Produce)**
 - Close-out exposure $E(\tau)$ in USD mm.
@@ -1014,12 +1025,12 @@ $$\Delta E = E_{\text{after}} - E_{\text{before}} = 4 - 10 = -6$$
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-03-02 | $+USD 45\text{mm}$ | Counterparty posts VM based on MTM $=45\text{mm}$ |
+| 2026-03-02 | $+\mathrm{USD}\\,45\text{mm}$ | Counterparty posts VM based on MTM $=45\text{mm}$ |
 | 2026-03-22 | Close-out | Bank has net claim $50\text{mm}$; uses $45\text{mm}$ collateral; residual $5\text{mm}$ is unsecured |
 
 **P&L / Risk Interpretation**
 - The USD 5mm is **gap exposure** created purely by timing: the MTM moved from 45 to 50 during MPOR while collateral was frozen.
-- If the counterparty defaults and recovery on the residual unsecured claim is $R$, the loss on this path is approximately $(1-R)\times USD 5\text{mm}$ (ignoring close-out costs and legal frictions).
+- If the counterparty defaults and recovery on the residual unsecured claim is $R$, the loss on this path is approximately $(1-R)\times \mathrm{USD}\\,5\text{mm}$ (ignoring close-out costs and legal frictions).
 
 **Sanity Checks**
 - Units check: $V, C, E$ are currency; the result is in USD mm.
@@ -1083,7 +1094,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 
 5. **IM buffers MPOR risk:** Covers exposure change during the cure period.
 
-6. **MPOR makes collateral stale:** Even "perfect" VM leaves exposure from market moves during the 10-20 day cure period.
+6. **MPOR makes collateral stale:** Even "perfect" VM leaves exposure from market moves during the 10–20 business day cure period (regime-dependent).
 
 7. **PFE and EE are different:** PFE is a quantile (tail risk); EE is a mean (for CVA).
 
@@ -1140,7 +1151,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | $CE$ | Current exposure | currency; $CE=E(0)$ |
 | $EE(t)$ | Expected exposure | currency |
 | $PFE_q(t)$ | Potential future exposure at confidence $q$ | currency |
-| $MPFE_q$ | Maximum PFE over a horizon | currency |
+| $MPFE_q$ | Maximum PFE over a horizon $[0,T]$ | currency; $MPFE_q=\max_{t\in[0,T]} PFE_q(t)$ |
 | $EPE$ | Time-average of $EE(t)$ | currency |
 | $EAD$ | Exposure at default | currency; $E(\tau)$ |
 | $ENE(t)$ | Expected negative exposure | currency; $\mathbb{E}[\max(C(t)-V(t),0)]$ |
@@ -1149,7 +1160,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | $c$ | Cure period / MPOR lookback | days |
 | $D(t,T)$ | Discount factor (preview) | unitless |
 | $R$ | Recovery rate | unitless |
-| $DV01$ | Rates sensitivity scalar (preview) | currency per 1bp; $PV(\text{rates down }1bp)-PV(\text{base})$ |
+| $DV01$ | Rates sensitivity scalar (preview) | currency per 1bp; $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$ |
 
 ---
 
@@ -1176,7 +1187,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 | 17 | What do thresholds and MTAs do? | They leave an unsecured band of exposure to reduce operational frictions. |
 | 18 | What is rehypothecation vs segregation? | Reuse of collateral vs holding it in a segregated third-party account. |
 | 19 | What is wrong-way risk? | Exposure is largest when the counterparty’s credit quality is weakest. |
-| 20 | What is the book’s DV01 convention (preview)? | Bump object must be stated; bump size $1$bp; $DV01=PV(\text{rates down }1bp)-PV(\text{base})$. |
+| 20 | What is the book’s DV01 convention (preview)? | Bump object must be stated; bump size $1\text{bp}=10^{-4}$; $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$. |
 
 ---
 
@@ -1199,7 +1210,7 @@ Counterparty exposure is the foundation of counterparty credit risk. Before you 
 4. Under the stale-collateral convention, $C(\tau)\approx 9$, so $E(\tau)=\max(12-9,0)=3$.
 5. Effective collateral posted is $110\times(1-0.10)=99$. With $V=-95$ and $C=-99$, $E=\max(-95-(-99),0)=4$.
 8. Exposure answers “*if* default happens, what is the loss?” You simulate the portfolio value to get $E(t)$; default probabilities enter later when converting exposure into expected loss (e.g., CVA).
-10. Example answer: bump object = parallel 1bp shift to the valuation discount zero curve; bump size $1$bp $=10^{-4}$; units = currency per 1bp; sign $DV01=PV(\text{rates down }1bp)-PV(\text{base})$ (long rates risk $\Rightarrow DV01\gt 0$).
+10. Example answer: bump object = parallel 1bp shift to the valuation discount zero curve; bump size $1\text{bp}=10^{-4}$; units = currency per 1bp; sign $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$ (long rates risk $\Rightarrow DV01\gt 0$).
 
 ## References
 
