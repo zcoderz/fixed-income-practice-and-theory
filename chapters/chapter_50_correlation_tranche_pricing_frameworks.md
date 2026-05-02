@@ -106,7 +106,11 @@ $$\boxed{\mathrm{Corr01} := PV(\rho+0.01)-PV(\rho)}$$
 - **Units:** currency per 1% correlation.
 - **Interpretation:** Corr01 > 0 means the position’s PV increases when the desk’s dependence parameter increases.
 
-**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is `Corr01sym ≈ (PV(rho+0.01)-PV(rho-0.01))/2`, holding the same calibration/interpolation rules fixed. Large discrepancies flag nonlinearity or methodology instability (and should push you toward scenario shocks rather than relying on a local number).
+**Check (finite-difference robustness):** tranche PV can be nonlinear in the dependence parameter and base-correlation bumps can propagate non-locally through interpolation. A simple diagnostic is the symmetric two-sided Corr01,
+
+$$\mathrm{Corr01}_{\mathrm{sym}} \approx \frac{PV(\rho+0.01) - PV(\rho-0.01)}{2},$$
+
+holding the same calibration/interpolation rules fixed. Large discrepancies between the one-sided and symmetric forms flag nonlinearity or methodology instability (and should push you toward scenario shocks rather than relying on a local number).
 
 | Tranche | Corr01 sign (short protection) | Corr01 sign (long protection) | Intuition |
 |---------|-------------------------------|------------------------------|-----------|
@@ -118,7 +122,7 @@ The sign flip between equity and senior is not an anomaly—it's the fundamental
 
 > **Desk Reality:** “Long correlation” means *PV increases when the desk’s dependence parameter increases* (under the desk’s pricing and calibration methodology).
 > **Common break:** People mix position direction (long/short protection), correlation definition (compound vs. base), and bump/rebuild rules, which can flip the sign.
-> **What to check:** Compute Corr01 from two reprices $PV(\rho+1\\%)-PV(\rho)$ for the stated position, holding calibration and interpolation rules fixed.
+> **What to check:** Compute Corr01 from two reprices $PV(\rho+0.01)-PV(\rho)$ for the stated position (an absolute one percentage-point bump), holding calibration and interpolation rules fixed.
 
 ### 50.1.4 Position Matters: Long vs. Short Protection
 
@@ -161,28 +165,30 @@ This distinction is crucial for hedging. A trader hedging equity risk with senio
 - Expected tranche loss fraction (ETL): $\mathbb{E}[L(T;A,D)]$ (unitless, in $[0,1]$).
 - Expected surviving fraction: $\mathbb{E}[1-L(T;A,D)]$ (unitless).
 - Toy PV per USD 1 of tranche notional (short protection):
-  `PV ≈ sT * E[1-L(T;A,D)] - E[L(T;A,D)]`
+
+  $$PV \approx s\\,T\\,\mathbb{E}[1-L(T;A,D)] - \mathbb{E}[L(T;A,D)]$$
 
 **Step-by-step**
 1. Under independence, the number of defaults $K\sim\\mathrm{Binomial}(N,p)$; portfolio loss is $L(T)=\\mathrm{LGD}\\,(K/N)$.
 2. Map portfolio loss to tranche loss fraction:
-   `L(T;A,D) = [min(L(T),D)-min(L(T),A)]/(D-A)`
+
+   $$L(T;A,D) = \frac{\min(L(T),D) - \min(L(T),A)}{D-A}$$
 3. Compute ETL $=\\mathbb{E}[L(T;A,D)]$ and expected survival $=\\mathbb{E}[1-L(T;A,D)]$.
 4. Plug into the toy PV formula above.
 
 **Cashflows (table)** *(toy: expected values shown at maturity)*
 | Date | Cashflow | Explanation |
 |---|---|---|
-| 2031-02-15 | $+sT\\,N_{\text{tr}}\\,\\mathbb{E}[1-L(T;A,D)]$ | Premium received by short-protection holder |
-| 2031-02-15 | $-N_{\text{tr}}\\,\\mathbb{E}[L(T;A,D)]$ | Expected protection payment by short-protection holder |
+| 2031-02-15 | $+sT\\,N_{\mathrm{tr}}\\,\\mathbb{E}[1-L(T;A,D)]$ | Premium received by short-protection holder |
+| 2031-02-15 | $-N_{\mathrm{tr}}\\,\\mathbb{E}[L(T;A,D)]$ | Expected protection payment by short-protection holder |
 
 **Results (numbers)** *(with the inputs above; independence computed under a binomial model)*
 | Tranche | $\mathbb{E}[L]$ at $\rho=0$ | $\mathbb{E}[L]$ at $\rho\to 1$ | Toy PV (short prot) at $\rho=0$ | Toy PV (short prot) at $\rho\to 1$ |
 |---|---:|---:|---:|---:|
-| Equity $0\text{–}3\\%$ | 0.3976 | 0.0200 | $-0.2470\times N_{\text{tr}}$ | $+0.2250\times N_{\text{tr}}$ |
-| Super-senior $30\text{–}100\\%$ | $\approx 0$ | 0.0086 | $+0.2500\times N_{\text{tr}}$ | $+0.2393\times N_{\text{tr}}$ |
+| Equity $0\text{–}3\\%$ | 0.3976 | 0.0200 | $-0.2470\times N_{\mathrm{tr}}$ | $+0.2250\times N_{\mathrm{tr}}$ |
+| Super-senior $30\text{–}100\\%$ | $\approx 0$ | 0.0086 | $+0.2500\times N_{\mathrm{tr}}$ | $+0.2393\times N_{\mathrm{tr}}$ |
 
-For $N_{\text{tr}}=USD 10\text{mm}$, the equity PV increases by about $USD 4.72\text{mm}$ when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about $USD 0.11\text{mm}$.
+For $N_{\mathrm{tr}}=USD 10\text{mm}$, the equity PV increases by about $USD 4.72\text{mm}$ when moving from $\rho=0$ to $\rho\to 1$, while the super-senior PV decreases by about $USD 0.11\text{mm}$.
 
 **P&L / Risk Interpretation**
 - The **equity short-protection** position benefits when dependence increases (PV up): it is **long correlation** under the book’s sign convention.
@@ -388,9 +394,10 @@ All latent variables collapse to the single factor. Defaults become perfectly de
 ### 50.3.6 Tail Dependence: The Critical Limitation
 
 **Definition (Upper and lower tail dependence):** Given r.v.'s $X_1$ and $X_2$ with marginal distributions $F_1$ and $F_2$,
-`lambda_U = lim_{u->1} P[X2 > F2^{-1}(u) | X1 > F1^{-1}(u)]`
 
-`lambda_L = lim_{u->0} P[X2 <= F2^{-1}(u) | X1 <= F1^{-1}(u)]`
+$$\lambda_{\mathrm{U}} = \lim_{u \to 1^-} \Pr\!\left[X_2 \gt F_2^{-1}(u) \mid X_1 \gt F_1^{-1}(u)\right],$$
+
+$$\lambda_{\mathrm{L}} = \lim_{u \to 0^+} \Pr\!\left[X_2 \le F_2^{-1}(u) \mid X_1 \le F_1^{-1}(u)\right].$$
 
 Intuition: $\lambda_{\mathrm{U}}$ is a limiting conditional probability of a joint extreme in the upper tail; $\lambda_{\mathrm{L}}$ is the analogous object in the lower tail.
 
@@ -485,14 +492,25 @@ $$F_L(\ell) = \Phi\left(\frac{\sqrt{1-\rho}\Phi^{-1}(\ell/(1-R)) - a}{\sqrt{\rho
 
 **Step 5: Analytical ETL for base tranches**
 
-For a base tranche $[0, K]$, the expected tranche loss is:
-$$\psi(T, K) = \mathbb{E}[\min(L, K)] = \int_0^K (1 - F_L(\ell)) d\ell$$
+For a base tranche $[0, K]$, the expected tranche loss is
 
-This reduces to a bivariate normal integral:
+$$\psi(T, K) = \mathbb{E}[\min(L, K)] = \int_0^K (1 - F_L(\ell))\\, d\ell.$$
 
-$$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\left(\Phi^{-1}(p), -\Phi^{-1}\left(\frac{K}{1-R}\right); -\sqrt{\rho}\right)}$$
+Substituting the LHP loss CDF and changing variables $\ell = (1-R)\Phi(v)$ reduces the integral to a bivariate-normal closed form:
 
-where $\Phi_2(a, b; \rho)$ is the bivariate standard normal CDF with correlation `rho`.
+$$\boxed{\psi(T, K) = (1-R) \cdot \Phi_2\left(\Phi^{-1}(p),\\, \Phi^{-1}\!\left(\frac{K}{1-R}\right);\\, \sqrt{1-\rho}\right)}$$
+
+where $\Phi_2(a, b; r)$ is the bivariate standard normal CDF with correlation $r$. Note that the correlation argument of the bivariate is $\sqrt{1-\rho}$ — *not* $\sqrt{\rho}$ — even though $\rho$ is the asset correlation between the latent variables $Z_i$.
+
+**Equivalent two-term form (often seen in references).** The same object can be split as
+
+$$\psi(T,K) = (1-R)\\,\Phi_2\!\left(\Phi^{-1}(p),\\,-x^{\star}(K);\\,-\sqrt{\rho}\right) + K\\,\Phi(x^{\star}(K)),$$
+
+with $x^{\star}(K) = \dfrac{\Phi^{-1}(p) - \sqrt{1-\rho}\\,\Phi^{-1}\!\bigl(K/(1-R)\bigr)}{\sqrt{\rho}}$. Here the first term is $\mathbb{E}[L(T)\\,\mathbf{1}\\{L(T)\le K\\}]$ and the second is $K\\,\Pr(L(T)\gt K)$. The two forms are equivalent via the bivariate-normal identity $\Phi_2(a,b;r) + \Phi_2(a,-b;-r) = \Phi(a)$.
+
+**Limit checks.**
+- $\rho \to 0$: bivariate correlation $\to 1$ (comonotone), so $\psi(T,K) \to (1-R)\\,\min(p,\\, K/(1-R)) = \min((1-R)p,\\, K)$. Matches the deterministic LHP loss at independence (loss concentrates at $(1-R)p$).
+- $\rho \to 1$: bivariate correlation $\to 0$ (independent), so $\psi(T,K) \to (1-R)\cdot p \cdot K/(1-R) = pK$ for $K\le 1-R$. Matches the binary "all-or-nothing" loss with mass $p$ at $1-R$ and mass $1-p$ at $0$.
 
 ### 50.4.4 Sanity Checks on LHP
 
@@ -604,7 +622,7 @@ Any tranche $[A, D]$ is priced as the difference of two base tranches:
 
 $$\boxed{\mathbb{E}[L(T; A, D)] = \frac{\psi(T, D) - \psi(T, A)}{D - A}}$$
 
-where the base-tranche ETL function is `psi(T,K) = E_{rho(K)}[min(L(T),K)]`.
+where the base-tranche ETL function is $\psi(T,K) = \mathbb{E}_{\rho(K)}[\min(L(T),K)]$.
 
 **Note the asymmetry:** The tranche $[A, D]$ uses *two different* correlations: $\rho(A)$ for the lower bound and $\rho(D)$ for the upper bound.
 
@@ -643,15 +661,22 @@ where the tranche PV uses the base correlation formula with $\rho(K_1)$ and $\rh
 
 ### 50.6.5 Conservation of Expected Loss
 
-A key property of base correlation is that it is internally consistent **for each base tranche** $[0,K]$: the base-tranche ETL $\psi(T,K)$ is computed under a single parameter $\rho(K)$.
+Under the base-correlation bootstrap with contiguous tranches $[A_k, D_k]$ (where $A_{k+1} = D_k$) covering $[0, D_n]$, the dollar expected losses telescope:
 
-However, when computing ETL for a mezzanine tranche $[A, D]$ using two different base correlations $\rho(A)$ and $\rho(D)$, we are effectively mixing two different models. This means:
+$$\sum_k (D_k - A_k)\\,\mathbb{E}[L(T;A_k,D_k)] = \psi(T, D_n;\\,\rho(D_n)) - \psi(T, 0;\\,\rho(0)) = \psi(T, D_n;\\,\rho(D_n)).$$
 
-- The *base tranche* ETLs $\psi(K; \rho(K))$ are each computed consistently
-- The *difference* used for mezzanine tranches is a model approximation
-- Conservation holds for the full capital structure only if we use a consistent correlation for the whole structure
+If $D_n \ge 1-R$ — as for the standard 30–100% super-senior on CDX.NA.IG, where $D_n = 1$ exceeds the maximum possible loss $1-R$ — this equals the portfolio expected loss $(1-R)\\,p$ regardless of the correlation, because $\psi(T,K;\\,\rho) \to (1-R)\\,p$ as $K \to 1-R$ for any $\rho$. So the additive accounting is preserved under base correlation.
 
-**Practical implication:** Base correlation is a quoting convention, not a no-arbitrage model. It provides a common language but does not eliminate model risk.
+The subtler issue is **internal consistency at the tranche level**, not aggregate conservation. The mezzanine ETL formula
+
+$$\mathbb{E}[L(T; A, D)] = \frac{\psi(T, D;\\,\rho(D)) - \psi(T, A;\\,\rho(A))}{D - A}$$
+
+uses two *different* one-factor models — one with $\rho(A)$ for the lower base tranche, another with $\rho(D)$ for the upper — and then takes a difference. The result need not correspond to **any** single one-factor Gaussian model. Two consequences follow:
+
+- The implied portfolio loss density (Section 50.8.4) can become negative even though the additive accounting still works.
+- Mezzanine spreads can move non-monotonically as base correlations are interpolated/extrapolated, generating arbitrage-like artifacts.
+
+**Practical implication:** Base correlation is a quoting convention, not a no-arbitrage model. Aggregate dollar conservation telescopes correctly, but the slice-by-slice pricing inherits arbitrage discipline only at the *base-tranche* level $[0,K]$ — mezzanine differences are where pathologies appear.
 
 ### 50.6.6 The Base Correlation Skew
 
@@ -735,7 +760,9 @@ $$\boxed{f(K)=-\frac{\partial^2 \psi(T,K)}{\partial K^2}}$$
 For a valid probability distribution, $f(K)\ge 0$ everywhere.
 
 **Check (finite-difference density approximation):** on a uniform strike grid with spacing $\Delta K$, a quick diagnostic is
-`f(K_i) ≈ -[psi(T,K_{i+1}) - 2*psi(T,K_i) + psi(T,K_{i-1})]/(Delta K)^2`
+
+$$f(K_i) \approx -\\,\frac{\psi(T,K_{i+1}) - 2\\,\psi(T,K_i) + \psi(T,K_{i-1})}{(\Delta K)^2}.$$
+
 Negative values indicate an interpolation/calibration artifact (not a “negative probability”), and they often coincide with negative tranchelet spreads or unstable Corr01 hedges.
 
 **The pathology:** Interpolation can produce:
@@ -922,7 +949,7 @@ Base-correlation-style frameworks are useful because they provide a shared quoti
 > **Common break:** Teams compare “base correlation” across systems without aligning inputs (curves/recovery), calibration set, and interpolation rules.
 > **What to check:** Agree on a repricing stack end-to-end; then stress dependence (level and shape) and verify that tranchelet spreads and implied densities remain economically consistent.
 
-### 50.11.3 Model Risk Dimensions
+### 50.11.2 Model Risk Dimensions
 
 | Risk Dimension | Description |
 |----------------|-------------|
@@ -932,7 +959,7 @@ Base-correlation-style frameworks are useful because they provide a shared quoti
 | **Marginal curve risk** | Single-name curves may be inconsistent with tranche quotes |
 | **Interpolation arbitrage** | Non-standard strikes may have negative spreads or density violations |
 
-### 50.11.4 Stress Testing Framework
+### 50.11.3 Stress Testing Framework
 
 Prudent risk management requires stress testing beyond base case calibration:
 
@@ -952,7 +979,7 @@ Prudent risk management requires stress testing beyond base case calibration:
 - Scenario analysis for individual name defaults
 - Particularly relevant for concentrated portfolios
 
-### 50.11.5 Practical Hedging Implications
+### 50.11.4 Practical Hedging Implications
 
 The correlation smile implies that **delta hedging with single-names is incomplete**. A perfectly delta-hedged equity tranche still has:
 
@@ -1392,7 +1419,7 @@ Interpretation: in the extreme tail, conditioning on one name being extreme leav
 9. (Compute) Using $\lambda = 2t_{\nu+1}\\!\left(-\sqrt{\frac{(\nu+1)(1-\rho)}{1+\rho}}\right)$, compute $\lambda$ for a t-copula with $\rho=0.7$, $\nu=4$.
 10. (Desk) Name two diagnostics for base-correlation interpolation artifacts and what “failure” looks like.
 11. (Concept) For **short protection**, explain why equity and super-senior can have opposite Corr01 signs.
-12. (Compute) A tranche has `PV(rho)=USD 1.20mm` and `PV(rho+1%)=USD 1.26mm` (same methodology). Compute Corr01.
+12. (Compute) A tranche has $PV(\rho) = \mathrm{USD}\\, 1.20\mathrm{mm}$ and $PV(\rho+0.01) = \mathrm{USD}\\, 1.26\mathrm{mm}$ (same methodology, absolute one percentage-point bump). Compute Corr01.
 
 ### Solution Sketches (Selected)
 2. $L=2\\%\lt A\Rightarrow L(T;A,D)=0$. $L=5\\%\Rightarrow (0.05-0.03)/0.04=0.5$. $L=10\\%\gt D\Rightarrow L(T;A,D)=1$.
