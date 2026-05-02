@@ -177,7 +177,7 @@ A non-zero basis is not automatically a “mispricing.” It can reflect (i) con
 Think of the bond as a funded position with coupon cashflows and the CDS as a standardized protection contract. Several contractual differences can move $S_{\text{CDS}}-S_{\text{Bond}}$ away from zero:
 
 1. **Funding and balance-sheet usage:** buying a bond typically requires financing (repo, haircuts). Buying CDS protection does not require paying principal up front, but it can create margin/collateral needs and counterparty exposures.
-2. **Delivery / settlement option:** in physical settlement the protection buyer may be able to deliver a cheapest-to-deliver (CTD) obligation; in auction settlement the realized payout depends on the auction final price. Either way, the *set of deliverables* matters.
+2. **Delivery / settlement option:** standard CDS now settles by ISDA credit-event auction (default since the 2009 Big Bang/Small Bang protocols), where the final price determines the cash payout. Legacy or off-protocol contracts can still settle physically, with delivery of a cheapest-to-deliver (CTD) obligation. Either way, the *set of deliverable obligations* shapes realized recovery.
 3. **Credit event definition vs "bond default":** CDS credit events can be broader or different than the bond's payment default, depending on the contract and jurisdiction (e.g., restructuring language).
 4. **Loss-on-default scaling:** a CDS protection payment is $N_{\text{CDS}}(1-R)$. A bond purchased at dirty price $P_{\text{dirty}}$ (quoted per 100 face) has a default loss of $\bigl(P_{\text{dirty}}/100 - R\bigr)\,N_{\text{bond}}$ — the difference between the price paid (as a fraction of face) and the recovery fraction, scaled by face. The two payoffs scale by different factors of $(1-R)$, so the same nominal hedge can leave residual jump risk (see the sizing identity below).
 5. **Accrued cashflows around default:** standard CDS settlement includes premium accrued to the default date; bond coupon accrual treatment differs and can create default-scenario P&L mismatches.
@@ -275,15 +275,15 @@ The steepener profits when the curve gets steeper (long end widens relative to s
 
 ### 44.3.2 CS01-Neutral Construction
 
-To hedge against parallel curve moves, we choose notionals such that net CS01 equals zero:
+Let leg 1 be the short-maturity ($T_1$) leg and leg 2 be the long-maturity ($T_2 \gt T_1$) leg, and let $|N_1|, |N_2|$ denote the (positive) trade notionals. For a steepener (buy long, sell short) the legs' signed CS01s are opposite, so net CS01 vanishes when the per-leg magnitudes match:
 
-$$N_1 \cdot \text{CS01}^{(1)} + N_2 \cdot \text{CS01}^{(2)} = 0$$
+$$|N_1|\cdot |\text{CS01}^{(1)}|_{\text{per unit}} \\;=\\; |N_2|\cdot |\text{CS01}^{(2)}|_{\text{per unit}}$$
 
-where $\text{CS01}^{(1)}$ and $\text{CS01}^{(2)}$ have opposite signs (one buy, one sell protection). Solving:
+Using $|\text{CS01}|_{\text{per unit}}\approx \text{RPV01}\cdot 10^{-4}$, this gives the magnitude hedge ratio:
 
-$$\boxed{\frac{N_1}{N_2} = -\frac{\text{CS01}^{(2)}}{\text{CS01}^{(1)}} = -\frac{\text{RPV01}(T_2)}{\text{RPV01}(T_1)}}$$
+$$\boxed{\frac{|N_1|}{|N_2|} \\;=\\; \frac{\text{RPV01}(T_2)}{\text{RPV01}(T_1)}}$$
 
-Since $\text{RPV01}(T_2) \gt \text{RPV01}(T_1)$ for $T_2 \gt T_1$, we need more notional at the short maturity.
+Since $\text{RPV01}(T_2) \gt \text{RPV01}(T_1)$ for $T_2 \gt T_1$, the ratio exceeds 1, so we need more notional at the short maturity.
 
 ### 44.3.3 The JTD Problem in Curve Trades
 
@@ -361,9 +361,9 @@ A typical trade expresses a view on the senior-sub spread differential:
 - **Compression trade:** Buy senior protection, sell subordinated protection. Profits if the sub/senior spread ratio narrows.
 - **Decompression trade:** Sell senior protection, buy subordinated protection. Profits if the sub/senior spread ratio widens.
 
-**Sizing:** CS01-neutral sizing uses the same hedge ratio logic:
+**Sizing:** CS01-neutral sizing uses the same magnitude-matching logic — for opposite-direction legs (one buy, one sell), match per-leg CS01 magnitudes:
 
-$$\frac{N_{\text{senior}}}{N_{\text{sub}}} = -\frac{\text{CS01}_{\text{sub}}}{\text{CS01}_{\text{senior}}}$$
+$$\frac{|N_{\text{senior}}|}{|N_{\text{sub}}|} \\;=\\; \frac{\text{RPV01}_{\text{sub}}}{\text{RPV01}_{\text{senior}}}$$
 
 **JTD consideration:** Because recovery assumptions differ, JTD depends on both notional and assumed recovery:
 - Sub buy protection JTD: $+N_{\text{sub}}(1-R_{\text{sub}})$

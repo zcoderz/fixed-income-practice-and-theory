@@ -63,7 +63,7 @@ The intrinsic spread answers a replication question: *if I replicated the index 
 
 To derive the intrinsic spread, start from the present values of the protection and premium legs for each constituent, then use PV additivity for an equal-notional basket. Under standard simplifying assumptions (equal weights $1/M$, specified recoveries, independence between default and rates, etc.), it is convenient to express values in terms of each name’s par spread and its risky annuity (RPV01).
 
-For the **protection leg**, a credit event on name $m$ results in a loss of $(1-R_m)/M$ to a long-protection index position. Using the single-name par identity “protection-leg PV = spread $\times$ RPV01,” the index protection-leg PV can be written as:
+For the **protection leg**, a credit event on name $m$ produces a credit-event payout of $(1-R_m)/M$ per unit total notional to a long-protection index position. Using the single-name par identity "protection-leg PV = par spread $\times$ RPV01," the index protection-leg PV (per unit notional) can be written as:
 
 $$\text{Index protection leg PV}(t) = \frac{1}{M} \sum_{m=1}^{M} S_m(t,T) \cdot RPV01_m(t,T)$$
 
@@ -92,7 +92,7 @@ This formula has an elegant interpretation:
 
 RPV01 is the key building block for CDS valuation. Under a continuous-premium approximation, it can be written as:
 
-$$\boxed{RPV01_m(t,T) \equiv \int_t^T P(t,u) \, Q_m(t,u) \, du}$$
+$$\boxed{RPV01_m(t,T) \equiv \int_t^T P(t,u)\\, Q_m(t,u)\\, du}$$
 
 This represents the present value of receiving USD 1 per year, continuously, until default or maturity—whichever comes first. The survival probability $Q_m(t,u)$ ensures we only count premium periods where the name survives.
 
@@ -124,8 +124,8 @@ $$\boxed{\frac{1}{M} \sum_{m=1}^{M}\left(S_{m}(t, T)-C(T)\right) \cdot \mathrm{R
 
 Here $RPV01_I$ is calculated using a flat index curve—a market convention for index pricing. Because $RPV01_I$ itself depends on the spread level, this equation is mildly nonlinear and requires solving iteratively (e.g., via Newton-Raphson or bisection).
 
-**Check (why “RPV01 fixed” can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\,RPV01_I(S)$, then $\frac{dU}{dS}=RPV01_I(S) + (S-C)\,\frac{d\,RPV01_I}{dS}$.
-Higher spreads typically imply shorter survival and a **smaller** $RPV01_I$, so $d\,RPV01_I/dS\lt 0$. That means the constant-$RPV01$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high.
+**Check (why "RPV01 fixed" can overstate spread-to-upfront mapping at high spreads):** if (schematically) the index upfront is $U(S)\approx (S-C)\\,RPV01_I(S)$, then $\frac{dU}{dS}=RPV01_I(S) + (S-C)\\,\frac{d\\,RPV01_I}{dS}$.
+Higher spreads typically imply shorter survival and a **smaller** $RPV01_I$, so $d\\,RPV01_I/dS\lt 0$. That means the constant-$RPV01$ approximation tends to **overstate** $\Delta U$ for a given $\Delta S$ when spreads are high.
 
 ### 46.1.5 The Operational Approximation: RPV01-Weighted Average
 
@@ -171,20 +171,20 @@ The distressed name contributes 10% weight despite being 50% of the portfolio by
 
 > **Deep Dive: The High-Yield Trap (Why Simple Average Lies)**
 >
-> Imagine a 2-name index and assume:
+> Push the toy to a true distressed extreme:
 > *   **Name A**: 50 bp (safe), RPV01 $=4.5$ years.
-> *   **Name B**: 5,000 bp (distressed), RPV01 $=0.5$ years.
+> *   **Name B**: 5,000 bp (deeply distressed), RPV01 $=0.5$ years (very short expected premium-paying life).
 >
-> *   **Simple Average**: $(50 + 5000)/2 = 2,525$ bp.
-> *   **Reality**: you expect to pay/receive the 5,000 bp premium for far fewer years because the distressed name is likely to default earlier.
-> *   **Intrinsic**: The index is dominated by the *survivor* (Name A). The intrinsic spread will be much closer to Name A than the simple average suggests.
-> *   **Lesson**: Never use simple average for high-dispersion portfolios.
+> *   **Simple average**: $(50 + 5000)/2 = 2{,}525$ bp.
+> *   **Intrinsic (RPV01-weighted)**: $0.9\times 50 + 0.1\times 5000 = 45 + 500 = 545$ bp.
+> *   **Reality**: you expect to pay/receive the 5,000 bp premium for very few years because the distressed name is likely to default early. The RPV01 weighting captures that.
+> *   **Lesson**: For high-dispersion portfolios, the simple average can overstate intrinsic by a large factor (here roughly $5\times$). Always weight by RPV01.
 
 ### 46.1.7 Intrinsic vs Simple Average: A Quick Diagnostic
 
 A useful diagnostic is to compute both:
 - the equal-weight average spread, $\bar{S} := \frac{1}{M}\sum_{m=1}^{M} S_m$, and
-- the intrinsic spread, $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,RPV01_m}{\sum_m RPV01_m}$.
+- the intrinsic spread, $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\\,RPV01_m}{\sum_m RPV01_m}$.
 
 The gap $\bar{S} - S_{\text{intrinsic}}$ is a quick proxy for dispersion and for how much the basket is dominated by a few high-spread/low-RPV01 names.
 
@@ -230,8 +230,8 @@ Two common conventions in practice are:
 
 Whichever quote object you start from, **convert to a common representation first** (spread or upfront), compute intrinsic in the same convention, then take the difference.
 
-**Check (spread basis ↔ upfront basis):** for spread-quoted indices under the local $RPV01$-fixed approximation, $\Delta PV \approx N \cdot RPV01_I \cdot \Delta b$, and the corresponding **clean upfront** change as percent of notional is approximately $\Delta U_{\mathrm{pct}} \approx 0.01 \times A_I \times \Delta b_{\text{bp}}$.
-Example: if $A_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\mathrm{pct}}\approx 0.01\times 4.2\times 3 = 0.126\%$ (0.126 points), i.e., about $USD 126k$ per $USD 100\text{mm}$ notional.
+**Check (spread basis ↔ upfront basis):** for spread-quoted indices under the local $RPV01$-fixed approximation, $\Delta PV \approx N \cdot RPV01_I \cdot \Delta b$ (with $\Delta b$ in decimal). The corresponding **clean upfront** change as a percent of notional is approximately $\Delta U_{\mathrm{pct}} \approx 0.01 \times RPV01_I \times \Delta b_{\mathrm{bp}}$ (in percent).
+Example: if $RPV01_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\mathrm{pct}}\approx 0.01\times 4.2\times 3 = 0.126\\%$ (i.e., 0.126 points of notional), about USD 126k per USD 100mm notional.
 
 > **Pitfall — Spread quote vs points-upfront:** Confusing “bp” quotes with “price/points” quotes (and forgetting the fixed coupon).
 > **Why it matters:** You can compute the wrong settlement cash and the wrong basis by an order of magnitude.
@@ -241,11 +241,9 @@ Example: if $A_I=4.2$ years and $\Delta b=+3$ bp, then $\Delta U_{\mathrm{pct}}\
 
 > **Desk Reality: Why Basis Matters for P&L**
 >
-> On a USD 100mm long-protection index position with RPV01 of 4.2 years, a **+3 bp basis widening** moves PV by about:
+> On a USD 100mm long-protection index position with RPV01 of 4.2 years, a **+3 bp basis widening** moves PV by about $\Delta\mathrm{PV} \approx 100{,}000{,}000\times 3\times 10^{-4}\times 4.2 = +\mathrm{USD}\\,126{,}000$.
 >
-> $$\Delta \text{PV} \approx 100,000,000 \times 3 \times 10^{-4} \times 4.2 = +USD 126,000$$
->
-> This is pure basis P&L—distinct from parallel spread moves. A portfolio manager who hedges single-name exposure with an index can be perfectly CS01-neutral and still experience this P&L from basis volatility.
+> This is pure basis P&L — distinct from parallel spread moves. A portfolio manager who hedges single-name exposure with an index can be perfectly CS01-neutral and still experience this P&L from basis volatility.
 >
 > For short protection, the sign flips.
 >
@@ -259,11 +257,11 @@ The basis reflects frictions and structural differences between the index contra
 
 ### 46.3.1 Documentation Differences: Restructuring Clauses
 
-**Anchor:** A basis can arise from documentation differences; in the case of the North American CDX index, index protection is triggered only by bankruptcy or failure to pay (restructuring excluded; “No-Re”), while the market standard for US single-name CDS is based on the “Mod-Re” restructuring clause, and No-Re spreads are typically about $5\%$ lower than Mod-Re spreads—so intrinsic computed from Mod-Re single-name quotes can show an immediate basis.
+**Anchor:** A basis can arise from documentation differences whenever the index and the single-name quotes you use reference different restructuring (or other credit-event) treatments. The CDX NA family uses **No Restructuring** (XR / "No-Re"): index protection is triggered only by bankruptcy or failure to pay; restructuring is excluded as a credit event. The iTraxx Europe family (and the standard European single-name contract) uses **Modified Modified Restructuring** (MMR / "Mod-Mod-Re"). Historically — pre-2009 — North American single-name CDS quoted on **Modified Restructuring** (Mod-Re), and the rule-of-thumb mapping was that No-Re spreads were about $5\\%$ lower than Mod-Re spreads (less protection, so a tighter quote). Following the 2009 ISDA "Big Bang," the standard NA single-name contract also moved to XR / No-Re, so this particular intra-NA doc basis was largely eliminated for new trades. Doc basis can still arise from legacy Mod-Re marks, mixed-region intrinsic builds (for example, comparing a CDX NA (XR) index to MMR-quoted European single-name curves, or vice versa), and other non-restructuring contract differences.
 
-**Expand:** Mechanically, if the index excludes a credit event that is included in the single-name quotes you use, the index provides less protection than your “replicating” basket, so it can trade tighter even when the underlying credit risk feels similar.
+**Expand:** Mechanically, if the index excludes a credit event that is included in the single-name quotes you use, the index provides less protection than your "replicating" basket, so it can trade tighter even when the underlying credit risk feels similar.
 
-**Check (rule-of-thumb, not a law):** Suppose you compute intrinsic from restructuring-including single-name quotes and get 100 bp. If you believe the relevant index contract is effectively “No-Re-like” and you apply a $5\%$ mapping, then a crude doc-adjusted intrinsic would be 95 bp. The only point is directional: **documentation mismatch can easily be worth a few bp**.
+**Check (rule-of-thumb, not a law):** Suppose you compute intrinsic from restructuring-including single-name quotes and get 100 bp. If the relevant index contract is "No-Re-like" and you apply a $5\\%$ mapping, then a crude doc-adjusted intrinsic would be 95 bp. The point is directional: **a documentation mismatch can easily be worth a few bp**, even when the underlying credit is the same.
 
 Always treat this as a contract-level issue: the right adjustment depends on the exact definitions, deliverables, and how your market quotes are constructed.
 
@@ -292,9 +290,10 @@ These effects can create apparent basis changes across series and between on-the
 
 When a name defaults:
 - It is removed from the index without replacement
-- The index notional reduces by $1/M$
-- Future coupon payments shrink accordingly
-- Accrued coupon at default is settled as part of premium leg mechanics
+- The **index factor** decreases by $1/M_0$ (where $M_0$ is the number of constituents at series inception); the outstanding index notional drops by the same fraction
+- Future coupon payments shrink in proportion to the reduced factor
+- Accrued coupon at default is settled as part of the premium-leg mechanics
+- Settlement of the credit event (cash auction or physical) generates a one-time payout equal to $(1-R)$ times the per-name notional ($N/M_0$ for an equal-weight series) to long-protection holders
 
 These mechanics mean that indices with different default histories have different effective portfolios. Computing intrinsic requires knowing exactly which names remain, the current index factor/outstanding notional, and the contract conventions your system assumes for accrued premium and default settlement.
 
@@ -339,7 +338,7 @@ There is no universal “typical” stress-period basis magnitude. To quantify b
 
 After a roll, liquidity migrates to the new on-the-run series. The old (off-the-run) series continues to trade but with wider bid-ask spreads and less depth. This creates:
 
-- **Liquidity-driven basis:** Off-the-run may trade at a discount (tighter) to its intrinsic as sellers accept worse prices for liquidity
+- **Liquidity-driven basis:** Off-the-run series typically have wider bid-ask and less depth. The mid-quoted spread tends to embed a liquidity premium relative to a "fundamentals-only" intrinsic; the typical (but not universal) sign is that off-the-run trades **cheap** to its intrinsic, i.e. a wider quoted spread / positive basis. The direction can flip at month-end or under specific buy-and-hold flows.
 - **Composition-driven basis:** If the old series has experienced defaults or downgrades not reflected in the new series, intrinsic levels differ
 - **Hedging risk:** Using on-the-run index to hedge off-the-run positions introduces series basis risk in addition to standard basis
 
@@ -410,10 +409,10 @@ A more efficient approach adjusts survival probabilities directly, avoiding full
 Define the **forward** survival probability over $[T_{n-1},T_n]$ as
 $$Q_m(t;T_{n-1},T_n):=\frac{Q_m(t,T_n)}{Q_m(t,T_{n-1})}.$$
 
-Then the PSA idea is to raise that forward survival probability to a power:
-$Q_{m}^{\star}\left(t, T_{n}\right)=Q_{m}^{\star}\left(t, T_{n-1}\right)\cdot \bigl(Q_m(t;T_{n-1},T_n)\bigr)^{\alpha(n)}$.
+Build the adjusted survival curve recursively, starting from $Q_m^{\star}(t,T_0)=1$:
+$$Q_{m}^{\star}(t, T_{n}) = Q_{m}^{\star}(t, T_{n-1})\cdot \bigl(Q_m(t;T_{n-1},T_n)\bigr)^{\alpha(n)}.$$
 
-This raises the forward survival probability over $[T_{n-1},T_n]$ to a power $\alpha(n)$. Under an intensity representation, it is equivalent to multiplying the forward hazard rate over that interval by $\alpha(n)$.
+This raises the forward survival probability over $[T_{n-1},T_n]$ to a power $\alpha(n)$, where $\alpha(n)$ is one global multiplier per maturity bucket (the same across all names $m$). Under an intensity representation, it is equivalent to multiplying the forward hazard rate over that interval by $\alpha(n)$.
 
 This can be faster because it avoids bootstrapping survival curves inside the iteration.
 
@@ -439,10 +438,9 @@ You then apply $\alpha$ (either to spreads or to forward hazard rates, depending
 >
 > **Solution:** Apply PSA to scale constituent curves so intrinsic = 60 bp. Now your tranche model and your index hedge are calibrated to the same underlying.
 >
-> **Numerical example:** On a USD 50mm tranche with index RPV01 of 4.0 years and 5 bp basis:
-> $$\text{Daily PnL break risk} \approx 50{,}000{,}000 \times 5 \times 10^{-4} \times 4.0 = USD 100{,}000$$
+> **Numerical example:** On a USD 50mm tranche with an index RPV01 of 4.0 years and a 5 bp basis, the daily P&L-break risk is roughly $50{,}000{,}000\times 5\times 10^{-4}\times 4.0 \approx \mathrm{USD}\\,100{,}000$ per day.
 >
-> This isn't a one-time error—it's a systematic mismatch that compounds over time.
+> This isn't a one-time error — it's a systematic mismatch that compounds over time.
 
 ---
 
@@ -468,11 +466,11 @@ $$\boxed{Basis01 \approx N \cdot RPV01_I(t,T)\cdot 10^{-4}.}$$
 
 ### 46.5.2 P&L Decomposition: Index vs Constituents
 
-Consider a book with both index and constituent positions. Total P&L decomposes as:
+Consider a book that is **long index protection** and **short constituent protection**. To first order, total P&L decomposes as:
 
-$$\Delta \text{PV} \approx \underbrace{N_I \cdot CS01_I \cdot \Delta S_{\text{quoted}}}_{\text{Index spread PnL}} - \underbrace{\sum_m N_m \cdot CS01_m \cdot \Delta S_m}_{\text{Constituent PnL}}$$
+$$\Delta \text{PV} \approx \underbrace{CS01_I \cdot \Delta S_{\text{quoted, bp}}}_{\text{Index spread PnL}} - \underbrace{\sum_m CS01_m \cdot \Delta S_{m,\text{bp}}}_{\text{Constituent PnL}}$$
 
-Here `CS01` is the PV change for a **+1bp** bump (i.e., $+10^{-4}$ in decimal spread units) to the relevant par-spread quote (index or single-name), using your chosen curve-rebuild rule; units are currency per 1bp for the stated notional. In this chapter, long protection has positive CS01.
+Here $CS01_I$ and $CS01_m$ are the **position-level** PV changes for a $+1$bp bump (i.e., $+10^{-4}$ in decimal spread units) to the relevant par-spread quote, using your chosen curve-rebuild rule; their units are currency per 1bp for the stated notional (i.e., $CS01 \approx N\cdot RPV01\cdot 10^{-4}$). The notional has already been absorbed into $CS01$, so it does not appear separately. The $\Delta S$ terms are in bp. In this chapter's sign convention, long protection has positive CS01.
 
 If you've hedged to be CS01-neutral ($N_I \cdot CS01_I = \sum_m N_m \cdot CS01_m$), parallel moves cancel. But residual P&L emerges from:
 - **Basis moves:** $\Delta S_{\text{quoted}} \neq \sum_m w_m \Delta S_m$
@@ -634,7 +632,7 @@ $$b = 72.0 - 69.0 = +3.0 \text{ bp}$$
 1. **Translate quote to upfront points**
    - Spread difference: $\Delta S := S_{\text{quoted}}-C = 12\text{ bp} = 12\times 10^{-4}=0.0012$
    - Upfront (points of notional): $U = \Delta S \cdot RPV01_I = 0.0012 \times 4.5 = 0.0054$
-   - Interpretation: $U=0.54\%$ of notional (54 points per 10,000 notional, or “54 bp points”)
+   - Interpretation: $U=0.54\\%$ of notional (54 points per 10,000 notional, or "54 bp points")
 
 2. **Convert upfront points to dollars**
    $$U_{\mathrm{USD}} = N \cdot U = 100{,}000{,}000 \times 0.0054 = USD 540{,}000.$$
@@ -731,12 +729,11 @@ The proportional adjustment preserves relative ranking while forcing intrinsic t
 **Index CS01:**
 $$CS01_I = USD 100mm \times 10^{-4} \times 4.1 = USD 41{,}000/\text{bp}$$
 
-**Hedge:** Short protection on 5 constituents with RPV01 = [4.4, 4.2, 4.0, 3.8, 3.6] years
+**Hedge:** Short protection on 5 constituents with RPV01 = [4.4, 4.2, 4.0, 3.8, 3.6] years (sum = 20.0).
 
-For equal notional per name $N_m$:
-$$5 \cdot N_m \times 10^{-4} \times \frac{20}{5} = 41{,}000$$
-$$N_m \times 10^{-4} \times 4.0 = 8{,}200$$
-$$N_m = USD 20.5mm$$
+For equal notional per name $N_m$, match constituent CS01 to index CS01:
+$$\sum_m N_m\cdot RPV01_m\cdot 10^{-4} = N_m\cdot \sum_m RPV01_m\cdot 10^{-4} = N_m\cdot 20.0\cdot 10^{-4} = 41{,}000$$
+$$N_m = \frac{41{,}000}{20.0\cdot 10^{-4}} = USD 20.5\text{mm}$$
 
 **Hedge:** USD 20.5mm short protection per name (5 names, total $102.5mm notional) vs $100mm long protection index.
 
@@ -770,27 +767,27 @@ $$N_m = USD 20.5mm$$
 
 ### Example 9: Recovery Rate Sensitivity in Intrinsic Calculation
 
-**Setup:** 3-name index with heterogeneous recovery assumptions
+**Setup:** 3-name index in which Name C is a subordinated/junior credit with a lower assumed recovery.
 
 | Name | Spread (bp) | Recovery | Implied RPV01 (years) |
 |------|-------------|----------|----------------------|
-| A | 50 | 40% | 4.4 |
-| B | 100 | 40% | 4.0 |
-| C | 200 | 25% | 3.2 |
+| A | 50 | 40% | 4.40 |
+| B | 100 | 40% | 4.00 |
+| C | 200 | 25% | 3.65 |
 
-**Note:** Name C has lower recovery assumption (subordinated debt), which implies higher loss-given-default and therefore shorter RPV01 at the same spread. The RPV01 is computed using the standard formula; lower recovery increases implied hazard rate for a given spread, reducing RPV01.
+**Note (credit triangle):** Through the relationship $S \approx (1-R)\\,\lambda$, for the *same* par spread $S$ a *lower* recovery $R$ implies a *lower* hazard rate $\lambda$ (each default produces a larger loss, so fewer defaults are needed to reproduce the same spread). Lower $\lambda$ means slightly *longer* expected survival and therefore a slightly *longer* RPV01 — not shorter.
+
+**Quick sanity check (5Y horizon, ~3% discount):** at 200 bp, $\lambda \approx 200/(1-0.40) = 333$ bp/yr at $R=40\\%$ versus $\lambda \approx 200/(1-0.25) = 267$ bp/yr at $R=25\\%$. Plugging into the standard CDS RPV01 integral gives a slightly *larger* RPV01 at the lower recovery (here approximately $3.65$ vs $3.60$ years). The shift is small in absolute terms but its sign is consistent with the credit triangle.
 
 **Intrinsic (heterogeneous recovery):**
-$$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} = \frac{220 + 400 + 640}{11.6} = \frac{1260}{11.6} = 108.6 \text{ bp}$$
+$$S_{\text{intrinsic}} = \frac{50(4.40) + 100(4.00) + 200(3.65)}{4.40 + 4.00 + 3.65} = \frac{220 + 400 + 730}{12.05} = \frac{1350}{12.05} \approx 112.0 \text{ bp}$$
 
-**Comparison: If all names used 40% recovery:**
-- Name C's RPV01 at 40% recovery would be higher, say 3.6 years
-- New denominator: $4.4 + 4.0 + 3.6 = 12.0$
-- New intrinsic: $(220 + 400 + 200 \times 3.6)/12.0 = (220 + 400 + 720)/12.0 = 111.7$ bp
+**Comparison: if all names used a flat $R=40\\%$ recovery (so Name C's RPV01 $\approx 3.60$):**
+$$S_{\text{intrinsic}} = \frac{50(4.40) + 100(4.00) + 200(3.60)}{4.40 + 4.00 + 3.60} = \frac{220 + 400 + 720}{12.00} = \frac{1340}{12.00} \approx 111.67 \text{ bp}$$
 
-**Result:** Using accurate name-specific recoveries (with Name C at 25%) produces intrinsic of 108.6 bp versus 111.7 bp with flat 40%. The 3 bp difference arises because the low-recovery name has shorter risk duration and gets less weight.
+**Result:** The mixed-recovery intrinsic is *slightly higher* (≈ 112.0 bp vs ≈ 111.67 bp) because Name C — with its lower recovery — has a marginally *longer* RPV01 and therefore a slightly *larger* weight in the RPV01-weighted average. The effect is small for IG-like dispersion but can grow for HY portfolios or for names whose seniority/recovery assumption deviates materially from the index default.
 
-> **Practitioner Note:** Most production systems default to 40% flat recovery for simplicity. The error is usually small for IG indices but can matter for HY or when specific names have known subordinated exposure.
+> **Practitioner Note:** Most production systems default to flat $R=40\\%$ for simplicity. The error from this assumption is usually small for IG indices but can matter for HY portfolios or when specific names have known subordinated exposure or non-standard recovery assumptions. The directional rule is: at the *same* spread, *lower recovery* ↔ *lower hazard* ↔ *slightly longer RPV01*.
 
 ---
 
@@ -817,10 +814,10 @@ $$S_{\text{intrinsic}} = \frac{50(4.4) + 100(4.0) + 200(3.2)}{4.4 + 4.0 + 3.2} =
 
 3. **Maturity mismatch:** Series $N\!+\!1$ has more remaining maturity. If curves steepen (long end widens more), the hedge underperforms.
 
-**P&L scenario:** Series $N$ and $N\!+\!1$ both widen 10 bp, but Series $N$ basis widens 3 bp while Series $N\!+\!1$ stays flat.
-- Series $N$ P&L: +10 bp × USD 41k/bp = +$410k (spread) + 3 bp × $41k/bp = +$123k (basis) = +$533k
-- Series $N\!+\!1$ P&L: -10 bp × $41k/bp = -$410k
-- **Net: +USD 123k** (series basis slippage benefited you this time)
+**P&L scenario:** Underlying constituent spreads widen by 10 bp on both series (a parallel "spread" component); on top of that, Series $N$ basis widens by 3 bp while Series $N\!+\!1$ basis stays flat. Net quoted moves: $\Delta S_N = +13$ bp, $\Delta S_{N+1} = +10$ bp.
+- Series $N$ long-protection P&L: $+10\text{ bp}\times \text{USD }41\text{k/bp} = +\text{USD }410\text{k}$ (spread) plus $+3\text{ bp}\times \text{USD }41\text{k/bp} = +\text{USD }123\text{k}$ (basis) $= +\text{USD }533\text{k}$
+- Series $N\!+\!1$ short-protection P&L: $-10\text{ bp}\times \text{USD }41\text{k/bp} = -\text{USD }410\text{k}$
+- **Net:** $+\text{USD }123\text{k}$ (the Series-$N$ basis widening benefited the long-$N$ leg)
 
 ---
 
@@ -833,7 +830,7 @@ Before computing intrinsic and basis:
 - **Index identity:** Series number, maturity, on-the-run vs off-the-run status
 - **Constituent list:** Confirm which names are included (post any defaults)
 - **Constituent spreads:** Consistent tenor, same valuation date, appropriate restructuring clause
-- **Recovery assumptions:** State your recovery convention/policy (e.g., flat $R=40\%$ for senior unsecured) and apply it consistently
+- **Recovery assumptions:** State your recovery convention/policy (e.g., flat $R=40\\%$ for senior unsecured) and apply it consistently
 - **Discount curve:** Consistent across index and constituent pricing
 - **Quoting convention:** Spread vs price/points-upfront; convert to common units before computing basis
 
@@ -912,7 +909,7 @@ Practical data notes:
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | What is the intrinsic index spread? | The spread implied by valuing the index bottom-up from constituent CDS curves under the index quote convention |
-| 2 | What is the intrinsic spread approximation? | $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\,RPV01_m}{\sum_m RPV01_m}$ |
+| 2 | What is the intrinsic spread approximation? | $S_{\text{intrinsic}} \approx \frac{\sum_m S_m\\,RPV01_m}{\sum_m RPV01_m}$ |
 | 3 | Why isn't intrinsic the simple average of constituent spreads? | Wider/riskier names typically have smaller RPV01 (shorter expected premium-paying life), so they receive less weight |
 | 4 | Define index basis (sign convention) | $b = S_{\text{quoted}} - S_{\text{intrinsic}}$; positive basis means index quoted wider than intrinsic |
 | 5 | Name three drivers of index basis | Documentation mismatch, liquidity/technicals, roll/composition effects (plus measurement/executability effects) |
