@@ -132,8 +132,8 @@ The **par basis spread** $e^{1,2}(T)$ is the spread added to one leg such that t
 One convenient way to write the par condition (spread added to the tenor-1 leg) is:
 
 $$
-\sum_i L^{(2)}_i\\,\tau^{(2)}_i\\,P_d(0,t^{(2)}_i)
-= \sum_i \left(L^{(1)}_i + e^{1,2}(T)\right)\tau^{(1)}_i\\,P_d(0,t^{(1)}_i)
+\sum_i F^{(2)}_i\\,\tau^{(2)}_i\\,P_d(0,t^{(2)}_i)
+= \sum_i \left(F^{(1)}_i + e^{1,2}(T)\right)\\,\tau^{(1)}_i\\,P_d(0,t^{(1)}_i)
 $$
 
 
