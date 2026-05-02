@@ -839,7 +839,7 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 | 3 | How many constituents in CDX.NA.HY? | 100 |
 | 4 | What is "on-the-run"? | The most recently issued series (concentrates liquidity) |
 | 5 | How often do CDS indices roll? | Every six months (March 20 and September 20) |
-| 6 | Does a "5Y" index have exactly 5 years to maturity at issue? | No — typically T+3 months at issuance, T-3 months by next roll |
+| 6 | Does a "5Y" index have exactly 5 years to maturity at issue? | No — at issuance it has roughly $T$ years $+\ 3$ months to maturity (about 63 months for a 5Y); by the next roll, roughly $T$ years $-\ 3$ months (about 57 months). |
 | 7 | How does CDX.NA.IG quote in the market? | By spread (not price) |
 | 8 | How does CDX.NA.HY quote in the market? | By bond price (not spread) |
 | 9 | Why do HY indices use bond price quoting? | To avoid disputes about index PV01 for spread-to-upfront conversion |
@@ -861,15 +861,15 @@ Sign note: in the worked-example cashflow table, negative cashflows are cash **p
 
 ## Mini Problem Set
 
-1. Parse the identifier "iTraxx Europe Series 21 7Y" and list the components that determine what you are trading.
-2. Spread-quoted index: $N=USD 100$mm, $f=0.992$, $C_{\text{bp}}=100$, $S_{I,\text{bp}}=140$, $\text{RPV01}=USD 42{,}500/\text{bp}$. Compute upfront dollars $U_{\mathrm{USD}}$, points upfront $U_{\mathrm{pct}}$, and pay/receive for a protection buyer.
-3. Price-quoted index: $N=USD 50$mm, $f=0.95$, $P_{\text{bond}}=98.25$. Compute upfront dollars and pay/receive for a protection buyer.
-4. Factor + coupon: $M=125$, $D=3$, $N=USD 200$mm, $C_{\text{bp}}=80$, quarterly $\alpha=0.25$. Compute $f$, $N_{\text{out}}$, and the next coupon cashflow.
-5. Default settlement: $N=USD 50$mm, $M=100$, $FP=27$. Compute the protection payment (per name and total) and the new outstanding notional after the default.
+1. Parse the identifier "iTraxx Europe Series 41 7Y" and list the components that determine what you are trading.
+2. Spread-quoted index: $N=USD\\,100$mm, $f=0.992$, $C_{\text{bp}}=100$, $S_{I,\text{bp}}=140$, $\text{RPV01}=USD\\,42{,}500/\text{bp}$. Compute upfront dollars $U_{\mathrm{USD}}$, points upfront $U_{\mathrm{pct}}$, and pay/receive for a protection buyer.
+3. Price-quoted index: $N=USD\\,50$mm, $f=0.95$, $P_{\text{bond}}=98.25$. Compute upfront dollars and pay/receive for a protection buyer.
+4. Factor + coupon: $M=125$, $D=3$, $N=USD\\,200$mm, $C_{\text{bp}}=80$, quarterly $\alpha=0.25$. Compute $f$, $N_{\text{out}}$, and the next coupon cashflow.
+5. Default settlement: $N=USD\\,50$mm, $M=100$, $FP=27$. Compute the protection payment (per name and total) and the new outstanding notional after the default.
 6. Accrued premium: $N_{\text{out}}=USD\\,75$mm, $C_{\text{bp}}=100$, ACT/360, 37 days since last coupon. Compute accrued premium.
-7. Roll cash: roll $N=USD 30$mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Compute net roll cash.
-8. CS01: a long-protection index position has $\text{RPV01}=USD 18{,}200/\text{bp}$. Using the down-bump definition, approximate CS01 and interpret the sign.
-9. Concept: explain two structural sources of roll P&L even if spreads did not “move” on the screen.
+7. Roll cash: roll $N=USD\\,30$mm from off-the-run (receive 0.45% to close) to on-the-run (pay 0.20% to enter). Compute net roll cash.
+8. CS01: a long-protection index position has $\text{RPV01}=USD\\,18{,}200/\text{bp}$. Using the down-bump definition, approximate CS01 and interpret the sign.
+9. Concept: explain two structural sources of roll P&L even if spreads did not "move" on the screen.
 10. Desk/ops: system A books only upfront; system B reports settlement cash. What two cash components should you reconcile first?
 
 ### Solution Sketches (Selected)
