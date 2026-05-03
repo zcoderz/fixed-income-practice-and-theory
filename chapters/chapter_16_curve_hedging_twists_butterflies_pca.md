@@ -28,7 +28,7 @@ Follow-on: [Chapter 17 — Curve Construction](chapters/chapter_17_curve_constru
 
 ## 16.1 The Taxonomy of Curve Risk
 
-A yield curve is a function $y(T)$ (or, equivalently for pricing, the discount curve $P(0,T)$) indexed by maturity $T$. A parallel shift is only one special direction in this high-dimensional space. For hedging and communication, desks often describe curve reshaping with three stylized moves: **level**, **slope**, and **curvature**.
+A yield curve is a function $y(T)$ — or, equivalently for pricing, the discount curve $P(0,T)$ — indexed by maturity $T$. A parallel shift is only one special direction in this high-dimensional space. For hedging and communication, desks often describe curve reshaping with three stylized moves: **level**, **slope**, and **curvature**.
 
 ### 16.1.1 Level (Parallel Shifts)
 
@@ -169,7 +169,7 @@ Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vect
 
 This vector contains information that a single “total DV01” hides:
 - **Concentration:** most exposure sits in the 5y bucket.
-- **Scenario intuition:** if only the 5y point sells off by $+5$bp while others are unchanged, the first-order impact is about $-1{,}500\times 5=-7{,}500$ USD.
+- **Scenario intuition:** if only the 5y point sells off by $+5$ bp while others are unchanged, the first-order impact is about $-1{,}500\times 5=-7{,}500$ USD.
 
 > **Comparison: Sniper Rifle vs. Shotgun**
 >
