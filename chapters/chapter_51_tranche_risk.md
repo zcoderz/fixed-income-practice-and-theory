@@ -203,8 +203,12 @@ This chapter's "Tranche PV01" is item (1) unless explicitly stated otherwise.
 
 $\mathrm{PV01}_s$ is basically the discounted expected outstanding notional: if the tranche is likely to be outstanding, PV01 is large; if likely to be quickly written down, PV01 is small.
 
-**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial \mathrm{PV}/\partial s \lt 0$, so $\mathrm{PV01}_s$ is typically **negative**; for a protection seller it is typically positive. As a rough order-of-magnitude check, if the tranche face is $N_{\mathrm{tr}} = W \cdot F = 40$ mm USD, the average surviving fraction is about $Q_{\mathrm{avg}} \approx 75\%$, and premium runs for about $T = 5$ years, then
-$$|\mathrm{PV01}_s| \;\approx\; 10^{-4}\cdot Q_{\mathrm{avg}}\cdot N_{\mathrm{tr}}\cdot T \;\approx\; 15{,}000 \text{ USD per bp},$$
+**Check (sign + scale):** for a protection buyer (who pays the running spread), $\partial \mathrm{PV}/\partial s \lt 0$, so $\mathrm{PV01}_s$ is typically **negative**; for a protection seller it is typically positive.
+
+As a rough order-of-magnitude check, suppose the tranche face is $N_{\mathrm{tr}} = W \cdot F = 40$ mm USD, the average surviving fraction is about $Q_{\mathrm{avg}} \approx 75\%$, and premium runs for about $T = 5$ years. Then
+
+$$|\mathrm{PV01}_s| \\;\approx\\; 10^{-4}\cdot Q_{\mathrm{avg}}\cdot N_{\mathrm{tr}}\cdot T \\;\approx\\; 15{,}000 \text{ USD per bp},$$
+
 before discounting and accrual details. If your PV01 is around 150,000 USD/bp, you are probably off by a factor of 10 in bp/percent or notional scaling.
 
 #### How It Appears in Practice
