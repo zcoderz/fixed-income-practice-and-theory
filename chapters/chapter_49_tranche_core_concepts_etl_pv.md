@@ -52,11 +52,9 @@ The portfolio loss is bounded: $0 \le L(t) \le L_{\max}$, where $L_{\max} = \sum
 
 > **Desk Reality: What a Single Default Means**
 >
-> Consider a standard index tranche on 125 names with 40% recovery. A single default produces:
+> Consider a standard index tranche on 125 names with 40% recovery. A single default produces a portfolio-loss increment of $\Delta L = (1 - 0.40)/125 = 0.48\%$.
 >
-> $$\Delta L = \frac{1-0.40}{125} = 0.48\%$$
->
-> For the **0-3% equity tranche** (width 3%), this single default consumes 16% of the tranche width! For the **15-30% senior tranche**, this same default produces *zero* tranche loss—the senior tranche doesn't start losing until portfolio losses exceed 15%, requiring roughly 32 defaults.
+> For the **0-3% equity tranche** (width 3%), this single default consumes 16% of the tranche width! For the **15-30% senior tranche**, this same default produces *zero* tranche loss — the senior tranche doesn't start losing until portfolio losses exceed 15%, requiring roughly 32 defaults.
 >
 > This asymmetric exposure is why equity and senior tranches can trade with radically different risk profiles (and therefore very different pricing) despite referencing the same portfolio.
 
@@ -606,11 +604,13 @@ The position is underwater: spreads widened, so the protection seller owes more 
 
 > **Desk Reality: P&L Decomposition**
 >
-> When spreads move, tranche P&L has two components:
-> 1. **Spread P&L:** $(s^{\star}_{\text{new}} - s^{\star}_{\text{old}}) \times PV01_{\text{prem}}$
-> 2. **Time decay / carry:** Premium received minus expected loss accrued
+> When spreads move, tranche P&L has two components.
 >
-> Additionally, $PV01_{\text{prem}}$ (and $RPV01$) changes as survival probabilities evolve, creating **convexity P&L** (second-order effect).
+> **Spread P&L** is the change in par spread times the premium-leg PV01: roughly $\Delta s^{\star} \times PV01$, where $\Delta s^{\star}$ is the par-spread change between marks and $PV01$ is the premium-leg sensitivity to a 1bp change in running spread.
+>
+> **Time decay / carry** is premium received minus expected loss accrued over the period.
+>
+> Additionally, $PV01$ (and $RPV01$) changes as survival probabilities evolve, creating **convexity P&L** (second-order effect).
 >
 > Middle-office reconciliation tip: If the P&L attribution doesn't tie out, check whether the system is using constant RPV01 versus updated RPV01. The difference is the "gamma" effect.
 
@@ -753,10 +753,9 @@ The ETL is a function of both strike and time. O'Kane's notation $\psi(T, K)$ em
 
 1. **Monotonicity in time:** $\psi(T_1, K) \leq \psi(T_2, K)$ for $T_1 \lt T_2$. Losses cannot reverse, so ETL is non-decreasing in maturity.
 
-2. **Time-derivative constraint:** The probability of loss exceeding $K$ must also be non-decreasing, implying:
-   $$\frac{\partial^2 \psi(T, K)}{\partial T \partial K} \geq 0$$
+2. **Time-derivative constraint:** The probability of loss exceeding $K$ must also be non-decreasing, implying $\partial^2 \psi(T, K) / (\partial T\\, \partial K) \geq 0$.
 
-3. **Concavity in strike:** $\frac{\partial^2 \psi(T, K)}{\partial K^2} \leq 0$. This follows from the requirement that the implied loss density be non-negative.
+3. **Concavity in strike:** $\partial^2 \psi(T, K) / \partial K^2 \leq 0$. This follows from the requirement that the implied loss density be non-negative.
 
 ### 49.6.2 Evolution from 1Y to 5Y
 
