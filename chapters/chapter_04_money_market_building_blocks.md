@@ -280,7 +280,7 @@ Note the differences:
 - Denominator: price (not face)
 - Annualization: 365 (not 360)
 
-The banker's discount yield is a convenient quoting convention, **not** an internal rate of return.
+The bank discount yield is a convenient quoting convention, **not** an internal rate of return.
 
 > **Pitfall — Discount yield is not an IRR:** A T-bill “discount yield” annualizes $(F-\text{Price})/F$ on a 360-day basis, while investment yields annualize returns on the price paid.
 > **Why it matters:** Comparing discount yields directly to deposit/OIS rates (or using them as an IRR) leads to wrong relative-value and risk numbers.
@@ -419,15 +419,11 @@ Eurodollar futures were discontinued by CME on June 30, 2023; the discussion her
 
 #### Futures vs. Forwards: The Convexity Adjustment
 
-Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate. Daily settlement creates a correlation between margin cashflows and funding/reinvestment rates, so futures rates generally differ from forward rates; the futures rate tends to be above the corresponding forward rate.
+Because futures are marked to market daily while FRAs settle at maturity, the futures-implied rate generally differs from the corresponding forward rate, and the futures rate tends to be **above** the corresponding forward rate.
 
-The mechanism is as follows: under rising interest rates, the futures holder must make margin payments at precisely the moment when borrowing costs are highest. Conversely, when rates fall, received margin is reinvested at lower rates. This systematic disadvantage means futures rates must exceed forward rates to compensate.
+The mechanism: for a long STIR-futures position, a *rise* in rates pushes the futures price down ($Q = 100 - \text{rate}$) and forces a margin payment — which must be funded at the *now-higher* prevailing rate. Conversely, when rates fall the long *receives* margin, which is reinvested at the *now-lower* rate. This systematic asymmetry between margin cashflows and the funding/reinvestment rates that finance them is what economists call the "convexity adjustment", and the equilibrium futures rate must sit above the forward rate to compensate.
 
-A convenient intuition is that daily settlement creates a convexity adjustment, so the forward and futures quotes differ.
-
-**Magnitude:** The convexity adjustment tends to increase as the life of the contract increases.
-
-The full convexity adjustment derivation is covered in Chapter 24.
+**Magnitude:** The convexity adjustment grows with the life of the contract and with rate volatility. The full derivation is covered in Chapter 24.
 
 ---
 
@@ -930,7 +926,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
 **Day count matters:** ACT/360 is standard for U.S. money markets, but ACT/365 applies in some jurisdictions. Day count conventions vary by market and instrument—confirm them explicitly before comparing rates or PVs.
 
-**Bill conventions are not interchangeable:** Banker's discount yield uses face in the denominator and 360-day annualization. The ask yield (BEY) uses price and 365-day annualization. Neither is an IRR.
+**Bill conventions are not interchangeable:** The bank discount yield uses face in the denominator and 360-day annualization. The ask yield (a "bond-equivalent" style return) uses price and 365-day annualization. Neither is an IRR.
 
 **Basis points vs. decimals:** $1\text{ bp} = 0.0001$ in decimal. Many front-end pricing errors are unit mistakes.
 
@@ -997,7 +993,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 | Simple rate | Rate with single-period compounding | Standard for money markets |
 | Forward rate identity | $1 + \tau L = P(T_1)/P(T_2)$ | Links discount factors to forwards |
 | Par condition | PV = notional at inception | Enables bootstrapping |
-| Banker's discount yield | $q_{\text{disc}} = (F - Y)/F \times 360/d$ (where $F$ = face, $Y$ = price) | Bill quoting convention (not IRR) |
+| Bank discount yield | $q_{\text{disc}} = (F - Y)/F \times 360/d$ (where $F$ = face, $Y$ = price) | Bill quoting convention (not IRR) |
 | FRA | Forward-starting deposit, net-settled | Direct constraint on forward curve |
 | In advance | Rate known at period start (LIBOR) | Predictable cash flows |
 | In arrears | Rate known at period end (SOFR) | Operational complexity |
@@ -1037,7 +1033,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 | 8 | Write the FRA value in discount factors. | $V(t)=P(t,T_1)-P(t,T_2)-K\\,\tau(T_1,T_2)\\,P(t,T_2)=\tau(T_1,T_2)\\,P(t,T_2)\\,(L(t;T_1,T_2)-K)$. |
 | 9 | Write the FRA settlement payoff. | $V(T_1)=\tau(T_1,T_2)\\,(L_{T_1}-K)/(1+\tau(T_1,T_2)\\,L_{T_1})$, where $L_{T_1}=L(T_1;T_1,T_2)$. |
 | 10 | Define the T-bill bank discount quote $q_{\text{disc}}$. | $q_{\text{disc}} = \frac{360}{d}(100-Y)$ where $Y$ is cash price per \$100 face (units: percent per year; ACT/360). |
-| 11 | Why isn't banker's discount yield an IRR? | It uses face (not price) in the denominator. |
+| 11 | Why isn't the bank discount yield an IRR? | It uses face (not price) in the denominator and a 360-day annualization rather than annualizing a true holding-period return on price paid. |
 | 12 | What day count does U.S. money market use? | Actual/360. |
 | 13 | Describe the bootstrap logic. | Set instrument PV to par; solve sequentially for discount factors. |
 | 14 | Why is interpolation needed? | Only finitely many instruments exist; DFs at all maturities aren't observable. |
@@ -1062,7 +1058,7 @@ $$\boxed{\text{Compounded SOFR} = 5.307\\%}$$
 
 2. Using $P(0,1M) = 0.9960$ and $P(0,3M) = 0.9880$, compute $L(0;1M,3M)$ with $\tau = 62/360$.
 
-3. A 90-day bill has banker's discount yield 6.00\% and face 100. Compute price and $P(0,T)$.
+3. A 90-day bill has bank discount yield 6.00\% and face 100. Compute price and $P(0,T)$.
 
 4. Given $P(0,6M) = 0.9750$ and a par FRA 6x9 quote of 5.10\% with $\tau = 90/360$, compute $P(0,9M)$.
 
