@@ -10,8 +10,8 @@ In a single-curve setup, one curve does two jobs:
 
 After the 2007–2008 crisis, spreads between overnight OIS rates and unsecured term rates (and spreads between different tenors) became large and time-varying. The practical result is a **multi-curve** world: one curve for discounting and one (or more) index-specific curves for projection.
 
-Prerequisites: [Chapter 17 — Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo](chapters/chapter_17_curve_construction_bootstrapping_interpolation.md); [Chapter 18 — OIS Discounting Curve — Building the “Risk-Free-ish” Curve](chapters/chapter_18_ois_discounting_curve.md); [Chapter 25 — Interest Rate Swaps — Mechanics and Valuation](chapters/chapter_25_interest_rate_swaps_mechanics_valuation.md)  
-Follow-on: [Chapter 20 — Tenor Basis — 1M vs 3M vs 6M and Basis Swap Logic](chapters/chapter_20_tenor_basis.md); [Chapter 21 — Cross-Currency Curves — CIP, FX Forwards, and Cross-Currency Basis as Curve Constraints](chapters/chapter_21_cross_currency_curves.md); [Chapter 22 — Curve Risk Management in a Multi-Curve World — Par-Point Deltas, Jacobians, and Controlled Perturbations](chapters/chapter_22_multi_curve_risk_jacobians.md)
+Prerequisites: [Chapter 17 — Curve Construction — Bootstrapping, Interpolation, and the Spline Zoo](chapter_17_curve_construction_bootstrapping_interpolation.md); [Chapter 18 — OIS Discounting Curve — Building the "Risk-Free-ish" Curve](chapter_18_ois_discounting_curve.md); [Chapter 25 — Interest Rate Swaps — Mechanics and Valuation](chapter_25_interest_rate_swaps_mechanics_valuation.md)  
+Follow-on: [Chapter 20 — Tenor Basis — 1M vs 3M vs 6M and Basis Swap Logic](chapter_20_tenor_basis.md); [Chapter 21 — Cross-Currency Curves — CIP, FX Forwards, and Cross-Currency Basis as Curve Constraints](chapter_21_cross_currency_curves.md); [Chapter 22 — Curve Risk Management in a Multi-Curve World — Par-Point Deltas, Jacobians, and Controlled Perturbations](chapter_22_multi_curve_risk_jacobians.md)
 
 ## Learning Objectives
 - Translate a float-leg quote → projected cashflows → PV under a stated discount curve.
@@ -44,13 +44,13 @@ $$
 
 Using the OIS curve at 2.00% gives $P(0,0.25)\approx e^{-0.02\cdot 0.25}$ and $P(0,0.50)\approx e^{-0.02\cdot 0.50}$, implying an OIS-implied 3M forward close to 2.00%. If the FRA quote says 3.40%, a single curve cannot fit both sets of instruments without “breaking” the identity above.
 
-**Check (toy numbers):** Under a flat 2.00% continuously-compounded discount curve, $P(0,0.25)=e^{-0.005}\approx 0.9950$ and $P(0,0.50)=e^{-0.01}\approx 0.9900$. The implied 3M forward is
+**Check (toy numbers):** Under a flat 2.00% continuously-compounded discount curve, $P(0,0.25)=e^{-0.005}\approx 0.99501$ and $P(0,0.50)=e^{-0.01}\approx 0.99005$. The implied 3M (simple) forward is
 
 $$
-F_d(0;0.25,0.50) \approx \frac{1}{0.25}\left(\frac{0.9950}{0.9900}-1\right)\approx 0.0201,
+F_d(0;0.25,0.50) \approx \frac{1}{0.25}\left(\frac{0.99501}{0.99005}-1\right)\approx 0.02005,
 $$
 
-i.e., about 2.01% (annualized), not 3.40%. Turning that around: a 3.40% FRA over a 0.25-year accrual implies a growth factor $1+F\tau = 1+0.034\times 0.25=1.0085$, i.e., it demands a materially different “projection” curve object than the OIS discount curve.
+i.e., about 2.00% (annualized), not 3.40%. Turning that around: a 3.40% FRA over a 0.25-year accrual implies a growth factor $1+F\tau = 1+0.034\times 0.25=1.0085$, i.e., it demands a materially different "projection" curve object than the OIS discount curve.
 
 ### 19.1.3 The Multi-Curve Resolution
 
@@ -128,9 +128,9 @@ $$
 
 The second term is a discounted sum of “basis spreads” between the projection forwards and the discount-implied forwards.
 
-**Check (sanity on Example A):** In the toy setup, the discount-implied forwards are about 2.00% while the 3M projection forwards average around 3.4%, so the spread is about 1.4% per year. With total accrual $\sum\tau_i=1$ and discount factors near 1, the par premium is on the order of $100\times 1.4\\%\approx 1.4$ price points - consistent with the computed $PV\approx 101.40$.
+**Check (sanity on Example A below):** In the toy setup, the discount-implied forwards are about 2.00% while the 3M projection forwards average around 3.4%, so the projection–discount spread is about 1.4% per year. With total accrual $\sum\tau_i=1$ and discount factors near 1, the par premium is on the order of $100\times 1.4\\%\approx 1.4$ price points — consistent with the computed $PV\approx 101.40$ in Example A.
 
-**Example Title**: Pricing a 1Y quarterly 3M-index FRN under OIS discounting
+**Example A: Pricing a 1Y quarterly 3M-index FRN under OIS discounting**
 
 **Context**
 - What is being priced? A “par” floater when projection (3M) > discount (OIS).
@@ -144,12 +144,12 @@ The second term is a discounted sum of “basis spreads” between the projectio
 
 **Inputs**
 - Instrument details: FRN pays a 3M term index set in advance and paid in arrears (toy).
-- Notional: $N=USD 100$
+- Notional: $N=USD\\,100$.
 - Market quotes (toy):
-- Discount curve (OIS): flat zero rate $r_d=2.00\\%$ with continuous compounding.
+  - Discount curve (OIS): flat zero rate $r_d=2.00\\%$ with continuous compounding.
   - Projection forwards (3M): 3.20%, 3.40%, 3.50%, 3.60% for the four quarters.
 - Day count / compounding: ACT/360 approximated as $\tau_i=0.25$ each quarter.
-- Settlement conventions: ignore accrued interest (treat PV as “dirty” per USD 100 at valuation).
+- Settlement conventions: ignore accrued interest (treat PV as "dirty" per USD 100 at valuation).
 
 **Outputs (What You Produce)**
 - PV per USD 100 notional.
@@ -188,7 +188,7 @@ $$
 \Delta PV \approx -N\\,10^{-4}\sum_{i=1}^n P_d(0,T_i)\\,\tau_i.
 $$
 
-In Example B the “discount annuity” is about $0.9876$, so with $N=100$ this gives $-100\times 10^{-4}\times 0.9876\approx -0.0099$, matching the toy number and making the units/sign explicit.
+The "discount annuity" $\sum_i \tau_i P_d(0,T_i)$ for this curve is $0.25\times(0.99501+0.99005+0.98511+0.98020)\approx 0.9876$, so with $N=100$ this gives $-100\times 10^{-4}\times 0.9876\approx -0.0099$, matching the toy number and making the units/sign explicit. (We reuse this annuity in Example B below.)
 
 **P&L / Risk Interpretation**
 - $PV\gt 100$ because coupons are projected off a higher curve but discounted on a lower curve.
@@ -197,26 +197,30 @@ In Example B the “discount annuity” is about $0.9876$, so with $N=100$ this 
 
 **Sanity Checks**
 - Units check: coupons are dollars; DV01s are dollars per 1bp per USD 100 notional.
-- Sign check: under $DV01 := PV(\text{rates down})-PV(\text{base})$, discount DV01 is positive for a long position.
+- Sign check: under $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$, discount DV01 is positive for a long position.
 - Limit check: if projection = discount, the PV moves toward par (the single-curve telescoping identity is recovered).
 
 ### 19.2.3 Valuation of an Interest Rate Swap
 
 The same logic applies to Interest Rate Swaps (IRS). The par swap rate $K_{par}$ is the fixed rate that equates the PV of the fixed leg to the PV of the floating leg.
 
-$$\boxed{K_{par} = \frac{\sum_{i} \tau_i F_k(T_{i-1}, T_i) P_d(0, T_i)}{\sum_{i} \alpha_i P_d(0, T_i)}}$$
+$$\boxed{K_{par} = \frac{\sum_{i} \tau_i F_k(0;T_{i-1}, T_i)\\,P_d(0, T_i)}{\sum_{i} \alpha_i\\,P_d(0, T_i)}}$$
 
 Notice the mix of curves: the numerator uses $F_k$ (Projection) to forecast floating payments and $P_d$ (Discount) to value them. The denominator uses $P_d$ (Discount) to value the fixed annuity.
 
 **Example B: Par Swap Rate Calculation**
 
-Using our numbers above, the "Projection PV" of the floating leg was $USD 3.38$. The "Discount Annuity" (sum of OIS discount factors $\times$ 0.25) is:
+Reuse the inputs from Example A (toy quarterly schedule, OIS flat at 2.00%, 3M projection forwards 3.20%, 3.40%, 3.50%, 3.60%). For a vanilla USD swap whose fixed leg shares the same quarterly schedule and ACT/360 conventions ($\alpha_i=\tau_i=0.25$), the par swap rate uses the same discount factors as Example A.
 
-$$\text{Annuity} = 0.25 \times (0.9950 + 0.9901 + 0.9851 + 0.9802) = 0.25 \times 3.9504 = 0.9876$$
+The "Projection PV" of the floating leg from Example A (per USD 100 notional) is $0.03382$ in rate units (equivalently, USD 3.38 per USD 100 of notional). The "Discount Annuity" is:
 
-$$K_{par} \approx \frac{3.38}{100 \times 0.9876} \approx 3.42\\%$$
+$$\text{Annuity} = \sum_i \alpha_i\\,P_d(0,T_i) = 0.25 \times (0.99501 + 0.99005 + 0.98511 + 0.98020) \approx 0.25 \times 3.95037 \approx 0.98759$$
 
-This par rate of **3.42%** is effectively a weighted average of the high projection forwards (3.2%–3.6%), not the low OIS rates.
+Then
+
+$$K_{par} \approx \frac{0.03382}{0.98759} \approx 0.03425 = 3.42\\%.$$
+
+This par rate of **3.42%** is effectively an annuity-weighted average of the (high) projection forwards (3.20%–3.60%), not of the (low) OIS forwards.
 
 ### 19.2.4 Building the Projection Curve as a Spread to OIS
 
@@ -224,31 +228,31 @@ Projection curves are usually built in a *curve group* rather than independently
 1. Build a discount curve $P_d$ (often OIS) and a “base” index curve $P^{(1)}$ for the most liquid tenor.
 2. Build other tenors as **spread curves** to the base using basis swap quotes.
 
-A convenient representation is multiplicative:
+A convenient representation is multiplicative: for any two curves $P^{(a)}$ and $P^{(b)}$ in the curve group, write
 
 $$
-P^{(2)}(t)=P^{(1)}(t)\exp\left(-\int_0^t \eta^{1,2}(s)\\,ds\right)
+P^{(b)}(0,t)=P^{(a)}(0,t)\exp\left(-\int_0^t \eta^{a,b}(s)\\,ds\right)
 $$
 
-where $\eta^{1,2}$ is a (typically piecewise-constant) spread function calibrated to basis instruments.
+where $\eta^{a,b}$ is a (typically piecewise-constant) spread function calibrated to basis instruments. The same multiplicative form works whether $P^{(a)}$ is the discount curve $P_d$ (so $\eta^{d,k}$ measures the OIS-versus-tenor-$k$ basis) or another tenor's projection curve (so $\eta^{1,k}$ measures a tenor-versus-tenor basis); only the calibration instruments differ.
 
-This spread-based construction helps keep risk interpretable: moves in instruments that build the base curve tend to shift many forwards together, while moves in basis quotes primarily change the relative spread between tenors (see Section 19.5).
+This spread-based construction helps keep risk interpretable: moves in instruments that build the base curve tend to shift many forwards together, while moves in basis quotes primarily change the relative spread between curves (see Section 19.5).
 
-**Example C: Extracting the Spread**
+**Example C: Extracting the OIS–LIBOR Basis Spread**
 
 Suppose we have:
-* OIS discount factor: $P_d(0, 1) = 0.9500$
-* 3M LIBOR projection pseudo-factor: $P^{3M}(0, 1) = 0.9450$
+* OIS discount factor: $P_d(0, 1) = 0.9500$.
+* 3M LIBOR projection pseudo-factor: $P^{3M}(0, 1) = 0.9450$.
 
-The implied spread:
+Treating $P_d$ as the base ($a=d$) and $P^{3M}$ as the spread curve ($b=3M$), the implied average spread $\eta^{d,3M}$ over $[0,1]$ satisfies
 
 $$
-e^{-\eta \times 1} = \frac{P^{3M}(1)}{P_d(1)} = \frac{0.9450}{0.9500} = 0.9947
+e^{-\eta^{d,3M}\cdot 1} = \frac{P^{3M}(0,1)}{P_d(0,1)} = \frac{0.9450}{0.9500} \approx 0.9947,
 $$
 
-$$\eta = -\ln(0.9947) = 0.53\\% = 53 \text{ bps}$$
+$$\eta^{d,3M} = -\ln(0.9947) \approx 0.53\\% = 53 \text{ bps}.$$
 
-This 53bp spread represents the average OIS-LIBOR basis over the 1-year tenor.
+This 53 bp spread represents the average OIS–3M-LIBOR basis over the 1-year tenor.
 
 **Expand (what $\eta$ means operationally):** In a spread-based construction, $\eta\gt 0$ corresponds to “projection rates above OIS,” which shows up as $P^{(k)}(0,t)\lt P_d(0,t)$. For small spreads and short accruals, a roughly constant $\eta$ acts like an approximate forward-rate add-on: the projection forward over $[T,T+\tau]$ is about the discount-implied forward plus $\eta$ (to first order).
 
@@ -266,12 +270,12 @@ With $N=100$ and $\sum \tau_i P_d$ around 0.95–1.00, this is about $100\times 
 
 ### 19.2.5 Cross-Currency Context (Preview)
 
-The multi-curve framework extends naturally to cross-currency settings. When valuing a EUR/USD cross-currency swap, we need:
+The multi-curve framework extends naturally to cross-currency settings. When valuing a EUR/USD cross-currency swap under, say, a USD-collateral CSA, we typically need:
 
-* **USD OIS curve** for discounting USD cash flows
-* **EUR OIS curve** (built via FX forwards and cross-currency basis swaps)
-* **EUR EURIBOR projection curve** for forecasting EUR floating payments
-* **USD SOFR projection curve** for forecasting USD floating payments
+* A **USD discount curve** (often USD OIS / SOFR-OIS) for discounting USD cash flows.
+* A **EUR discount curve appropriate to the CSA**: either the native EUR OIS curve (€STR-based) for a EUR-collateralized trade, or a **USD-collateral-equivalent EUR discount curve** built from the EUR OIS curve plus FX forwards and cross-currency basis swaps for a USD-collateralized trade.
+* A **EUR EURIBOR projection curve** for forecasting EUR floating payments.
+* A **USD SOFR projection curve** for forecasting USD floating payments.
 
 Covered Interest Parity (CIP) provides the linkage: FX forwards, OIS curves, and projection curves must be mutually consistent to avoid arbitrage. When they are not (typically in stress), the cross-currency basis widens.
 
@@ -332,7 +336,7 @@ A key mechanical difference is *when the coupon rate becomes known*:
 - **LIBOR-style term rates:** set at the beginning of the accrual period (known in advance).
 - **SOFR-style overnight-compounded rates:** built from realized overnight rates through the accrual period (known only near the end).
 
-Key point: “The rate applicable to a particular period is not known until the end of the period when all the relevant overnight rates have been observed.”
+Key point: the rate applicable to a particular accrual period is not known until the end of that period, when all the relevant overnight rates have been observed.
 
 > **Analogy: Weather Forecast vs Thermometer**
 >
@@ -347,15 +351,11 @@ The SOFR market has developed multiple index types to address different operatio
 
 **1. Compound-in-Arrears (Standard)**
 
-This is the most common convention for SOFR derivatives. Daily overnight rates are compounded over the accrual period:
-
-Short version: “Longer rates such as three-month rates, six-month rates, or one-year rates can be determined from overnight rates by compounding them daily.”
+This is the most common convention for SOFR derivatives. Daily overnight rates are compounded over the accrual period: longer rates such as three-month, six-month, or one-year rates are constructed from realized overnight rates by compounding them day by day.
 
 $$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}(1 + r_i \cdot \hat{d}_i) - 1\right] \times \frac{360}{D}}$$
 
 where $r_i$ is the overnight SOFR on day $i$, $\hat{d}_i = d_i/360$ is the day fraction, $d_i$ is the number of days that rate applies (usually 1, but 3 over weekends), and $D = \sum_i d_i$ is the total days in the period.
-
-This is the standard “daily compounding” construction: longer-tenor rates are built from realized overnight rates by compounding day by day.
 
 **Checks (units + “don’t forget the annualization”):** Each factor $(1+r_i\hat d_i)$ is dimensionless, so the product is a pure growth factor over the period. The bracketed term $\left[\prod(1+r_i\hat d_i)-1\right]$ is the *period* return; multiplying by $360/D$ annualizes it on an ACT/360 basis. A common implementation error is to annualize twice (or not at all), producing coupons that are off by a factor of roughly $D/360$.
 
@@ -374,16 +374,22 @@ Calculate the compounded SOFR rate for a 7-day period (Monday through Sunday):
 **Step 1:** Compound the daily factors:
 
 $$
-\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 = 1.001031
+\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 \approx 1.0010315
 $$
 
 **Step 2:** Annualize:
 
 $$
-\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\\%
+\text{Compounded Rate} = (1.0010315 - 1) \times \frac{360}{7} \approx 5.3049\\% \approx 5.305\\%
 $$
 
-**Sanity check:** The compounded rate (5.303%) is slightly higher than the arithmetic average of daily rates (~5.30%) because compounding adds a small convexity pickup. ✓
+**Sanity check:** The day-weighted simple average of the daily rates is
+
+$$
+\frac{1\cdot 5.30\\% + 1\cdot 5.32\\% + 1\cdot 5.31\\% + 1\cdot 5.29\\% + 3\cdot 5.30\\%}{7} \approx 5.303\\%.
+$$
+
+The compounded rate (≈ 5.305%) is slightly higher than the simple weighted average (≈ 5.303%) because compounding adds a small convexity pickup of about 0.2 bp on this seven-day period. ✓
 
 **2. Daily Simple SOFR**
 
@@ -391,7 +397,7 @@ For some lending products, particularly bilateral loans, daily rates are simply 
 
 $$\text{Simple Average} = \frac{\sum_i r_i \cdot d_i}{D}$$
 
-This convention is operationally simpler but mathematically less precise than compounding.
+This convention is operationally simpler — and is a different rate measure from compound-in-arrears (it does not include the daily compounding pickup), so the two produce slightly different coupons on the same fixings.
 
 **3. Other published variants (overview)**
 
@@ -429,11 +435,11 @@ A crucial economic concept that explains the contentious nature of the LIBOR tra
 
 LIBOR included a credit spread—it reflected the cost of unsecured lending between banks. When market stress increased, LIBOR rose (banks charged more to lend to each other). This meant that banks holding LIBOR-linked assets saw their income rise when their funding costs rose. There was a natural hedge.
 
-SOFR, being a secured overnight rate, does not include credit spread. In a stress scenario:
-* **Bank funding costs rise** (banks still borrow unsecured; counterparties demand more)
-* **SOFR-linked asset income stays flat** (SOFR is secured, unaffected by bank credit)
+SOFR, being a secured overnight rate, does not include a bank-credit spread. In a credit-stress scenario (one in which bank credit spreads widen but the policy/repo rate is little changed):
+* **Bank funding costs rise** (banks still borrow unsecured; counterparties demand a larger credit premium).
+* **SOFR-linked asset income does not rise with bank credit** (SOFR tracks secured overnight repo, which is largely insensitive to bank-specific credit; it still moves with the general level of overnight rates set by Fed policy).
 
-This creates a **funding mismatch**: banks' assets don't re-price when their liabilities do.
+This creates a **funding mismatch**: a bank's unsecured liability costs widen with its own credit while its SOFR-linked assets do not, so the asset side does not reprice with the liability side in a pure credit shock.
 
 > **Analogy: Insurance Premium That Doesn't Rise**
 >
@@ -456,7 +462,7 @@ If the exposure and hedge use different definitions, you are effectively holding
 
 **Example E (Conceptual): Simple vs Compounded**
 
-If the daily overnight rate were constant through the accrual period, simple averaging and compounding would produce (approximately) the same coupon. When rates vary day to day, compounding typically produces a slightly higher realized rate than a simple average. The difference is small per period, but it can accumulate into persistent P&L on large notionals.
+For SOFR-style daily compounding versus a daily simple average, the compounded rate is *always* at least as large as the simple weighted average — the second-order Jensen-style "compounding pickup" is positive whether or not the daily rates vary. With a constant daily rate $r$ over $n$ days, the gap is approximately $(n-1)\\,r^2/(2\cdot 360)$, which is sub-bp on a week but a few basis points on a quarter at typical rate levels. Day-to-day variation in fixings adds (or subtracts) only a small further amount on top of this systematic pickup. The takeaway: simple-vs-compounded is a small but persistent basis, not a wash; if your exposure and hedge sit on opposite sides of it, the difference accumulates into P&L on large notionals.
 
 ### 19.4.6 Credit-Sensitive Rate Alternatives
 
@@ -466,9 +472,9 @@ This chapter does not attempt to standardize or recommend a specific credit-sens
 
 ### 19.4.7 The Return of the Single Curve?
 
-Interestingly, for a standard SOFR OIS swap (where we pay fixed and receive compounded SOFR), the "Projection" curve and the "Discount" curve are conceptually the same (both are SOFR). In this specific corner of the market, the "single curve" world has effectively returned.
+Interestingly, for a standard SOFR OIS swap (where we pay fixed and receive compounded SOFR) under a SOFR-paying USD CSA, the projection curve (which generates compounded-SOFR forwards) and the discount curve (which generates discount factors used in PV) are calibrated from the same SOFR-based instruments and effectively coincide. Implementations still maintain two curve objects — one used for forwards and one used for discounting — but they share the same calibration and produce mutually consistent values. In this specific corner of the market, the "single-curve" world has effectively returned for collateralized SOFR-versus-fixed swaps.
 
-However, as soon as we deal with a **legacy LIBOR** exposure, a different **index/tenor**, or **foreign currency** cash flows, the multi-curve distinction comes roaring back. The modern desk must handle both regimes simultaneously.
+However, as soon as we deal with a **legacy LIBOR** exposure, a different **index/tenor**, a **non-standard CSA** (e.g., uncollateralized or non-cash collateral), or **foreign-currency** cash flows, the multi-curve distinction comes roaring back. The modern desk must handle both regimes simultaneously.
 
 ---
 
@@ -495,7 +501,7 @@ for the stated bump object. (So a “long rates” position typically has positi
 In a multi-curve setup you typically need at least three scalars:
 - **Discount DV01:** bump the *discount curve* zero rates down 1bp (parallel), rebuild discount factors; hold projection curves fixed.
 - **Projection DV01 (index $k$):** bump the *projection curve* used to generate forwards for index $k$ down 1bp (parallel), so projected coupons fall; hold the discount curve fixed.
-- **Basis DV01:** bump the *spread* between a projection curve and its chosen base curve down 1bp (e.g., $\eta^{1,k}\to\eta^{1,k}-1\text{bp}$), holding the base curve fixed.
+- **Basis DV01:** bump the *spread* between a projection curve and its chosen base curve down 1bp (e.g., $\eta^{a,b}\to\eta^{a,b}-1\text{bp}$ where $a$ is the chosen base curve and $b$ is the spread curve), holding the base curve fixed.
 
 Units should always be stated (e.g., “USD per 1bp per USD 100 notional” in toy examples; “USD per 1bp per USD 100mm notional” on a desk).
 
@@ -587,7 +593,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
 | **Projection Curve** | Tenor-specific curve (e.g., 3M SOFR) used to forecast floating fixings | Ensures forward rates match market FRA/swap quotes |
 | **Pseudo-Discount Factor** | $P_k(T)$ values that reproduce forward rates via standard formula | Not real prices—mathematical machinery for projection |
 | **Multi-Index Curve Group** | Collection of one discount + multiple projection curves | The only consistent framework for post-crisis pricing |
-| **Spread-Based Construction** | Building projection curve as $P^{(k)} = P_d \cdot e^{-\int \eta}$ | Ensures orthogonal risk decomposition |
+| **Spread-Based Construction** | Building one curve as a multiplicative spread to another, e.g., $P^{(b)} = P^{(a)} \cdot e^{-\int \eta^{a,b}}$ | Ensures orthogonal risk decomposition |
 | **Tenor Basis** | Spread between forward rates of different tenors | Represents credit/liquidity risk differences by funding horizon |
 | **Par Floater Paradox** | LIBOR FRN trades above par when LIBOR > OIS | Classic manifestation of the two-curve divergence |
 | **SOFR Compound-in-Arrears** | Standard SOFR: daily rates compounded over period | Backward-looking; not known until period end |
@@ -606,7 +612,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
 | $F_k(t;T_1,T_2)$ | forward rate for index $k$ over $[T_1,T_2]$ | annualized; uses accrual factor $\tau$ |
 | $\tau$ | floating-leg year fraction | ACT/360 in toy examples unless stated |
 | $\alpha$ | fixed-leg year fraction | instrument-specific |
-| $\eta^{(k)}(t)$ | spread function linking a projection curve to a base/discount curve | in rate units; often piecewise-constant in practice |
+| $\eta^{a,b}(t)$ | spread function linking curve $b$ to a chosen base curve $a$ in the curve group (e.g., $\eta^{d,3M}$ for the OIS-vs-3M basis, $\eta^{3M,6M}$ for a tenor basis) | in rate units; often piecewise-constant in practice |
 | $K_{par}$ | par swap fixed rate | annualized |
 | $DV01$ | PV sensitivity to a 1bp down bump | currency per 1bp; $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$ for the stated bump object |
 | $r_i$ | overnight SOFR on day $i$ | annualized |
@@ -624,7 +630,7 @@ The multi-curve framework is more complex than the single-curve world. But it is
 | 4 | What is a pseudo-discount factor? | A mathematical construct that reproduces forwards via $F_k=\frac{1}{\tau}\left(\frac{P^{(k)}(T_1)}{P^{(k)}(T_2)}-1\right)$; it is not a tradable bond price. |
 | 5 | Why does a floater paying index $k$ generally not price at par under OIS discounting? | Coupon forecasts come from $P^{(k)}$ but PV uses $P_d$, so the single-curve telescoping identity fails when the curve objects differ. |
 | 6 | What is a multi-index curve group? | One discount curve plus multiple projection curves (one per index/tenor), calibrated as a group. |
-| 7 | What does spread-based construction mean? | Building a projection curve as a spread to a base curve (e.g., $P^{(k)}=P_d e^{-\int \eta^{(k)}}$) so basis quotes map cleanly into basis risk. |
+| 7 | What does spread-based construction mean? | Building one curve as a multiplicative spread to a chosen base curve (e.g., $P^{(b)}=P^{(a)} e^{-\int \eta^{a,b}}$) so basis quotes map cleanly into basis risk. |
 | 8 | What is tenor basis? | The spread between forward rates of different tenors (e.g., 3M vs 6M), reflecting different credit/liquidity horizons and supply/demand. |
 | 9 | In this book, what does “DV01” mean? | $DV01=PV(\text{rates down }1\text{bp})-PV(\text{base})$ for the stated bump object; units are currency per 1bp per notional. |
 | 10 | What is discount DV01 vs projection DV01? | Discount DV01 bumps the discount curve; projection DV01 bumps the index curve used for forwards (holding the other fixed). |
