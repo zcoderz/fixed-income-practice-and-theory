@@ -45,11 +45,11 @@ The U.S. Treasury market is intermediated by a network of **primary dealers**—
 
 ### 10.1.3 Bid-Ask Spreads and Transaction Costs
 
-Bid-ask spreads in Treasuries vary by issue and market conditions. To understand the economic impact of spreads, consider a bid-ask spread of $1/32$ on USD 100 million face value. The round-trip spread cost (crossing once) is:
+Bid-ask spreads in Treasuries vary by issue and market conditions. To understand the economic impact of spreads, consider a bid-ask spread of $1/32$ on USD 100 million face value. The cost of crossing the **full** spread (e.g., a round-trip buy-then-sell, or a single trade priced at the wrong side relative to mid) is:
 
 $$USD 100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = USD 31{,}250$$
 
-This formula reflects that a 1/32 price difference (per 100 face) on USD 100 million notional translates to USD 31,250 in PL. This transaction cost sets a floor on exploitable relative value. Any microstructure "alpha" must exceed trading costs to be economically meaningful.
+A single trade executed against the dealer (buying at the ask or selling at the bid) costs roughly the **half-spread** versus mid — about USD 15,625 in this example. The full-spread figure is the relevant benchmark for round-trip strategies that must enter and exit. Either way, this transaction cost sets a floor on exploitable relative value: any microstructure "alpha" must exceed it to be economically meaningful.
 
 ### 10.1.4 Measuring Liquidity Quantitatively
 
@@ -145,7 +145,7 @@ $$\boxed{s \equiv r_{GC} - r_{sp}}$$
 
 A bond “trading special” has $r_{sp} \lt r_{GC}$ and therefore $s \gt 0$. Intuitively, the bond owner enjoys a financing advantage (they can finance the bond more cheaply), while a short position in the bond faces a financing drag (it must source the bond in a tight collateral market).
 
-**Check (desk-scale financing wedge):** Specialness is a *rate* difference, but it shows up as dollars. For a one-day horizon, the financing wedge is roughly $\text{Invoice cash}\times s/360$. If you are financing $USD 100\text{mm}$ of collateral and the bond is 150 bp special versus GC ($s=0.015$), the daily wedge is about $USD 100\text{mm}\times 0.015/360 \approx USD 4{,}167$. That is why small-looking repo spreads can matter in RV trades and short economics.
+**Check (desk-scale financing wedge):** Specialness is a *rate* difference, but it shows up as dollars. For a one-day horizon, the financing wedge is roughly $\text{Invoice cash}\times s/360$. If you are financing roughly $USD 100\text{mm}$ of invoice cash (e.g., $USD 100\text{mm}$ face of a near-par bond) and the bond is 150 bp special versus GC ($s=0.015$), the daily wedge is about $USD 100\text{mm}\times 0.015/360 \approx USD 4{,}167$. That is why small-looking repo spreads can matter in RV trades and short economics.
 
 ### 10.4.2 Empirical Magnitudes
 
@@ -164,6 +164,8 @@ Table 10.1 shows an illustrative snapshot of repo rates for settlement on Februa
 | 5.750% 08/15/10 | On-the-run 10-year | 4.25% |
 
 In this snapshot, the on-the-run five-year traded 159 basis points special (5.44% – 3.85%), while the old five-year traded near GC. Interpreting this in desk terms: shorts were willing to accept a below-GC rate on cash in order to borrow the benchmark security, and owners of the security enjoyed unusually cheap financing.
+
+Note that the cross-sector pattern is not always uniform. In this snapshot the *old* two-year is actually more special than the on-the-run two-year (4.75% vs 4.88%), an outcome that can occur when a residual short base in the old benchmark has not yet rotated into the new issue and lendable supply of the old issue is tight.
 
 ### 10.4.3 Why Bonds Trade Special
 
@@ -371,11 +373,11 @@ This episode illustrates how microstructure effects can dominate during stress: 
 
 > **Narrative: The Repo Squeeze**
 >
-> 1.  **Setup**: Too many shorts crowd into the OTR 10y (betting on rates rising).
-> 2.  **Trigger**: Market panic (e.g., 9/11). Lenders pull collateral back to safety.
-> 3.  **Consequence**: Shorts *must* borrow the bond to deliver, but no one is lending.
-> 4.  **Price**: The special repo rate can fall toward 0%. Under explicit fails-charge regimes, the effective “specialness bound” can extend below 0%. Shorts bleed cash daily to keep the position on.
-> 5.  **Blowout**: The price of the OTR *spikes* relative to the curve. Shorts are forced to cover at any price, driving it higher.
+> 1.  **Setup**: A large short base accumulates in the OTR (from outright shorts, RV trades, futures hedges, and basis trades), all of which need to source the bond in repo.
+> 2.  **Trigger**: A shock (e.g., the September 2001 settlement disruption) causes lenders to pull collateral back, shrinking the lendable float.
+> 3.  **Consequence**: Shorts *must* borrow the bond to deliver, but available supply has collapsed.
+> 4.  **Price**: The special repo rate $r_{sp}$ can fall toward 0%. Under explicit fails-charge regimes, $r_{sp}$ can even go below 0% (lenders accept negative rates because failing carries an explicit cost). Shorts bleed cash daily to keep the position on.
+> 5.  **Blowout**: The OTR's clean price *spikes* (yield drops) relative to the fitted curve. Forced covers — short closeouts at any available price — push the price still higher.
 
 ---
 
@@ -459,7 +461,7 @@ March 2020 revealed new fragilities:
 
 For any comparison between Treasury issues, the observed yield or price difference can be decomposed into three parts:
 
-$$\boxed{\text{Observed diff} = \underbrace{\text{Curve component}}_{\text{fundamental}} + \underbrace{\text{Financing component}}_{\text{specialness}} + \underbrace{\text{Pure liquidity}}_{\text{benchmark demand}}}$$
+$$\text{Observed diff} = \underbrace{\text{Curve component}}_{\text{fundamental}} \\;+\\; \underbrace{\text{Financing component}}_{\text{specialness}} \\;+\\; \underbrace{\text{Pure liquidity}}_{\text{benchmark demand}}$$
 
 Only the first component is "fundamental" in the sense of reflecting the term structure of discount rates. The latter two are microstructure effects that can persist, vary over time, and create trading opportunities.
 
@@ -489,13 +491,13 @@ Trades and hedges involving special collateral require explicit assumptions: how
 
 ### 10.14.1 The Carry Formula
 
-A simple decomposition for holding a bond over $d$ days is:
+A simple decomposition for holding a bond over $d$ days (with no coupon paid during the window) is:
 
-$$\boxed{PL = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{cd}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
+$$\boxed{PL = \underbrace{P(d) - P(0)}_{\text{Price change}} + \underbrace{\frac{c}{f}\cdot\frac{d}{D} - (P(0) + AI(0)) \cdot \frac{rd}{360}}_{\text{Carry}}}$$
 
-where $P(0), P(d)$ are clean prices, $c$ is the annual coupon rate, $D$ is days in the coupon period, and $r$ is the repo rate.
+where $P(0), P(d)$ are clean prices (per 100 par), $c$ is the **annual coupon rate** (per 100 par; e.g., $c=5$ for a 5% bond), $f$ is the coupon frequency per year ($f=2$ for U.S. Treasury notes/bonds), $D$ is the actual days in the current coupon period, and $r$ is the repo rate (ACT/360). The income term $\frac{c}{f}\cdot\frac{d}{D}$ equals $AI(d)-AI(0)$ for ACT/ACT semi-annual accrual when no coupon is paid in $[0,d]$.
 
-Carry is simply interest income minus financing cost. If the bond trades special ($r = r_{sp} \lt r_{GC}$), the financing cost is lower, and carry is higher than for a GC-financed position.
+Carry is interest income (the accrual term) minus financing cost. If the bond trades special ($r = r_{sp} \lt r_{GC}$), the financing cost is lower, and carry is higher than for a GC-financed position.
 
 ### 10.14.2 Breakeven Analysis
 
@@ -521,7 +523,7 @@ $$\boxed{P_{fwd} = P(0) - \text{Carry}}$$
 
 The forward price equals the spot price minus carry. If carry is positive (income exceeds financing), the forward clean price is below spot. If carry is negative, the forward price is above spot.
 
-**Check (toy numbers; clean vs invoice):** Take $P(0)=102.50$, $AI(0)=0.40$ so $I(0)=102.90$. With $r=5.00\\%$ and $d=30$ days (and ignoring intermediate coupons), the invoice amount grows to $102.90\times(1+0.05\times 30/360)\approx 103.33$. If accrued interest at the horizon is $AI(d)=1.20$, then the implied forward clean price is $P_{fwd}\approx 103.33-1.20=102.13$, which is below the spot clean price because part of the horizon return is earned mechanically through accrued interest and financing.
+**Check (toy numbers; clean vs invoice):** Take $P(0)=102.50$, $AI(0)=0.40$, so the spot dirty (invoice) price is $P_{\text{dirty}}(0)=P(0)+AI(0)=102.90$. With $r=5.00\\%$ and $d=30$ days (and no coupon paid in the window), the invoice amount grows to $102.90\times(1+0.05\times 30/360)\approx 103.33$. If accrued interest at the horizon is $AI(d)=1.20$, then the implied forward clean price is $P_{fwd}\approx 103.33-1.20=102.13$. The forward clean price sits below the spot clean price because the bond has positive carry: the coupon accrual over the window ($AI(d)-AI(0)=0.80$) exceeds the financing cost ($102.90\times 0.05\times 30/360\approx 0.43$), so the no-arbitrage forward clean price must drop by the net carry to keep the total holding-period return equal to the financing rate.
 
 ### 10.15.2 The Repo Rate in Forward Pricing
 
@@ -580,7 +582,7 @@ In words: short each wing in an amount that contributes half of the body DV01. T
 
 The **spread of spreads** compares how different maturity sectors are valued relative to their fitted curve positions:
 
-$$SoS_{5y} = RVScore_{5y,\mathrm{OTR}} - RVScore_{5y,\mathrm{off\text{-}run}}$$
+$$SoS_{5y} = RVScore_{5y,\text{OTR}} - RVScore_{5y,\text{off-run}}$$
 
 A large negative SoS indicates the OTR is extremely rich relative to comparable off-the-run bonds—a potential convergence trade if you believe the spread will normalize.
 
@@ -594,15 +596,15 @@ Two practical cautions:
 
 ### 10.16.5 Putting It Together: A Rich/Cheap Trade
 
-**Scenario:** The 5-year OTR trades 8 bp rich to the fitted curve, while the old 5-year trades 2 bp cheap. The spread is 10 bp wider than average.
+**Scenario:** The 5-year OTR trades 8 bp rich to the fitted curve (RV score $-8$ bp) while the old 5-year trades 2 bp cheap (RV score $+2$ bp). The OTR-vs-old richness gap is therefore 10 bp, compared with a historical average gap of about 5 bp.
 
 **Trade:**
 - Long old 5-year
 - Short OTR 5-year
-- Duration-matched
+- DV01-matched
 
 **Expected PL drivers:**
-1. **Spread convergence**: If the 10 bp reverts to 5 bp average, gain 5 bp × DV01
+1. **Spread convergence**: If the 10 bp gap reverts to its 5 bp average (the OTR cheapens by ~5 bp relative to old), gain ≈ 5 bp × DV01
 2. **Financing**: The short OTR will cost financing (it trades special); the long position may finance at GC
 3. **Roll**: When the next auction makes the OTR "old," its liquidity premium should decline
 
@@ -617,7 +619,7 @@ Two practical cautions:
 
 > **Pitfall — Ignoring financing in “convergence” trades:** Treating an OTR/off-the-run spread as “pure value” and forgetting that the short leg may be expensive to borrow.  
 > **Why it matters:** Financing drag can overwhelm the PL from spread convergence.  
-> **Quick check:** Compute $\text{breakeven bp} \approx \text{(financing drag in USD )} / \text{(trade DV01 in USD /bp)}$.
+> **Quick check:** Compute $\text{breakeven (bp)} \approx \dfrac{\text{financing drag (USD)}}{\text{trade DV01 (USD per bp)}}$.
 
 ### 10.16.6 Worked Example: DV01-Neutral OTR vs Old 5-Year (Financing Drag Breakeven)
 
@@ -633,13 +635,13 @@ Two practical cautions:
 
 **Inputs**
 - Old 5-year (long leg):
-  - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
-- Repo rate $r_{GC} = 4.80\\%$ (ACT/360)
+  - Dirty price $P_{\text{dirty}} \approx 100.50$ per 100
   - $DV01_{y,\text{old}} = 0.044$ price points per 100 per 1bp
+  - Finances at GC: $r_{GC} = 4.80\\%$ (ACT/360)
 - On-the-run 5-year (short leg):
-  - Dirty price $P_{\text{dirty}}$ $\approx 100.50$ per 100
-  - Special repo rate $r_{sp} = 3.30\\%$ (ACT/360)
+  - Dirty price $P_{\text{dirty}} \approx 100.50$ per 100
   - $DV01_{y,\text{OTR}} = 0.045$ price points per 100 per 1bp
+  - Trades special: $r_{sp} = 3.30\\%$ (ACT/360)
 - Special spread: $s = r_{GC} - r_{sp} = 1.50\\%$
 - Notional: long $N_{\text{old}} = USD 100\text{mm}$ face. Choose short notional to be DV01-neutral:
 
@@ -658,16 +660,16 @@ $$
 Long-leg DV01:
 
 $$
-DV01_{USD ,\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = USD 44{,}000\\; \text{per bp}
+DV01_{\mathrm{USD},\text{old}} = 0.044\times \frac{100{,}000{,}000}{100} = USD 44{,}000\\;\text{per bp}
 $$
 
 Short-leg DV01:
 
 $$
-DV01_{USD ,\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx USD 44{,}010\\; \text{per bp}
+DV01_{\mathrm{USD},\text{OTR}} = 0.045\times \frac{97{,}800{,}000}{100} \approx USD 44{,}010\\;\text{per bp}
 $$
 
-so the net DV01 is approximately zero.
+so the net DV01 of the package (long old minus short OTR) is approximately zero.
 
 **Step 2 (Compute financing drag (short OTR)).**  
 The short position must source the on-the-run security in the specials market. A rough financing-drag estimate over $d$ days is:
@@ -683,13 +685,13 @@ $$
 $$
 
 **Step 3 (Breakeven convergence).**  
-If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., $y_{OTR}-y_{old}$ increases toward 0), the convergence PL is on the order of:
+Because the trade is DV01-neutral by construction, both leg DV01s are essentially the same (≈ $USD 44{,}000$ per bp). If the on-the-run cheapens by $\Delta y$ bp versus the old issue (e.g., the spread $y_{OTR}-y_{old}$ increases toward 0), the convergence PL is on the order of:
 
 $$
-PL_{\text{conv}} \approx DV01_{USD ,\text{OTR}}\cdot \Delta y
+PL_{\text{conv}} \approx DV01_{\mathrm{USD}}\cdot \Delta y
 $$
 
-Breakeven $\Delta y$ is therefore:
+where $DV01_{\mathrm{USD}}\approx USD 44{,}000$ per bp. Breakeven $\Delta y$ is therefore:
 
 $$
 \Delta y_{\text{breakeven}} \approx \frac{USD 246{,}000}{USD 44{,}000} \approx 5.6\text{ bp}
@@ -729,7 +731,7 @@ $$
 
 7.  **Benchmark distortion:** Using OTR yields as "the curve" systematically biases spread measurements. Practitioners must use fitted curves or adjust for liquidity effects.
 
-8.  **Convert financing to yield-equivalent:** Translate a dollar financing advantage/drag into yield-equivalent bp by dividing by $DV01_{USD }$ (or equivalently divide the per-100 financing advantage by $DV01_y$).
+8.  **Convert financing to yield-equivalent:** Translate a dollar financing advantage/drag into yield-equivalent bp by dividing by $DV01_{\mathrm{USD}}$ (or equivalently divide the per-100 financing advantage by $DV01_y$).
 
 9.  **Convergence arbitrage has risks:** LTCM (1998) demonstrated that "riskless" convergence trades can incur massive losses when flight to quality widens OTR premiums.
 
@@ -754,7 +756,7 @@ $$
 | Special spread | $s := r_{GC}-r_{sp}$ (annualized, ACT/360) | Converts financing wedges into dollars/bp; $s \gt 0$ means “special” |
 | Financing advantage / drag | $\approx (N/100)\\,P_{\text{dirty}}\\,s\\,d/360$ dollars over $d$ days (advantage if long collateral; drag if short) | Often first-order in RV PL over short horizons |
 | $DV01_y$ (price DV01) | $DV01_y := P(y-1\text{bp})-P(y)$ (price points per 100 per bp) | Locks bump object/sign for yield-equivalent comparisons |
-| $DV01_{USD}$ (dollar DV01) | $DV01_{USD} := DV01_y\times N/100$ (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
+| $DV01_{\mathrm{USD}}$ (dollar DV01) | $DV01_{\mathrm{USD}} := DV01_y\times N/100$ (dollars per bp) | Position risk scalar; used to size DV01-neutral trades |
 | TMPG fails charge | $C_{\text{daily}}=(1/360)\\,0.01\\,\max(3-R,F)\\,P_{\text{proceeds}}$ (dollars/day) | Makes failing explicitly costly; affects the “negative special” bound |
 | Liquidity premium decomposition | OTR richness = financing component + pure liquidity component | Prevents double-counting when fitting curves / valuing benchmarks |
 | Implied bid-ask spread | $S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}$ | Infers a rough effective spread from bid-ask bounce |
@@ -782,7 +784,7 @@ $$
 | $F$ | TMPG floor parameter | percent points; depends on rule version/date |
 | $y$ | Bond yield quote | bump object for $DV01_y$ |
 | $DV01_y$ | Price DV01 to yield bump | price points per 100 per 1bp; $DV01_y=P(y-1\text{bp})-P(y) \gt 0$ for long |
-| $DV01_{USD}$ | Dollar DV01 of a position | dollars per bp; $DV01_{USD}=DV01_y\times N/100$ |
+| $DV01_{\mathrm{USD}}$ | Dollar DV01 of a position | dollars per bp; $DV01_{\mathrm{USD}}=DV01_y\times N/100$ |
 | $X_t$ | Transaction price change | price points per 100; $X_t=P_t-P_{t-1}$ |
 | $S$ | Implied bid-ask spread estimate | price points per 100 |
 
@@ -801,7 +803,7 @@ $$
 | 7 | Define special spread. | $s = r_{GC} - r_{sp}$. |
 | 8 | Why might a bond trade special? | High demand to borrow it for short positions. |
 | 9 | What creates the OTR liquidity premium? | Two components: financing advantage + pure liquidity demand. |
-| 10 | How do you convert financing advantage to bp? | Divide a dollar financing advantage/drag by $DV01_{USD }$ (or per-100 financing advantage by $DV01_y$). |
+| 10 | How do you convert financing advantage to bp? | Divide a dollar financing advantage/drag by $DV01_{\mathrm{USD}}$ (or per-100 financing advantage by $DV01_y$). |
 | 11 | What historically bounded the special spread? | The GC rate (since special could not go below 0% before 2009). |
 | 12 | Why couldn't special rates go negative historically? | Failing to deliver was equivalent to 0% financing, so no one would lend at negative rates. |
 | 13 | What is the TMPG fails charge formula (DVP Treasuries)? | $C_{\text{daily}}=(1/360)\\,0.01\\,\max(3-R,F)\\,P_{\text{proceeds}}$ dollars/day. |
@@ -815,7 +817,7 @@ $$
 | 21 | What is the implied spread formula from autocovariance? | $S = 2\sqrt{-\mathrm{Cov}(X_t, X_{t-1})}$, where $X_t=P_t-P_{t-1}$. |
 | 22 | What does LTCM stand for and what was their strategy? | Long-Term Capital Management; convergence arbitrage (long cheap/illiquid, short rich/liquid). |
 | 23 | What triggered LTCM's collapse? | Russia's default in August 1998 caused a "flight to quality" that widened spreads against their positions. |
-| 24 | What DV01 convention is used in this chapter? | $DV01_y:=P(y-1\text{bp})-P(y)$ (per 100); $DV01_{USD }=DV01_y\times N/100$; $\Delta P\approx -DV01_y\Delta y_{\text{bp}}$. |
+| 24 | What DV01 convention is used in this chapter? | $DV01_y:=P(y-1\text{bp})-P(y)$ (per 100); $DV01_{\mathrm{USD}}=DV01_y\times N/100$; $\Delta P\approx -DV01_y\Delta y_{\text{bp}}$. |
 | 25 | What was the "dash for cash" in March 2020? | Investors sold even Treasuries to raise cash, causing unprecedented dislocations. |
 | 26 | Why can even OTR liquidity deteriorate in stress? | Intermediation capacity is finite: risk limits, balance-sheet usage, and funding frictions can force dealers to widen spreads and reduce size. |
 | 27 | What is a butterfly trade? | A three-leg trade (short wings, long body) that isolates curvature from level. |
@@ -857,9 +859,9 @@ $$
 
 ---
 
-**6.** A short must borrow a bond at special 0.25% when GC is 4.75%, for 14 days on $USD 50$mm. Compute incremental cost vs GC.
+**6.** A short must borrow a bond at special 0.25% when GC is 4.75%, for 14 days on $USD 50$mm of invoice cash. Compute the incremental cost versus GC (i.e., the foregone interest on cash from accepting the lower special rate).
 
-**Solution:** Cost $= 50{,}000{,}000 \times 0.045 \times (14/360) = USD 87{,}500$.
+**Solution:** Foregone interest $= 50{,}000{,}000 \times (0.0475 - 0.0025) \times (14/360) = 50{,}000{,}000 \times 0.045 \times (14/360) \approx USD 87{,}500$.
 
 ---
 
@@ -949,12 +951,12 @@ Qualitatively: an explicit fails charge makes failing costly, so borrowing at a 
 
 ---
 
-**18.** You're analyzing a rich/cheap trade: OTR 5y trades 7 bp rich to curve; old 5y trades 1 bp cheap. You are short USD 100mm face of the OTR and long USD 100mm face of the old (assume prices near par), so the package has $DV01_{USD }\approx USD 45{,}000$ per bp. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the spread halves (to 4 bp), calculate PL including financing.
+**18.** You're analyzing a rich/cheap trade: the OTR 5y trades 7 bp rich to the curve; the old 5y trades 1 bp cheap. The OTR-vs-old richness gap is therefore 8 bp. You short $USD 100$mm face of the OTR and go long $USD 100$mm face of the old (assume prices near par); each leg has $DV01_{\mathrm{USD}}\approx USD 45{,}000$ per bp, so the spread P&L is about $USD 45{,}000$ per bp of relative move. The OTR is 150 bp special (old is at GC). Holding period is 90 days. If the gap halves (to 4 bp), calculate PL including financing.
 
 **Solution Sketch:**
-- **Spread convergence PL**: 4 bp × USD 45,000 = USD 180,000 gain
+- **Spread convergence PL**: 4 bp × $USD 45{,}000$ = $USD 180{,}000$ gain
 - **Financing drag of short OTR** (150 bp special): $0.015\times 100{,}000{,}000\times 90/360 \approx USD 375{,}000$
-- **Net PL**: USD 180,000 - USD 375,000 = **USD -195,000 loss**
+- **Net PL**: $USD 180{,}000$ − $USD 375{,}000$ = **$USD -195{,}000$ loss**
 
 The financing drag exceeds the spread convergence gain. This illustrates why financing costs matter.
 
