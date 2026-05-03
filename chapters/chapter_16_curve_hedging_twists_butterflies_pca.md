@@ -44,12 +44,12 @@ A **curvature** move changes the “hump”: the **belly** (intermediate maturit
 
 > **Analogy: The Car Suspension**
 >
-> Think of the Yield Curve as a car chassis driving over a road.
-> *   **Level (PC1)**: The road elevation changes. The whole car goes up or down.
-> *   **Slope (PC2)**: The car accelerates or brakes. The nose lifts or dives (tilting).
-> *   **Curvature (PC3)**: The car hits a pothole. The chassis bends or flexes in the middle.
+> Think of the yield curve as a car chassis driving over a road. (We name these *Level/Slope/Curvature* here; they often roughly correspond to the first three principal components introduced in Section 16.2.)
+> *   **Level**: The road elevation changes. The whole car goes up or down.
+> *   **Slope**: The car accelerates or brakes. The nose lifts or dives (tilting).
+> *   **Curvature**: The car hits a pothole. The chassis bends or flexes in the middle.
 >
-> You can't fix a bent chassis (Curvature) by adjusting the ride height (Level). They are different mechanical problems.
+> You can't fix a bent chassis (curvature) by adjusting the ride height (level). They are different mechanical problems.
 
 **Check (toy shock vectors):** on tenors $(2y,5y,10y)$, three common stylized shocks are
 
@@ -79,7 +79,7 @@ $$ z_{j,t} := \mathbf{u}_j^\top \Delta \mathbf{y}_t. $$
 
 By construction (over the estimation sample), these scores are uncorrelated at lag 0. The fraction of variance explained by factor $j$ is:
 
-$$ VarShare_j = \frac{\lambda_j}{\mathrm{tr}(\Sigma)}. $$
+$$ \mathrm{VarShare}_j = \frac{\lambda_j}{\mathrm{tr}(\Sigma)}. $$
 
 ### 16.2.2 Why the First PCs Look Like Level / Slope / Curvature
 
@@ -92,15 +92,15 @@ This is an empirical statement about the chosen dataset: the tenors you include,
 
 ### 16.2.3 Using PCA for Hedging (Factor Deltas)
 
-Suppose your risk system reports sensitivities to small **up** moves in each tenor as a vector
+Suppose your risk system reports a KR01-style sensitivity vector at the chosen tenors,
 
-$$ \mathbf{d} := \left(\frac{\partial PV}{\partial y(T_1)},\dots,\frac{\partial PV}{\partial y(T_n)}\right)^\top, $$
+$$ \mathbf{d} := \bigl(d_1,\dots,d_n\bigr)^\top,\qquad d_k := PV(\text{rate at }T_k\text{ down }1\text{ bp})-PV(\text{base}), $$
 
-with units “currency per bp” (after choosing a bump definition). A one-factor shock $z\\,\mathbf{u}_j$ (in bp) produces the linearized P&L:
+with units “currency per bp” (after choosing a bump definition). This is the same convention used throughout the chapter: $d_k\gt 0$ for a long, option-free position. An **upward** one-factor shock $z\\,\mathbf{u}_j$ (in bp) produces the linearized P&L:
 
 $$ \Delta PV \approx -\mathbf{d}^\top (z\\,\mathbf{u}_j) = -(\mathbf{d}^\top \mathbf{u}_j)\\,z. $$
 
-So the **PCA-factor DV01** for factor $j$ is simply $\mathbf{d}^\top\mathbf{u}_j$ (currency per bp of the factor score).
+So the **PCA-factor DV01** for factor $j$ is simply $\mathbf{d}^\top\mathbf{u}_j$ (currency per bp of the factor score). For $\mathbf{d}=\mathbf{k}$, the KR01 vector of Section 16.3, the toy example below illustrates the calculation explicitly.
 
 > **Desk Reality:** PCA hedges are instrument-efficient (few factors) but definition-sensitive. Two systems can both say “PC2” and still disagree because they used different tenors, windows, or curve definitions. If you hedge to PCA factors, document the factor construction and validate the hedge with explicit scenario shocks (level/twist/fly), not just “PC-neutral” labels.
 
@@ -120,11 +120,11 @@ This gives two practical sanity checks:
 
 $$ \mathbf{u}_1=\frac{(1,1,1)}{\sqrt{3}},\quad \mathbf{u}_2=\frac{(1,0,-1)}{\sqrt{2}},\quad \mathbf{u}_3=\frac{(-1,2,-1)}{\sqrt{6}}. $$
 
-Let $\mathbf{k}=(200,1500,800)$ $USD /\text{bp}$ be a KR01 vector (rates down convention) and consider an **up** shock $\boldsymbol{\delta}=(+3,0,-2)$ bp. The factor scores are $z_1=\tfrac{1}{\sqrt{3}}$, $z_2=\tfrac{5}{\sqrt{2}}$, $z_3=-\tfrac{1}{\sqrt{6}}$. The factor exposures are $\mathbf{k}^\top\mathbf{u}_1=\tfrac{2500}{\sqrt{3}}$, $\mathbf{k}^\top\mathbf{u}_2=-\tfrac{600}{\sqrt{2}}$, $\mathbf{k}^\top\mathbf{u}_3=\tfrac{2000}{\sqrt{6}}$. Summing factor P\&L gives
+Let $\mathbf{k}=(200,1500,800)$ USD/bp be a KR01 vector (rates down convention) and consider an **up** shock $\boldsymbol{\delta}=(+3,0,-2)$ bp. The factor scores are $z_1=\tfrac{1}{\sqrt{3}}$, $z_2=\tfrac{5}{\sqrt{2}}$, $z_3=-\tfrac{1}{\sqrt{6}}$. The factor exposures are $\mathbf{k}^\top\mathbf{u}_1=\tfrac{2500}{\sqrt{3}}$, $\mathbf{k}^\top\mathbf{u}_2=-\tfrac{600}{\sqrt{2}}$, $\mathbf{k}^\top\mathbf{u}_3=\tfrac{2000}{\sqrt{6}}$. Summing factor P\&L gives
 
-$$ \Delta PV\approx -\sum_{j=1}^3 (\mathbf{k}^\top\mathbf{u}_j)\\,z_j \approx +USD 1{,}000, $$
+$$ \Delta PV\approx -\sum_{j=1}^3 (\mathbf{k}^\top\mathbf{u}_j)\\,z_j \approx +1{,}000\\,\text{USD}, $$
 
-which matches the direct dot product $-\mathbf{k}^\top\boldsymbol{\delta}=-(200\cdot 3+1500\cdot 0+800\cdot(-2))=+USD 1{,}000$.
+which matches the direct dot product $-\mathbf{k}^\top\boldsymbol{\delta}=-(200\cdot 3+1500\cdot 0+800\cdot(-2))=+1{,}000$ USD.
 
 ---
 
@@ -161,7 +161,7 @@ $$ \mathrm{KR01}_k := PV(\text{key }k\text{ down }1\text{ bp})-PV(\text{base}). 
 
 ### 16.3.2 Interpreting a KR01 Vector
 
-Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vector (in $USD \\!/\text{bp}$):
+Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vector (in USD/bp):
 
 | Tenor $T_k$ | 2y | 5y | 10y | 30y | Total |
 |---|---:|---:|---:|---:|---:|
@@ -169,7 +169,7 @@ Suppose your risk report provides key tenors $(2y,5y,10y,30y)$ and the KR01 vect
 
 This vector contains information that a single “total DV01” hides:
 - **Concentration:** most exposure sits in the 5y bucket.
-- **Scenario intuition:** if only the 5y point sells off by $+5$bp while others are unchanged, the first-order impact is about $-1{,}500\times 5=-USD 7{,}500$.
+- **Scenario intuition:** if only the 5y point sells off by $+5$bp while others are unchanged, the first-order impact is about $-1{,}500\times 5=-7{,}500$ USD.
 
 > **Comparison: Sniper Rifle vs. Shotgun**
 >
@@ -191,7 +191,7 @@ Let $\mathbf{k}=(\mathrm{KR01}_1,\dots,\mathrm{KR01}_m)^\top$ be the KR01 vector
 $$ \boxed{\Delta PV \approx -\mathbf{k}^\top \boldsymbol{\delta} = -\sum_{k=1}^m \mathrm{KR01}_k\\,\delta_k.} $$
 
 **Check:**
-- **Units:** $(USD \\!/\text{bp})\times(\text{bp})=USD $.
+- **Units:** $(\text{USD}/\text{bp})\times(\text{bp})=\text{USD}$.
 - **Sign:** for a long rates position, $\mathrm{KR01}_k\gt 0$. If rates sell off ($\delta_k\gt 0$), the contribution $-\mathrm{KR01}_k\delta_k$ is negative (a loss).
 
 ### 16.4.2 Hedging as a System of Equations
@@ -211,14 +211,17 @@ The “ideal” key-rate hedge solves $\mathbf{H}\mathbf{n}=-\mathbf{k}$, but th
 - If $m\gg n$, you pick what you care about (a few keys, or PCA factors), and accept residual risk elsewhere.
 
 **Expand (exact hedge vs best-fit hedge):** When $m\gt n$, you typically cannot solve $\mathbf{H}\mathbf{n}=-\mathbf{k}$ exactly. Two common approaches are:
+
 - **Constrain a low-dimensional subspace** you care about (e.g., match exposure to level/twist/fly or to a few key tenors), and ignore the rest.
-- **Solve a weighted least-squares hedge** that minimizes residual exposure across keys:
+- **Solve a weighted least-squares hedge** that minimizes residual exposure across keys.
 
-$$ \min_{\mathbf{n}}\\;\bigl\\| \mathbf{W}^{1/2}(\mathbf{k}+\mathbf{H}\mathbf{n})\bigr\\|^2, $$
+For the weighted least-squares hedge, choose a positive-definite weight matrix $\mathbf{W}$ encoding which buckets/factors matter and minimize the weighted residual:
 
-  where $\mathbf{W}$ encodes which buckets/factors matter. When $\mathbf{H}^\top\mathbf{W}\mathbf{H}$ is invertible, the solution is
+$$ \min_{\mathbf{n}}\\;\bigl\\| \mathbf{W}^{1/2}(\mathbf{k}+\mathbf{H}\mathbf{n})\bigr\\|^2. $$
 
-$$ \boxed{\mathbf{n}^* = -(\mathbf{H}^\top\mathbf{W}\mathbf{H})^{-1}\mathbf{H}^\top\mathbf{W}\mathbf{k}.} $$
+When $\mathbf{H}^\top\mathbf{W}\mathbf{H}$ is invertible, the solution is
+
+$$ \boxed{\mathbf{n}^{\ast} = -(\mathbf{H}^\top\mathbf{W}\mathbf{H})^{-1}\mathbf{H}^\top\mathbf{W}\mathbf{k}.} $$
 
 > **Pitfall — Ill-conditioned hedge matrices:** If two hedge instruments have nearly identical KR01 profiles, $\mathbf{H}^\top\mathbf{W}\mathbf{H}$ can be close to singular. The hedge notionals become very large and unstable (small input changes $\rightarrow$ big hedge changes).
 > **Quick check:** If net exposure is small but gross notionals are huge (near-cancellation), stress the hedge with small perturbations in KR01 mapping/interpolation to see if it is robust.
@@ -264,39 +267,41 @@ Solving these gives $k_{2}=k_{10}=-\tfrac{1}{2}k_{5}$: the two wings carry equal
 - Convention: $DV01 := PV(\text{rates down }1\text{bp})-PV(\text{base})$. P&L approximation uses $\Delta PV\approx-\sum_k \mathrm{KR01}_k\delta_k$ with $\delta_k$ the **up** shock in bp.
 
 **Outputs (What You Produce)**
-- Notionals for a 50/50 DV01-weighted butterfly:
-  - Receive fixed USD 100mm 5y (belly)
-  - Pay fixed USD 118.4mm 2y (short wing)
-  - Pay fixed USD 27.1mm 10y (long wing)
+- Notionals for a 50/50 DV01-weighted butterfly (in trader shorthand, "long the belly, short the wings"):
+  - Receive fixed USD 100mm 5y (belly leg, long DV01)
+  - Pay fixed USD 118.4mm 2y (short-end wing, short DV01)
+  - Pay fixed USD 27.1mm 10y (long-end wing, short DV01)
 - A scenario table showing the hedge is (approximately) level- and twist-neutral.
 
 **Step-by-step**
-1. Choose the belly notional: $N_5=USD 100\text{mm}$. Its DV01 is $+100\times 450=+USD 45{,}000/\text{bp}$.
-2. For a 50/50 DV01 split, set each wing DV01 to $-USD 22{,}500/\text{bp}$.
+1. Choose the belly notional: $N_5=$ USD 100mm. Its DV01 is $+100\times 450=+45{,}000$ USD/bp.
+2. For a 50/50 DV01 split, set each wing DV01 to $-22{,}500$ USD/bp.
 3. Convert DV01 targets into notionals:
-   - 2y notional: $N_2 = 22{,}500/190 \approx USD 118.4\text{mm}$ (short)
-   - 10y notional: $N_{10} = 22{,}500/830 \approx USD 27.1\text{mm}$ (short)
+   - 2y notional: $N_2 = 22{,}500/190 \approx 118.4$ mm (pay fixed)
+   - 10y notional: $N_{10} = 22{,}500/830 \approx 27.1$ mm (pay fixed)
 
 **Risk Table**
-| Leg | Notional (USD mm) | DV01 per USD 1mm (USD /bp) | Position DV01 (USD /bp) |
+| Leg | Notional (USD mm) | DV01 per USD 1mm (USD/bp) | Position DV01 (USD/bp) |
 |---|---:|---:|---:|
 | 2y | -118.4 | 190 | -22,500 |
 | 5y | +100.0 | 450 | +45,000 |
 | 10y | -27.1 | 830 | -22,500 |
 | **Net** |  |  | **0** |
 
+For this single-position book, the position DV01 by tenor is the KR01 vector: $\mathbf{k}=(-22{,}500,\\,+45{,}000,\\,-22{,}500)$ USD/bp at $(2y,5y,10y)$. Plug $\mathbf{k}$ and each $\boldsymbol{\delta}$ into the first-order P&L formula $\Delta PV\approx -\mathbf{k}^\top\boldsymbol{\delta}$:
+
 **Scenario P&L (1st order)**
-- Level $\delta=(+10,+10,+10)$: $\Delta PV\approx -( -22{,}500+45{,}000-22{,}500)\times 10\approx 0$.
-- Twist $\delta=(+10,0,-10)$: $\Delta PV\approx -(-22{,}500\times 10 + (-22{,}500)\times(-10))\approx 0$.
-- Fly $\delta=(-5,+10,-5)$: $\Delta PV\approx -(112{,}500+450{,}000+112{,}500)= -USD 675{,}000$. (Belly sells off while wings rally.)
+- Level $\boldsymbol{\delta}=(+10,+10,+10)$: $\Delta PV\approx -\bigl((-22{,}500)+45{,}000+(-22{,}500)\bigr)\times 10\approx 0$.
+- Twist $\boldsymbol{\delta}=(+10,0,-10)$: $\Delta PV\approx -\bigl((-22{,}500)\times 10 + (-22{,}500)\times(-10)\bigr)\approx 0$.
+- Fly $\boldsymbol{\delta}=(-5,+10,-5)$: $\Delta PV\approx -\bigl((-22{,}500)\times(-5)+45{,}000\times 10+(-22{,}500)\times(-5)\bigr)= -\bigl(112{,}500+450{,}000+112{,}500\bigr)= -675{,}000$ USD. (Belly sells off while wings rally.)
 
 **P&L / Risk Interpretation**
-- This is a **curvature** position: it profits when the belly rallies relative to the wings (the “hump” increases), and loses when the belly cheapens relative to the wings.
+- This is a **curvature** position: it profits when the belly *richens* relative to the wings (equivalently, when the AVG-fly spread $\tfrac{y_{2}+y_{10}}{2}-y_{5}$ rises) and loses when the belly cheapens relative to the wings. Section 16.5.3 shows this explicitly: $\Delta PV \approx k_5\\,\Delta(\text{AVG Fly})$ for the 50/50 DV01-weighted butterfly.
 - What can break the neutrality: a different definition of “twist” than $(+1,0,-1)$; non-local KR01 shift shapes; convexity and optionality; carry/rolldown and funding over longer holds; transaction costs and liquidity constraints.
 
 **Sanity Checks**
-- Units check: DV01 is $USD \\!/\text{bp}$; multiplying by bp gives dollars.
-- Sign check: rates up $\Rightarrow$ PV down for the long belly; short wings gain when rates rise on the wings and lose when wings rally.
+- Units check: DV01 is in USD/bp; multiplying by bp gives dollars.
+- Sign check: rates up $\Rightarrow$ PV down for the long belly; pay-fixed wings gain when wing rates rise and lose when wings rally.
 - Limiting case: if all tenors move together, the net DV01 is near zero so P&L should be small.
 
 **Debug Checklist (When Your Result Looks Wrong)**
@@ -316,9 +321,9 @@ With DV01-style risk weights chosen so each wing carries half of the belly risk,
 
 $$ \Delta PV \approx -\bigl(k_2\delta_2+k_5\delta_5+k_{10}\delta_{10}\bigr)=k_5\left(\frac{\delta_2+\delta_{10}}{2}-\delta_5\right)=k_5\\,\Delta(\text{AVG Fly}). $$
 
-So the “risk-weight scale” is essentially the **belly DV01** (in $USD \\!/\text{bp}$) under that weighting convention.
+So the “risk-weight scale” is essentially the **belly DV01** (in USD/bp) under that weighting convention.
 
-**Check (reproduce the worked fly scenario):** In Section 16.5.2, $\boldsymbol{\delta}=(-5,+10,-5)$ bp implies $\Delta(\text{AVG Fly})=\tfrac{-5-5}{2}-10=-15$ bp. With $k_5=+USD 45{,}000/\text{bp}$, the predicted P\\&L is $45{,}000\times(-15)=-USD 675{,}000$, matching the scenario table.
+**Check (reproduce the worked fly scenario):** In Section 16.5.2, $\boldsymbol{\delta}=(-5,+10,-5)$ bp implies $\Delta(\text{AVG Fly})=\tfrac{-5-5}{2}-10=-15$ bp. With $k_5=+45{,}000$ USD/bp, the predicted P\\&L is $45{,}000\times(-15)=-675{,}000$ USD, matching the scenario table.
 
 ---
 
@@ -346,7 +351,7 @@ In a one-factor regression, the **hedge effectiveness** (fraction of variance el
 - If $\rho=1$ and $\sigma_S=\sigma_F$, then $h^{\ast}=1$: the hedge variable mirrors the target one-for-one.
 - If $\rho=0$, then $h^{\ast}=0$: the hedge variable provides no linear hedge benefit.
 
-**Check (from $R^2$ to residual dollars):** In a one-factor hedge, $R^2=\rho^2$ and the residual standard deviation is $\sigma_\varepsilon=\sigma_S\sqrt{1-R^2}$. Example: if the target has $\sigma_S=1.5$ bp/day and $\rho=0.90$ ($R^2=0.81$), then $\sigma_\varepsilon\approx 1.5\sqrt{0.19}\approx 0.65$ bp/day. On a $DV01=+USD 60{,}000/\text{bp}$ position, the 1-day residual P\\&L volatility is still about $60{,}000\times 0.65\approx USD 39{,}000$. Over $H$ days, a rough i.i.d. scaling is $\sigma\propto \sqrt{H}$.
+**Check (from $R^2$ to residual dollars):** In a one-factor hedge, $R^2=\rho^2$ and the residual standard deviation is $\sigma_\varepsilon=\sigma_S\sqrt{1-R^2}$. Example: if the target has $\sigma_S=1.5$ bp/day and $\rho=0.90$ ($R^2=0.81$), then $\sigma_\varepsilon\approx 1.5\sqrt{0.19}\approx 0.65$ bp/day. On a position with $DV01=+60{,}000$ USD/bp, the 1-day residual P\\&L volatility is still about $60{,}000\times 0.65\approx 39{,}000$ USD. Over $H$ days, a rough i.i.d. scaling is $\sigma\propto \sqrt{H}$.
 
 ### 16.6.2 Translating a Yield Regression into Notionals (DV01 Scaling)
 
@@ -364,13 +369,13 @@ $$ \Delta PV_{\text{hedged}} \approx -DV01_{\text{tgt}}\\,\Delta y^{\text{tgt}}_
 
 Substituting the regression model and choosing $N$ so the coefficient of $\Delta y^{\text{hedge}}_{\text{bp}}$ vanishes gives the DV01-scaled hedge ratio:
 
-$$ \boxed{N^* \approx -\beta \frac{DV01_{\text{tgt}}}{DV01_{\text{hedge}}}.} $$
+$$ \boxed{N^{\ast} \approx -\beta \frac{DV01_{\text{tgt}}}{DV01_{\text{hedge}}}.} $$
 
 What remains is residual P&L driven by $\varepsilon_t$.
 
-**Check (toy numbers):** if $DV01_{\text{tgt}}=+USD 50{,}000/\text{bp}$, $DV01_{\text{hedge}}=+USD 20{,}000/\text{bp per unit}$, and $\beta=0.80$, then $N^*\approx -2.0$ hedge units (short 2 units).
+**Check (toy numbers):** if $DV01_{\text{tgt}}=+50{,}000$ USD/bp, $DV01_{\text{hedge}}=+20{,}000$ USD/bp per unit, and $\beta=0.80$, then $N^{\ast}\approx -2.0$ hedge units (short 2 units).
 
-### 16.6.3 Residual Risk: Standard Error $\rightarrow$ Dollars
+### 16.6.3 Residual Risk: From Standard Error to Dollars
 
 If the regression residual has standard deviation $\sigma_\varepsilon$ in bp over your horizon, the residual P&L volatility is approximately:
 
@@ -388,7 +393,7 @@ With two hedge instruments, regress $\Delta y^{\text{tgt}}$ on $(\Delta y^{(1)},
 
 ### 16.7.1 The “Parallel Fallacy”
 
-“Net DV01 $\approx 0$” means “small P&L under a particular parallel-shock definition.” It does not mean “low rate risk.” For example, a KR01 vector $(+2{,}000,\\,-4{,}000,\\,+2{,}000)$ at (2y, 10y, 30y) sums to zero but is a large *curvature* bet: it wins when the belly cheapens relative to the wings, and loses when the belly richens.
+“Net DV01 $\approx 0$” means “small P&L under a particular parallel-shock definition.” It does not mean “low rate risk.” For example, a KR01 vector $(+2{,}000,\\,-4{,}000,\\,+2{,}000)$ USD/bp at (2y, 10y, 30y) sums to zero but is a large *curvature* bet. Because $\mathrm{KR01}_k\gt 0$ at the wings and $\mathrm{KR01}_k\lt 0$ at the belly, this is a **short-belly** butterfly (the *opposite* sign-pattern from the long-belly fly worked in Section 16.5.2). It wins when the belly cheapens relative to the wings, and loses when the belly richens.
 
 ### 16.7.2 Granularity vs. Tradability
 
@@ -437,8 +442,8 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | Scenario P&L | $\Delta PV \approx -\mathbf{k}^\top\boldsymbol{\delta}$ | Unit/sign-safe first-order P&L |
 | Hedge matrix $\mathbf{H}$ | Columns are hedge KR01 vectors per hedge unit | Solves multi-instrument hedges |
 | Butterfly | 3-leg trade targeting curvature with neutrality constraints | The canonical “curve-shape” trade |
-| PCA loading `u_j` | Eigenvector of yield-change covariance | Defines factor direction |
-| PCA score `z_{j,t}` | Projection `u_j^T Δy_t` | Realized factor move |
+| PCA loading $\mathbf{u}_j$ | Eigenvector of yield-change covariance | Defines factor direction |
+| PCA score $z_{j,t}$ | Projection $\mathbf{u}_j^\top \Delta\mathbf{y}_t$ | Realized factor move |
 | Var share | $\lambda_j/\mathrm{tr}(\Sigma)$ | “How much variance” a factor explains |
 | Hedge ratio $h^{\ast}$ | $\mathrm{Cov}(\Delta X,\Delta Y)/\mathrm{Var}(\Delta Y)$ | Minimum-variance proxy hedge |
 | Residual risk | Variance not removed by hedge (e.g., $1-R^2$) | What you still own after hedging |
@@ -457,9 +462,9 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | $\mathbf{n}$ | hedge weights / notionals | hedge units; signed (long +) |
 | $\Delta \mathbf{y}_t$ | yield-change vector | bp over horizon |
 | $\Sigma$ | covariance of $\Delta \mathbf{y}$ | bp-squared |
-| `u_j` | PCA loading vector | unitless; normalized to `||u_j|| = 1` |
+| $\mathbf{u}_j$ | PCA loading vector | unitless; normalized to $\\|\mathbf{u}_j\\|=1$ |
 | $\lambda_j$ | PCA eigenvalue | bp-squared |
-| `z_{j,t}` | PCA score | bp |
+| $z_{j,t}$ | PCA score | bp |
 | $\beta$ | regression slope (yield regression) | bp/bp (unitless) |
 | $\rho$ | correlation | unitless in $[-1,1]$ |
 | $\varepsilon_t$ | regression residual | bp |
@@ -474,34 +479,34 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | 3 | What is $\mathrm{KR01}_k$? | PV change when key $k$ is shocked down 1bp (with a specified bump/rebuild rule). |
 | 4 | Why can two systems disagree on KR01? | Different bump objects and curve rebuild/interpolation rules. |
 | 5 | Write the first-order scenario P&L formula in KR01 form. | $\Delta PV \approx -\mathbf{k}^\top\boldsymbol{\delta}$ for upward shocks $\boldsymbol{\delta}$ (bp). |
-| 6 | Unit check for $-\mathbf{k}^\top\boldsymbol{\delta}$? | $(USD /\text{bp})\cdot(\text{bp})=USD $. |
+| 6 | Unit check for $-\mathbf{k}^\top\boldsymbol{\delta}$? | $(\text{USD}/\text{bp})\cdot(\text{bp})=\text{USD}$. |
 | 7 | What is a twist shock in 2y/5y/10y toy form? | $(+1,0,-1)$ bp (short up, long down). |
 | 8 | What is the “parallel fallacy”? | Interpreting net DV01 near zero as “low rate risk.” |
 | 9 | What constraints does a 3-leg butterfly typically impose? | Two neutrality constraints (often level and slope), leaving curvature exposure. |
-| 10 | What does PCA produce? | Orthogonal loadings `u_j` and scores `z_{j,t}` that summarize yield changes. |
+| 10 | What does PCA produce? | Orthogonal loadings $\mathbf{u}_j$ and scores $z_{j,t}$ that summarize yield changes. |
 | 11 | What is “variance explained” in PCA? | $\lambda_j/\mathrm{tr}(\Sigma)$, the fraction of total variance attributed to factor $j$. |
 | 12 | What is the minimum-variance hedge ratio $h^{\ast}$? | $h^{\ast}=\mathrm{Cov}(\Delta X,\Delta Y)/\mathrm{Var}(\Delta Y)=\rho\sigma_X/\sigma_Y$. |
-| 13 | How do you translate a yield regression $\beta$ into hedge units? | $N^* \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}$. |
+| 13 | How do you translate a yield regression $\beta$ into hedge units? | $N^{\ast} \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}$. |
 | 14 | What does $R^2$ tell you for a one-factor regression hedge? | The fraction of target variance explained; $1-R^2$ is residual variance share. |
 | 15 | Name two reasons a curve hedge “breaks.” | Bump mismatch; factor/beta drift; convexity; mapping/proxy changes; liquidity/TC. |
 
 ## Mini Problem Set
 
-1. (Compute) A position has $\mathbf{k}=(+200,\\,+1500,\\,+800)$ $USD /\text{bp}$ at (2y, 5y, 10y). Compute $\Delta PV$ for an upward shock $\boldsymbol{\delta}=(+3,\\,+0,\\,-2)$ bp.
+1. (Compute) A position has $\mathbf{k}=(+200,\\,+1500,\\,+800)$ USD/bp at (2y, 5y, 10y). Compute $\Delta PV$ for an upward shock $\boldsymbol{\delta}=(+3,\\,+0,\\,-2)$ bp.
 2. (Compute) You want a 50/50 DV01-weighted 2s–5s–10s butterfly. DV01 per USD 1mm is: 2y = USD 210/bp, 5y = USD 470/bp, 10y = USD 860/bp. If you receive USD 80mm 5y, what 2y and 10y notionals (pay fixed) match the 50/50 DV01 split?
-3. (Compute) Regression of yield changes gives $\beta=0.75$ for target vs hedge. Your target DV01 is $+USD 60{,}000/\text{bp}$. The hedge instrument DV01 is $+USD 25{,}000/\text{bp}$ per unit. What hedge units $N^*$ do you take (sign matters)?
+3. (Compute) Regression of yield changes gives $\beta=0.75$ for target vs hedge. Your target DV01 is $+60{,}000$ USD/bp. The hedge instrument DV01 is $+25{,}000$ USD/bp per unit. What hedge units $N^{\ast}$ do you take (sign matters)?
 4. (Concept) Give an example of a KR01 vector that has net DV01 $\approx 0$ but large curvature risk. Explain the P&L intuition under a fly shock.
 5. (Concept) Compare KR01 hedging and PCA hedging: what is gained and what can go wrong?
 6. (Desk) Your risk report shows $\sum_k \mathrm{KR01}_k$ differs materially from the reported parallel DV01. List three reasons this can happen.
 7. (Desk) You hedge a butterfly to be twist-neutral under $(+1,0,-1)$ at (2y,5y,10y). What alternative twist/fly scenarios would you run to check robustness?
-8. (Compute) A regression hedge has residual standard deviation $\sigma_\varepsilon=0.6$ bp/day. The target DV01 is $+USD 40{,}000/\text{bp}$. What is the 1-day 1-sigma residual P&L?
+8. (Compute) A regression hedge has residual standard deviation $\sigma_\varepsilon=0.6$ bp/day. The target DV01 is $+40{,}000$ USD/bp. What is the 1-day 1-sigma residual P&L?
 
 ### Solution Sketches (Selected)
-1. $\Delta PV \approx -\mathbf{k}^\top\boldsymbol{\delta}=-(200\cdot 3 + 1500\cdot 0 + 800\cdot(-2))=-(600-1600)=+USD 1{,}000.$
-2. Belly DV01: $80\times 470=+USD 37{,}600/\text{bp}$. Each wing targets $-USD 18{,}800/\text{bp}$. So $N_2\approx 18{,}800/210\approx USD 89.5\text{mm}$ (pay fixed) and $N_{10}\approx 18{,}800/860\approx USD 21.9\text{mm}$ (pay fixed).
-3. $N^* \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}= -0.75\times 60{,}000/25{,}000=-1.8$ units (short 1.8 hedge units against the long target).
+1. $\Delta PV \approx -\mathbf{k}^\top\boldsymbol{\delta}=-(200\cdot 3 + 1500\cdot 0 + 800\cdot(-2))=-(600-1600)=+1{,}000$ USD.
+2. Belly DV01: $80\times 470=+37{,}600$ USD/bp. Each wing targets $-18{,}800$ USD/bp. So $N_2\approx 18{,}800/210\approx 89.5$ mm (pay fixed) and $N_{10}\approx 18{,}800/860\approx 21.9$ mm (pay fixed).
+3. $N^{\ast} \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}= -0.75\times 60{,}000/25{,}000=-1.8$ units (short 1.8 hedge units against the long target).
 6. Possible reasons: different bump objects (par/zero/yield); different curve rebuild/interpolation rules; key-rate shift family does not sum to a true parallel shift; DV01 computed on a different curve set (e.g., discount vs projection); numerical noise from bump-and-reprice.
-8. $\sigma_{\Delta PV}\approx DV01\cdot\sigma_\varepsilon = 40{,}000\times 0.6=USD 24{,}000$ per day (first-order).
+8. $\sigma_{\Delta PV}\approx DV01\cdot\sigma_\varepsilon = 40{,}000\times 0.6=24{,}000$ USD per day (first-order).
 
 ## References
 - (Tuckman & Serrat, *Fixed Income Securities: Tools for Today’s Markets*, “Key Rate Shifts”; “Trading Case Study: A 7s–8s–9s Butterfly”; “Multi-Factor Exposures and Risk Management”)
