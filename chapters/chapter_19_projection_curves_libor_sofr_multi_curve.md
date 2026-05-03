@@ -540,9 +540,9 @@ This is not magic: real implementations can still have cross-effects (depending 
 ### 19.6.1 Curve Construction Hierarchy
 
 Build curves in order of liquidity:
-1. **OIS (Discount):** From OIS swaps and Fed Funds/SOFR futures (Chapter 18)
-2. **Base Projection (SOFR or legacy 3M LIBOR):** From vanilla fixed-float swaps
-3. **Secondary Tenors (1M, 6M):** From basis swaps as spreads to the base (Chapter 20)
+1. **Discount curve (OIS / SOFR-OIS):** From OIS swaps and Fed Funds/SOFR futures (Chapter 18). In a SOFR world, this curve also serves as the SOFR projection curve.
+2. **Base projection (legacy 3M LIBOR or other non-OIS index):** From vanilla fixed-float swaps on that index.
+3. **Secondary tenors (1M, 6M, etc.):** From basis swaps as spreads to the base (Chapter 20).
 
 ### 19.6.2 Common Pitfalls
 
