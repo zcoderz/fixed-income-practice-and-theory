@@ -285,7 +285,7 @@ Covered Interest Parity (CIP) provides the linkage: FX forwards, OIS curves, and
 
 ## 19.3 The Tenor Basis: A Preview
 
-So far we have distinguished between "Risk-Free" (OIS) and "Risky" (LIBOR/SOFR term). But "Risky" is not a monolith. In the post-crisis world, the market began to brutally distinguish between different *tenors* of risk.
+So far we have distinguished between "risk-free-ish" (OIS) and "risky" (LIBOR/SOFR term) curves. But "risky" is not a monolith. In the post-crisis world, the market began to sharply distinguish between different *tenors* of risk.
 
 ### 19.3.1 Why 1-Month and 3-Month Rates Diverge
 
@@ -305,13 +305,13 @@ Tenor basis is usually explained by a mix of:
 
 > **Visual: The Fan Chart**
 >
-> Imagine the yield curve as a fan opening up:
-> * **Base Line (Bottom)**: OIS Curve (Risk Free)
-> * **First Blade**: 1-Month Projection (Slightly higher)
-> * **Second Blade**: 3-Month Projection (Higher still)
-> * **Top Blade**: 6-Month Projection (Highest)
+> In the legacy LIBOR world, imagine the yield curve as a fan opening up:
+> * **Base Line (Bottom):** OIS Curve (risk-free-ish).
+> * **First Blade:** 1-Month LIBOR Projection (slightly higher).
+> * **Second Blade:** 3-Month LIBOR Projection (higher still).
+> * **Top Blade:** 6-Month LIBOR Projection (highest).
 >
-> The "Tenor Basis" is the space between the blades. In times of stress, the fan opens wide (basis widens). In calm times, the fan closes up (basis compresses).
+> The "tenor basis" is the space between the blades. In times of stress, the fan opens wide (basis widens); in calm times, the fan closes up (basis compresses). In the SOFR era, the SOFR-based projection curve sits essentially on the OIS line (both are overnight, secured), and tenor basis collapses to a much smaller artifact tied to specific contractual variants — but cross-currency and legacy-LIBOR books still see a fan in their relevant tenors.
 
 ### 19.3.3 Implications for Multi-Curve Construction
 
