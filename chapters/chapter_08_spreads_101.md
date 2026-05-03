@@ -18,7 +18,7 @@ This chapter builds a taxonomy of spread definitions so that when someone says "
 4. Which compounding and day-count convention?
 5. Option-adjusted or not?
 
-We begin with the conceptual foundation—clean versus dirty prices and yield-to-maturity—then work through each spread definition in order of complexity: G-spread, I-spread, Z-spread, asset swap spread, TED spread, and OAS. We then explore which desks use which spreads, and conclude with a decomposition of credit spreads into actuarial (expected loss), default risk premium, and liquidity components. Finally, we preview the CDS-bond basis as a bridge to the credit chapters.
+We begin with the conceptual foundation—clean versus dirty prices and yield-to-maturity—then work through each spread definition in order of complexity: G-spread, I-spread, Z-spread, asset swap spread, TED spread, and OAS. We then explore which desks use which spreads, and conclude with a decomposition of credit spreads into an actuarial (expected loss) component, a default risk premium, a spread (mark-to-market) risk premium, and a liquidity premium. Finally, we preview the CDS-bond basis as a bridge to the credit chapters.
 
 > **Analogy: The Speedometer Sensors**
 >
@@ -55,7 +55,7 @@ The clean/dirty identity is:
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + AI}$$
 
-where $AI$ is accrued interest. For a bond with annual coupon rate $c$, payment frequency $f$, and accrual fraction $\Delta$ (the fraction of the coupon period elapsed since the last payment), a common linear approximation is:
+where $AI$ is accrued interest. For a bond with annual coupon rate $c$ (decimal; e.g., $c=0.06$ for a 6% coupon), payment frequency $f$, and accrual fraction $\Delta$ (the fraction of the coupon period elapsed since the last payment), a common linear approximation is:
 
 $$AI = \Delta \cdot \frac{c}{f} \cdot 100$$
 
@@ -65,7 +65,7 @@ $$AI = \Delta \cdot \frac{c}{f} \cdot 100$$
 
 **Check (timeline in words):** At settlement you pay $P_{\text{dirty}}(0)$. During the holding period you receive coupon cashflows (if any). If you sell between coupon dates, you receive $P_{\text{dirty}}(h)$, which includes the accrued interest you earned since the last coupon date. That is why PV-based spreads target dirty price: they are solving for the spread that makes the modeled settlement cash match the actual settlement cash.
 
-**Unit check:** $c/f$ is the coupon per period in decimal form; multiplying by 100 (the notional) gives cash per 100 face value. If $c = 0.06$ (6%) and $f = 2$ (semiannual), then each coupon is $3$ per 100. With $\Delta = 0.40$, we have $AI = 0.40 \times 3 = 1.20$.
+**Unit check:** $c/f$ is the coupon per period as a decimal rate; multiplying by 100 (the notional per 100 face) gives cash per 100 face value. If $c = 0.06$ (6%) and $f = 2$ (semiannual), then each coupon is $0.03 \times 100 = 3$ per 100 face. With $\Delta = 0.40$, $AI = 0.40 \times 3 = 1.20$.
 
 ---
 
@@ -73,11 +73,11 @@ $$AI = \Delta \cdot \frac{c}{f} \cdot 100$$
 
 ### 8.2.1 The Yield as a Summary Statistic
 
-The **yield to maturity** ($y$) is the internal rate of return that equates the present value of a bond's promised cash flows to its price. For a bond with maturity $T$ years, coupon rate $c$, and semiannual compounding, one common closed-form price–yield relation (for level yield) is:
+The **yield to maturity** ($y$) is the internal rate of return that equates the present value of a bond's promised cash flows to its price. For a bond with maturity $T$ years, annual coupon rate $c$ (decimal; e.g., $c=0.06$ for 6%), and semiannual compounding, one common closed-form price–yield relation (for a level yield, settling on a coupon date) is:
 
-$$P = \frac{c}{y}\left(1 - \frac{1}{(1 + y/2)^{2T}}\right) + \frac{100}{(1 + y/2)^{2T}}$$
+$$P = \frac{100\\,c}{y}\left(1 - \frac{1}{(1 + y/2)^{2T}}\right) + \frac{100}{(1 + y/2)^{2T}}$$
 
-where $c$ is the annual coupon in dollars per 100 (so a 6% coupon bond has $c = 6$).
+so the coefficient of the annuity factor is the *dollar* coupon $100c$ per 100 face (e.g., $100c = 6$ for a 6% coupon bond, with two coupons of $3$ per year).
 
 **Expand (what is held fixed):** Yield is defined as the single rate (under a stated compounding convention) that discounts the bond’s *contractual* cashflows to the observed price. In that sense, it is an IRR: cashflow timing and amounts are held fixed, and the “one number” $y$ is whatever makes the PV identity true.
 
@@ -121,7 +121,7 @@ Different benchmark choices (and different interpolation/curve-fitting choices) 
 
 ## 8.4 I-spread: Spread to Swap Curve
 
-The **I-spread** (interpolated swap spread or ISDA spread) is the yield spread versus a swap curve:
+The **I-spread** ("interpolated spread", because the benchmark swap rate at the bond's maturity is typically obtained by interpolating between adjacent par swap maturities) is the yield spread versus a swap curve:
 
 $$\boxed{s_I(T) = y_{\text{bond}} - y_{\text{swap}}(T)}$$
 
@@ -199,11 +199,11 @@ So a higher $s_Z$ scales down the PV of *every* cashflow, with a larger effect o
 >
 > Contrast this with Yield Spread, which just looks at one single point.
 
-A discrete-compounding version is:
+A discrete-compounding version (price per 100 face, with $c$ the annual coupon rate in decimal) is:
 
-$$P = \frac{c}{f} \sum_{n=1}^{N} \frac{1}{(1 + (r(0, t_n) + \theta)/f)^n} + \frac{1}{(1 + (r(0, t_N) + \theta)/f)^N}$$
+$$P = \frac{100\\,c}{f} \sum_{n=1}^{N} \frac{1}{(1 + (r(0, t_n) + \theta)/f)^n} + \frac{100}{(1 + (r(0, t_N) + \theta)/f)^N}$$
 
-where $r(0, t_n)$ is the discretely compounded zero rate and $\theta$ is the Z-spread.
+where $r(0, t_n)$ is the discretely compounded zero rate (with the same compounding frequency $f$) and $\theta$ is the Z-spread on the same compounding basis.
 
 ### 8.5.2 Solving for Z-spread
 
@@ -230,7 +230,7 @@ Practitioners sometimes prefer Z-spread to simple yield spreads because it expli
 
 > **Deep Dive: Direction of Bias**
 >
-> On an upward-sloping curve, the fitted **zero (spot) curve** and the **par-yield curve** differ because coupon bonds weight early cash flows more heavily than late cash flows. G-spread is a difference between two **single** yields at one maturity, while Z-spread is a constant shift to the **spot/discount curve** used to PV *each* cash flow. That (plus coupon effects) is why Z-spread and G-spread can diverge on steep curves—sometimes materially.
+> On an upward-sloping curve, the fitted **zero (spot) curve** lies *above* the **par-yield curve** at the same maturity. A par yield is a kind of PV-weighted average of the spot rates that discount each of the bond's cash flows; on an upward curve, the earlier (lower) spots pull this average below the longest (highest) spot. G-spread compares two **single** yields at one maturity, while Z-spread is a constant shift to the **spot/discount curve** used to PV *each* cash flow. That difference (and the coupon effect — high-coupon bonds get more PV from early dates than low-coupon bonds) is why Z-spread and G-spread can diverge on steep curves, sometimes materially.
 >
 > **Sanity check:** If Z-spread and G-spread differ a lot, verify benchmark curve construction, clean vs dirty repricing target, and compounding/day-count conventions. Example D shows a concrete case where the two are noticeably different.
 
@@ -258,9 +258,9 @@ $$\boxed{A(0) = \frac{P_{\text{Libor}} - P}{PV01(0,T)}}$$
 where:
 - $P$ is the bond's dirty price **per 1 of par** (e.g., $98.50$ per 100 corresponds to $P=0.9850$)
 - $P_{\text{Libor}}$ is the PV of the bond's fixed cash flows discounted on the chosen swap/Libor curve (often written using swap discount factors `Z(0, ·)`)
-- $PV01(0,T) = \sum_{m=1}^{M} Z(0, t_m) \cdot \Delta(t_{m-1}, t_m)$ is the fixed-leg annuity (units: years) for the swap payment dates $t_m$
+- $PV01(0,T) = \sum_{m=1}^{M} \Delta_m\\,Z(0, t_m)$ is the fixed-leg annuity (units: years), where $\Delta_m$ is the day-count fraction of period $m$ (so $\Delta_m \approx 1/f$ for a uniform schedule)
 
-**Interpretation:** If $P \lt P_{\text{Libor}}$ (bond is cheap versus the swap curve), then $A(0) \gt 0$. If $P \gt P_{\text{Libor}}$ (bond is rich), $A(0)$ can be negative.
+**Interpretation:** If $P \lt P_{\text{Libor}}$ (bond is cheap versus the swap curve), then $A(0) \gt 0$. If $P \gt P_{\text{Libor}}$ (bond is rich), then $A(0) \lt 0$.
 
 ### 8.6.3 Market Asset Swap
 
@@ -269,19 +269,19 @@ The standard **par** asset swap can present **counterparty risk** at initiation.
 For those who wish to avoid this counterparty risk, the **market asset swap** structure modifies the mechanics:
 
 1. On settlement, the bond is delivered and the bond price $P$ is paid (not par)
-2. The asset swap buyer enters into an interest rate swap paying fixed coupon $c/f$ on face value 1, receiving Libor plus the market asset swap spread $A^*(0)$ on face value $P$
+2. The asset swap buyer enters into an interest rate swap paying fixed coupon $c/f$ on face value 1, receiving floating (e.g., the swap index) plus the market asset swap spread $A^{\ast}(0)$ on face value $P$
 3. At maturity, the floating leg pays $P$ while the fixed leg pays 1; the net payment to the buyer is $P - 1$
 
-In O’Kane’s derivation, the **market asset swap spread** is:
+The **market asset swap spread** that makes this package fair at initiation is:
 
-$$\boxed{A^*(0) = \frac{A(0)}{P}}$$
+$$\boxed{A^{\ast}(0) = \frac{A(0)}{P}}$$
 
-where $A(0)$ is the equivalent par asset swap spread.
+where $A(0)$ is the equivalent par asset swap spread and $P$ is the bond's dirty price per 1 of par.
 
 Implication: discount bonds ($P \lt 1$) have $A^{\ast}(0) \gt A(0)$, and premium bonds ($P \gt 1$) have $A^{\ast}(0) \lt A(0)$.
 
 > **Desk Reality:** Many screens quote “ASW” without specifying par-vs-market structure.
-> **Common break:** Comparing $A(0)$ to $A^*(0)$ across sources without noticing that $P$ enters the definition.
+> **Common break:** Comparing $A(0)$ to $A^{\ast}(0)$ across sources without noticing that $P$ enters the definition.
 > **What to check:** Confirm (i) par vs market ASW, and (ii) whether $P$ is “per 1” or “per 100”.
 
 ### 8.6.4 Asset Swap Mark-to-Market
@@ -293,7 +293,7 @@ $$\boxed{MTM(t) = (A(0) - A(t)) \cdot PV01(t, T)}$$
 where:
 - $A(0)$ is the asset swap spread at initiation
 - $A(t)$ is the current market asset swap spread for the remaining maturity
-- $PV01(t, T)$ is the remaining annuity (present value of 1 bp per period)
+- $PV01(t, T) = \sum_m \Delta_m\\,Z(t, t_m)$ is the remaining fixed-leg annuity (units: years), with $\Delta_m$ the day-count fraction of period $m$ and $Z(t,t_m)$ the swap-curve discount factor
 
 To convert this into a **currency** amount for notional $N$ (and $A$ quoted in bp), use a unit-safe form:
 
@@ -301,12 +301,12 @@ $$
 \boxed{MTM_{USD}(t)\approx (A(0)-A(t))_{\text{bp}}\times 10^{-4}\times PV01(t,T)\times N}
 $$
 
-**Worked number (O’Kane’s example):**
-- Entered at $A(0)=323.9$ bp on $N=USD 10{,}000{,}000$.
-- One year later: $A(t)=284.0$ bp and remaining $PV01(t,T)=3.622$.
+**Worked number (illustrative):**
+- Entered at $A(0)=323.9$ bp on $N=USD\\,10{,}000{,}000$.
+- One year later: $A(t)=284.0$ bp and remaining $PV01(t,T)=3.622$ years.
 - Then:
 
-$$MTM_{USD}\approx (323.9-284.0)\times 10^{-4}\times 3.622\times USD 10{,}000{,}000\approx USD 144{,}518$$
+$$MTM_{USD}\approx (323.9-284.0)\times 10^{-4}\times 3.622\times USD\\,10{,}000{,}000\approx USD\\,144{,}518$$
 
 This is the desk meaning of being “long credit via ASW”: you make money when the ASW spread tightens (all else equal).
 
@@ -314,7 +314,7 @@ This is the desk meaning of being “long credit via ASW”: you make money when
 >
 > If you bought an asset swap at 185 bp and spreads tighten to 150 bp:
 > - Your MTM gain is approximately $(185-150)_{\text{bp}}\times 10^{-4}\times PV01\times N$.
-> - With $PV01=4.0$ and $N=USD 10{,}000{,}000$: gain $\approx 35\times 10^{-4}\times 4.0\times USD 10{,}000{,}000=USD 140{,}000$.
+> - With $PV01=4.0$ years and $N=USD\\,10{,}000{,}000$: gain $\approx 35\times 10^{-4}\times 4.0\times USD\\,10{,}000{,}000=USD\\,140{,}000$.
 >
 > This is the essence of being "long credit" via an asset swap—you profit when spreads tighten.
 
@@ -322,7 +322,7 @@ This is the desk meaning of being “long credit via ASW”: you make money when
 
 If the issuer does **not** default, the asset swap package is designed so that the bond’s fixed coupons are offset by the swap’s fixed leg, leaving (approximately) a floating-rate exposure plus a running spread.
 
-However, this equivalence breaks down if the bond **defaults**. O’Kane analyzes this scenario.
+However, this equivalence breaks down if the bond **defaults**: the bond's coupons stop, but the swap continues unless explicitly unwound, so the net package is no longer a clean "floating + spread" stream.
 
 **If default occurs soon after initiation:**
 - Asset swap buyer receives recovery $R$ from selling the defaulted bond.
@@ -333,11 +333,16 @@ $$\text{Loss} = 1 - (R + V(0)) = 1 - (R + (1 - P)) = P - R$$
 
 Note that the size of the default loss is exactly the same as if the asset swap buyer had simply purchased the bond without any asset swap package.
 
-**If default occurs later:**
+**If default occurs later (general $\tau \gt 0$):**
 
-If the bond defaults later, interest rate effects come into play as discussed earlier in this section.
+The unwind value of the swap is now $V(\tau)$, not the initiation value $V(0)=1-P$. Two effects pull $V(\tau)$ away from $V(0)$:
 
-This asset swap can be compared to buying a par floater if the price of the fixed rate bond is also par, that is, $P=1$. In this case the value of the interest rate swap is zero at the start of the asset swap and should remain close to zero over the life of the asset swap provided there are no large interest rate movements.
+- **Time decay of $V(\tau)$ toward zero at maturity.** Even with rates unchanged, the swap's remaining annuity shrinks as $\tau \to T$, so the spread leg PV shrinks too.
+- **Interest-rate sensitivity.** If rates have moved between $0$ and $\tau$, the floating leg's value moves with the curve, so $V(\tau)$ depends on the realized rate path. This is sometimes called the **default-contingent interest rate risk** of an asset swap: the rate exposure shows up only because the bond defaulted, decoupling the bond's fixed leg from the swap's fixed leg.
+
+The realized loss at default is then $\text{Loss}(\tau) = 1 - (R + V(\tau))$, which can be larger or smaller than the early-default $(P-R)$ depending on rate moves.
+
+This asset swap can be compared to buying a par floater if the price of the fixed-rate bond is also par, i.e. $P=1$. In that case $V(0)=0$, the swap is on-market at initiation, and $V(\tau)$ stays close to zero over the life of the asset swap provided there are no large interest rate movements — so the package behaves like a par floater until default.
 
 > **Desk Reality: Asset Swap vs. FRN Risk Profile**
 >
@@ -403,38 +408,38 @@ OAS is a measure of value **with respect to a particular model**.
 
 ### 8.8.3 DVOAS and P&L Attribution
 
-The sensitivity of model price to a one-basis-point decrease in OAS is often called **DVOAS**. Compute it analogously to DV01: reprice at OAS $\pm 1$ bp and divide the price change by 2:
+The sensitivity of model price to a one-basis-point **decrease** in OAS is often called **DVOAS**. Compute it analogously to DV01 — symmetric central difference in OAS, halved:
 
 $$\text{DVOAS} \approx \frac{P(OAS - 1\text{ bp}) - P(OAS + 1\text{ bp})}{2}$$
 
-A model-based P&L decomposition that makes OAS desk-usable is:
+Under this convention, $\text{DVOAS} \gt 0$ for a long-bond position: when OAS tightens by 1 bp, price rises by approximately DVOAS. A model-based P&L decomposition that makes OAS desk-usable is then:
 
-$$\boxed{dP=(r+OAS)P\\,dt+DV01_x\\,(dx-E[dx])+DVOAS\\,dOAS}$$
+$$\boxed{dP=(r+OAS)\\,P\\,dt-DV01_x\\,(dx-E[dx])-DVOAS\\,dOAS}$$
 
 The three components are:
-- **Carry:** $(r + OAS) \cdot P \cdot dt$ — time value plus OAS
-- **Factor exposure:** $DV01_x \cdot (dx - E[dx])$ — unexpected rate moves
-- **Convergence:** $DVOAS \times dOAS$ — OAS change toward fair value
+- **Carry:** $(r + OAS) \cdot P \cdot dt$ — time value plus OAS earned over the holding period.
+- **Factor exposure:** $-DV01_x \cdot (dx - E[dx])$ — P&L from *unexpected* rate moves; the minus sign reflects the convention that $DV01_x \gt 0$ for a long bond (price falls when rates rise).
+- **Convergence:** $-DVOAS \cdot dOAS$ — P&L from the OAS converging to fair value; if OAS tightens ($dOAS \lt 0$), the term is positive (a gain).
 
-For a hedged and financed position, this is often simplified to:
+For a hedged and financed position (rate exposure neutralized, cost-of-carry covered), this simplifies to:
 
-$$dP=OAS\cdot P\\,dt+DVOAS\cdot dOAS$$
+$$dP = OAS \cdot P\\,dt - DVOAS\cdot dOAS$$
 
 > **Desk Reality: OAS P&L Attribution Example**
 >
 > Suppose you own a callable bond with:
 > - OAS = 20 bp (cheap to model)
-> - DVOAS = USD 450 per 1 bp (per USD 1mm notional)
+> - DVOAS = USD 450 per 1 bp (per USD 1mm notional, positive convention)
 > - Holding period = 3 months (0.25 years)
-> - OAS converges to 10 bp over the period
+> - OAS converges to 10 bp over the period (so $dOAS = -10$ bp)
 >
-> **Carry component:** $20 \text{ bp} \times 0.0001 \times 1{,}000{,}000 \times 0.25 = 500$ USD
+> **Carry component:** $OAS \cdot P\cdot dt = 20\text{ bp}\times 10^{-4}\times USD\\,1{,}000{,}000\times 0.25 = USD\\,500$.
 >
-> **Convergence component:** $450 \times 10 \text{ bp} = 4{,}500$ USD
+> **Convergence component:** $-DVOAS\cdot dOAS = -USD\\,450\times(-10\text{ bp}) = USD\\,4{,}500$.
 >
-> **Total P&L:** $5{,}000$ USD from being long a cheap security
+> **Total P&L:** USD 5,000 from being long a cheap security.
 >
-> In words, for a financed and hedged position, the profit comes from OAS carry plus any profit from convergence to fair value.
+> In words, for a financed and hedged position, the profit comes from OAS carry plus any profit from convergence to fair value (OAS tightening).
 
 ---
 
@@ -492,10 +497,10 @@ $$
 CS01 \approx P\cdot D_s \cdot 10^{-4} \approx 103.30\times 4.5\times 10^{-4} \approx 0.0465
 $$
 
-price points per 100 per 1bp. On $N=USD 100\text{mm}$ face, 1 price point is $USD 1{,}000{,}000$, so $0.0465$ points is about $USD 46{,}500$ per bp (loss on widening; gain on tightening), under the “positive for long credit” convention here. A good implementation cross-check is that a direct repricing at $s\to s+1$ bp gives roughly the same number.
+price points per 100 per 1bp. On a face of $N=USD\\,100{,}000{,}000$ (i.e., 100mm), 1 price point is $USD\\,1{,}000{,}000$, so $0.0465$ points is about $USD\\,46{,}500$ per bp (loss on widening; gain on tightening), under the "positive for long credit" convention here. A direct repricing at $s\to s+1$ bp gives roughly the same number — that is the standard cross-check.
 
-> **Pitfall — CS01 sign and bump direction drift:** Different systems define CS01 with different bump directions (+1bp widening vs -1bp tightening) and different sign conventions.
-> **Why it matters:** You can hedge the *wrong way* if one report treats “CS01 = +\USD X” as profit-on-widening while another treats it as loss-on-widening.
+> **Pitfall — CS01 sign and bump direction drift:** Different systems define CS01 with different bump directions (+1bp widening vs −1bp tightening) and different sign conventions.
+> **Why it matters:** You can hedge the *wrong way* if one report treats "CS01 = +USD X" as profit-on-widening while another treats it as loss-on-widening.
 > **Quick check:** Bump your spread parameter by **+1bp** holding the benchmark fixed. Price should go **down**. Under the convention here, CS01 should be **positive** because it reports the magnitude of that loss.
 
 ### 8.9.3 Why CS01 Is Not Universal
@@ -521,14 +526,14 @@ Market spreads are not pure measures of default probability. A common assumption
 
 A useful conceptual decomposition is:
 
-$$\boxed{\text{Credit spread} = \text{Actuarial spread} + \text{Default risk premium} + \text{Volatility risk premium} + \text{Liquidity risk premium}}$$
+$$\boxed{\text{Credit spread} = \text{Actuarial spread} + \text{Default risk premium} + \text{Spread (mark-to-market) risk premium} + \text{Liquidity risk premium}}$$
 
 The components are:
 
-- **Actuarial spread:** Compensation for expected loss implied by historical default rates and recovery rates—what you'd need to break even on average.
-- **Default risk premium:** Additional spread for uncertainty around default predictions. Historical statistics may not reliably predict future defaults; investors demand compensation for this model risk.
-- **Volatility risk premium:** Compensation for the risk that credit quality changes (spreads widen) even without default, causing mark-to-market losses.
-- **Liquidity risk premium:** Compensation for the risk of not being able to sell when needed due to market illiquidity.
+- **Actuarial spread:** Compensation for expected loss implied by historical default rates and recovery rates — what you'd need to break even on average.
+- **Default risk premium:** Compensation for bearing systematic (non-diversifiable) default risk. Defaults cluster in bad economic states, and historical default frequencies are themselves uncertain estimates, so investors demand a premium beyond the actuarial expected loss.
+- **Spread (mark-to-market) risk premium:** Compensation for the risk that credit spreads widen *without* default occurring, generating mark-to-market losses. Sometimes called the "spread risk premium" or, more loosely, a credit-volatility risk premium.
+- **Liquidity risk premium:** Compensation for the risk of not being able to sell at fair value when needed, due to market illiquidity.
 
 Define:
 
@@ -545,11 +550,11 @@ $$
 > **Visualization: The Risk Layer Cake**
 >
 > Imagine a cake slice showing the components of a corporate spread.
-> *   **Base Layer (Thin)**: **Expected Loss** (Actuarial). "Cost of doing business."
-> *   **Middle Layer (Thick)**: **Uncertainty Premium**. "What if our model is wrong?"
-> *   **Top Layer (Thick)**: **Liquidity Premium**. "Payment for being stuck."
+> *   **Base layer (thin)**: **Expected loss** (actuarial). "Cost of doing business."
+> *   **Middle layer (thick)**: **Default + spread risk premium**. "Compensation for bearing systematic credit risk and for spread-widening MTM losses."
+> *   **Top layer (thick)**: **Liquidity premium**. "Payment for being stuck if you cannot sell at fair value."
 >
-> **Insight**: When you buy a corporate bond, you are eating this whole cake. OAS measures the size of the *entire* cake, not just the default risk. Often, the Risk Premiums are 3x-5x larger than the actual Expected Loss.
+> **Insight**: When you buy a corporate bond, you are eating this whole cake. A spread measure (OAS, Z-spread, etc.) gives the size of the *entire* cake, not just the default risk. In the empirical table below, the *total* spread is roughly 3–5× the expected-loss component, and the non-actuarial part alone is typically 2–4× expected loss.
 
 ### 8.10.2 Empirical Magnitudes
 
@@ -557,14 +562,12 @@ An empirical illustration of coverage ratios by rating category (using CDS sprea
 
 | Rating | 5Y Avg Spread (bp) | Actuarial Spread (bp) | Coverage Ratio | Spread Premium (bp) |
 |--------|-------------------|----------------------|----------------|---------------------|
-| AA | 28 | 9 | 3.12 | 19 |
-| A | 61 | 13 | 4.67 | 48 |
-| BBB | 164 | 30 | 5.54 | 134 |
+| AA | 28 | 9 | 3.11 | 19 |
+| A | 61 | 13 | 4.69 | 48 |
+| BBB | 164 | 30 | 5.47 | 134 |
 | BB | 463 | 145 | 3.19 | 318 |
 
-In this table, coverage ratios range from about $3.1$ to $5.5$, so the market spread exceeds the actuarial spread by several multiples. The spread premium (the non-actuarial component) grows as we move down the rating spectrum in these buckets.
-
-In this table, the **coverage ratio** is on the order of $3$–$6$ for these rating buckets, which is one concrete way to see that traded spreads generally embed more than “expected loss”.
+In this table, coverage ratios range from about $3.1$ (AA, BB) to $5.5$ (BBB), so the market spread is several multiples of the actuarial spread for every rating bucket shown. The non-actuarial spread premium (the part above expected loss) is the larger component throughout — concrete evidence that traded spreads embed substantially more than just expected default loss.
 
 ### 8.10.3 Implication for Spread Analysis
 
@@ -618,11 +621,11 @@ All examples use 100 notional. Spreads are in basis points unless stated otherwi
 **Given:**
 - Corporate bond: 5-year maturity, 6% coupon (semiannual), settlement on coupon date (AI = 0)
 - Clean price: $P_{\text{clean}} = 98.50$
-- Treasury benchmark yields: $y_{\text{gov}}(4y) = 4.20\\%$, $y_{\text{gov}}(6y) = 4.60\\%$
+- Treasury benchmark yields at 4-year and 6-year maturities: $y_{\text{gov}}(4) = 4.20\\%$, $y_{\text{gov}}(6) = 4.60\\%$ (maturity in years)
 
 **Step 1 — Dirty price:** $P_{\text{dirty}} = 98.50 + 0 = 98.50$
 
-**Step 2 — Solve for YTM:** Using the standard semiannual price–yield equation with $c = 6$:
+**Step 2 — Solve for YTM:** Using the standard semiannual price–yield equation with $c = 0.06$ (so $100c = 6$):
 
 $$P(y) = \frac{6}{y}\left(1 - \frac{1}{(1 + y/2)^{10}}\right) + \frac{100}{(1 + y/2)^{10}}$$
 
@@ -630,7 +633,7 @@ Trial: $y = 6.30\\%$ gives $P = 98.74$; $y = 6.40\\%$ gives $P = 98.28$. Interpo
 
 $$y_{\text{bond}} \approx 6.355\\%$$
 
-**Step 3 — Interpolate Treasury yield at 5y:**
+**Step 3 — Interpolate Treasury yield at 5 years:**
 
 $$y_{\text{gov}}(5) = 4.20\\% + \frac{5-4}{6-4}(4.60\\% - 4.20\\%) = 4.40\\%$$
 
@@ -640,7 +643,7 @@ $$s_G = 6.355\\% - 4.40\\% = 1.955\\% = \boxed{195.5 \text{ bp}}$$
 
 ### Example B: I-spread (Same Bond)
 
-**Given:** Same bond with $y_{\text{bond}} = 6.355\\%$; swap yields: $y_{\text{swap}}(4y) = 4.40\\%$, $y_{\text{swap}}(6y) = 4.80\\%$
+**Given:** Same bond with $y_{\text{bond}} = 6.355\\%$; swap yields at 4-year and 6-year maturities: $y_{\text{swap}}(4) = 4.40\\%$, $y_{\text{swap}}(6) = 4.80\\%$
 
 **Interpolate:** $y_{\text{swap}}(5) = 4.40\\% + \frac{1}{2}(0.40\\%) = 4.60\\%$
 
@@ -717,7 +720,7 @@ $$
 
 **P&L / Risk Interpretation**
 - If you are long the bond, a $+1$ bp widening in $z$ (holding the benchmark fixed) reduces price by about **0.028 points per 100**.
-- Scaling: 1 price point = 1% of par. On $10{,}000{,}000$ notional, 1 point $\approx USD 100{,}000$, so $0.028$ points $\approx USD 2{,}800$ per bp (loss on widening; gain on tightening).
+- Scaling: 1 price point = 1% of par. On a $USD\\,10{,}000{,}000$ notional, 1 point $\approx USD\\,100{,}000$, so $0.028$ points $\approx USD\\,2{,}800$ per bp (loss on widening; gain on tightening).
 
 **Sanity Checks**
 - **Sign check:** $z$ up $\Rightarrow$ heavier discounting $\Rightarrow P$ down, so $P(z+1\text{ bp}) \lt P(z)$ and CS01 (as defined here) is positive.
@@ -737,7 +740,7 @@ $$
 
 **Corporate YTM:** Solve $95 = \frac{10}{1+y} + \frac{10}{(1+y)^2} + \frac{110}{(1+y)^3}$. Result: $y_{\text{bond}} \approx 12.085\\%$
 
-**Government 3y par yield:** $y_{\text{gov}}(3) = \frac{1 - 0.8396}{0.9804 + 0.9246 + 0.8396} = 5.84\\%$
+**Government 3-year par yield** (par yield computed from the spot curve, with $\Delta_n = 1$ for annual coupons): $y_{\text{gov}}(3) = \frac{1 - 0.8396}{0.9804 + 0.9246 + 0.8396} = 5.84\\%$
 
 **G-spread:** $s_G = 12.085\\% - 5.84\\% = 6.24\\% = \boxed{624 \text{ bp}}$
 
@@ -751,9 +754,11 @@ $$
 - 5-year annual coupon bond, $c = 6\\%$, dirty price $P = 98.50$
 - Swap discount factors: $Z(0,1) = 0.97$, $Z(0,2) = 0.94$, $Z(0,3) = 0.90$, $Z(0,4) = 0.85$, $Z(0,5) = 0.80$
 
-**PV01 (annuity):** $\sum Z(0,m) \times 1 = 0.97 + 0.94 + 0.90 + 0.85 + 0.80 = 4.46$
+**PV01 (annuity, in years):** With annual coupons ($\Delta_m = 1$ for $m=1,\dots,5$),
 
-**$P_{\text{Libor}}$:** Coupon PV + principal PV = $6 \times 4.46 + 100 \times 0.80 = 26.76 + 80 = 106.76$
+$$PV01 = \sum_{m=1}^{5} \Delta_m\\,Z(0,t_m) = 0.97 + 0.94 + 0.90 + 0.85 + 0.80 = 4.46$$
+
+**$P_{\text{Libor}}$ (PV of bond's fixed cashflows on the swap curve):** coupon PV + principal PV $= 6 \times 4.46 + 100 \times 0.80 = 26.76 + 80 = 106.76$ per 100 face.
 
 **Asset swap spread (per unit notional):**
 
@@ -794,7 +799,7 @@ Model price 100.51 > market 99.50 → need positive OAS.
 
 **Market asset swap spread:**
 
-$$A^*(0) = \frac{A(0)}{P} = \frac{185.2}{0.9850} = \boxed{188.0 \text{ bp}}$$
+$$A^{\ast}(0) = \frac{A(0)}{P} = \frac{185.2}{0.9850} = \boxed{188.0 \text{ bp}}$$
 
 **Interpretation:** The market ASW spread is 2.8 bp higher than the par ASW spread because this is a discount bond. The market structure shifts counterparty exposure from initiation to maturity.
 
@@ -808,7 +813,7 @@ $$A^*(0) = \frac{A(0)}{P} = \frac{185.2}{0.9850} = \boxed{188.0 \text{ bp}}$$
 
 **Mark-to-market:**
 
-$$MTM = (185 - 160) \times 0.0001 \times 3.50 \times 10{,}000{,}000 = \boxed{87{,}500\ \text{USD}}$$
+$$MTM = (185 - 160) \times 0.0001 \times 3.50 \times 10{,}000{,}000 = \boxed{USD\\,87{,}500}$$
 
 **Interpretation:** Spreads tightened by 25 bp; the asset swap buyer (long credit) has a gain of USD 87,500.
 
@@ -820,9 +825,9 @@ As we transition toward the credit chapters (Part IX), it's important to underst
 
 Define:
 
-$$\boxed{\text{CDS basis} = \text{CDS spread} - \text{Bond Libor spread (ASW)}}$$
+$$\boxed{\text{CDS basis} = \text{CDS spread} - \text{Bond spread to swaps}}$$
 
-For a fixed-rate bond, the natural choice for bond spread is the asset swap spread. For floating-rate bonds, it's the par floater spread.
+For a fixed-rate bond, the natural "bond spread to swaps" is the asset swap spread $A(0)$. For a floating-rate bond, it is the discount margin (par floater spread).
 
 The basis can be **positive** (CDS wider than cash) or **negative** (CDS tighter than cash), depending on market conditions.
 
@@ -834,9 +839,9 @@ Several **fundamental factors** relate to contractual differences:
 
 2. **Delivery option:** In a CDS, the protection buyer can choose which obligation to deliver from a basket. This option has value and should widen CDS spreads relative to bonds.
 
-3. **Technical default:** CDS credit events may be broader than bond defaults (depending on restructuring clause). Protection sellers demand higher spreads, widening the basis.
+3. **Credit-event scope (restructuring):** CDS credit events may be broader than a bond's default — depending on the restructuring clause (Full Restructuring, Modified Restructuring, Mod-Mod-R, or No Restructuring), events that do not constitute a hard default for bondholders can still trigger CDS. Protection sellers demand higher spreads to compensate, widening the basis.
 
-4. **Loss on default:** CDS pays $(1-R)$ on face value. A bond purchased at price $P$ loses $(P-R)$. For discount bonds, the loss differs—this affects fair value spreads.
+4. **Loss on default:** A standard CDS pays $(1-R)$ per unit notional. A bond purchased at price $P$ (per unit par) realizes a loss of $(P-R)$ per unit par. For a discount bond ($P \lt 1$), the bond's loss is *smaller* than the CDS payout, while for a premium bond ($P \gt 1$) it is *larger*. A trade combining "long bond + buy CDS protection" therefore has residual default exposure of $(1-P)$ per unit par, which biases the fair-value basis (negative for premium bonds, positive for discount bonds, all else equal).
 
 5. **Premium accrued at default:** CDS pays accrued premium to the protection seller following a credit event. Bond owners lose accrued coupon. This lowers CDS spreads and reduces the basis.
 
@@ -854,7 +859,7 @@ Several **market factors**:
 
 4. **Demand for protection:** It's easier to short credit via CDS than via bonds; negative news drives CDS wider first.
 
-5. **Funding risk:** CDS locks in Libor flat funding; bonds expose you to funding uncertainty.
+5. **Funding risk:** Selling CDS protection is unfunded — there is no balance-sheet financing of a notional. Owning a bond, by contrast, requires financing (typically via repo), which exposes the holder to repo/funding-rate fluctuations.
 
 > **Desk Reality: The Classic Negative Basis Trade**
 >
@@ -911,8 +916,8 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 8. **OAS:** Solves a PV match using an interest-rate model/tree; isolates spread after removing option value; inherently model-dependent
 9. **Asset swap spread:** Converts fixed bond to floating economics; par vs market conventions differ. MTM depends on spread changes × remaining PV01.
 10. **Callable bonds:** Z-spread is not option-adjusted; OAS is the option-adjusted (model-based) measure
-11. **Market spreads embed multiple components:** actuarial expected loss, default risk premium, volatility risk premium, liquidity premium—not just probability of default
-12. **CDS-bond basis:** CDS spread minus bond Libor spread; can be positive or negative; driven by fundamental and market factors
+11. **Market spreads embed multiple components:** actuarial expected loss, default risk premium, spread (mark-to-market) risk premium, and liquidity premium—not just probability of default
+12. **CDS-bond basis:** CDS spread minus bond spread to swaps (asset swap spread for fixed-rate bonds, discount margin for floaters); can be positive or negative; driven by fundamental and market factors
 
 ---
 
@@ -931,7 +936,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | **CS01** | $CS01 := P(s)-P(s+1\text{bp})$ (widening bump; hold benchmark fixed) | Spread sensitivity; report units and sign explicitly |
 | **Spread duration** | $-\frac{1}{P}\frac{\partial P}{\partial s}$ | PV-weighted average time under spreaded discounting |
 | **Coverage ratio** | Credit spread / Actuarial spread | How much spreads exceed pure default compensation |
-| **CDS-bond basis** | CDS spread − Bond Libor spread | Fundamental RV measure for credit trading |
+| **CDS-bond basis** | CDS spread − Bond spread to swaps (ASW or discount margin) | Fundamental RV measure for credit trading |
 
 ---
 
@@ -980,20 +985,20 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 | 14 | Why isn't CS01 universal? | Different spread definitions (G, I, Z, OAS) have different sensitivities |
 | 15 | Asset swap spread conceptually? | Spread such that discounting at swap + spread gives bond price |
 | 16 | Par asset swap formula? | $A = (P_{\text{Libor}} - P) / PV01$ |
-| 17 | What does PV01 represent (here)? | Annuity (in years): $PV01=\\sum Z\Delta$. Dollars per bp $\approx 10^{-4}N\cdot PV01$ |
+| 17 | What does PV01 represent (here)? | Annuity (in years): $PV01=\sum_m \Delta_m\\,Z(0,t_m)$. Dollars per bp $\approx 10^{-4}\\,N\cdot PV01$ |
 | 18 | Key asset swap ambiguity? | Par vs market structure (floating notional differs) |
 | 19 | If spread widens, what happens to price? | Price decreases (all else equal) |
 | 20 | Repricing test for Z-spread? | Plug $s_Z$ back in; verify PV = $P_{\text{dirty}}$ |
 | 21 | Why is OAS model-dependent? | Option value depends on interest rate dynamics/volatility used |
-| 22 | List three components of credit spread | Actuarial spread, default risk premium, liquidity risk premium |
+| 22 | List the four components of credit spread | Actuarial spread, default risk premium, spread (mark-to-market) risk premium, liquidity risk premium |
 | 23 | What is actuarial spread? | Compensation for expected loss from historical default/recovery |
 | 24 | What is coverage ratio? | Credit spread / actuarial spread |
 | 25 | What question to ask when someone says "spread widened"? | "Which spread definition and which benchmark curve?" |
 | 26 | What is a TED spread? | Spread such that discounting cash flows at futures-implied rates minus spread matches dirty price |
 | 27 | Key caveat for TED spreads? | Futures rates differ from forward rates (convexity/futures-forward adjustment), so the benchmark is not a pure no-arbitrage discount curve |
-| 28 | Market asset swap spread formula? | $A^*(0) = A(0)/P$ |
+| 28 | Market asset swap spread formula? | $A^{\ast}(0) = A(0)/P$ |
 | 29 | Asset swap MTM formula (unit-safe)? | `MTM_USD(t) ≈ (A0 - At)_bp × 1e-4 × PV01(t,T) × N` |
-| 30 | What is CDS-bond basis? | CDS spread minus bond Libor spread (ASW) |
+| 30 | What is CDS-bond basis? | CDS spread minus the bond's spread to swaps (asset swap spread for a fixed-rate bond; discount margin for a floater) |
 | 31 | When can yield spreads be misleading? | On steep curves and/or high-coupon bonds; term-structure-consistent measures (e.g., Z-spread) can differ materially |
 | 32 | When do you need OAS rather than Z-spread? | When the bond has embedded options; OAS uses a model/tree/Monte Carlo to separate option value from spread |
 | 33 | What is "default contingent interest rate risk"? | Interest rate exposure that manifests only if default occurs (in asset swaps) |
@@ -1067,7 +1072,7 @@ Spreads are the universal language of fixed income credit, but the word "spread"
 
 **14.** MTM = (175 - 150) × 0.0001 × 4.2 × USD 5,000,000 = 25 × 0.0001 × 4.2 × USD 5mm = USD 52,500 gain
 
-**17.** $CS01 \approx P\cdot D_s\cdot 10^{-4} = 98.00\times 2.856\times 10^{-4} \approx 0.0280$ points per 100 per bp. On $10mm$ notional: $0.0280$ points $\approx 0.0280\\%$ of par $\approx USD 2{,}800$ per bp.
+**17.** $CS01 \approx P\cdot D_s\cdot 10^{-4} = 98.00\times 2.856\times 10^{-4} \approx 0.0280$ points per 100 per bp. On a USD 10,000,000 notional, $0.0280$ points $\approx 0.0280\\%$ of par $\approx$ USD 2,800 per bp (loss on widening; gain on tightening).
 
 ---
 
