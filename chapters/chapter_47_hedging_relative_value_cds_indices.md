@@ -115,7 +115,7 @@ When hedging index products (particularly options or tranches) with constituents
 
 A common implementation applies a spread multiplier $\alpha(T)$:
 
-$$S_m^*(t,T) = \alpha(T) \cdot S_m(t,T)$$
+$$S_m^{\ast}(t,T) = \alpha(T) \cdot S_m(t,T)$$
 
 and solves for $\alpha(T)$ so that the adjusted intrinsic equals the market index upfront. The adjustment choice is ultimately a modeling decision (stability vs speed vs “reasonableness”) rather than a unique arbitrage-free implication.
 
@@ -257,13 +257,11 @@ $$N_I = -\frac{\beta_{m,I}\\,CS01_m}{CS01_I(1)}$$
 
 > **Deep Dive: The Regression Hedge**
 >
-> How do you find $\beta$? One practical approach is an OLS regression on spread changes:
->
-> $$\Delta S_{\text{name}} = \alpha + \beta \Delta S_{\text{index}} + \epsilon$$
+> How do you find $\beta$? One practical approach is an OLS regression on spread changes: $\Delta S_{\text{name}} = \alpha + \beta\\,\Delta S_{\text{index}} + \epsilon$.
 >
 > *   **$\beta$ (Systematic)**: What you hedge.
 > *   **$\epsilon$ (Idiosyncratic)**: What you keep.
-> *   **$R^2$**: How much of the name's spread variance is explained by the index move. Low $R^2$ means large residual tracking error—an index hedge may still reduce macro exposure, but it will not make the position P&L-stable.
+> *   **$R^2$**: How much of the name's spread variance is explained by the index move. Low $R^2$ means large residual tracking error — an index hedge may still reduce macro exposure, but it will not make the position P&L-stable.
 
 ### 47.2.4 Estimating Spread Beta in Practice
 
@@ -274,7 +272,7 @@ While the previous section introduced beta-adjusted hedging conceptually, this s
 A minimum-variance hedge chooses a hedge ratio to minimize the variance of the *hedged* change. In a two-variable setting, if you write the hedged change as
 $$v = x + hF,$$
 then the hedge ratio that minimizes $\mathrm{Var}(v)$ is:
-$$\boxed{h^* = -\frac{\mathrm{Cov}(x, F)}{\mathrm{Var}(F)}}$$
+$$\boxed{h^{\ast} = -\frac{\mathrm{Cov}(x, F)}{\mathrm{Var}(F)}}$$
 
 If instead you write $v = x - hF$, the optimal $h$ is $+\mathrm{Cov}(x,F)/\mathrm{Var}(F)$. These are the same result with different sign conventions.
 
@@ -439,9 +437,9 @@ $$CS01_{\text{tot}} = CS01_A + N_B \cdot CS01_B(1)$$
 
 **Hedge condition** ($CS01_{\text{tot}} = 0$):
 
-$$\boxed{N_B^* = -\frac{CS01_A}{CS01_B(1)}}$$
+$$\boxed{N_B^{\ast} = -\frac{CS01_A}{CS01_B(1)}}$$
 
-**Sign sanity check:** If A is long protection (negative CS01) and B is short protection (positive CS01 per notional), then $N_B^* \gt 0$—you sell protection on the hedge instrument.
+**Sign sanity check:** If A is long protection (negative CS01) and B is short protection (positive CS01 per notional), then $N_B^{\ast} \gt 0$—you sell protection on the hedge instrument.
 
 ### 47.3.2 Multi-Factor Hedge (Two Risk Buckets)
 
@@ -523,10 +521,10 @@ A risk-first decomposition of index book P&L:
 $$\Delta V \approx -CS01_I \cdot \Delta S_I - \sum_m CS01_m \cdot \Delta S_m + \sum_{\text{defaults}} \Delta V_{\text{event}} + \Delta V_{\text{basis}} + \text{higher-order terms}$$
 
 where:
-- First term: systematic spread P&L (index level move)
-- Second term: idiosyncratic P&L (constituent-specific moves)
-- Third term: event P&L (defaults, using VOD-style decomposition)
-- Fourth term: basis P&L (quoted vs intrinsic moves)
+- First term: P&L on the **index leg** of the book from a move in the quoted index spread $S_I$
+- Second term: P&L on the **single-name leg** from constituent spread moves (this captures the *full* constituent P&L; it can be further split into systematic ($\beta_m \Delta S_I$) and idiosyncratic ($\Delta\epsilon_m$) pieces if you have a beta model)
+- Third term: event P&L from defaults (using VOD-style decomposition)
+- Fourth term: basis P&L (quoted-vs-intrinsic moves not already captured by $\Delta S_I$ alone)
 - Higher-order: convexity, curve twists, cross-gamma
 
 ---
@@ -771,11 +769,11 @@ After $k$ defaults on an index with original $M$ constituents:
 
 O'Kane provides detailed mechanics for calculating Value on Default in the context of indices and tranches. While indices are simpler than tranches, understanding the full framework illuminates risk management.
 
-**For indices**, VOD is relatively straightforward: a default in an equal-weight index with $M$ names and notional $N$ produces:
+**For indices**, VOD is relatively straightforward: a default of name $m$ in an equal-weight index with $M$ names and trade notional $N$ produces a per-share VOD parallel to the single-name formula. Writing the per-name notional as $N_m = N/M$, and assuming a near-par share (where the share's MtM $\approx 0$ before default):
 
-$$\text{VOD}_{\text{index}} = \frac{N}{M}(1 - R) - \text{PV of cancelled premium}$$
+$$\text{VOD}_{\text{index, share, buy protection}} \approx N_m\bigl[(1 - R_m) - \Delta_0\\,C\bigr]$$
 
-where $R$ is the recovery rate and the premium cancellation affects only the defaulted name's share.
+where the first term is the protection payment received by the index protection buyer for the defaulted name's share, and the second term is the accrued premium on that share for the period since the last coupon ($\Delta_0$ year fraction at contractual coupon $C$). The seller's VOD is the negative of the buyer's. After the share's default, the outstanding index notional drops to $N(M-1)/M$ and future premium scales with the reduced notional.
 
 **For tranches**, “VOD” is more complex because a default can (i) change the portfolio loss distribution, (ii) trigger an immediate loss payment for equity/mezz tranches, and (iii) reduce tranche notional and therefore future premium. Computing tranche VOD requires revaluing the tranche after updating portfolio composition and tranche attachment/detachment mechanics; that is out of scope here (see the tranche chapters and follow-on Chapter 48).
 
@@ -804,9 +802,10 @@ A comprehensive index risk report should include:
 |--------------|------------|----------------|
 | Index CS01 | $V(S_I-1\text{bp}) - V(S_I)$ | Day-to-day spread risk |
 | Constituent CS01s | Per-name sensitivities | Concentration monitoring |
-| Aggregate VOD | Sum of $(1-R_m)/M$ exposures | Event risk if any name defaults |
-| Worst-case VOD | Max single-name event impact | Tail risk |
-| Recovery sensitivity | $\partial \text{Payout}/\partial FP = -N/100$ | Auction outcome risk |
+| Single-name VOD (one defaulted name $m$) | $N_m(1-R_m)$ with per-name notional $N_m = N/M$ in equal-weight | Event risk if name $m$ defaults |
+| All-default stress VOD | $\sum_m N_m(1-R_m) = N(1-\bar R)$, with $\bar R = (1/M)\sum_m R_m$ | Worst-case if every name defaults at the assumed recoveries |
+| Worst-case single-name VOD | $\max_m N_m(1-R_m)$ | Tail risk from the single most exposed name |
+| Recovery sensitivity (per defaulted name) | $\partial \text{Payout}_m/\partial FP_m = -N_m/100$ (FP in per-100 quote) | Auction outcome risk |
 
 ---
 
@@ -901,15 +900,22 @@ $$CS01_I \approx V(S-1) - V(S) = 54{,}300 - 50{,}000 = 4{,}300\ \text{ USD  /bp}
 - Example settlement cash on the index hedge (seller receives upfront on settlement): $USD 0.0220 \times 11.53\text{mm} \approx USD 253{,}660$ (accrual is zero here because we trade on a coupon date).
 
 **Step-by-step**
-1. **Align definitions:** confirm both CS01s use the same bump size (1 bp), bump object (par spreads with hazard recalibration), and units (USD /bp).
-2. **Compute CS01 hedge ratio:**
-   $$N_I = -\frac{CS01_{\text{Ford}}}{CS01_I(1)} = -\frac{-4{,}900}{425} = 11.53\ \text{mm}$$
-3. **Add beta (systematic scaling):** if $\Delta S_{\text{Ford}} \approx \beta\\,\Delta S_I$ with $\beta=1.5$, then size to hedge *systematic* Ford moves:
-   $$N_I^{(\beta)} = -\frac{\beta\\,CS01_{\text{Ford}}}{CS01_I(1)} = -\frac{1.5 \times (-4{,}900)}{425} = 17.29\ \text{mm}$$
-4. **Validate with scenarios (first-order):**
-   - Parallel +10 bp (systematic): CS01-matched hedge should be ~0 P&L by construction.
-   - Name-specific gap: Ford +50 bp while index +10 bp leaves residual P&L (dispersion).
-   - Basis move: if index vs intrinsic basis moves, an index-vs-constituent hedge can leak even when CS01 matched.
+
+**Step 1 — Align definitions:** confirm both CS01s use the same bump size (1 bp), bump object (par spreads with hazard recalibration), and units (USD /bp).
+
+**Step 2 — Compute CS01 hedge ratio:**
+
+$$N_I = -\frac{CS01_{\text{Ford}}}{CS01_I(1)} = -\frac{-4{,}900}{425} = 11.53\ \text{mm}$$
+
+**Step 3 — Add beta (systematic scaling):** if $\Delta S_{\text{Ford}} \approx \beta\\,\Delta S_I$ with $\beta=1.5$, then size to hedge *systematic* Ford moves:
+
+$$N_I^{(\beta)} = -\frac{\beta\\,CS01_{\text{Ford}}}{CS01_I(1)} = -\frac{1.5 \times (-4{,}900)}{425} = 17.29\ \text{mm}$$
+
+**Step 4 — Validate with scenarios (first-order):**
+
+- Parallel +10 bp (systematic): CS01-matched hedge should be ~0 P&L by construction.
+- Name-specific gap: Ford +50 bp while index +10 bp leaves residual P&L (dispersion).
+- Basis move: if index vs intrinsic basis moves, an index-vs-constituent hedge can leak even when CS01 matched.
 
 **Cashflows (table)**
 | Date | Cashflow (seller of index protection) | Explanation |
@@ -1130,12 +1136,12 @@ Per-name notional `N_m = USD 10mm`.
 **Old series:** Quoted spread 95 bp, coupon 100 bp, RPV01 ≈ 4.5 years.
 **New series:** Quoted spread 100 bp (longer maturity + curve slope), same coupon.
 
-**Upfront PV in dollars (conceptual):** $U_{\mathrm{USD}} = (S - C) \times RPV01 \times N$
+**Upfront from the protection-buyer's perspective** (positive = paid by buyer): $U_{\mathrm{USD}} = (S - C) \times RPV01 \times N$.
 
-- Old: $(0.0095 - 0.0100) \times 4.5 \times USD 100\text{mm} = -USD 225{,}000$
-- New: $(0.0100 - 0.0100) \times 4.5 \times USD 100\text{mm} = USD 0$
+- Old: $(0.0095 - 0.0100) \times 4.5 \times USD 100\text{mm} = -USD 225{,}000$ (with $S \lt C$, the running coupon over-pays vs the par spread, so a *new* buyer would *receive* USD 225,000 at inception).
+- New: $(0.0100 - 0.0100) \times 4.5 \times USD 100\text{mm} = USD 0$.
 
-**If you are long protection and roll by closing the old and entering the new**, the net cash exchanged is approximately the upfront difference: about USD 225,000 in this example.
+**If you are long protection and roll by closing the old and entering the new**: the existing long-protection position is marked at $-USD 225{,}000$ to you (you are "underwater" by 22.5 bp because the contract pays a coupon higher than fair). To close the old (pay $\sim$USD 225,000 to be released) and open the new (no upfront), you would **pay** approximately USD 225,000 net to roll.
 
 ---
 
@@ -1161,7 +1167,7 @@ $$\text{Cost} \approx \text{Half-spread} \times |CS01|$$
 
 ### Example 13: Partial Replication with Residual Quantification
 
-**Goal:** Hedge a USD 50mm index position using only the 5 largest-CS01 constituents.
+**Goal:** Hedge a USD 50mm CDX.IG position ($M=125$, equal-weight per-name index notional $50/125 = 0.4$ mm) using only the 5 largest-CS01 constituents.
 
 **Index CS01:** +22,500 USD /bp (short protection).
 
@@ -1176,7 +1182,7 @@ $$\text{Cost} \approx \text{Half-spread} \times |CS01|$$
 | 5 | E | 480 |
 | **Sum** | — | 2,650 |
 
-**Hedge notional (equal-weight, sized to match):**
+**Hedge notional (equal-weight, sized to match aggregate CS01):**
 
 Per-name notional: solve for $x$ such that $-2{,}650 \times x = -22{,}500$, so $x = 8.49$ mm per name.
 
@@ -1184,11 +1190,19 @@ Per-name notional: solve for $x$ such that $-2{,}650 \times x = -22{,}500$, so $
 
 **Hedged CS01:** $-2{,}650 \times 8.49 = -22{,}500$ USD /bp → Net CS01 ≈ 0.
 
-**But:** 120 names remain unhedged. If these have average CS01 of 180 USD /bp per USD 1mm:
-- Missing CS01 per name: $180 \times 0.4$ mm (index weight) = 72 USD /bp
-- 120 names × 72 USD /bp = 8,640 USD /bp unhedged idiosyncratic exposure
+**Concentration check:** the hedge oversizes each of the 5 names from their natural index weight of 0.4 mm to 8.49 mm — about $21\times$ overweight relative to the share each name has in the index.
 
-**Partial replication trades off execution efficiency against idiosyncratic completeness.**
+**Decomposition of the index CS01 into hedged-name vs unhedged-name contributions** (at natural index weight):
+
+- Top 5 names at index weight: $2{,}650 \times 0.4 = 1{,}060$ USD /bp.
+- Remaining 120 names: $22{,}500 - 1{,}060 = 21{,}440$ USD /bp.
+
+**Dispersion exposure:** the hedge offsets the index for parallel moves of all 125 names, but is highly sensitive to dispersion *within* the index. Two limiting 1 bp scenarios:
+
+- Only the top 5 widen 1 bp (other 120 unchanged): index loses $1{,}060$ USD on those names; hedge gains $22{,}500$ USD; net P&L $\approx +21{,}440$ USD (over-hedged).
+- Only the bottom 120 widen 1 bp (top 5 unchanged): index loses $21{,}440$ USD on those names; hedge unchanged; net P&L $\approx -21{,}440$ USD (under-hedged).
+
+**Partial replication trades off execution efficiency (5 trades vs 125) against dispersion risk in non-parallel scenarios.**
 
 ---
 
@@ -1214,18 +1228,18 @@ HEDGE SUMMARY
 Hedge Type:          Constituent Replication (Top 20)
 Hedge Notional:      USD 48,500,000 (aggregate)
 Hedge CS01:          -USD 21,800 /bp
-Net CS01:            +USD 700 /bp  (0.7% unhedged)
+Net CS01:            +USD 700 /bp  (≈3.1% of index CS01 unhedged)
 
 SCENARIO VALIDATION
 ───────────────────────────────────────────────────────────────
-Scenario                    Index P&L    Hedge P&L    Net P&L
+Scenario                          Index P&L     Hedge P&L     Net P&L
 ───────────────────────────────────────────────────────────────
-Parallel +10bp              -USD 225,000    +$218,000    -$7,000
-Parallel -10bp              +USD 225,000    -$218,000    +$7,000
-Dispersion (avg=0)          USD 0           -$45,000     -$45,000
-Single-name +50bp           -USD 8,000      +$4,500      -$3,500
-Default (FP=40)             -USD 5,980,000  +$5,500,000  -$480,000
-Basis +5bp                  -USD 112,500    $0           -$112,500
+Parallel +10bp                    -$225,000     +$218,000     -$7,000
+Parallel -10bp                    +$225,000     -$218,000     +$7,000
+Dispersion (avg=0)                $0            -$45,000      -$45,000
+Single-name +50bp (unhedged)      -$9,000       $0            -$9,000
+Default (2 unhedged, FP=40)       -$480,000     $0            -$480,000
+Basis +5bp                        -$112,500     $0            -$112,500
 
 RISK LIMITS CHECK
 ───────────────────────────────────────────────────────────────
@@ -1236,9 +1250,10 @@ Event exposure:      $480,000  [WARN]  Limit: $500,000
 
 NOTES
 ───────────────────────────────────────────────────────────────
-- 100 constituents unhedged (5% of index weight)
+- 105 constituents unhedged (≈84% of index name count)
 - Basis exposure unhedged; consider if basis view intended
-- Default scenario assumes average FP=40; actual may vary
+- Default scenario shows 2 unhedged-name defaults at FP=40 (per-name N = $0.4mm,
+  loss-given-default ≈ $240,000 each); a hedged-name default would over-receive
 ═══════════════════════════════════════════════════════════════
 ```
 
@@ -1261,21 +1276,27 @@ NOTES
 | 9 | -3 | -2 |
 | 10 | +4 | +2 |
 
-**Calculations:**
+**Calculations** (sample formulas, $n=10$, dividing by $n-1=9$).
 
-Mean $\Delta S_{\text{Ford}}$ = 1.1 bp, Mean $\Delta S_{\text{CDX.IG}}$ = 0.8 bp
+With $x_i = \Delta S_{\text{Ford}}(i)$ and $y_i = \Delta S_{\text{CDX.IG}}(i)$:
 
-$\text{Cov}(\Delta S_{\text{Ford}}, \Delta S_{\text{CDX.IG}}) = \frac{1}{n-1}\sum (x_i - \bar{x})(y_i - \bar{y}) = 4.89$
+Means: $\bar x = 11/10 = 1.1$ bp, $\bar y = 8/10 = 0.8$ bp.
 
-$\text{Var}(\Delta S_{\text{CDX.IG}}) = \frac{1}{n-1}\sum (y_i - \bar{y})^2 = 3.96$
+Sums of squared/cross deviations from the means:
 
-$$\beta = \frac{4.89}{3.96} = 1.23$$
+$\sum (x_i - \bar x)^2 = 108.9$, $\quad \sum (y_i - \bar y)^2 = 37.6$, $\quad \sum (x_i - \bar x)(y_i - \bar y) = 63.2$
 
-$\text{Var}(\Delta S_{\text{Ford}}) = 11.21$
+$\text{Cov}(\Delta S_{\text{Ford}}, \Delta S_{\text{CDX.IG}}) = 63.2/9 \approx 7.02$
 
-$$R^2 = \frac{\beta^2 \cdot \text{Var}(Y)}{\text{Var}(X)} = \frac{1.23^2 \times 3.96}{11.21} = 0.53$$
+$\text{Var}(\Delta S_{\text{CDX.IG}}) = 37.6/9 \approx 4.18$
 
-**Interpretation:** Ford has beta of 1.23 to CDX.IG, with $R^2$ = 0.53. The index explains about half of Ford's spread variance in this sample; the remaining half is residual idiosyncratic risk. Whether that is “good enough” depends on your hedge objective.
+$\text{Var}(\Delta S_{\text{Ford}}) = 108.9/9 \approx 12.10$
+
+$$\beta = \frac{\text{Cov}(\Delta S_m,\Delta S_I)}{\text{Var}(\Delta S_I)} = \frac{7.02}{4.18} \approx 1.68$$
+
+$$R^2 = \frac{\beta^2 \cdot \text{Var}(\Delta S_I)}{\text{Var}(\Delta S_m)} = \frac{1.68^2 \times 4.18}{12.10} \approx 0.97$$
+
+**Interpretation:** This toy sample is unusually clean — Ford essentially tracks $\sim 1.7\times$ CDX.IG with very little residual noise, giving $R^2 \approx 0.97$. Real single-name vs index histories typically show much lower $R^2$ (often 0.3–0.7 for an IG name), reflecting larger idiosyncratic residual; the example is meant to illustrate the *formula and workflow*, not a representative magnitude.
 
 ---
 
@@ -1333,7 +1354,7 @@ Before relying on any hedge:
 
 3. **Notional scaling**: CS01 and event measures should scale linearly (first-order)
 
-4. **Payout bounds**: For $FP \in [0, 100]$, payout should be in $[0, N]$; sensitivity is $-N/100$ USD /point
+4. **Payout bounds**: For $FP \in [0, 100]$ and per-protection-contract notional $N_m$ (single-name CDS or per-name index share), payout should be in $[0, N_m]$; sensitivity is $-N_m/100$ USD /point
 
 5. **Basis attribution**: If basis is hedged, verify basis P&L near-zero; if unhedged, verify it matches basis move × basis CS01
 
@@ -1379,7 +1400,7 @@ $$\Delta V \approx -CS01 \cdot \Delta S \qquad (\Delta S\ \text{in bp})$$
 $$N_{\text{hedge}} = -\frac{CS01_{\text{position}}}{CS01_{\text{hedge}}(1)}$$
 
 **Minimum-variance hedge ratio (cross-hedge):**
-$$h^* = -\frac{\mathrm{Cov}(x,F)}{\mathrm{Var}(F)} \qquad \text{(sign depends on how you write the hedge)}$$
+$$h^{\ast} = -\frac{\mathrm{Cov}(x,F)}{\mathrm{Var}(F)} \qquad \text{(sign depends on how you write the hedge)}$$
 
 **Spread beta:**
 $$\beta_{m,I} = \frac{\text{Cov}(\Delta S_m, \Delta S_I)}{\text{Var}(\Delta S_I)}$$
@@ -1391,10 +1412,14 @@ $$\text{HE} = 1 - \frac{\text{Var}(\text{hedged P\\&L})}{\text{Var}(\text{unhedg
 $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 **Default cash settlement payout:**
-- Single-name (or per-default name share) notional $N_{\text{name}}$:
-  $$\text{Payout} = N_{\text{name}} \left(1 - \frac{FP}{100}\right)$$
-- Index trade notional $N_I$ with $M$ names (equal-weight per-name notional $N_I/M$):
-  $$\text{Payout per default} = \frac{N_I}{M}\left(1 - \frac{FP}{100}\right)$$
+
+For a single-name (or per-default name share) with notional $N_{\text{name}}$:
+
+$$\text{Payout} = N_{\text{name}} \left(1 - \frac{FP}{100}\right)$$
+
+For an index trade notional $N_I$ with $M$ names (equal-weight per-name notional $N_I/M$):
+
+$$\text{Payout per default} = \frac{N_I}{M}\left(1 - \frac{FP}{100}\right)$$
 
 **Systemic vs idiosyncratic (bump design):**
 - Systemic delta: all spreads move together
@@ -1439,7 +1464,7 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 | 1 | What is the index basis? | $S_I - S_I^{\text{intrinsic}}$; drivers include restructuring differences, liquidity, lead/lag |
 | 2 | Define Credit DV01/CS01 | PV change for **1 bp tightening**: $V(S-1\text{bp}) - V(S)$ (≈ $-[V(S+1\text{bp}) - V(S)]$) |
 | 3 | Why do some CS01 definitions include a minus sign? | To report short-protection exposure as positive and align with $CS01\approx -\partial V/\partial S$ |
-| 4 | What is RPV01 conceptually? | Risky annuity: PV of receiving 1 unit spread until default/maturity |
+| 4 | What is RPV01 conceptually? | Risky annuity: PV of paying/receiving 1 bp/year on the premium leg until default or maturity (includes accrued at default) |
 | 5 | What happens to index premium after default? | Reduced by $1/M$ (per-name fraction) |
 | 6 | Are constituents replaced after default? | No; removed without replacement for series life |
 | 7 | Why can quoted differ from intrinsic? | No-Re vs Mod-Re, liquidity differences, index leads in stress |
@@ -1453,7 +1478,7 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 | 15 | How do you choose between systemic and idiosyncratic hedges? | Real moves blend both; a blended hedge is common and should be validated with scenarios |
 | 16 | What is series/roll risk? | Hedging across series with different maturity/membership/liquidity |
 | 17 | How is cash settlement payout determined? | Face minus recovery (auction final price) |
-| 18 | Sensitivity of payout to final price? | $-N/100$ dollars per price point |
+| 18 | Sensitivity of payout to final price? | $-N_m/100$ dollars per price point, where $N_m$ is the per-defaulted-name notional |
 | 19 | Why doesn't index hedge remove idiosyncratic? | Constituents move differently; index captures average only |
 | 20 | Best scenario to reveal dispersion risk? | High-dispersion moves with unchanged average |
 | 21 | What is spread beta? | Slope from regressing name spread changes on index spread changes |
@@ -1508,7 +1533,7 @@ $$\text{Basis} = S_I - S_I^{\text{intrinsic}}$$
 
 ### Solution Sketches (Selected)
 
-**1.** Central-difference slope $\approx (98{,}700-101{,}200)/2=-1{,}250$ USD /bp, so $CS01\approx -\partial V/\partial S \approx 1{,}250$ USD /bp.
+**1.** Using this chapter's CS01 definition, $CS01 = V(S-1\text{bp}) - V(S) = 101{,}200 - 100{,}000 = 1{,}200$ USD /bp. The central-difference estimate $-\partial V/\partial S \approx -(98{,}700 - 101{,}200)/2 = 1{,}250$ USD /bp confirms the order of magnitude; the small mismatch reflects convexity in $V(S)$.
 
 **6.** Intrinsic spread $\approx \frac{80(4.0)+120(3.5)+200(2.5)}{4.0+3.5+2.5}=\frac{1{,}240}{10}=124$ bp.
 
