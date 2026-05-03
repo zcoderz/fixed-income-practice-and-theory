@@ -541,15 +541,18 @@ Interpretation: tranche RPV01 behaves like CDS RPV01. For a very safe tranche, e
 
 **Units and desk usage:**
 
-- The formula above returns **years per USD 1 tranche face**.
-- To convert to dollars on a position, multiply by tranche face notional $N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}}$.
-- Traders often quote "RPV01" in **dollars per 1 bp**:
-  $$\mathrm{RPV01}_{\text{bp}} = 10^{-4} \times N_{\text{tr}}^{\text{face}} \times \mathrm{RPV01}$$
-- **Bump definition (spread risk):**
-  - Bump object: the **running spread** $s$ on the premium leg, holding the ETL/$Q$ term structure and discount factors fixed.
-  - Bump size: $1\text{ bp} = 10^{-4}$ (in decimal per year).
-  - Units: currency per 1 bp, for the stated tranche face notional.
-  - Sign (protection buyer): $\Delta PV \approx -\mathrm{RPV01}_{\text{bp}}\cdot \Delta s_{\text{bp}}$.
+The formula above returns **years per USD 1 tranche face**. To convert to dollars on a position, multiply by tranche face notional $N_{\text{tr}}^{\text{face}} = W \cdot N_{\text{port}}$.
+
+Traders often quote "RPV01" in **dollars per 1 bp**:
+
+$$\mathrm{RPV01}_{\text{bp}} = 10^{-4} \times N_{\text{tr}}^{\text{face}} \times \mathrm{RPV01}$$
+
+**Bump definition (spread risk):**
+
+- **Bump object:** the running spread $s$ on the premium leg, holding the ETL/$Q$ term structure and discount factors fixed.
+- **Bump size:** $1\\,\text{bp} = 10^{-4}$ (in decimal per year).
+- **Units:** currency per 1 bp, for the stated tranche face notional.
+- **Sign (protection buyer):** $\Delta PV \approx -\mathrm{RPV01}_{\text{bp}}\cdot \Delta s_{\text{bp}}$.
 
 **Comparison to single-name CDS RPV01:** The tranche RPV01 has the same mathematical structure as the CDS RPV01 in Chapter 41, but with the issuer survival curve replaced by the tranche survival curve. This reinforces the CDS-tranche analogy: once you have the survival curve, pricing follows the same formulas.
 
