@@ -16,7 +16,7 @@ For small moves, the linear duration approximation often dominates. For larger s
 - Explain why DV01 hedges break for large moves and for negative-convexity instruments.
 - Compare a duration-matched barbell and bullet and interpret the trade as “carry vs convexity”.
 
-Prerequisites: [Chapter 11 — DV01/PV01](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration](chapters/chapter_12_duration_macaulay_modified_dv01.md) (optional: [Chapter 5 — Bonds](chapters/chapter_05_bonds.md)).  
+Prerequisites: [Chapter 11 — DV01/PV01](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration](chapters/chapter_12_duration_macaulay_modified_dv01.md) (optional: [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md)).  
 Follow-on: [Chapter 14 — Key-Rate DV01](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 15 — DV01 Hedging](chapters/chapter_15_dv01_hedging.md).
 
 This chapter extends the risk framework beyond the linear world of DV01. We cover:
@@ -72,21 +72,21 @@ Since the term $(\Delta y)^2$ is always positive regardless of the direction of 
 
 ### 13.2.1 The Normalized Second Derivative
 
-Modified duration measures the relative slope of the price-yield curve at a given point. Convexity is the relative curvature at that point. Specifically, convexity is the value of $C$ defined as:
+Modified duration measures the relative slope of the price-yield curve at a given point. Convexity is the relative curvature at that point. We denote it $Cvx$, defined as:
 
-$$\boxed{C=\frac{1}{P}\frac{\mathrm{d}^2 P}{\mathrm{d}y^2}}$$
+$$\boxed{Cvx=\frac{1}{P}\frac{\mathrm{d}^2 P}{\mathrm{d}y^2}}$$
 
-Equivalently, $C = \frac{1}{P}\frac{\mathrm{d}^2P}{\mathrm{d}y^2}$. In this chapter we denote this normalized convexity by $Cvx$.
+Like modified duration, $Cvx$ is normalized by the price $P$, so it has units of (time)$^2$ and is independent of position size. Section 13.2.2 introduces the *position-scaled* version (dollar convexity).
 
 ### 13.2.2 Dollar Convexity: The Gamma Analog
 
-The dollar convexity of a bond, $C_{USD }$, is defined analogously to dollar duration as the product of convexity and the value of the bond. This means that:
+The dollar convexity of a bond, $C_{\mathrm{USD}}$, is defined analogously to dollar duration as the product of convexity and the value of the bond. This means that:
 
-$$\boxed{C_{USD }=P \times Cvx = \frac{d^2P}{dy^2}}$$
+$$\boxed{C_{\mathrm{USD}}=P \times Cvx = \frac{d^2P}{dy^2}}$$
 
 **Why Dollar Convexity Matters:** Even when a system does not report it directly, dollar convexity is a natural object for P&L attribution because the second-order (convexity) contribution for a yield move $\Delta y$ can be written as:
 
-$$\boxed{\text{Convexity PnL} = \frac{1}{2}\\,C_{USD }\\,(\Delta y)^2}$$
+$$\boxed{\text{Convexity P\&L} = \frac{1}{2}\\,C_{\mathrm{USD}}\\,(\Delta y)^2}$$
 
 If you want to plug in a yield move in **basis points** (instead of decimal yield units), define:
 
@@ -95,7 +95,7 @@ If you want to plug in a yield move in **basis points** (instead of decimal yiel
 
 Then the convexity P&L can be written as:
 
-$$\boxed{\text{Convexity PnL}=\underbrace{\left[\frac{1}{2}\times C_{USD }\times (0.0001)^2\right]}_{\text{Convexity01 } (USD /\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
+$$\boxed{\text{Convexity P\&L}=\underbrace{\left[\frac{1}{2}\times C_{\mathrm{USD}}\times (0.0001)^2\right]}_{\text{Convexity01 } (\mathrm{USD}/\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
 
 This is often the most desk-friendly way to compute convexity P&L because it takes the move in bps and makes the quadratic scaling explicit.
 
@@ -103,8 +103,8 @@ This is often the most desk-friendly way to compute convexity P&L because it tak
 > **Why it matters:** The convexity contribution scales as $(\Delta y)^2$, so a units mistake becomes a 10×–10,000× P&L error.
 > **Quick check:** Recompute using $\Delta y = 10^{-4}\Delta y_{\text{bp}}$ and verify the second-order term is $\tfrac{1}{2}P\cdot Cvx\cdot (\Delta y)^2$.
 
-> **Desk Reality:** Risk reports may show **normalized convexity** ($Cvx$), **dollar convexity** ($C_{USD }$), or a pre-scaled **Convexity01** in $USD /\text{bp}^2$.
-> **Common break:** Mixing $\Delta y$ in bp with formulas written in decimal yield, or mixing $Cvx$ vs $C_{USD }$ vs Convexity01, creates order-of-magnitude errors.
+> **Desk Reality:** Risk reports may show **normalized convexity** ($Cvx$), **dollar convexity** ($C_{\mathrm{USD}}$), or a pre-scaled **Convexity01** in $\mathrm{USD}/\text{bp}^2$.
+> **Common break:** Mixing $\Delta y$ in bp with formulas written in decimal yield, or mixing $Cvx$ vs $C_{\mathrm{USD}}$ vs Convexity01, creates order-of-magnitude errors.
 > **What to check:** Take one position, compute $PV(y\pm 1\text{bp})$ and $PV(y\pm \Delta y)$ in a spreadsheet, and reconcile to the system’s DV01 and convexity/Convexity01 outputs.
 
 **Conventions used in this chapter (risk definitions):**
@@ -113,7 +113,7 @@ This is often the most desk-friendly way to compute convexity P&L because it tak
 - **DV01 (sign + units):** $DV01 := PV(y-1\text{bp})-PV(y)$. For a long non-callable bond, $DV01\gt 0$. Units: currency per 1bp (often per 100 price points and then scaled by notional).
 - **Second-order P&L (consistent units):** $\Delta PV \approx -DV01\cdot \Delta y_{\text{bp}} + Convexity01\cdot (\Delta y_{\text{bp}})^2$.
 
-**Check (turn $Cvx$ into a desk-usable $Convexity01$):** If your system reports normalized convexity $Cvx$ (per yield-squared) and you know the position PV $V$ (in dollars), then position dollar convexity is $C_{USD }=V\cdot Cvx$ and $Convexity01=\tfrac{1}{2}C_{USD }(10^{-4})^2$ in $USD /\text{bp}^2$. Toy scale: if $V=USD 100\text{mm}$ and $Cvx=50$, then $C_{USD }=5{,}000\text{mm}$ and $Convexity01\approx \tfrac{1}{2}\times 5{,}000\text{mm}\times 10^{-8}=USD 25/\text{bp}^2$. A 50bp move has $(\Delta y_{\text{bp}})^2=2{,}500$, so convexity P&L is about $25\times 2{,}500=USD 62{,}500$ (directionally helpful for long positive-convexity).
+**Check (turn $Cvx$ into a desk-usable $Convexity01$):** If your system reports normalized convexity $Cvx$ (per yield-squared) and you know the position PV $V$ (in dollars), then position dollar convexity is $C_{\mathrm{USD}}=V\cdot Cvx$ and $Convexity01=\tfrac{1}{2}C_{\mathrm{USD}}(10^{-4})^2$ in $\mathrm{USD}/\text{bp}^2$. Toy scale: if $V=USD 100\text{mm}$ and $Cvx=50$, then $C_{\mathrm{USD}}=5{,}000\text{mm}$ and $Convexity01\approx \tfrac{1}{2}\times 5{,}000\text{mm}\times 10^{-8}=USD 25/\text{bp}^2$. A 50bp move has $(\Delta y_{\text{bp}})^2=2{,}500$, so convexity P&L is about $25\times 2{,}500=USD 62{,}500$ (directionally helpful for long positive-convexity).
 
 ### 13.2.3 Computing Convexity Numerically
 
@@ -130,33 +130,39 @@ Second derivatives are numerically delicate because this is a “difference of d
 
 ### 13.2.4 Worked Example A: Finite-Difference Convexity from Repricing
 
-One common methodology is:
+Take a 10-year par coupon bond paying 5% semiannually at a 5% yield, so $P_0 = 100$. We bump the yield by ±1bp and reprice. Because the second-order signal lives in a "difference of differences," we keep enough decimal places (a 1bp bump moves price only by $\sim 0.08$ price points, and the convexity term sits in the next 4–5 decimals):
 
-**Step 1: Estimate the first derivative at 4.995%** (between 4.99% and 5.00%):
+- $P_- = P(4.99\\%) = 100.0779826$
+- $P_0 = P(5.00\\%) = 100.0000000$
+- $P_+ = P(5.01\\%) = 99.9220910$
 
-$$
-\left.\frac{dP}{dy}\right|_{y=0.04995} = \frac{100.0000 - 100.0780}{0.05 - 0.0499} = -779.83
-$$
-
-**Step 2: Estimate the first derivative at 5.005%** (between 5.00% and 5.01%):
+**Step 1 — Estimate the slope at $y = 4.995\\%$** (midpoint of 4.99% and 5.00%):
 
 $$
-\left.\frac{dP}{dy}\right|_{y=0.05005} = \frac{99.9221 - 100.0000}{0.0501 - 0.05} = -779.09
+\left.\frac{dP}{dy}\right|_{y=0.04995} \approx \frac{P_0 - P_-}{0.05 - 0.0499} = \frac{100.0000000 - 100.0779826}{0.0001} = -779.83
 $$
 
-**Step 3: Estimate the second derivative at 5.00%**:
+**Step 2 — Estimate the slope at $y = 5.005\\%$** (midpoint of 5.00% and 5.01%):
 
 $$
-\frac{d^2P}{dy^2} = \frac{-779.09 - (-779.83)}{0.05005 - 0.04995} = \frac{0.7363}{0.0001} = 7{,}363
+\left.\frac{dP}{dy}\right|_{y=0.05005} \approx \frac{P_+ - P_0}{0.0501 - 0.05} = \frac{99.9220910 - 100.0000000}{0.0001} = -779.09
 $$
 
-**Step 4: Compute convexity**:
+**Step 3 — Estimate the second derivative at $y = 5.00\\%$** (change in slope across the 1bp window centered at 5%):
 
 $$
-Cvx = \frac{7{,}363}{100} = \mathbf{73.63}
+\frac{d^2P}{dy^2} \approx \frac{(-779.09) - (-779.83)}{0.05005 - 0.04995} = \frac{0.7363}{0.0001} = 7{,}363
 $$
 
-**Sanity Check:** The convexity is positive (as expected for a vanilla bond), and the magnitude (73.6) is plausible for a bond with roughly 8-year duration. ✓
+(The unrounded slopes are $-779.8264$ and $-779.0901$, whose difference is $0.7363$; the displayed two-decimal slopes round to $0.74$, but the underlying precision sits in the 4th decimal.)
+
+**Step 4 — Convexity:**
+
+$$
+Cvx = \frac{1}{P_0}\frac{d^2P}{dy^2} = \frac{7{,}363}{100} = \mathbf{73.63}
+$$
+
+**Sanity Check:** Positive convexity (as expected for a vanilla coupon bond) ✓; the magnitude 73.6 is consistent with a 10-year coupon bond having modified duration $\approx 7.79$ — see the analytical formula in Section 13.3.3. ✓
 
 ---
 
@@ -179,7 +185,7 @@ To visualize this scaling, let us compare the convexity of zero-coupon bonds at 
 | **2 Years** | 4 | **4.76** | Negligible curvature |
 | **5 Years** | 25 | **26.17** | Small curvature |
 | **10 Years** | 100 | **99.94** | Significant curvature |
-| **20 Years** | 400 | **389.04** | Large curvature |
+| **20 Years** | 400 | **390.24** | Large curvature |
 | **30 Years** | 900 | **870.91** | Massive curvature |
 
 A 30-year bond has roughly $9\times$ the convexity of a 10-year bond, mirroring the relationship $30^2 = 9 \times 10^2$. This geometric explosion is why "convexity trades" almost invariably focus on the long end of the yield curve, where the "gamma" is most potent.
@@ -206,13 +212,13 @@ $$
 Cvx = \frac{5 \times 5.5}{(1.025)^2} = \frac{27.5}{1.050625} \approx \mathbf{26.17}
 $$
 
-**Finite Difference**: Bumping yields by 1 bp ($P_-$ at 4.99%, $P_+$ at 5.01%):
+**Finite Difference**: Bumping yields by 1 bp gives $P_-=P(4.99\\%)=78.157958$, $P_0=P(5.00\\%)=78.119840$, $P_+=P(5.01\\%)=78.081743$:
 
 $$
-\frac{78.0818 - 2(78.1198) + 78.1579}{78.1198 \times (0.0001)^2} \approx \mathbf{26.17}
+Cvx \approx \frac{P_- - 2P_0 + P_+}{P_0 \times (\Delta y)^2} = \frac{78.157958 - 2(78.119840) + 78.081743}{78.119840 \times (0.0001)^2} \approx \mathbf{26.17}
 $$
 
-The results match perfectly, confirming that for standard instruments, the "bump and reprice" methodology is robust.
+The numerator is on the order of $2\times 10^{-5}$, so to resolve $Cvx\approx 26$ from a 1bp bump we again need 6+ decimal places of price precision. With sufficient precision, the analytical and numerical results match to four significant figures, confirming that for standard instruments the "bump and reprice" methodology is robust.
 
 ---
 
@@ -281,22 +287,22 @@ Scaling to notional $N$:
 **What breaks in practice:** if the bond is callable/MBS-like, cashflows change with rates and you need **effective** (option-adjusted) duration/convexity rather than the “hold cashflows fixed” measures.
 
 **Sanity Checks**
-- Units: $DV01$ is $USD /\text{bp}$; Convexity01 is $USD /\text{bp}^2$; the convexity term scales with $(\Delta y_{bp})^2$.
+- Units: $DV01$ is $\mathrm{USD}/\text{bp}$; Convexity01 is $\mathrm{USD}/\text{bp}^2$; the convexity term scales with $(\Delta y_{\text{bp}})^2$.
 - Sign: for $Cvx\gt 0$, the convexity contribution is positive in both rallies and sell-offs.
 - Repricing check: bump and reprice at the shocked yield to validate the approximation.
 
 ### 13.4.2 Scaling of Errors
 
-The danger arises because doubling the shock size quadruples the error:
+The danger arises because doubling the shock size quadruples the convexity correction the duration term misses (using the same 3y, $Cvx=9.08$, $P_0=102.754$ position from Worked Example C):
 
-| Shock Size | Duration Error (price points) | Scaling Factor |
+| Shock Size $|\Delta y|$ | Convexity correction $+\tfrac{1}{2}P\\,Cvx\\,(\Delta y)^2$ (price points) | Scaling Factor |
 | :--- | :--- | :--- |
-| **25 bp** | -0.003 | 1× |
-| **50 bp** | -0.012 | 4× |
-| **100 bp** | -0.046 | 16× |
-| **200 bp** | -0.184 | 64× |
+| **25 bp** | +0.003 | 1× |
+| **50 bp** | +0.012 | 4× |
+| **100 bp** | +0.047 | 16× |
+| **200 bp** | +0.187 | 64× |
 
-The key point is the **quadratic scaling**: doubling the shock size quadruples the convexity correction.
+For positive convexity, the correction is **always positive** (it cushions sell-offs and amplifies rallies relative to the duration line). The key point is the **quadratic scaling**: doubling the shock size quadruples the convexity correction.
 
 For small daily moves, convexity P&L is often small relative to duration P&L. For stress-sized moves, ignoring convexity can materially misstate risk.
 
@@ -304,7 +310,7 @@ For small daily moves, convexity P&L is often small relative to duration P&L. Fo
 
 When risk managers decompose daily P&L, the convexity term appears explicitly. A common second-order attribution uses the yield move in basis points:
 
-$$\boxed{\text{Daily PnL}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration PnL}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity PnL}}+\text{Carry}+\text{Unexplained}}$$
+$$\boxed{\text{Daily P\&L}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration P\&L}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity P\&L}}+\text{Carry}+\text{Unexplained}}$$
 
 Where:
 - **DV01** is in dollars per bp (see Chapter 11 for conventions)
@@ -323,7 +329,7 @@ Where:
 > - **Stale convexity** (hasn't been recalculated as yields moved)
 > - **Missing optionality** (callable bonds need effective convexity, not modified)
 >
-> A 50bp move on USD 100mm with convexity of 100: Convexity PL = $\frac{1}{2} \times 100 \times 0.005^2 \times USD 100\text{mm} = USD 125,000$. If this isn't in your explain, you have a USD 125k hole.
+> A 50bp move on USD 100mm with convexity of 100: Convexity P\&L $= \tfrac{1}{2} \times 100 \times 0.005^2 \times USD\\,100\text{mm} = USD\\,125{,}000$. If this isn't in your explain, you have a USD 125k hole.
 
 ---
 
@@ -338,10 +344,10 @@ Intuition: DV01-neutral hedges the **first derivative** (slope). If the trade ha
 ### 13.5.2 Worked Example D: The "Self-Funding" Trade
 
 Imagine a portfolio that is DV01 neutral but "Long Convexity":
-- **Long**: 1 unit of a 10-year par bond ($Cvx=73.6$, DV01=0.0779)
-- **Short**: 4.14 units of a 2-year par bond ($Cvx=4.5$, DV01=0.0188)
+- **Long**: 1 unit of a 10-year par bond ($Cvx=73.6$, $DV01=0.0779$ per 100 face)
+- **Short**: 4.144 units of a 2-year par bond ($Cvx=4.5$, $DV01=0.0188$ per 100 face)
 
-The position is delta-neutral:
+The hedge ratio is just $0.0779/0.0188 \approx 4.144$, so the position is delta-neutral:
 
 $$
 \text{Net DV01} = 0.0779 - (4.144 \times 0.0188) \approx 0
@@ -420,7 +426,7 @@ Consider a 5\% Callable Bond (callable at par in 1 year) compared to a vanilla n
 
 These numbers are illustrative; actual convexity depends on the call schedule and the option model/volatility assumptions used for pricing.
 
-At a 5\% yield, the (effective) convexity is **-223**. This negative number has profound hedging implications. If rates drop 100 bps to 4\%, the vanilla bond gains 8.18, but the callable bond gains only 3.08 because it is capped at par. If you hedged this callable bond with a standard DV01 ratio, you would massively underperform the hedge.
+At a 5\% yield, the (effective) convexity is **−223**. This negative number has profound hedging implications. If rates drop 100 bps to 4\%, the vanilla bond gains 8.18, but the callable bond gains only about 3.08 because the price is capped near the call strike. A trader who is long the callable and uses a static DV01 ratio to short a vanilla bond as a hedge will find the hedge **over-hedges in the rally**: the short vanilla loses far more than the long callable gains, leaving a large negative residual.
 
 Mixing positive- and negative-convexity instruments in one hedge can be unstable unless you explicitly account for how cashflows (and therefore DV01) change with the yield level.
 
@@ -536,17 +542,17 @@ $$
 
 ### 13.7.4 P&L Scenario Table
 
-The following table shows approximate P&L for duration-matched barbell vs bullet across rate scenarios (assuming 1-year holding period):
+The following table shows the **price-return + carry-give-up** decomposition for the duration-matched barbell vs bullet across instantaneous rate shocks (1-year horizon, with the bullet's 8bp/year carry advantage credited to the bullet leg). Bullet uses $D_{\text{mod}}=8.78$, $Cvx=81.38$; barbell uses the same $D_{\text{mod}}=8.78$, $Cvx=221.30$:
 
-| Scenario | Rate Move | Bullet P&L | Barbell P&L | Winner |
-|----------|-----------|------------|-------------|--------|
-| **Quiet** | 0 bp | +8bp carry | 0 bp | **Bullet** |
-| **Modest rally** | -30 bp | +2.60\% | +2.64\% | **Barbell** |
-| **Modest selloff** | +30 bp | -2.44\% | -2.40\% | **Barbell** |
-| **Large rally** | -100 bp | +9.35\% | +9.87\% | **Barbell** |
-| **Large selloff** | +100 bp | -7.56\% | -7.04\% | **Barbell** |
+| Scenario | Rate Move | Bullet (price + carry) | Barbell (price) | Winner | Edge |
+|----------|-----------|------------|-------------|--------|--------|
+| **Quiet** | 0 bp | +0.08\% | 0.00\% | **Bullet** | +8 bp |
+| **Modest rally** | −30 bp | +2.75\% | +2.73\% | **Bullet** | +1.7 bp |
+| **Modest selloff** | +30 bp | −2.52\% | −2.53\% | **Bullet** | +1.7 bp |
+| **Large rally** | −100 bp | +9.27\% | +9.89\% | **Barbell** | +62 bp |
+| **Large selloff** | +100 bp | −8.29\% | −7.67\% | **Barbell** | +62 bp |
 
-**The Pattern:** The barbell "straddle" profile—loses in calm, wins in chaos. The breakeven is somewhere around 30-35bp moves.
+**The Pattern:** The barbell "straddle" profile—loses in calm, wins in chaos. With the 8bp carry give-up assumed, the breakeven absolute move is about **34 bp** (computed in Section 13.7.3), so the bullet still wins at $\pm 30$ bp moves and the barbell wins decisively once moves exceed the breakeven.
 
 ### 13.7.5 General Principle
 
@@ -608,11 +614,19 @@ The convexity value increases when the dispersion of future rates increases.
 
 ### 13.8.3 Convexity Value Increases with Volatility
 
-For small yield volatility, a common rule-of-thumb approximation is:
+For small yield volatility $\sigma$ (annualized standard deviation, in yield units), the *expected* fractional price pickup from convexity over one period is approximately:
 
-$$\boxed{\text{Convexity effect on yield} \approx -\frac{1}{2}\\,Cvx\\,\sigma^2}$$
+$$\boxed{E\\!\left[\frac{\Delta P}{P}\right]_{\text{cvx}} \approx \tfrac{1}{2}\\,Cvx\\,\sigma^2}$$
 
-where $\sigma$ is the yield volatility. This formula has profound implications:
+This is just $\tfrac{1}{2}Cvx(\Delta y)^2$ averaged over a random $\Delta y$ with variance $\sigma^2$. To translate this *price* pickup into a *yield* equivalent — i.e., how much the bond's YTM falls relative to the no-uncertainty rate — divide by modified duration:
+
+$$\boxed{\text{Convexity effect on YTM} \approx -\tfrac{1}{2}\\,\frac{Cvx}{D}\\,\sigma^2}$$
+
+For an option-free zero, $Cvx/D \approx T$, so the bias is roughly $-\tfrac{1}{2}T\sigma^2$ — linear in $T$, not quadratic. This matches the stylized result that long-dated yields sit *below* the average path of expected forward rates by an amount that grows with maturity and rate volatility.
+
+**Sanity check (against the 1.8 bp two-state example earlier):** A 2-year zero at 10% has $Cvx/D \approx (T+0.5)/(1+y/2) \approx 2.38$ under semi-annual compounding. With a 2-year-yield volatility around $\sigma \approx 1.2\\%$, the formula gives $\tfrac{1}{2}\times 2.38\times 0.012^2 \approx 1.7\\,\text{bp}$ — within rounding of the 1.8 bp cited above for that stylized two-state model.
+
+The qualitative implications are unchanged:
 
 - **Long Convexity**: You are long gamma. You want realized volatility > implied volatility.
 - **Short Convexity**: You are short gamma. You want realized volatility < implied volatility.
@@ -697,7 +711,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 
 3. **Error Correction**: The convexity correction scales with $(\Delta y)^2$, so it grows quickly in stress-sized moves.
 
-4. **Dollar Convexity (Gamma Analog)**: Dollar convexity is $C_{USD } = P \times Cvx$. Some systems report this, while others report a pre-scaled $Convexity01$ in $USD /\text{bp}^2$; always verify units.
+4. **Dollar Convexity (Gamma Analog)**: Dollar convexity is $C_{\mathrm{USD}} = P \times Cvx$. Some systems report this, while others report a pre-scaled $Convexity01$ in $\mathrm{USD}/\text{bp}^2$; always verify units.
 
 5. **Negative Convexity**: Embedded options can create negative convexity (“frown”), meaning DV01 can extend in sell-offs and hedges can become unstable if you ignore cashflow changes.
 
@@ -705,7 +719,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 
 7. **Barbell vs Bullet**: Spreading cash flows (barbell) increases convexity; concentrating them (bullet) reduces it. The barbell wins in volatile markets; the bullet wins in stable markets. The breakeven can be calculated explicitly.
 
-8. **Volatility Trade**: Long convexity is long volatility (qualitatively). A common small-vol rule-of-thumb is a yield “convexity effect” of about $-\frac{1}{2}Cvx\sigma^2$ (units must be consistent).
+8. **Volatility Trade**: Long convexity is long volatility (qualitatively). The expected fractional price pickup from convexity is $\tfrac{1}{2}Cvx\\,\sigma^2$ per period; the corresponding YTM bias is $-\tfrac{1}{2}(Cvx/D)\sigma^2$ (≈ $-\tfrac{1}{2}T\sigma^2$ for zeros).
 
 9. **Immunization**: Duration matching alone is insufficient for large moves; robust immunization typically targets PV, duration, and convexity together.
 
@@ -716,14 +730,14 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | Concept | Definition | Why It Matters |
 | :--- | :--- | :--- |
 | **Convexity ($Cvx$)** | $\frac{1}{P}\frac{d^2P}{dy^2}$ | Corrects linear duration errors for large rate moves |
-| **Dollar Convexity ($C_{USD }$)** | $P \times Cvx = \frac{d^2P}{dy^2}$ | Currency-scaled curvature; check bump object + units |
-| **Convexity01** | $\frac{1}{2}C_{USD }(10^{-4})^2$ | $USD /\text{bp}^2$ coefficient used with $(\Delta y_{bp})^2$ |
+| **Dollar Convexity ($C_{\mathrm{USD}}$)** | $P \times Cvx = \frac{d^2P}{dy^2}$ | Currency-scaled curvature; check bump object + units |
+| **Convexity01** | $\frac{1}{2}C_{\mathrm{USD}}(10^{-4})^2$ | $\mathrm{USD}/\text{bp}^2$ coefficient used with $(\Delta y_{\text{bp}})^2$ |
 | **Positive Convexity** | Curvature "smile" | You gain more on rallies and lose less on sell-offs |
 | **Negative Convexity** | Curvature "frown" | Found in Callables/MBS; price capped on rallies |
 | **$T^2$ Scaling** | $Cvx_{\text{zero}} \approx T^2$ | Long-dated option-free zeros have much more convexity |
 | **Effective Convexity** | Model-based numerical convexity | Required for option-embedded instruments |
 | **Barbell** | Portfolio of Short + Long bonds | Higher convexity than a Bullet; long volatility |
-| **Convexity Bias** | $\frac{1}{2}Cvx(\Delta y)^2$ | The P&L "cushion" provided by curvature |
+| **Convexity Correction** | $\frac{1}{2}Cvx(\Delta y)^2$ | The P&L "cushion" added on top of the duration estimate |
 | **Jensen's Inequality** | $E[f(x)] \gt f(E[x])$ for convex $f$ | Why convexity lowers yields in a volatile world |
 | **Extension Risk** | Duration rises as rates rise | Negative convexity creates pro-cyclical hedging |
 | **Immunization** | Match duration AND convexity | Required for robust ALM against large moves |
@@ -738,11 +752,11 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | $P(y)$ | Bond price as a function of $y$ | Price per USD 100 notional unless stated |
 | $D$ | Modified duration | Years; $D=-\frac{1}{P}\frac{dP}{dy}$ for the chapter’s bump object $y$ |
 | $Cvx$ | Convexity | Years-squared; $Cvx=\frac{1}{P}\frac{d^2P}{dy^2}$ |
-| $C_{USD }$ | Dollar convexity | Currency per yield-squared; $C_{USD }=P\cdot Cvx=\frac{d^2P}{dy^2}$ |
+| $C_{\mathrm{USD}}$ | Dollar convexity | Currency per yield-squared; $C_{\mathrm{USD}}=P\cdot Cvx=\frac{d^2P}{dy^2}$ |
 | $\Delta y$ | Yield shock | Decimal yield (e.g., 0.01 = 100 bp) |
 | $\Delta y_{\text{bp}}$ | Yield shock in bp | $\Delta y=10^{-4}\Delta y_{\text{bp}}$ |
 | $DV01$ | 1bp PV sensitivity | $DV01:=PV(y-1\text{bp})-PV(y)$; currency per 1bp |
-| Convexity01 | 2nd-order coefficient | $USD /\text{bp}^2$; $Convexity01=\tfrac{1}{2}C_{USD }(10^{-4})^2$ |
+| Convexity01 | 2nd-order coefficient | $\mathrm{USD}/\text{bp}^2$; $Convexity01=\tfrac{1}{2}C_{\mathrm{USD}}(10^{-4})^2$ |
 | $P_-,P_0,P_+$ | Bumped/base prices | $P_\pm=P(y\pm \Delta y)$, $P_0=P(y)$ |
 | $Cvx_{\text{effective}}$ | Effective convexity | Model-based repricing; cashflows may change with rates |
 | $\sigma$ | Yield volatility | Annualized standard deviation; use consistent yield units |
@@ -754,7 +768,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | # | Question | Answer |
 |---|----------|--------|
 | 1 | Define convexity mathematically. | $Cvx = \frac{1}{P}\frac{d^2P}{dy^2}$ |
-| 2 | What is dollar convexity? | $C_{USD } = P \times Cvx = \frac{d^2P}{dy^2}$ |
+| 2 | What is dollar convexity? | $C_{\mathrm{USD}} = P \times Cvx = \frac{d^2P}{dy^2}$ |
 | 3 | What is the sign of the convexity term in the 2nd-order P&L approximation for positive convexity? | Always positive: $+ \frac{1}{2} Cvx (\Delta y)^2$ |
 | 4 | How does convexity error scale with shock size? | Like the square of the shock: $(\Delta y)^2$ |
 | 5 | If duration is matched, does a Barbell or Bullet have higher convexity? | The Barbell (convexity scales with $T^2$) |
@@ -776,8 +790,8 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 | 21 | When should you include convexity in risk calculations? | For moves > 50 bp, stress tests, VaR, and optioned instruments |
 | 22 | What is effective convexity? | Model-based convexity that allows cashflows to change with rates (often implemented in an OAS framework). |
 | 23 | What conditions are needed for robust immunization? | Match PV and duration, and also match convexity (often $Cvx_A \ge Cvx_L$) for larger moves. |
-| 24 | How is convexity P&L calculated for daily attribution? | Convexity P&L $\approx$ Convexity01 $\times (\Delta y_{\text{bp}})^2 = \frac{1}{2}C_{USD }(\Delta y)^2$ (consistent units). |
-| 25 | What is the convexity effect on yield? | A common small-vol approximation is $-\frac{1}{2}Cvx\sigma^2$ (consistent units). |
+| 24 | How is convexity P&L calculated for daily attribution? | Convexity P&L $\approx$ Convexity01 $\times (\Delta y_{\text{bp}})^2 = \frac{1}{2}C_{\mathrm{USD}}(\Delta y)^2$ (consistent units). |
+| 25 | What is the convexity effect on YTM? | Approximately $-\tfrac{1}{2}(Cvx/D)\sigma^2$, or $-\tfrac{1}{2}T\sigma^2$ for zeros (where $\sigma$ is yield volatility). The expected fractional price pickup is $\tfrac{1}{2}Cvx\sigma^2$. |
 
 ---
 
@@ -791,7 +805,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
 3. (Compute) Construct a duration-matched barbell using 2-year and 30-year zeros to match a 10-year zero (flat curve assumption).
    (a) What weights $w_{2}, w_{30}$ match duration?
    (b) Which portfolio has higher convexity? Explain in one sentence.
-4. (Compute) A portfolio has dollar convexity $C_{USD }=80{,}000{,}000{,}000$ (currency per yield-squared) and $DV01=USD 400{,}000$ (currency per bp). Rates sell off by $+75$ bp. Estimate duration P&L, convexity P&L, and total.
+4. (Compute) A portfolio has dollar convexity $C_{\mathrm{USD}}=80{,}000{,}000{,}000$ (currency per yield-squared) and $DV01=USD 400{,}000$ (currency per bp). Rates sell off by $+75$ bp. Estimate duration P&L, convexity P&L, and total.
 5. (Desk) You hedge a callable bond with a Treasury of similar DV01. If rates rally 50 bp, do you expect the hedge to over- or under-hedge? Explain using how the callable’s DV01 changes as it goes “into the money”.
 6. (Compute) Numerical convexity estimate. Given $P_{-10\text{bp}}=101.05$, $P_0=101.00$, $P_{+10\text{bp}}=100.96$, estimate $Cvx$ using the central difference formula with $\Delta y=10$ bp. Is the convexity positive or negative?
 7. (Concept) Jensen's inequality check. Show that $E[1/(1+r)] \gt 1/(1+E[r])$ when $r$ is random and $r\gt -1$, and interpret this in bond-pricing terms.
@@ -807,7 +821,7 @@ Convexity is the second derivative of price with respect to yield. While DV01 (d
    - (c) $-5\times 0.02 + \tfrac{1}{2}\times 30\times 0.02^2=-9.40\\%$
 4. Use $\Delta y_{\text{bp}}=+75$, $\Delta y=0.0075$.
    - Duration P&L $\approx -DV01\cdot \Delta y_{\text{bp}}=-(400{,}000)\times 75=-USD 30.0\text{mm}$.
-   - Convexity P&L $\approx +\tfrac{1}{2}C_{USD }(\Delta y)^2=\tfrac{1}{2}\times 80\text{bn}\times 0.0075^2=+USD 2.25\text{mm}$.
+   - Convexity P&L $\approx +\tfrac{1}{2}C_{\mathrm{USD}}(\Delta y)^2=\tfrac{1}{2}\times 80\text{bn}\times 0.0075^2=+USD 2.25\text{mm}$.
    - Total $\approx -USD 27.75\text{mm}$.
 6. With $\Delta y=10\text{bp}=0.001$, use
    $Cvx\approx \frac{101.05-2(101.00)+100.96}{101.00\times (0.001)^2}=\frac{0.01}{0.000101}\approx 99$.
