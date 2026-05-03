@@ -47,7 +47,7 @@ Every rate concept derives from one fundamental building block: the discount fac
 
 The discount factor $d(t)$ (or $P(0,t)$) is the present value today of one unit of currency received at time $t$. Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
 
-$$\boxed{P(0,T) = \text{Price today of \\$1 paid at time } T}$$
+$$\boxed{P(0,T) = \text{Price today of 1 USD paid at time } T}$$
 
 The notation $P(t,T)$ represents the price at time $t$ of a payment at $T$. When $t=0$ (today), we often shorten this to $P(T)$ or $d(T)$.
 
@@ -67,7 +67,7 @@ Under no-arbitrage, discount factors must satisfy a few basic requirements:
 
 1. **Positivity:** $P(0,T) \gt 0$ for all $T$. If $P(0,T)$ were 0 or negative, you could buy money at $T$ for free (or get paid to take it), leading to infinite arbitrage.
 2. **Normalization:** $P(0,0) = 1$. A dollar today is worth a dollar today.
-3. **Monotonicity (Typical):** When (appropriately defined) interest rates are non-negative over a range of maturities, $P(0,T)$ decreases with $T$ over that range. If some rates are negative, discount factors can exceed 1 and may increase with maturity over some intervals. The algebra in this chapter only requires $P(0,T) \gt 0$.
+3. **Monotonicity (Typical):** When (appropriately defined) interest rates are non-negative over a range of maturities, $P(0,T)$ is **non-increasing** in $T$ over that range (and strictly decreasing where rates are strictly positive). If some rates are negative, discount factors can exceed 1 and may increase with maturity over some intervals. The algebra in this chapter only requires $P(0,T) \gt 0$.
 
 **Note (what curve is “risk‑free”):** In practice, the discount curve used for valuation depends on market conventions and the contract’s discounting/collateral terms. In this chapter, treat $P(0,T)$ as a given input curve; curve construction and collateral discounting are covered later (Ch 17–19 and Ch 33).
 
@@ -121,9 +121,9 @@ A common rookie mistake is to assume "5% is 5%."
 
 **Example:**
 Suppose $P(0, 1) = 0.9512$ (roughly 5%).
-- **Simple Rate:** $(1/0.9512 - 1) / 1 = 5.130\\%$
-- **Semiannual Rate:** $2 \times ((1/0.9512)^{0.5} - 1) = 5.063\\%$
-- **Continuous Rate:** $-\ln(0.9512) = 5.003\\%$
+- **Simple Rate:** $(1/0.9512 - 1) / 1 \approx 5.130\\%$
+- **Semiannual Rate:** $2 \times ((1/0.9512)^{0.5} - 1) \approx 5.066\\%$
+- **Continuous Rate:** $-\ln(0.9512) \approx 5.003\\%$
 
 All three represent the **exact same economic value**. If you plug a 5.13% simple rate into a formula expecting a continuous rate, you will misprice the instrument.
 
@@ -153,23 +153,23 @@ $$R_2 = m_2\left[\left(1 + \frac{R_1}{m_1}\right)^{m_1/m_2} - 1\right]$$
 
 **Step 1: Continuous Rate**
 
-$$y_c = -\frac{\ln(0.9070)}{2} = -\frac{-0.0976}{2} = 4.879\\%$$
+$$y_c = -\frac{\ln(0.9070)}{2} \approx -\frac{-0.09761}{2} \approx 4.881\\%$$
 
 **Step 2: Semiannual Rate**
 
-$$y_{sa} = 2\left[(1/0.9070)^{1/4} - 1\right] = 2\left[1.02470 - 1\right] = 4.939\\%$$
+$$y_{sa} = 2\left[(1/0.9070)^{1/4} - 1\right] \approx 2\left[1.02470 - 1\right] \approx 4.941\\%$$
 
 **Step 3: Annual Rate**
 
-$$y_1 = (1/0.9070)^{1/2} - 1 = 1.05001 - 1 = 5.001\\%$$
+$$y_1 = (1/0.9070)^{1/2} - 1 \approx 1.05002 - 1 \approx 5.002\\%$$
 
 **Step 4: Quarterly Rate**
 
-$$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] = 4\left[1.01227 - 1\right] = 4.909\\%$$
+$$y_4 = 4\left[(1/0.9070)^{1/8} - 1\right] \approx 4\left[1.01228 - 1\right] \approx 4.911\\%$$
 
-**Verification:** All four rates produce the same discount factor when applied with their respective compounding formulas. The ordering follows the mathematical property: for positive rates, more frequent compounding implies a lower quoted rate. Continuous < Quarterly < Semiannual < Annual.
+**Verification:** All four rates produce the same discount factor when applied with their respective compounding formulas. The ordering follows the mathematical property: for positive rates, more frequent compounding implies a lower quoted rate. Continuous (4.881%) < Quarterly (4.911%) < Semiannual (4.941%) < Annual (5.002%).
 
-**Sanity Check:** This ordering always holds for positive rates because more frequent compounding achieves the same terminal value with a lower quoted rate; the rates are simply different parameterizations of the same discount factor.
+**Sanity Check:** This ordering holds for positive rates because more frequent compounding achieves the same terminal value with a lower quoted rate; the rates are simply different parameterizations of the same discount factor.
 
 ---
 
@@ -216,7 +216,7 @@ In practice, forward rates are often treated as **breakeven levels**: if you loc
 ### 3.3.4 The General Forward Rate Formula
 
 **Strategy A (The Forward Loan):**
-Borrow \$1 at $T_1$ and repay $1 + F \cdot \tau$ at $T_2$. Value at $T_1$ is 1.
+Enter today into a contract that delivers \$1 at $T_1$ and obligates repayment of $1 + F \cdot \tau$ at $T_2$. From the borrower's perspective, the cashflows are: 0 today, $+1$ at $T_1$, and $-(1+F\tau)$ at $T_2$.
 
 **Strategy B (Replicate with zero-coupon bonds):**
 1. **Buy a $T_1$ zero:** Buy 1 unit of the $T_1$ zero-coupon bond today. Cost: $P(0,T_1)$. Cashflow: receive \$1 at $T_1$.
@@ -284,10 +284,12 @@ The receive-fixed payoff is the negative:
 
 $$\boxed{V_{\text{receive fixed}}(T_1) \\;=\\; \frac{N \\, (K - R)\\, \tau}{1 + R\\,\tau}}$$
 
-**Worked example (mechanics):** Notional $N=100$ million USD, $\tau=0.25$, $K=3.5\\%$, realized reference rate $R=3.0\\%$.
+**Worked example (mechanics):** Notional $N=100$ million USD, $\tau=0.25$, $K=3.5\\%$, realized reference rate $R=3.0\\%$. Take the perspective of the **receive-fixed** party (who receives $K$ and pays $R$).
 
-- End-of-period interest difference: $100{,}000{,}000\times(0.035-0.030)\times 0.25 = 125{,}000$ USD.
-- Cash settlement at $T_1$ (PV at the start of the period): $125{,}000/(1+0.030\times 0.25) \approx 124{,}070$ USD.
+- End-of-period (i.e., $T_2$) interest difference owed to the receive-fixed party: $N(K-R)\tau = 100{,}000{,}000\times(0.035-0.030)\times 0.25 = 125{,}000$ USD.
+- Cash settlement at $T_1$ to the receive-fixed party (PV at the start of the period, discounted at the realized $R$): $125{,}000/(1+0.030\times 0.25) \approx 124{,}070$ USD.
+
+The **pay-fixed** counterparty pays the same magnitude with the opposite sign.
 
 ### 3.4.2 FRA Valuation
 
@@ -440,11 +442,11 @@ Solving for $C$:
 
 $$\boxed{C_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}}$$
 
-An equivalent form (per 100 face) is:
+Equivalently, per 100 face value (with $d:=P(0,T_n)$ the final discount factor and $A:=\sum_{i=1}^n \tau_i P(0,T_i)$ as defined in §3.6.3):
 
-$$c = \frac{(100 - 100d)m}{A}$$
+$$c = \frac{100\\,(1 - d)}{A}$$
 
-where $d$ is the final discount factor, $m$ is the payment frequency, and $A$ is the annuity factor.
+This expresses the par coupon as an annual rate per 100 face. (Some references use $\tilde A:=\sum_i P(0,T_i)$, with no $\tau_i$ inside the sum; in that case the formula becomes $c=100\\,m\\,(1-d)/\tilde A$, where $m$ is the payment frequency. The two forms are equivalent for uniformly spaced payments because $A=\tilde A/m$.)
 
 ### 3.6.3 The Annuity
 
@@ -478,7 +480,7 @@ This is exactly how swap rates are quoted. A "5-year Swap Rate" is simply the fi
 
 ### 3.6.5 Why Par Rates Matter
 
-Par rates are the **observable market quotes**. You don't typically observe zero rates or discount factors directly—you observe Treasury yields (which are par-like) and swap rates (which are par rates). The bootstrap process (Chapter 17) inverts these par quotes to recover the underlying discount factors.
+Par rates are an important class of **observable market quotes**. You don't typically observe zero rates or discount factors directly—you observe swap rates (which are par rates by construction) and Treasury yields (which are close to par for **on-the-run** issues priced near 100, but diverge from par as off-the-run bonds trade at premiums or discounts). The bootstrap process (Chapter 17) inverts these par-like quotes to recover the underlying discount factors.
 
 ---
 
@@ -524,7 +526,7 @@ The par coupon is:
 
 $$C = \frac{1 - 0.9231}{1.9092} = \frac{0.0769}{1.9092} = 4.03\\%$$
 
-The par yield (4.03%) is **below** the 2-year zero rate (4.00% continuous, or about 4.08% semiannually equivalent). The coupon effect pulled the par yield down because the early coupons were discounted at lower rates.
+The par yield (4.03%) is **below** the 2-year zero rate (4.00% continuous, or about 4.04% semiannually equivalent — since $2(e^{0.04/2}-1)\approx 4.04\\%$). The coupon effect pulled the par yield down because the early coupons were discounted at lower rates.
 
 ### 3.7.4 The Inverted Curve Case
 
@@ -721,7 +723,7 @@ $$y_c = -\frac{\ln(0.9700)}{1} = 3.046\\%$$
 
 $$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\\%$$
 
-**Sanity Check:** Continuous < Semiannual < Simple. This ordering always holds for positive rates.
+**Sanity Check:** Continuous < Semiannual < Simple. This ordering reflects the rule that, for the same discount factor at a given $T$, **more frequent compounding implies a smaller quoted rate**. At $T=1$ year, the simple rate coincides with the annual-compounded rate; for $T \neq 1$ year, simple no longer equals annual, but the rule "more frequent compounding $\to$ smaller rate" still holds across the $m$-times conventions.
 
 ### Example B: Forward Rate Calculation
 
@@ -746,7 +748,7 @@ $$f_c = \frac{\ln(0.9615) - \ln(0.9157)}{1} = \frac{-0.0393 - (-0.0881)}{1} = 4.
 **Given:** $P(0, 1y) = 1.0020$ and $P(0, 1.5y) = 1.0030$.
 Note: $P \gt 1$ implies negative interest rates.
 
-**Objective:** Find the 6-month forward rate $6m \times 12m$ (starting in 1y, ending 1.5y). $\tau = 0.5$.
+**Objective:** Find the 6-month forward rate $1y \times 6m$ (starting in 1y, ending in 1.5y). $\tau = 0.5$.
 
 $$1 + F \cdot \tau = \frac{P(0, 1y)}{P(0, 1.5y)} = \frac{1.0020}{1.0030} \approx 0.999003$$
 
@@ -1044,7 +1046,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 12. **Integral Form:** If $f(0,T) = 0.03 + 0.01T$, find $P(0,3)$ using the integral formula.
 
-13. **Coupon Effect:** Given a steep curve (1y = 2%, 2y = 4%, 3y = 5% semiannual), calculate the 1y1y and 1y2y forward rates. Explain why they exceed the 2y and 3y spot rates.
+13. **Steep Curve Forwards:** Given a steep curve (1y = 2%, 2y = 4%, 3y = 5% semiannual), calculate the 1y1y and 1y2y forward rates. Explain why they exceed the 2y and 3y spot rates.
 
 14. **Trading Forwards:** A trader believes the 1-year rate one year from now will be 3.8%, but the 1y1y forward is 4.5%. Describe a trade to profit from this view and calculate the approximate P&L on USD 100mm notional if the trader is correct.
 
@@ -1058,7 +1060,7 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 3. **Par Rate**: $A = 1 \times 0.98 + 1 \times 0.95 = 1.93$. $C = (1 - 0.95)/1.93 = 0.05/1.93 = 2.59\\%$.
 
-4. **Arb**: Market forward (4%) is too high relative to curve (3%). Strategy: "Lend" at the market forward (buy FRA/receive fixed at 4%), "Borrow" at the theoretical forward (via synthetic using curve at 3%). You receive 4%, pay ~3%, profit ~1% on notional.
+4. **Arb**: The market FRA fixed rate (4%) is above the no-arbitrage forward implied by the curve (3%). Strategy: enter the FRA on the **receive-fixed** side at 4%, and lock in the synthetic forward at 3% via the curve (buy a $T_1$ zero, short a scaled $T_2$ zero — see §3.3.4). You receive 4% on the FRA leg and effectively pay only the 3% locked via zeros, capturing roughly 1% per unit of $\tau$ on notional (with the gain crystallized once the FRA is offset by the synthetic position).
 
 5. **Slope**: 5%. Flat curve means $y_c'=0$, so $f(0,T)=y_c(T)=5\\%$.
 
@@ -1070,13 +1072,13 @@ This "HJM drift restriction" has profound implications: you can choose the volat
 
 9. **Convention**: $R_{sa} = 2(e^{0.05/2} - 1) = 2(1.0253 - 1) = 5.06\\%$.
 
-10. **Bootstrapping**: Yes. Step 1: Use 1y par rate $C_1 = (1-P_1)/(P_1)$ to solve for $P(1)$ (assuming annual, `P1 = 1 / (1 + C1)`). Step 2: Use 2y par equation: $1 = C_2 \cdot P_1 + C_2 \cdot P_2 + P_2 = C_2(P_1 + P_2) + P_2$. Rearrange: $P_2 = (1 - C_2 \cdot P_1)/(1 + C_2)$.
+10. **Bootstrapping**: Yes. Step 1: Use the 1y par rate equation (assuming annual pay) $1 = C_1 P_1 + P_1$, i.e., $C_1 = (1-P_1)/P_1$, and solve to get $P_1 = 1/(1+C_1)$. Step 2: Use the 2y par equation $1 = C_2 P_1 + C_2 P_2 + P_2 = C_2(P_1 + P_2) + P_2$ and rearrange to get $P_2 = (1 - C_2 P_1)/(1 + C_2)$.
 
 11. **Instantaneous Forward**: $f(0,T) = -\frac{d}{dT}(-0.04T - 0.002T^2) = 0.04 + 0.004T$.
 
 12. **Integral Form**: $\int_0^3 f(0,u)\\,du = \int_0^3 (0.03 + 0.01u)\\,du = [0.03u + 0.005u^2]_0^3 = 0.09 + 0.045 = 0.135$. So $P(0,3) = e^{-0.135} = 0.8737$.
 
-13. **Coupon Effect**: Convert to DFs: $P(1) = 1/1.01^2 = 0.9803$, $P(2) = 1/1.02^4 = 0.9238$, $P(3) = 1/1.025^6 = 0.8623$. 1y1y forward = $2[(P(1)/P(2))^{1/2} - 1] = 6.02\\%$. 1y2y forward (the 2-year forward from 1→3) solves $(1+f/2)^4=P(1)/P(3)$, so $f=2[(P(1)/P(3))^{1/4}-1]\approx 6.52\\%$. Forwards exceed spots because on steep curves, the marginal rate must exceed the average to pull it up.
+13. **Steep Curve Forwards**: Convert to DFs: $P(1) = 1/1.01^2 \approx 0.9803$, $P(2) = 1/1.02^4 \approx 0.9238$, $P(3) = 1/1.025^6 \approx 0.8623$. 1y1y forward = $2[(P(1)/P(2))^{1/2} - 1] \approx 6.02\\%$. 1y2y forward (the 2-year forward starting at $T=1$, ending at $T=3$) solves $(1+f/2)^4=P(1)/P(3)$, so $f=2[(P(1)/P(3))^{1/4}-1]\approx 6.52\\%$. Forwards exceed spots because on an upward-sloping curve, the marginal rate must exceed the average to pull it up (the spot-forward identity $f=y_c+T\\,y_c'$ in continuous form, applied here in semiannual form).
 
 14. **Trading Forwards**: Receive fixed at 4.5% on a 1y1y forward swap, USD 100mm notional. If realized rate is 3.8%, gain 70bp for 1 year: $100{,}000{,}000 \times 0.007 \times 1 \approx 700{,}000$ USD approximate P&L.
 
