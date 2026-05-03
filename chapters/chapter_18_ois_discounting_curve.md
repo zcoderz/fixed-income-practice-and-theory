@@ -407,7 +407,7 @@ Applying this to our bootstrapped points:
 
 ### 18.4.1 Par Rates vs Zero Rates
 
-Notice that the zero curve (e.g., $y_c(T)$) is generally *not* the same as the par curve ($k$). For an upward sloping yield curve:
+Notice that the zero curve $y_c(T)$ is generally *not* the same as the par curve $k$. For an upward sloping yield curve:
 
 - The par rate is a *weighted average* of the zero rates, weighted by discount factors
 - The early coupons are discounted at lower rates (since the curve slopes upward)
@@ -830,7 +830,7 @@ For curve building and risk reporting, what matters is:
 - An OIS floating coupon is computed from daily compounded overnight fixings, so the realized coupon rate is known only at period end.
 - Under a single-curve OIS setup, the par condition implies $PV_{\text{flt}}=1-P(0,T_N)$ and $k_{\text{par}} = (1-P(0,T_N))/A(0)$.
 - Bootstrapping is sequential: each new pillar depends on earlier pillars, creating “locality” (and a lower-triangular Jacobian in a pure sequential build).
-- Zero rates (e.g., $y_c(T)$) are just a re-parameterization of discount factors; the par curve and the zero curve generally differ.
+- Zero rates such as $y_c(T)$ are just a re-parameterization of discount factors; the par curve and the zero curve generally differ.
 - Interpolation is a modeling choice: log-linear interpolation of discount factors implies piecewise-constant instantaneous forwards and tends to give stable, local risk.
 - DV01 must specify bump object, bump size, units, and sign; zero-curve shifts and par-quote rebootstrap bumps produce different “DV01” numbers.
 - Operational features (stubs, payment delays, observation shifts/lookbacks, special dates, negative rates) and funding/margin terms (PAI, IM/MVA) can dominate small PV differences.
