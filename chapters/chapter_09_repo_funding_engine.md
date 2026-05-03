@@ -13,7 +13,7 @@ Repos and reverse repos play an important role in the pricing of derivative secu
 
 > With repo transactions, we can "buy" without really buying, and we can "sell" without really selling.
 
-Because it is a secured rate, a repo rate is theoretically very slightly below the corresponding fed funds rate. The secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States.
+Because it is a secured rate, a repo rate normally sits just below the corresponding unsecured rate (e.g., fed funds in USD), with the gap reflecting the value of collateralization (§9.5.2 unpacks the mechanism). The secured overnight financing rate (SOFR) — a volume-weighted median of overnight Treasury repo rates — is the U.S. benchmark that grew out of this market.
 
 ## Learning Objectives
 - After this chapter, you can describe repo and reverse repo as two views of the same secured financing trade.
@@ -59,17 +59,17 @@ In this chapter we model repo interest as **simple interest on a 360-day basis**
 
 $$\boxed{L_1 = L_0 \left(1 + r \frac{d}{360}\right)}$$
 
-This is the same simple-interest convention used for many money-market instruments. Because it is a secured rate, a repo rate is theoretically very slightly below the corresponding fed funds rate.
+This is the same simple-interest convention used for many money-market instruments.
 
 **Example (one-day repo):** A corporation invests USD 100 million overnight at a repo rate of 5.45%. The repurchase price is:
 
-$$USD 100{,}000{,}000 \times \left(1 + \frac{0.0545}{360}\right) = USD 100{,}015{,}139$$
+$$100{,}000{,}000 \times \left(1 + \frac{0.0545}{360}\right) = 100{,}015{,}139\\,\text{USD}$$
 
 The corporation has effectively made a one-day loan at 5.45%, earning USD 15,139 in interest.
 
 For a **term repo** of seven days at the same rate:
 
-$$USD 100{,}000{,}000 \times \left(1 + \frac{7 \times 0.0545}{360}\right) = USD 100{,}105{,}972$$
+$$100{,}000{,}000 \times \left(1 + \frac{7 \times 0.0545}{360}\right) = 100{,}105{,}972\\,\text{USD}$$
 
 **Unit check:** Rate $r$ is per year, $d/360$ is in years, so $r \times d/360$ is dimensionless. Multiplying by dollars gives dollars.
 
@@ -87,7 +87,9 @@ $$USD 100{,}000{,}000 \times \left(1 + \frac{7 \times 0.0545}{360}\right) = USD 
 
 ### 9.1.4 SOFR (Orientation)
 
-The secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States.
+The **secured overnight financing rate (SOFR)** is the volume-weighted median rate on overnight Treasury repo transactions in the United States, published each business day by the Federal Reserve Bank of New York. The input pool covers tri-party repo, GCF (general collateral financing) repo, and bilateral Treasury repo cleared through FICC's DVP service, so SOFR reflects a broad cross-section of overnight Treasury-collateralized borrowing.
+
+Use of "median" rather than "mean" makes SOFR robust to a small number of outlier prints; volume-weighting ensures that small-trade noise does not dominate. Chapter 33 (collateral discounting) discusses why SOFR became the natural risk-free / OIS-style discounting benchmark for cleared and collateralized derivatives after LIBOR's retirement.
 
 ---
 
@@ -115,11 +117,11 @@ $$\text{Invoice price per 100} = 103.5625 + 1.493094 = 105.055594$$
 
 so the invoice cash for USD 100 million face is:
 
-$$USD 100{,}000{,}000 \times \frac{105.055594}{100} = USD 105{,}055{,}594$$
+$$100{,}000{,}000 \times \frac{105.055594}{100} = 105{,}055{,}594\\,\text{USD}$$
 
 The trading desk borrows this amount overnight at the market repo rate of 5.10%. On February 16, the desk owes:
 
-$$USD 105{,}055{,}594 \times \left(1 + \frac{0.051}{360}\right) = USD 105{,}055{,}594 + USD 14{,}883 = USD 105{,}070{,}477$$
+$$105{,}055{,}594 \times \left(1 + \frac{0.051}{360}\right) = 105{,}055{,}594 + 14{,}883 = 105{,}070{,}477\\,\text{USD}$$
 
 **The cost of financing the overnight position is USD 14,883.**
 
@@ -194,7 +196,7 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 > **Pitfall — "per 100" vs "%" vs decimals:** Bond prices and accrued interest are usually quoted **per 100** of face (price "points"), while rates like repo are quoted in **% per year**, and $1\text{ bp}=10^{-4}$.
 > **Why it matters:** Mixing these units is a common way to be off by 100× or 10,000× in carry/financing P&L.
-> **Quick check:** If $I(0)=102.90$ per 100 and $N=USD 100\text{mm}$, invoice cash should be $(N/100)\\,I(0)=USD 102.9\text{mm}$, not $USD 10.29\text{bn}$.
+> **Quick check:** If $I(0)=102.90$ per 100 and $N=100\\,\text{mm USD}$, invoice cash should be $(N/100)\\,I(0)=102.9\\,\text{mm USD}$, not $10.29\\,\text{bn USD}$.
 
 ### 9.4.2 Worked Example (Template): Funding a Long Bond for 7 Days
 
@@ -211,7 +213,7 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 - Coupon: assume no coupon payment inside the 7-day horizon
 
 **Inputs**
-- Face amount: $N=USD 100{,}000{,}000$
+- Face amount: $N=100{,}000{,}000\\,\text{USD}$
 - Clean price quote: $P(0)=102\text{-}16 = 102.50$ (per 100)
 - Accrued interest at settlement: $AI(0)=0.40$ (per 100) so invoice $I(0)=P(0)+AI(0)=102.90$
 - Repo rate: $r=4.80\\%$ (simple; 360-day basis), $d=7$
@@ -224,34 +226,34 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 **Step-by-step**
 1. Invoice cash at settlement:
-   $\text{Invoice cash}=N\times I(0)/100 = 100{,}000{,}000\times 102.90/100 = 102{,}900{,}000$ USD.
+   $\text{Invoice cash}=N\times I(0)/100 = 100{,}000{,}000\times 102.90/100 = 102{,}900{,}000\\,\text{USD}$.
 
 2. Repo start cash with haircut:
-   $L_0=(1-h)\times \text{Invoice cash}=0.98\times 102{,}900{,}000=100{,}842{,}000$ USD.
+   $L_0=(1-h)\times \text{Invoice cash}=0.98\times 102{,}900{,}000=100{,}842{,}000\\,\text{USD}$.
 
-   Equity posted $E_0 = \text{Invoice cash}-L_0 = USD 2{,}058{,}000$.
+   Equity posted $E_0 = \text{Invoice cash}-L_0 = 2{,}058{,}000\\,\text{USD}$.
 3. Repo interest over 7 days:
-   $\text{Repo interest}=L_0 \times r \times d/360 = 100{,}842{,}000 \times 0.048 \times 7/360 = 94{,}119.20$ USD.
+   $\text{Repo interest}=L_0 \times r \times d/360 = 100{,}842{,}000 \times 0.048 \times 7/360 = 94{,}119.20\\,\text{USD}$.
 
 4. Coupon accrual over 7 days (assumption above):
-   $\text{Accrual}=N\times (c/2)\times (d/D) = 100{,}000{,}000\times 0.03 \times 7/182 = 115{,}384.62$ USD.
+   $\text{Accrual}=N\times (c/2)\times (d/D) = 100{,}000{,}000\times 0.03 \times 7/182 = 115{,}384.62\\,\text{USD}$.
 
 5. Repo carry (ignoring price changes and ignoring the funding cost of the haircut equity):
-   $\text{Carry}\approx \text{Accrual} - \text{Repo interest} = 21{,}265.42$ USD.
+   $\text{Carry}\approx \text{Accrual} - \text{Repo interest} = 21{,}265.42\\,\text{USD}$.
 
 6. Funding-rate risk (`Repo01`):
    Define `Repo01` as $PL(r-1\text{bp})-PL(r)$ holding $L_0$ and everything else fixed. With simple interest on a 360-day basis,
-   $\text{Repo01}=L_0 \times (d/360) \times 10^{-4} = 196.08$ USD per 1bp.
+   $\text{Repo01}=L_0 \times (d/360) \times 10^{-4} = 196.08\\,\text{USD per 1bp}$.
 
    This is **positive** for a funded long: a 1bp drop in the repo rate reduces financing cost.
 
 **Cashflows (table)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-02-03 | $-USD 102{,}900{,}000$ | Pay invoice price to acquire the bond |
-| 2026-02-03 | $+USD 100{,}842{,}000$ | Receive repo cash (haircut-adjusted) |
-| 2026-02-10 | $-USD 100{,}842{,}000 - USD 94{,}119.20$ | Repay repo principal plus repo interest |
-| (over 2026-02-03→10) | $+USD 115{,}384.62$ | Accrual P&L from holding the bond (not a cash coupon unless a payment date occurs) |
+| 2026-02-03 | $-102{,}900{,}000\\,\text{USD}$ | Pay invoice price to acquire the bond |
+| 2026-02-03 | $+100{,}842{,}000\\,\text{USD}$ | Receive repo cash (haircut-adjusted) |
+| 2026-02-10 | $-(100{,}842{,}000 + 94{,}119.20)\\,\text{USD}$ | Repay repo principal plus repo interest |
+| (over 2026-02-03→10) | $+115{,}384.62\\,\text{USD}$ | Accrual P&L from holding the bond (not a cash coupon unless a payment date occurs) |
 
 **P&L / Risk Interpretation**
 - `Repo01` is a funding-rate DV01: it tells you how much P&L improves if your repo rate is 1bp lower for the same term and borrowed amount.
@@ -266,11 +268,11 @@ To convert from "per 100" to currency P&L for face amount $N$, multiply by $N/10
 
 Continuing the example of Section 9.2, suppose the desk sells the bond the next day at the ask price (one tick higher than bid). The desk earns USD 32,596 on the trade:
 
-- **Price change (bid-ask spread):** $USD 100{,}000{,}000 \times (1/32)\\% = USD 31{,}250$
-- **Interest income (one day's accrual):** $USD 100{,}000{,}000 \times (1.509323 - 1.493094)\\% = USD 16{,}229$
-- **Financing cost:** $USD 14{,}883$ (from Section 9.2)
-- **Carry:** $USD 16{,}229 - USD 14{,}883 = USD 1{,}346$
-- **Total P&L:** $USD 31{,}250 + USD 1{,}346 = USD 32{,}596$
+- **Price change (bid-ask spread):** $100{,}000{,}000 \times (1/32)\\% = 31{,}250\\,\text{USD}$
+- **Interest income (one day's accrual):** $100{,}000{,}000 \times (1.509323 - 1.493094)\\% = 16{,}229\\,\text{USD}$
+- **Financing cost:** $14{,}883\\,\text{USD}$ (from Section 9.2)
+- **Carry:** $16{,}229 - 14{,}883 = 1{,}346\\,\text{USD}$
+- **Total P&L:** $31{,}250 + 1{,}346 = 32{,}596\\,\text{USD}$
 
 ### 9.4.4 When Is Carry Positive?
 
@@ -283,19 +285,25 @@ These differences can cause carry to be slightly different from a naive coupon-m
 
 ### 9.4.5 Carry and Shorts
 
-For a short position, the signs flip: the desk **pays** the coupon (to the security lender) and **earns** repo on its cash. In the same numerical setup, the short earns only USD 29,908, compared to USD 32,596 for the long—the difference is the negative carry of approximately USD 1,342 (plus rounding).
+For a short position, the signs flip: the desk **pays** the coupon (to the security lender, as a manufactured coupon) and **earns** repo (reverse repo) on its cash. In the same numerical setup, the short's one-day P&L is
+
+$$\text{USD } 29{,}908 \\;=\\; \underbrace{\text{USD } 31{,}250}_{\text{bid-ask spread}} \\;+\\; \underbrace{(-\text{USD } 1{,}342)}_{\text{negative carry}}.$$
+
+The long's positive carry (about +USD 1,346) and the short's negative carry (about −USD 1,342) are nearly mirror images; the small gap is rounding plus the bid-vs-ask invoice base on which repo accrues. Because both desks pocket the same USD 31,250 bid-ask spread, the USD 2,688 gap between the long's USD 32,596 and the short's USD 29,908 is the *sum* of the two carry effects (≈ 1,346 + 1,342), not the magnitude of just one of them.
 
 ### 9.4.6 Breakeven Calculations
 
-Carry is useful for computing **breakeven price changes**. In this same setup, an investor holding the 5-7/8s for 30 days at 5.10% repo earns:
+Carry is useful for computing **breakeven price changes**. Continuing the example above, suppose an investor purchases the 5-7/8s at an invoice price of 105.103073 (per 100; for $N=$ USD 100mm face, that is invoice cash of USD 105,103,073) and holds them for 30 days at a 5.10% term-repo rate. Then:
 
-- Interest income: $USD 486{,}878$
-- Financing cost: $USD 446{,}688$
-- Carry: $USD 40{,}190$
+- Interest income (Actual/Actual coupon accrual, 30 of a 181-day coupon period):
+  $100{,}000{,}000\times \tfrac{5.875\\%}{2}\times \tfrac{30}{181} \approx 486{,}878\\,\text{USD}$
+- Financing cost (Actual/360 simple interest on invoice cash):
+  $105{,}103{,}073\times 5.10\\%\times \tfrac{30}{360} \approx 446{,}688\\,\text{USD}$
+- Carry: $486{,}878 - 446{,}688 = 40{,}190\\,\text{USD}$
 
-The bond price can fall by about 4 cents per 100 face before the investment loses money.
+The bond price can therefore fall by about 4 cents per 100 face ($40{,}190\\,\text{USD}$ over $N=100\\,\text{mm}$ corresponds to $0.04$ per 100 face) before the 30-day investment loses money.
 
-Similarly, for shorts, carry determines **breakeven holding periods**. A short expecting a price fall from 105.055594 to 105 must see the move within about 41 days before negative carry offsets the price gain.
+Similarly, for shorts, carry determines **breakeven holding periods**. A short opened at the bid invoice 105.055594 expecting the invoice price to fall to 105 stands to gain about USD 55,594 on USD 100mm face. The short pays roughly USD 1,342 of negative carry per day, so the move must arrive within about USD 55,594 / USD 1,342 ≈ 41 days; hold past that and accumulated negative carry overwhelms the price gain.
 
 ### 9.4.7 Carry Does Not Determine Expected Returns
 
@@ -317,11 +325,11 @@ In this book:
 
 ### 9.5.2 Why GC Tends to Trade Below Unsecured Rates
 
-Because it is a secured rate, a repo rate is theoretically very slightly below the corresponding fed funds rate.
+**Anchor:** because a repo loan is collateralized, the GC repo rate normally sits just below the corresponding unsecured rate of the same term and counterparty type — for example, USD GC repo trades through fed funds, and similar relationships hold for other major currencies' unsecured benchmarks.
 
-**Expand (mechanism):** In an unsecured loan, the lender’s payoff depends primarily on the borrower’s credit. In a secured loan (repo), the lender also has a claim on collateral, and the haircut/marking process is designed to keep the collateral value comfortably above the cash lent. All else equal, that reduces expected loss for the lender and therefore reduces the rate the lender demands.
+**Expand (mechanism):** In an unsecured loan, the lender's payoff depends primarily on the borrower's credit. In a secured loan (repo), the lender also has a claim on collateral, and the haircut/marking process is designed to keep the collateral value comfortably above the cash lent. All else equal, that reduces expected loss for the lender and therefore reduces the rate the lender demands.
 
-**Check (don’t over-interpret):** “Secured tends to be lower than unsecured” is a useful intuition, not a law of nature. Repo levels can be pushed around by collateral scarcity (specials), operational frictions, and balance-sheet constraints. When you use this intuition, always say what is being held fixed: same term, same counterparty credit, same collateral set, and the same haircut/margining assumptions.
+**Check (don't over-interpret):** "Secured tends to be lower than unsecured" is a useful intuition, not a law of nature. Repo levels can be pushed around by collateral scarcity (specials), operational frictions, and balance-sheet constraints. When you use this intuition, always say what is being held fixed: same term, same counterparty credit, same collateral set, and the same haircut/margining assumptions.
 
 ### 9.5.3 The Specialness Spread
 
@@ -349,9 +357,9 @@ Specialness matters because it directly changes financing cost. Over $d$ days, t
 
 $$\text{Financing difference} \approx L_0 \times s \times \frac{d}{360}$$
 
-For example, if $L_0=USD 100{,}000{,}000$, $s=159$ bp, and $d=1$,
+For example, if $L_0=100{,}000{,}000\\,\text{USD}$, $s=159$ bp, and $d=1$,
 
-$$\text{Daily benefit} \approx USD 100{,}000{,}000 \times \frac{0.0159}{360} \approx USD 4{,}417.$$
+$$\text{Daily benefit} \approx 100{,}000{,}000 \times \frac{0.0159}{360} \approx 4{,}417\\,\text{USD}.$$
 
 For a short position, specialness shows up as a **cost**: to borrow the security, you are effectively lending cash at the low special rate instead of at GC.
 
@@ -399,21 +407,31 @@ One useful framework breaks the decision into three components:
 
 1. **Liquidity value**: How much is the OTR's superior liquidity worth to this investor? A trader who expects to sell quickly values liquidity highly; a buy-and-hold investor values it less.
 
-2. **Financing advantage**: If the OTR is expected to trade 100 bp special on average over a 90-day horizon, the financing benefit is approximately:
+2. **Financing advantage**: If the OTR is expected to trade on average 100 bp **through** the off-the-run's repo rate over a 90-day horizon (i.e., the OTR's repo rate is 100 bp lower than the off-the-run's), the financing benefit of holding the OTR is approximately:
 
-$$\frac{0.01 \times 90}{360} = 0.25\\%$$
+$$\frac{0.0100 \times 90}{360} = 0.0025 = 0.25\\%$$
 
 of face value.
 
-3. **Yield rolldown**: If the OTR's yield premium is expected to narrow from 5 bp to 3 bp over the horizon, this creates a price loss as the OTR converges toward fair value.
+3. **Yield convergence**: The OTR yields 5 bp below the off-the-run today. If the yield spread between the off-the-run and the OTR is expected to narrow from 5 bp to 3 bp over the horizon (i.e., the OTR's yield rises 2 bp relative to the off-the-run as it ages out of OTR status), the OTR holder takes a price loss equal to that 2 bp move scaled by the bond's DV01.
 
 ### 9.7.3 The Trade-Off Calculation
 
-Netting these effects: if the financing advantage is 0.25% of face, but the anticipated yield convergence costs about 0.085% (based on DV01), and the coupon disadvantage costs about 0.031%, then the net advantage of the OTR is approximately:
+Quantifying each component (assuming a 5-year DV01 of about $0.04261$ per 100 face per 1bp — equivalently $0.04261\\%$ of face per 1bp, or about USD 426 per USD 1mm face per 1bp):
 
-$$0.25\\% - 0.031\\% - 0.085\\% = 0.134\\%$$
+- **Financing advantage**: $0.25\\%$ of face (from §9.7.2 step 2).
+- **Coupon disadvantage** (OTR has a 12.5bp lower coupon, accrued over 90 days at Actual/365): $0.00125 \times 90/365 \approx 0.031\\%$ of face.
+- **Yield convergence loss** (2bp move against the OTR, valued at DV01): $2 \times 0.04261\\% \approx 0.085\\%$ of face.
 
-This is equivalent to about 3.1 basis points. But if the OTR trades 4 basis points rich (after accounting for 1 bp of liquidity value), the off-the-run is the better investment for this particular investor.
+Netting:
+
+$$0.25\\% - 0.031\\% - 0.085\\% = 0.134\\%\text{ of face.}$$
+
+Converting this price advantage back into yield basis points uses the same DV01:
+
+$$\frac{0.134\\%}{0.04261\\%\,/\,\text{bp}} \approx 3.1\\,\text{bp}.$$
+
+So the financing-and-convergence story is worth about 3.1 bp of yield to the OTR. If the OTR trades 4 basis points rich after accounting for 1 bp of liquidity value, the financing/convergence package falls short of the price premium, and the off-the-run is the better investment for this particular investor.
 
 **Key insight:** Any trade or hedge involving a security that is trading special requires the same set of assumptions and calculations. How much is liquidity worth? How will special spreads behave? How will the premium change over time?
 
@@ -451,7 +469,7 @@ $$\boxed{\text{Leverage} = \frac{(N/100)\\, I(0)}{E_0} = \frac{1}{h}}$$
 
 If collateral value falls, the loan may exceed the permitted amount under the haircut. The borrower must either post additional collateral or repay cash—this is a **margin call**.
 
-**Example:** Collateral market value falls from USD 103 million to USD 101 million with a 2% haircut. Maximum permitted loan is $0.98 \times 101 = USD 98.98$ million. If the outstanding loan is USD 100.94 million, the margin call is USD 1.96 million.
+**Example:** Collateral market value falls from USD 103 million to USD 101 million with a 2% haircut. Maximum permitted loan is $0.98 \times 101 = 98.98$ million USD. If the outstanding loan is USD 100.94 million, the margin call is USD 1.96 million.
 
 This creates **liquidity risk**: price declines generate immediate cash demands. In stress scenarios, inability to meet margin calls can force liquidation at unfavorable prices.
 
@@ -459,13 +477,14 @@ This creates **liquidity risk**: price declines generate immediate cash demands.
 
 **Worked Example: Forced Deleveraging from Haircut Increase**
 
-A fund has USD 100 million in bonds, financed with 2% haircut (USD 98mm loan, USD 2mm equity).
+A fund has USD 100 million in bonds, financed with a 2% haircut (USD 98mm loan, USD 2mm equity, leverage 50×).
 
-Haircut increases to 5%. Maximum loan is now USD 95mm. The fund must:
-- Repay USD 3mm of the loan, OR
-- Sell USD 3mm / 0.95 = USD 3.16mm of bonds to stay within the new haircut
+The lender raises the haircut to 5%. The new constraint is $\text{loan} \le 0.95 \times \text{collateral}$, so the maximum permitted loan against the existing USD 100mm of bonds is USD 95mm. The fund has two ways to comply:
 
-If the fund lacks USD 3mm cash, it must sell—potentially at distressed prices.
+- **Inject equity:** raise USD 3mm of fresh cash and use it to pay the loan down to USD 95mm. The position size stays at USD 100mm; equity rises to USD 5mm; leverage falls to 20× = 1/0.05.
+- **Sell bonds and apply proceeds to the loan:** if the fund sells $X$ of bonds and uses the sale proceeds to repay debt, the new loan is $98 - X$ against new collateral of $100 - X$. The constraint $98 - X \\;\le\\; 0.95\\,(100 - X) = 95 - 0.95\\,X$ simplifies to $X \\;\ge\\; 60$. The fund must sell USD **60mm** of bonds — three-fifths of the position — leaving USD 40mm of collateral, USD 38mm of loan, USD 2mm of equity, and 20× leverage. Selling only USD 3mm of bonds is **not** sufficient: it leaves the loan at USD 95mm against USD 97mm of collateral, whose 5%-haircut maximum loan is USD 92.15mm — still over the limit.
+
+If the fund cannot raise the USD 3mm of equity, the bond-sale path is the only option, and a 60% unwind in stress conditions typically means selling at distressed prices. This is what *forced deleveraging* means in practice: a haircut change of just 3 percentage points can require liquidating most of the position.
 
 ---
 
@@ -643,7 +662,7 @@ For this chapter, the key operational distinction is:
 
 10. **Implied repo** reveals the financing rate embedded in forward/futures prices—key to basis trading.
 
-11. **The secured overnight financing rate (SOFR)** is an important volume-weighted median average of the rates on overnight repo transactions in the United States.
+11. **The secured overnight financing rate (SOFR)** is the volume-weighted median rate on overnight Treasury repo transactions in the U.S., spanning tri-party, GCF, and FICC-cleared bilateral repo.
 
 12. **In stress**, collateral shortages can drive specials to extreme levels and dislocate relative value.
 
@@ -662,7 +681,7 @@ For this chapter, the key operational distinction is:
 | Carry | Interest income minus financing cost | Key component of funded P&L |
 | `Repo01` | Funding-rate sensitivity: $PL(r-1\text{bp})-PL(r)$ holding $L_0,d$ fixed (currency per 1bp) | Makes funding risk explicit (separate from yield DV01) |
 | Implied repo | Financing rate implied by spot/forward prices | Reveals embedded financing in positions |
-| SOFR | The secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States | Based on overnight repo transactions |
+| SOFR | Volume-weighted median rate on overnight Treasury repo transactions in the U.S. | Post-LIBOR USD reference rate; basis for OIS-style discounting |
 | Settlement fail | Failure to deliver a security on settlement | Creates "borrow vs fail" economics for specials and shorts |
 
 ---
@@ -711,7 +730,7 @@ For this chapter, the key operational distinction is:
 | 17 | What can limit how negative a special can trade? | Under a "borrow vs fail" opportunity-cost framing, special rates cannot fall below 0%, so specialness cannot exceed the GC rate |
 | 18 | What is a manufactured coupon? | The coupon payment passed from security borrower to lender during a repo |
 | 19 | What is repo-rate risk? | P&L sensitivity to changes in financing rates |
-| 20 | What is SOFR and why does it matter? | The secured overnight financing rate (SOFR) is an important volume-weighted median average of the rates on overnight repo transactions in the United States |
+| 20 | What is SOFR and why does it matter? | Volume-weighted median rate on overnight Treasury repo (tri-party, GCF, FICC-cleared bilateral); the post-LIBOR USD benchmark used for OIS-style discounting |
 | 21 | What is implied repo? | The financing rate embedded in the forward-spot price relationship |
 | 22 | What does high specialness signal? | Crowded short interest—potential squeeze risk |
 
@@ -719,13 +738,13 @@ For this chapter, the key operational distinction is:
 
 ## Mini Problem Set
 
-1. (Compute) A repo starts with $L_0=USD 25{,}000{,}000$, $r=3.75\\%$, $d=3$ days (360-day basis). Compute $L_1$ and the interest.
-2. (Compute) A bond has clean price 99.75 and accrued interest 1.10 (both per 100 notional). For $N=USD 50{,}000{,}000$ face, compute the invoice cash exchanged.
+1. (Compute) A repo starts with $L_0=25{,}000{,}000\\,\text{USD}$, $r=3.75\\%$, $d=3$ days (360-day basis). Compute $L_1$ and the interest.
+2. (Compute) A bond has clean price 99.75 and accrued interest 1.10 (both per 100 notional). For $N=50{,}000{,}000\\,\text{USD}$ face, compute the invoice cash exchanged.
 3. (Concept) When is carry positive for a funded long? Name two convention effects that can make "coupon - repo" misleading.
-4. (Compute) For $N=USD 100{,}000{,}000$, invoice price 102% of face, and $d=7$, compute the P&L change for a +10bp move in the repo rate (hold everything else fixed).
-5. (Compute) Collateral market value is $USD 80{,}000{,}000$; haircut is 5%. Compute cash lent and leverage.
-6. (Compute) Using Problem 5, if collateral falls to $USD 76{,}000{,}000$, compute the margin call.
-7. (Compute) $r_{\text{GC}}=4.5\\%$, $r_{\text{spec}}=0.5\\%$, $L_0=USD 200{,}000{,}000$, $d=1$. Compute the daily specialness benefit.
+4. (Compute) For $N=100{,}000{,}000\\,\text{USD}$, invoice price 102% of face, and $d=7$, compute the P&L change for a +10bp move in the repo rate (hold everything else fixed).
+5. (Compute) Collateral market value is $80{,}000{,}000\\,\text{USD}$; haircut is 5%. Compute cash lent and leverage.
+6. (Compute) Using Problem 5, if collateral falls to $76{,}000{,}000\\,\text{USD}$, compute the margin call.
+7. (Compute) $r_{\text{GC}}=4.5\\%$, $r_{\text{spec}}=0.5\\%$, $L_0=200{,}000{,}000\\,\text{USD}$, $d=1$. Compute the daily specialness benefit.
 8. (Compute/Desk) Build a 40-day repo spanning a coupon. Show cashflows under a stated coupon/loan adjustment convention.
 9. (Derive) Given spot invoice $I_0$ and repo rate $r$, derive the forward clean price formula.
 10. (Derive) Repeat Problem 9 with one coupon inside the forward horizon.
@@ -733,13 +752,13 @@ For this chapter, the key operational distinction is:
 12. (Desk) A bond becomes more special after you short it. How does that affect your P&L and funding?
 
 ### Solution Sketches (Selected)
-1. $L_1=L_0(1+r d/360)=25{,}000{,}000(1+0.0375\times 3/360)=USD 25{,}007{,}812.50$. Interest $=USD 7{,}812.50$.
-2. Invoice per 100 $=99.75+1.10=100.85$. Cash $=50{,}000{,}000\times 100.85/100=USD 50{,}425{,}000$.
+1. $L_1=L_0(1+r d/360)=25{,}000{,}000(1+0.0375\times 3/360)=25{,}007{,}812.50\\,\text{USD}$. Interest $=7{,}812.50\\,\text{USD}$.
+2. Invoice per 100 $=99.75+1.10=100.85$. Cash $=50{,}000{,}000\times 100.85/100=50{,}425{,}000\\,\text{USD}$.
 3. Carry is positive when coupon accrual exceeds financing cost. Two common "gotchas": financing is applied to invoice (not face), and coupon accrual day count differs from the repo 360-day basis.
-4. Financing cost change $\approx -(N\times 1.02)\times (7/360)\times 0.0010=-USD 1{,}983.33$.
-5. Cash lent $L_0=0.95\times 80{,}000{,}000=USD 76{,}000{,}000$. Equity $=USD 4{,}000{,}000$. Leverage $=1/0.05=20\times$.
-6. Max permitted loan $=0.95\times 76{,}000{,}000=USD 72{,}200{,}000$. Margin call $=76{,}000{,}000-72{,}200{,}000=USD 3{,}800{,}000$.
-7. Daily benefit $=L_0(r_{\text{GC}}-r_{\text{spec}})/360=200{,}000{,}000\times 0.04/360=USD 22{,}222.22$.
+4. Financing cost change $\approx -(N\times 1.02)\times (7/360)\times 0.0010=-1{,}983.33\\,\text{USD}$.
+5. Cash lent $L_0=0.95\times 80{,}000{,}000=76{,}000{,}000\\,\text{USD}$. Equity $=4{,}000{,}000\\,\text{USD}$. Leverage $=1/0.05=20\times$.
+6. Max permitted loan $=0.95\times 76{,}000{,}000=72{,}200{,}000\\,\text{USD}$. Margin call $=76{,}000{,}000-72{,}200{,}000=3{,}800{,}000\\,\text{USD}$.
+7. Daily benefit $=L_0(r_{\text{GC}}-r_{\text{spec}})/360=200{,}000{,}000\times 0.04/360=22{,}222.22\\,\text{USD}$.
 
 ---
 
@@ -747,7 +766,7 @@ For this chapter, the key operational distinction is:
 
 - Bruce Tuckman, *Fixed Income Securities* ("Reverse Repurchase Agreements and Short Positions"; "General Collateral and Specials"; "Special Repo Rates and the Auction Cycle"; "Forward Price of a Deposit or a Zero Coupon Bond").
 - Salih N. Neftci, *Principles of Financial Engineering* ("Special Versus General Collateral"; "Classic Repo"; "Haircut"; "Implied Repo Rate").
-- John C. Hull, *Options, Futures, and Other Derivatives* ("Hedging an Equity Portfolio" → repo and SOFR overview).
+- John C. Hull, *Options, Futures, and Other Derivatives* (Ch. 4, "Repo Rates" → secured-rate-vs-fed-funds intuition; "Reference Rates" / "The New Reference Rates" → SOFR overview).
 - Robert A. Jarrow, *Modeling Fixed Income Securities and Interest Rate Options* ("Traded Securities > Treasury Security Markets" → repo as a forward contract).
 - Edwin J. Elton, Martin J. Gruber, Stephen J. Brown, William N. Goetzmann, *Modern Portfolio Theory and Investment Analysis* ("Money Market Securities" → repurchase agreements).
 - Damiano Brigo, Massimo Morini, Andrea Pallavicini, *Counterparty Credit Risk, Collateral and Funding* (2013, "Definition of Exposures" → haircuts on non-cash collateral).
