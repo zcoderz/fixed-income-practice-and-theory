@@ -64,13 +64,27 @@ $$99 + \frac{16}{32} = 99.50$$
 > | **+** | Plus (1/64th) | 1/64 | $0.015625$ |
 > | **Total** | | **99.515625** |
 >
-> *Note: The '+' is not a plus sign in the algebraic sense of adding 1; it's a specific shorthand for 'half a tick' (1/64).*
+> *Note: The '+' is not the arithmetic plus sign; it is a market shorthand for an extra **half tick** ($\tfrac{1}{2}\times\tfrac{1}{32}=\tfrac{1}{64}$).*
 
 Finer increments use fractions of 32nds. The quote `101-04 5/8` means:
 
 $$101 + \frac{4 + \frac{5}{8}}{32} = 101 + \frac{4.625}{32} = 101.14453125$$
 
-**Tick Precision Across Instruments:** Different Treasury futures contracts use different precision levels. For example, some contracts quote in half-32nds (1/64) and others in quarter-32nds (1/128). A settlement price of `139-025` means $139 + \frac{2.5}{32} = 139.078125$. A settlement price of `125-132` means $125 + \frac{13.25}{32} = 125.4140625$.
+**Tick precision across Treasury futures contracts.** Unlike the cash market (where the 32nd is the standard quote increment), CME Treasury futures use sub-32nd ticks for the shorter-maturity contracts. A common convention encodes the *third* digit after the dash as a fractional 32nd, so the fractional part is read as a decimal:
+
+| Third digit | Meaning | Fraction of a 32nd |
+|---|---|---|
+| `0` | exact 32nd | $0$ |
+| `2` | quarter | $\tfrac{1}{4}$ ($=\tfrac{1}{128}$) |
+| `5` | half | $\tfrac{1}{2}$ ($=\tfrac{1}{64}$) |
+| `7` | three-quarters | $\tfrac{3}{4}$ ($=\tfrac{3}{128}$) |
+
+Examples:
+
+- `139-025` decodes as $139 + \frac{2.5}{32} = 139.078125$ (a half-32nd contract such as the 10-Year T-Note).
+- `125-132` decodes as $125 + \frac{13.25}{32} = 125.4140625$ (a quarter-32nd contract such as the 5-Year or 2-Year T-Note).
+
+The "+" suffix used in the cash market and the "5" in the third position are equivalent ways of writing "plus a half-32nd" ($\tfrac{1}{64}$).
 
 The bond price quoted in the market is known as the **clean** (flat) price. It is different from the amount which is actually paid to buy a bond which is known as the **full** (dirty) price. The difference between the clean price and the full price is known as **accrued interest**.
 
@@ -78,10 +92,9 @@ Quoting clean prices and separating accrued interest avoids a mechanical sawtoot
 
 > **Example: Tick Size and Bid/Ask**
 >
-> Quotes in 32nds make small spreads natural to discuss in “ticks.” For illustration, a one‑tick (1/32 of par) spread on $100 million face corresponds to:
-> `100,000,000 USD × (1/32) × (1/100) = 31,250 USD`
->
-> A half‑tick (1/64) would be half that amount.
+> Quotes in 32nds make small spreads natural to discuss in "ticks." For illustration, a one‑tick ($\tfrac{1}{32}$ of par) spread on \$100 million face corresponds to:
+> $$100{,}000{,}000 \times \frac{1}{32} \times \frac{1}{100} = 31{,}250 \text{ USD}.$$
+> A half‑tick ($\tfrac{1}{64}$) would be half that amount.
 
 > **Desk Reality: What “Bid at 16, Offered at 16+” Means**
 >
@@ -97,24 +110,25 @@ The prices of money market instruments are sometimes quoted using a **discount r
 
 Let:
 - $Y$ be the cash price per $100$ of face value,
-- `q_disc` be the quoted discount rate in **percent per year** (ACT/360, applied to face value),
+- $q_{\text{disc}}$ be the quoted discount rate in **percent per year** (ACT/360, applied to face value),
 - $n$ be days to maturity (calendar days).
 
 Then the market relationship between the cash price and the quote is:
 
-$$\boxed{q_{\text{disc}} = \frac{360}{n}(100 - Y)}$$
+$$\boxed{q_{\text{disc}} = \frac{360}{n}\left(100 - Y\right)}$$
 
-Many texts write the same relationship as:
-
-$$P = \frac{360}{n}(100 - Y)$$
-
-where $P$ is the quoted price, $Y$ is the cash price, and $n$ is the remaining life of the Treasury bill measured in calendar days. (In this chapter, `q_disc` plays the role of $P$ in that notation.)
+Some textbooks reverse the symbols, writing $P$ for the quoted discount rate and $Y$ for the cash price (so the formula reads $P=(360/n)(100-Y)$). The relationship is the same; only the names change. We keep $Y$ for the cash price and $q_{\text{disc}}$ for the discount quote throughout this chapter to avoid colliding with the $P$ used elsewhere for bond price.
 
 Equivalently:
 
-$$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
+$$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\cdot\frac{n}{360}\right).$$
 
-**Why the discount quote understates investor return:** the quote divides the discount $(100-Y)$ by face value, but the investor’s cash outlay is $Y$. The simple-hold return over the bill’s life is $\frac{100-Y}{Y}$, which is larger than $\frac{100-Y}{100}$ when $Y\lt 100$.
+**Why the discount quote understates investor return.** The quote understates the true holding-period return for two reasons that compound:
+
+1. *Wrong denominator.* The quote divides the discount $(100-Y)$ by face value $100$, but the investor's cash outlay is only $Y\lt 100$. The simple holding-period return is $\frac{100-Y}{Y}$, which exceeds $\frac{100-Y}{100}$.
+2. *Wrong day basis.* The quote annualizes by $\frac{360}{n}$, treating a 360-day year as if it were a full year. A money-market yield using the same actual outlay but annualizing by $\frac{365}{n}$ (the so-called *bond-equivalent yield* for short bills) is larger by a factor $\frac{365}{360}\approx 1.0139$.
+
+Both effects move in the same direction: the discount quote $q_{\text{disc}}$ is *always smaller* than the corresponding money-market yield on the same bill.
 
 > **Worked Example A (House Template): T-bill discount quote → cash price → PV → DV01 (quote bump)**
 >
@@ -136,7 +150,7 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 > - Cash price per $100$ face, $Y$
 > - Settlement cash amount (buyer pays)
 > - PV at settlement (value of the bill)
-> - $DV01_{\text{disc}}$ (bump object: `q_disc` down by $1$ bp; units: USD per 1 bp; sign: positive for a long)
+> - $DV01_{\text{disc}}$ (bump object: $q_{\text{disc}}$ down by $1$ bp; units: USD per 1 bp; sign: positive for a long)
 >
 > **Step-by-step**
 > 1. Translate quote to interest on face:
@@ -166,13 +180,13 @@ $$Y = 100\left(1 - \frac{q_{\text{disc}}}{100}\frac{n}{360}\right).$$
 > - A different bump object (money-market yield, zero rate, curve node) will generally produce a different “01”. Always state what was bumped.
 >
 > **Sanity Checks**
-> - Units: `q_disc` is in percent p.a.; $1$ bp $=0.01$ percent points $=10^{-4}$ in decimal.
+> - Units: $q_{\text{disc}}$ is in percent p.a.; $1$ bp $=0.01$ percent points $=10^{-4}$ in decimal.
 > - Sign: for a long bill, lower rates $\Rightarrow$ higher price $\Rightarrow DV01 \gt 0$ under the book convention.
 > - Scaling: doubling $N$ doubles both PV and $DV01$; longer $n$ increases $DV01$ linearly.
 >
-> **Pitfall — “01” without a bump object:** saying “DV01 is \$253” is incomplete unless you also specify **what you bumped** (yield, zero rate, par rate, or a quote like `q_disc`). Two systems can both report “DV01” for the same trade and disagree simply because they bumped different objects.
+> **Pitfall — "01" without a bump object:** saying "DV01 is \$253" is incomplete unless you also specify **what you bumped** (yield, zero rate, par rate, or a quote like $q_{\text{disc}}$). Two systems can both report "DV01" for the same trade and disagree simply because they bumped different objects.
 > **Why it matters:** hedge ratios and P&L explain will be wrong even if both systems are “internally consistent.”
-> **Quick check:** when reconciling risk, write down the bump object and units (e.g., “`q_disc` down 1 bp” vs “zero curve down 1 bp”).
+> **Quick check:** when reconciling risk, write down the bump object and units (e.g., "$q_{\text{disc}}$ down 1 bp" vs "zero curve down 1 bp").
 
 ### 1.1.4 Money Markets: Rates with Day Counts
 
@@ -268,7 +282,7 @@ Day count conventions vary by market and instrument, and there are multiple “f
 
 Treat the day count as part of the contract: the correct choice is the one specified in the instrument documentation (confirmation, term sheet, rulebook).
 
-A quick sanity check: under ACT/360 with simple interest, a “5%” rate applied for 365 actual days accrues \(0.05\times 365/360 \approx 5.069\%\) of notional over the year.
+A quick sanity check: under ACT/360 with simple interest, a "5%" rate applied for $365$ actual days accrues $0.05\times 365/360 \approx 5.069\\%$ of notional over the year.
 
 Here is a compact “you will see these on the desk” list:
 
@@ -295,28 +309,33 @@ This is not a mathematical curiosity—it affects which bond you should prefer t
 
 ### 1.2.6 Day Count as a "Unit System"
 
-Think of day counts like measurement systems. Quoting a rate as "5%" without specifying the day count is like saying a distance is "100" without specifying whether it's meters or feet.
+Think of day counts (and compounding bases) like measurement systems. Quoting a rate as "5%" without specifying the day count and compounding is like saying a distance is "100" without specifying whether it is meters or feet.
 
-The same economic arrangement can have different quoted rates depending on the day count. Consider a loan from February 15, 2001, to August 15, 2001 (181 actual days):
+To see how the same numerical "5%" produces different cashflows under different conventions, consider a loan from February 15, 2001 to August 15, 2001 ($181$ actual days, roughly a half year):
 
-- At 5% under Actual/360: $\text{Interest} = 5\\% \times \frac{181}{360} = 2.5139\\%$
-- At 5% under semiannual compounding: $\text{Interest} = \frac{5\\%}{2} = 2.500\\%$
-- At 5% under monthly compounding: $\text{Interest} = (1 + 0.05/12)^6 - 1 = 2.5262\\%$
-- At 5% under daily compounding: $\text{Interest} = (1 + 0.05/365)^{181} - 1 = 2.5103\\%$
+- *Day-count basis* — 5% applied as ACT/360 simple interest: $0.05 \times \frac{181}{360} = 2.5139\\%$ of notional
+- *Compounding basis* — 5% nominal rate compounded at different frequencies for half a year:
+  - Semiannual: $\left(1 + \frac{0.05}{2}\right) - 1 = 2.500\\%$
+  - Monthly: $\left(1 + \frac{0.05}{12}\right)^6 - 1 = 2.5262\\%$
+  - Daily ($365$): $\left(1 + \frac{0.05}{365}\right)^{181} - 1 = 2.5103\\%$
 
-Different numbers, same economic reality: if cashflows are computed correctly, the economic payment is the same. The danger is mixing conventions mid-calculation.
+These are *different* cash payments produced by the *same numerical quote*, simply because the conventions interpret "5%" differently. The number alone is not enough; the convention is part of the price. The practical danger is mixing conventions mid-calculation: applying an ACT/360 simple-interest rate as if it were a continuously compounded rate (or vice versa) systematically misprices.
 
 > **Worked Example C: Same Period, Three Conventions**
 >
-> Calculate accrued interest from March 15 to June 15 (92 actual days, in a coupon period of 182 days) on $100mm face of a 6% coupon bond.
+> Calculate accrued interest from March 15 to September 15 (next coupon date) for a settlement of June 15. The bond has a 6% annual coupon (paid semiannually as 3% per period) on $100mm face. The period contains $184$ actual days; $92$ have elapsed by settlement.
 >
-> | Convention | Day Fraction | Accrued Interest |
-> |------------|--------------|------------------|
-> | ACT/ACT | $\frac{92}{182} = 0.5055$ | $100\text{mm} \times 3\% \times 0.5055 = 1{,}516{,}484\ \text{USD}$ |
-> | 30/360 | $\frac{90}{180} = 0.5000$ | $100\text{mm} \times 3\% \times 0.5000 = 1{,}500{,}000\ \text{USD}$ |
-> | ACT/360 | $\frac{92}{180} = 0.5111$ | $100\text{mm} \times 3\% \times 0.5111 = 1{,}533{,}333\ \text{USD}$ |
+> The accrued-interest formula differs slightly across conventions: ACT/ACT and 30/360 use *(days accrued)/(days in period) × periodic coupon*, while ACT/360 typically uses *(days accrued)/360 × annual coupon*.
 >
-> **Difference:** The gap between highest and lowest is $33,333—material for trade confirmation and P&L.
+> | Convention | AI formula | Numbers | Accrued Interest |
+> |---|---|---|---|
+> | ACT/ACT | $\dfrac{d_{\text{acc}}}{d_{\text{period}}}\cdot \dfrac{c}{2}\cdot N$ | $\dfrac{92}{184}\times 3\\% \times 100\text{mm}$ | $1{,}500{,}000\ \text{USD}$ |
+> | 30/360 | $\dfrac{d_{\text{acc}}^{30/360}}{180}\cdot \dfrac{c}{2}\cdot N$ | $\dfrac{90}{180}\times 3\\% \times 100\text{mm}$ | $1{,}500{,}000\ \text{USD}$ |
+> | ACT/360 | $\dfrac{d_{\text{acc}}}{360}\cdot c\cdot N$ | $\dfrac{92}{360}\times 6\\% \times 100\text{mm}$ | $1{,}533{,}333\ \text{USD}$ |
+>
+> **Reading the table:** ACT/ACT and 30/360 happen to coincide here because (92/184) and (90/180) are both exactly $0.5$. ACT/360 differs by $33{,}333$ USD because it counts $92$ actual days against a $360$-day denominator (rather than $184$ against the actual coupon period). The arithmetic is small; the reconciliation pain is real.
+>
+> **Pitfall:** the "Day Fraction" column you may see in legacy reports often shows $92/180$ for the ACT/360 row. That number is not a year fraction in any meaningful sense — it is an artifact of factoring the periodic-coupon formula. Always check what the AI formula in your system is actually computing.
 
 ---
 
@@ -356,9 +375,9 @@ For many practical purposes, continuous compounding is close to daily compoundin
 
 > **Why Continuous Compounding in Derivatives**
 >
-> Continuous compounding is widely used in derivatives because it makes formulas cleaner: discount factors become exponentials and multiply simply, e.g.
-> $$e^{-r_1 t_1}\times e^{-r_2 t_2}=e^{-(r_1 t_1+r_2 t_2)}.$$
-> Treat compounding basis as part of the rate’s unit. Convert to the market’s quoting convention when comparing prices or risks across systems.
+> Continuous compounding is widely used in derivatives pricing because it makes the algebra of forward/spot rate relationships clean. Discount factors compose multiplicatively along the time line: discounting from $T_1+T_2$ back to $0$ equals discounting from $T_1+T_2$ back to $T_1$ and then from $T_1$ back to $0$. With continuous rates this becomes additive in the exponent:
+> $$e^{-r_1 T_1}\times e^{-r_2 T_2}=e^{-(r_1 T_1+r_2 T_2)},$$
+> where $r_1$ is the (continuously compounded) zero rate over $[0,T_1]$ and $r_2$ is the *forward* rate over $[T_1,T_1+T_2]$. The same composition under semiannual compounding would mix products of $(1+R/2)$ terms and is messier to differentiate. Treat compounding basis as part of the rate's unit; convert to the market's quoting convention when comparing prices or risks across systems.
 
 ### 1.3.3 Compounding Is a Unit Choice, Not an Economic Choice
 
@@ -460,24 +479,27 @@ A useful (but imperfect) intuition is that failing can compete with borrowing th
 > - the short can’t deliver, so it doesn’t receive sale proceeds when expected;
 > - the long doesn’t receive the bond, so it may have to replace it (or fail onward).
 >
-> **US Treasuries: Fails Charge (Illustrative Formula)**
+> **US Treasuries: TMPG Fails Charge**
 >
-> A common market convention is to apply a daily fails charge for delivery-versus-payment (DVP) Treasury trades. One widely used functional form is:
+> The Treasury Market Practices Group (TMPG) recommends a daily fails charge for delivery-versus-payment (DVP) Treasury trades. The current (post-2018) formula is:
 >
-> $$\boxed{C \\;=\\; \frac{1}{360}\times 0.01 \times \max(3 - R,\\; F)\times P}$$
+> $$\boxed{C_{\text{day}} \\;=\\; \frac{1}{360}\times \frac{1}{100} \times \max\bigl(3 - R,\\; 1\bigr)\times \Pi}$$
 >
 > where:
-> - $C$ = fails charge amount, in dollars (accrues each calendar day during the fail);
-> - $P$ = “trade proceeds”, i.e., the amount of funds due from the non-failing party (for DVP);  
->   *(Here P denotes proceeds. Do not confuse it with bond price notation elsewhere in this chapter.)*
-> - $R$ = reference short rate used for the charge calculation (definition is convention-specific);
-> - $F$ = floor in percentage points per annum so the charge does not collapse to zero when rates are very low (definition is convention-specific).
+> - $C_{\text{day}}$ = fails charge amount in dollars (accrues each calendar day the trade fails);
+> - $\Pi$ = trade *proceeds*, i.e., the amount of funds due from the non-failing party (kept as $\Pi$ here to avoid colliding with $P$ used for bond price elsewhere);
+> - $R$ = TMPG reference rate, in percent per annum (currently the target federal funds rate, or the lower bound of the target range);
+> - the constants $3$ and $1$ are the cap and floor (in percentage points per annum). The annualized charge rate is $\max(3-R,\\;1)$ percent per annum, so it sits between $1\\%$ and $3\\%$.
 >
-> The exact definitions of \(R\) and \(F\) (including any floors/thresholds and effective dates) are rulebook inputs: confirm them for your product and venue.
+> **Intuition (when each part of the formula bites):**
+> - When short rates are *low* ($R\lt 2\\%$), the term $3-R$ is large and the charge is high. This is the design goal — failing is otherwise cheap when interest on the un-received proceeds is low, so an explicit charge is needed to discourage fails.
+> - When short rates are *high* ($R\gt 2\\%$), the term $3-R$ is small or negative, and the floor of $1\\%$ takes over. The floor was added in 2018 specifically so that the charge does not collapse to zero when rates rise (which would weaken the operational discipline the charge was created to enforce).
+> - The cap of $3\\%$ binds only if $R\lt 0$, an edge case for USD but a real one in negative-rate currencies.
 >
-> **Intuition:** when short rates are low, failing is otherwise “cheap,” so the fails charge creates an explicit cost. When short rates are high enough, the opportunity cost of not receiving proceeds is already meaningful and the explicit charge may be small or zero (subject to any floor).
+> **Worked number (order of magnitude):** if $\Pi = 100{,}000{,}000\ \text{USD}$ and the applicable charge rate is $2\\%$ per annum, then
+> $$C_{\text{day}} \\;=\\; 100{,}000{,}000 \times \frac{0.02}{360} \\;=\\; 5{,}556 \text{ USD per day}.$$
 >
-> **Worked number (order of magnitude):** If $P=100{,}000{,}000\ \text{USD}$ and the applicable fails charge rate is 2% per annum, then $C \approx 100{,}000{,}000 \times 0.02/360 = 5{,}556\ \text{USD}$ per day.
+> Confirm the exact definition of $R$ and the effective date for your product and venue (the TMPG also publishes a parallel charge for agency debt and agency MBS).
 
 One historical stress episode: after September 11, 2001, operational disruption increased Treasury settlement fails and reduced the availability of on-the-run collateral in the specials market, contributing to shortages.
 
@@ -539,34 +561,36 @@ Overnight reference rates are backward-looking: the rate applicable to a particu
 
 The compounding formula for RFRs is:
 
-$$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}(1 + r_i \hat{d}_i) - 1\right] \times \frac{360}{D}}$$
+$$\boxed{\text{Compounded Rate} = \left[\prod_{i=1}^{n}\left(1 + r_i\\, \hat{d}_i\right) - 1\right] \times \frac{360}{D}}$$
 
-where $r_i$ is the overnight rate on day $i$, `d_hat_i = d_i/360`, `d_i` is the number of days that rate applies (usually 1, but 3 over weekends), and `D = sum_i d_i` is the total number of days in the period.
+where $r_i$ is the overnight rate observed on day $i$, $\hat{d}_i = d_i/360$, $d_i$ is the number of calendar days that fixing applies (usually $1$, but $3$ over a weekend so the Friday rate carries through Saturday and Sunday), and $D = \sum_i d_i$ is the total number of calendar days in the period. SOFR uses a $360$-day basis as shown; SONIA uses $365$ instead.
 
-> **Worked Example G: SOFR Compounding**
+> **Worked Example G: SOFR Compounding (one full week)**
 >
-> Calculate the compounded SOFR rate for a 5-day period with the following daily rates:
+> Calculate the compounded SOFR rate for a one-week ($D=7$ calendar days, $5$ business-day fixings) period:
 >
-> | Day | SOFR Rate | Days Applied |
-> |-----|-----------|--------------|
-> | Mon | 5.30% | 1 |
-> | Tue | 5.32% | 1 |
-> | Wed | 5.31% | 1 |
-> | Thu | 5.29% | 1 |
-> | Fri | 5.30% | 3 (includes Sat/Sun) |
+> | Fixing day | SOFR rate | Calendar days the fixing applies ($d_i$) |
+> |---|---|---|
+> | Mon | $5.30\\%$ | $1$ |
+> | Tue | $5.32\\%$ | $1$ |
+> | Wed | $5.31\\%$ | $1$ |
+> | Thu | $5.29\\%$ | $1$ |
+> | Fri | $5.30\\%$ | $3$ (Friday rate carries through Sat/Sun) |
 >
-> **Step 1:** Calculate daily growth factors:
+> **Step 1:** Daily growth factors $1 + r_i\\,d_i/360$:
 > - Mon: $1 + 0.0530 \times \frac{1}{360} = 1.0001472$
 > - Tue: $1 + 0.0532 \times \frac{1}{360} = 1.0001478$
 > - Wed: $1 + 0.0531 \times \frac{1}{360} = 1.0001475$
 > - Thu: $1 + 0.0529 \times \frac{1}{360} = 1.0001469$
 > - Fri: $1 + 0.0530 \times \frac{3}{360} = 1.0004417$
 >
-> **Step 2:** Compound:
-> $$\prod = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 = 1.001031$$
+> **Step 2:** Compound the five factors:
+> $$\prod_{i=1}^{5}\left(1+r_i\\,d_i/360\right) = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 \approx 1.001031.$$
 >
-> **Step 3:** Annualize:
-> $$\text{Compounded Rate} = (1.001031 - 1) \times \frac{360}{7} = 5.303\\%$$
+> **Step 3:** Annualize over $D=7$ calendar days:
+> $$\text{Compounded Rate} = \left(1.001031 - 1\right) \times \frac{360}{7} \approx 5.30\\%.$$
+>
+> Sanity: the answer is close to the simple average of the five fixings ($\approx 5.30\\%$), as expected when rates barely move within the week.
 
 Because the rate is determined from realized overnight fixings, operational timing conventions (when you observe rates and when you pay) are part of the contract specification. This book treats those timing conventions as inputs (we return to them when discussing curve construction and instrument mechanics later).
 
@@ -703,15 +727,17 @@ Most trading desks quote clean and track accrued interest separately, then recon
 > - May 15 to November 15 = 184 days (full period)
 >
 > **Step 2:** Calculate accrued interest (ACT/ACT)
-> $$AI = \frac{61}{184} \times \frac{5\\%}{2} \times 100 = \frac{61}{184} \times 2.50 = 0.829$$
+> $$AI = \frac{61}{184} \times 2.50 = 0.829\\;\text{(per }100\text{ face)}$$
+>
+> (The semiannual coupon is $5\\%/2 = 2.50$ per $100$ face.)
 >
 > **Step 3:** Calculate dirty price
 > $$P_{\text{dirty}} = 98.50 + 0.829 = 99.329$$
 >
 > **Step 4:** Cash exchanged on $1mm face
-> `Cash = 1,000,000 USD × (99.329/100) = 993,290 USD`
+> $$\text{Cash} = 1{,}000{,}000 \times \frac{99.329}{100} = 993{,}290 \text{ USD}.$$
 >
-> **Sanity check:** Dirty price > clean price (positive accrued). Accrued ≈ 1/3 of semiannual coupon (61/184 ≈ 33%). ✓
+> **Sanity check:** Dirty price > clean price (positive accrued). Accrued $\approx$ one-third of the semiannual coupon ($61/184 \approx 33\\%$). ✓
 
 **Full treatment of accrued interest mechanics appears in Chapter 5.**
 
@@ -792,7 +818,7 @@ This chapter established the "plumbing" that underlies all fixed-income pricing:
 
 7. **Clean pricing removes mechanical drift**: Markets quote clean to make prices comparable across dates. The dirty price is what actually changes hands. When yields are unchanged, clean prices can be continuous across coupon dates even though the dirty price drops by the coupon as accrued interest resets.
 
-8. **Risk numbers need a bump object**: DV01 is a PV sensitivity per 1 bp *for a stated bump design* (“what is being bumped?”). Two systems can both report “DV01” and disagree simply because they bumped different objects (yield vs curve nodes vs a quote like a T-bill discount rate).
+8. **Risk numbers need a bump object**: DV01 is a PV sensitivity per 1 bp *for a stated bump design* ("what is being bumped?"). Two systems can both report "DV01" and disagree simply because they bumped different objects (yield vs curve nodes vs a quote like a T-bill discount rate).
 
 None of this is mathematically deep, but all of it must be exactly right. The chapters that follow build on these conventions: Chapter 2 develops discount factors and present value; Chapter 3 covers the zero-forward-par rate relationships; Chapter 5 develops bond pricing with accrued interest mechanics; Chapter 11 formalizes DV01/PV01; Chapter 18 covers RFR curve construction in depth.
 
@@ -837,7 +863,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 | $m$ | Compounding / payment frequency | per year |
 | $z(T)$ | Zero (spot) rate to maturity $T$ | per year; compounding basis must be stated |
 | $f(T_1, T_2)$ | Forward rate for period $[T_1, T_2]$ | per year; day count + compounding must be stated |
-| `q_disc` | T-bill quoted discount rate | percent points p.a. on face value, ACT/360 |
+| $q_{\text{disc}}$ | T-bill quoted discount rate | percent points p.a. on face value, ACT/360 |
 | $R_c$ | Continuously compounded rate | per year |
 | $R_m$ | Rate compounded $m$ times per year | per year |
 | $DV01$ | “01” PV sensitivity | currency per 1 bp for a *stated bump object*; book convention: $PV(\text{rates down }1\text{bp})-PV(\text{base})$ |
@@ -866,7 +892,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 | 16 | How many days between Feb 28 and Mar 1 under 30/360? | 3 days (Feb 28 → Feb 30 → Mar 1) |
 | 17 | How many days between Feb 28 and Mar 1 under ACT/ACT? | 1 day |
 | 18 | Why is continuous compounding used in derivatives pricing? | Mathematical convenience: discount factors multiply simply |
-| 19 | How are T-bill discount quotes related to cash prices? | `q_disc = (360/n) * (100 - Y)` where `q_disc` is the discount quote (% p.a.) and `Y` is cash price per `100` face |
+| 19 | How are T-bill discount quotes related to cash prices? | $q_{\text{disc}} = (360/n)\\,(100 - Y)$, where $q_{\text{disc}}$ is the discount quote (percent p.a., ACT/360) and $Y$ is the cash price per $100$ face |
 | 20 | Give an example of a holiday calendar used in EUR contracts | TARGET (product-specific) |
 | 21 | What is a settlement fail? | When the seller cannot deliver securities on the agreed settlement date |
 | 22 | What is DV01 and what is the “bump object”? | DV01 is PV change per 1 bp for a defined rate/quote bump; you must state what is being bumped (yield/zero/par/quote) and the sign convention |
@@ -904,7 +930,7 @@ The following notation appears in this chapter (and many symbols reappear in lat
 
 13. A CDS trades on November 10 with quarterly payments on the 20th. If the spread is 150bp on $5mm notional, what is the first (stub) premium payment on December 20? (Use ACT/360)
 
-14. Calculate the compounded rate for a **5-day** period where Monday's SOFR is 5.25% (applies 1 day), Tuesday's is 5.28% (applies 1 day), and Wednesday's is 5.26% (applies 3 days). Express as an annualized rate.
+14. Calculate the compounded SOFR rate for a $5$-calendar-day period where Monday's fixing is $5.25\\%$ (applies $1$ day), Tuesday's is $5.28\\%$ (applies $1$ day), and Wednesday's is $5.26\\%$ (applies $3$ days, because Thursday and Friday are holidays in this hypothetical). Express as an annualized rate.
 
 15. (Compute) A 182-day T-bill with face value $25,000,000 is quoted at a discount rate of 4.50. Using ACT/360 bank discount quoting, compute:
     (a) the cash price per $100$ face,
@@ -939,9 +965,10 @@ The following notation appears in this chapter (and many symbols reappear in lat
 
 13. Days from Nov 10 to Dec 20 = 40 days. Accrual fraction = 40/360 = 0.1111. Payment = $5{,}000{,}000 \times 0.015 \times 0.1111 \approx 8{,}333$ (USD).
 
-14. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 = 0.000731$. Annualized: $0.000731 \times 360/5 = 5.26\\%$
+14. Compound: $(1 + 0.0525/360)(1 + 0.0528/360)(1 + 0.0526 \times 3/360) - 1 \approx 0.000731$. Annualized over $D=5$ calendar days: $0.000731 \times 360/5 \approx 5.26\\%$.
 
 15. (a) Interest per $100$: $100 \times 0.045 \times 182/360 = 2.275$ so $Y=97.725$. (b) Cash paid: $25{,}000{,}000 \times 0.97725 = 24{,}431{,}250\text{ USD}$. (c) $DV01_{\text{disc}} = N \times (n/360) \times 10^{-4} = 25{,}000{,}000 \times 182/360 \times 10^{-4} = 1{,}263.89\text{ USD}$.
+
 ---
 
 ## References
