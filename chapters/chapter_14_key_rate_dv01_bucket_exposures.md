@@ -63,11 +63,11 @@ One way to see the problem is to look at **partial durations** (or “key-rate d
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Duration | 0.2 | 0.6 | 0.9 | 1.6 | 2.0 | -2.1 | -3.0 | 0.2 |
 
-The total duration is only 0.2, so the portfolio looks nearly immune to a parallel move. But consider a **rotation** of the curve (a twist) where the changes are proportional to $(3e, 2e, e, 0, -e, -3e, -6e)$ for maturities 1y through 10y. The first-order P&L is
+The total duration is only 0.2, so the portfolio looks nearly immune to a parallel move. But consider a **rotation** of the curve (a twist) where the changes are proportional to $(-3\epsilon, -2\epsilon, -\epsilon, 0, +\epsilon, +3\epsilon, +6\epsilon)$ for maturities 1y through 10y (a steepening for $\epsilon \gt 0$: front rates fall, back rates rise). The first-order P&L is
 
-$$\Delta P/P = -[0.2 \times (-3e) + 0.6 \times (-2e) + 0.9 \times (-e) + 1.6 \times 0 + 2.0 \times e - 2.1 \times 3e - 3.0 \times 6e] = +25.0e$$
+$$\Delta P/P = -\sum_i D_i\\,\Delta y_i = -[(0.2)(-3\epsilon) + (0.6)(-2\epsilon) + (0.9)(-\epsilon) + (1.6)(0) + (2.0)(\epsilon) + (-2.1)(3\epsilon) + (-3.0)(6\epsilon)] = +25.0\\,\epsilon.$$
 
-Despite having near-zero total duration, the portfolio has massive twist exposure. For a parallel shift of $e$, the percentage change would be only $-0.2e$.
+Despite having near-zero total duration, the portfolio has massive twist exposure (the position is structurally a steepener — long the front, short the back — and benefits when the curve steepens). For a parallel shift of $\epsilon$, the percentage change would be only $-0.2\\,\epsilon$.
 
 Parallel DV01 cannot distinguish between these risks. To differentiate them, we need to decompose the single "rate" variable $y$ into a vector of rates.
 
@@ -92,17 +92,17 @@ To measure *local* risk, we cannot simply “move one point” without saying ho
 - the impacts change smoothly across maturities, and
 - the sum of the key-rate shifts is a parallel shift of the curve.
 
-Denote the resulting shock at maturity $t$ by $Shift_k(t)$ (in bp).
+Denote the resulting shock at maturity $t$ by $\mathrm{Shift}_k(t)$ (in bp).
 
 A convenient property is:
 
 $$
-\sum_{k=1}^K Shift_k(t) = 1\text{ bp}\quad \text{for all }t.
+\sum_{k=1}^K \mathrm{Shift}_k(t) = 1\text{ bp}\quad \text{for all }t.
 $$
 
 If the key-rate shifts sum to a parallel shift, then the key-rate 01s add up (approximately) to the parallel DV01 computed under the same bump design.
 
-**Mechanics (why a “single key” bump moves more than one maturity):** A key-rate shift is implemented by (i) shocking one key input and (ii) re-interpolating/rebuilding the full curve. Even if you “bump the 5y key,” the implied shock $Shift_k(t)$ typically affects a whole maturity *region* between neighboring keys. That is why KR01s are exposure to a **shock shape + rebuild rule**, not exposure to an infinitesimal point on a continuous curve.
+**Mechanics (why a “single key” bump moves more than one maturity):** A key-rate shift is implemented by (i) shocking one key input and (ii) re-interpolating/rebuilding the full curve. Even if you “bump the 5y key,” the implied shock $\mathrm{Shift}_k(t)$ typically affects a whole maturity *region* between neighboring keys. That is why KR01s are exposure to a **shock shape + rebuild rule**, not exposure to an infinitesimal point on a continuous curve.
 
 ### 14.2.2 Arbitrariness and Comparability
 
@@ -135,7 +135,7 @@ $$
 \Delta PV \approx -\sum_{k=1}^K KR01_k\\,\Delta r_k.
 $$
 
-If your shift functions satisfy $\sum_k Shift_k(t)=1\text{bp}$, then a practical checksum is
+If your shift functions satisfy $\sum_k \mathrm{Shift}_k(t)=1\text{bp}$, then a practical checksum is
 
 $$
 \sum_k KR01_k \approx DV01_{\parallel}.
@@ -171,10 +171,12 @@ $$
 | 1y | 0.0005 | 0.6% |
 | 2y | 0.0024 | 2.8% |
 | 5y | 0.0088 | 10.3% |
-| 10y | 0.0733 | 86.3% |
+| 10y | 0.0732 | 86.3% |
 | **Sum** | **0.0849** | **100.0%** |
 
-**Check (scale to dollars):** In this example, $KR01_{10y}=0.0733$ is in **price points per 100 per 1bp**. On $N=USD 100\text{mm}$ face, that is $(0.0733/100)\times 100\text{mm} \approx USD 73{,}300/\text{bp}$. The total parallel DV01 of $0.0849$ points per 100 corresponds to about USD 84,900/bp on USD 100mm.
+(Individual KR01s computed by single-key 1bp down bumps and rounded; the sum equals the parallel DV01 reported below up to small rounding/second-order effects from the finite bump.)
+
+**Check (scale to dollars):** In this example, $KR01_{10y}=0.0732$ is in **price points per 100 per 1bp**. On $N=USD 100\text{mm}$ face, that is $(0.0732/100)\times 100\text{mm} \approx USD 73{,}200/\text{bp}$. The total parallel DV01 of $0.0849$ points per 100 corresponds to about USD 84,900/bp on USD 100mm.
 
 **Step-by-step**
 1. Cashflows: yearly coupon $=N\cdot c\cdot 1.0=5$. Final cashflow at maturity $=105$.
@@ -200,9 +202,9 @@ $$
 - Most of the key-rate DV01 sits in the longest node because the principal repayment is long-dated.
 - Intermediate nodes matter because coupons are discounted by intermediate maturities; a “10y-only hedge” can leave residual exposure in the belly.
 - If the key rates move by $\Delta r_k$ (bp), the first-order P&L per 100 is $\Delta PV \approx -\sum_k KR01_k\\,\Delta r_k$.
-  - Example twist: if $r_{2y}$ rises by $+5$bp and $r_{10y}$ falls by $-5$bp (others unchanged), then $\Delta PV \approx -(0.0024)(+5) -(0.0733)(-5) \approx +0.3546$ price points per 100.
+  - Example twist: if $r_{2y}$ rises by $+5$bp and $r_{10y}$ falls by $-5$bp (others unchanged), then $\Delta PV \approx -(0.0024)(+5) -(0.0732)(-5) \approx +0.3540$ price points per 100.
 
-**Check (twist P&L in dollars):** $+0.3546$ price points per 100 is $0.3546\\%$ of face. On USD 100mm notional, that is about USD 354,600.
+**Check (twist P&L in dollars):** $+0.3540$ price points per 100 is $0.3540\\%$ of face. On USD 100mm notional, that is about USD 354,000.
 
 **Sanity Checks**
 - Units check: $KR01$ is “price points per 100 per 1bp” in this setup; scaling to a notional $N$ uses $N/100$.
@@ -242,29 +244,27 @@ One of the most important skills for transitioning from middle office to the tra
 A butterfly isolates curvature risk while hedging level and slope. The trader wants to express the view that the 5-year is "rich" (yield too low) relative to 2-year and 10-year.
 
 **Setup:**
-- **Body (sell):** USD 100mm face of 5y bonds. If the DV01 of a USD 100mm **long** position is +USD 4,500/bp, then selling it gives $KR01_{5y}\approx -4{,}500$ USD/bp.
+- **Body (sell):** USD 100mm face of 5y bonds. If the DV01 of a USD 100mm **long** position is +USD 45,000/bp, then selling it gives $KR01_{5y}\approx -45{,}000$ USD/bp.
 - **Wings (buy):** 2y and 10y bonds
 
 **Step 1: Determine wing DV01s**
-For a standard butterfly, wings are sized to make the position:
-1. DV01-neutral (hedges level)
-2. Duration-neutral across slope
+For a standard "50/50" butterfly, wings are sized so each carries half the body's DV01. This makes the position **DV01-neutral** (level-hedged). It is *not* exactly slope-neutral — a truly slope-neutral construction weights the wings by their maturity distance from the body. The 50/50 form is common for its simplicity; Chapter 16 develops more refined weightings (e.g., PCA- or regression-based).
 
-Common approach: split the body DV01 equally between wings.
-- 2y DV01 = USD 2,250/bp
-- 10y DV01 = USD 2,250/bp
+Split the body DV01 equally between wings:
+- 2y DV01 = USD 22,500/bp
+- 10y DV01 = USD 22,500/bp
 
 **Step 2: Calculate notionals**
-If 2y DV01 per USD 100mm = USD 1,800/bp, you need USD 125mm face.
-If 10y DV01 per USD 100mm = USD 8,500/bp, you need USD 26.5mm face.
+If 2y DV01 per USD 100mm = USD 18,000/bp, you need USD 125mm face.
+If 10y DV01 per USD 100mm = USD 85,000/bp, you need USD 26.5mm face.
 
 **Resulting KRDV01 vector:**
 | 2y | 5y | 10y | Net |
 |:---:|:---:|:---:|:---:|
-| +USD 2,250 | -USD 4,500 | +USD 2,250 | **0** |
+| +USD 22,500 | -USD 45,000 | +USD 22,500 | **0** |
 
 **Interpretation:** The butterfly is DV01-neutral but has **positive curvature exposure**. If the 5y yield rises 5bp while 2y and 10y are unchanged:
-- P&L = -(-USD 4,500) × 5 = +USD 22,500
+- P&L = -(-USD 45,000) × 5 = +USD 225,000
 
 The trade profits when the curve becomes more convex (belly cheapens relative to wings).
 
@@ -308,14 +308,14 @@ $$1{,}000{,}000 \times 1 \text{ bp} \times 0.25 \text{ years} = USD 25$$
 Thus, a convenient “per contract” scale is about $USD 25$ per bp (exact details depend on contract spec and the risk system’s mapping).
 
 **The Hedge Problem:**
-You have a position whose exposure to a particular quarterly bucket is $FD01=-USD 2{,}500/\text{bp}$ (you lose money if that bucket’s rate rises).
+You have a position whose exposure to a particular quarterly bucket is $FD01=-USD 2{,}500/\text{bp}$. Under the convention $FD01 := PV(\text{down 1bp})-PV(\text{base})$, $FD01\lt 0$ means the position **gains when that bucket’s rate rises** (and loses when it falls) — a short-bucket exposure.
 
 **The Solution:**
-To hedge, you need approximately $+USD 2{,}500/\text{bp}$ in that bucket. If one contract provides about $USD 25/\text{bp}$, then
+To make the position bucket-flat, add a hedge with $FD01\approx +USD 2{,}500/\text{bp}$. Going **long** a quarterly STIR-style futures contract has $FD01\gt 0$ (gain when rates fall), so it offsets the short-bucket exposure. If one contract provides about $USD 25/\text{bp}$, then
 
-$$\text{Contracts Needed} = \frac{\text{Exposure}}{\text{DV01 per Contract}} = \frac{2{,}500}{25} = 100 \text{ contracts}$$
+$$\text{Contracts Needed} = \frac{\text{Exposure}}{\text{DV01 per Contract}} = \frac{2{,}500}{25} = 100 \text{ contracts (long)}.$$
 
-The direction (buy/sell) is chosen to offset the sign of the bucket exposure under your system’s conventions.
+If the portfolio’s $FD01$ had been positive instead, the hedge direction would be reversed (sell futures).
 
 ### 14.3.3 The Sum-to-DV01 Property for Buckets
 
@@ -340,21 +340,21 @@ Let's prove rigorously why "Parallel DV01 = 0" offers no protection against twis
 ### 14.4.1 Worked Example: The Hidden Twist
 
 **Portfolio:**
-- **Long:** USD 100 million of the 10-year bond (DV01 approx USD 8,500/bp).
-  - KRDV01 dominant at 10y.
-- **Short:** USD 479 million of 2-year zero-coupon bonds (DV01 approx USD 1,780/bp × 4.79 approx USD 8,500/bp).
+- **Long:** USD 100 million of the 10-year bond (DV01 approx USD 85,000/bp).
+  - KRDV01 dominant at 10y (the simplification below treats it as fully at 10y; in practice a coupon bond spreads a small share into intermediate keys, as in §14.2.4).
+- **Short:** USD 479 million of 2-year zero-coupon bonds (per-USD-100mm DV01 approx USD 17,800/bp; total DV01 approx $4.79 \times 17{,}800 \approx$ USD 85,000/bp).
   - KRDV01 entirely at 2y.
 
 **Parallel Risk:**
 
 $$
-8{,}500 - 8{,}500 = 0
+85{,}000 - 85{,}000 \approx 0.
 $$
 
-The portfolio is immune to a parallel shift. The risk report says "Net DV01: 0."
+The portfolio is immune to a parallel shift. The risk report says “Net DV01: 0.”
 
 **Twist Scenario 1: Symmetric Steepening**
-The curve **steepens**: 2-year rates fall 10 bps, 10-year rates rise 10 bps. This is a classic "rotation" around the 5-year point.
+The curve **steepens**: 2-year rates fall 10 bps, 10-year rates rise 10 bps. This is a classic “rotation” around the 5-year point.
 
 **P&L Calculation:**
 Use the first-order approximation (Chapter 11): for key-rate shocks in bp,
@@ -364,13 +364,13 @@ $$
 $$
 
 Here, the portfolio has:
-- $KR01_{2y} \approx -8{,}500$ USD/bp (short 2y)
-- $KR01_{10y} \approx +8{,}500$ USD/bp (long 10y)
+- $KR01_{2y} \approx -85{,}000$ USD/bp (short 2y)
+- $KR01_{10y} \approx +85{,}000$ USD/bp (long 10y)
 
 **2y Key:** $\Delta r_{2y} = -10$ bp
 
 $$
-\Delta P_{2y} \approx -(-8{,}500)\times(-10)= -85{,}000\ \text{USD}.
+\Delta P_{2y} \approx -(-85{,}000)\times(-10)= -850{,}000\ \text{USD}.
 $$
 
 Intuition: the 2y bond price rises when yields fall; being short loses money.
@@ -378,10 +378,10 @@ Intuition: the 2y bond price rises when yields fall; being short loses money.
 **10y Key:** $\Delta r_{10y} = +10$ bp
 
 $$
-\Delta P_{10y} \approx -(+8{,}500)\times(+10)= -85{,}000\ \text{USD}.
+\Delta P_{10y} \approx -(+85{,}000)\times(+10)= -850{,}000\ \text{USD}.
 $$
 
-**Net P&L:** -USD 170,000.
+**Net P&L:** -USD 1,700,000.
 
 This is the key lesson: **DV01-neutrality does not mean “one leg wins when the other loses.”** It means the *sum* offsets under a **parallel** move. Under a twist, you can lose on both legs.
 
@@ -391,12 +391,12 @@ The curve **flattens**: 2y rates rise 20 bps, 10y rates unchanged.
 **2y P&L:** Short position *gains* when rates rise.
 
 $$
-\Delta P_{2y} \approx -(-8{,}500)\times(+20)= +170{,}000\ \text{USD}.
+\Delta P_{2y} \approx -(-85{,}000)\times(+20)= +1{,}700{,}000\ \text{USD}.
 $$
 
 **10y P&L:** Rates unchanged $\Rightarrow \Delta P_{10y}\approx 0$.
 
-**Net P&L:** **+USD 170,000.**
+**Net P&L:** **+USD 1,700,000.**
 
 This DV01-neutral portfolio is therefore a **2s–10s flattener** (short the front end, long the back end). If you don't intend to take a slope view, net DV01 = 0 is not a hedge.
 
@@ -421,7 +421,7 @@ If $\sum_i k_i = 0$ (DV01 neutral), parallel shifts produce zero P&L. But non-pa
 > - Concentration at distant maturities (2y vs 30y) rather than adjacent ones
 > - Any position described as a "steepener" or "flattener"
 >
-> **The rule:** If your KRDV01 vector looks like $(+100, 0, 0, -100)$, you may have zero parallel risk but plus/minus USD 200k of curve risk per basis point of twist.
+> **The rule:** If your KRDV01 vector (in USD/bp) looks like $(+100{,}000,\\,0,\\,0,\\,-100{,}000)$, you may have zero parallel risk but $\\pm USD 200{,}000$ of curve risk per basis point of "1bp twist" (e.g., front +1bp, back -1bp).
 
 ---
 
@@ -463,11 +463,11 @@ $$\widehat{\mathbf{p}}=\underset{\mathbf{p}}{\mathrm{argmin}}\left(\sum_{k=1}^{K
 
 where $W_k$ weights the importance of offsetting the $k$-th bucket and $U_l$ penalizes use of expensive or illiquid hedging instruments. This is the rates analogue of ridge regression: you trade off residual risk versus instrument usage.
 
-The simple case with $L = K$ and invertible Jacobian yields:
+The simple case with $L = K$, $W=I$, and $U=0$ yields the exact replicating solution to $\partial \mathbf{H}\\,\mathbf{p} = \partial V_0$:
 
-$$\mathbf{p}=\left(\partial \mathbf{H}^{\top}\right)^{-1}\partial V_0$$
+$$\mathbf{p}=\left(\partial \mathbf{H}\right)^{-1}\partial V_0,$$
 
-which reduces to the exact solution when the system is square and invertible.
+where $\partial\mathbf{H}$ is the $K\times L$ Jacobian whose $(k,l)$ entry is the $k$-th key-rate sensitivity of hedge instrument $l$, and $\partial V_0$ is the vector of portfolio key-rate sensitivities. This $\mathbf{p}$ replicates the portfolio's KRDV01 profile; the actual hedge notional vector is $\mathbf{n}=-\mathbf{p}$, recovering $\mathbf{n}=-\mathbf{H}^{-1}\mathbf{k}$ from §14.5.2.
 
 ### 14.5.4 Liquidity Constraints and the Art of Approximate Hedging
 
@@ -611,7 +611,7 @@ $$Residual = Actual\ PL - PL_{rates}$$
 **Residual:** -USD 3,000 (unexplained loss)
 
 **Investigation:** The USD 3,000 residual is 23% of explained P&L—material relative to the explained move. Possible causes:
-- Credit spread on corporate holdings widened 2bp (spread duration was USD 1,500/bp, implying USD 3,000 loss)
+- Credit spread on corporate holdings widened 2bp (spread DV01, sometimes called CS01, was USD 1,500/bp, implying USD 3,000 loss)
 - Funding cost increased
 - Model interpolation error at 7y where the portfolio has risk
 
@@ -651,10 +651,11 @@ Bucket DV01:  [+800  +1200  +1500  +1400  +1100  +900  +700  +400]
 Tenor:         2y     3y     5y     7y     10y   15y   20y   30y
 
 After Hedging with 2y, 5y, 10y, 30y only:
-Residual:     [  0   +300   +100   +600    0    +400  +200    0 ]
+Residual:     [  0   +300     0   +600     0   +400  +200    0 ]
 
 → The 7y bucket still has +USD 600/bp exposure despite "hedging"
 → The 15y and 20y buckets have residual because no direct hedge exists
+→ Buckets at exactly 2y, 5y, 10y, 30y are zeroed by the matched hedges
 ```
 
 ---
@@ -691,7 +692,7 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 
 5. **Zero ≠ Safe:** A DV01-neutral portfolio can lose money if the curve twists. Only a KRDV01-neutral portfolio is immune to shape changes (at the resolution of the chosen keys).
 
-6. **Linear Hedging:** Multi-curve hedging is a matrix inversion problem ($\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$). Par-bond hedges simplify this to a diagonal system.
+6. **Linear Hedging:** Bucket-level hedging is a matrix inversion problem ($\mathbf{n} = -\mathbf{H}^{-1}\mathbf{k}$). Par-bond hedges at the key tenors approximately diagonalize $\mathbf{H}$. (True multi-curve hedging — joint OIS/IBOR/basis curves — is the subject of Chapter 22.)
 
 7. **Liquidity Constraints:** Real hedges use only liquid benchmarks, leaving residual “pin risk” at unhedged tenors.
 
@@ -728,7 +729,7 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 | $DV01$ | Dollar value of 01 (parallel shift sensitivity) |
 | $KR01_k$ | Key-rate DV01 at key $k$ |
 | $FD01_j$ | Forward-bucket DV01 for segment $j$ |
-| $\Delta r_k$ | Key-rate move at key $k$ | 
+| $\Delta r_k$ | Key-rate move at key $k$ |
 | $\mathbf{k}$ | Vector of portfolio key-rate exposures |
 | $\mathbf{H}$ | Matrix of hedge instrument key-rate sensitivities |
 | $\mathbf{n}$ | Vector of hedge notionals |
@@ -771,10 +772,10 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 1. (Compute) A 3-year zero-coupon bond is priced on a flat 5% curve (continuously compounded). Compute its parallel DV01 per USD 100 face.
 2. (Compute) You are long a 2y position with $KR01_{2y}=+USD 1{,}800/\text{bp}$ and short a 10y position with $KR01_{10y}=-USD 1{,}800/\text{bp}$. (a) If 2y rates fall 10bp and 10y rates rise 10bp, what is the first-order P&L? (b) Name the trade.
 3. (Compute) Your risk report shows a forward-bucket exposure $FD01=+USD 1{,}250/\text{bp}$ to a quarterly bucket. If a futures contract provides about $USD 25/\text{bp}$ per contract, how many contracts hedge the exposure and in what direction?
-4. (Compute) You have $\mathbf{k}=[100,200]^\top$ (in USD /bp). Two hedge instruments have bucket vectors $[10,2]^\top$ and $[5,8]^\top$ (in USD /bp per unit). (a) Write $\mathbf{H}\mathbf{n}=-\mathbf{k}$. (b) Solve for $\mathbf{n}$.
+4. (Compute) You have $\mathbf{k}=[100,200]^\top$ (in USD/bp). Two hedge instruments have bucket vectors $[10,2]^\top$ and $[5,8]^\top$ (in USD/bp per unit). (a) Write $\mathbf{H}\mathbf{n}=-\mathbf{k}$. (b) Solve for $\mathbf{n}$.
 5. (Compute) Using Table 14.1 as partial durations, estimate the P&L for a USD 10 million portfolio if rates move: 1y +5bp, 2y +4bp, 3y +3bp, 4y +2bp, 5y +1bp, 7y −1bp, 10y −3bp.
 6. (Concept) Why can bumping a single long-dated par swap rate by 1bp (holding neighbors fixed) imply large forward-rate moves? Why is this problematic for “first-order” sensitivities?
-7. (Compute) You want a 2s–10s steepener with $USD 50{,}000/\text{bp}$ of risk. The 2y bond has DV01 of $USD 1{,}900$ per $USD 1$mm face and the 10y bond has DV01 of $USD 8{,}200$ per $USD 1$mm face. Compute the notionals (long 2y, short 10y) and verify net parallel DV01 $\approx 0$.
+7. (Compute) You want a 2s–10s steepener with $USD 50{,}000/\text{bp}$ of risk on each leg. The 2y bond has DV01 of $USD 190$ per $USD 1$mm face and the 10y bond has DV01 of $USD 820$ per $USD 1$mm face. Compute the notionals (long 2y, short 10y) and verify net parallel DV01 $\approx 0$.
 8. (Compute/Desk) A portfolio has $KR01_{2y}=+2{,}000$ USD/bp, $KR01_{5y}=+4{,}000$ USD/bp, $KR01_{10y}=-3{,}000$ USD/bp and the day’s moves are $-3$bp, $+2$bp, $+5$bp respectively. (a) Compute explained rates P&L. (b) If actual P&L is +USD 15,000, what is residual? (c) List two possible causes.
 9. (Desk) You have key-rate exposures $[+1000,+2000,+1500,+500]$ at 2y/5y/10y/20y, but you can only hedge with 2y and 10y instruments. Propose a simple mapping and describe the residual risk.
 10. (Concept) Name the trade for each KR01 vector: (a) $[+100, -200, +100]$ at 2y/5y/10y, (b) $[0, +500, 0]$ at 2y/5y/10y, (c) $[-300, +300, 0]$ at 2y/10y/30y.
@@ -786,8 +787,9 @@ Many approaches (both model-based and empirical) describe yield curve changes wi
 2. $\Delta PV\approx -(1800)(-10)-(-1800)(+10)=+USD 36{,}000$. This is a steepener (long front-end, short back-end).
 3. If one contract is approximately USD 25/bp, then $1{,}250/25=50$ contracts. Since $FD01\gt 0$ (you lose when rates rise), the hedge needs -USD 1,250/bp (typically a short position).
 4. $\mathbf{H}=[[10,5],[2,8]]$. $\mathbf{n}=-\mathbf{H}^{-1}\mathbf{k}=[2.86,-25.71]^\top$.
-5. Using $\Delta P/P\approx-\sum_i D_i\Delta y_i$ with $\Delta y$ in decimals gives total $\approx 0.00224$. P&L is approximately -USD 22,400 on USD 10 million notional.
-11. First-order P&L $= -[(+20{,}000)(-1)+(0)(-3)+(-20{,}000)(-4)] = -60{,}000\ \text{USD}$. DV01 neutrality does not help when the 30y move is larger than the 2y move (a flattening rally).
+5. With $\Delta y$ in decimals, $\sum_i D_i\Delta y_i \approx 0.00224$, so $\Delta P/P\approx -0.00224$. P&L is approximately -USD 22,400 on USD 10 million notional.
+11. First-order P&L $= -[(+20{,}000)(-1)+(0)(-3)+(-20{,}000)(-4)] = -60{,}000\ \text{USD}$. DV01 neutrality does not help when the 30y move is larger than the 2y move (a bull flattening: rates fall, more at the long end, which hurts a steepener).
+12. With residual $KR01_{7y}=+800$ and $KR01_{8y}=+400$ USD/bp, unexplained P&L $\approx -[800\times 10 + 400\times 8] = -[8{,}000 + 3{,}200] = -USD 11{,}200$ (the matched 5y/10y hedges contribute zero residual at those buckets).
 
 ---
 
