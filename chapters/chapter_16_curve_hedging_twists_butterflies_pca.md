@@ -483,7 +483,7 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | 7 | What is a twist shock in 2y/5y/10y toy form? | $(+1,0,-1)$ bp (short up, long down). |
 | 8 | What is the “parallel fallacy”? | Interpreting net DV01 near zero as “low rate risk.” |
 | 9 | What constraints does a 3-leg butterfly typically impose? | Two neutrality constraints (often level and slope), leaving curvature exposure. |
-| 10 | What does PCA produce? | Orthogonal loadings and scores $(\mathbf{u}_j,\\,z_{j,t})$ that summarize yield changes. |
+| 10 | What does PCA produce? | Orthogonal loadings and scores $(\mathbf{u}\_j,\\,z\_{j,t})$ that summarize yield changes. |
 | 11 | What is “variance explained” in PCA? | $\lambda_j/\mathrm{tr}(\Sigma)$, the fraction of total variance attributed to factor $j$. |
 | 12 | What is the minimum-variance hedge ratio $h^{\ast}$? | $h^{\ast}=\mathrm{Cov}(\Delta X,\Delta Y)/\mathrm{Var}(\Delta Y)=\rho\sigma_X/\sigma_Y$. |
 | 13 | How do you translate a yield regression $\beta$ into hedge units? | $N^{\ast} \approx -\beta\\,DV01_{\text{tgt}}/DV01_{\text{hedge}}$. |
