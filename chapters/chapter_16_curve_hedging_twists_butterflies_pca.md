@@ -462,7 +462,7 @@ Before relying on a curve hedge, run a small scenario suite using the same bump 
 | $\mathbf{n}$ | hedge weights / notionals | hedge units; signed (long +) |
 | $\Delta \mathbf{y}_t$ | yield-change vector | bp over horizon |
 | $\Sigma$ | covariance of $\Delta \mathbf{y}$ | bp-squared |
-| $\mathbf{u}_j$ | PCA loading vector | unitless; normalized to $\\|\mathbf{u}_j\\|=1$ |
+| $\mathbf{u}_j$ | PCA loading vector | unitless; normalized to $\Vert\mathbf{u}_j\Vert=1$ |
 | $\lambda_j$ | PCA eigenvalue | bp-squared |
 | $z_{j,t}$ | PCA score | bp |
 | $\beta$ | regression slope (yield regression) | bp/bp (unitless) |
