@@ -86,7 +86,7 @@ $$\boxed{C_{\mathrm{USD}}=P \times Cvx = \frac{d^2P}{dy^2}}$$
 
 **Why Dollar Convexity Matters:** Even when a system does not report it directly, dollar convexity is a natural object for P&L attribution because the second-order (convexity) contribution for a yield move $\Delta y$ can be written as:
 
-$$\boxed{\text{Convexity P\&L} = \frac{1}{2}\\,C_{\mathrm{USD}}\\,(\Delta y)^2}$$
+$$\boxed{\text{Convexity P\\&L} = \frac{1}{2}\\,C_{\mathrm{USD}}\\,(\Delta y)^2}$$
 
 If you want to plug in a yield move in **basis points** (instead of decimal yield units), define:
 
@@ -95,7 +95,7 @@ If you want to plug in a yield move in **basis points** (instead of decimal yiel
 
 Then the convexity P&L can be written as:
 
-$$\boxed{\text{Convexity P\&L}=\underbrace{\left[\frac{1}{2}\times C_{\mathrm{USD}}\times (0.0001)^2\right]}_{\text{Convexity01 } (\mathrm{USD}/\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
+$$\boxed{\text{Convexity P\\&L}=\underbrace{\left[\frac{1}{2}\times C_{\mathrm{USD}}\times (0.0001)^2\right]}_{\text{Convexity01 } (\mathrm{USD}/\text{bp}^2)} \times (\Delta y_{\text{bp}})^2}$$
 
 This is often the most desk-friendly way to compute convexity P&L because it takes the move in bps and makes the quadratic scaling explicit.
 
@@ -310,7 +310,7 @@ For small daily moves, convexity P&L is often small relative to duration P&L. Fo
 
 When risk managers decompose daily P&L, the convexity term appears explicitly. A common second-order attribution uses the yield move in basis points:
 
-$$\boxed{\text{Daily P\&L}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration P\&L}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity P\&L}}+\text{Carry}+\text{Unexplained}}$$
+$$\boxed{\text{Daily P\\&L}\approx \underbrace{-\text{DV01}\times \Delta y_{\text{bp}}}_{\text{Duration P\\&L}}+\underbrace{\text{Convexity01}\times(\Delta y_{\text{bp}})^2}_{\text{Convexity P\\&L}}+\text{Carry}+\text{Unexplained}}$$
 
 Where:
 - **DV01** is in dollars per bp (see Chapter 11 for conventions)
@@ -329,7 +329,7 @@ Where:
 > - **Stale convexity** (hasn't been recalculated as yields moved)
 > - **Missing optionality** (callable bonds need effective convexity, not modified)
 >
-> A 50bp move on USD 100mm with convexity of 100: Convexity P\&L $= \tfrac{1}{2} \times 100 \times 0.005^2 \times USD\\,100\text{mm} = USD\\,125{,}000$. If this isn't in your explain, you have a USD 125k hole.
+> A 50bp move on USD 100mm with convexity of 100: Convexity P&L $= \tfrac{1}{2} \times 100 \times 0.005^2 \times USD\\,100\text{mm} = USD\\,125{,}000$. If this isn't in your explain, you have a USD 125k hole.
 
 ---
 
