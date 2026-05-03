@@ -832,7 +832,7 @@ This "bump and reprice" approach captures how the full price function responds t
 | 13 | What are the two conditions for immunization? | Match present values AND match durations of assets and liabilities. |
 | 14 | What is effective duration? | Price sensitivity to a parallel shift in the benchmark curve (vs. YTM shift for modified). |
 | 15 | When should you use effective duration instead of modified? | For callable bonds, MBS, or any instrument with embedded options. |
-| 16 | What is the VaR formula using duration? | $\text{VaR} \approx |DD|\sigma_y z_\alpha \sqrt{T}$ under a parallel-shift, linear-P&L approximation. |
+| 16 | What is the VaR formula using duration? | $\text{VaR} \approx \lvert DD\rvert\\,\sigma_y\\,z_\alpha\\,\sqrt{T}$ under a parallel-shift, linear-P&L approximation. |
 | 17 | If a bond has duration 7 and rates rise 50bp, what's the approximate price change? | About −3.5% (= −7 × 0.50%) |
 | 18 | What competing effects determine how DV01 varies with maturity? | The "duration effect" (longer → higher D) and "price effect" (price changes with maturity). |
 | 19 | For a USD 100mm portfolio with 5-year duration, what's the P&L from a 10bp rate rise? | About −USD 500,000 (= −5 × USD 100mm × 0.001) |
