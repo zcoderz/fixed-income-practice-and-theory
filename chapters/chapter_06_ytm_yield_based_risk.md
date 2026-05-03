@@ -147,7 +147,7 @@ For a zero-coupon bond, this average is trivial—the YTM equals the spot rate t
 
 **The term structure:** Spot rates differ by maturity. A 10-year Treasury's cash flows should, in principle, be discounted at ten different rates. YTM replaces this structure with a single number. This means YTM cannot reveal whether a bond is "cheap at the front" (early cash flows undervalued) and "rich at the back" (late cash flows overvalued), or vice versa.
 
-**Reinvestment assumptions:** Because coupons are invested at uncertain future rates, it is extremely unlikely that the realized yield of a coupon bond held to maturity will equal its original yield-to-maturity. The uncertainty of the realized yield relative to the original yield because coupons are invested at uncertain future rates is often called **reinvestment risk**.
+**Reinvestment assumptions:** Because coupons must be reinvested at uncertain future rates, it is extremely unlikely that the realized yield of a coupon bond held to maturity will equal its original yield-to-maturity. The resulting uncertainty in realized yield is called **reinvestment risk**.
 
 **Realized return:** Many practitioners mistakenly interpret YTM as the return they will earn. This is only approximately true under very restrictive conditions—specifically, that the yield remains unchanged throughout the holding period.
 
@@ -234,11 +234,11 @@ Realized return: $(215.89/100)^{1/10} - 1 = 8.00\\%$ ✓
 
 Now each coupon is reinvested at 6%:
 
-Total future value of coupons = $8 \times \frac{(1.06^{10} - 1)}{0.06} = 105.50$
+Total future value of coupons = $8 \times \frac{(1.06^{10} - 1)}{0.06} = 105.45$
 
-Add principal: $100 + 105.50 = 205.50$
+Add principal: $100 + 105.45 = 205.45$
 
-Realized return: $(205.50/100)^{1/10} - 1 = 7.48\\%$
+Realized return: $(205.45/100)^{1/10} - 1 = 7.47\\%$
 
 **Scenario B: Rates Rise to 10% Immediately After Purchase**
 
@@ -253,10 +253,10 @@ Realized return: $(227.50/100)^{1/10} - 1 = 8.57\\%$
 | Scenario | Reinvestment Rate | Realized Return | vs. YTM |
 |----------|-------------------|-----------------|---------|
 | Base | 8% | 8.00% | — |
-| Rates Fall | 6% | 7.48% | -52 bps |
+| Rates Fall | 6% | 7.47% | -53 bps |
 | Rates Rise | 10% | 8.57% | +57 bps |
 
-The initial YTM of 8% was never "locked in." Reinvestment risk created a 109 bp range of outcomes.
+The initial YTM of 8% was never "locked in." Reinvestment risk created a 110 bp range of outcomes.
 
 > **Desk Reality: Liability Matching vs Reinvestment Risk**
 >
@@ -363,7 +363,7 @@ Convenient property: the Macaulay duration of a $T$-year zero-coupon bond equals
 
 $$\left.D_{\text{Mac}}\right|_{c=0} = T$$
 
-This provides intuition for duration generally—a bond's Macaulay duration equals the maturity of a zero-coupon bond with the same price sensitivity. "The Macaulay duration of a six-month zero is simply .5 while that of a 10-year zero is simply 10."
+This provides intuition for duration generally—a bond's Macaulay duration equals the maturity of a zero-coupon bond with the same price sensitivity. The Macaulay duration of a six-month zero is simply 0.5 years; that of a 10-year zero is simply 10 years.
 
 > **Analogy: The Teeter-Totter (Seesaw)**
 >
@@ -423,7 +423,7 @@ For plain-vanilla fixed-rate bonds, convexity is positive ($C_y \gt 0$). This me
 - Gains from yield decreases exceed the duration prediction
 - Losses from yield increases fall short of the duration prediction
 
-Graphically, "the property of positive convexity may also be thought of as the property that DV01 falls as rates increase." The price-rate curve is convex (curving upward), which is beneficial to the bondholder.
+Equivalently, positive convexity means that DV01 *falls* as rates rise (since $d(\text{DV01})/dy = -d^2P/dy^2/10{,}000 \lt 0$ when $C_y \gt 0$). Graphically, the price-rate curve is convex (curving upward), which is beneficial to the bondholder.
 
 > **Analogy: Convexity is a Smile**
 >
@@ -494,28 +494,36 @@ The barbell has higher convexity because convexity increases with the *square* o
 
 **Example: 75\%/25\% Barbell vs 9-Year Bullet**
 
-At a 5\% yield:
-- 2-year zero: Duration = 2, Convexity ≈ 4
+At a 5\% yield (using the zero-coupon convexity formula $C_y = T(T+0.5)/(1+y/2)^2$):
+- 2-year zero: Duration = 2, Convexity ≈ 4.76
 - 30-year zero: Duration = 30, Convexity ≈ 871
 - 9-year zero (bullet): Duration = 9, Convexity ≈ 81
 
 A barbell of 75\% in 2-year zeros and 25\% in 30-year zeros:
 - Portfolio duration: $0.75 \times 2 + 0.25 \times 30 = 9$ years ✓
-- Portfolio convexity: $0.75 \times 4 + 0.25 \times 871 = 3 + 218 = 221$
+- Portfolio convexity: $0.75 \times 4.76 + 0.25 \times 871 \approx 3.6 + 217.8 \approx 221$
 
 The barbell has convexity of **221** versus the bullet's **81**—nearly three times as much convexity for the same duration.
 
-**Performance comparison:**
+**Performance comparison (instantaneous parallel shift, same starting yield):**
 
-| Rate Move | Bullet Performance | Barbell Performance | Winner |
-|-----------|-------------------|---------------------|--------|
-| Small (±25 bp) | Better | Worse | Bullet |
-| Medium (±100 bp) | Similar | Similar | Tie |
-| Large (±200 bp) | Worse | Better | Barbell |
+Using the duration-convexity approximation $\Delta P/P \approx -D \Delta y + \tfrac12 C (\Delta y)^2$, the barbell's *extra* return over the bullet from convexity alone is $\tfrac12 (C_{\text{barbell}} - C_{\text{bullet}})(\Delta y)^2 = \tfrac12(140)(\Delta y)^2$:
 
-Rule of thumb: bullets tend to do better for small rate moves, while barbells tend to do better for large moves (because the barbell has higher convexity).
+| Rate Move | Barbell extra return vs. bullet (from convexity) |
+|-----------|---|
+| ±25 bp  | ≈ +4 bp |
+| ±100 bp | ≈ +70 bp |
+| ±200 bp | ≈ +280 bp |
 
-> **Key Insight:** "Spreading out the cash flows of a portfolio (without changing its duration) raises its convexity." This is the mathematical essence of barbelling.
+For pure parallel shifts at the same starting yield, the barbell wins on *every* move—up or down—because its convexity is unambiguously higher. The advantage scales as the *square* of the move size, so it is small for ±25 bp moves but dominant for ±200 bp moves.
+
+In practice, however, the barbell typically trades at a *lower* yield than the duration-matched bullet (the cost of convexity, Section 6.6.4). Over a holding period, total return is roughly $\text{carry} + \Delta P/P$. If the bullet earns, say, an extra 15 bp/year of carry, that yield advantage can overwhelm the barbell's small-move convexity gain—flipping the empirical rule of thumb:
+
+- **Small realized rate moves:** bullet's higher carry dominates → bullet wins.
+- **Large realized rate moves:** barbell's convexity dominates → barbell wins.
+- **Crossover** depends on the size of the yield give-up vs. realized volatility over the horizon.
+
+> **Key Insight:** Spreading out the cash flows of a portfolio while holding its duration fixed *raises* its convexity. This is the mathematical essence of barbelling.
 
 > **Desk Reality: Barbell vs Bullet in Practice**
 >
@@ -529,11 +537,11 @@ Rule of thumb: bullets tend to do better for small rate moves, while barbells te
 
 Setting $c=0$ in the convexity formula yields:
 
-$$\boxed{\left.C\right|_{c=0} = \frac{T(T + 0.5)}{(1+y/2)^2}}$$
+$$\boxed{\left.C_y\right|_{c=0} = \frac{T(T + 0.5)}{(1+y/2)^2}}$$
 
 Convexity increases with the **square** of maturity—much faster than duration, which increases approximately linearly. This is why long-dated zeros have enormous convexity. A 30-year zero at 5\% yield has convexity of approximately:
 
-$$C = \frac{30 \times 30.5}{(1.025)^2} \approx 871$$
+$$C_y = \frac{30 \times 30.5}{(1.025)^2} \approx 871$$
 
 ### 6.6.8 Computing Convexity Numerically
 
@@ -585,9 +593,11 @@ A numerical illustration: a callable bond can show strongly negative convexity (
 
 For callable bonds, practitioners use additional yield measures:
 
-**Yield-to-Call (YTC):** The yield assuming the bond is called at the next call date:
+**Yield-to-Call (YTC):** The yield assuming the bond is called at a specified call date $T_c$ (in years to call) at a stated call price:
 
-$$P_{\text{dirty}} = \sum_{t=1}^{T_{\text{call}}} \frac{CF_t}{(1+y_c/2)^t} + \frac{\text{Call Price}}{(1+y_c/2)^{T_{\text{call}}}}$$
+$$P_{\text{dirty}} = \sum_{t=1}^{2T_c} \frac{CF_t}{(1+y_c/2)^t} + \frac{\text{Call Price}}{(1+y_c/2)^{2T_c}}$$
+
+(Here $t$ indexes semiannual periods, so the call cashflow lands $2T_c$ periods after settlement.)
 
 **Yield-to-Worst (YTW):** The minimum of YTM and all possible YTCs:
 
@@ -603,7 +613,7 @@ In practice, investors often use yield-to-worst: the yield given the redemption 
 
 ### 6.7.0 The Three Drivers of Yields (PCA)
 
-In a principal-components analysis of yield changes, the first three components span about **95\%** of the variation. The first principal component has all positive values, so it corresponds to approximately parallel shifts of the yield curve. Changes along the second principal component either increase or decrease the slope of the yield curve. Changes along the third principal component either increase or decrease the curvature (hump) of the yield curve.
+In a principal-components analysis of yield changes, the first three components typically explain about **95\%** or more of the variation. The first principal component has all positive (or, by sign convention, all same-sign) loadings, so it corresponds to approximately parallel shifts of the yield curve. Changes along the second principal component either increase or decrease the slope of the yield curve. Changes along the third principal component either increase or decrease the curvature (hump) of the yield curve.
 
 One common interpretation of these first three drivers is:
 1. **Level (shift):** yields move up/down roughly together (duration/DV01 targets this)
@@ -651,7 +661,7 @@ The differences can be material for:
 
 ### 6.7.4 Why Yield Hedges Fail Under Curve Twists
 
-A yield-DV01 hedge matches the DV01 of bond A with bond B. This works if both yields change by the same amount. A major weakness of the approach is the assumption that movements in the entire term structure can be described by one interest rate factor.
+A yield-DV01 hedge sizes a hedging instrument so its yield DV01 equals (and offsets) that of the bond being hedged. This works only if both yields change by the same amount. A major weakness of the approach is the assumption that movements in the entire term structure can be described by one interest-rate factor.
 
 When the curve twists—say, the 2-year yield rises while the 10-year falls—a DV01-matched hedge can lose money. The hedge was built for parallel shifts; it has no protection against shape changes.
 
@@ -766,13 +776,13 @@ The next iterate is 5.707\%, very close to the solution.
 
 ### Example C: Price-Yield Curve and Convexity
 
-Using the Example A bond at $y^* = 5.709\\%$:
+Using the Example A bond at $y^{\ast} = 5.709\\%$ (the solved YTM):
 
 | Yield | Price |
 |-------|-------|
-| 5.209\% ($y^* - 50$ bp) | 105.9240 |
-| 5.709\% ($y^*$) | 103.6957 |
-| 6.209\% ($y^* + 50$ bp) | 101.5219 |
+| 5.209\% ($y^{\ast} - 50$ bp) | 105.9240 |
+| 5.709\% ($y^{\ast}$) | 103.6957 |
+| 6.209\% ($y^{\ast} + 50$ bp) | 101.5219 |
 
 **Asymmetry observation:**
 - Down-move gain: $+2.228$
@@ -805,9 +815,9 @@ $$P = 2(0.9850) + 2(0.9700) + 2(0.9530) + 102(0.9350) = 101.186$$
 
 **Curve DV01** (parallel 1 bp bump to continuous spot rates):
 
-After bumping, $P_{\Delta} = 101.166$
+After bumping, $P_{\Delta} \approx 101.1664$
 
-$$DV01_{curve} = 101.186 - 101.166 = 0.0197$$
+$$DV01_{curve} = 101.186 - 101.1664 \approx 0.0197$$
 
 **Yield DV01:**
 
@@ -815,7 +825,7 @@ Solve for YTM: $y \approx 3.382\\%$
 
 $$DV01_y \approx 0.0193$$
 
-**Comparison:** The two differ by about 2\%. This gap arises because curve DV01 weights longer maturities more heavily (through the $t$ factor in `exp(-\Delta t)`), while yield DV01 treats all cash flows through one rate.
+**Comparison:** The two differ by about 2\%. This gap arises because curve DV01 weights longer maturities more heavily (through the $t$ factor in $\exp(-\Delta t)$), while yield DV01 treats all cash flows through one rate.
 
 ---
 
@@ -880,16 +890,16 @@ $$r = (132.50/100)^{1/5} - 1 = 5.79\\%$$
 
 ### Example I: Callable Bond Decomposition
 
-**Setup:** A 10-year, 8\% corporate bond callable at par in 5 years.
-- Assumed yield environment: 6\%
-- Non-callable 10-year bond price: 114.72
-- Callable bond market price: 107.50
+**Setup:** A 10-year, 8\% (semiannual) corporate bond callable at par in 5 years.
+- Assumed yield environment: 6\% (nominal annual, semiannual compounding)
+- Non-callable 10-year bond price: $\sum_{t=1}^{20} 4/(1.03)^t + 100/(1.03)^{20} \approx 114.88$
+- Callable bond market price (assumed): 107.50
 
 **Option Value:**
 
-$$\text{Call Option Value} = 114.72 - 107.50 = 7.22$$
+$$\text{Call Option Value} = 114.88 - 107.50 = 7.38$$
 
-**Interpretation:** The issuer's call option is worth 7.22 points. This represents the value the investor is giving up in exchange for the higher coupon (8\% vs market rates of 6\%).
+**Interpretation:** The issuer's call option is worth approximately 7.38 points per 100 face. This represents the value the investor is giving up in exchange for the higher coupon (8\% vs market yield of 6\%).
 
 ---
 
