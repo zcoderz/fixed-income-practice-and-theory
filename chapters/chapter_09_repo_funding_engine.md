@@ -429,7 +429,7 @@ $$0.25\\% - 0.031\\% - 0.085\\% = 0.134\\%\text{ of face.}$$
 
 Converting this price advantage back into yield basis points uses the same DV01:
 
-$$\frac{0.134\\%}{0.04261\\%\,/\,\text{bp}} \approx 3.1\\,\text{bp}.$$
+$$\frac{0.134\\%}{0.04261\\%\\,/\\,\text{bp}} \approx 3.1\\,\text{bp}.$$
 
 So the financing-and-convergence story is worth about 3.1 bp of yield to the OTR. If the OTR trades 4 basis points rich after accounting for 1 bp of liquidity value, the financing/convergence package falls short of the price premium, and the off-the-run is the better investment for this particular investor.
 
