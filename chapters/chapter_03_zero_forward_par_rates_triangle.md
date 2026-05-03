@@ -713,15 +713,15 @@ Numerically: $DV01_F\approx 0.9850\times \frac{100{,}000{,}000\times 0.25}{1.01}
 
 **1. Simple Zero**
 
-$$y_{\text{simple}} = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) = 3.092\\%$$
+$$y_{\text{simple}} = \frac{1}{1} \left( \frac{1}{0.9700} - 1 \right) \approx 3.093\\%$$
 
 **2. Continuous Zero**
 
-$$y_c = -\frac{\ln(0.9700)}{1} = 3.046\\%$$
+$$y_c = -\frac{\ln(0.9700)}{1} \approx 3.046\\%$$
 
 **3. Semiannual Zero**
 
-$$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) = 2(1.01535 - 1) = 3.069\\%$$
+$$y_{sa} = 2 \left( (1/0.9700)^{0.5} - 1 \right) \approx 2(1.01535 - 1) \approx 3.069\\%$$
 
 **Sanity Check:** Continuous < Semiannual < Simple. This ordering reflects the rule that, for the same discount factor at a given $T$, **more frequent compounding implies a smaller quoted rate**. At $T=1$ year, the simple rate coincides with the annual-compounded rate; for $T \neq 1$ year, simple no longer equals annual, but the rule "more frequent compounding $\to$ smaller rate" still holds across the $m$-times conventions.
 
