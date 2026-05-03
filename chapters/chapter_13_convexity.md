@@ -76,7 +76,7 @@ Modified duration measures the relative slope of the price-yield curve at a give
 
 $$\boxed{Cvx=\frac{1}{P}\frac{\mathrm{d}^2 P}{\mathrm{d}y^2}}$$
 
-Like modified duration, $Cvx$ is normalized by the price $P$, so it has units of (time)$^2$ and is independent of position size. Section 13.2.2 introduces the *position-scaled* version (dollar convexity).
+Like modified duration, $Cvx$ is normalized by the price $P$, so it has units of years-squared and is independent of position size. Section 13.2.2 introduces the *position-scaled* version (dollar convexity).
 
 ### 13.2.2 Dollar Convexity: The Gamma Analog
 
