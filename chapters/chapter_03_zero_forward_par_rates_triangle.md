@@ -45,7 +45,7 @@ Chapter 2 established discount factors and present value. This chapter extends t
 
 Every rate concept derives from one fundamental building block: the discount factor.
 
-The discount factor $d(t)$ (or $P(0,t)$) is the present value today of one unit of currency received at time $t$. Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
+The discount factor $d(T)$ (or $P(0,T)$) is the present value today of one unit of currency received at time $T$. Equivalently, it is the price today of a risk-free zero-coupon bond paying 1 unit of currency at maturity $T$.
 
 $$\boxed{P(0,T) = \text{Price today of 1 USD paid at time } T}$$
 
@@ -287,7 +287,7 @@ $$\boxed{V_{\text{receive fixed}}(T_1) \\;=\\; \frac{N \\, (K - R)\\, \tau}{1 + 
 **Worked example (mechanics):** Notional $N=100$ million USD, $\tau=0.25$, $K=3.5\\%$, realized reference rate $R=3.0\\%$. Take the perspective of the **receive-fixed** party (who receives $K$ and pays $R$).
 
 - End-of-period (i.e., $T_2$) interest difference owed to the receive-fixed party: $N(K-R)\tau = 100{,}000{,}000\times(0.035-0.030)\times 0.25 = 125{,}000$ USD.
-- Cash settlement at $T_1$ to the receive-fixed party (PV at the start of the period, discounted at the realized $R$): $125{,}000/(1+0.030\times 0.25) \approx 124{,}070$ USD.
+- Cash settlement at $T_1$ to the receive-fixed party (PV at the start of the period, discounted at the realized $R$): $125{,}000/(1+0.030\times 0.25) \approx 124{,}069$ USD.
 
 The **pay-fixed** counterparty pays the same magnitude with the opposite sign.
 
