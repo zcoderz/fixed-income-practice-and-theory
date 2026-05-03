@@ -819,9 +819,9 @@ This "bump and reprice" approach captures how the full price function responds t
 |:--|:---------|:-------|
 | 1 | What is Macaulay duration? | The weighted-average time to receipt of cash flows, where weights are PV of each cash flow divided by total price. |
 | 2 | What is the Macaulay duration of a zero-coupon bond? | Exactly equal to its maturity T. |
-| 3 | How do you convert Macaulay to Modified duration? | $D_{Mod} = D_{Mac} / (1 + y/m)$ where m is compounding frequency. |
+| 3 | How do you convert Macaulay to Modified duration? | $D_{\text{Mod}} = D_{\text{Mac}} / (1 + y/m)$ where $m$ is the compounding frequency. |
 | 4 | What does modified duration measure? | The approximate percentage price change for a 100bp (1%) change in yield. |
-| 5 | What is dollar duration? | $DD=D_{Mod}V$. It measures the dollar change for a 100bp (1.00%) yield move (under the stated bump object). |
+| 5 | What is dollar duration? | $DD=D_{\text{Mod}}\\,V$. It measures the dollar change for a 100bp (1.00%) yield move (under the stated bump object). |
 | 6 | How is DV01 related to dollar duration? | $DV01 \approx DD/10{,}000$. Always check whether your system uses an up-1bp or down-1bp convention. |
 | 7 | What is the Macaulay duration of a perpetuity at 5% yield? | $(1.025)/(0.05) = 20.5$ years. |
 | 8 | What is the modified duration of a perpetuity at yield y? | $1/y$. At 5%, that's 20 years. |
@@ -921,13 +921,13 @@ Which has higher duration? Which has higher DV01? Explain the relationship.
 ### Solution Sketches (Selected)
 
 **Q1.**
-(a) Zero-coupon: $D_{Mac} = T = 5$ years
-(b) $D_{Mod} = 5/(1.02) = 4.90$ years
-(c) Price = $100/(1.02)^{10} = 82.03$. DV01 = $(82.03 × 4.90)/10,000 = 0.0402$ per 100 face
+(a) Zero-coupon: $D_{\text{Mac}} = T = 5$ years
+(b) $D_{\text{Mod}} = 5/(1.02) \approx 4.90$ years
+(c) Price $= 100/(1.02)^{10} \approx 82.03$. DV01 $= (82.03 \times 4.90)/10{,}000 \approx 0.0402$ price points per 100 face per 1bp.
 
 **Q2.**
-(a) $D_{Mod} = 8.2/(1.03) = 7.96$ years
-(b) Market value = USD 1mm × 1.05 = USD 1.05mm. Dollar duration = USD 7.96 × 1,050,000 = 8,358,000
+(a) $D_{\text{Mod}} = 8.2/(1.03) \approx 7.96$ years
+(b) Market value $= $ USD 1mm $\times 1.05 = $ USD 1,050,000. Dollar duration $DD = D_{\text{Mod}}\\,V \approx 7.96 \times 1{,}050{,}000 \approx$ USD 8,358,000.
 
 **Q3.**
 (a) MV $=$ 10mm$\times 1.02 +$ 15mm$\times 0.98 +$ 5mm$\times 1.10 =$ USD 10.2mm $+$ USD 14.7mm $+$ USD 5.5mm $=$ USD 30.4mm
