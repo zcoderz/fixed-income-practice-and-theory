@@ -10,9 +10,9 @@
 
 This matters for three reasons. First, it enables **accountability**: if your mandate is to capture carry without taking directional rate risk, you need to prove that's what happened. Second, it supports **risk management**: understanding which component dominated your P&L tells you which risk you were actually exposed to. Third, it informs **trading decisions**: the breakeven yield move that wipes out your carry determines how confident you need to be in your directional view.
 
-Prerequisites: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 6 — Yield-to-Maturity (YTM) and Yield-Based Risk](chapters/chapter_06_ytm_yield_based_risk.md), [Chapter 8 — Spreads 101](chapters/chapter_08_spreads_101.md), [Chapter 9 — Repo — The Bond Market’s Funding Engine](chapters/chapter_09_repo_funding_engine.md)
+Prerequisites: [Chapter 3 — Zero Rates, Forward Rates, Par Rates — The Triangle](chapters/chapter_03_zero_forward_par_rates_triangle.md), [Chapter 5 — Fixed-Rate Bond Pricing](chapters/chapter_05_fixed_rate_bond_pricing.md), [Chapter 6 — Yield-to-Maturity (YTM) and Yield-Based Risk](chapters/chapter_06_ytm_yield_based_risk.md)
 
-Follow-on: [Chapter 11 — DV01/PV01 — Definitions, Computation, and "What's Being Bumped"](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 13 — Convexity](chapters/chapter_13_convexity.md), [Chapter 14 — Key-Rate DV01](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 15 — DV01 Hedging](chapters/chapter_15_dv01_hedging.md), [Chapter 16 — Curve Hedging (Twists, Butterflies, PCA)](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
+Follow-on (concepts used inline here, developed in detail later): [Chapter 8 — Spreads 101](chapters/chapter_08_spreads_101.md), [Chapter 9 — Repo — The Bond Market's Funding Engine](chapters/chapter_09_repo_funding_engine.md), [Chapter 11 — DV01/PV01 — Definitions, Computation, and "What's Being Bumped"](chapters/chapter_11_dv01_pv01_definitions_computation.md), [Chapter 12 — Duration](chapters/chapter_12_duration_macaulay_modified_dv01.md), [Chapter 13 — Convexity](chapters/chapter_13_convexity.md), [Chapter 14 — Key-Rate DV01](chapters/chapter_14_key_rate_dv01_bucket_exposures.md), [Chapter 15 — DV01 Hedging](chapters/chapter_15_dv01_hedging.md), [Chapter 16 — Curve Hedging (Twists, Butterflies, PCA)](chapters/chapter_16_curve_hedging_twists_butterflies_pca.md)
 
 ## Learning Objectives
 - After this chapter, you can compute holding-period P&L/return using clean vs dirty prices, accrued interest, and coupon timing.
@@ -43,11 +43,11 @@ Before we can decompose returns, we must be precise about what "return" means. B
 
 $$\boxed{P_{\text{dirty}} = P_{\text{clean}} + AI}$$
 
-where accrued interest for a semiannual coupon bond is:
+where accrued interest (per 100 face) for a semiannual coupon bond is:
 
-$$\boxed{AI = \frac{c}{2} \cdot \frac{t - t_0}{t_1 - t_0}}$$
+$$\boxed{AI = C \cdot \frac{t - t_0}{t_1 - t_0}}$$
 
-Here $c$ is the annual coupon rate (as a decimal), $t_0$ is the last coupon date, and $t_1$ is the next coupon date.
+Here $C$ is the semiannual coupon **per 100 face** (for an annual coupon rate $c$ in decimal, $C = c \cdot 100/2$; e.g., $C = 3.00$ for a 6% coupon), $t_0$ is the last coupon date, and $t_1$ is the next coupon date. For a quarterly bond, replace $C$ with the quarterly coupon $c \cdot 100/4$.
 
 Market convention: the bond price quoted in the market is the **clean price**, while the amount exchanged at settlement is the **full/dirty price**. The difference is **accrued interest**, and it exists so the quoted clean price does not experience a mechanical drop when a coupon is paid.
 
@@ -93,8 +93,8 @@ A desk-style funded P&L identity can be written using clean price, accrued inter
 
 - $P(0), P(d)$: Clean prices on the trade date and $d$ days later
 - $AI(0), AI(d)$: Accrued interest on the trade date and $d$ days later
-- $r$: Repo rate
-- $c$: Coupon rate
+- $r$: Repo rate (decimal per year)
+- $C$: Semiannual coupon per 100 face (e.g., $C = 3$ for a 6% bond; for an annual coupon rate $c$ in decimal, $C = c\cdot 100/2$)
 - $D$: Actual days between last and next coupon payments
 
 The P&L from purchasing the bond and selling it $d$ days later can be written as follows. The change in full price is:
@@ -104,11 +104,11 @@ PL &= [P(d) + AI(d)] - [P(0) + AI(0)] - \text{Financing cost} \\
 &= P(d) - P(0) + AI(d) - AI(0) - (P(0) + AI(0))(rd/360)
 \end{aligned}$$
 
-For the typical case where the holding period does not span a coupon date, $AI(d) - AI(0) = cd/D$ where $D$ is the days in the coupon period. Rearranging:
+For the typical case where the holding period does not span a coupon date, $AI(d) - AI(0) = C \cdot d/D$ where $C$ is the semiannual coupon per 100 face and $D$ is the days in the coupon period. Rearranging:
 
 $$\boxed{PL = \underbrace{[P(d) - P(0)]}_{\text{Price change}} + \underbrace{\text{Carry}}_{\text{Interest income} - \text{Financing cost}}}$$
 
-where Carry = $cd/D - (P(0) + AI(0))(rd/360)$. When coupons are received during the holding period, the income term includes those cash payments:
+where Carry = $C \cdot d/D - (P(0) + AI(0))(rd/360)$. When coupons are received during the holding period, the income term includes those cash payments:
 
 $$\boxed{\text{Carry} = \sum C_n + AI(d) - AI(0) - (P(0) + AI(0)) \cdot r\frac{d}{360}}$$
 
@@ -152,18 +152,16 @@ Net carry is about 112,625 USD. Converting that to **price points per 100**: one
 
 Carry enables a critical calculation: how much can the bond's price fall before the position loses money? This is the **breakeven price change**.
 
-> **Back-of-Envelope Breakeven Algebra**
->
-> If you know your carry (USD) and your risk (DV01 in USD per bp), you can calculate your survival buffer in your head:
->
-> $$\boxed{\text{Breakeven (bp)} \approx \frac{\text{Net Carry (USD)}}{\text{DV01 (USD per bp)}}}$$
->
-> *   **Example**:
->     *   Carry = +USD 10,000 per month.
->     *   DV01 = USD 1,000 per bp.
->     *   **Survival Buffer**: $10{,}000 / 1{,}000 = 10\text{ bp}$.
->
-> **Result**: You can survive a 10bp adverse move in rates over the next month and still break even.
+**Back-of-Envelope Breakeven Algebra.** If you know your carry (USD) and your risk (DV01 in USD per bp), you can calculate your survival buffer in your head:
+
+$$\boxed{\text{Breakeven (bp)} \approx \frac{\text{Net Carry (USD)}}{\text{DV01 (USD per bp)}}}$$
+
+**Example:**
+- Carry = +USD 10,000 per month.
+- DV01 = USD 1,000 per bp.
+- Survival buffer: $10{,}000 / 1{,}000 = 10\text{ bp}$.
+
+**Result:** You can survive a 10bp adverse move in rates over the next month and still break even.
 
 **Worked example:** An investor purchases a $5\frac{7}{8}\\%$ Treasury at invoice price 105.103073 and holds for 30 days at a 5.10% repo rate. The carry calculation proceeds:
 
@@ -187,7 +185,7 @@ Therefore, so long as the price does not fall by more than about 4 cents per 100
 
 The same logic works in reverse: if you have a price target, how quickly must the price reach that target before carry erodes your profit?
 
-Illustration (short position): if a trader shorts a bond at 105.055594 expecting the price to fall to 105, the price change profit would be $55,594 per $100 million face. But a short position has **negative carry** (you pay the coupon rate, receive the repo rate). Setting the carry loss equal to the price profit gives the breakeven holding period—approximately 41 days in this example.
+Illustration (short position): if a trader shorts a bond at 105.055594 expecting the price to fall to 105, the price change profit would be 55,594 USD per 100 million USD face. But a short position has **negative carry** (you pay the coupon rate, receive the repo rate). Using the same 5⅞% Treasury at a 5.10% repo rate as in §7.2.3 — where long carry was 40,190 USD over 30 days, i.e., about 1,340 USD per day — short carry runs at roughly $-1{,}340$ USD per day. Setting the cumulative carry loss equal to the 55,594 USD price profit gives a breakeven holding period of approximately $55{,}594 / 1{,}340 \approx 41$ days. If the price target isn't reached within ~41 days, accumulating negative carry begins to swallow the price gain.
 
 ### 7.2.5 Carry Is Not Expected Return
 
@@ -375,7 +373,7 @@ $$P_{0.5} = \frac{100}{(1 + 0.042/2)^3} = 93.956$$
 
 $$\frac{93.956 - 91.484}{91.484} = 2.70\\%$$
 
-Annualized, this is roughly 5.4%—significantly more than the 4.50% yield would suggest from "holding to maturity" logic.
+Annualized (simple), this is roughly 5.4% — meaningfully above the bond's 4.50% YTM. The extra return comes from the steep slope between the 1.5-year (4.20%) and 2-year (4.50%) yields: under unchanged curve, the 6-month price ratio for a zero-coupon bond exactly equals $1+f(1.5,2)/2$, where $f(1.5,2)$ is the implied 6-month forward starting at $t=1.5$ (here, $f(1.5,2)\approx 5.40\\%$). Rolldown captures that forward.
 
 > **Desk Reality: "Buying 2s and Selling as 1.5s"**
 >
@@ -402,13 +400,14 @@ If the curve is inverted, “aging” can move you into *higher* yields rather t
 
 Entry: 2-year yield = 4.50%, entry price $P_0 = 91.484$.
 
-Your **breakeven exit yield** is the 1.5-year yield that makes the exit price equal to $P_0$ (zero P&L). In this setup it’s about **6.02%**—very close to the “implied forward” breakeven logic from the prior section.
+Your **breakeven exit yield** is the 1.5-year yield at exit that makes the exit price equal to $P_0$ (zero 6-month price P&L). In this setup it's about **6.02%** — a rise of about 182bp from today's 1.5-year yield of 4.20%. That is what it takes to fully wipe out the rolldown gain. (Note: 6.02% is the *zero-P&L* breakeven and is distinct from the implied forward $f(1.5,2)\approx 5.40\\%$; realizing the forward would still leave you with a small positive 6-month return, while 6.02% is the threshold for exactly zero return.)
 
 | Scenario | 1.5Y Yield at Exit | Exit Price | Price Change | 6M Return |
 |----------|--------------------|------------|--------------|-----------|
 | Stable curve (rolldown benefit) | 4.20% | 93.956 | +2.471 | +2.70% |
 | Flat curve (no rolldown) | 4.50% | 93.543 | +2.058 | +2.25% |
-| Breakeven (forward-ish) | 6.02% | 91.484 | 0.000 | 0.00% |
+| Implied forward realized | 5.40% | 92.318 | +0.834 | +0.91% |
+| Zero-P&L breakeven | 6.02% | 91.484 | 0.000 | 0.00% |
 | Adverse sell-off | 6.50% | 90.851 | -0.633 | -0.69% |
 
 ### 7.3.8 Expectations vs Risk Premia: Why Rolldown May Be Compensation
@@ -449,7 +448,7 @@ This is an exact calculation using full repricing.
 
 For small moves, we often linearize the curve effect using a one-basis-point sensitivity.
 
-**Yield-based definition (DV01; sign convention):** In the book-wide convention (matching Chapter 11), DV01 is the change in full price for a 1bp **decline** in the chosen rate measure, so a long option-free bond typically has a positive DV01:
+**Yield-based definition (DV01; sign convention):** In the book-wide convention (matching Chapter 11), DV01 is the change in price for a 1bp **decline** in the chosen rate measure, so a long option-free bond typically has a positive DV01. For option-free bullet bonds, accrued interest is rate-independent, so the clean-price DV01 equals the full-price DV01; this chapter uses the clean-price form throughout for consistency with the curve/spread decomposition. The formal definition is:
 
 $$\boxed{DV01 := P(y-1\text{bp})-P(y) \approx -\frac{\partial P}{\partial y}\cdot (1\text{bp})}$$
 
@@ -587,17 +586,17 @@ When the residual in your P&L explain becomes large, treat DV01/DVOAS × bp as a
 
 ### 7.7.1 Model-Based Attribution (One-Factor Sketch)
 
-One model-based P&L attribution framework uses a term structure model with a single factor $x$:
+One model-based P&L attribution framework uses a term structure model with a single factor $x$ (with the book's sign convention $DV01_x, \text{DVOAS} \gt 0$ for a long bond):
 
-$$dP = (r + \text{OAS}) \cdot P \cdot dt + DV01_x \cdot (dx - E[dx]) + \text{DVOAS} \times d\text{OAS}$$
+$$dP = (r + \text{OAS}) \cdot P \cdot dt - DV01_x \cdot (dx - E[dx]) - \text{DVOAS} \times d\text{OAS}$$
 
-This framing interprets these components as:
+The minus signs on the rate and spread terms match the convention used in §7.4.2 and §7.5.2: an *up* move ($dx \gt 0$ or $d\text{OAS} \gt 0$) reduces the price of a long position. This framing interprets these components as:
 
 | Component | Economic Meaning |
 |-----------|------------------|
 | $(r + \text{OAS}) \cdot P \cdot dt$ | **Carry**: Return from time passage (including OAS if mispriced) |
-| $DV01_x \cdot (dx - E[dx])$ | **Factor exposure**: Return from unexpected rate moves |
-| $\text{DVOAS} \times d\text{OAS}$ | **Convergence**: Return from spread normalization |
+| $-DV01_x \cdot (dx - E[dx])$ | **Factor exposure**: Return from unexpected rate moves (negative when rates rise more than expected) |
+| $-\text{DVOAS} \times d\text{OAS}$ | **Convergence**: Return from spread normalization (positive when OAS narrows) |
 
 The spread-move component is often called “convergence” because, in a model-based view, a positive OAS represents mispricing relative to that model and (with predictive power) should tend to move back toward fair value.
 
@@ -636,7 +635,7 @@ Combining all components, the full P&L attribution is:
 $$\boxed{PL = \text{Carry} + \text{Rolldown} + \text{Curve effect} + \text{Spread effect} + \text{Residual}}$$
 
 Where:
-- **Carry**: $\sum C_n + AI(h) - AI(0) - (P_0 + AI_0) \cdot r \cdot d/360$
+- **Carry**: $\sum C_n + AI(h) - AI(0) - (P(0) + AI(0)) \cdot r \cdot d/360$
 - **Rolldown**: $P_h^{\text{uc}} - P_0$ (clean price)
 - **Curve effect**: $P_h^{\text{curve}} - P_h^{\text{uc}}$ (or $-\text{DV01} \times \Delta z_{\text{bp}}$ approximately)
 - **Spread effect**: $P_h^{\text{actual}} - P_h^{\text{curve}}$ (or $-\text{DVOAS} \times \Delta s_{\text{bp}}$ approximately)
@@ -1147,7 +1146,7 @@ $$\text{Residual} = PL_{\text{exact}} - \widehat{PL} = 2.60092367 - 2.60020022 =
 
 ---
 
-## Practical Notes
+## 7.8 Practical Notes
 
 ### 7.8.1 Common Desk Definitions and Ambiguity Traps
 
@@ -1219,7 +1218,7 @@ Traders and portfolio managers love to frame their P&L in terms of "predictable"
 
 2. **Look at the residual:** A persistently large residual suggests the PM is taking risks not captured by simple DV01 measures (curve shape bets, convexity bets, basis trades).
 
-3. **Consider the counterfactual:** If carry + rolldown was +$1M but rate moves were -$3M, the PM was running a directional rate bet. The "predictable" carry doesn't offset the directional loss—it was always part of the directional position.
+3. **Consider the counterfactual:** If carry + rolldown earned USD 1M but rate moves cost USD 3M, the PM was running a directional rate bet. The "predictable" carry doesn't offset the directional loss—it was always part of the directional position.
 
 4. **Track through time:** If a PM consistently "earns" carry and rolldown but has high rate/spread volatility, they're taking more risk than the carry suggests. Sharpe ratios tell the truth.
 
@@ -1279,6 +1278,7 @@ This chapter developed a complete framework for decomposing bond returns:
 | $P_{\text{dirty}}(t)$ | Dirty/full price at time $t$, $=P_{\text{clean}}(t)+AI(t)$ | price points per 100; settlement amount |
 | $AI(t)$ | Accrued interest at time $t$ | price points per 100; computed per the bond’s coupon day count |
 | $c$ | Annual coupon rate | decimal per year (e.g., 0.05 for 5%) |
+| $C$ | Semiannual coupon per 100 face | price points per 100; for annual rate $c$ decimal, $C = c\cdot 100/2$ (e.g., $C = 3$ for a 6% bond) |
 | $C_n$ | Coupon payment during the horizon | price points per 100; positive cashflow for a long position |
 | $h$, $d$ | Horizon length | years or days; state the day count used (e.g., 30/360, Act/360) |
 | $r$ | Repo rate | decimal per year; financing accrues on a money-market basis (often Act/360) |
@@ -1357,7 +1357,7 @@ This chapter developed a complete framework for decomposing bond returns:
 
 **Problem 13:** A trader says "this bond has 50bp of carry per year." What clarifying questions should you ask?
 
-**Problem 14:** A PM's P&L explain shows: Carry +$200K, Rolldown +$100K, Rates -$500K, Spread -$150K, Residual -$50K. Total: -$400K. How would you evaluate this PM's attribution narrative if they blame the loss on "unexpected rate moves"?
+**Problem 14:** A PM's P&L explain shows: Carry +USD 200K, Rolldown +USD 100K, Rates −USD 500K, Spread −USD 150K, Residual −USD 50K. Total: −USD 400K. How would you evaluate this PM's attribution narrative if they blame the loss on "unexpected rate moves"?
 
 ### Brief Solution Sketches
 

@@ -92,7 +92,7 @@ The bond pays USD 5 every 6 months plus USD 105 at maturity. We discount each us
 
 **Step 2: Calculate present values and weights**
 
-| Time (years) | Cash Flow (USD) | Present Value | Weight (PV/B) | Time × Weight |
+| Time (years) | Cash Flow (USD) | Present Value | Weight ($v_i/P_{\text{dirty}}$) | Time × Weight |
 |:-------------|:--------------|:--------------|:--------------|:--------------|
 | 0.5 | 5 | 4.709 | 0.050 | 0.025 |
 | 1.0 | 5 | 4.435 | 0.047 | 0.047 |
@@ -126,7 +126,7 @@ $$\boxed{D_{\text{Mod}}\big|_{c=0} = \frac{T}{1+y/2}}$$
 
 $$\text{DV01}\big|_{c=0} = \frac{T}{100(1+y/2)^{2T+1}}$$
 
-**Example:** A 10-year zero at 5% yield has modified duration of USD 10/(1.025) = 9.76 years.
+**Example:** A 10-year zero at 5% yield (semiannual) has $D_{\text{Mod}} = 10/1.025 \approx 9.76$ years.
 
 ### 12.3.2 Par Bonds: The Closed-Form Formula
 
@@ -168,13 +168,13 @@ While "weighted average time" is an interesting statistic, traders are paid to m
 
 By differentiating the bond price equation with respect to yield, we get a direct link between Macaulay duration and first-order price sensitivity. This motivates **modified duration**.
 
-For continuous compounding, the (Macaulay) duration satisfies the familiar semi-elasticity approximation:
+For continuous compounding, $D_{\text{Mac}} = D_{\text{Mod}}$ and the (Macaulay) duration satisfies the familiar semi-elasticity approximation:
 
-$$\frac{\Delta B}{B} \approx -D \Delta y$$
+$$\frac{\Delta P}{P} \approx -D_{\text{Mac}}\\,\Delta y \qquad \text{(continuous compounding)}.$$
 
-If yields are expressed with compounding frequency $m$ times per year, the chain rule introduces an adjustment:
+If yields are expressed with compounding frequency $m$ times per year, the chain rule introduces an adjustment factor $1/(1+y/m)$:
 
-$$\Delta B \approx -\frac{BD\Delta y}{1+y/m}$$
+$$\Delta P \approx -\frac{P\\,D_{\text{Mac}}\\,\Delta y}{1+y/m}.$$
 
 This motivates defining **modified duration** as:
 
@@ -194,7 +194,7 @@ $$\frac{\Delta P}{P} \approx -D_{\text{Mod}} \times \Delta y$$
 
 Interpretation: $D_{\text{Mod}}$ is the approximate percentage change in price for a **100bp (1.00%)** change in yield (holding cashflows fixed and using the stated yield/compounding convention).
 
-**Check (bp-to-decimal and dollars):** $25\text{bp}=0.0025$. If a bond has $D_{\text{Mod}}=7.8$ and is priced at 100 (per 100 face), the first-order estimate is $\Delta P/P\approx -7.8\times 0.0025=-1.95\\%$, i.e. $\Delta P\approx -1.95$ price points. On $N=USD 10\text{mm}$ face, 1 price point is $USD 100{,}000$, so this is about $-USD 195{,}000$.
+**Check (bp-to-decimal and dollars):** $25\text{bp}=0.0025$. If a bond has $D_{\text{Mod}}=7.8$ and is priced at 100 (per 100 face), the first-order estimate is $\Delta P/P\approx -7.8\times 0.0025=-1.95\\%$, i.e. $\Delta P\approx -1.95$ price points. On $N=10$mm face, 1 price point is USD 100,000, so this is about $-$USD 195,000.
 
 ### 12.4.2 The Derivation
 
@@ -218,29 +218,29 @@ $$\frac{1}{P}\frac{dP}{dy} = -\frac{D_{\text{Mac}}}{1+y/2} = -D_{\text{Mod}}$$
 
 This gives the key sensitivity identity:
 
-$$\frac{dP}{d\lambda} = -D_M P$$
+$$\frac{dP}{dy} = -D_{\text{Mod}}\\,P$$
 
-where $D_M$ is the modified duration (for the chosen compounding basis).
+(for the chosen compounding basis used to define $D_{\text{Mod}}$).
 
 ### 12.4.3 Worked Example B: Using Modified Duration for Estimation
 
-Using the bond from Example A (price 94.213, Macaulay duration 2.653 years, yield 12% continuous):
+Using the bond from Example A (price 94.213, Macaulay duration 2.653 years, yield 12% continuous): converting to a semiannually-compounded yield gives $y_{\text{sa}} = 2(e^{0.06}-1) \approx 12.3673\\%$. The two yields produce identical cashflow PVs and therefore the same Macaulay duration.
 
-For semiannual compounding, the equivalent yield is 12.3673%. The modified duration is:
+The modified duration with semiannual compounding is:
 
-$$D_{\text{Mod}} = \frac{2.653}{1 + 0.123673/2} = 2.499$$
+$$D_{\text{Mod}} = \frac{2.653}{1 + 0.123673/2} = 2.499 \text{ years}$$
 
-**Scenario**: Yields rise by 10 basis points (+0.10%). What is the estimated price change?
+**Scenario**: The semiannual yield rises by 10 basis points, from 12.3673% to 12.4673% ($\Delta y_{\text{sa}}=+0.001$). What is the estimated price change?
 
-Using the duration relationship:
+Using the duration relationship (with $\Delta y$ in the same compounding basis as $D_{\text{Mod}}$):
 
-$$\Delta B \approx -94.213 \times 2.499 \times 0.001 = -0.236$$
+$$\Delta P \approx -P\\,D_{\text{Mod}}\\,\Delta y = -94.213 \times 2.499 \times 0.001 \approx -0.235$$
 
-The predicted new price is USD 94.213 - 0.236 = 93.977.
+The predicted new price is $94.213 - 0.235 \approx 93.978$.
 
-An exact repricing at the bumped yield gives a price of about $93.963$, very close to the duration estimate.
+Exact repricing at $y_{\text{sa}} = 12.4673\\%$ (recomputing each cashflow PV) gives approximately $93.978$ as well — agreement to about $0.001$ price points. The tiny residual is **convexity** (the curvature of the price-yield relationship), which we cover in Chapter 13.
 
-The small error (0.014 cents) is due to **convexity** (the curvature of the price-yield relationship), which we cover in Chapter 13.
+> **Pitfall — match the bump to the compounding basis.** The relation $\Delta P/P\approx -D_{\text{Mod}}\\,\Delta y$ holds when $\Delta y$ is expressed in the *same* compounding basis used to define $D_{\text{Mod}}$. Mixing a continuous-yield bump with a semiannual $D_{\text{Mod}}$ (or vice versa) introduces a first-order convention error — much larger than the convexity correction — and is a common source of "unexplained" P&L.
 
 > **Rule of Thumb: Duration ≈ Leverage**
 >
@@ -257,14 +257,14 @@ The small error (0.014 cents) is due to **convexity** (the curvature of the pric
 
 All else equal, higher yields tend to **lower** duration. Intuition: increasing the discount rate reduces the present value of all cashflows, but it reduces *distant* cashflows more, shifting PV weight toward earlier payments. Since duration is a PV-weighted average time, shifting weight earlier pulls duration down.
 
-For example, consider a 5-year 5.625% bond:
+For example, consider a 5-year 5.625% coupon bond (semiannual):
 
-| Yield | Duration | Longest CF Weight |
-|:------|:---------|:------------------|
-| 7% | 4.26 | 77.3% |
-| 3% | 4.40 | 79.0% |
+| Yield | Macaulay Duration (yrs) | Modified Duration (yrs) | Longest CF Weight |
+|:------|:-----------------------:|:-----------------------:|:------------------:|
+| 7% | 4.41 | 4.26 | 77.3% |
+| 3% | 4.47 | 4.40 | 79.0% |
 
-At lower yields, longer-dated payments become relatively more valuable, pulling duration up.
+At lower yields, longer-dated payments become relatively more valuable, pulling Macaulay duration up. Modified duration moves in the same direction, with an additional contribution from the $1/(1+y/2)$ factor.
 
 ### 12.5.2 Duration and Coupon
 
@@ -284,25 +284,25 @@ The 1% coupon bonds have substantially higher durations at every maturity.
 
 For par and premium bonds, duration increases monotonically with maturity, approaching the perpetuity duration as an upper limit.
 
-There is a less intuitive corner case for very low-coupon, very long-maturity **discount** bonds: as maturity increases, Macaulay duration can rise above the perpetuity benchmark for a range of maturities and then eventually fall back toward the perpetuity limit as maturity becomes extremely large. This is sometimes called the **deep discount paradox**.
+There is a less intuitive corner case for very low-coupon, very long-maturity **discount** bonds: above a threshold maturity, Macaulay duration *exceeds* the perpetuity benchmark, peaks at some intermediate maturity, and then approaches the perpetuity limit *from above* as maturity becomes extremely large. This is sometimes called the **deep discount paradox**.
 
-Why it matters: ultra-long bonds that drift into deep-discount territory can see duration *increase* as they age, which is the opposite of the usual “as maturity shortens, risk goes down” intuition.
+Why it matters: ultra-long bonds that drift into deep-discount territory can see duration *increase* as their maturity shortens through the peak region, which is the opposite of the usual "as maturity shortens, risk goes down" intuition.
 
 ### 12.5.4 Worked Example C: The Deep Discount Paradox
 
-Consider a 1% coupon bond at a 5% yield. At what maturities does duration exceed the perpetuity's 20.5 years?
-
-Using numerical calculation:
+Consider a 1% coupon bond at a 5% yield (semiannual). At what maturities does Macaulay duration exceed the perpetuity benchmark of 20.5 years?
 
 | Maturity | Price | Macaulay Duration |
-|:---------|:------|:------------------|
-| 30 years | 38.02 | 20.3 |
-| 50 years | 21.95 | 23.8 |
-| 70 years | 13.60 | 24.9 |
-| 100 years | 7.60 | 24.7 |
-| ∞ (perpetuity) | 20.00 | 20.5 |
+|:---------|:-----:|:-----------------:|
+| 25 years | 43.28 | 20.16 |
+| 30 years | 38.18 | 22.58 |
+| 50 years | 26.77 | 26.67 |
+| 70 years | 22.52 | 25.47 |
+| 100 years | 20.57 | 22.57 |
+| 200 years | 20.00 | 20.54 |
+| ∞ (perpetuity) | 20.00 | 20.50 |
 
-The 1% coupon bond has duration exceeding perpetuity duration between roughly 35 and 150 years to maturity!
+For this bond, $D_{\text{Mac}}$ first exceeds the 20.5-year perpetuity benchmark near maturity $\approx 26$ years, peaks near $T \approx 50$ years (at about 26.7 years), and then decays slowly toward 20.5 from above as $T\to\infty$. Note that the price approaches the perpetuity value $c/y\cdot 100 = 20$ from above — it never falls below the perpetuity price, which is a useful sanity check.
 
 > **Desk Reality:** Deep-discount ultra-long bonds can get *more* rate-sensitive as time passes.  
 > **Common break:** Assuming “aging = de-risking” and sizing hedges off stale duration.  
@@ -328,7 +328,7 @@ $$
 V := \frac{N}{100}\\,P_{\text{dirty}}.
 $$
 
-**Check (points $\leftrightarrow$ dollars):** If prices are quoted “per 100,” then 1.00 price point is $1\\%$ of face value. So a 0.01-point move is $0.01\\%$ of face. Example: if $N=USD 100\text{mm}$, then 1.00 point is $USD 1{,}000{,}000$ and 0.01 point is $USD 10{,}000$. This is the quickest way to sanity-check whether a reported DV01 magnitude is plausible.
+**Check (points $\leftrightarrow$ dollars):** If prices are quoted "per 100," then 1.00 price point is $1\\%$ of face value. So a 0.01-point move is $0.01\\%$ of face. Example: if $N=100$mm, then 1.00 point is USD 1,000,000 and 0.01 point is USD 10,000. This is the quickest way to sanity-check whether a reported DV01 magnitude is plausible.
 
 Using the duration approximation $\Delta P/P \approx -D_{\text{Mod}}\\,\Delta y$ and scaling by the position size gives:
 
@@ -339,10 +339,10 @@ $$
 One definition of **dollar duration** is the PV slope with respect to a small yield change:
 
 $$
-D_{USD } := -\frac{\Delta V}{\Delta y}.
+D_{\text{currency}} := -\frac{\Delta V}{\Delta y}.
 $$
 
-Under the duration approximation above, $D_{USD } \approx D_{\text{Mod}}V$. In this chapter we write:
+Under the duration approximation above, $D_{\text{currency}} \approx D_{\text{Mod}}\\,V$. In this chapter we write:
 
 $$
 DD := D_{\text{Mod}}\\,V,
@@ -376,15 +376,15 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
 
 > **Pitfall — DV01 scaling and sign drift:** DV01 is routinely misread because of unit conversions.  
 > **Why it matters:** Hedge ratios end up off by $10{,}000\times$ or with the wrong sign.  
-> **Quick check:** For USD 1mm notional, $DV01_{USD}\approx P_{\text{dirty}}\times D_{\text{Mod}}$ (in dollars per 1bp). If you get a number like $0.05$ without stating “per 100”, you are probably mixing units.
+> **Quick check:** For USD 1mm notional, $\text{DV01}_{\text{ccy}} \approx P_{\text{dirty}}\times D_{\text{Mod}}$ (in dollars per 1bp). If you get a number like $0.05$ without stating "per 100", you are probably mixing units.
 
 ### 12.6.3 Worked Example — From Duration to DV01 to P&L (Concrete Timeline)
 
 **Example Title**: Par 10‑year coupon bond — compute DV01 and a 25bp P&L
 
 **Context**
-- You see “Duration: 7.8” on a risk report and need to translate it into dollars.
-- The goal is to connect $D_{\text{Mod}}$ $\rightarrow$ DV01 $\rightarrow$ P&L with explicit units and sign.
+- You see "Duration: 7.8" on a risk report and need to translate it into dollars.
+- The goal is to connect $D_{\text{Mod}}$ → DV01 → P&L with explicit units and sign.
 
 **Timeline (Make Dates Concrete)**
 - Trade/valuation date: 2026-04-15 (assume valuation is just after the coupon is paid, so $AI\approx 0$)
@@ -393,35 +393,36 @@ and you convert to dollars for notional $N$ by multiplying by $N/100$.
 - Payment dates: 2026-10-15, 2027-04-15, …, 2036-04-15
 
 **Inputs**
-- Instrument: fixed-rate bond, notional $N=USD 10{,}000{,}000$, maturity 2036-04-15, coupon $c=5\\%$ paid semiannually
+- Instrument: fixed-rate bond, notional $N=10{,}000{,}000$ USD, maturity 2036-04-15, coupon $c=5\\%$ paid semiannually
 - Market quote: yield $y=5\\%$ with semiannual compounding ($m=2$)
 - Day count / compounding: treat coupon periods as $0.5$ years (duration math); $AI=0$ at the coupon date
 
 **Outputs (What You Produce)**
 - $P_{\text{clean}}=P_{\text{dirty}}=100$ per 100 notional (par at $c=y$ under this convention)
-- $V = \frac{N}{100}P_{\text{dirty}}=USD 10{,}000{,}000$
+- $V = (N/100)\\,P_{\text{dirty}} = 10{,}000{,}000$ USD
 - Modified duration (par-bond formula): $D_{\text{Mod}} \approx 7.79$ years
-- Position DV01: $\approx USD 7{,}790$ per 1bp (book convention: PV change for a 1bp *fall* in yield)
+- Position DV01: $\approx$ USD 7,790 per 1bp (book convention: PV change for a 1bp *fall* in yield)
 
 **Step-by-step**
 1. **Compute modified duration** for a 10‑year par bond at yield $y$ (semiannual):
    $D_{\text{Mod}}=\frac{1}{y}\left(1-\frac{1}{(1+y/2)^{2T}}\right)=\frac{1}{0.05}\left(1-\frac{1}{1.025^{20}}\right)\approx 7.79$.
 
-2. **Compute DV01** using $DV01 \approx \frac{D_{\text{Mod}}V}{10{,}000}$:
-   $DV01 \approx \frac{7.79\times 10{,}000{,}000}{10{,}000}=USD 7{,}790$ per bp.
+2. **Compute DV01** using $\text{DV01} \approx \frac{D_{\text{Mod}}\\,V}{10{,}000}$:
+   $\text{DV01} \approx \frac{7.79\times 10{,}000{,}000}{10{,}000} = 7{,}790$ USD per bp.
 
 3. **Translate a rate move into P&L.** For a +25bp yield increase ($\Delta y=+0.0025$):
-   $\Delta V \approx -DD\\,\Delta y = -(D_{\text{Mod}}V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025)=-USD 194{,}750$.
+   $\Delta V \approx -DD\\,\Delta y = -(D_{\text{Mod}}\\,V)\Delta y \approx -(7.79)(10{,}000{,}000)(0.0025) = -194{,}750$ USD.
 
-**Cashflows (table)**
+**Cashflows (table — first, intermediate, and final)**
 | Date | Cashflow | Explanation |
 |---|---:|---|
-| 2026-10-15 | USD 250,000 | coupon $=N\times c/2$ |
+| 2026-10-15 | USD 250,000 | first coupon $=N\times c/2$ |
+| 2027-04-15 through 2035-10-15 | USD 250,000 each | 18 intermediate semiannual coupons |
 | 2036-04-15 | USD 10,250,000 | final coupon + principal |
 
 **P&L / Risk Interpretation**
-- The DV01 of $USD 7.79k$ means: if yield falls 1bp, PV increases about $USD 7.79k$ (for this $N$ and bump object).
-- A +25bp move is roughly $-25\times DV01$ for a long bond (first-order).
+- DV01 ≈ USD 7,790 means: if yield falls 1bp, PV increases about USD 7,790 (for this $N$ and bump object).
+- A +25bp move is roughly $-25\times \text{DV01}$ for a long bond (first-order).
 - For larger moves, convexity (Chapter 13) and curve-shape moves (Chapter 14) matter.
 
 **Sanity Checks**
@@ -437,7 +438,7 @@ If you have two positions:
 - Bond A: $DD^A = 800{,}000$
 - Bond B: $DD^B = 1{,}200{,}000$
 
-Portfolio dollar duration = USD 800{,}000 + 1{,}200{,}000 = USD 2{,}000{,}000
+Portfolio dollar duration $=$ USD 800,000 $+$ USD 1,200,000 $=$ USD 2,000,000.
 
 You cannot simply add percentage durations. A portfolio with 50% in a 5-year duration bond and 50% in a 10-year duration bond does *not* have 15-year duration—it has weighted average duration of 7.5 years.
 
@@ -455,9 +456,9 @@ $$
 
 **DV01:**
 
-$$\text{DV01}^A \approx 341{,}250{,}000 \times 0.0001 = USD 34{,}125 \text{ per basis point}$$
+$$\text{DV01}^A \approx 341{,}250{,}000 \times 0.0001 = 34{,}125 \text{ USD per basis point}$$
 
-**Verification:** A 1bp rate increase gives $\Delta V \approx -DD \times 0.0001 = -USD 34{,}125$. ✓
+**Verification:** A 1bp rate increase gives $\Delta V \approx -DD \times 0.0001 = -34{,}125$ USD. ✓
 
 > **Desk Reality:** Risk reports usually show DV01/PV01 in dollars, not “duration in years.”  
 > **Common break:** The report’s sign convention may be “up‑1bp” (PV01) rather than “down‑1bp” (DV01 as defined in this book).  
@@ -477,15 +478,15 @@ $$
 \boxed{DV01_{\text{pts}} \approx \frac{P_{\text{dirty}}\\,D_{\text{Mod}}}{10{,}000}}
 $$
 
-For a **position** with notional $N$ and market value $V=(N/100)P_{\text{dirty}}$ (DV01 in dollars per 1bp):
+For a **position** with notional $N$ and market value $V=(N/100)P_{\text{dirty}}$ (DV01 in currency per 1bp):
 
 $$
-\boxed{DV01_{USD} \approx \frac{D_{\text{Mod}}\\,V}{10{,}000}}.
+\boxed{\text{DV01}_{\text{ccy}} \approx \frac{D_{\text{Mod}}\\,V}{10{,}000}}.
 $$
 
-Or using Macaulay duration:
+Or, written directly in terms of Macaulay duration (per 100 notional, semiannual compounding):
 
-$$\text{DV01} = \frac{P \times D_{\text{Mac}}}{10{,}000(1+y/2)}$$
+$$\text{DV01}_{\text{pts}} \approx \frac{P_{\text{dirty}}\\,D_{\text{Mac}}}{10{,}000\\,(1+y/2)}$$
 
 The division by 10,000 appears because DV01 is for a **1 basis point** move ($10^{-4}$), while modified duration is sensitivity per **1.00** change in yield.
 
@@ -510,25 +511,25 @@ For **zero-coupon bonds**, duration rises with maturity but price falls rapidly 
 
 ### 12.7.3 Worked Example E: Premium vs Discount Bonds
 
-Consider two 10-year bonds both yielding 5%:
+Consider two 10-year bonds both yielding 5% (semiannual):
 
 **Premium Bond** (8% coupon):
-- Price ≈ 123.16
-- Macaulay Duration ≈ 7.54 years
-- Modified Duration = 7.54/1.025 = 7.36
-- DV01 ≈ $(123.16 \times 7.36)/10{,}000 = 0.0906$ price points per 100 per 1bp  
-  (≈ $USD 906$ per 1bp per USD 1mm notional)
+- Price ≈ 123.38
+- Macaulay Duration ≈ 7.39 years
+- Modified Duration = $7.39/1.025 \approx 7.21$
+- DV01 ≈ $(123.38 \times 7.21)/10{,}000 \approx 0.0890$ price points per 100 per 1bp  
+  (≈ USD 890 per 1bp per USD 1mm notional)
 
 **Discount Bond** (2% coupon):
-- Price ≈ 76.83
-- Macaulay Duration ≈ 8.94 years
-- Modified Duration = 8.94/1.025 = 8.72
-- DV01 ≈ $(76.83 \times 8.72)/10{,}000 = 0.0670$ price points per 100 per 1bp  
-  (≈ $USD 670$ per 1bp per USD 1mm notional)
+- Price ≈ 76.62
+- Macaulay Duration ≈ 8.95 years
+- Modified Duration = $8.95/1.025 \approx 8.73$
+- DV01 ≈ $(76.62 \times 8.73)/10{,}000 \approx 0.0669$ price points per 100 per 1bp  
+  (≈ USD 669 per 1bp per USD 1mm notional)
 
-The discount bond has *higher duration* (more "leveraged" to rates), but the premium bond has *higher DV01* (more dollars at risk because price is higher).
+The discount bond has *higher duration* (more "leveraged" to rates in percentage terms), but the premium bond has *higher DV01* (more dollars at risk because the price level is higher).
 
-**Hedging implication:** To DV01-hedge USD 1mm notional of the premium bond with the discount bond, you need a notional ratio of about $0.0906/0.0670\approx 1.35$.
+**Hedging implication:** To DV01-hedge USD 1mm notional of the premium bond with the discount bond, you need a notional ratio of about $0.0890/0.0669\approx 1.33$ — i.e., roughly USD 1.33mm notional of the discount bond per USD 1mm of the premium bond.
 
 ---
 
@@ -556,21 +557,21 @@ If you try to compute weighted average duration, you divide by Net Market Value 
 
 **Solution:** For hedged portfolios, **aggregate DV01** (or dollar duration), not percentage duration:
 
-$$PortfolioDV01 = \sum_{i} DV01_i^{\text{Position}}$$
+$$\text{Portfolio DV01} = \sum_{i} \text{DV01}_i^{\text{position}}$$
 
 ### 12.8.3 Worked Example F: Portfolio DV01 Calculation
 
-**Bond A (Long):** USD 5mm face, Price = 102, Duration = 4.5
-- Market Value = USD 5.1mm
-- Position DV01 $\approx D_{\text{Mod}} \times V / 10{,}000 = 4.5 \times 5.1\text{mm}/10{,}000 = \mathbf{+USD 2{,}295}$
+**Bond A (Long):** USD 5mm face, Price $=102$, Modified Duration $D_{\text{Mod}}=4.5$
+- Market Value $V_A = 5{,}100{,}000$
+- Position DV01 $\approx D_{\text{Mod}}\\,V_A / 10{,}000 = 4.5 \times 5{,}100{,}000 / 10{,}000 = \mathbf{+\\,\text{USD }2{,}295}$
 
-**Bond B (Short):** USD 3mm face, Price = 108, Duration = 7.2
-- Market Value = USD 3.24mm
-- Position DV01 $\approx -\\,7.2 \times 3.24\text{mm}/10{,}000 = \mathbf{−USD 2{,}333}$
+**Bond B (Short):** USD 3mm face, Price $=108$, Modified Duration $D_{\text{Mod}}=7.2$
+- Market Value (long-equivalent) $|V_B| = 3{,}240{,}000$; the position is short
+- Position DV01 $\approx -\\,(D_{\text{Mod}}\\,|V_B|) / 10{,}000 = -\\,(7.2 \times 3{,}240{,}000)/10{,}000 = \mathbf{-\\,\text{USD }2{,}333}$
 
-**Portfolio DV01** = USD 2,295 − USD 2,333 = **−USD 38**
+**Portfolio DV01** $=$ USD 2,295 $-$ USD 2,333 $= \mathbf{-\\,\text{USD }38}$.
 
-Interpretation (with this chapter’s DV01 convention): a portfolio DV01 of $-USD 38$ means PV *falls* by about $USD 38$ for a 1bp **fall** in yields, so it *gains* about $USD 38$ for a 1bp **rise** in yields. To neutralize yield-based DV01, add $USD 38$ of positive DV01.
+Interpretation (with this chapter's DV01 convention $\text{DV01} = V(y-1\text{bp}) - V(y)$): a portfolio DV01 of $-\\,\text{USD }38$ means PV *falls* by about USD 38 for a 1bp **fall** in yields, and equivalently PV *rises* by about USD 38 for a 1bp **rise** in yields (the book is slightly net short rates). To neutralize yield-based DV01, add USD 38 of positive DV01.
 
 > **Desk Reality:** Portfolio “duration” can be unstable or undefined in hedged books.  
 > **Common break:** Net market value near zero makes “percentage duration” explode, while DV01 remains finite.  
@@ -599,38 +600,45 @@ For a single liability of $L$ due at time $T$:
 
 ### 12.9.3 Worked Example G: Immunizing a Future Obligation
 
-**Setup:** The X Corporation owes USD 1 million in 10 years. They want to invest now to meet this obligation using two bonds:
+**Setup:** The X Corporation owes USD 1 million in 10 years. They want to invest now to meet this obligation using two bonds (all durations are Macaulay; semiannual compounding):
 
-- **Bond 1:** 6% coupon, 30-year maturity, Price = 69.04, Duration = 11.44 years
-- **Bond 2:** 11% coupon, 10-year maturity, Price = 113.04, Duration = 6.54 years
+- **Bond 1:** 6% coupon, 30-year maturity, Price $\approx 69.04$, $D_{\text{Mac}} \approx 11.44$ years
+- **Bond 2:** 11% coupon, 10-year maturity, Price $\approx 113.01$, $D_{\text{Mac}} \approx 6.54$ years
+- Liability: a single payment in 10 years, so $D_{\text{Mac}}^{\text{liab}} = 10$ years
 
-Current yield: 9% for all bonds.
+Current yield: 9% (semiannual) for all bonds.
 
 **Step 1: Calculate obligation present value**
 
-$$\text{PV} = \frac{1{,}000{,}000}{(1.045)^{20}} = USD 414{,}643$$
+$$\text{PV} = \frac{1{,}000{,}000}{(1.045)^{20}} \approx 414{,}643$$
+
+(in USD; per 100 face all values are scaled accordingly)
 
 **Step 2: Set up immunization equations**
 
 Let $V_1$ = investment in Bond 1, $V_2$ = investment in Bond 2.
 
-$$V_1 + V_2 = 414{,}643 \quad \text{(PV matching)}$$
+$$V_1 + V_2 \approx 414{,}643 \quad \text{(PV matching)}$$
 
-$$\frac{11.44 \cdot V_1 + 6.54 \cdot V_2}{414{,}643} = 10 \quad \text{(Duration matching)}$$
+$$\frac{11.44\\,V_1 + 6.54\\,V_2}{414{,}643} = 10 \quad \text{(duration matching)}$$
+
+(With all bonds at the same yield, matching Macaulay durations is equivalent to matching modified durations.)
 
 **Step 3: Solve**
 
-From the second equation: $11.44 V_1 + 6.54 V_2 = 4{,}146{,}430$
+From the second equation: $11.44\\,V_1 + 6.54\\,V_2 = 4{,}146{,}430$.
 
 Substituting $V_2 = 414{,}643 - V_1$:
 
-$11.44 V_1 + 6.54(414{,}643 - V_1) = 4{,}146{,}430$
+$11.44\\,V_1 + 6.54\\,(414{,}643 - V_1) = 4{,}146{,}430$
 
-$4.90 V_1 = 1{,}433{,}765$
+$(11.44-6.54)\\,V_1 = 4{,}146{,}430 - 6.54\times 414{,}643$
 
-$V_1 = USD 292{,}606$ in Bond 1
+$4.90\\,V_1 \approx 1{,}434{,}665$
 
-$V_2 = USD 122{,}037$ in Bond 2
+$V_1 \approx \text{USD }292{,}789$ in Bond 1
+
+$V_2 \approx \text{USD }121{,}854$ in Bond 2
 
 **Verification (idea):** If yields shift to 8% or 10%, repricing the portfolio and the liability stream gives a small “surplus” (assets minus liabilities), illustrating that the match is first-order accurate for parallel shifts.
 
@@ -675,15 +683,13 @@ $$\text{VaR} \approx |\text{DV01}| \times \sigma_y(\text{in bp}) \times z_\alpha
 
 ### 12.10.2 Worked Example H: Computing Duration-Based VaR
 
-Assume a bond portfolio has value $V=USD 6{,}000{,}000$ and modified duration $D_{\text{Mod}}=5.2$. Assume daily parallel yield changes have standard deviation $0.09\\%$ (so $\sigma_y=0.0009$ in yield decimals).
+Assume a bond portfolio has value $V=6{,}000{,}000$ USD and modified duration $D_{\text{Mod}}=5.2$. Assume daily parallel yield changes have standard deviation $0.09\\%$ (so $\sigma_y=0.0009$ in yield decimals).
 
-**Calculate 20-day 90% VaR:**
+**Calculate 20-day 90% VaR** (using $z_{0.90}\approx 1.282$ and $\sqrt{20}\approx 4.4721$):
 
-$$\text{VaR} = 5.2 \times 6{,}000{,}000 \times 0.0009 \times 1.282 \times \sqrt{20}$$
+$$\text{VaR} \approx 5.2 \times 6{,}000{,}000 \times 0.0009 \times 1.282 \times \sqrt{20}$$
 
-$$= 31{,}200{,}000 \times 0.0009 \times 1.282 \times 4.472$$
-
-$$= USD 161{,}289$$
+$$\approx 28{,}080 \times 1.282 \times 4.4721 \approx 160{,}990.$$
 
 The 90% VaR over 20 days is approximately **USD 161,000**.
 
@@ -777,7 +783,7 @@ This "bump and reprice" approach captures how the full price function responds t
 | DV01 | $DV01 := V(y-1\text{bp})-V(y) \approx DD/10{,}000$ | Standard “bp-risk” number on a risk report |
 | Bump object | The variable being shifted (bond YTM, curve nodes, par quotes, etc.) | Different bump objects produce different “DV01s” |
 | Price effect vs duration effect | DV01 depends on both duration and price level | Explains why high-price premium bonds can have larger DV01 |
-| Deep discount paradox | Duration can exceed perpetuity benchmark at ultra-long maturities for low coupons | Hedge ratios can move the “wrong way” as a bond ages |
+| Deep discount paradox | For low-coupon discount bonds, $D_{\text{Mac}}$ exceeds the perpetuity benchmark above a threshold maturity and approaches it from above as $T\to\infty$ | Hedge ratios can move the "wrong way" as a bond ages through the peak region |
 | Portfolio duration | Value-weighted average of component durations | Valid for positive-value long-only portfolios |
 | Aggregation trap | “Portfolio duration” blows up when net PV is near zero | Use DV01/dollar duration instead |
 | Effective duration | Curve-bump, model-based duration when cashflows can change | Used for callables/MBS; depends on model and bump design |
@@ -924,25 +930,29 @@ Which has higher duration? Which has higher DV01? Explain the relationship.
 (b) Market value = USD 1mm × 1.05 = USD 1.05mm. Dollar duration = USD 7.96 × 1,050,000 = 8,358,000
 
 **Q3.**
-(a) MV = USD 10mm×1.02 + USD 15mm×0.98 + USD 5mm×1.10 = USD 10.2 + USD 14.7 + USD 5.5 = USD 30.4mm
-(b) $D = (10.2×3.5 + 14.7×6.2 + 5.5×9.1)/30.4 = (35.7 + 91.14 + 50.05)/30.4 = 5.82$ years
-(c) DV01 = $(30.4mm × 5.82)/10,000 = USD 17,693$
+(a) MV $=$ 10mm$\times 1.02 +$ 15mm$\times 0.98 +$ 5mm$\times 1.10 =$ USD 10.2mm $+$ USD 14.7mm $+$ USD 5.5mm $=$ USD 30.4mm
+(b) $D = (10.2\times 3.5 + 14.7\times 6.2 + 5.5\times 9.1)/30.4 = (35.7 + 91.14 + 50.05)/30.4 \approx 5.82$ years
+(c) $\text{DV01} = (30.4\\,\text{mm}\times 5.82)/10{,}000 \approx$ USD 17,693
 
 **Q4.** Assuming semiannual compounding, the perpetuity Macaulay duration (in years) is:
 
 $$
-D_{\text{Mac}} = \frac{1+y/2}{y}
+D_{\text{Mac}}^{\text{perp}} = \frac{1+y/2}{y}
 $$
 
-At $y=6\\%$, $D_{\text{Mac}} = 1.03/0.06 = 17.17$ years. The 50-year deep discount (1% coupon) has duration approximately 21 years—exceeding the perpetuity due to the heavy weighting on the distant principal.
+At $y=6\\%$, $D_{\text{Mac}}^{\text{perp}} = 1.03/0.06 \approx 17.17$ years. The 50-year, 1% coupon bond at $y=6\\%$ has price $\approx 21.00$ (per 100 face) and Macaulay duration $\approx 23.24$ years — *exceeding* the perpetuity duration. The reason: the bond's principal repayment at $T=50$ pulls additional PV weight to the distant future, while the small coupon stream contributes relatively little near-term weight.
 
-**Q5.** Let $V_X$ in Bond X, $V_Y$ in Bond Y.
-- PV matching: $V_X + V_Y = 500,000/(1.025)^{16} = 335,602$
-- Duration matching: $5V_X + 12V_Y = 8 × 335,602$
+**Q5.** Let $V_X$ in Bond X, $V_Y$ in Bond Y. With $y=5\\%$ semiannual and $T=8$ years (16 semiannual periods), the liability PV is $500{,}000/(1.025)^{16} \approx 336{,}812$.
+- PV matching: $V_X + V_Y \approx 336{,}812$
+- Duration matching: $5\\,V_X + 12\\,V_Y = 8 \times 336{,}812 \approx 2{,}694{,}500$
 
-Solving: $V_Y = (8×335,602 - 5×335,602)/(12-5) = 143,829$; $V_X = 191,773$
+Solving: $V_Y = (8-5)\times 336{,}812 / (12-5) \approx 144{,}348$; $V_X \approx 192{,}464$.
 
-**Q6.** VaR = USD 6.5 × 10,000,000 × 0.0008 × 2.326 × √10 = 6.5 × 10mm × 0.0008 × 2.326 × 3.162 = USD 382,437
+**Q6.**
+
+$$\text{VaR} = D_{\text{Mod}}\\,V\\,\sigma_y\\,z_{0.99}\\,\sqrt{T} = 6.5 \times 10{,}000{,}000 \times 0.0008 \times 2.326 \times \sqrt{10} \approx 382{,}484$$
+
+(in USD; using $z_{0.99}\approx 2.326$ and $\sqrt{10}\approx 3.1623$).
 
 **Q7 (sketch).** The discount bond has higher duration (more PV weight on the distant principal). The premium bond can still have higher DV01 because its price level is higher, scaling the *absolute* dollar sensitivity.
 
@@ -955,5 +965,5 @@ Solving: $V_Y = (8×335,602 - 5×335,602)/(12-5) = 143,829$; $V_X = 191,773$
 - Hull, *Risk Management and Financial Institutions* (dollar duration, portfolio aggregation, duration-based VaR discussions).
 - Luenberger, *Investment Science* (immunization: matching PV and duration; convexity considerations).
 - Neftci, *Principles of Financial Engineering* (“DV01 and PV01”; duration and yield-based sensitivity measures).
-- Brandimarte, *Numerical Methods in Finance and Economics* (duration/convexity definitions and the sensitivity link $\frac{dP}{d\lambda}=-D_M P$).
+- Brandimarte, *Numerical Methods in Finance and Economics* (duration/convexity definitions and the sensitivity link $\frac{dP}{dy}=-D_{\text{Mod}}\\,P$).
 - *Simulation and Optimization in Finance* (modified vs effective/option-adjusted duration for instruments with rate-dependent cashflows).
