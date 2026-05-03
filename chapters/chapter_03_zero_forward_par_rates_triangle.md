@@ -442,7 +442,7 @@ Solving for $C$:
 
 $$\boxed{C_{\text{par}} = \frac{1 - P(0,T_n)}{\sum_{i=1}^n \tau_i P(0,T_i)}}$$
 
-Equivalently, per 100 face value (with $d:=P(0,T_n)$ the final discount factor and $A:=\sum_{i=1}^n \tau_i P(0,T_i)$ as defined in §3.6.3):
+Equivalently, per 100 face value (with $d:=P(0,T_n)$ the final discount factor and $A:=\sum_{i=1}^n \tau_i P(0,T_i)$):
 
 $$c = \frac{100\\,(1 - d)}{A}$$
 
