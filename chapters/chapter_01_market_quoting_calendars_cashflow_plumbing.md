@@ -153,20 +153,34 @@ Both effects move in the same direction: the discount quote $q_{\text{disc}}$ is
 > - $DV01_{\text{disc}}$ (bump object: $q_{\text{disc}}$ down by $1$ bp; units: USD per 1 bp; sign: positive for a long)
 >
 > **Step-by-step**
-> 1. Translate quote to interest on face:
->    $$\text{Interest per }100 = 100 \times \frac{5.00}{100} \times \frac{91}{360} = 1.2639.$$
-> 2. Compute cash price per $100$ face:
->    $$Y = 100 - 1.2639 = 98.7361.$$
-> 3. Compute settlement cash amount:
->    $$\text{Cash paid} = N \times \frac{Y}{100} = 10{,}000{,}000 \times 0.987361 = 9{,}873{,}611\text{ USD}.$$
-> 4. PV equation (zero-coupon special case): the discount factor from settlement to maturity is
->    $$P(\text{settle},\text{mat}) = \frac{Y}{100} = 0.987361,$$
->    so the PV of the maturity cashflow is
->    $$PV = N \cdot P(\text{settle},\text{mat}) = 9{,}873{,}611\text{ USD}.$$
-> 5. Risk (DV01-style “01”): define (book convention)
->    $$DV01_{\text{disc}} := PV(q_{\text{disc}}-1\text{bp}) - PV(q_{\text{disc}}).$$
->    Since $PV = N\left(1 - (q_{\text{disc}}/100)\frac{n}{360}\right)$,
->    $$DV01_{\text{disc}} = N \cdot \frac{n}{360} \cdot 10^{-4} = 10{,}000{,}000 \times \frac{91}{360} \times 10^{-4} = 252.78\text{ USD}.$$
+>
+> **Step 1.** Translate quote to interest on face:
+>
+> $$\text{Interest per }100 = 100 \times \frac{5.00}{100} \times \frac{91}{360} = 1.2639.$$
+>
+> **Step 2.** Compute cash price per $100$ face:
+>
+> $$Y = 100 - 1.2639 = 98.7361.$$
+>
+> **Step 3.** Compute settlement cash amount:
+>
+> $$\text{Cash paid} = N \times \frac{Y}{100} = 10{,}000{,}000 \times 0.987361 = 9{,}873{,}611\text{ USD}.$$
+>
+> **Step 4.** PV equation (zero-coupon special case): the discount factor from settlement to maturity is
+>
+> $$P(\text{settle},\text{mat}) = \frac{Y}{100} = 0.987361,$$
+>
+> so the PV of the maturity cashflow is
+>
+> $$PV = N \cdot P(\text{settle},\text{mat}) = 9{,}873{,}611\text{ USD}.$$
+>
+> **Step 5.** Risk (DV01-style "01"): define (book convention)
+>
+> $$DV01_{\text{disc}} := PV(q_{\text{disc}}-1\text{bp}) - PV(q_{\text{disc}}).$$
+>
+> Since $PV = N\left(1 - (q_{\text{disc}}/100)\frac{n}{360}\right)$,
+>
+> $$DV01_{\text{disc}} = N \cdot \frac{n}{360} \cdot 10^{-4} = 10{,}000{,}000 \times \frac{91}{360} \times 10^{-4} = 252.78\text{ USD}.$$
 >
 > **Cashflows**
 >
@@ -376,7 +390,9 @@ For many practical purposes, continuous compounding is close to daily compoundin
 > **Why Continuous Compounding in Derivatives**
 >
 > Continuous compounding is widely used in derivatives pricing because it makes the algebra of forward/spot rate relationships clean. Discount factors compose multiplicatively along the time line: discounting from $T_1+T_2$ back to $0$ equals discounting from $T_1+T_2$ back to $T_1$ and then from $T_1$ back to $0$. With continuous rates this becomes additive in the exponent:
+>
 > $$e^{-r_1 T_1}\times e^{-r_2 T_2}=e^{-(r_1 T_1+r_2 T_2)},$$
+>
 > where $r_1$ is the (continuously compounded) zero rate over $[0,T_1]$ and $r_2$ is the *forward* rate over $[T_1,T_1+T_2]$. The same composition under semiannual compounding would mix products of $(1+R/2)$ terms and is messier to differentiate. Treat compounding basis as part of the rate's unit; convert to the market's quoting convention when comparing prices or risks across systems.
 
 ### 1.3.3 Compounding Is a Unit Choice, Not an Economic Choice
@@ -497,6 +513,7 @@ A useful (but imperfect) intuition is that failing can compete with borrowing th
 > - The cap of $3\\%$ binds only if $R\lt 0$, an edge case for USD but a real one in negative-rate currencies.
 >
 > **Worked number (order of magnitude):** if $\Pi = 100{,}000{,}000\ \text{USD}$ and the applicable charge rate is $2\\%$ per annum, then
+>
 > $$C_{\text{day}} \\;=\\; 100{,}000{,}000 \times \frac{0.02}{360} \\;=\\; 5{,}556 \text{ USD per day}.$$
 >
 > Confirm the exact definition of $R$ and the effective date for your product and venue (the TMPG also publishes a parallel charge for agency debt and agency MBS).
@@ -585,9 +602,11 @@ where $r_i$ is the overnight rate observed on day $i$, $\hat{d}_i = d_i/360$, $d
 > - Fri: $1 + 0.0530 \times \frac{3}{360} = 1.0004417$
 >
 > **Step 2:** Compound the five factors:
+>
 > $$\prod_{i=1}^{5}\left(1+r_i\\,d_i/360\right) = 1.0001472 \times 1.0001478 \times 1.0001475 \times 1.0001469 \times 1.0004417 \approx 1.001031.$$
 >
 > **Step 3:** Annualize over $D=7$ calendar days:
+>
 > $$\text{Compounded Rate} = \left(1.001031 - 1\right) \times \frac{360}{7} \approx 5.30\\%.$$
 >
 > Sanity: the answer is close to the simple average of the five fixings ($\approx 5.30\\%$), as expected when rates barely move within the week.
@@ -681,6 +700,7 @@ $$P + AI = PV(\text{future cash flows})$$
 $$P^b + \frac{c}{2} = \frac{c}{2} + PV(\text{cash flows after the next coupon})$$
 
 Simplifying:
+
 $$P^b = PV(\text{cash flows after the next coupon})$$
 
 **After the coupon payment:** Right after the coupon payment, accrued interest equals zero:
@@ -726,13 +746,13 @@ Most trading desks quote clean and track accrued interest separately, then recon
 > - May 15 to July 15 = 61 days
 > - May 15 to November 15 = 184 days (full period)
 >
-> **Step 2:** Calculate accrued interest (ACT/ACT)
-> $$AI = \frac{61}{184} \times 2.50 = 0.829\\;\text{(per }100\text{ face)}$$
+> **Step 2:** Calculate accrued interest (ACT/ACT). The semiannual coupon is $5\\%/2 = 2.50$ per $100$ face, so:
 >
-> (The semiannual coupon is $5\\%/2 = 2.50$ per $100$ face.)
+> $$AI = \frac{61}{184} \times 2.50 = 0.829 \quad (\text{per }100\text{ face}).$$
 >
-> **Step 3:** Calculate dirty price
-> $$P_{\text{dirty}} = 98.50 + 0.829 = 99.329$$
+> **Step 3:** Calculate dirty price.
+>
+> $$P_{\text{dirty}} = 98.50 + 0.829 = 99.329.$$
 >
 > **Step 4:** Cash exchanged on $1mm face
 > $$\text{Cash} = 1{,}000{,}000 \times \frac{99.329}{100} = 993{,}290 \text{ USD}.$$
