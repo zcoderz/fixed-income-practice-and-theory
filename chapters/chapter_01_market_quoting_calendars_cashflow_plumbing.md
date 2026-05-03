@@ -477,9 +477,11 @@ Settlement then specifies *when* the invoice cash is exchanged. To reconcile a q
 
 > **Check (order of magnitude): settlement lag is funding-sized**
 >
-> Suppose you buy \$100,000,000 face of a bond at a dirty price of 99.30, so the invoice amount is about \$99.30mm. If settlement is 3 calendar days later and you use a hypothetical 5% p.a. discount rate for that lag (ACT/360, simple interest), the time value over the lag is roughly:
+> Suppose you buy a bond with face value of \$100,000,000 at a dirty price of $99.30$ per $100$ face, so the invoice amount is about \$99.30mm. If settlement is $3$ calendar days later and you use a hypothetical $5\\%$ p.a. discount rate for that lag (ACT/360, simple interest), the time value over the lag is roughly:
+>
 > $$99.30\text{mm}\times 0.05 \times \frac{3}{360} \approx 41{,}000\ \text{USD}.$$
-> This is not “alpha”; it’s a mechanical timing effect. If your system prices as of trade date but accrues AI to settlement (or vice versa), this is the kind of reconciliation break you’ll see.
+>
+> This is not "alpha"; it is a mechanical timing effect. If your system prices as of trade date but accrues AI to settlement (or vice versa), this is the kind of reconciliation break you will see.
 
 ### 1.4.3 When Settlement Fails
 
