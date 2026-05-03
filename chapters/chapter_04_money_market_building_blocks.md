@@ -703,11 +703,11 @@ $$\boxed{L(0;1M,3M) \approx 5.2780\ \text{percent}}$$
 
 **1. Translate quote to cash price (per \$100 face)**
 
-$$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\frac{91}{360}=98.6856$$
+$$Y=100-q_{\text{disc}}\frac{d}{360}=100-5.20\cdot\frac{91}{360}=100-\frac{473.2}{360}=98.685555\ldots\approx 98.685556$$
 
 **2. Convert price to discount factor**
 
-$$P(0,T)=\frac{Y}{100}=0.9868556$$
+$$P(0,T)=\frac{Y}{100}=0.98685556$$
 
 **3. Compute DV01 (quote bump, rates down 1bp)**
 
